@@ -1220,7 +1220,7 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier - Version progressive"""
+    """Renommer un fichier ou dossier - Étape 1: Import des modèles"""
     try:
         data = request.get_json()
         item_type = data.get('type')
@@ -1230,11 +1230,17 @@ def rename_item():
         if not all([item_type, item_id, new_name]):
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
-        # Pour l'instant, juste retourner un succès avec les vraies données
-        # Nous ajouterons progressivement la logique de base de données
+        # Étape 1: Test d'import des modèles
+        try:
+            from models.file_manager import FileFolder, UserFile
+            import_success = True
+        except ImportError as e:
+            return jsonify({'success': False, 'message': f'Erreur d\'import: {str(e)}'}), 500
+
+        # Pour cette étape, juste confirmer que l'import fonctionne
         return jsonify({
             'success': True,
-            'message': f'Renommage de {item_type} ID {item_id} en "{new_name}" - logique à implémenter'
+            'message': f'Étape 1 OK: Import réussi. Renommage de {item_type} ID {item_id} en "{new_name}"'
         })
         
     except Exception as e:
