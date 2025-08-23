@@ -1,0 +1,1025 @@
+/**
+ * PDFViewer - Styles CSS pour le composant réutilisable
+ * Version: 1.0.0
+ * Auteur: TeacherPlanner
+ */
+
+/* === STRUCTURE PRINCIPALE === */
+
+.pdf-viewer-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-viewer-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.pdf-viewer-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pdf-viewer-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    background-color: #e5e7eb;
+    position: relative;
+}
+
+.pdf-pages-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
+    min-height: 100%;
+    width: 100%;
+}
+
+/* === BARRE D'OUTILS === */
+
+.pdf-viewer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+    min-height: 60px;
+}
+
+.pdf-tools-group,
+.pdf-colors-group,
+.pdf-stroke-group,
+.pdf-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pdf-tool-btn,
+.pdf-action-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e5e7eb;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #6b7280;
+}
+
+.pdf-tool-btn:hover,
+.pdf-action-btn:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background-color: #f0f9ff;
+}
+
+.pdf-tool-btn.active {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+    color: #ffffff;
+}
+
+.pdf-preset-colors {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.pdf-color-btn {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pdf-color-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-color-btn.active {
+    border-color: #1f2937;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #3b82f6;
+}
+
+.pdf-custom-color {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    background: none;
+    padding: 0;
+}
+
+.pdf-stroke-group {
+    background-color: #f9fafb;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.pdf-stroke-group label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-right: 0.5rem;
+}
+
+.pdf-stroke-width {
+    width: 80px;
+    margin: 0 0.5rem;
+}
+
+.pdf-stroke-group span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* === PANNEAU DES MINIATURES === */
+
+.pdf-thumbnails-panel {
+    width: 200px;
+    background-color: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pdf-thumbnails-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.pdf-thumbnails-header h4 {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    text-align: center;
+}
+
+.pdf-thumbnails-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pdf-thumbnail-item {
+    background-color: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.pdf-thumbnail-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.pdf-thumbnail-item.active {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.pdf-thumbnail-canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.pdf-thumbnail-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    text-align: center;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+}
+
+/* === PAGES PDF === */
+
+.pdf-page-wrapper {
+    position: relative;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    max-width: 100%;
+}
+
+.pdf-canvas {
+    display: block;
+    border-radius: 0.5rem;
+    max-width: 100%;
+    height: auto;
+}
+
+.pdf-annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 0.5rem;
+    pointer-events: auto;
+    z-index: 2;
+    cursor: crosshair;
+}
+
+.pdf-page-number {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* === PIED DE PAGE === */
+
+.pdf-viewer-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    font-size: 0.875rem;
+}
+
+.pdf-save-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+}
+
+.pdf-save-status.success {
+    color: #10b981;
+}
+
+.pdf-save-status.warning {
+    color: #f59e0b;
+}
+
+.pdf-save-status.error {
+    color: #ef4444;
+}
+
+.pdf-save-status.loading {
+    color: #3b82f6;
+}
+
+.pdf-page-info {
+    font-weight: 500;
+    color: #374151;
+}
+
+.pdf-page-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pdf-nav-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #6b7280;
+}
+
+.pdf-nav-btn:hover {
+    background-color: #f3f4f6;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.pdf-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.pdf-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pdf-nav-btn:disabled:hover {
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+    color: #6b7280;
+}
+
+/* === STYLES RESPONSIVES === */
+
+@media (max-width: 768px) {
+    .pdf-viewer-toolbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .pdf-tools-group,
+    .pdf-colors-group,
+    .pdf-actions-group {
+        gap: 0.25rem;
+    }
+    
+    .pdf-stroke-group {
+        order: 10;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .pdf-thumbnails-panel {
+        width: 150px;
+    }
+    
+    .pdf-viewer-main {
+        flex-direction: column-reverse;
+    }
+    
+    .pdf-thumbnails-panel {
+        width: 100%;
+        height: 120px;
+        border-right: none;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .pdf-thumbnails-container {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.5rem;
+    }
+    
+    .pdf-thumbnail-item {
+        min-width: 80px;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .pdf-tool-btn,
+    .pdf-action-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.875rem;
+    }
+    
+    .pdf-color-btn,
+    .pdf-custom-color {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .pdf-viewer-toolbar {
+        min-height: auto;
+        padding: 0.5rem;
+    }
+    
+    .pdf-pages-container {
+        padding: 1rem 0.5rem;
+        gap: 1rem;
+    }
+}
+
+/* === ANIMATIONS === */
+
+@keyframes pdf-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pdf-page-wrapper {
+    animation: pdf-fade-in 0.3s ease-out;
+}
+
+.pdf-thumbnail-item {
+    animation: pdf-fade-in 0.2s ease-out;
+}
+
+/* === SCROLLBAR PERSONNALISÉE === */
+
+.pdf-viewer-container::-webkit-scrollbar,
+.pdf-thumbnails-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.pdf-viewer-container::-webkit-scrollbar-track,
+.pdf-thumbnails-container::-webkit-scrollbar-track {
+    background-color: #f1f5f9;
+    border-radius: 4px;
+}
+
+.pdf-viewer-container::-webkit-scrollbar-thumb,
+.pdf-thumbnails-container::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.pdf-viewer-container::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+.pdf-thumbnails-container::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+/* === ÉTATS DE CHARGEMENT === */
+
+.pdf-viewer-wrapper.loading {
+    pointer-events: none;
+}
+
+.pdf-viewer-wrapper.loading .pdf-pages-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 100;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* === FOCUS ET ACCESSIBILITÉ === */
+
+.pdf-tool-btn:focus,
+.pdf-action-btn:focus,
+.pdf-color-btn:focus,
+.pdf-custom-color:focus,
+.pdf-stroke-width:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.pdf-thumbnail-item:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 1px;
+}
+
+/* === MODES SPÉCIAUX === */
+
+.pdf-viewer-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    border-radius: 0;
+}
+
+.pdf-viewer-wrapper.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    height: 90vh;
+    max-width: 1200px;
+    max-height: 800px;
+    z-index: 1000;
+}
+
+/* === OVERLAY POUR MODAL === */
+
+.pdf-viewer-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* === BOUTON DE FERMETURE POUR MODAL === */
+
+.pdf-viewer-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color 0.2s ease;
+}
+
+.pdf-viewer-close-btn:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+/* === INDICATEURS D'ANNOTATION === */
+
+.pdf-annotation-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #3b82f6;
+    color: #ffffff;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.pdf-annotation-indicator.has-annotations {
+    background-color: #10b981;
+}
+
+/* === CURSEURS SPÉCIAUX === */
+
+.pdf-annotation-canvas.pen-cursor {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="1" fill="black"/></svg>') 8 8, crosshair;
+}
+
+.pdf-annotation-canvas.highlighter-cursor {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="6" y="6" width="4" height="4" fill="yellow" opacity="0.7"/></svg>') 8 8, crosshair;
+}
+
+.pdf-annotation-canvas.eraser-cursor {
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="none" stroke="red" stroke-width="1"/></svg>') 8 8, crosshair;
+}
+
+/* === PANNEAU DE CONTRÔLE GRAPHIQUE === */
+
+.graph-control-panel {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 320px;
+    max-height: 80vh;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+    display: none;
+}
+
+.graph-control-header {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.graph-control-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.graph-control-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.graph-control-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.graph-control-content {
+    padding: 20px;
+    max-height: calc(80vh - 70px);
+    overflow-y: auto;
+}
+
+.graph-section {
+    margin-bottom: 24px;
+}
+
+.graph-section:last-child {
+    margin-bottom: 0;
+}
+
+.graph-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+/* === CONTRÔLES DES AXES === */
+
+.axis-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.axis-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.axis-row label {
+    font-weight: 500;
+    color: #4b5563;
+    min-width: 50px;
+    font-size: 13px;
+}
+
+.axis-row input[type="number"] {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: border-color 0.2s;
+}
+
+.axis-row input[type="number"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.axis-row span {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+/* === CONTRÔLES DES FONCTIONS === */
+
+.function-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.function-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.function-input-row input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.function-input-row input[type="text"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.function-input-row input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+}
+
+.functions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.function-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.function-item:hover {
+    background: #f1f3f4;
+    border-color: #d1d5db;
+}
+
+.function-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #d1d5db;
+    flex-shrink: 0;
+}
+
+.function-expression {
+    flex: 1;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    color: #374151;
+    word-break: break-all;
+}
+
+.function-delete {
+    background: #ef4444;
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.function-delete:hover {
+    background: #dc2626;
+}
+
+.function-color-picker {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* === BOUTONS GRAPHIQUE === */
+
+.graph-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+}
+
+.graph-btn.primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.graph-btn.primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.graph-btn.secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.graph-btn.secondary:hover {
+    background: #4b5563;
+}
+
+.graph-btn.success {
+    background: #10b981;
+    color: white;
+}
+
+.graph-btn.success:hover {
+    background: #059669;
+}
+
+.graph-btn.danger {
+    background: #ef4444;
+    color: white;
+}
+
+.graph-btn.danger:hover {
+    background: #dc2626;
+}
+
+.graph-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.graph-actions .graph-btn {
+    flex: 1;
+}
+
+/* === INDICATEUR DE PAGE GRAPHIQUE === */
+
+.thumbnail-item.graph-page {
+    position: relative;
+}
+
+.thumbnail-item.graph-page::after {
+    content: '📊';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* === STYLES POUR IMPRESSION === */
+
+@media print {
+    .pdf-viewer-toolbar,
+    .pdf-thumbnails-panel,
+    .pdf-viewer-footer,
+    .graph-control-panel {
+        display: none !important;
+    }
+    
+    .pdf-viewer-wrapper {
+        box-shadow: none;
+        border-radius: 0;
+    }
+    
+    .pdf-page-wrapper {
+        box-shadow: none;
+        page-break-inside: avoid;
+        margin-bottom: 0;
+    }
+    
+    .pdf-annotation-canvas {
+        display: block !important;
+    }
+}
+
+/* === STYLES POUR LE MODE SOMBRE === */
+
+@media (prefers-color-scheme: dark) {
+    .pdf-viewer-wrapper {
+        background-color: #1f2937;
+        color: #f9fafb;
+    }
+    
+    .pdf-viewer-toolbar,
+    .pdf-thumbnails-panel {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+    
+    .pdf-viewer-footer {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+    
+    .pdf-tool-btn,
+    .pdf-action-btn {
+        background-color: #4b5563;
+        border-color: #6b7280;
+        color: #d1d5db;
+    }
+    
+    .pdf-tool-btn:hover,
+    .pdf-action-btn:hover {
+        background-color: #374151;
+        border-color: #3b82f6;
+    }
+    
+    .pdf-viewer-container {
+        background-color: #111827;
+    }
+    
+    .pdf-thumbnail-item {
+        background-color: #374151;
+        border-color: #4b5563;
+    }
+    
+    /* Panneau graphique en mode sombre */
+    .graph-control-panel {
+        background: #374151;
+        border-color: #4b5563;
+    }
+    
+    .graph-section h4 {
+        color: #e5e7eb;
+        border-color: #4b5563;
+    }
+    
+    .axis-row label {
+        color: #d1d5db;
+    }
+    
+    .axis-row input[type="number"],
+    .function-input-row input[type="text"] {
+        background: #4b5563;
+        border-color: #6b7280;
+        color: #f9fafb;
+    }
+    
+    .function-item {
+        background: #4b5563;
+        border-color: #6b7280;
+    }
+    
+    .function-expression {
+        color: #e5e7eb;
+    }
+}
