@@ -20,6 +20,14 @@ def create_app(config_name='development'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     
+    # Enregistrer les filtres Jinja2
+    try:
+        from utils.jinja_filters import register_filters
+        register_filters(app)
+        print("✅ Filtres Jinja2 enregistrés")
+    except ImportError:
+        print("❌ Filtres Jinja2 non trouvés")
+    
     # Enregistrement des blueprints
     from routes.auth import auth_bp
     from routes.planning import planning_bp
