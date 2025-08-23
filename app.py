@@ -89,6 +89,13 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ file_manager blueprint non trouvé")
         
+    try:
+        from routes.class_files import class_files_bp
+        app.register_blueprint(class_files_bp)
+        print("✅ class_files blueprint ajouté")
+    except ImportError:
+        print("❌ class_files blueprint non trouvé")
+        
     # mixed_groups n'existe pas, on le retire
     # try:
     #     from routes.mixed_groups import mixed_groups_bp
