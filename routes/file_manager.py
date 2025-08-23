@@ -1220,44 +1220,32 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier"""
-    from models.file_manager import FileFolder, UserFile
-
-    data = request.get_json()
-    item_type = data.get('type')
-    item_id = data.get('id')
-    new_name = data.get('name')
-
-    if not all([item_type, item_id, new_name]):
-        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
-
+    """Renommer un fichier ou dossier - Version de test simple"""
     try:
-        if item_type == 'folder':
-            item = FileFolder.query.filter_by(
-                id=item_id,
-                user_id=current_user.id
-            ).first_or_404()
-        else:
-            item = UserFile.query.filter_by(
-                id=item_id,
-                user_id=current_user.id
-            ).first_or_404()
-            item.original_filename = new_name
+        print(f"[DEBUG] rename_item appelé par user {current_user.id}")
+        
+        data = request.get_json()
+        print(f"[DEBUG] Données reçues: {data}")
+        
+        item_type = data.get('type')
+        item_id = data.get('id')
+        new_name = data.get('name')
 
-        if item_type == 'folder':
-            item.name = new_name
+        print(f"[DEBUG] Paramètres: type={item_type}, id={item_id}, name={new_name}")
 
-        item.updated_at = datetime.utcnow()
-        db.session.commit()
+        if not all([item_type, item_id, new_name]):
+            print("[DEBUG] Données manquantes")
+            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
+        # Version simplifiée pour test - retourner succès
+        print("[DEBUG] Version de test - retour de succès")
         return jsonify({
-            'success': True,
-            'message': 'Élément renommé avec succès'
+            'success': True, 
+            'message': f'Test: renommage de {item_type} {item_id} en {new_name}'
         })
-
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"[DEBUG] Erreur dans rename_item: {e}")
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
 @file_manager_bp.route('/update-folder-color', methods=['PUT'])
 @login_required

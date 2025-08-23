@@ -132,7 +132,7 @@ def copy_file_to_class():
 @class_files_bp.route('/copy-folder', methods=['POST'])
 @login_required
 def copy_folder_to_class():
-    """Copier un dossier complet vers une classe"""
+    """Copier un dossier complet vers une classe - Version de test simple"""
     try:
         print(f"[DEBUG] copy_folder_to_class appelé par user {current_user.id}")
         
@@ -143,26 +143,20 @@ def copy_folder_to_class():
         class_id = data.get('class_id')
         target_path = data.get('folder_path', '').strip()
         
+        print(f"[DEBUG] Paramètres: folder_id={folder_id}, class_id={class_id}, target_path={target_path}")
+        
         if not folder_id or not class_id:
             print("[DEBUG] Paramètres manquants")
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
         
-        print(f"[DEBUG] Recherche du dossier {folder_id} pour l'utilisateur {current_user.id}")
+        # Version simplifiée pour test - retourner succès
+        print("[DEBUG] Version de test - retour de succès")
+        return jsonify({
+            'success': True, 
+            'message': f'Test: copie du dossier {folder_id} vers la classe {class_id}'
+        })
         
-        # Vérifier que le dossier appartient à l'utilisateur
-        try:
-            folder = FileFolder.query.filter_by(
-                id=folder_id,
-                user_id=current_user.id
-            ).first()
-            print(f"[DEBUG] Dossier trouvé: {folder}")
-        except Exception as e:
-            print(f"[DEBUG] Erreur lors de la recherche du dossier: {e}")
-            return jsonify({'success': False, 'message': f'Erreur DB dossier: {str(e)}'}), 500
-        
-        if not folder:
-            print(f"[DEBUG] Dossier {folder_id} introuvable pour l'utilisateur {current_user.id}")
-            return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+        # Le code original sera restauré une fois le test réussi
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
