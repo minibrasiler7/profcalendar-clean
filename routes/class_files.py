@@ -134,21 +134,34 @@ def copy_file_to_class():
 def copy_folder_to_class():
     """Copier un dossier complet vers une classe"""
     try:
+        print(f"[DEBUG] copy_folder_to_class appelé par user {current_user.id}")
+        
         data = request.get_json()
+        print(f"[DEBUG] Données reçues: {data}")
+        
         folder_id = data.get('folder_id')
         class_id = data.get('class_id')
         target_path = data.get('folder_path', '').strip()
         
         if not folder_id or not class_id:
+            print("[DEBUG] Paramètres manquants")
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
         
+        print(f"[DEBUG] Recherche du dossier {folder_id} pour l'utilisateur {current_user.id}")
+        
         # Vérifier que le dossier appartient à l'utilisateur
-        folder = FileFolder.query.filter_by(
-            id=folder_id,
-            user_id=current_user.id
-        ).first()
+        try:
+            folder = FileFolder.query.filter_by(
+                id=folder_id,
+                user_id=current_user.id
+            ).first()
+            print(f"[DEBUG] Dossier trouvé: {folder}")
+        except Exception as e:
+            print(f"[DEBUG] Erreur lors de la recherche du dossier: {e}")
+            return jsonify({'success': False, 'message': f'Erreur DB dossier: {str(e)}'}), 500
         
         if not folder:
+            print(f"[DEBUG] Dossier {folder_id} introuvable pour l'utilisateur {current_user.id}")
             return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
         
         # Vérifier que la classe appartient à l'utilisateur
