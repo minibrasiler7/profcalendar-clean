@@ -67,8 +67,27 @@ def create_app(config_name='development'):
         app.register_blueprint(sanctions_bp)
     except ImportError:
         print("sanctions blueprint non trouvé")
+        
+    try:
+        from routes.settings import settings_bp
+        app.register_blueprint(settings_bp)
+    except ImportError:
+        print("settings blueprint non trouvé")
+        
+    try:
+        from routes.file_manager import file_manager_bp
+        app.register_blueprint(file_manager_bp)
+    except ImportError:
+        print("file_manager blueprint non trouvé")
+        
+    try:
+        from routes.mixed_groups import mixed_groups_bp
+        app.register_blueprint(mixed_groups_bp)
+    except ImportError:
+        print("mixed_groups blueprint non trouvé")
     
     return app
 
 # Création de l'instance par défaut
 app = create_app()
+
