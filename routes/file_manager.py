@@ -1220,20 +1220,25 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier - Version ultra-simple"""
-    print(f"[DEBUG] Route rename appelée - début")
-    
+    """Renommer un fichier ou dossier - Version progressive"""
     try:
-        print(f"[DEBUG] Utilisateur: {current_user.id}")
+        data = request.get_json()
+        item_type = data.get('type')
+        item_id = data.get('id')
+        new_name = data.get('name')
+
+        if not all([item_type, item_id, new_name]):
+            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+
+        # Pour l'instant, juste retourner un succès avec les vraies données
+        # Nous ajouterons progressivement la logique de base de données
         return jsonify({
-            'success': True, 
-            'message': 'Version ultra-simple - test de base réussi'
+            'success': True,
+            'message': f'Renommage de {item_type} ID {item_id} en "{new_name}" - logique à implémenter'
         })
+        
     except Exception as e:
-        print(f"[DEBUG] Erreur basique: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': f'Erreur basique: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
 @file_manager_bp.route('/update-folder-color', methods=['PUT'])
 @login_required

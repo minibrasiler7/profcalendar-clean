@@ -132,54 +132,26 @@ def copy_file_to_class():
 @class_files_bp.route('/copy-folder', methods=['POST'])
 @login_required
 def copy_folder_to_class():
-    """Copier un dossier complet vers une classe - Version de test simple"""
+    """Copier un dossier complet vers une classe - Version progressive"""
     try:
-        print(f"[DEBUG] copy_folder_to_class appelé par user {current_user.id}")
-        
         data = request.get_json()
-        print(f"[DEBUG] Données reçues: {data}")
-        
         folder_id = data.get('folder_id')
         class_id = data.get('class_id')
         target_path = data.get('folder_path', '').strip()
         
-        print(f"[DEBUG] Paramètres: folder_id={folder_id}, class_id={class_id}, target_path={target_path}")
-        
         if not folder_id or not class_id:
-            print("[DEBUG] Paramètres manquants")
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
         
-        # Version simplifiée pour test - retourner succès
-        print("[DEBUG] Version de test - retour de succès")
+        # Pour l'instant, juste retourner un succès avec les vraies données
+        # Nous ajouterons progressivement la logique de copie
         return jsonify({
             'success': True, 
-            'message': f'Test: copie du dossier {folder_id} vers la classe {class_id}'
+            'message': f'Copie du dossier {folder_id} vers la classe {class_id} dans "{target_path}" - logique à implémenter'
         })
         
-        # Le code original sera restauré une fois le test réussi
-        
-        # Vérifier que la classe appartient à l'utilisateur
-        classroom = Classroom.query.filter_by(
-            id=class_id,
-            user_id=current_user.id
-        ).first()
-        
-        if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-        
-        # Copier récursivement
-        copied_count = copy_folder_recursive(folder, class_id, target_path)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)',
-            'copied_count': copied_count
-        })
+        # Le code de copie réel sera ajouté progressivement
         
     except Exception as e:
-        db.session.rollback()
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
 def copy_folder_recursive(folder, class_id, base_path):
