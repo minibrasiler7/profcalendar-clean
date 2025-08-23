@@ -1220,65 +1220,20 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier"""
+    """Renommer un fichier ou dossier - Version ultra-simple"""
+    print(f"[DEBUG] Route rename appelée - début")
+    
     try:
-        print(f"[DEBUG] rename_item appelé par user {current_user.id}")
-        
-        data = request.get_json()
-        print(f"[DEBUG] Données reçues: {data}")
-        
-        item_type = data.get('type')
-        item_id = data.get('id')
-        new_name = data.get('name')
-
-        print(f"[DEBUG] Paramètres: type={item_type}, id={item_id}, name={new_name}")
-
-        if not all([item_type, item_id, new_name]):
-            print("[DEBUG] Données manquantes")
-            return jsonify({'success': False, 'message': 'Données manquantes'}), 400
-
-        # Import des modèles avec gestion d'erreur
-        try:
-            from models.file_manager import FileFolder, UserFile
-            print("[DEBUG] Import des modèles réussi")
-        except ImportError as e:
-            print(f"[DEBUG] Erreur d'import des modèles: {e}")
-            return jsonify({'success': False, 'message': 'Erreur de configuration'}), 500
-
-        # Traitement du renommage
-        if item_type == 'folder':
-            print(f"[DEBUG] Renommage d'un dossier ID {item_id}")
-            item = FileFolder.query.filter_by(
-                id=item_id,
-                user_id=current_user.id
-            ).first()
-            if not item:
-                return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
-            item.name = new_name
-        else:
-            print(f"[DEBUG] Renommage d'un fichier ID {item_id}")
-            item = UserFile.query.filter_by(
-                id=item_id,
-                user_id=current_user.id
-            ).first()
-            if not item:
-                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-            item.original_filename = new_name
-
-        # Sauvegarder les changements
-        item.updated_at = datetime.utcnow()
-        db.session.commit()
-        print(f"[DEBUG] Renommage réussi pour {item_type} {item_id}")
-
+        print(f"[DEBUG] Utilisateur: {current_user.id}")
         return jsonify({
-            'success': True,
-            'message': 'Élément renommé avec succès'
+            'success': True, 
+            'message': 'Version ultra-simple - test de base réussi'
         })
-        
     except Exception as e:
-        db.session.rollback()
-        print(f"[DEBUG] Erreur dans rename_item: {e}")
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        print(f"[DEBUG] Erreur basique: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Erreur basique: {str(e)}'}), 500
 
 @file_manager_bp.route('/update-folder-color', methods=['PUT'])
 @login_required
