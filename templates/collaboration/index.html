@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Codes d'Accès - TeacherPlanner{% endblock %}
+
+{% block extra_css %}
+<style>
+.collaboration-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.section-card {
+    background: var(--white);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.section-title i {
+    color: var(--primary-color);
+}
+
+.code-item {
+    background: var(--light-gray);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.code-details h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--dark-color);
+}
+
+.code-details p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--gray-color);
+}
+
+.code-display {
+    background: var(--white);
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    min-width: 100px;
+    text-align: center;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-icon.secondary {
+    background-color: var(--gray-color);
+}
+
+.btn-icon.secondary:hover {
+    background-color: #4b5563;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--gray-color);
+    padding: 2rem;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+    color: var(--gray-color);
+    font-size: 1rem;
+}
+
+.teacher-code-section {
+    text-align: center;
+    padding: 1rem;
+}
+
+.teacher-code-display {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 1rem;
+    letter-spacing: 2px;
+}
+
+.teacher-code-info {
+    color: var(--gray-color);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="collaboration-container">
+    <!-- En-tête de la page -->
+    <div class="page-header">
+        <h1 class="page-title">Codes d'Accès</h1>
+        <p class="page-subtitle">Gérez les codes d'accès pour vos élèves, leurs parents et vos collègues enseignants</p>
+    </div>
+
+    <!-- Section 1: Codes d'accès élèves -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-user-graduate"></i>
+                Codes d'Accès Élèves
+            </h2>
+        </div>
+        <div id="student-codes-list">
+            {% if student_codes %}
+                {% for code_info in student_codes %}
+                <div class="code-item">
+                    <div class="code-details">
+                        <h4>{{ code_info.classroom_name }}</h4>
+                        <p>{{ code_info.student_count }} élève(s) • Créé le {{ code_info.created_at.strftime('%d/%m/%Y') }}</p>
+                        <p><small>Expire le {{ code_info.expires_at.strftime('%d/%m/%Y') }}</small></p>
+                    </div>
+                    <div class="actions">
+                        <div class="code-display">{{ code_info.code }}</div>
+                        <button class="btn-icon" title="Copier" onclick="copyToClipboard('{{ code_info.code }}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="btn-icon secondary" title="Régénérer" onclick="regenerateStudentCode('{{ code_info.classroom_id }}')">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-user-graduate fa-2x mb-2"></i>
+                <p>Aucun code d'accès élève généré</p>
+                <p>Les codes sont générés automatiquement depuis la page de gestion des classes</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section 2: Codes d'accès parents -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-users"></i>
+                Codes d'Accès Parents
+            </h2>
+        </div>
+        <div id="parent-codes-list">
+            {% if parent_codes %}
+                {% for code_info in parent_codes %}
+                <div class="code-item">
+                    <div class="code-details">
+                        <h4>{{ code_info.classroom_name }}</h4>
+                        <p>Accès aux informations des élèves de cette classe</p>
+                        <p><small>Créé le {{ code_info.created_at.strftime('%d/%m/%Y') }} • Expire le {{ code_info.expires_at.strftime('%d/%m/%Y') }}</small></p>
+                    </div>
+                    <div class="actions">
+                        <div class="code-display">{{ code_info.code }}</div>
+                        <button class="btn-icon" title="Copier" onclick="copyToClipboard('{{ code_info.code }}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <p>Aucun code d'accès parent disponible</p>
+                <p>Les codes parents sont créés automatiquement avec vos classes</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Section 3: Code d'accès enseignant -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-chalkboard-teacher"></i>
+                Code d'Accès Enseignant
+            </h2>
+        </div>
+        <div class="teacher-code-section">
+            {% if teacher_code %}
+            <div class="teacher-code-display">{{ teacher_code.code }}</div>
+            <p class="teacher-code-info">
+                Ce code permet à d'autres enseignants de collaborer avec vous<br>
+                Créé le {{ teacher_code.created_at.strftime('%d/%m/%Y à %H:%M') }}<br>
+                {% if teacher_code.expires_at %}
+                <strong>Expire le {{ teacher_code.expires_at.strftime('%d/%m/%Y') }}</strong>
+                {% endif %}
+            </p>
+            <div class="actions" style="justify-content: center;">
+                <button class="btn-icon" title="Copier" onclick="copyToClipboard('{{ teacher_code.code }}')">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="btn-icon secondary" title="Régénérer" onclick="regenerateTeacherCode()">
+                    <i class="fas fa-sync"></i>
+                </button>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-chalkboard-teacher fa-2x mb-2"></i>
+                <p>Aucun code enseignant actif</p>
+                <button class="btn btn-primary" onclick="generateTeacherCode()">
+                    <i class="fas fa-plus"></i> Générer un Code
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+<script>
+// Copier dans le presse-papier
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('success', 'Code copié dans le presse-papier');
+    }).catch(() => {
+        showNotification('error', 'Erreur lors de la copie');
+    });
+}
+
+// Régénérer un code élève
+async function regenerateStudentCode(classroomId) {
+    if (!confirm('Voulez-vous vraiment régénérer ce code ? L\'ancien code ne fonctionnera plus.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/planning/generate-class-code/${classroomId}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('success', 'Code régénéré avec succès');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la régénération');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la communication avec le serveur');
+    }
+}
+
+
+// Régénérer le code enseignant
+async function regenerateTeacherCode() {
+    if (!confirm('Voulez-vous vraiment régénérer votre code enseignant ? L\'ancien code ne fonctionnera plus.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/collaboration/regenerate-teacher-code', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('success', 'Code enseignant régénéré avec succès');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la régénération');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la communication avec le serveur');
+    }
+}
+
+// Générer le premier code enseignant (avec 1 an de validité automatique)
+async function generateTeacherCode() {
+    try {
+        const response = await fetch('/collaboration/create-teacher-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                validity_days: 365,
+                max_uses: null
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('success', 'Code enseignant généré avec succès (valide 1 an)');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la génération');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la communication avec le serveur');
+    }
+}
+
+
+// Fonction de notification (doit être définie dans votre CSS/JS global)
+function showNotification(type, message) {
+    // Implémentation de base - à adapter selon votre système de notifications existant
+    alert(message);
+}
+</script>
+{% endblock %}

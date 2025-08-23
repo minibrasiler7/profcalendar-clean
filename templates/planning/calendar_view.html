@@ -1,0 +1,4824 @@
+{% extends "base.html" %}
+
+{% block title %}Calendrier - TeacherPlanner{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
+<!-- PDF.js pour l'affichage des PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Font Awesome pour les icônes -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Lecteur PDF unifié -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
+<script>
+// Configuration du worker PDF.js
+if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    console.log('PDF.js worker configuré');
+}
+</script>
+<style>
+/* Styles pour le modal de planification avec gestionnaire de fichiers */
+.planning-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 2rem 0;
+}
+
+.planning-modal.show {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 5vh;
+}
+
+.planning-modal .modal-content {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease-out;
+    position: relative;
+    margin: 0 auto;
+}
+
+.planning-modal.split-view {
+    background: none;
+}
+
+.planning-modal.split-view .modal-content {
+    width: 500px;
+    position: fixed;
+    left: calc(50% - 510px);
+    top: 5vh;
+}
+
+.file-manager-panel {
+    position: fixed;
+    top: 5vh;
+    left: calc(50% - 10px);
+    width: 500px;
+    height: 90vh;
+    max-height: 90vh;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 1001;
+}
+
+.file-manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.file-manager-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.file-manager-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.modal-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: #f3f4f6;
+    color: #1f2937;
+}
+
+.file-loading {
+    text-align: center;
+    padding: 3rem;
+    color: #6b7280;
+}
+
+.file-navigation {
+    margin-bottom: 1rem;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.breadcrumb-item {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.breadcrumb-item:hover {
+    color: var(--primary-color);
+}
+
+.breadcrumb-item.active {
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.file-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: #e5e7eb;
+}
+
+.file-item.folder {
+    font-weight: 500;
+}
+
+.file-icon {
+    font-size: 1.125rem;
+    width: 20px;
+    text-align: center;
+}
+
+.file-icon.fa-folder {
+    color: #f59e0b;
+}
+
+.file-icon.fa-file-pdf {
+    color: #dc2626;
+}
+
+.file-icon.fa-file-image {
+    color: #10b981;
+}
+
+.file-name {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.no-files {
+    text-align: center;
+    padding: 3rem;
+    color: #9ca3af;
+}
+
+.no-files i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Styles pour le Modal Viewer/Annotateur Amélioré (copiés exactement de lesson_view.html) */
+.file-viewer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    flex-direction: column;
+}
+
+.file-viewer-modal.show {
+    display: flex;
+}
+
+/* Mode intégré pour le viewer dans la vue split */
+.file-viewer-modal.embedded {
+    position: fixed;
+    top: 5vh;
+    left: calc(50% - 10px);
+    width: calc(50% + 10px);
+    height: 90vh;
+    background-color: rgba(0, 0, 0, 0.95);
+    border-radius: var(--border-radius);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 1001;
+}
+
+.file-viewer-modal.embedded .viewer-header {
+    background-color: #2d3748;
+    color: white;
+}
+
+.viewer-header {
+    background-color: #f8fafc;
+    color: #2d3748;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 1;
+    position: relative;
+}
+
+.viewer-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.viewer-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-right: 0.75rem;
+    border-right: 1px solid #e2e8f0;
+}
+
+.tool-group:last-child {
+    border-right: none;
+    padding-right: 0;
+}
+
+.tool-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    color: #4a5568;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn:hover {
+    background-color: #f7fafc;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.tool-btn.active {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3);
+}
+
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #ffffff;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.preset-colors {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.color-btn {
+    width: 22px;
+    height: 22px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+    border-color: white;
+}
+
+.color-btn.active {
+    border-color: white;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.color-picker-container input[type="color"] {
+    width: 26px;
+    height: 26px;
+    border: 2px solid transparent;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    background: none;
+}
+
+.stroke-width-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #4A5568;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    position: relative;
+    z-index: 10;
+}
+
+.stroke-width-container input[type="range"] {
+    width: 60px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #6B7280;
+    outline: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.stroke-width-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.stroke-width-container input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    border: none;
+}
+
+#strokeWidthValue {
+    min-width: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.close-viewer {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background-color: #E53E3E;
+    color: white;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-left: auto;
+}
+
+.close-viewer:hover {
+    background-color: #C53030;
+    transform: scale(1.05);
+}
+
+.viewer-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    z-index: 0;
+}
+
+.viewer-container {
+    max-width: 100%;
+    max-height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pdf-container, .image-container {
+    position: relative;
+    display: inline-block;
+}
+
+.viewer-footer {
+    background-color: #2D3748;
+    color: white;
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid #4A5568;
+}
+
+.save-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #68D391;
+    font-size: 0.9rem;
+}
+
+.save-status.saving {
+    color: #F6AD55;
+}
+
+.save-status.error {
+    color: #FC8181;
+}
+
+.viewer-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    min-height: 0; /* Allow flex children to shrink */
+}
+
+/* Barre latérale des pages - permanente à gauche */
+.page-sidebar {
+    width: 220px;
+    background-color: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.page-sidebar.show {
+    display: flex;
+}
+
+.sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.sidebar-header h6 {
+    margin: 0;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Zone de miniatures scrollable moderne */
+.page-thumbnails {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f1f5f9;
+}
+
+.page-thumbnails.scrollable {
+    max-height: calc(100vh - 200px);
+}
+
+.page-thumbnails::-webkit-scrollbar {
+    width: 8px;
+}
+
+.page-thumbnails::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.page-thumbnails::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.page-thumbnails::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+.thumbnail-item {
+    margin-bottom: 0.75rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.thumbnail-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.thumbnail-item.active {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.thumbnail-canvas {
+    width: 100%;
+    display: block;
+    border-radius: 0.25rem;
+}
+
+/* Zone d'affichage principal */
+.viewer-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem;
+    background-color: #f7fafc;
+    position: relative;
+    height: 100%;
+    scroll-behavior: smooth;
+    /* Assurer un scroll fluide et précis */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f1f5f9;
+}
+
+.pdf-pages-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    min-height: 100%;
+    width: 100%;
+}
+
+.pdf-page-wrapper {
+    position: relative;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.pdf-canvas {
+    display: block;
+    border-radius: 0.5rem;
+}
+
+.annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 0.5rem;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+.pdf-page-number {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+.pdf-canvas {
+    display: block;
+    border-radius: 0.5rem;
+}
+
+.annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    cursor: crosshair;
+    border-radius: 0.5rem;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+}
+
+/* États des boutons */
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tool-btn:disabled:hover {
+    background-color: #4A5568;
+    transform: none;
+}
+
+/* Animation de chargement */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Styles pour les erreurs */
+.error-message {
+    color: #fc8181;
+    text-align: center;
+    padding: 2rem;
+    background-color: #fed7d7;
+    border-radius: 0.5rem;
+    margin: 1rem;
+}
+
+/* Responsive pour le viewer amélioré */
+@media (max-width: 768px) {
+    .viewer-header {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .viewer-tools {
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .tool-group {
+        padding-right: 0.5rem;
+        border-right: none;
+        border-bottom: 1px solid #4a5568;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .tool-group:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .tool-btn {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .stroke-width-container input[type="range"] {
+        width: 60px;
+    }
+    
+    .viewer-footer {
+        padding: 0.5rem 1rem;
+    }
+    
+    .page-sidebar {
+        width: 180px;
+    }
+    
+    .page-sidebar.show {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .viewer-container {
+        padding: 0.5rem;
+    }
+    
+    .viewer-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .viewer-header {
+        padding: 0.5rem;
+    }
+    
+    .viewer-tools {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .tool-group {
+        gap: 0.25rem;
+    }
+    
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+    
+    .color-btn {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .page-sidebar {
+        width: 160px;
+    }
+}
+
+/* Overlay pour les modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* Styles additionnels pour les indicateurs de checklist */
+.checklist-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    margin-top: 0.125rem;
+}
+
+.checklist-icon {
+    font-size: 0.75rem;
+}
+
+.checklist-icon.all-checked {
+    color: #10B981;
+}
+
+.checklist-icon.partial {
+    color: #F59E0B;
+}
+
+.checklist-icon.none-checked {
+    color: #EF4444;
+}
+
+.checklist-count {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Pour la vue annuelle */
+.annual-planning-checklist {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    font-size: 0.5rem;
+    margin-bottom: 0.125rem;
+}
+
+.annual-checklist-icon {
+    font-size: 0.5rem;
+}
+
+/* Styles pour le modal de planification journalière */
+.day-plannings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.day-planning-item {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+.day-planning-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.planning-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.planning-period {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.875rem;
+}
+
+.planning-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.planning-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.planning-class {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.planning-title {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: white;
+}
+
+.planning-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    line-height: 1.4;
+}
+
+/* Styles pour les créneaux journaliers éditables */
+.day-schedules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.day-schedule-slot {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.day-schedule-slot:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.slot-period {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.875rem;
+}
+
+.slot-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.btn-edit-slot {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-slot:hover {
+    background-color: #f3f4f6;
+    color: #4f46e5;
+}
+
+.slot-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.slot-class {
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.slot-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.slot-title.placeholder {
+    color: #9ca3af;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.slot-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    line-height: 1.4;
+}
+
+.slot-empty {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-style: italic;
+    margin-top: 0.25rem;
+}
+
+/* Modal d'édition de créneau */
+.day-edit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.day-edit-modal.show {
+    opacity: 1;
+}
+
+.day-edit-content {
+    background-color: white;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+}
+
+.day-edit-modal.show .day-edit-content {
+    transform: translateY(0);
+}
+
+.day-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.day-edit-header h4 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1f2937;
+}
+
+.day-edit-close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.day-edit-close:hover {
+    background-color: #f3f4f6;
+    color: #1f2937;
+}
+
+.day-edit-body {
+    padding: 1.5rem;
+}
+
+.day-edit-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-container">
+    <!-- En-tête avec navigation -->
+    <div class="calendar-header">
+        <div class="calendar-nav">
+            <button class="nav-btn" onclick="navigateWeek('prev')">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <h2 class="current-week-title">
+                Semaine du {{ week_dates[0] | format_date_full }} au {{ week_dates[4] | format_date }}
+            </h2>
+
+            <button class="nav-btn" onclick="navigateWeek('next')">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+            <button class="btn btn-primary btn-today" onclick="navigateToToday()">
+                <i class="fas fa-calendar-day"></i> Aujourd'hui
+            </button>
+
+            <button class="btn btn-outline btn-toggle-view" onclick="toggleViewMode()" title="Basculer la vue">
+                <i class="fas fa-expand-alt" id="toggleIcon"></i>
+                <span id="toggleText">Vue étendue</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteneur principal avec deux colonnes -->
+    <div class="calendar-main">
+        <!-- Vue hebdomadaire -->
+        <div class="weekly-view">
+            <div class="weekly-view-loading">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+            </div>
+            <h3 class="section-title">
+                <i class="fas fa-calendar-week"></i> Vue hebdomadaire
+            </h3>
+
+            <div class="weekly-schedule">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="time-column">Heure</th>
+                            {% for date in week_dates %}
+                            <th class="day-header {% if date == today %}today{% endif %}">
+                                <div class="day-name">{{ days[loop.index0] }}</div>
+                                <div class="day-date">{{ date.strftime('%d/%m') }}</div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for period in periods %}
+                        <tr>
+                            <td class="time-slot">
+                                <div class="period-number">P{{ period.number }}</div>
+                                <div class="period-time">
+                                    {{ period.start.strftime('%H:%M') }}<br>
+                                    {{ period.end.strftime('%H:%M') }}
+                                </div>
+                            </td>
+                            {% for date in week_dates %}
+                            {% set i = loop.index0 %}
+                            {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period.number|string %}
+                            {% set schedule_key = i|string + '_' + period.number|string %}
+                            <td class="schedule-cell {% if date == today %}today{% endif %}"
+                                data-date="{{ date.strftime('%Y-%m-%d') }}"
+                                data-period="{{ period.number }}"
+                                {% if schedule_key in schedule_grid %}
+                                    {% set schedule = schedule_grid[schedule_key] %}
+                                    {% if schedule.classroom_id %}
+                                        data-default-classroom="{{ schedule.classroom_id }}"
+                                    {% elif schedule.mixed_group_id %}
+                                        data-default-mixed-group="{{ schedule.mixed_group_id }}"
+                                    {% elif schedule.custom_task_title %}
+                                        data-default-custom-task="true"
+                                    {% endif %}
+                                {% endif %}
+                                data-debug-schedule-key="{{ schedule_key }}"
+                                data-debug-has-schedule="{{ schedule_key in schedule_grid }}"
+                                onclick="openPlanningModal(this)">
+                                {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
+
+                                {% if holiday_info.is_holiday %}
+                                    <!-- Jour férié -->
+                                    <div class="holiday-block">
+                                        <div class="holiday-day-name">{{ holiday_info.name }}</div>
+                                    </div>
+                                {% elif date >= current_user.school_year_start and date <= current_user.school_year_end %}
+                                    {% if planning_key in planning_grid %}
+                                        <!-- Planification spécifique -->
+                                        {% set planning = planning_grid[planning_key] %}
+                                        {% if planning.classroom_id %}
+                                        <div class="class-block planned" style="background-color: {{ planning.classroom.color }};">
+                                            <div class="class-name">{{ planning.classroom.name }}</div>
+                                            <div class="class-subject">{{ planning.classroom.subject }}</div>
+                                        {% elif planning.mixed_group_id %}
+                                        <div class="class-block planned" style="background-color: {{ planning.mixed_group.color }};">
+                                            <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
+                                            <div class="class-subject">{{ planning.mixed_group.subject }}</div>
+                                        {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
+                                        <div class="class-block planned" style="background-color: #6B7280;">
+                                            <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
+                                            <div class="class-subject">Autre</div>
+                                        {% endif %}
+                                            {% if planning.title %}
+                                            <div class="planning-title">
+                                                {{ planning.title }}
+                                            </div>
+                                            {% endif %}
+                                            {% if planning.group %}
+                                            <div class="group-name" style="font-size: 0.65rem; color: white; font-style: italic; margin-top: 2px;">
+                                                {{ planning.group.name }}
+                                            </div>
+                                            {% endif %}
+                                            {% if planning.checklist_summary %}
+                                            <div class="checklist-summary">
+                                                {% if planning.checklist_summary.all_checked %}
+                                                    <i class="fas fa-check-circle checklist-icon all-checked"></i>
+                                                {% elif planning.checklist_summary.checked > 0 %}
+                                                    <i class="fas fa-tasks checklist-icon partial"></i>
+                                                {% else %}
+                                                    <i class="fas fa-times-circle checklist-icon none-checked"></i>
+                                                {% endif %}
+                                                <span class="checklist-count">{{ planning.checklist_summary.checked }}/{{ planning.checklist_summary.total }}</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    {% elif schedule_key in schedule_grid %}
+                                        <!-- Horaire type -->
+                                        {% set schedule = schedule_grid[schedule_key] %}
+                                        {% if schedule.classroom_id %}
+                                            <div class="class-block" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
+                                                <div class="class-name">{{ schedule.classroom.name }}</div>
+                                                <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                            </div>
+                                        {% elif schedule.mixed_group_id %}
+                                            <div class="class-block" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
+                                                <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
+                                                <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                            </div>
+                                        {% elif schedule.custom_task_title %}
+                                            <div class="class-block" style="background-color: #6B7280; opacity: 0.7;">
+                                                <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
+                                                <div class="class-subject">Autre</div>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vue annuelle par classe -->
+        <div class="annual-view">
+            <h3 class="section-title">
+                <i class="fas fa-calendar-alt"></i> Vue annuelle
+            </h3>
+
+            <!-- Onglets des classes et groupes mixtes -->
+            <div class="class-tabs">
+                {% for item in classrooms_json %}
+                {% set item_key = item.type + '_' + item.id|string %}
+                <button class="tab-btn {% if item_key == selected_classroom_id %}active{% endif %}"
+                        data-classroom-id="{{ item_key|e }}"
+                        style="border-bottom-color: {{ item.color }};"
+                        onclick="switchClassroomTab('{{ item_key|e }}', this)">
+                    {% if item.type == 'mixed_group' %}
+                        <i class="fas fa-users" style="margin-right: 0.25rem;"></i>
+                    {% endif %}
+                    <div class="tab-content">
+                        <div class="tab-name">{{ item.name|e }}</div>
+                        <div class="tab-subject">{{ item.subject|e }}</div>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Calendrier annuel -->
+            <div class="annual-calendar">
+                {% if selected_classroom_id and selected_classroom_id in annual_data %}
+                    {% if selected_classroom_id.startswith('mixed_group_') %}
+                        {% set item_id = selected_classroom_id.split('_')[2]|int %}
+                        {% set selected_item = classrooms_json | selectattr('type', 'equalto', 'mixed_group') | selectattr('id', 'equalto', item_id) | first %}
+                    {% else %}
+                        {% set item_id = selected_classroom_id.split('_')[1]|int %}
+                        {% set selected_item = classrooms_json | selectattr('type', 'equalto', 'classroom') | selectattr('id', 'equalto', item_id) | first %}
+                    {% endif %}
+                    <div class="annual-grid" data-classroom-color="{{ selected_item.color if selected_item else '#4F46E5' }}">
+                        {% for week in annual_data[selected_classroom_id] %}
+                        <div class="annual-week {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
+                            <div class="week-info">
+                                <div class="week-date">{{ week.formatted_date }}</div>
+                                <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
+                                    {% if week.is_holiday %}
+                                        <span class="holiday-label" title="{{ week.holiday_name }}">
+                                            {% if week.holiday_name_short %}
+                                                {{ week.holiday_name_short }}
+                                            {% else %}
+                                                {% set holiday_parts = week.holiday_name.split(' ') %}
+                                                {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
+                                                    {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
+                                                {% else %}
+                                                    {{ week.holiday_name }}
+                                                {% endif %}
+                                            {% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="week-number-link">S{{ week.week_number }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="week-days">
+                                {% for has_class in week.has_class %}
+                                {% set i = loop.index0 %}
+                                {% set date = week.dates[i] %}
+                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                {% set holiday_name = week.holidays_by_day[i] %}
+                                <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
+                                     data-date="{{ date_str }}"
+                                     data-weekday="{{ i }}"
+                                     data-has-class="{{ 'true' if has_class else 'false' }}"
+                                     onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
+                                     title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
+                                    <div class="annual-day-content">
+                                        {% if holiday_name %}
+                                            <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
+                                        {% elif week.plannings and date_str in week.plannings %}
+                                            <div class="annual-plannings">
+                                                {% for planning in week.plannings[date_str][:3] %}
+                                                    <div class="annual-planning-item" title="{{ planning.title }}">
+                                                        {% if planning.checklist_summary %}
+                                                        <div class="annual-planning-checklist">
+                                                            {% if planning.checklist_summary.all_checked %}
+                                                                <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
+                                                            {% elif planning.checklist_summary.checked > 0 %}
+                                                                <i class="fas fa-tasks annual-checklist-icon partial"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% endif %}
+                                                        <span class="annual-planning-text">{{ planning.title }}</span>
+                                                    </div>
+                                                {% endfor %}
+                                                {% if week.plannings[date_str]|length > 3 %}
+                                                    <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Légende -->
+            <div class="annual-legend">
+                <div class="legend-item">
+                    <div class="legend-box has-class"></div>
+                    <span>Jour avec cours</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box"></div>
+                    <span>Jour sans cours</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box today"></div>
+                    <span>Aujourd'hui</span>
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-check-circle" style="color: #10B981;"></i>
+                    <span>Tâches complétées</span>
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-tasks" style="color: #F59E0B;"></i>
+                    <span>Tâches en cours</span>
+                </div>
+                <div class="legend-item">
+                    <i class="fas fa-times-circle" style="color: #EF4444;"></i>
+                    <span>Tâches non commencées</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay pour les modals -->
+<div class="modal-overlay" id="modalOverlay" style="display: none;"></div>
+
+<!-- Modal de planification -->
+<div class="planning-modal" id="planningModal">
+    <div class="modal-content" id="planningModalContent">
+        <div class="modal-header">
+            <h3 id="modalTitle">Planifier le cours</h3>
+            <div class="modal-header-actions">
+                <button class="btn-icon" onclick="toggleSplitView()" title="Afficher/Masquer les fichiers">
+                    <i class="fas fa-folder-open"></i>
+                </button>
+                <button class="modal-close" onclick="closePlanningModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Classe</label>
+                <select id="modalClassroom" class="form-control" onchange="loadGroupsForClass(this.value)">
+                    <option value="">-- Sélectionner une classe --</option>
+                    {% for item in classrooms_json %}
+                    <option value="{{ item.type }}_{{ item.id }}" data-color="{{ item.color }}" data-type="{{ item.type }}">
+                        {% if item.type == 'mixed_group' %}👥 {% endif %}{{ item.name }} - {{ item.subject }}
+                    </option>
+                    {% endfor %}
+                    <!-- Option pour les tâches personnalisées -->
+                    <option value="custom_task" data-color="#6B7280" data-type="custom">
+                        📝 Autre
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group" id="groupSelectionDiv" style="display: none;">
+                <label class="form-label">Groupe</label>
+                <select id="modalGroup" class="form-control" onchange="toggleGroupRepeatOptions()">
+                    <option value="">Classe entière</option>
+                </select>
+                <small class="form-text text-muted">Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves</small>
+                
+                <!-- Options de répétition des groupes -->
+                <div id="groupRepeatOptions" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Application automatique :</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="groupRepeat" value="same" style="margin-right: 8px;">
+                            <span>Répéter le même groupe chaque semaine jusqu'à la fin de l'année</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="groupRepeat" value="alternate" style="margin-right: 8px;">
+                            <span>Alterner entre tous les groupes de la classe chaque semaine</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="groupRepeat" value="none" checked style="margin-right: 8px;">
+                            <span>Appliquer seulement pour cette date</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Titre du cours</label>
+                <input type="text" id="modalPlanningTitle" class="form-control"
+                       placeholder="Ex: Introduction aux fractions">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea id="modalDescription" class="form-control" rows="3"
+                          placeholder="Détails du cours, exercices prévus..."></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closePlanningModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="savePlanning()">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+        </div>
+    </div>
+
+    <!-- Panneau gestionnaire de fichiers (caché par défaut) -->
+    <div class="file-manager-panel" id="fileManagerPanel" style="display: none;">
+        <div class="file-manager-header">
+            <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
+            <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="file-manager-content" id="fileManagerContent">
+            <!-- Chargement initial -->
+            <div class="file-loading" id="fileLoading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Chargement des fichiers...</p>
+            </div>
+
+            <!-- Navigation des dossiers -->
+            <div class="file-navigation" id="fileNavigation" style="display: none;">
+                <div class="breadcrumb" id="fileBreadcrumb">
+                    <span class="breadcrumb-item active" data-path="" onclick="navigateToFileFolder('')">
+                        <i class="fas fa-home"></i> Racine
+                    </span>
+                </div>
+            </div>
+
+            <!-- Arborescence des fichiers -->
+            <div class="file-tree" id="fileTree" style="display: none;">
+                <!-- L'arborescence sera chargée ici -->
+            </div>
+
+            <!-- État vide -->
+            <div class="no-files" id="noFiles" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <p>Aucun fichier dans cette classe</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteneur pour le lecteur PDF unifié en mode split -->
+    <div id="pdf-viewer-container" style="display: none; z-index: 11000; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #F8FAFC;"></div>
+
+</div>
+
+<!-- Modal de planification journalière (pour la vue annuelle) -->
+<div class="planning-modal" id="dayPlanningModal">
+    <div class="modal-content" id="dayModalContent">
+        <div class="modal-header">
+            <h3 id="dayModalTitle">Planification de la journée</h3>
+            <div class="modal-header-actions">
+                <button class="btn-icon" onclick="toggleDaySplitView()" title="Afficher/Masquer les fichiers">
+                    <i class="fas fa-folder-open"></i>
+                </button>
+                <button class="modal-close" onclick="closeDayPlanningModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Classe sélectionnée</label>
+                <select id="dayModalClassroom" class="form-control" disabled>
+                    <option value="">-- Classe prédéfinie --</option>
+                    {% for item in classrooms_json %}
+                    <option value="{{ item.type }}_{{ item.id }}" data-color="{{ item.color }}" data-type="{{ item.type }}">
+                        {% if item.type == 'mixed_group' %}👥 {% endif %}{{ item.name }} - {{ item.subject }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="dayPlanningsContainer">
+                <!-- Les créneaux de la journée seront chargés ici -->
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeDayPlanningModal()">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Panneau gestionnaire de fichiers pour la vue journalière -->
+    <div class="file-manager-panel" id="dayFileManagerPanel" style="display: none;">
+        <div class="file-manager-header">
+            <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
+            <button class="btn-icon" onclick="toggleDaySplitView()" title="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="file-manager-content" id="dayFileManagerContent">
+            <!-- Chargement initial -->
+            <div class="file-loading" id="dayFileLoading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Chargement des fichiers...</p>
+            </div>
+
+            <!-- Navigation des dossiers -->
+            <div class="file-navigation" id="dayFileNavigation" style="display: none;">
+                <div class="breadcrumb" id="dayFileBreadcrumb">
+                    <span class="breadcrumb-item active" data-path="" onclick="navigateToDayFileFolder('')">
+                        <i class="fas fa-home"></i> Racine
+                    </span>
+                </div>
+            </div>
+
+            <!-- Arborescence des fichiers -->
+            <div class="file-tree" id="dayFileTree" style="display: none;">
+                <!-- L'arborescence sera chargée ici -->
+            </div>
+
+            <!-- État vide -->
+            <div class="no-files" id="dayNoFiles" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <p>Aucun fichier dans cette classe</p>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<form id="weekNavigationForm" method="GET" style="display: none;">
+    <input type="hidden" name="week" id="weekInput">
+    <input type="hidden" name="classroom" value="{{ selected_classroom_id }}">
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/planning.js') }}"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}"></script>
+<script>
+const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
+const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
+const periodsData = {{ periods_json | tojson }};
+const classrooms = {{ classrooms_json | tojson }};
+const scheduleGrid = {{ schedule_grid_json | tojson }};
+let currentPlanningCell = null;
+let isExtendedView = false;
+
+// Variables globales pour les mises à jour dynamiques
+window.selectedClassroomId = selectedClassroomId;
+window.classroomsData = classrooms;
+
+// Gérer le clic sur une case de la vue annuelle
+function handleAnnualDayClick(element, dateStr) {
+    if (element.dataset.hasClass !== 'true' || element.classList.contains('single-day-holiday')) return;
+
+    // Récupérer l'ID de la classe actuellement sélectionnée dans la vue annuelle
+    const classroomId = selectedClassroomId;
+
+    // Ouvrir le modal de planification journalière avec filtrage par classe
+    openDayPlanningModal(dateStr, classroomId);
+}
+
+function navigateToWeek(weekStartDate) {
+    // Ajouter un effet visuel de chargement sur la vue hebdomadaire uniquement
+    const weeklyView = document.querySelector('.weekly-view');
+    weeklyView.classList.add('loading');
+
+    // Utiliser le formulaire existant avec la date de début de semaine
+    document.getElementById('weekInput').value = weekStartDate;
+
+    // Soumettre le formulaire
+    document.getElementById('weekNavigationForm').submit();
+}
+
+function navigateWeek(direction) {
+    // Ajouter un effet de chargement sur la vue hebdomadaire
+    const weeklyView = document.querySelector('.weekly-view');
+    weeklyView.classList.add('loading');
+
+    const currentDate = new Date('{{ current_week }}');
+    if (direction === 'prev') {
+        currentDate.setDate(currentDate.getDate() - 7);
+    } else {
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    document.getElementById('weekInput').value = formatDate(currentDate);
+    document.getElementById('weekNavigationForm').submit();
+}
+
+function navigateToToday() {
+    // Ajouter un effet de chargement sur la vue hebdomadaire
+    const weeklyView = document.querySelector('.weekly-view');
+    weeklyView.classList.add('loading');
+
+    const today = new Date();
+    document.getElementById('weekInput').value = formatDate(today);
+    document.getElementById('weekNavigationForm').submit();
+}
+
+function selectClassroom(classroomId) {
+    const url = new URL(window.location);
+    url.searchParams.set('classroom', classroomId);
+    window.location = url;
+}
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Basculer entre vue normale et vue étendue
+function toggleViewMode() {
+    const calendarMain = document.querySelector('.calendar-main');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+
+    isExtendedView = !isExtendedView;
+
+    if (isExtendedView) {
+        calendarMain.classList.add('extended-view');
+        toggleIcon.className = 'fas fa-compress-alt';
+        toggleText.textContent = 'Vue normale';
+    } else {
+        calendarMain.classList.remove('extended-view');
+        toggleIcon.className = 'fas fa-expand-alt';
+        toggleText.textContent = 'Vue étendue';
+    }
+
+    // Sauvegarder la préférence
+    localStorage.setItem('calendarViewMode', isExtendedView ? 'extended' : 'normal');
+}
+
+// Appliquer la couleur de la classe sélectionnée
+function applyClassroomColor() {
+    console.log('🎨 applyClassroomColor called with selectedClassroomId:', selectedClassroomId);
+    
+    // Debug: afficher les données annuelles pour la classe sélectionnée
+    const annualDataForClass = {{ annual_data | tojson }}[selectedClassroomId];
+    console.log('📊 Annual data for selected class:', annualDataForClass);
+    
+    // Debug: chercher la semaine qui contient 2025-06-18
+    if (annualDataForClass) {
+        const targetDate = '2025-06-18';
+        console.log('🔍 Looking for week containing:', targetDate);
+        
+        // Debug: afficher les dates de quelques semaines
+        annualDataForClass.slice(0, 3).forEach((week, index) => {
+            console.log(`📅 Week ${index} dates:`, week.dates);
+            console.log(`📅 Week ${index} has_class:`, week.has_class);
+        });
+        
+        const targetWeek = annualDataForClass.find(week => 
+            week.dates && week.dates.some(date => date === targetDate)
+        );
+        if (targetWeek) {
+            console.log('🔍 Week containing 2025-06-18:', targetWeek);
+            console.log('📅 has_class array:', targetWeek.has_class);
+            console.log('📝 plannings:', targetWeek.plannings);
+        } else {
+            console.log('❌ No week found containing 2025-06-18');
+            
+            // Debug: chercher avec différents formats de date
+            const targetWeekAlt = annualDataForClass.find(week => 
+                week.dates && week.dates.some(date => {
+                    // Essayer de convertir la date si c'est un objet
+                    const dateStr = typeof date === 'string' ? date : (date.toString ? date.toString() : JSON.stringify(date));
+                    return dateStr.includes('2025-06-18') || dateStr.includes('18');
+                })
+            );
+            if (targetWeekAlt) {
+                console.log('🔍 Found week with alternative search:', targetWeekAlt);
+            }
+        }
+    }
+    
+    if (!selectedClassroomId) {
+        console.log('❌ No selectedClassroomId');
+        return;
+    }
+    
+    // Parser l'ID pour extraire le type et l'ID
+    let type, numericId;
+    if (selectedClassroomId.startsWith('mixed_group_')) {
+        type = 'mixed_group';
+        numericId = parseInt(selectedClassroomId.split('_')[2]);
+    } else if (selectedClassroomId.startsWith('classroom_')) {
+        type = 'classroom';
+        numericId = parseInt(selectedClassroomId.split('_')[1]);
+    } else {
+        // Format ancien (ID numérique direct)
+        type = 'classroom';
+        numericId = parseInt(selectedClassroomId);
+    }
+    
+    const selectedItem = {{ classrooms_json | tojson }}.find(c => 
+        c.id === numericId && c.type === type
+    );
+    
+    console.log('🏫 Found selectedItem:', selectedItem);
+    
+    if (selectedItem && selectedItem.color) {
+        console.log('🎨 Applying color:', selectedItem.color);
+        const annualGrid = document.querySelector('.annual-grid');
+        if (annualGrid) {
+            // Appliquer la couleur comme variable CSS
+            annualGrid.style.setProperty('--classroom-color', selectedItem.color);
+            console.log('✅ Color applied to annual grid');
+        } else {
+            console.log('❌ Annual grid not found');
+        }
+    } else {
+        console.log('❌ No selectedItem or color');
+    }
+}
+
+// Changer d'onglet de classe dans la vue annuelle
+function switchClassroomTab(classroomId, buttonElement) {
+    console.log('🔄 Switching to classroom:', classroomId);
+    
+    // Mettre à jour l'URL pour recharger avec la nouvelle classe
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('classroom', classroomId);
+    
+    // Recharger la page avec la nouvelle classe sélectionnée
+    window.location.href = currentUrl.toString();
+}
+
+// Initialiser les données de planification au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    loadWeeklyPlannings();
+    applyClassroomColor();
+
+    // Restaurer la préférence de vue
+    const savedViewMode = localStorage.getItem('calendarViewMode');
+    if (savedViewMode === 'extended' && !isExtendedView) {
+        toggleViewMode();
+    }
+    
+    // Gestionnaire pour les onglets de classe
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const classroomId = this.getAttribute('data-classroom-id');
+            if (classroomId) {
+                selectClassroom(classroomId);
+            }
+        });
+    });
+});
+
+
+// Ajout des styles CSS inline pour les éléments de période passée
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    .past-period-description {
+        background-color: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        min-height: 60px;
+        line-height: 1.5;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: center;
+        margin: 0.5rem 0;
+        padding: 0.25rem 0;
+    }
+
+    .checklist-item.completed {
+        color: #10B981;
+    }
+
+    .checklist-item.completed span {
+        text-decoration: line-through;
+    }
+
+    .checklist-item.not-completed {
+        color: #EF4444;
+    }
+
+    .checklist-item i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .modal-body .form-control:disabled {
+        background-color: #F3F4F6;
+        cursor: not-allowed;
+    }
+
+    .checklist-help {
+        font-size: 0.75rem;
+        color: var(--gray-color);
+        margin-top: 0.5rem;
+        font-style: italic;
+    }
+`;
+document.head.appendChild(styleSheet);
+
+// S'assurer que la notification est disponible
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(type, message) {
+        // Créer le conteneur de notifications s'il n'existe pas
+        let container = document.querySelector('.notifications-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'notifications-container';
+            container.style.cssText = 'position: fixed; top: 80px; right: 20px; z-index: 1000;';
+            document.body.appendChild(container);
+        }
+
+        // Créer la notification
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = `
+            background-color: ${type === 'success' ? '#D1FAE5' : '#FEE2E2'};
+            color: ${type === 'success' ? '#065F46' : '#991B1B'};
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideInNotification 0.3s ease;
+            max-width: 400px;
+        `;
+
+        const icon = document.createElement('i');
+        icon.className = `fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}`;
+
+        const text = document.createElement('span');
+        text.textContent = message;
+
+        notification.appendChild(icon);
+        notification.appendChild(text);
+        container.appendChild(notification);
+
+        // Supprimer la notification après 5 secondes
+        setTimeout(() => {
+            notification.style.animation = 'slideOutNotification 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    };
+}
+
+// Variables pour le gestionnaire de fichiers
+let currentFilePath = '';
+let isSplitViewOpen = false;
+
+
+// Basculer l'affichage du gestionnaire de fichiers
+function toggleSplitView() {
+    const modal = document.getElementById('planningModal');
+    const fileManagerPanel = document.getElementById('fileManagerPanel');
+    
+    isSplitViewOpen = !isSplitViewOpen;
+    
+    if (isSplitViewOpen) {
+        modal.classList.add('split-view');
+        fileManagerPanel.style.display = 'flex';
+        
+        // Charger les fichiers de la classe sélectionnée
+        const classroomId = document.getElementById('modalClassroom').value;
+        if (classroomId) {
+            loadClassFiles(classroomId);
+        } else {
+            // Si aucune classe n'est sélectionnée, afficher un message
+            document.getElementById('fileLoading').style.display = 'none';
+            document.getElementById('fileNavigation').style.display = 'none';
+            document.getElementById('fileTree').style.display = 'none';
+            document.getElementById('noFiles').style.display = 'block';
+            document.getElementById('noFiles').innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Veuillez sélectionner une classe</p>
+            `;
+        }
+    } else {
+        modal.classList.remove('split-view');
+        fileManagerPanel.style.display = 'none';
+    }
+}
+
+// Charger les fichiers d'une classe
+async function loadClassFiles(classroomId) {
+    const fileLoading = document.getElementById('fileLoading');
+    const fileNavigation = document.getElementById('fileNavigation');
+    const fileTree = document.getElementById('fileTree');
+    const noFiles = document.getElementById('noFiles');
+    
+    console.log('Chargement des fichiers pour la classe:', classroomId);
+    
+    // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
+    const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+    
+    // Afficher le chargement
+    fileLoading.style.display = 'block';
+    fileNavigation.style.display = 'none';
+    fileTree.style.display = 'none';
+    noFiles.style.display = 'none';
+    
+    try {
+        const response = await fetch(`/api/class-files/${numericId}`);
+        console.log('Réponse API:', response);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Données reçues:', data);
+        
+        fileLoading.style.display = 'none';
+        
+        if (data.success && data.files && data.files.length > 0) {
+            // Stocker tous les fichiers globalement
+            allClassFiles = data.files;
+            fileNavigation.style.display = 'block';
+            fileTree.style.display = 'block';
+            renderFileTree(data.files, currentFilePath);
+        } else {
+            console.log('Aucun fichier trouvé ou erreur dans la réponse');
+            noFiles.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des fichiers:', error);
+        fileLoading.style.display = 'none';
+        noFiles.style.display = 'block';
+    }
+}
+
+// Afficher l'arborescence des fichiers
+function renderFileTree(files, currentPath = '') {
+    const fileTree = document.getElementById('fileTree');
+    fileTree.innerHTML = '';
+    
+    // Organiser les fichiers par dossier
+    const folders = {};
+    const currentLevelFiles = [];
+    const allFolders = new Set();
+    
+    files.forEach(file => {
+        if (file.folder_path) {
+            // Extraire tous les dossiers du chemin
+            const pathParts = file.folder_path.split('/').filter(p => p);
+            let accumulatedPath = '';
+            
+            pathParts.forEach((part, index) => {
+                const parentPath = accumulatedPath;
+                accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
+                
+                allFolders.add(accumulatedPath);
+                
+                if (!folders[accumulatedPath]) {
+                    folders[accumulatedPath] = {
+                        name: part,
+                        path: accumulatedPath,
+                        parent: parentPath,
+                        files: [],
+                        subfolders: new Set()
+                    };
+                }
+                
+                // Ajouter le sous-dossier au parent
+                if (parentPath && folders[parentPath]) {
+                    folders[parentPath].subfolders.add(accumulatedPath);
+                }
+                
+                // Ajouter le fichier au dernier dossier
+                if (index === pathParts.length - 1) {
+                    folders[accumulatedPath].files.push(file);
+                }
+            });
+            
+            // Si on navigue dans un dossier spécifique
+            if (currentPath && file.folder_path.startsWith(currentPath)) {
+                const relativePath = file.folder_path.substring(currentPath.length).replace(/^\//, '');
+                const relativePathParts = relativePath.split('/').filter(p => p);
+                
+                // Si le fichier est directement dans le dossier courant
+                if (relativePathParts.length === 0 || (relativePathParts.length === 1 && relativePathParts[0] === '')) {
+                    currentLevelFiles.push(file);
+                }
+            }
+        } else if (!currentPath) {
+            // Fichiers à la racine seulement si on est à la racine
+            currentLevelFiles.push(file);
+        }
+    });
+    
+    // Si on navigue dans un dossier, ajouter un bouton retour
+    if (currentPath) {
+        const backItem = document.createElement('div');
+        backItem.className = 'file-item';
+        backItem.innerHTML = `
+            <i class="fas fa-arrow-left file-icon"></i>
+            <span class="file-name">..</span>
+        `;
+        backItem.onclick = () => {
+            const parentPath = currentPath.includes('/') ? 
+                currentPath.substring(0, currentPath.lastIndexOf('/')) : '';
+            navigateToFolder(parentPath);
+        };
+        fileTree.appendChild(backItem);
+    }
+    
+    // Afficher les dossiers du niveau actuel
+    Object.values(folders).forEach(folder => {
+        const shouldShow = currentPath ? 
+            folder.parent === currentPath : 
+            !folder.parent;
+        
+        if (shouldShow) {
+            const folderItem = document.createElement('div');
+            folderItem.className = 'file-item folder';
+            folderItem.innerHTML = `
+                <i class="fas fa-folder file-icon"></i>
+                <span class="file-name">${folder.name}</span>
+            `;
+            folderItem.onclick = () => navigateToFolder(folder.path);
+            fileTree.appendChild(folderItem);
+        }
+    });
+    
+    // Afficher les fichiers du niveau actuel
+    currentLevelFiles.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        const icon = getFileIconByType(file.file_type);
+        
+        fileItem.innerHTML = `
+            <i class="${icon} file-icon"></i>
+            <span class="file-name">${file.original_filename}</span>
+        `;
+        
+        if (file.file_type === 'pdf') {
+            fileItem.onclick = () => openPdfInViewer(file.id, file.original_filename);
+        }
+        
+        fileTree.appendChild(fileItem);
+    });
+    
+    // Mettre à jour le fil d'Ariane
+    updateBreadcrumb(currentPath);
+}
+
+// Variable globale pour stocker tous les fichiers
+let allClassFiles = [];
+
+// Obtenir l'icône appropriée pour un type de fichier
+function getFileIconByType(fileType) {
+    switch (fileType) {
+        case 'pdf':
+            return 'fas fa-file-pdf';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+            return 'fas fa-file-image';
+        default:
+            return 'fas fa-file';
+    }
+}
+
+// Naviguer dans un dossier
+function navigateToFolder(folderPath) {
+    currentFilePath = folderPath;
+    console.log('Navigation vers le dossier:', folderPath);
+    
+    // Re-render l'arbre avec le nouveau chemin
+    renderFileTree(allClassFiles, folderPath);
+}
+
+// Mettre à jour le fil d'Ariane
+function updateBreadcrumb(path) {
+    const breadcrumb = document.getElementById('fileBreadcrumb');
+    breadcrumb.innerHTML = '';
+    
+    // Racine
+    const rootItem = document.createElement('span');
+    rootItem.className = 'breadcrumb-item';
+    rootItem.innerHTML = '<i class="fas fa-home"></i> Racine';
+    rootItem.onclick = () => navigateToFolder('');
+    breadcrumb.appendChild(rootItem);
+    
+    // Ajouter les parties du chemin
+    if (path) {
+        const parts = path.split('/').filter(p => p);
+        let accumulatedPath = '';
+        
+        parts.forEach((part, index) => {
+            // Ajouter le séparateur
+            const separator = document.createElement('i');
+            separator.className = 'fas fa-chevron-right';
+            separator.style.cssText = 'margin: 0 0.5rem; font-size: 0.75rem; color: #9ca3af;';
+            breadcrumb.appendChild(separator);
+            
+            // Construire le chemin accumulé
+            accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
+            
+            // Créer l'élément du fil d'Ariane
+            const partItem = document.createElement('span');
+            partItem.className = index === parts.length - 1 ? 'breadcrumb-item active' : 'breadcrumb-item';
+            partItem.textContent = part;
+            
+            if (index < parts.length - 1) {
+                const pathToNavigate = accumulatedPath;
+                partItem.onclick = () => navigateToFolder(pathToNavigate);
+            }
+            
+            breadcrumb.appendChild(partItem);
+        });
+    }
+}
+
+
+// Variables pour le lecteur PDF (copiées de lesson_view.html)
+let currentFileId = null;
+let currentPageNum = 1;
+let currentScale = 1.0;
+let pdfDocument = null;
+let annotations = [];
+let isDrawing = false;
+let lastPoint = null;
+let currentTool = 'pen';
+let currentColor = '#000000';
+let currentLineWidth = 3;
+let annotationCanvas = null;
+let annotationCtx = null;
+let pdfCanvas = null;
+let pdfCtx = null;
+
+// Ouvrir un PDF avec le lecteur unifié en mode split
+async function openPdfInViewer(fileId, fileName) {
+    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split:', fileName);
+    console.log('📍 FileId:', fileId, 'FileName:', fileName);
+    
+    try {
+        // Utiliser la même approche que openDayPdfInViewer
+        let container = document.getElementById('pdf-viewer-container-main');
+        if (container) {
+            document.body.removeChild(container);
+        }
+        
+        container = document.createElement('div');
+        container.id = 'pdf-viewer-container-main';
+        container.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: 50vw !important;
+            height: 100vh !important;
+            z-index: 15000 !important;
+            background: #F8FAFC !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
+        `;
+        
+        document.body.appendChild(container);
+        console.log('✅ Nouveau conteneur principal créé dans le body');
+        
+        // Vérifier les dimensions après ajout au body
+        console.log('🔍 Debug nouveau conteneur principal:', {
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            visible: container.offsetParent !== null
+        });
+        
+        // Déterminer quelle classe utiliser pour l'envoi de fichiers
+        let currentClassId = selectedClassroomId;
+        
+        // Récupérer les étudiants de la classe actuelle
+        const studentsData = await getStudentsForClass(currentClassId);
+        
+        // Configuration pour le mode split sans suivi d'élèves
+        const options = {
+            mode: 'split',
+            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
+            enableSendToStudents: true,   // Activer l'envoi aux élèves
+            currentClassId: currentClassId,
+            studentData: studentsData,
+            autoSave: true,
+            saveDelay: 3000,
+            apiEndpoints: {
+                saveAnnotations: '/file_manager/api/save-annotations',
+                loadAnnotations: '/file_manager/api/load-annotations',
+                search: '/api/search-pdf'
+            }
+        };
+        
+        // Détruire l'instance précédente si elle existe
+        if (window.currentPdfViewer) {
+            window.currentPdfViewer.destroy();
+        }
+        
+        // Créer la nouvelle instance avec le nouveau conteneur
+        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-main', options);
+        
+        // Attendre que le DOM se mette à jour
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Forcer les dimensions des conteneurs internes
+        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
+        const pdfMain = container.querySelector('.pdf-main');
+        
+        if (pdfViewerArea) {
+            pdfViewerArea.style.width = '100%';
+            pdfViewerArea.style.height = '100%';
+            pdfViewerArea.style.display = 'flex';
+            console.log('🔧 Dimensions forcées pour pdf-viewer-area principal:', {
+                width: pdfViewerArea.offsetWidth,
+                height: pdfViewerArea.offsetHeight
+            });
+        }
+        if (pdfMain) {
+            pdfMain.style.width = '100%';
+            pdfMain.style.height = '100%';
+            pdfMain.style.display = 'flex';
+            console.log('🔧 Dimensions forcées pour pdf-main principal:', {
+                width: pdfMain.offsetWidth,
+                height: pdfMain.offsetHeight
+            });
+        }
+        
+        // Charger le PDF avec fileId pour la sauvegarde
+        const pdfUrl = `/file_manager/serve_file/${fileId}`;
+        console.log('📎 URL du PDF:', pdfUrl);
+        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
+        
+        // Forcer le recalcul des dimensions après le chargement
+        setTimeout(() => {
+            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
+                console.log('🔧 Recalcul forcé des dimensions de la toolbar principal');
+                window.currentPdfViewer.handleToolbarResize();
+            }
+        }, 200);
+        
+        console.log('✅ PDF chargé avec succès en mode split unifié');
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement du PDF:', error);
+    }
+}
+
+// Charger un document PDF (copié de lesson_view.html)
+async function loadPDF(fileId) {
+    try {
+        const url = `/api/class-files/preview/${fileId}`;
+        console.log('📄 Chargement du PDF depuis:', url);
+        
+        const loadingTask = pdfjsLib.getDocument(url);
+        pdfDocument = await loadingTask.promise;
+        
+        console.log(`📄 PDF chargé avec ${pdfDocument.numPages} pages`);
+        
+        // Effacer le conteneur et les miniatures
+        const pagesContainer = document.getElementById('pdfPagesContainer');
+        const thumbnailContainer = document.getElementById('pageThumbnails');
+        
+        pagesContainer.innerHTML = '';
+        thumbnailContainer.innerHTML = '';
+        
+        // Créer toutes les pages
+        for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+            await createPDFPageWithCanvas(pageNum);
+            await createThumbnail(pageNum);
+        }
+        
+        // Configurer l'observer pour détecter les pages visibles
+        setupPageVisibilityObserver();
+        
+        // Configurer la gestion du scroll
+        setupScrollHandling();
+        
+        // Appliquer automatiquement la correction du problème de scroll après un petit délai
+        setTimeout(() => {
+            console.log('🔧 Application automatique de la correction de scroll...');
+            applyScrollFixToViewer();
+        }, 300);
+        
+        console.log('📄 Toutes les pages créées avec succès');
+        
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement du PDF:', error);
+        showError('Erreur lors du chargement du PDF');
+    }
+}
+
+// Créer une page PDF avec canvas d'annotation
+async function createPDFPageWithCanvas(pageNum) {
+    try {
+        const page = await pdfDocument.getPage(pageNum);
+        const viewport = page.getViewport({ scale: currentScale });
+        
+        // Créer le wrapper de la page
+        const pageWrapper = document.createElement('div');
+        pageWrapper.className = 'pdf-page-wrapper';
+        pageWrapper.id = `page-wrapper-${pageNum}`;
+        
+        // Canvas pour le PDF
+        const pdfCanvas = document.createElement('canvas');
+        pdfCanvas.className = 'pdf-canvas';
+        pdfCanvas.id = `pdf-canvas-${pageNum}`;
+        pdfCanvas.width = viewport.width;
+        pdfCanvas.height = viewport.height;
+        
+        // Canvas pour les annotations
+        const annotationCanvas = document.createElement('canvas');
+        annotationCanvas.className = 'annotation-canvas';
+        annotationCanvas.id = `annotation-canvas-${pageNum}`;
+        annotationCanvas.width = viewport.width;
+        annotationCanvas.height = viewport.height;
+        
+        // Numéro de page
+        const pageNumber = document.createElement('div');
+        pageNumber.className = 'pdf-page-number';
+        pageNumber.textContent = `Page ${pageNum}`;
+        
+        // Assembler la page
+        pageWrapper.appendChild(pdfCanvas);
+        pageWrapper.appendChild(annotationCanvas);
+        pageWrapper.appendChild(pageNumber);
+        
+        // Ajouter au conteneur
+        document.getElementById('pdfPagesContainer').appendChild(pageWrapper);
+        
+        // Rendre le PDF
+        const ctx = pdfCanvas.getContext('2d');
+        await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+        }).promise;
+        
+        // Configurer les événements d'annotation
+        setupAnnotationEvents(annotationCanvas, pageNum);
+        
+        console.log(`📄 Page ${pageNum} créée avec succès`);
+        
+    } catch (error) {
+        console.error(`❌ Erreur lors de la création de la page ${pageNum}:`, error);
+    }
+}
+
+// Créer une miniature
+async function createThumbnail(pageNum) {
+    try {
+        const page = await pdfDocument.getPage(pageNum);
+        const thumbnailScale = 0.25;
+        const viewport = page.getViewport({ scale: thumbnailScale });
+        
+        const thumbnailCanvas = document.createElement('canvas');
+        thumbnailCanvas.className = 'thumbnail-canvas';
+        thumbnailCanvas.width = viewport.width;
+        thumbnailCanvas.height = viewport.height;
+        
+        const ctx = thumbnailCanvas.getContext('2d');
+        await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+        }).promise;
+        
+        // Wrapper pour la miniature
+        const thumbnailItem = document.createElement('div');
+        thumbnailItem.className = 'thumbnail-item';
+        thumbnailItem.id = `thumbnail-${pageNum}`;
+        thumbnailItem.appendChild(thumbnailCanvas);
+        
+        // Événement de clic pour navigation
+        thumbnailItem.addEventListener('click', () => scrollToPage(pageNum));
+        
+        document.getElementById('pageThumbnails').appendChild(thumbnailItem);
+        
+    } catch (error) {
+        console.error(`❌ Erreur lors de la création de la miniature ${pageNum}:`, error);
+    }
+}
+
+// Faire défiler vers une page spécifique
+function scrollToPage(pageNum) {
+    const pageWrapper = document.getElementById(`page-wrapper-${pageNum}`);
+    if (pageWrapper) {
+        // Utiliser scrollIntoView avec des options plus précises
+        const viewerContainer = document.getElementById('viewerContainer');
+        const containerRect = viewerContainer.getBoundingClientRect();
+        const pageRect = pageWrapper.getBoundingClientRect();
+        
+        // Calculer la position de scroll nécessaire
+        const scrollTop = viewerContainer.scrollTop + pageRect.top - containerRect.top - 20;
+        
+        // Faire le scroll avec une animation fluide
+        viewerContainer.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+        });
+        
+        // Mettre à jour la miniature active
+        updateActiveThumbnail(pageNum);
+        
+        currentPageNum = pageNum;
+    }
+}
+
+// Mettre à jour la miniature active
+function updateActiveThumbnail(pageNum) {
+    document.querySelectorAll('.thumbnail-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.getElementById(`thumbnail-${pageNum}`)?.classList.add('active');
+}
+
+// Configurer l'observer pour détecter automatiquement les pages visibles
+function setupPageVisibilityObserver() {
+    const viewerContainer = document.getElementById('viewerContainer');
+    if (!viewerContainer) return;
+    
+    // Créer l'intersection observer
+    const observer = new IntersectionObserver((entries) => {
+        let mostVisiblePage = null;
+        let maxVisibilityRatio = 0;
+        
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const pageId = entry.target.id;
+                const pageNum = parseInt(pageId.split('-').pop());
+                
+                // Trouver la page la plus visible
+                if (entry.intersectionRatio > maxVisibilityRatio) {
+                    maxVisibilityRatio = entry.intersectionRatio;
+                    mostVisiblePage = pageNum;
+                }
+            }
+        });
+        
+        // Mettre à jour la page active si on a trouvé une page visible
+        if (mostVisiblePage && mostVisiblePage !== currentPageNum) {
+            currentPageNum = mostVisiblePage;
+            updateActiveThumbnail(mostVisiblePage);
+        }
+    }, {
+        root: viewerContainer,
+        rootMargin: '-50px 0px -50px 0px',
+        threshold: [0.1, 0.5, 0.9]
+    });
+    
+    // Observer toutes les pages
+    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+        const pageWrapper = document.getElementById(`page-wrapper-${pageNum}`);
+        if (pageWrapper) {
+            observer.observe(pageWrapper);
+        }
+    }
+    
+    // Stocker l'observer pour pouvoir le nettoyer plus tard
+    window.pdfPageObserver = observer;
+}
+
+// Améliorer la gestion du scroll dans le conteneur
+function setupScrollHandling() {
+    const viewerContainer = document.getElementById('viewerContainer');
+    if (!viewerContainer) return;
+    
+    // Gérer le scroll avec throttling pour les performances
+    let scrollTimeout;
+    viewerContainer.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            // Le scroll sera géré par l'intersection observer
+        }, 100);
+    });
+}
+
+// Fonction de correction automatique du scroll (adaptée de lesson_view.html)
+function applyScrollFixToViewer() {
+    console.log('🛠️ Application automatique de la correction de scroll...');
+    
+    const viewerContainer = document.getElementById('viewerContainer');
+    const pagesContainer = document.getElementById('pdfPagesContainer');
+    const firstPage = document.getElementById('page-wrapper-1');
+    
+    if (!viewerContainer || !pagesContainer || !firstPage) {
+        console.warn('⚠️ Éléments non trouvés pour la correction - retry dans 100ms');
+        setTimeout(applyScrollFixToViewer, 100);
+        return;
+    }
+    
+    // Vérifier si la correction est nécessaire
+    const rect = firstPage.getBoundingClientRect();
+    const containerRect = viewerContainer.getBoundingClientRect();
+    const pagePosition = rect.top - containerRect.top;
+    
+    console.log(`📊 Position actuelle de la page 1: ${Math.round(pagePosition)}px`);
+    
+    // Si la page 1 est très mal positionnée, appliquer la correction
+    if (pagePosition < -100 || pagePosition > viewerContainer.clientHeight) {
+        console.log('🚨 Correction nécessaire - page 1 mal positionnée');
+        
+        // Appliquer les corrections CSS
+        viewerContainer.style.scrollBehavior = 'auto';
+        viewerContainer.style.height = '100%';
+        viewerContainer.style.minHeight = '500px';
+        viewerContainer.style.maxHeight = 'none';
+        viewerContainer.style.overflow = 'auto';
+        viewerContainer.style.position = 'relative';
+        
+        // Reset du pages container
+        pagesContainer.style.paddingTop = '16px';
+        pagesContainer.style.marginTop = '0px';
+        pagesContainer.style.transform = 'none';
+        pagesContainer.style.position = 'relative';
+        pagesContainer.style.top = '0px';
+        pagesContainer.style.left = '0px';
+        
+        // Forcer le reflow
+        viewerContainer.style.display = 'none';
+        viewerContainer.offsetHeight; // Force reflow
+        viewerContainer.style.display = 'block';
+        
+        setTimeout(() => {
+            // Vérifier et ajuster le scroll
+            const newRect = firstPage.getBoundingClientRect();
+            const newContainerRect = viewerContainer.getBoundingClientRect();
+            const newPosition = newRect.top - newContainerRect.top;
+            
+            console.log(`📊 Position après correction CSS: ${Math.round(newPosition)}px`);
+            
+            if (newPosition < -50 || newPosition > 100) {
+                // Correction manuelle du scroll
+                const targetScrollTop = firstPage.offsetTop - 16;
+                viewerContainer.scrollTop = Math.max(0, targetScrollTop);
+                console.log(`🔧 Scroll manuel appliqué: ${viewerContainer.scrollTop}px`);
+            }
+            
+            // Forcer la page courante à 1
+            currentPageNum = 1;
+            updateActiveThumbnail(1);
+            
+            // Redémarrer l'observer après correction
+            if (window.pdfPageObserver) {
+                window.pdfPageObserver.disconnect();
+                setTimeout(() => {
+                    setupPageVisibilityObserver();
+                    console.log('✅ Correction automatique terminée - Page 1 active');
+                }, 100);
+            }
+        }, 50);
+    } else {
+        console.log('✅ Position correcte - aucune correction nécessaire');
+        // Juste s'assurer qu'on est à la page 1
+        viewerContainer.scrollTop = 0;
+        currentPageNum = 1;
+        updateActiveThumbnail(1);
+    }
+}
+
+// Configurer les événements d'annotation pour un canvas
+function setupAnnotationEvents(canvas, pageNum) {
+    let isPageDrawing = false;
+    let currentStroke = [];
+    
+    // Fonctions de dessin
+    function startDrawing(e) {
+        e.preventDefault();
+        isPageDrawing = true;
+        currentPageNum = pageNum;
+        
+        const coords = getCanvasCoordinates(e, canvas);
+        currentStroke = [coords];
+        
+        // Configurer le contexte
+        const ctx = canvas.getContext('2d');
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+        ctx.lineWidth = currentLineWidth;
+        ctx.strokeStyle = currentColor;
+        
+        if (currentTool === 'highlighter') {
+            ctx.globalAlpha = 0.3;
+        } else {
+            ctx.globalAlpha = 1.0;
+        }
+        
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+    }
+    
+    function continueDrawing(e) {
+        if (!isPageDrawing) return;
+        e.preventDefault();
+        
+        const coords = getCanvasCoordinates(e, canvas);
+        currentStroke.push(coords);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+    }
+    
+    function stopDrawing(e) {
+        if (!isPageDrawing) return;
+        e.preventDefault();
+        
+        isPageDrawing = false;
+        
+        // Sauvegarder l'annotation
+        if (currentStroke.length > 1) {
+            const annotation = {
+                page: pageNum,
+                tool: currentTool,
+                color: currentColor,
+                lineWidth: currentLineWidth,
+                points: [...currentStroke]
+            };
+            
+            annotations.push(annotation);
+            console.log(`📝 Annotation sauvegardée sur page ${pageNum}`);
+        }
+        
+        currentStroke = [];
+    }
+    
+    // Événements de souris
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', continueDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+    
+    // Événements tactiles
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', continueDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+// Obtenir les coordonnées relatives au canvas
+function getCanvasCoordinates(e, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX, clientY;
+    
+    if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+// Fermer le lecteur de fichier
+function closeFileViewer() {
+    const modal = document.getElementById('fileViewerModal');
+    modal.classList.remove('show', 'embedded');
+    
+    // Sauvegarder les annotations avant fermeture
+    if (annotations.length > 0) {
+        saveAnnotations();
+    }
+    
+    // Nettoyer l'observer
+    if (window.pdfPageObserver) {
+        window.pdfPageObserver.disconnect();
+        window.pdfPageObserver = null;
+    }
+    
+    // Réinitialiser les variables
+    currentFileId = null;
+    currentPageNum = 1;
+    currentScale = 1.0;
+    pdfDocument = null;
+    annotations = [];
+}
+
+// Afficher une erreur
+function showError(message) {
+    const container = document.getElementById('pdfPagesContainer');
+    container.innerHTML = `<div class="error-message">${message}</div>`;
+}
+
+// Charger les annotations depuis le serveur
+async function loadAnnotations(fileId) {
+    try {
+        const response = await fetch(`/file-manager/api/annotations/${fileId}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.annotations) {
+                annotations = data.annotations;
+                console.log(`📝 ${annotations.length} annotations chargées`);
+                // Redessiner les annotations
+                setTimeout(() => redrawAllAnnotations(), 500);
+            }
+        }
+    } catch (error) {
+        console.log('ℹ️ Aucune annotation existante:', error);
+        annotations = [];
+    }
+}
+
+// Sauvegarder les annotations
+async function saveAnnotations() {
+    if (!currentFileId || annotations.length === 0) {
+        console.log('💾 Aucune annotation à sauvegarder');
+        return;
+    }
+
+    try {
+        const response = await fetch('/file-manager/api/save-annotations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: currentFileId,
+                annotations: annotations
+            })
+        });
+
+        if (response.ok) {
+            console.log('💾 Annotations sauvegardées avec succès');
+            updateSaveStatus('Sauvegardé', 'success');
+        } else {
+            throw new Error('Erreur de sauvegarde');
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de la sauvegarde:', error);
+        updateSaveStatus('Erreur de sauvegarde', 'error');
+    }
+}
+
+// Configurer les outils d'annotation
+function setupAnnotationTools() {
+    console.log('🔧 Configuration des outils d\'annotation...');
+    
+    // Outils de dessin
+    document.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentTool = btn.dataset.tool;
+            document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            console.log('🔧 Outil sélectionné:', currentTool);
+        });
+    });
+
+    // Couleurs
+    document.querySelectorAll('[data-color]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentColor = btn.dataset.color;
+            document.querySelectorAll('[data-color]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            console.log('🎨 Couleur sélectionnée:', currentColor);
+        });
+    });
+
+    // Couleur personnalisée
+    const colorPicker = document.getElementById('annotationColor');
+    if (colorPicker) {
+        colorPicker.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            document.querySelectorAll('[data-color]').forEach(b => b.classList.remove('active'));
+            console.log('🎨 Couleur personnalisée:', currentColor);
+        });
+    }
+
+    // Épaisseur du trait
+    const strokeWidth = document.getElementById('strokeWidth');
+    const strokeWidthValue = document.getElementById('strokeWidthValue');
+    if (strokeWidth && strokeWidthValue) {
+        strokeWidth.addEventListener('input', (e) => {
+            currentLineWidth = parseInt(e.target.value);
+            strokeWidthValue.textContent = currentLineWidth;
+            console.log('📏 Épaisseur:', currentLineWidth);
+        });
+    }
+}
+
+// Configurer les événements des outils
+function setupToolEvents() {
+    console.log('🔧 Configuration des événements d\'outils...');
+    
+    // Bouton d'annulation
+    const undoBtn = document.getElementById('undoBtn');
+    if (undoBtn) {
+        undoBtn.addEventListener('click', undoLastAnnotation);
+    }
+
+    // Bouton de suppression
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearAllAnnotations);
+    }
+}
+
+// Annuler la dernière annotation
+function undoLastAnnotation() {
+    if (annotations.length > 0) {
+        const lastAnnotation = annotations.pop();
+        redrawAllAnnotations();
+        console.log('↶ Annotation annulée');
+    }
+}
+
+// Effacer toutes les annotations
+function clearAllAnnotations() {
+    if (confirm('Voulez-vous vraiment effacer toutes les annotations ?')) {
+        annotations = [];
+        redrawAllAnnotations();
+        console.log('🗑️ Toutes les annotations effacées');
+    }
+}
+
+// Redessiner toutes les annotations
+function redrawAllAnnotations() {
+    if (!pdfDocument) return;
+    
+    // Effacer tous les canvas d'annotation
+    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+        const canvas = document.getElementById(`annotation-canvas-${pageNum}`);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    
+    // Redessiner toutes les annotations
+    annotations.forEach(annotation => {
+        const canvas = document.getElementById(`annotation-canvas-${annotation.page}`);
+        if (canvas) {
+            drawAnnotationOnCanvas(canvas.getContext('2d'), annotation);
+        }
+    });
+}
+
+// Dessiner une annotation sur le canvas
+function drawAnnotationOnCanvas(ctx, annotation) {
+    if (!annotation.points || annotation.points.length === 0) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = annotation.tool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = annotation.color || '#000000';
+    ctx.lineWidth = annotation.lineWidth || 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (annotation.tool === 'highlighter') {
+        ctx.globalAlpha = 0.3;
+    } else {
+        ctx.globalAlpha = 1.0;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(annotation.points[0].x, annotation.points[0].y);
+    
+    for (let i = 1; i < annotation.points.length; i++) {
+        ctx.lineTo(annotation.points[i].x, annotation.points[i].y);
+    }
+    
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Mettre à jour le statut de sauvegarde
+function updateSaveStatus(message, type = 'info') {
+    const saveStatus = document.getElementById('saveStatus');
+    if (saveStatus) {
+        const icon = type === 'success' ? 'check-circle' : 'info-circle';
+        saveStatus.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> Sauvegarde à la fermeture';
+            }, 3000);
+        }
+    }
+}
+
+// Mettre à jour la fermeture du modal pour inclure le PDF viewer
+const originalClosePlanningModal2 = window.closePlanningModal;
+window.closePlanningModal = function() {
+    // Fermer le lecteur PDF s'il est ouvert
+    const fileViewerModal = document.getElementById('fileViewerModal');
+    if (fileViewerModal && fileViewerModal.classList.contains('show')) {
+        closeFileViewer();
+    }
+    
+    // Appeler la fonction originale
+    if (typeof originalClosePlanningModal2 === 'function') {
+        originalClosePlanningModal2();
+    }
+};
+
+// Écouter les changements de classe sélectionnée
+document.addEventListener('DOMContentLoaded', function() {
+    const classroomSelect = document.getElementById('modalClassroom');
+    if (classroomSelect) {
+        classroomSelect.addEventListener('change', function() {
+            if (isSplitViewOpen && this.value) {
+                loadClassFiles(this.value);
+            }
+        });
+    }
+});
+
+// Modifier la fonction closePlanningModal pour réinitialiser l'état
+const originalClosePlanningModal = window.closePlanningModal || function() {};
+window.closePlanningModal = function() {
+    // Fermer le split view si ouvert
+    if (isSplitViewOpen) {
+        toggleSplitView();
+    }
+    
+    // Masquer l'overlay
+    document.getElementById('modalOverlay').style.display = 'none';
+    
+    // Réinitialiser le contenu du gestionnaire de fichiers
+    document.getElementById('noFiles').innerHTML = `
+        <i class="fas fa-folder-open"></i>
+        <p>Aucun fichier dans cette classe</p>
+    `;
+    
+    // Fermer le lecteur PDF s'il est ouvert
+    // TODO: Implémenter la fermeture du PDF viewer
+    
+    // Appeler la fonction originale
+    if (typeof originalClosePlanningModal === 'function') {
+        originalClosePlanningModal();
+    } else {
+        document.getElementById('planningModal').classList.remove('show');
+    }
+};
+
+// Surcharger la fonction openPlanningModal pour afficher l'overlay
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendre un peu pour que planning.js soit chargé
+    setTimeout(function() {
+        const originalOpenPlanningModal = window.openPlanningModal;
+        if (typeof originalOpenPlanningModal === 'function') {
+            window.openPlanningModal = function(cell, fromAnnualView) {
+                // Afficher l'overlay
+                const overlay = document.getElementById('modalOverlay');
+                if (overlay) {
+                    overlay.style.display = 'block';
+                }
+                
+                // Appeler la fonction originale
+                originalOpenPlanningModal(cell, fromAnnualView);
+            };
+        }
+    }, 100);
+});
+
+// Fermer le modal en cliquant sur l'overlay
+document.addEventListener('DOMContentLoaded', function() {
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', function() {
+            closePlanningModal();
+            closeDayPlanningModal();
+        });
+    }
+});
+
+// ============================================
+// FONCTIONS POUR LE MODAL DE VUE JOURNALIÈRE
+// ============================================
+
+// Variables pour le modal journalier
+let isDaySplitViewOpen = false;
+let currentDayFilePath = '';
+let allDayClassFiles = [];
+
+// Variables pour le lecteur PDF journalier
+let dayCurrentFileId = null;
+let dayCurrentPageNum = 1;
+let dayCurrentScale = 1.0;
+let dayPdfDocument = null;
+let dayAnnotations = [];
+let dayCurrentTool = 'pen';
+let dayCurrentColor = '#000000';
+let dayCurrentLineWidth = 3;
+
+// Ouvrir le modal de planification journalière
+function openDayPlanningModal(dateStr, classroomId) {
+    console.log('📅 Ouverture du modal journalier pour:', dateStr, 'classe:', classroomId);
+    
+    // Afficher l'overlay
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) {
+        overlay.style.display = 'block';
+    }
+    
+    // Mettre à jour le titre
+    const dateObj = new Date(dateStr);
+    const dateStrFormatted = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+    document.getElementById('dayModalTitle').textContent = `Planification - ${dateStrFormatted}`;
+    
+    // Sélectionner la classe dans le dropdown
+    const classroomSelect = document.getElementById('dayModalClassroom');
+    if (classroomId) {
+        classroomSelect.value = classroomId;
+    }
+    
+    // Charger les planifications de la journée
+    loadDayPlannings(dateStr, classroomId);
+    
+    // Afficher le modal
+    document.getElementById('dayPlanningModal').classList.add('show');
+}
+
+// Charger les créneaux de la journée avec planifications existantes
+async function loadDayPlannings(dateStr, classroomId) {
+    const container = document.getElementById('dayPlanningsContainer');
+    container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
+    
+    try {
+        // Charger les planifications existantes
+        const response = await fetch(`/planning/api/day/${dateStr}?classroom_id=${classroomId || ''}`);
+        console.log('📡 Réponse API status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erreur HTTP:', response.status, errorText);
+            container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement (HTTP ' + response.status + ')</div>';
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('📊 Données reçues:', data);
+        
+        // Créer un objet des planifications par période
+        const planningsByPeriod = {};
+        if (data.success && data.plannings) {
+            data.plannings.forEach(planning => {
+                planningsByPeriod[planning.period] = planning;
+            });
+        }
+        
+        // Charger les créneaux du jour pour cette classe
+        await loadDayScheduleSlots(dateStr, classroomId, planningsByPeriod);
+        
+    } catch (error) {
+        console.error('Erreur lors du chargement des planifications:', error);
+        container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement</div>';
+    }
+}
+
+// Charger les créneaux du jour (horaire type + planifications)
+async function loadDayScheduleSlots(dateStr, classroomId, existingPlannings) {
+    const container = document.getElementById('dayPlanningsContainer');
+    
+    if (!classroomId) {
+        container.innerHTML = '<div class="text-center text-muted">Veuillez sélectionner une classe pour voir les créneaux</div>';
+        return;
+    }
+    
+    try {
+        // Récupérer l'horaire type pour cette classe
+        const dayOfWeek = new Date(dateStr).getDay();
+        const weekday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convertir dimanche=0 en lundi=0
+        
+        // Utiliser les données déjà disponibles dans la page
+        const periods = periodsData; // Défini globalement dans calendar_view.html
+        
+        // Filtrer les horaires pour cette classe et ce jour
+        const todaySchedules = [];
+        
+        // Parcourir toutes les périodes
+        periods.forEach(period => {
+            // Vérifier si cette classe a cours à cette période ce jour dans l'horaire type
+            const scheduleKey = `${weekday}_${period.number}`;
+            const schedule = scheduleGrid[scheduleKey];
+            
+            // Parser l'ID de classe pour la comparaison
+            let targetId, targetType;
+            if (classroomId.startsWith('mixed_group_')) {
+                targetId = parseInt(classroomId.split('_')[2]);
+                targetType = 'mixed_group';
+            } else if (classroomId.startsWith('classroom_')) {
+                targetId = parseInt(classroomId.split('_')[1]);
+                targetType = 'classroom';
+            } else {
+                // Format ancien (ID numérique direct)
+                targetId = parseInt(classroomId);
+                targetType = 'classroom';
+            }
+            
+            // Vérifier si l'horaire type correspond
+            const scheduleMatches = schedule && (
+                (schedule.classroom_id == targetId && targetType === 'classroom') ||
+                (schedule.mixed_group_id == targetId && targetType === 'mixed_group')
+            );
+            
+            // Vérifier s'il y a une planification existante pour cette période
+            const existingPlanning = existingPlannings[period.number];
+            const hasExistingPlanning = existingPlanning && (
+                (existingPlanning.classroom_id == targetId && targetType === 'classroom') ||
+                (existingPlanning.mixed_group_id == targetId && targetType === 'mixed_group')
+            );
+            
+            // Créer un créneau s'il y a soit un horaire type, soit une planification existante
+            if (scheduleMatches || hasExistingPlanning) {
+                todaySchedules.push({
+                    period_number: period.number,
+                    period_start: period.start,
+                    period_end: period.end,
+                    planning: existingPlanning || null
+                });
+            }
+        });
+        
+        renderDayScheduleSlots(todaySchedules, dateStr, classroomId);
+        
+    } catch (error) {
+        console.error('Erreur lors du chargement des créneaux:', error);
+        container.innerHTML = '<div class="text-center text-danger">Erreur lors du chargement des créneaux</div>';
+    }
+}
+
+// Afficher les créneaux de la journée avec possibilité d'édition
+function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
+    const container = document.getElementById('dayPlanningsContainer');
+    
+    if (scheduleSlots.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted">Aucun créneau configuré pour cette journée</div>';
+        return;
+    }
+    
+    // Vérifier si la date est passée (plus de 24h)
+    const targetDate = new Date(dateStr);
+    const now = new Date();
+    const isPastDate = (now - targetDate) > (24 * 60 * 60 * 1000);
+    
+    // Récupérer les informations de la classe ou du groupe mixte
+    let selectedItem = null;
+    if (classroomId) {
+        let type, numericId;
+        if (classroomId.startsWith('mixed_group_')) {
+            type = 'mixed_group';
+            numericId = parseInt(classroomId.split('_')[2]);
+        } else if (classroomId.startsWith('classroom_')) {
+            type = 'classroom';
+            numericId = parseInt(classroomId.split('_')[1]);
+        } else {
+            // Format ancien (ID numérique direct)
+            type = 'classroom';
+            numericId = parseInt(classroomId);
+        }
+        selectedItem = classrooms.find(c => c.id === numericId && c.type === type);
+    }
+    
+    const classroomColor = selectedItem ? selectedItem.color : '#4F46E5';
+    const classroomName = selectedItem ? selectedItem.name : 'Classe inconnue';
+    const classroomSubject = selectedItem ? selectedItem.subject : '';
+    
+    let html = '<div class="day-schedules-list">';
+    
+    scheduleSlots.forEach(slot => {
+        const planning = slot.planning;
+        const hasPlanning = planning !== null;
+        
+        html += `
+            <div class="day-schedule-slot" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')">
+                <div class="slot-header">
+                    <div class="slot-period">Période ${slot.period_number}</div>
+                    <div class="slot-time">${slot.period_start} - ${slot.period_end}</div>
+                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
+                        <i class="fas fa-edit"></i>
+                    </button>` : ''}
+                </div>
+                <div class="slot-content">
+                    <div class="slot-class">${classroomName}${classroomSubject ? ' - ' + classroomSubject : ''}</div>
+                    <div class="slot-title ${!hasPlanning ? 'placeholder' : ''}">
+                        ${hasPlanning ? (planning.title || 'Sans titre') : 'Cliquez pour planifier ce créneau'}
+                    </div>
+                    ${hasPlanning && planning.description ? `<div class="slot-description">${planning.description}</div>` : ''}
+                    ${!hasPlanning && !isPastDate ? '<div class="slot-empty">Créneau libre - Cliquez pour ajouter une planification</div>' : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Variables pour l'édition des créneaux journaliers
+let currentEditingSlot = null;
+
+// Éditer un créneau spécifique
+function editDaySlot(periodNumber, dateStr, classroomId) {
+    console.log(`📝 Édition créneau: Période ${periodNumber}, Date: ${dateStr}, Classe: ${classroomId}`);
+    
+    // Stocker les informations du créneau en cours d'édition
+    currentEditingSlot = {
+        period: periodNumber,
+        date: dateStr,
+        classroomId: classroomId
+    };
+    
+    // Récupérer les données existantes pour ce créneau
+    getDaySlotData(dateStr, periodNumber, classroomId).then(data => {
+        if (data.success && data.planning) {
+            // Pré-remplir avec les données existantes
+            showDaySlotEditModal(data.planning.title || '', data.planning.description || '');
+        } else {
+            // Nouveau créneau vide
+            showDaySlotEditModal('', '');
+        }
+    });
+}
+
+// Récupérer les données d'un créneau spécifique
+async function getDaySlotData(dateStr, periodNumber, classroomId) {
+    try {
+        const response = await fetch(`/planning/api/slot/${dateStr}/${periodNumber}?classroom_id=${classroomId}`);
+        if (response.ok) {
+            return await response.json();
+        }
+        return { success: false };
+    } catch (error) {
+        console.error('Erreur lors de la récupération du créneau:', error);
+        return { success: false };
+    }
+}
+
+// Afficher le modal d'édition de créneau
+function showDaySlotEditModal(title, description) {
+    // Créer un modal d'édition simple
+    const modalHtml = `
+        <div class="day-edit-modal" id="dayEditModal">
+            <div class="day-edit-content">
+                <div class="day-edit-header">
+                    <h4>Planifier le créneau - Période ${currentEditingSlot.period}</h4>
+                    <button class="day-edit-close" onclick="closeDayEditModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="day-edit-body">
+                    <div class="form-group" id="dayGroupSelectionDiv" style="display: none;">
+                        <label class="form-label">Groupe</label>
+                        <select id="dayModalGroup" class="form-control" onchange="toggleDayGroupRepeatOptions()">
+                            <option value="">Classe entière</option>
+                        </select>
+                        <small class="form-text text-muted">Sélectionnez un groupe ou laissez "Classe entière" pour tous les élèves</small>
+                        
+                        <!-- Options de répétition des groupes pour le modal jour -->
+                        <div id="dayGroupRepeatOptions" style="display: none; margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+                            <label class="form-label" style="font-weight: 600; margin-bottom: 8px; display: block;">Application automatique :</label>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="dayGroupRepeat" value="same" style="margin-right: 8px;">
+                                    <span>Répéter le même groupe chaque semaine jusqu'à la fin de l'année</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="dayGroupRepeat" value="alternate" style="margin-right: 8px;">
+                                    <span>Alterner entre tous les groupes de la classe chaque semaine</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="dayGroupRepeat" value="none" checked style="margin-right: 8px;">
+                                    <span>Appliquer seulement pour cette date</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Titre du cours</label>
+                        <input type="text" id="daySlotTitle" class="form-control" 
+                               value="${title}" placeholder="Ex: Introduction aux fractions">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea id="daySlotDescription" class="form-control" rows="4"
+                                  placeholder="Détails du cours, exercices prévus...">${description}</textarea>
+                    </div>
+                </div>
+                <div class="day-edit-footer">
+                    <button class="btn btn-outline" onclick="closeDayEditModal()">Annuler</button>
+                    <button class="btn btn-primary" onclick="saveDaySlot()">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter le modal au DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Attacher la conversion des tirets en checkboxes
+    attachDayDashConversion();
+    
+    // Charger les groupes pour cette classe
+    loadGroupsForDayModal(currentEditingSlot.classroomId);
+    
+    // Afficher le modal
+    setTimeout(() => {
+        document.getElementById('dayEditModal').classList.add('show');
+    }, 10);
+}
+
+// Fermer le modal d'édition
+function closeDayEditModal() {
+    const modal = document.getElementById('dayEditModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+    currentEditingSlot = null;
+}
+
+// Attacher la conversion des tirets en checkboxes pour le modal journalier
+function attachDayDashConversion() {
+    const textarea = document.getElementById('daySlotDescription');
+    if (!textarea) return;
+
+    textarea.addEventListener('input', function(e) {
+        const cursorPos = textarea.selectionStart;
+        const value = textarea.value;
+
+        // Vérifier si on vient de taper un tiret en début de ligne
+        if (e.inputType === 'insertText' && e.data === '-') {
+            const lines = value.substring(0, cursorPos).split('\n');
+            const currentLine = lines[lines.length - 1];
+
+            // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
+            if (currentLine.trim() === '-') {
+                e.preventDefault();
+
+                // Remplacer le tiret par [ ]
+                const beforeCursor = value.substring(0, cursorPos - 1);
+                const afterCursor = value.substring(cursorPos);
+                const spaces = currentLine.match(/^\s*/)[0]; // Préserver l'indentation
+
+                textarea.value = beforeCursor + spaces + '[ ] ' + afterCursor;
+
+                // Placer le curseur après [ ]
+                const newCursorPos = cursorPos - 1 + spaces.length + 4;
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }
+    });
+}
+
+// Sauvegarder les modifications du créneau
+async function saveDaySlot() {
+    if (!currentEditingSlot) return;
+    
+    const title = document.getElementById('daySlotTitle').value;
+    const description = document.getElementById('daySlotDescription').value;
+    const groupId = document.getElementById('dayModalGroup').value || null;
+    
+    // Vérifier les options de répétition des groupes
+    const groupRepeatOption = document.querySelector('input[name="dayGroupRepeat"]:checked');
+    const shouldApplyPattern = groupRepeatOption && groupRepeatOption.value !== 'none' && groupId;
+    
+    try {
+        // Sauvegarder d'abord la planification actuelle
+        const response = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: currentEditingSlot.date,
+                period_number: currentEditingSlot.period,
+                classroom_id: currentEditingSlot.classroomId,
+                title: title,
+                description: description,
+                checklist_states: {}, // Pas de checkboxes dans ce modal simple
+                group_id: groupId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log('✅ Créneau sauvegardé avec succès');
+            
+            // Si une option de répétition est sélectionnée, appliquer le pattern
+            if (shouldApplyPattern) {
+                const patternResponse = await fetch('/planning/apply-group-pattern', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        start_date: currentEditingSlot.date,
+                        period_number: currentEditingSlot.period,
+                        classroom_id: currentEditingSlot.classroomId,
+                        title: title,
+                        description: description,
+                        checklist_states: {},
+                        pattern_type: groupRepeatOption.value,
+                        group_id: parseInt(groupId)
+                    })
+                });
+
+                const patternResult = await patternResponse.json();
+                
+                if (patternResult.success) {
+                    console.log(`✅ Pattern appliqué: ${patternResult.message}`);
+                } else {
+                    console.log(`⚠️ Erreur lors de l'application du pattern: ${patternResult.message}`);
+                }
+            }
+            
+            // Sauvegarder les valeurs avant de fermer le modal
+            const dateToReload = currentEditingSlot.date;
+            const classroomToReload = currentEditingSlot.classroomId;
+            closeDayEditModal();
+            // Recharger les créneaux de la journée
+            loadDayPlannings(dateToReload, classroomToReload);
+        } else {
+            console.error('❌ Erreur lors de la sauvegarde:', result.message || 'Erreur inconnue');
+            alert('Erreur lors de la sauvegarde: ' + (result.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur lors de la sauvegarde: ' + error.message);
+    }
+}
+
+// Charger les groupes pour une classe (modal principal)
+async function loadGroupsForClass(classroomId) {
+    const groupDiv = document.getElementById('groupSelectionDiv');
+    const groupSelect = document.getElementById('modalGroup');
+    
+    if (!classroomId) {
+        groupDiv.style.display = 'none';
+        return;
+    }
+    
+    // Gérer le cas des tâches personnalisées
+    if (classroomId === 'custom_task') {
+        groupDiv.style.display = 'none';
+        
+        // Cacher le bouton fichiers pour les tâches personnalisées
+        const fileButton = document.querySelector('.modal-header-actions .btn-icon[onclick="toggleSplitView()"]');
+        if (fileButton) {
+            fileButton.style.display = 'none';
+        }
+        
+        // Changer le label du titre
+        const titleLabel = document.querySelector('label[for="modalPlanningTitle"], .form-group label:has(+ #modalPlanningTitle)');
+        if (!titleLabel) {
+            // Si on ne trouve pas avec for, chercher le label précédent
+            const titleInput = document.getElementById('modalPlanningTitle');
+            if (titleInput) {
+                const parentGroup = titleInput.closest('.form-group');
+                if (parentGroup) {
+                    const label = parentGroup.querySelector('label');
+                    if (label) {
+                        label.textContent = 'Titre';
+                    }
+                }
+            }
+        } else {
+            titleLabel.textContent = 'Titre';
+        }
+        
+        return;
+    }
+    
+    // Pour les classes normales, réafficher le bouton fichiers et remettre le label par défaut
+    const fileButton = document.querySelector('.modal-header-actions .btn-icon[onclick="toggleSplitView()"]');
+    if (fileButton) {
+        fileButton.style.display = 'inline-block';
+    }
+    
+    // Remettre le label par défaut
+    const titleInput = document.getElementById('modalPlanningTitle');
+    if (titleInput) {
+        const parentGroup = titleInput.closest('.form-group');
+        if (parentGroup) {
+            const label = parentGroup.querySelector('label');
+            if (label) {
+                label.textContent = 'Titre du cours';
+            }
+        }
+    }
+    
+    try {
+        // Extraire l'ID numérique si classroomId contient un préfixe
+        const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+        const response = await fetch(`/planning/get-groups/${numericId}`);
+        const data = await response.json();
+        
+        if (data.success && data.groups.length > 0) {
+            // Réinitialiser les options
+            groupSelect.innerHTML = '<option value="">Classe entière</option>';
+            
+            // Ajouter les groupes
+            data.groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                option.style.color = group.color;
+                groupSelect.appendChild(option);
+            });
+            
+            groupDiv.style.display = 'block';
+        } else {
+            groupDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des groupes:', error);
+        groupDiv.style.display = 'none';
+    }
+}
+
+// Charger les groupes pour le modal journalier
+async function loadGroupsForDayModal(classroomId) {
+    const groupDiv = document.getElementById('dayGroupSelectionDiv');
+    const groupSelect = document.getElementById('dayModalGroup');
+    
+    if (!classroomId) {
+        groupDiv.style.display = 'none';
+        return;
+    }
+    
+    try {
+        // Extraire l'ID numérique si classroomId contient un préfixe
+        const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+        const response = await fetch(`/planning/get-groups/${numericId}`);
+        const data = await response.json();
+        
+        if (data.success && data.groups.length > 0) {
+            // Réinitialiser les options
+            groupSelect.innerHTML = '<option value="">Classe entière</option>';
+            
+            // Ajouter les groupes
+            data.groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                option.style.color = group.color;
+                groupSelect.appendChild(option);
+            });
+            
+            groupDiv.style.display = 'block';
+        } else {
+            groupDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des groupes:', error);
+        groupDiv.style.display = 'none';
+    }
+}
+
+// Fermer le modal journalier
+function closeDayPlanningModal() {
+    // Fermer le lecteur PDF s'il est ouvert
+    const dayFileViewerModal = document.getElementById('dayFileViewerModal');
+    if (dayFileViewerModal && dayFileViewerModal.classList.contains('show')) {
+        closeDayFileViewer();
+    }
+    
+    // Fermer le split view si ouvert
+    if (isDaySplitViewOpen) {
+        toggleDaySplitView();
+    }
+    
+    // Masquer l'overlay
+    document.getElementById('modalOverlay').style.display = 'none';
+    
+    // Fermer le modal
+    document.getElementById('dayPlanningModal').classList.remove('show');
+}
+
+// Basculer l'affichage du gestionnaire de fichiers pour la vue journalière
+function toggleDaySplitView() {
+    const modal = document.getElementById('dayPlanningModal');
+    const fileManagerPanel = document.getElementById('dayFileManagerPanel');
+    
+    isDaySplitViewOpen = !isDaySplitViewOpen;
+    
+    if (isDaySplitViewOpen) {
+        modal.classList.add('split-view');
+        fileManagerPanel.style.display = 'flex';
+        
+        // Charger les fichiers de la classe sélectionnée
+        const classroomId = document.getElementById('dayModalClassroom').value;
+        if (classroomId) {
+            loadDayClassFiles(classroomId);
+        } else {
+            // Si aucune classe n'est sélectionnée, afficher un message
+            document.getElementById('dayFileLoading').style.display = 'none';
+            document.getElementById('dayFileNavigation').style.display = 'none';
+            document.getElementById('dayFileTree').style.display = 'none';
+            document.getElementById('dayNoFiles').style.display = 'block';
+            document.getElementById('dayNoFiles').innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Veuillez sélectionner une classe</p>
+            `;
+        }
+    } else {
+        modal.classList.remove('split-view');
+        fileManagerPanel.style.display = 'none';
+    }
+}
+
+// Charger les fichiers d'une classe pour la vue journalière
+async function loadDayClassFiles(classroomId) {
+    const fileLoading = document.getElementById('dayFileLoading');
+    const fileNavigation = document.getElementById('dayFileNavigation');
+    const fileTree = document.getElementById('dayFileTree');
+    const noFiles = document.getElementById('dayNoFiles');
+    
+    console.log('Chargement des fichiers pour la classe:', classroomId);
+    
+    // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
+    const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+    
+    // Afficher le chargement
+    fileLoading.style.display = 'block';
+    fileNavigation.style.display = 'none';
+    fileTree.style.display = 'none';
+    noFiles.style.display = 'none';
+    
+    try {
+        const response = await fetch(`/api/class-files/${numericId}`);
+        console.log('Réponse API:', response);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Données reçues:', data);
+        
+        fileLoading.style.display = 'none';
+        
+        if (data.success && data.files && data.files.length > 0) {
+            allDayClassFiles = data.files;
+            fileNavigation.style.display = 'block';
+            fileTree.style.display = 'block';
+            renderDayFileTree(data.files, currentDayFilePath);
+        } else {
+            console.log('Aucun fichier trouvé ou erreur dans la réponse');
+            noFiles.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des fichiers:', error);
+        fileLoading.style.display = 'none';
+        noFiles.style.display = 'block';
+    }
+}
+
+// Afficher l'arborescence des fichiers pour la vue journalière
+function renderDayFileTree(files, currentPath = '') {
+    const fileTree = document.getElementById('dayFileTree');
+    fileTree.innerHTML = '';
+    
+    // Organiser les fichiers par dossier (même logique que l'original)
+    const folders = {};
+    const currentLevelFiles = [];
+    const allFolders = new Set();
+    
+    files.forEach(file => {
+        if (file.folder_path) {
+            // Extraire tous les dossiers du chemin
+            const pathParts = file.folder_path.split('/').filter(p => p);
+            let accumulatedPath = '';
+            
+            pathParts.forEach((part, index) => {
+                const parentPath = accumulatedPath;
+                accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
+                
+                allFolders.add(accumulatedPath);
+                
+                if (!folders[accumulatedPath]) {
+                    folders[accumulatedPath] = {
+                        name: part,
+                        path: accumulatedPath,
+                        parent: parentPath,
+                        files: [],
+                        subfolders: new Set()
+                    };
+                }
+                
+                if (parentPath && folders[parentPath]) {
+                    folders[parentPath].subfolders.add(accumulatedPath);
+                }
+                
+                if (index === pathParts.length - 1) {
+                    folders[accumulatedPath].files.push(file);
+                }
+            });
+            
+            if (currentPath && file.folder_path.startsWith(currentPath)) {
+                const relativePath = file.folder_path.substring(currentPath.length).replace(/^\//, '');
+                const relativePathParts = relativePath.split('/').filter(p => p);
+                
+                if (relativePathParts.length === 0 || (relativePathParts.length === 1 && relativePathParts[0] === '')) {
+                    currentLevelFiles.push(file);
+                }
+            }
+        } else if (!currentPath) {
+            currentLevelFiles.push(file);
+        }
+    });
+    
+    // Si on navigue dans un dossier, ajouter un bouton retour
+    if (currentPath) {
+        const backItem = document.createElement('div');
+        backItem.className = 'file-item';
+        backItem.innerHTML = `
+            <i class="fas fa-arrow-left file-icon"></i>
+            <span class="file-name">..</span>
+        `;
+        backItem.onclick = () => {
+            const parentPath = currentPath.includes('/') ? 
+                currentPath.substring(0, currentPath.lastIndexOf('/')) : '';
+            navigateToDayFileFolder(parentPath);
+        };
+        fileTree.appendChild(backItem);
+    }
+    
+    // Afficher les dossiers du niveau actuel
+    Object.values(folders).forEach(folder => {
+        const shouldShow = currentPath ? 
+            folder.parent === currentPath : 
+            !folder.parent;
+        
+        if (shouldShow) {
+            const folderItem = document.createElement('div');
+            folderItem.className = 'file-item folder';
+            folderItem.innerHTML = `
+                <i class="fas fa-folder file-icon"></i>
+                <span class="file-name">${folder.name}</span>
+            `;
+            folderItem.onclick = () => navigateToDayFileFolder(folder.path);
+            fileTree.appendChild(folderItem);
+        }
+    });
+    
+    // Afficher les fichiers du niveau actuel
+    currentLevelFiles.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        const icon = getFileIconByType(file.file_type);
+        
+        fileItem.innerHTML = `
+            <i class="${icon} file-icon"></i>
+            <span class="file-name">${file.original_filename}</span>
+        `;
+        
+        if (file.file_type === 'pdf') {
+            console.log('📄 Création du gestionnaire de clic pour le PDF:', file.original_filename, 'ID:', file.id);
+            fileItem.onclick = () => {
+                console.log('🖱️ Clic sur le fichier PDF:', file.original_filename);
+                openDayPdfInViewer(file.id, file.original_filename);
+            };
+        }
+        
+        fileTree.appendChild(fileItem);
+    });
+    
+    // Mettre à jour le fil d'Ariane
+    updateDayBreadcrumb(currentPath);
+}
+
+// Naviguer dans un dossier pour la vue journalière
+function navigateToDayFileFolder(folderPath) {
+    currentDayFilePath = folderPath;
+    console.log('Navigation vers le dossier:', folderPath);
+    
+    renderDayFileTree(allDayClassFiles, folderPath);
+}
+
+// Mettre à jour le fil d'Ariane pour la vue journalière
+function updateDayBreadcrumb(path) {
+    const breadcrumb = document.getElementById('dayFileBreadcrumb');
+    breadcrumb.innerHTML = '';
+    
+    // Racine
+    const rootItem = document.createElement('span');
+    rootItem.className = 'breadcrumb-item';
+    rootItem.innerHTML = '<i class="fas fa-home"></i> Racine';
+    rootItem.onclick = () => navigateToDayFileFolder('');
+    breadcrumb.appendChild(rootItem);
+    
+    // Ajouter les parties du chemin
+    if (path) {
+        const parts = path.split('/').filter(p => p);
+        let accumulatedPath = '';
+        
+        parts.forEach((part, index) => {
+            // Ajouter le séparateur
+            const separator = document.createElement('i');
+            separator.className = 'fas fa-chevron-right';
+            separator.style.cssText = 'margin: 0 0.5rem; font-size: 0.75rem; color: #9ca3af;';
+            breadcrumb.appendChild(separator);
+            
+            // Construire le chemin accumulé
+            accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
+            
+            // Créer l'élément du fil d'Ariane
+            const partItem = document.createElement('span');
+            partItem.className = index === parts.length - 1 ? 'breadcrumb-item active' : 'breadcrumb-item';
+            partItem.textContent = part;
+            
+            if (index < parts.length - 1) {
+                const pathToNavigate = accumulatedPath;
+                partItem.onclick = () => navigateToDayFileFolder(pathToNavigate);
+            }
+            
+            breadcrumb.appendChild(partItem);
+        });
+    }
+}
+
+// Ouvrir un PDF dans le lecteur intégré en mode split pour la vue journalière
+async function openDayPdfInViewer(fileId, fileName) {
+    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split journalier:', fileName);
+    console.log('📍 FileId:', fileId, 'FileName:', fileName);
+    
+    try {
+        // Approche alternative : créer un nouveau conteneur directement dans le body
+        let container = document.getElementById('pdf-viewer-container-day');
+        if (container) {
+            document.body.removeChild(container);
+        }
+        
+        container = document.createElement('div');
+        container.id = 'pdf-viewer-container-day';
+        container.style.cssText = `
+            position: fixed !important;
+            top: 0 !important;
+            right: 0 !important;
+            width: 50vw !important;
+            height: 100vh !important;
+            z-index: 15000 !important;
+            background: #F8FAFC !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
+        `;
+        
+        document.body.appendChild(container);
+        console.log('✅ Nouveau conteneur créé dans le body');
+        
+        // Vérifier les dimensions après ajout au body
+        console.log('🔍 Debug nouveau conteneur:', {
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            visible: container.offsetParent !== null
+        });
+        
+        // Déterminer quelle classe utiliser pour l'envoi de fichiers selon le contexte journalier
+        let currentClassId = getDayViewSelectedClassId();
+        
+        // Récupérer les étudiants de la classe actuelle
+        const studentsData = await getStudentsForClass(currentClassId);
+        
+        // Configuration pour le mode split sans suivi d'élèves
+        const options = {
+            mode: 'split',
+            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
+            enableSendToStudents: true,   // Activer l'envoi aux élèves
+            currentClassId: currentClassId,
+            studentData: studentsData,
+            autoSave: true,
+            saveDelay: 3000,
+            apiEndpoints: {
+                saveAnnotations: '/file_manager/api/save-annotations',
+                loadAnnotations: '/file_manager/api/load-annotations',
+                search: '/api/search-pdf'
+            }
+        };
+        
+        // Détruire l'instance précédente si elle existe
+        if (window.currentPdfViewer) {
+            window.currentPdfViewer.destroy();
+        }
+        
+        // Créer la nouvelle instance avec le nouveau conteneur
+        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-day', options);
+        
+        // Attendre que le DOM se mette à jour
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Vérifier et forcer tous les styles de visibilité
+        const computedStyle = window.getComputedStyle(container);
+        console.log('🔍 Debug conteneur principal avant correction:', {
+            containerDisplay: container.style.display,
+            containerWidth: container.offsetWidth,
+            containerHeight: container.offsetHeight,
+            containerVisible: container.offsetParent !== null,
+            computedDisplay: computedStyle.display,
+            computedVisibility: computedStyle.visibility,
+            computedOpacity: computedStyle.opacity
+        });
+        
+        // Forcer absolument la visibilité
+        container.style.display = 'block !important';
+        container.style.visibility = 'visible !important';
+        container.style.opacity = '1 !important';
+        container.style.zIndex = '11000';
+        
+        // Re-check après forçage
+        setTimeout(() => {
+            console.log('🔍 Debug conteneur après forçage:', {
+                containerWidth: container.offsetWidth,
+                containerHeight: container.offsetHeight,
+                containerVisible: container.offsetParent !== null
+            });
+        }, 50);
+        
+        // Forcer les dimensions des conteneurs internes
+        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
+        const pdfMain = container.querySelector('.pdf-main');
+        const unifiedViewer = container.querySelector('.unified-pdf-viewer');
+        
+        if (unifiedViewer) {
+            console.log('🔍 Debug unified-pdf-viewer:', {
+                width: unifiedViewer.offsetWidth,
+                height: unifiedViewer.offsetHeight,
+                computedStyle: window.getComputedStyle(unifiedViewer).display
+            });
+        }
+        
+        if (pdfViewerArea) {
+            pdfViewerArea.style.width = '100%';
+            pdfViewerArea.style.height = '100%';
+            pdfViewerArea.style.display = 'flex';
+            console.log('🔧 Dimensions forcées pour pdf-viewer-area:', {
+                width: pdfViewerArea.offsetWidth,
+                height: pdfViewerArea.offsetHeight
+            });
+        }
+        if (pdfMain) {
+            pdfMain.style.width = '100%';
+            pdfMain.style.height = '100%';
+            pdfMain.style.display = 'flex';
+            console.log('🔧 Dimensions forcées pour pdf-main:', {
+                width: pdfMain.offsetWidth,
+                height: pdfMain.offsetHeight
+            });
+        }
+        
+        // Charger le PDF avec fileId pour la sauvegarde  
+        const pdfUrl = `/file_manager/serve_file/${fileId}`;
+        console.log('📎 URL du PDF:', pdfUrl);
+        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
+        
+        // Forcer le recalcul des dimensions après le chargement
+        setTimeout(() => {
+            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
+                console.log('🔧 Recalcul forcé des dimensions de la toolbar');
+                window.currentPdfViewer.handleToolbarResize();
+            }
+        }, 200);
+        
+        console.log('✅ PDF chargé avec succès');
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement du PDF:', error);
+    }
+}
+
+// Charger un document PDF pour la vue journalière
+async function loadDayPDF(fileId) {
+    try {
+        const url = `/api/class-files/preview/${fileId}`;
+        console.log('📄 Chargement du PDF depuis:', url);
+        
+        const loadingTask = pdfjsLib.getDocument(url);
+        dayPdfDocument = await loadingTask.promise;
+        
+        console.log(`📄 PDF chargé avec ${dayPdfDocument.numPages} pages`);
+        
+        // Effacer le conteneur et les miniatures
+        const pagesContainer = document.getElementById('dayPdfPagesContainer');
+        const thumbnailContainer = document.getElementById('dayPageThumbnails');
+        
+        pagesContainer.innerHTML = '';
+        thumbnailContainer.innerHTML = '';
+        
+        // Créer toutes les pages
+        for (let pageNum = 1; pageNum <= dayPdfDocument.numPages; pageNum++) {
+            await createDayPDFPageWithCanvas(pageNum);
+            await createDayThumbnail(pageNum);
+        }
+        
+        // Configurer l'observer pour détecter les pages visibles (version journalière)
+        setupDayPageVisibilityObserver();
+        
+        // Appliquer automatiquement la correction du problème de scroll après un petit délai
+        setTimeout(() => {
+            console.log('🔧 Application automatique de la correction de scroll journalier...');
+            applyDayScrollFixToViewer();
+        }, 300);
+        
+        console.log('📄 Toutes les pages créées avec succès');
+        
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement du PDF:', error);
+        showDayError('Erreur lors du chargement du PDF');
+    }
+}
+
+// Créer une page PDF avec canvas d'annotation pour la vue journalière
+async function createDayPDFPageWithCanvas(pageNum) {
+    try {
+        const page = await dayPdfDocument.getPage(pageNum);
+        const viewport = page.getViewport({ scale: dayCurrentScale });
+        
+        // Créer le wrapper de la page
+        const pageWrapper = document.createElement('div');
+        pageWrapper.className = 'pdf-page-wrapper';
+        pageWrapper.id = `day-page-wrapper-${pageNum}`;
+        
+        // Canvas pour le PDF
+        const pdfCanvas = document.createElement('canvas');
+        pdfCanvas.className = 'pdf-canvas';
+        pdfCanvas.id = `day-pdf-canvas-${pageNum}`;
+        pdfCanvas.width = viewport.width;
+        pdfCanvas.height = viewport.height;
+        
+        // Canvas pour les annotations
+        const annotationCanvas = document.createElement('canvas');
+        annotationCanvas.className = 'annotation-canvas';
+        annotationCanvas.id = `day-annotation-canvas-${pageNum}`;
+        annotationCanvas.width = viewport.width;
+        annotationCanvas.height = viewport.height;
+        
+        // Numéro de page
+        const pageNumber = document.createElement('div');
+        pageNumber.className = 'pdf-page-number';
+        pageNumber.textContent = `Page ${pageNum}`;
+        
+        // Assembler la page
+        pageWrapper.appendChild(pdfCanvas);
+        pageWrapper.appendChild(annotationCanvas);
+        pageWrapper.appendChild(pageNumber);
+        
+        // Ajouter au conteneur
+        document.getElementById('dayPdfPagesContainer').appendChild(pageWrapper);
+        
+        // Rendre le PDF
+        const ctx = pdfCanvas.getContext('2d');
+        await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+        }).promise;
+        
+        // Configurer les événements d'annotation
+        setupDayAnnotationEvents(annotationCanvas, pageNum);
+        
+        console.log(`📄 Page journalière ${pageNum} créée avec succès`);
+        
+    } catch (error) {
+        console.error(`❌ Erreur lors de la création de la page journalière ${pageNum}:`, error);
+    }
+}
+
+// Créer une miniature pour la vue journalière
+async function createDayThumbnail(pageNum) {
+    try {
+        const page = await dayPdfDocument.getPage(pageNum);
+        const thumbnailScale = 0.25;
+        const viewport = page.getViewport({ scale: thumbnailScale });
+        
+        const thumbnailCanvas = document.createElement('canvas');
+        thumbnailCanvas.className = 'thumbnail-canvas';
+        thumbnailCanvas.width = viewport.width;
+        thumbnailCanvas.height = viewport.height;
+        
+        const ctx = thumbnailCanvas.getContext('2d');
+        await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+        }).promise;
+        
+        // Wrapper pour la miniature
+        const thumbnailItem = document.createElement('div');
+        thumbnailItem.className = 'thumbnail-item';
+        thumbnailItem.id = `day-thumbnail-${pageNum}`;
+        thumbnailItem.appendChild(thumbnailCanvas);
+        
+        // Événement de clic pour navigation
+        thumbnailItem.addEventListener('click', () => scrollToDayPage(pageNum));
+        
+        document.getElementById('dayPageThumbnails').appendChild(thumbnailItem);
+        
+    } catch (error) {
+        console.error(`❌ Erreur lors de la création de la miniature journalière ${pageNum}:`, error);
+    }
+}
+
+// Faire défiler vers une page spécifique pour la vue journalière
+function scrollToDayPage(pageNum) {
+    const pageWrapper = document.getElementById(`day-page-wrapper-${pageNum}`);
+    if (pageWrapper) {
+        // Utiliser scrollIntoView avec des options plus précises
+        const viewerContainer = document.getElementById('dayViewerContainer');
+        const containerRect = viewerContainer.getBoundingClientRect();
+        const pageRect = pageWrapper.getBoundingClientRect();
+        
+        // Calculer la position de scroll nécessaire
+        const scrollTop = viewerContainer.scrollTop + pageRect.top - containerRect.top - 20;
+        
+        // Faire le scroll avec une animation fluide
+        viewerContainer.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth'
+        });
+        
+        // Mettre à jour la miniature active
+        updateDayActiveThumbnail(pageNum);
+        
+        dayCurrentPageNum = pageNum;
+    }
+}
+
+// Mettre à jour la miniature active pour la vue journalière
+function updateDayActiveThumbnail(pageNum) {
+    document.querySelectorAll('#dayPageThumbnails .thumbnail-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.getElementById(`day-thumbnail-${pageNum}`)?.classList.add('active');
+}
+
+// Configurer l'observer pour détecter automatiquement les pages visibles (version journalière)
+function setupDayPageVisibilityObserver() {
+    const viewerContainer = document.getElementById('dayViewerContainer');
+    if (!viewerContainer) return;
+    
+    // Créer l'intersection observer
+    const observer = new IntersectionObserver((entries) => {
+        let mostVisiblePage = null;
+        let maxVisibilityRatio = 0;
+        
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const pageId = entry.target.id;
+                const pageNum = parseInt(pageId.split('-').pop());
+                
+                // Trouver la page la plus visible
+                if (entry.intersectionRatio > maxVisibilityRatio) {
+                    maxVisibilityRatio = entry.intersectionRatio;
+                    mostVisiblePage = pageNum;
+                }
+            }
+        });
+        
+        // Mettre à jour la page active si on a trouvé une page visible
+        if (mostVisiblePage && mostVisiblePage !== dayCurrentPageNum) {
+            dayCurrentPageNum = mostVisiblePage;
+            updateDayActiveThumbnail(mostVisiblePage);
+        }
+    }, {
+        root: viewerContainer,
+        rootMargin: '-50px 0px -50px 0px',
+        threshold: [0.1, 0.5, 0.9]
+    });
+    
+    // Observer toutes les pages
+    for (let pageNum = 1; pageNum <= dayPdfDocument.numPages; pageNum++) {
+        const pageWrapper = document.getElementById(`day-page-wrapper-${pageNum}`);
+        if (pageWrapper) {
+            observer.observe(pageWrapper);
+        }
+    }
+    
+    // Stocker l'observer pour pouvoir le nettoyer plus tard
+    window.dayPdfPageObserver = observer;
+}
+
+// Fonction de correction automatique du scroll pour la vue journalière (adaptée de lesson_view.html)
+function applyDayScrollFixToViewer() {
+    console.log('🛠️ Application automatique de la correction de scroll journalier...');
+    
+    const viewerContainer = document.getElementById('dayViewerContainer');
+    const pagesContainer = document.getElementById('dayPdfPagesContainer');
+    const firstPage = document.getElementById('day-page-wrapper-1');
+    
+    if (!viewerContainer || !pagesContainer || !firstPage) {
+        console.warn('⚠️ Éléments journaliers non trouvés pour la correction - retry dans 100ms');
+        setTimeout(applyDayScrollFixToViewer, 100);
+        return;
+    }
+    
+    // Vérifier si la correction est nécessaire
+    const rect = firstPage.getBoundingClientRect();
+    const containerRect = viewerContainer.getBoundingClientRect();
+    const pagePosition = rect.top - containerRect.top;
+    
+    console.log(`📊 Position actuelle de la page 1 journalière: ${Math.round(pagePosition)}px`);
+    
+    // Si la page 1 est très mal positionnée, appliquer la correction
+    if (pagePosition < -100 || pagePosition > viewerContainer.clientHeight) {
+        console.log('🚨 Correction nécessaire - page 1 journalière mal positionnée');
+        
+        // Appliquer les corrections CSS
+        viewerContainer.style.scrollBehavior = 'auto';
+        viewerContainer.style.height = '100%';
+        viewerContainer.style.minHeight = '500px';
+        viewerContainer.style.maxHeight = 'none';
+        viewerContainer.style.overflow = 'auto';
+        viewerContainer.style.position = 'relative';
+        
+        // Reset du pages container
+        pagesContainer.style.paddingTop = '16px';
+        pagesContainer.style.marginTop = '0px';
+        pagesContainer.style.transform = 'none';
+        pagesContainer.style.position = 'relative';
+        pagesContainer.style.top = '0px';
+        pagesContainer.style.left = '0px';
+        
+        // Forcer le reflow
+        viewerContainer.style.display = 'none';
+        viewerContainer.offsetHeight; // Force reflow
+        viewerContainer.style.display = 'block';
+        
+        setTimeout(() => {
+            // Vérifier et ajuster le scroll
+            const newRect = firstPage.getBoundingClientRect();
+            const newContainerRect = viewerContainer.getBoundingClientRect();
+            const newPosition = newRect.top - newContainerRect.top;
+            
+            console.log(`📊 Position après correction CSS journalière: ${Math.round(newPosition)}px`);
+            
+            if (newPosition < -50 || newPosition > 100) {
+                // Correction manuelle du scroll
+                const targetScrollTop = firstPage.offsetTop - 16;
+                viewerContainer.scrollTop = Math.max(0, targetScrollTop);
+                console.log(`🔧 Scroll manuel journalier appliqué: ${viewerContainer.scrollTop}px`);
+            }
+            
+            // Forcer la page courante à 1
+            dayCurrentPageNum = 1;
+            updateDayActiveThumbnail(1);
+            
+            // Redémarrer l'observer après correction
+            if (window.dayPdfPageObserver) {
+                window.dayPdfPageObserver.disconnect();
+                setTimeout(() => {
+                    setupDayPageVisibilityObserver();
+                    console.log('✅ Correction automatique journalière terminée - Page 1 active');
+                }, 100);
+            }
+        }, 50);
+    } else {
+        console.log('✅ Position journalière correcte - aucune correction nécessaire');
+        // Juste s'assurer qu'on est à la page 1
+        viewerContainer.scrollTop = 0;
+        dayCurrentPageNum = 1;
+        updateDayActiveThumbnail(1);
+    }
+}
+
+// Configurer les événements d'annotation pour un canvas journalier
+function setupDayAnnotationEvents(canvas, pageNum) {
+    let isPageDrawing = false;
+    let currentStroke = [];
+    
+    // Fonctions de dessin
+    function startDrawing(e) {
+        e.preventDefault();
+        isPageDrawing = true;
+        dayCurrentPageNum = pageNum;
+        
+        const coords = getCanvasCoordinates(e, canvas);
+        currentStroke = [coords];
+        
+        // Configurer le contexte
+        const ctx = canvas.getContext('2d');
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalCompositeOperation = dayCurrentTool === 'eraser' ? 'destination-out' : 'source-over';
+        ctx.lineWidth = dayCurrentLineWidth;
+        ctx.strokeStyle = dayCurrentColor;
+        
+        if (dayCurrentTool === 'highlighter') {
+            ctx.globalAlpha = 0.3;
+        } else {
+            ctx.globalAlpha = 1.0;
+        }
+        
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+    }
+    
+    function continueDrawing(e) {
+        if (!isPageDrawing) return;
+        e.preventDefault();
+        
+        const coords = getCanvasCoordinates(e, canvas);
+        currentStroke.push(coords);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+    }
+    
+    function stopDrawing(e) {
+        if (!isPageDrawing) return;
+        e.preventDefault();
+        
+        isPageDrawing = false;
+        
+        // Sauvegarder l'annotation
+        if (currentStroke.length > 1) {
+            const annotation = {
+                page: pageNum,
+                tool: dayCurrentTool,
+                color: dayCurrentColor,
+                lineWidth: dayCurrentLineWidth,
+                points: [...currentStroke]
+            };
+            
+            dayAnnotations.push(annotation);
+            console.log(`📝 Annotation journalière sauvegardée sur page ${pageNum}`);
+        }
+        
+        currentStroke = [];
+    }
+    
+    // Événements de souris
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', continueDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+    
+    // Événements tactiles
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', continueDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+// Configurer les outils d'annotation pour la vue journalière
+function setupDayAnnotationTools() {
+    console.log('🔧 Configuration des outils d\'annotation journaliers...');
+    
+    // Outils de dessin
+    document.querySelectorAll('#dayFileViewerModal [data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            dayCurrentTool = btn.dataset.tool;
+            document.querySelectorAll('#dayFileViewerModal [data-tool]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            console.log('🔧 Outil journalier sélectionné:', dayCurrentTool);
+        });
+    });
+
+    // Couleurs
+    document.querySelectorAll('#dayFileViewerModal [data-color]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            dayCurrentColor = btn.dataset.color;
+            document.querySelectorAll('#dayFileViewerModal [data-color]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            console.log('🎨 Couleur journalière sélectionnée:', dayCurrentColor);
+        });
+    });
+
+    // Couleur personnalisée
+    const colorPicker = document.getElementById('dayAnnotationColor');
+    if (colorPicker) {
+        colorPicker.addEventListener('change', (e) => {
+            dayCurrentColor = e.target.value;
+            document.querySelectorAll('#dayFileViewerModal [data-color]').forEach(b => b.classList.remove('active'));
+            console.log('🎨 Couleur journalière personnalisée:', dayCurrentColor);
+        });
+    }
+
+    // Épaisseur du trait
+    const strokeWidth = document.getElementById('dayStrokeWidth');
+    const strokeWidthValue = document.getElementById('dayStrokeWidthValue');
+    if (strokeWidth && strokeWidthValue) {
+        strokeWidth.addEventListener('input', (e) => {
+            dayCurrentLineWidth = parseInt(e.target.value);
+            strokeWidthValue.textContent = dayCurrentLineWidth;
+            console.log('📏 Épaisseur journalière:', dayCurrentLineWidth);
+        });
+    }
+}
+
+// Configurer les événements des outils pour la vue journalière
+function setupDayToolEvents() {
+    console.log('🔧 Configuration des événements d\'outils journaliers...');
+    
+    // Bouton d'annulation
+    const undoBtn = document.getElementById('dayUndoBtn');
+    if (undoBtn) {
+        undoBtn.addEventListener('click', undoDayLastAnnotation);
+    }
+
+    // Bouton de suppression
+    const clearAllBtn = document.getElementById('dayClearAllBtn');
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', clearDayAllAnnotations);
+    }
+}
+
+// Annuler la dernière annotation journalière
+function undoDayLastAnnotation() {
+    if (dayAnnotations.length > 0) {
+        const lastAnnotation = dayAnnotations.pop();
+        redrawDayAllAnnotations();
+        console.log('↶ Annotation journalière annulée');
+    }
+}
+
+// Effacer toutes les annotations journalières
+function clearDayAllAnnotations() {
+    if (confirm('Voulez-vous vraiment effacer toutes les annotations ?')) {
+        dayAnnotations = [];
+        redrawDayAllAnnotations();
+        console.log('🗑️ Toutes les annotations journalières effacées');
+    }
+}
+
+// Redessiner toutes les annotations journalières
+function redrawDayAllAnnotations() {
+    if (!dayPdfDocument) return;
+    
+    // Effacer tous les canvas d'annotation
+    for (let pageNum = 1; pageNum <= dayPdfDocument.numPages; pageNum++) {
+        const canvas = document.getElementById(`day-annotation-canvas-${pageNum}`);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    
+    // Redessiner toutes les annotations
+    dayAnnotations.forEach(annotation => {
+        const canvas = document.getElementById(`day-annotation-canvas-${annotation.page}`);
+        if (canvas) {
+            drawAnnotationOnCanvas(canvas.getContext('2d'), annotation);
+        }
+    });
+}
+
+// Charger les annotations depuis le serveur pour la vue journalière
+async function loadDayAnnotations(fileId) {
+    try {
+        const response = await fetch(`/file-manager/api/annotations/${fileId}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.annotations) {
+                dayAnnotations = data.annotations;
+                console.log(`📝 ${dayAnnotations.length} annotations journalières chargées`);
+                // Redessiner les annotations
+                setTimeout(() => redrawDayAllAnnotations(), 500);
+            }
+        }
+    } catch (error) {
+        console.log('ℹ️ Aucune annotation journalière existante:', error);
+        dayAnnotations = [];
+    }
+}
+
+// Sauvegarder les annotations journalières
+async function saveDayAnnotations() {
+    if (!dayCurrentFileId || dayAnnotations.length === 0) {
+        console.log('💾 Aucune annotation journalière à sauvegarder');
+        return;
+    }
+
+    try {
+        const response = await fetch('/file-manager/api/save-annotations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: dayCurrentFileId,
+                annotations: dayAnnotations
+            })
+        });
+
+        if (response.ok) {
+            console.log('💾 Annotations journalières sauvegardées avec succès');
+            updateDaySaveStatus('Sauvegardé', 'success');
+        } else {
+            throw new Error('Erreur de sauvegarde');
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de la sauvegarde journalière:', error);
+        updateDaySaveStatus('Erreur de sauvegarde', 'error');
+    }
+}
+
+// Mettre à jour le statut de sauvegarde journalière
+function updateDaySaveStatus(message, type = 'info') {
+    const saveStatus = document.getElementById('daySaveStatus');
+    if (saveStatus) {
+        const icon = type === 'success' ? 'check-circle' : 'info-circle';
+        saveStatus.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+        
+        if (type === 'success') {
+            setTimeout(() => {
+                saveStatus.innerHTML = '<i class="fas fa-info-circle"></i> Sauvegarde à la fermeture';
+            }, 3000);
+        }
+    }
+}
+
+// Fermer le lecteur de fichier journalier
+function closeDayFileViewer() {
+    const modal = document.getElementById('dayFileViewerModal');
+    modal.classList.remove('show', 'embedded');
+    
+    // Sauvegarder les annotations avant fermeture
+    if (dayAnnotations.length > 0) {
+        saveDayAnnotations();
+    }
+    
+    // Nettoyer l'observer journalier
+    if (window.dayPdfPageObserver) {
+        window.dayPdfPageObserver.disconnect();
+        window.dayPdfPageObserver = null;
+    }
+    
+    // Réinitialiser les variables
+    dayCurrentFileId = null;
+    dayCurrentPageNum = 1;
+    dayCurrentScale = 1.0;
+    dayPdfDocument = null;
+    dayAnnotations = [];
+}
+
+// Afficher une erreur journalière
+function showDayError(message) {
+    const container = document.getElementById('dayPdfPagesContainer');
+    container.innerHTML = `<div class="error-message">${message}</div>`;
+}
+
+// === FONCTIONS DE DEBUG POUR LE LECTEUR PDF DU CALENDRIER ===
+window.calendarPdfDebug = {
+    // Diagnostiquer le problème de scroll
+    testScrollIssue: function() {
+        console.log('🧪 Diagnostic du problème de scroll du calendrier');
+        const viewerContainer = document.getElementById('viewerContainer');
+        const firstPage = document.getElementById('page-wrapper-1');
+        
+        if (!viewerContainer || !firstPage) {
+            console.error('❌ Éléments non trouvés');
+            return;
+        }
+        
+        const rect = firstPage.getBoundingClientRect();
+        const containerRect = viewerContainer.getBoundingClientRect();
+        const pagePosition = rect.top - containerRect.top;
+        
+        console.log(`📊 Position de la page 1: ${Math.round(pagePosition)}px`);
+        console.log(`📊 Scroll actuel: ${viewerContainer.scrollTop}px`);
+        console.log(`📊 Page actuelle: ${currentPageNum}`);
+        console.log(`📊 Nombre total de pages: ${pdfDocument ? pdfDocument.numPages : 'PDF non chargé'}`);
+        
+        if (pagePosition < -100 || pagePosition > viewerContainer.clientHeight) {
+            console.warn('⚠️ La page 1 est mal positionnée - correction recommandée');
+        } else {
+            console.log('✅ Position normale');
+        }
+    },
+    
+    // Forcer le retour à la page 1
+    goToFirst: function() {
+        console.log('🔧 Force le retour à la page 1...');
+        applyScrollFixToViewer();
+    },
+    
+    // Correction automatique
+    fixScrollIssue: function() {
+        console.log('🛠️ Application de la correction automatique...');
+        applyScrollFixToViewer();
+    },
+    
+    // Version journalière - diagnostiquer
+    testDayScrollIssue: function() {
+        console.log('🧪 Diagnostic du problème de scroll journalier');
+        const viewerContainer = document.getElementById('dayViewerContainer');
+        const firstPage = document.getElementById('day-page-wrapper-1');
+        
+        if (!viewerContainer || !firstPage) {
+            console.error('❌ Éléments journaliers non trouvés');
+            return;
+        }
+        
+        const rect = firstPage.getBoundingClientRect();
+        const containerRect = viewerContainer.getBoundingClientRect();
+        const pagePosition = rect.top - containerRect.top;
+        
+        console.log(`📊 Position de la page 1 journalière: ${Math.round(pagePosition)}px`);
+        console.log(`📊 Scroll actuel journalier: ${viewerContainer.scrollTop}px`);
+        console.log(`📊 Page actuelle journalière: ${dayCurrentPageNum}`);
+        console.log(`📊 Nombre total de pages journalières: ${dayPdfDocument ? dayPdfDocument.numPages : 'PDF non chargé'}`);
+        
+        if (pagePosition < -100 || pagePosition > viewerContainer.clientHeight) {
+            console.warn('⚠️ La page 1 journalière est mal positionnée - correction recommandée');
+        } else {
+            console.log('✅ Position journalière normale');
+        }
+    },
+    
+    // Forcer le retour à la page 1 journalière
+    goToDayFirst: function() {
+        console.log('🔧 Force le retour à la page 1 journalière...');
+        applyDayScrollFixToViewer();
+    },
+    
+    // Correction automatique journalière
+    fixDayScrollIssue: function() {
+        console.log('🛠️ Application de la correction automatique journalière...');
+        applyDayScrollFixToViewer();
+    }
+};
+
+// === FONCTIONS UTILITAIRES POUR LE LECTEUR PDF UNIFIÉ ===
+
+// Récupérer l'ID de classe pour la vue journalière
+function getDayViewSelectedClassId() {
+    // Pour la vue journalière, utiliser la classe du modal
+    const dayModalClassroom = document.getElementById('dayModalClassroom');
+    if (dayModalClassroom && dayModalClassroom.value) {
+        return dayModalClassroom.value;
+    }
+    // Fallback vers la classe globalement sélectionnée
+    return selectedClassroomId;
+}
+
+// Récupérer les étudiants d'une classe
+async function getStudentsForClass(classId) {
+    if (!classId) {
+        console.warn('⚠️ Aucune classe sélectionnée pour récupérer les étudiants');
+        return [];
+    }
+    
+    try {
+        console.log(`👥 Récupération des étudiants pour la classe: ${classId}`);
+        
+        // Parser l'ID de classe (peut être "classroom_4" ou "mixed_group_2" ou "4")
+        let apiClassId = classId;
+        if (typeof classId === 'string' && classId.includes('_')) {
+            const parts = classId.split('_');
+            apiClassId = parts[parts.length - 1]; // Prendre le dernier élément (l'ID numérique)
+        }
+        
+        const response = await fetch(`/api/class-files/students/list/${apiClassId}`);
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success && data.students) {
+            console.log(`✅ ${data.students.length} étudiants récupérés`);
+            return data.students;
+        } else {
+            console.warn('⚠️ Aucun étudiant trouvé pour cette classe');
+            return [];
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de la récupération des étudiants:', error);
+        return [];
+    }
+}
+
+// Fermer le lecteur PDF unifié
+function closePdfViewer() {
+    if (window.currentPdfViewer) {
+        window.currentPdfViewer.destroy();
+        window.currentPdfViewer = null;
+    }
+    
+    const container = document.getElementById('pdf-viewer-container');
+    if (container) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+    }
+    
+    // Nettoyer aussi le conteneur journalier s'il existe
+    const dayContainer = document.getElementById('pdf-viewer-container-day');
+    if (dayContainer && dayContainer.parentNode) {
+        dayContainer.parentNode.removeChild(dayContainer);
+    }
+    
+    // Nettoyer aussi le conteneur principal s'il existe
+    const mainContainer = document.getElementById('pdf-viewer-container-main');
+    if (mainContainer && mainContainer.parentNode) {
+        mainContainer.parentNode.removeChild(mainContainer);
+    }
+}
+
+// Ajouter un gestionnaire de fermeture avec la touche Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && window.currentPdfViewer) {
+        closePdfViewer();
+    }
+});
+
+console.log('🎨 Fonctions de debug PDF du calendrier disponibles: window.calendarPdfDebug');
+console.log('   - testScrollIssue() : Diagnostiquer le problème de scroll');
+console.log('   - goToFirst() : Forcer le retour à la page 1');
+console.log('   - fixScrollIssue() : Correction automatique');
+console.log('   - testDayScrollIssue() : Diagnostiquer le problème de scroll journalier');
+console.log('   - goToDayFirst() : Forcer le retour à la page 1 journalière');
+console.log('   - fixDayScrollIssue() : Correction automatique journalière');
+
+// Fonction pour afficher/masquer les options de répétition des groupes (modal principal)
+function toggleGroupRepeatOptions() {
+    const groupSelect = document.getElementById('modalGroup');
+    const repeatOptions = document.getElementById('groupRepeatOptions');
+    
+    if (groupSelect && repeatOptions) {
+        const hasGroupSelected = groupSelect.value && groupSelect.value !== '';
+        repeatOptions.style.display = hasGroupSelected ? 'block' : 'none';
+        
+        // Réinitialiser les boutons radio quand on cache les options
+        if (!hasGroupSelected) {
+            const noneOption = document.querySelector('input[name="groupRepeat"][value="none"]');
+            if (noneOption) {
+                noneOption.checked = true;
+            }
+        }
+    }
+}
+
+// Fonction pour afficher/masquer les options de répétition des groupes (modal jour)
+function toggleDayGroupRepeatOptions() {
+    const groupSelect = document.getElementById('dayModalGroup');
+    const repeatOptions = document.getElementById('dayGroupRepeatOptions');
+    
+    if (groupSelect && repeatOptions) {
+        const hasGroupSelected = groupSelect.value && groupSelect.value !== '';
+        repeatOptions.style.display = hasGroupSelected ? 'block' : 'none';
+        
+        // Réinitialiser les boutons radio quand on cache les options
+        if (!hasGroupSelected) {
+            const noneOption = document.querySelector('input[name="dayGroupRepeat"][value="none"]');
+            if (noneOption) {
+                noneOption.checked = true;
+            }
+        }
+    }
+}
+
+</script>
+{% endblock %}

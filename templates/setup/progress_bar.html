@@ -1,0 +1,152 @@
+<!-- Barre de progression commune pour toutes les pages setup -->
+<div class="setup-progress">
+    <a href="{{ url_for('setup.initial_setup') }}" class="progress-step {% if current_step == 1 %}active{% elif current_step > 1 %}completed{% endif %}">
+        <div class="progress-circle">
+            {% if current_step > 1 %}
+                <i class="fas fa-check"></i>
+            {% else %}
+                1
+            {% endif %}
+        </div>
+        <span class="progress-label">Configuration</span>
+    </a>
+    
+    <a href="{{ url_for('setup.manage_holidays') }}" class="progress-step {% if current_step == 2 %}active{% elif current_step > 2 %}completed{% endif %}">
+        <div class="progress-circle">
+            {% if current_step > 2 %}
+                <i class="fas fa-check"></i>
+            {% else %}
+                2
+            {% endif %}
+        </div>
+        <span class="progress-label">Vacances</span>
+    </a>
+    
+    <a href="{{ url_for('setup.manage_breaks') }}" class="progress-step {% if current_step == 3 %}active{% elif current_step > 3 %}completed{% endif %}">
+        <div class="progress-circle">
+            {% if current_step > 3 %}
+                <i class="fas fa-check"></i>
+            {% else %}
+                3
+            {% endif %}
+        </div>
+        <span class="progress-label">Pauses</span>
+    </a>
+    
+    <a href="{{ url_for('setup.manage_classrooms') }}" class="progress-step {% if current_step == 4 %}active{% elif current_step > 4 %}completed{% endif %}">
+        <div class="progress-circle">
+            {% if current_step > 4 %}
+                <i class="fas fa-check"></i>
+            {% else %}
+                4
+            {% endif %}
+        </div>
+        <span class="progress-label">Classes</span>
+    </a>
+    
+    <a href="{{ url_for('schedule.weekly_schedule') }}" class="progress-step {% if current_step == 5 %}active{% elif current_step > 5 %}completed{% endif %}">
+        <div class="progress-circle">
+            {% if current_step > 5 %}
+                <i class="fas fa-check"></i>
+            {% else %}
+                5
+            {% endif %}
+        </div>
+        <span class="progress-label">Horaire type</span>
+    </a>
+</div>
+
+<style>
+.setup-progress {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.setup-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--light-gray);
+    z-index: 0;
+}
+
+/* Ligne de progression dynamique basée sur l'étape actuelle */
+.setup-progress::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    height: 2px;
+    background-color: var(--primary-color);
+    z-index: 0;
+    transition: width 0.3s ease;
+    width: {% if current_step == 1 %}0%{% elif current_step == 2 %}25%{% elif current_step == 3 %}50%{% elif current_step == 4 %}75%{% else %}100%{% endif %};
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+}
+
+.progress-step:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.progress-step:hover .progress-circle {
+    transform: scale(1.05);
+}
+
+.progress-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--light-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: var(--gray-color);
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.progress-step.active .progress-circle {
+    background-color: var(--primary-color);
+    color: var(--white);
+    transform: scale(1.1);
+}
+
+.progress-step.completed .progress-circle {
+    background-color: var(--success-color);
+    color: var(--white);
+}
+
+.progress-label {
+    font-size: 0.875rem;
+    color: var(--gray-color);
+    text-align: center;
+    cursor: pointer;
+}
+
+.progress-step.active .progress-label {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.progress-step.completed .progress-label {
+    color: var(--success-color);
+}
+</style>
