@@ -1220,7 +1220,7 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier - Version de test simple"""
+    """Renommer un fichier ou dossier"""
     try:
         print(f"[DEBUG] rename_item appelé par user {current_user.id}")
         
@@ -1237,13 +1237,46 @@ def rename_item():
             print("[DEBUG] Données manquantes")
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
-        # Version simplifiée pour test - retourner succès
-        print("[DEBUG] Version de test - retour de succès")
+        # Import des modèles avec gestion d'erreur
+        try:
+            from models.file_manager import FileFolder, UserFile
+            print("[DEBUG] Import des modèles réussi")
+        except ImportError as e:
+            print(f"[DEBUG] Erreur d'import des modèles: {e}")
+            return jsonify({'success': False, 'message': 'Erreur de configuration'}), 500
+
+        # Traitement du renommage
+        if item_type == 'folder':
+            print(f"[DEBUG] Renommage d'un dossier ID {item_id}")
+            item = FileFolder.query.filter_by(
+                id=item_id,
+                user_id=current_user.id
+            ).first()
+            if not item:
+                return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+            item.name = new_name
+        else:
+            print(f"[DEBUG] Renommage d'un fichier ID {item_id}")
+            item = UserFile.query.filter_by(
+                id=item_id,
+                user_id=current_user.id
+            ).first()
+            if not item:
+                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            item.original_filename = new_name
+
+        # Sauvegarder les changements
+        item.updated_at = datetime.utcnow()
+        db.session.commit()
+        print(f"[DEBUG] Renommage réussi pour {item_type} {item_id}")
+
         return jsonify({
-            'success': True, 
-            'message': f'Test: renommage de {item_type} {item_id} en {new_name}'
+            'success': True,
+            'message': 'Élément renommé avec succès'
         })
+        
     except Exception as e:
+        db.session.rollback()
         print(f"[DEBUG] Erreur dans rename_item: {e}")
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
