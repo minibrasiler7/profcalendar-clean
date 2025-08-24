@@ -1230,6 +1230,12 @@ def rename_item():
         if not all([item_type, item_id, new_name]):
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
+        # Convertir l'ID en entier
+        try:
+            item_id = int(item_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID invalide'}), 400
+
         from models.file_manager import FileFolder, UserFile
 
         if item_type == 'file':

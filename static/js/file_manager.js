@@ -1720,14 +1720,25 @@ function initKeyboardShortcuts() {
     console.log('🔍 Initialisation des raccourcis clavier');
     document.addEventListener('keydown', (e) => {
         console.log('🔍 Touche pressée:', e.key);
+        
+        // Vérifier si un modal est ouvert
+        const modalOpen = document.querySelector('.modal.show') !== null;
+        
         // Escape pour fermer les modals ou annuler le mode suppression
         if (e.key === 'Escape') {
             const modals = document.querySelectorAll('.modal.show');
             modals.forEach(modal => modal.classList.remove('show'));
 
-            if (isDeleteMode) {
+            if (isDeleteMode && !modalOpen) {
                 cancelDeleteMode();
             }
+            return; // Sortir après avoir fermé les modaux
+        }
+
+        // Si un modal est ouvert, désactiver tous les autres raccourcis
+        if (modalOpen) {
+            console.log('🔍 Modal ouvert, raccourcis désactivés');
+            return;
         }
 
         // Ctrl/Cmd + N pour nouveau dossier
