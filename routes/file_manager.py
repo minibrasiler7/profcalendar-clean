@@ -135,6 +135,8 @@ def get_classes():
 def get_class_files(class_id):
     """Récupérer les fichiers d'une classe"""
     try:
+        print(f"🔍 get_class_files appelée pour class_id={class_id}, user_id={current_user.id}")
+        
         # Importer ici pour éviter les imports circulaires
         from models.classroom import Classroom
 
@@ -145,14 +147,28 @@ def get_class_files(class_id):
         ).first()
 
         if not classroom:
+            print(f"❌ get_class_files: Classe {class_id} introuvable pour user {current_user.id}")
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+            
+        print(f"✅ get_class_files: Classe trouvée - {classroom.name} (ID: {classroom.id})")
 
         # Récupérer tous les fichiers de la classe (incluant ceux copiés et partagés)
+        print(f"🔍 Requête ClassFile.query.filter_by(classroom_id={class_id})")
         class_files = ClassFile.query.filter_by(
             classroom_id=class_id
         ).all()
         
         print(f"🔍 get_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
+        
+        # Debug: Vérifier aussi tous les fichiers de toutes les classes de cet utilisateur
+        all_user_class_files = db.session.query(ClassFile).join(
+            Classroom, ClassFile.classroom_id == Classroom.id
+        ).filter(
+            Classroom.user_id == current_user.id
+        ).all()
+        print(f"🔍 DEBUG: {len(all_user_class_files)} fichier(s) total pour toutes les classes de user {current_user.id}")
+        for i, file in enumerate(all_user_class_files):
+            print(f"🔍   ALL_FILES [{i+1}] ClassID:{file.classroom_id} | ID:{file.id} | {file.original_filename}")
         
         # Diagnostic: Afficher les détails de chaque fichier
         for i, file in enumerate(class_files):
@@ -282,8 +298,14 @@ def copy_folder_to_class():
         print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
         
         # Diagnostic: Vérifier immédiatement combien de fichiers sont dans la classe
+        db.session.flush()  # Force la synchronisation avant la vérification
         immediate_check = ClassFile.query.filter_by(classroom_id=class_id).count()
         print(f"🔍 DIAGNOSTIC: {immediate_check} fichier(s) total dans la classe {class_id} après copie")
+        
+        # Debug supplémentaire: lister les fichiers réellement dans cette classe
+        debug_files = ClassFile.query.filter_by(classroom_id=class_id).all()
+        for i, file in enumerate(debug_files):
+            print(f"🔍   DIAGNOSTIC [{i+1}] ID:{file.id} | {file.original_filename} | Description: {file.description[:50] if file.description else 'None'}")
         
         # Si aucun fichier physique n'existe, avertir l'utilisateur
         if total_files_in_folder > 0 and copied_count == 0:
