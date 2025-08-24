@@ -213,6 +213,8 @@ def list_class_files(class_id):
         # Récupérer tous les fichiers de la classe
         class_files = ClassFile.query.filter_by(classroom_id=class_id).order_by(ClassFile.original_filename).all()
         
+        print(f"🔍 [class_files] list_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
+        
         # Organiser les fichiers par structure
         files_data = []
         for class_file in class_files:
