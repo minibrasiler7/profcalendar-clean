@@ -147,12 +147,12 @@ def get_class_files(class_id):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
-        # Récupérer les fichiers de la classe
-        # Exclure les fichiers partagés uniquement avec les élèves
+        # Récupérer tous les fichiers de la classe (incluant ceux copiés et partagés)
         class_files = ClassFile.query.filter_by(
-            classroom_id=class_id,
-            is_student_shared=False
+            classroom_id=class_id
         ).all()
+        
+        print(f"🔍 get_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
 
         files_data = []
         for file in class_files:
@@ -263,6 +263,8 @@ def copy_folder_to_class():
 
         # Copier le dossier
         copied_count = copy_folder_recursive(folder, class_id)
+        
+        print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
 
         return jsonify({
             'success': True,
