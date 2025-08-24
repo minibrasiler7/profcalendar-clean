@@ -264,7 +264,7 @@ def copy_folder_to_class():
         # Compter d'abord les fichiers réels disponibles
         total_files_in_folder = 0
         def count_files_recursive(folder_obj):
-            count = len(folder_obj.files)
+            count = folder_obj.files.count()  # Utiliser .count() au lieu de len()
             for subfolder in folder_obj.subfolders:
                 count += count_files_recursive(subfolder)
             return count
@@ -487,6 +487,13 @@ def copy_to_class():
 
         if not file_id or not class_id:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+
+        # Convertir les IDs en entiers
+        try:
+            file_id = int(file_id)
+            class_id = int(class_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
 
         # Vérifier que le fichier appartient à l'utilisateur
         user_file = UserFile.query.filter_by(
