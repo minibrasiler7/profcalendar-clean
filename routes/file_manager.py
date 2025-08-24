@@ -188,12 +188,16 @@ def get_class_files(class_id):
 def copy_folder_to_class():
     """Copier un dossier complet vers une classe"""
     try:
+        print(f"🔍 copy_folder_to_class appelée par user_id: {current_user.id}")
+        
         from models.file_manager import FileFolder, UserFile
         from models.classroom import Classroom
 
         data = request.get_json()
         folder_id = data.get('folder_id')
         class_id = data.get('class_id')
+        
+        print(f"🔍 Données reçues: folder_id={folder_id}, class_id={class_id}")
 
         if not folder_id or not class_id:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
@@ -257,8 +261,11 @@ def copy_folder_to_class():
         })
 
     except Exception as e:
-        print(f"Erreur lors de la copie du dossier: {e}")
-        return jsonify({'success': False, 'message': 'Erreur lors de la copie du dossier'}), 500
+        print(f"❌ Erreur lors de la copie du dossier: {e}")
+        import traceback
+        print(f"❌ Traceback complet: {traceback.format_exc()}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erreur lors de la copie du dossier: {str(e)}'}), 500
 
 @file_manager_bp.route('/copy-to-class-folder', methods=['POST'])
 @login_required
