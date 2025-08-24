@@ -261,15 +261,38 @@ def copy_folder_to_class():
 
             return copied_count
 
+        # Compter d'abord les fichiers réels disponibles
+        total_files_in_folder = 0
+        def count_files_recursive(folder_obj):
+            count = len(folder_obj.files)
+            for subfolder in folder_obj.subfolders:
+                count += count_files_recursive(subfolder)
+            return count
+        
+        total_files_in_folder = count_files_recursive(folder)
+        print(f"🔍 Nombre total de fichiers dans le dossier '{folder.name}': {total_files_in_folder}")
+        
         # Copier le dossier
         copied_count = copy_folder_recursive(folder, class_id)
         
         print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
-        })
+        
+        # Si aucun fichier physique n'existe, avertir l'utilisateur
+        if total_files_in_folder > 0 and copied_count == 0:
+            return jsonify({
+                'success': False,
+                'message': f'Aucun fichier physique trouvé dans le dossier "{folder.name}". Les fichiers ont peut-être été supprimés ou ne sont pas disponibles en production.'
+            })
+        elif total_files_in_folder == 0:
+            return jsonify({
+                'success': True,
+                'message': f'Dossier vide "{folder.name}" copié (structure de dossiers créée)'
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+            })
 
     except Exception as e:
         print(f"❌ Erreur lors de la copie du dossier: {e}")
