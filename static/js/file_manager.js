@@ -770,7 +770,7 @@ async function handleTreeFolderDrop(e) {
 // Copier un dossier complet vers une classe
 async function copyFolderToClass(folderId, classId) {
     try {
-        const response = await fetch('/api/class-files/copy-folder', {
+        const response = await fetch('/file_manager/copy-folder-to-class', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
