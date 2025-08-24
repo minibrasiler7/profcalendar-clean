@@ -1220,30 +1220,72 @@ def delete_class_folder():
 @file_manager_bp.route('/rename', methods=['PUT'])
 @login_required
 def rename_item():
-    """Renommer un fichier ou dossier - Étape 1: Import des modèles"""
+    """Renommer un fichier ou dossier"""
     try:
         data = request.get_json()
         item_type = data.get('type')
         item_id = data.get('id')
-        new_name = data.get('name')
+        new_name = data.get('name', '').strip()
 
         if not all([item_type, item_id, new_name]):
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
-        # Étape 1: Test d'import des modèles
-        try:
-            from models.file_manager import FileFolder, UserFile
-            import_success = True
-        except ImportError as e:
-            return jsonify({'success': False, 'message': f'Erreur d\'import: {str(e)}'}), 500
+        from models.file_manager import FileFolder, UserFile
 
-        # Pour cette étape, juste confirmer que l'import fonctionne
-        return jsonify({
-            'success': True,
-            'message': f'Étape 1 OK: Import réussi. Renommage de {item_type} ID {item_id} en "{new_name}"'
-        })
+        if item_type == 'file':
+            # Renommer un fichier
+            user_file = UserFile.query.filter_by(
+                id=item_id,
+                user_id=current_user.id
+            ).first()
+
+            if not user_file:
+                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+
+            # Conserver l'extension originale si elle existe
+            original_ext = user_file.original_filename.rsplit('.', 1)[1] if '.' in user_file.original_filename else None
+            new_ext = new_name.rsplit('.', 1)[1] if '.' in new_name else None
+
+            # Si le nouveau nom n'a pas d'extension mais l'original en a une, l'ajouter
+            if original_ext and not new_ext:
+                new_name = f"{new_name}.{original_ext}"
+            
+            # Mettre à jour le nom
+            user_file.original_filename = new_name
+            user_file.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Fichier renommé avec succès'
+            })
+
+        elif item_type == 'folder':
+            # Renommer un dossier
+            folder = FileFolder.query.filter_by(
+                id=item_id,
+                user_id=current_user.id
+            ).first()
+
+            if not folder:
+                return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+
+            folder.name = new_name
+            folder.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Dossier renommé avec succès'
+            })
+
+        else:
+            return jsonify({'success': False, 'message': 'Type d\'élément non reconnu'}), 400
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
 @file_manager_bp.route('/update-folder-color', methods=['PUT'])

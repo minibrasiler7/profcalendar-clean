@@ -108,3 +108,5 @@ def create_app(config_name='development'):
 # Création de l'instance par défaut
 app = create_app()
 
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
