@@ -297,8 +297,11 @@ def copy_folder_to_class():
         
         print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
         
+        # COMMIT IMMÉDIAT avant la vérification - c'est le FIX !
+        db.session.commit()
+        print(f"✅ TRANSACTION COMMITÉE - Changements sauvegardés en base")
+        
         # Diagnostic: Vérifier immédiatement combien de fichiers sont dans la classe
-        db.session.flush()  # Force la synchronisation avant la vérification
         immediate_check = ClassFile.query.filter_by(classroom_id=class_id).count()
         print(f"🔍 DIAGNOSTIC: {immediate_check} fichier(s) total dans la classe {class_id} après copie")
         
