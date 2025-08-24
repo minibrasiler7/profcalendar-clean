@@ -202,6 +202,15 @@ def copy_folder_to_class():
         if not folder_id or not class_id:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 
+        # Convertir les IDs en entiers
+        try:
+            folder_id = int(folder_id)
+            class_id = int(class_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            
+        print(f"🔍 Données converties: folder_id={folder_id} (type: {type(folder_id)}), class_id={class_id} (type: {type(class_id)})")
+
         # Vérifier que le dossier appartient à l'utilisateur
         folder = FileFolder.query.filter_by(
             id=folder_id,
