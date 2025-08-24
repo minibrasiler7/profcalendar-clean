@@ -153,6 +153,10 @@ def get_class_files(class_id):
         ).all()
         
         print(f"🔍 get_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
+        
+        # Diagnostic: Afficher les détails de chaque fichier
+        for i, file in enumerate(class_files):
+            print(f"🔍   [{i+1}] {file.original_filename} | Type: {file.file_type} | Description: {file.description[:50] if file.description else 'None'}")
 
         files_data = []
         for file in class_files:
@@ -276,6 +280,10 @@ def copy_folder_to_class():
         copied_count = copy_folder_recursive(folder, class_id)
         
         print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
+        
+        # Diagnostic: Vérifier immédiatement combien de fichiers sont dans la classe
+        immediate_check = ClassFile.query.filter_by(classroom_id=class_id).count()
+        print(f"🔍 DIAGNOSTIC: {immediate_check} fichier(s) total dans la classe {class_id} après copie")
         
         # Si aucun fichier physique n'existe, avertir l'utilisateur
         if total_files_in_folder > 0 and copied_count == 0:
@@ -437,7 +445,8 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
         source_path = os.path.join(current_app.root_path, user_file.get_file_path())
 
         if not os.path.exists(source_path):
-            print(f"Fichier source introuvable: {source_path}")
+            print(f"❌ Fichier source introuvable: {source_path}")
+            print(f"❌ Fichier demandé: {user_file.original_filename} (ID: {user_file.id})")
             return False
 
         # Créer le dossier de destination pour la classe
@@ -451,6 +460,7 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
 
         # Copier le fichier
         shutil.copy2(source_path, dest_path)
+        print(f"✅ Fichier physique copié: {source_path} -> {dest_path}")
 
         # Créer l'entrée en base de données
         class_file = ClassFile(

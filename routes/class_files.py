@@ -139,27 +139,74 @@ def copy_file_to_class():
 @class_files_bp.route('/copy-folder', methods=['POST'])
 @login_required
 def copy_folder_to_class():
-    """Copier un dossier complet vers une classe - Version progressive"""
+    """Copier un dossier complet vers une classe"""
     try:
+        print(f"🔍 copy_folder_to_class appelée par user_id: {current_user.id}")
+        
+        from models.file_manager import FileFolder, UserFile
+        
         data = request.get_json()
         folder_id = data.get('folder_id')
         class_id = data.get('class_id')
         target_path = data.get('folder_path', '').strip()
         
+        print(f"🔍 Données reçues: folder_id={folder_id}, class_id={class_id}, target_path={target_path}")
+        
         if not folder_id or not class_id:
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
+
+        # Convertir les IDs en entiers
+        try:
+            folder_id = int(folder_id)
+            class_id = int(class_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+            
+        print(f"🔍 Données converties: folder_id={folder_id}, class_id={class_id}")
+
+        # Vérifier que le dossier appartient à l'utilisateur
+        folder = FileFolder.query.filter_by(
+            id=folder_id,
+            user_id=current_user.id
+        ).first()
+
+        if not folder:
+            return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+
+        # Vérifier que la classe appartient à l'utilisateur
+        classroom = Classroom.query.filter_by(
+            id=class_id,
+            user_id=current_user.id
+        ).first()
+
+        if not classroom:
+            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+
+        # Copier le dossier récursivement
+        copied_count = copy_folder_recursive(folder, class_id, target_path)
         
-        # Pour l'instant, juste retourner un succès avec les vraies données
-        # Nous ajouterons progressivement la logique de copie
-        return jsonify({
-            'success': True, 
-            'message': f'Copie du dossier {folder_id} vers la classe {class_id} dans "{target_path}" - logique à implémenter'
-        })
+        # Commit les changements en base de données
+        db.session.commit()
         
-        # Le code de copie réel sera ajouté progressivement
+        print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
+        
+        if copied_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Aucun fichier trouvé dans le dossier "{folder.name}" ou fichiers déjà existants'
+            })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+        print(f"❌ Erreur lors de la copie du dossier: {e}")
+        import traceback
+        print(f"❌ Traceback complet: {traceback.format_exc()}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erreur lors de la copie du dossier: {str(e)}'}), 500
 
 def copy_folder_recursive(folder, class_id, base_path):
     """Fonction récursive pour copier un dossier et son contenu"""
