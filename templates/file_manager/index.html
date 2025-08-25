@@ -16,13 +16,17 @@
                 <button class="btn btn-primary" onclick="showNewFolderModal()">
                     <i class="fas fa-folder-plus"></i> Nouveau dossier
                 </button>
-                <button class="btn btn-success" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-upload"></i> Uploader
+                <button class="btn btn-success" onclick="document.getElementById('fileInputSingle').click()">
+                    <i class="fas fa-upload"></i> Uploader fichiers
+                </button>
+                <button class="btn btn-info" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-folder-open"></i> Uploader dossier
                 </button>
                 <button class="btn btn-outline delete-mode-btn" onclick="toggleDeleteMode()" id="deleteModeBtn">
                     <i class="fas fa-trash"></i> Supprimer
                 </button>
-                <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;" onchange="handleFileSelect(event)">
+                <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg" webkitdirectory directory style="display: none;" onchange="handleFileSelect(event)">
+                <input type="file" id="fileInputSingle" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;" onchange="handleFileSelect(event)">
             </div>
         </div>
 

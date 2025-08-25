@@ -581,6 +581,12 @@ def delete_multiple():
             item_id = item.get('id')
             item_type = item.get('type')
 
+            # Convertir l'ID en entier pour éviter les erreurs PostgreSQL
+            try:
+                item_id = int(item_id)
+            except (ValueError, TypeError):
+                continue  # Ignorer les IDs invalides
+
             if item_type == 'file':
                 # Supprimer un fichier
                 user_file = UserFile.query.filter_by(
@@ -1083,6 +1089,12 @@ def delete_file(file_id):
     """Supprimer un fichier"""
     from models.file_manager import UserFile
 
+    # Convertir file_id en entier pour éviter les erreurs PostgreSQL
+    try:
+        file_id = int(file_id)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
+
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
@@ -1118,6 +1130,12 @@ def delete_file(file_id):
 def delete_folder(folder_id):
     """Supprimer un dossier et son contenu"""
     from models.file_manager import FileFolder, UserFile
+
+    # Convertir folder_id en entier pour éviter les erreurs PostgreSQL
+    try:
+        folder_id = int(folder_id)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'ID de dossier invalide'}), 400
 
     folder = FileFolder.query.filter_by(
         id=folder_id,
@@ -1169,6 +1187,12 @@ def delete_class_file(file_id):
     """Supprimer un fichier d'une classe"""
     print(f"🔍 Tentative de suppression du fichier de classe ID: {file_id}")
     print(f"🔍 Utilisateur: {current_user.id} ({current_user.username})")
+    
+    # Convertir file_id en entier pour éviter les erreurs PostgreSQL
+    try:
+        file_id = int(file_id)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
     
     try:
         from models.classroom import Classroom
@@ -1236,6 +1260,12 @@ def delete_class_folder():
         
         if not folder_path or not class_id:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+        
+        # Convertir class_id en entier pour éviter les erreurs PostgreSQL
+        try:
+            class_id = int(class_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
         
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
