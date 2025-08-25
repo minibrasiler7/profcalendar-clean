@@ -1284,21 +1284,50 @@ function handleFileSelect(e) {
 
 // Traiter les fichiers sélectionnés
 function handleFiles(files) {
-    ([...files]).forEach(file => {
-        if (validateFile(file)) {
-            uploadQueue.push(file);
+    const filesArray = [...files];
+    
+    // Vérifier s'il y a des fichiers avec structure de dossiers (webkitRelativePath)
+    const hasDirectoryStructure = filesArray.some(file => file.webkitRelativePath && file.webkitRelativePath !== '');
+    
+    if (hasDirectoryStructure) {
+        // Upload avec structure de dossiers
+        const filesData = [];
+        
+        filesArray.forEach(file => {
+            if (validateFile(file)) {
+                // Extraire le chemin du dossier (sans le nom du fichier)
+                const path = file.webkitRelativePath;
+                const folderPath = path.substring(0, path.lastIndexOf('/')) || '';
+                
+                filesData.push({
+                    file: file,
+                    path: folderPath
+                });
+            }
+        });
+        
+        if (filesData.length > 0) {
+            showNotification('info', `Upload de ${filesData.length} fichier(s) avec structure en cours...`);
+            uploadFilesWithStructure(filesData);
         }
-    });
-
-    if (uploadQueue.length > 0) {
-        processUploadQueue();
+    } else {
+        // Upload normal (fichiers individuels)
+        filesArray.forEach(file => {
+            if (validateFile(file)) {
+                uploadQueue.push(file);
+            }
+        });
+        
+        if (uploadQueue.length > 0) {
+            processUploadQueue();
+        }
     }
 }
 
 // Valider un fichier
 function validateFile(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    const maxSize = 80 * 1024 * 1024; // 80 MB
+    const maxSize = 100 * 1024 * 1024; // 100 MB
 
     if (!allowedTypes.includes(file.type)) {
         showNotification('error', `Type de fichier non autorisé: ${file.name}`);
@@ -1306,7 +1335,7 @@ function validateFile(file) {
     }
 
     if (file.size > maxSize) {
-        showNotification('error', `Fichier trop volumineux: ${file.name} (max 80 MB)`);
+        showNotification('error', `Fichier trop volumineux: ${file.name} (max 100 MB)`);
         return false;
     }
 

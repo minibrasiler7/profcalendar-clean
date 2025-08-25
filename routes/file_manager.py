@@ -19,7 +19,7 @@ file_manager_bp = Blueprint('file_manager', __name__, url_prefix='/file_manager'
 # Configuration
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 80 * 1024 * 1024  # 80 MB
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB (permet des PDF jusqu'à 40MB confortablement)
 THUMBNAIL_SIZE = (200, 200)
 
 def allowed_file(filename):
