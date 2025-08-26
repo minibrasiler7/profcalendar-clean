@@ -2669,7 +2669,10 @@ def reset_all_sanctions():
         return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
     
     try:
-        classroom_id = data.get('classroom_id')
+        try:
+            classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
         
         if not classroom_id:
             return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
@@ -2716,7 +2719,13 @@ def add_student():
         return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
 
     try:
-        classroom_id = data.get('classroom_id')
+        try:
+            classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+            
+        if not classroom_id:
+            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
         
         # Vérifier les permissions avec la nouvelle fonction
         can_add, error_message, original_classroom = can_add_student_to_class(classroom_id, current_user)
@@ -2827,8 +2836,11 @@ def add_student_from_master():
         return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
 
     try:
-        classroom_id = data.get('classroom_id')
-        master_student_id = data.get('master_student_id')
+        try:
+            classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
+            master_student_id = int(data.get('master_student_id')) if data.get('master_student_id') else None
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
         
         if not classroom_id or not master_student_id:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
