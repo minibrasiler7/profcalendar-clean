@@ -1034,8 +1034,8 @@ def lesson_view():
     from models.class_collaboration import ClassMaster
     from models.user_preferences import UserSanctionPreferences
 
-    # Obtenir l'heure actuelle et le jour de la semaine
-    now = datetime.now()
+    # Obtenir l'heure actuelle selon le fuseau horaire de l'utilisateur
+    now = current_user.get_local_datetime()
     current_time = now.time()
     current_date = now.date()
     weekday = current_date.weekday()

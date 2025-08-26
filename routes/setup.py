@@ -454,6 +454,11 @@ class InitialSetupForm(FlaskForm):
     break_duration = IntegerField('Durée de la pause intercours (minutes)', validators=[
         NumberRange(min=5, max=30, message="La pause doit être entre 5 et 30 minutes")
     ])
+    
+    # Fuseau horaire
+    timezone_offset = IntegerField('Décalage horaire (heures)', validators=[
+        NumberRange(min=-12, max=12, message="Le décalage doit être entre -12 et +12 heures")
+    ], default=0)
 
     submit = SubmitField('Valider la configuration')
     
@@ -529,6 +534,7 @@ def initial_setup():
         current_user.day_end_time = form.day_end_time.data
         current_user.period_duration = form.period_duration.data
         current_user.break_duration = form.break_duration.data
+        current_user.timezone_offset = form.timezone_offset.data
 
         # Créer ou mettre à jour le collège si spécifié
         if hasattr(current_user, 'college_name') and current_user.college_name:
@@ -571,8 +577,13 @@ def initial_setup():
         form.day_end_time.data = current_user.day_end_time
         form.period_duration.data = current_user.period_duration
         form.break_duration.data = current_user.break_duration
+        form.timezone_offset.data = current_user.timezone_offset or 0
 
-    return render_template('setup/initial_setup.html', form=form)
+    # Ajouter l'heure du serveur au template
+    from datetime import datetime
+    server_time = datetime.utcnow().strftime('%H:%M:%S')
+    
+    return render_template('setup/initial_setup.html', form=form, server_time=server_time)
 
 @setup_bp.route('/check-teacher', methods=['POST'])
 @login_required

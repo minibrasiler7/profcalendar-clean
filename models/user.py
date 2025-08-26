@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
     college_name = db.Column(db.String(200), nullable=True)  # Nom du collège
     school_year_start = db.Column(db.Date)
     school_year_end = db.Column(db.Date)
+    timezone_offset = db.Column(db.Integer, default=0)  # Décalage horaire en heures par rapport à UTC
 
     # Horaires
     day_start_time = db.Column(db.Time)
@@ -43,6 +44,20 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<User {self.username}>'
+    
+    def get_local_datetime(self):
+        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur"""
+        from datetime import timedelta
+        utc_now = datetime.utcnow()
+        return utc_now + timedelta(hours=self.timezone_offset or 0)
+    
+    def get_local_time(self):
+        """Retourne l'heure actuelle ajustée selon le fuseau horaire de l'utilisateur"""
+        return self.get_local_datetime().time()
+    
+    def get_local_date(self):
+        """Retourne la date actuelle ajustée selon le fuseau horaire de l'utilisateur"""
+        return self.get_local_datetime().date()
     
     # Méthodes pour le système de collaboration
     def is_master_of_class(self, classroom):

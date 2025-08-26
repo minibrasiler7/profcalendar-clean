@@ -184,6 +184,70 @@
             </div>
         </div>
         
+        <!-- Section Fuseau horaire -->
+        <div class="setup-section">
+            <i class="fas fa-globe section-icon"></i>
+            <h2 class="section-title">Fuseau horaire</h2>
+            <p class="section-description">Configurez votre fuseau horaire pour un affichage correct du temps.</p>
+            
+            <div class="form-group">
+                <div class="timezone-display">
+                    <div class="current-time-info">
+                        <strong>Heure actuelle du serveur:</strong> 
+                        <span id="server-time">{{ server_time }}</span>
+                    </div>
+                    <div class="timezone-help" style="margin-top: 0.5rem; color: var(--gray-color); font-size: 0.875rem;">
+                        Si cette heure ne correspond pas à votre heure locale, ajustez le décalage ci-dessous.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.timezone_offset.label(class="form-label") }}
+                <div class="timezone-input-group">
+                    <select id="timezone_offset" name="timezone_offset" class="form-control">
+                        <option value="-12">UTC-12 (Baker Island)</option>
+                        <option value="-11">UTC-11 (Samoa)</option>
+                        <option value="-10">UTC-10 (Hawaii)</option>
+                        <option value="-9">UTC-9 (Alaska)</option>
+                        <option value="-8">UTC-8 (Pacific)</option>
+                        <option value="-7">UTC-7 (Mountain)</option>
+                        <option value="-6">UTC-6 (Central)</option>
+                        <option value="-5">UTC-5 (Eastern)</option>
+                        <option value="-4">UTC-4 (Atlantic)</option>
+                        <option value="-3">UTC-3 (Brasília)</option>
+                        <option value="-2">UTC-2 (Fernando de Noronha)</option>
+                        <option value="-1">UTC-1 (Azores)</option>
+                        <option value="0" selected>UTC+0 (GMT, London)</option>
+                        <option value="1">UTC+1 (Paris, Berlin)</option>
+                        <option value="2">UTC+2 (Suisse, Autriche)</option>
+                        <option value="3">UTC+3 (Moscow)</option>
+                        <option value="4">UTC+4 (Dubai)</option>
+                        <option value="5">UTC+5 (Pakistan)</option>
+                        <option value="6">UTC+6 (Bangladesh)</option>
+                        <option value="7">UTC+7 (Thailand)</option>
+                        <option value="8">UTC+8 (China, Singapore)</option>
+                        <option value="9">UTC+9 (Japan)</option>
+                        <option value="10">UTC+10 (Australia East)</option>
+                        <option value="11">UTC+11 (Solomon Islands)</option>
+                        <option value="12">UTC+12 (New Zealand)</option>
+                    </select>
+                    <div class="timezone-preview" style="margin-top: 0.5rem;">
+                        <strong>Votre heure locale serait:</strong>
+                        <span id="local-time-preview">{{ server_time }}</span>
+                    </div>
+                </div>
+                <p class="form-help">Sélectionnez votre fuseau horaire. Par défaut, la Suisse est sur UTC+1 (hiver) ou UTC+2 (été).</p>
+                {% if form.timezone_offset.errors %}
+                    <div class="form-error">
+                        {% for error in form.timezone_offset.errors %}
+                            <small>{{ error }}</small>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
         <!-- Boutons d'action -->
         <div class="action-buttons">
             {% if current_user.setup_completed %}
@@ -488,6 +552,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // Vérifier l'état initial
     if (collegeField.value) {
         checkCollegeConfig(collegeField.value);
+    }
+    
+    // Gestion du fuseau horaire
+    const timezoneSelect = document.getElementById('timezone_offset');
+    const localTimePreview = document.getElementById('local-time-preview');
+    const serverTimeElement = document.getElementById('server-time');
+    
+    function updateLocalTimePreview() {
+        const offset = parseInt(timezoneSelect.value) || 0;
+        const now = new Date();
+        const serverTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+        const localTime = new Date(serverTime.getTime() + offset * 3600000);
+        
+        const timeString = localTime.toLocaleTimeString('fr-CH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        
+        localTimePreview.textContent = timeString;
+        
+        // Mise à jour de l'heure du serveur aussi
+        const serverTimeString = serverTime.toLocaleTimeString('fr-CH', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        serverTimeElement.textContent = serverTimeString;
+    }
+    
+    // Mettre à jour quand on change le fuseau horaire
+    timezoneSelect.addEventListener('change', updateLocalTimePreview);
+    
+    // Mettre à jour toutes les secondes
+    updateLocalTimePreview();
+    setInterval(updateLocalTimePreview, 1000);
+    
+    // Détecter automatiquement le fuseau horaire si possible
+    try {
+        const detectedOffset = -new Date().getTimezoneOffset() / 60;
+        if (timezoneSelect.value == "0") { // Si pas encore configuré
+            timezoneSelect.value = detectedOffset.toString();
+            updateLocalTimePreview();
+        }
+    } catch (error) {
+        console.log('Impossible de détecter automatiquement le fuseau horaire');
     }
 });
 </script>
