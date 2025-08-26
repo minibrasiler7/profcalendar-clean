@@ -4319,6 +4319,12 @@ def create_group():
         if not name:
             return jsonify({'success': False, 'message': 'Le nom du groupe est obligatoire'}), 400
         
+        # Convertir classroom_id en entier si nécessaire
+        try:
+            classroom_id = int(classroom_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
         if not classroom:
@@ -4326,6 +4332,12 @@ def create_group():
         
         # Vérifier que tous les élèves appartiennent à cette classe
         if student_ids:
+            # Convertir student_ids en entiers
+            try:
+                student_ids = [int(sid) for sid in student_ids]
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'IDs d\'élèves invalides'}), 400
+            
             valid_students = Student.query.filter(
                 Student.id.in_(student_ids),
                 Student.classroom_id == classroom_id
