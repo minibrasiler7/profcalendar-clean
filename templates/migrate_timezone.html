@@ -17,6 +17,18 @@
     <h1>Migration Base de Données - Timezone</h1>
     <p>Cette page permet d'ajouter la colonne <code>timezone_offset</code> à la table <code>users</code> en production.</p>
     
+    <div class="info">
+        <strong>⚠️ Attention :</strong> Cette migration est nécessaire pour corriger l'erreur 
+        <code>column users.timezone_offset does not exist</code>
+    </div>
+    <br>
+    
+    <div style="margin-bottom: 20px;">
+        <label for="password"><strong>Mot de passe de migration :</strong></label><br>
+        <input type="password" id="password" placeholder="migrate123" style="padding: 8px; width: 200px; margin-top: 5px;">
+        <small style="display: block; color: #666; margin-top: 3px;">Par défaut : migrate123</small>
+    </div>
+    
     <button class="btn" onclick="executeMigration()">Exécuter la migration</button>
     
     <div id="result"></div>
@@ -24,6 +36,13 @@
     <script>
         async function executeMigration() {
             const resultDiv = document.getElementById('result');
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                resultDiv.innerHTML = '<div class="error">❌ Veuillez saisir le mot de passe de migration</div>';
+                return;
+            }
+            
             resultDiv.innerHTML = '<div class="info">Migration en cours...</div>';
             
             try {
@@ -31,7 +50,10 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    body: JSON.stringify({
+                        password: password
+                    })
                 });
                 
                 const data = await response.json();

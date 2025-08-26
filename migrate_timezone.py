@@ -2,30 +2,31 @@
 """
 Route temporaire pour migrer la colonne timezone_offset en production
 """
-from flask import Blueprint, jsonify, request
-from flask_login import login_required, current_user
+from flask import Blueprint, jsonify, request, render_template, session
 from extensions import db
 from sqlalchemy import text
 
 migrate_bp = Blueprint('migrate', __name__, url_prefix='/migrate')
 
 @migrate_bp.route('/')
-@login_required
 def migrate_page():
-    """Page pour lancer les migrations"""
-    from flask import render_template
-    if current_user.id != 1:
-        return "Non autorisé", 403
+    """Page pour lancer les migrations - sans login required pour éviter l'erreur de colonne"""
     return render_template('migrate_timezone.html')
 
 @migrate_bp.route('/add-timezone-column', methods=['POST'])
-@login_required
 def add_timezone_column():
     """Route temporaire pour ajouter la colonne timezone_offset"""
     
-    # Sécurité : vérifier que c'est un admin/premier utilisateur
-    if current_user.id != 1:
-        return jsonify({'error': 'Non autorisé'}), 403
+    # Sécurité basique : vérifier un token ou mot de passe simple
+    import os
+    migration_password = request.json.get('password') if request.is_json else request.form.get('password')
+    expected_password = os.environ.get('MIGRATION_PASSWORD', 'migrate123')
+    
+    if migration_password != expected_password:
+        return jsonify({
+            'success': False, 
+            'error': 'Mot de passe de migration incorrect'
+        }), 403
     
     try:
         # Déterminer le type de base de données
