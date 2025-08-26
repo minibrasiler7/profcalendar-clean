@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 """
-Route temporaire pour migrer la colonne timezone_offset en production
+Script de migration direct pour ajouter timezone_offset sans passer par Flask-Login
 """
-from flask import Blueprint, jsonify, request, render_template, session
-from extensions import db
-from sqlalchemy import text
+from flask import Flask, request, jsonify, Response
+from sqlalchemy import create_engine, text
+import os
+import json
 
-migrate_bp = Blueprint('migrate', __name__, url_prefix='/migrate')
+# Créer une app Flask minimaliste sans login manager
+direct_app = Flask(__name__)
+direct_app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'migration-key')
 
-@migrate_bp.route('/')
-def migrate_page():
-    """Page pour lancer les migrations - HTML direct sans template pour éviter Flask-Login"""
+# Connexion directe à la base de données
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///database/teacher_planner.db')
+engine = create_engine(database_url)
+
+@direct_app.route('/direct-migrate')
+def migration_page():
+    """Page HTML simple pour la migration"""
     html = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Migration Timezone</title>
+    <title>Migration Timezone - Direct</title>
     <meta charset="utf-8">
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
@@ -28,12 +35,11 @@ def migrate_page():
     </style>
 </head>
 <body>
-    <h1>🚀 Migration Base de Données - Timezone</h1>
-    <p>Cette page permet d'ajouter la colonne <code>timezone_offset</code> à la table <code>users</code> en production.</p>
+    <h1>🚀 Migration Timezone - Direct</h1>
+    <p>Cette page permet d'ajouter la colonne <code>timezone_offset</code> directement dans PostgreSQL.</p>
     
     <div class="info">
-        <strong>⚠️ Attention :</strong> Cette migration est nécessaire pour corriger l'erreur 
-        <code>column users.timezone_offset does not exist</code>
+        <strong>⚠️ Info :</strong> Cette migration contourne Flask-Login pour éviter l'erreur de colonne manquante.
     </div>
     <br>
     
@@ -60,7 +66,7 @@ def migrate_page():
             resultDiv.innerHTML = '<div class="info">🔄 Migration en cours...</div>';
             
             try {
-                const response = await fetch('/migrate/add-timezone-column', {
+                const response = await fetch('/direct-migrate/add-column', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -86,46 +92,45 @@ def migrate_page():
 </body>
 </html>
     """
-    from flask import Response
-    return Response(html, mimetype='text/html')
+    return html
 
-@migrate_bp.route('/add-timezone-column', methods=['POST'])
+@direct_app.route('/direct-migrate/add-column', methods=['POST'])
 def add_timezone_column():
-    """Route temporaire pour ajouter la colonne timezone_offset"""
-    
-    # Sécurité basique : vérifier un token ou mot de passe simple
-    import os
-    migration_password = request.json.get('password') if request.is_json else request.form.get('password')
-    expected_password = os.environ.get('MIGRATION_PASSWORD', 'migrate123')
-    
-    if migration_password != expected_password:
-        return jsonify({
-            'success': False, 
-            'error': 'Mot de passe de migration incorrect'
-        }), 403
+    """Ajouter la colonne timezone_offset sans Flask-Login"""
     
     try:
-        # Déterminer le type de base de données
-        db_url = str(db.engine.url)
-        is_postgres = 'postgresql' in db_url or 'postgres' in db_url
+        # Vérifier le mot de passe
+        data = request.get_json()
+        password = data.get('password') if data else None
+        expected_password = os.environ.get('MIGRATION_PASSWORD', 'migrate123')
         
-        result_msg = f'Base de données détectée: {"PostgreSQL" if is_postgres else "SQLite"}\n'
+        if password != expected_password:
+            return jsonify({
+                'success': False, 
+                'error': 'Mot de passe de migration incorrect'
+            }), 403
+        
+        # Déterminer le type de base de données
+        is_postgres = 'postgresql' in database_url or 'postgres' in database_url
+        
+        result_msg = f'🔧 Base de données détectée: {"PostgreSQL" if is_postgres else "SQLite"}\n'
+        result_msg += f'📍 URL: {database_url[:50]}...\n'
         
         # Vérifier si la colonne existe déjà
-        with db.engine.connect() as conn:
+        with engine.connect() as conn:
             if is_postgres:
                 # PostgreSQL
-                result = conn.execute(text('''
+                result = conn.execute(text("""
                     SELECT column_name 
                     FROM information_schema.columns 
                     WHERE table_name = 'users' 
                     AND column_name = 'timezone_offset'
-                '''))
+                """))
                 
                 if result.fetchone():
                     return jsonify({
                         'success': True, 
-                        'message': 'La colonne timezone_offset existe déjà dans la table users.'
+                        'message': f'{result_msg}✅ La colonne timezone_offset existe déjà dans la table users.'
                     })
             else:
                 # SQLite
@@ -134,20 +139,28 @@ def add_timezone_column():
                 if 'timezone_offset' in columns:
                     return jsonify({
                         'success': True, 
-                        'message': 'La colonne timezone_offset existe déjà dans la table users.'
+                        'message': f'{result_msg}✅ La colonne timezone_offset existe déjà dans la table users.'
                     })
             
             # Ajouter la colonne
+            result_msg += '🚀 Ajout de la colonne timezone_offset...\n'
             conn.execute(text('ALTER TABLE users ADD COLUMN timezone_offset INTEGER DEFAULT 0'))
             conn.commit()
             
+            result_msg += '✅ Migration terminée avec succès !'
+            
             return jsonify({
                 'success': True,
-                'message': f'✅ Colonne timezone_offset ajoutée avec succès ! ({result_msg.strip()})'
+                'message': result_msg
             })
             
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': f'Erreur lors de l\'ajout de la colonne: {str(e)}'
+            'error': f'Erreur lors de la migration: {str(e)}'
         }), 500
+
+if __name__ == '__main__':
+    print("🚀 Serveur de migration direct démarré")
+    print("📍 Accès: http://localhost:5001/direct-migrate")
+    direct_app.run(host='0.0.0.0', port=5001, debug=True)
