@@ -427,14 +427,15 @@
                                 <!-- Indicateur de durée pour les périodes fusionnées -->
                                 {% if schedule.has_merged_next %}
                                     {% set next_periods_count = 1 %}
-                                    {% for p in periods %}
+                                    {% set found_end = false %}
+                                    {% for p in periods if not found_end %}
                                         {% if p.number > period.number %}
                                             {% set next_slot_key = day_index ~ '_' ~ p.number %}
                                             {% set next_schedule = schedule_grid.get(next_slot_key) %}
                                             {% if next_schedule and next_schedule.merged_with_previous %}
                                                 {% set next_periods_count = next_periods_count + 1 %}
                                             {% else %}
-                                                {% break %}
+                                                {% set found_end = true %}
                                             {% endif %}
                                         {% endif %}
                                     {% endfor %}
