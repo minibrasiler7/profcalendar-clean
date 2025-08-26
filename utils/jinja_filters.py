@@ -95,3 +95,5 @@ def register_filters(app):
     app.jinja_env.filters['format_date_full'] = format_date_full
     app.jinja_env.filters['format_date'] = format_date
     app.jinja_env.filters['render_planning_with_checkboxes'] = render_planning_with_checkboxes
+    print(f"✅ Filtres Jinja2 enregistrés: {list(app.jinja_env.filters.keys())}")
+    print(f"✅ render_planning_with_checkboxes présent: {'render_planning_with_checkboxes' in app.jinja_env.filters}")

@@ -1468,6 +1468,9 @@ def lesson_view():
             if all_accommodations:
                 student_accommodations[student.id] = all_accommodations
 
+    # Importer la fonction de rendu des checkboxes
+    from utils.jinja_filters import render_planning_with_checkboxes
+
     return render_template('planning/lesson_view.html',
                          lesson=lesson,
                          planning=planning,
@@ -1483,7 +1486,8 @@ def lesson_view():
                          current_group=current_group,
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
-                         accommodation_display=preferences.show_accommodations)
+                         accommodation_display=preferences.show_accommodations,
+                         render_planning_with_checkboxes=render_planning_with_checkboxes)
 
 @planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required
