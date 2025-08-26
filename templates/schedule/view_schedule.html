@@ -264,6 +264,83 @@
     opacity: 1;
     transform: translateX(0);
 }
+
+/* Styles pour la fusion des périodes */
+.connection-row {
+    height: 20px;
+}
+
+.connection-spacer {
+    background-color: var(--light-gray);
+    border: none;
+}
+
+.connection-cell {
+    text-align: center;
+    vertical-align: middle;
+    padding: 0;
+    border-left: 1px solid #ddd;
+    position: relative;
+}
+
+.period-connector {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+}
+
+.period-connector:hover {
+    background-color: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.period-connector.break-mode {
+    background-color: #dc3545;
+}
+
+.period-connector.break-mode i:before {
+    content: "\f127"; /* fa-unlink */
+}
+
+/* Styles pour les périodes fusionnées */
+.schedule-slot.merged-start {
+    border-bottom: 2px dashed rgba(255, 255, 255, 0.5);
+}
+
+.schedule-slot.merged-middle {
+    border-top: none;
+    border-bottom: 2px dashed rgba(255, 255, 255, 0.5);
+    opacity: 0.8;
+}
+
+.schedule-slot.merged-end {
+    border-top: none;
+}
+
+.schedule-slot.merged-middle .class-name,
+.schedule-slot.merged-middle .class-subject,
+.schedule-slot.merged-middle .empty-slot {
+    display: none;
+}
+
+.schedule-slot.merged-start .merged-duration {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
 </style>
 {% endblock %}
 
@@ -303,7 +380,21 @@
                     {% set slot_key = day_index ~ '_' ~ period.number %}
                     {% set schedule = schedule_grid.get(slot_key) %}
                     <td>
-                        <div class="schedule-slot {% if schedule %}has-class{% endif %}" 
+                        {% set merged_class = "" %}
+                        {% if schedule %}
+                            {% if schedule.has_merged_next %}
+                                {% set merged_class = "merged-start" %}
+                            {% elif schedule.merged_with_previous %}
+                                {% set merged_class = "merged-end" %}
+                                {% set prev_slot_key = day_index ~ '_' ~ (period.number - 1) %}
+                                {% set prev_schedule = schedule_grid.get(prev_slot_key) %}
+                                {% if prev_schedule and prev_schedule.has_merged_next %}
+                                    {% set merged_class = "merged-middle" %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                        
+                        <div class="schedule-slot {% if schedule %}has-class{% endif %} {{ merged_class }}" 
                              data-weekday="{{ day_index }}" 
                              data-period="{{ period.number }}"
                              {% if schedule %}
@@ -331,6 +422,24 @@
                                 {% elif schedule.custom_task_title %}
                                     <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
                                     <div class="class-subject">Autre</div>
+                                {% endif %}
+                                
+                                <!-- Indicateur de durée pour les périodes fusionnées -->
+                                {% if schedule.has_merged_next %}
+                                    {% set next_periods_count = 1 %}
+                                    {% for p in periods %}
+                                        {% if p.number > period.number %}
+                                            {% set next_slot_key = day_index ~ '_' ~ p.number %}
+                                            {% set next_schedule = schedule_grid.get(next_slot_key) %}
+                                            {% if next_schedule and next_schedule.merged_with_previous %}
+                                                {% set next_periods_count = next_periods_count + 1 %}
+                                            {% else %}
+                                                {% break %}
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% set total_duration = next_periods_count * (current_user.period_duration or 45) %}
+                                    <div class="merged-duration">{{ total_duration }}min</div>
                                 {% endif %}
                             {% else %}
                                 <div class="empty-slot">Cliquez pour ajouter</div>
@@ -379,6 +488,43 @@
                     </td>
                     {% endfor %}
                 </tr>
+                
+                <!-- Ligne de connexion pour fusionner les périodes consécutives -->
+                {% if not loop.last %}
+                {% set next_period = periods[loop.index0 + 1] %}
+                <tr class="connection-row">
+                    <td class="connection-spacer"></td>
+                    {% for day_index in range(5) %}
+                    {% set current_slot_key = day_index ~ '_' ~ period.number %}
+                    {% set next_slot_key = day_index ~ '_' ~ next_period.number %}
+                    {% set current_schedule = schedule_grid.get(current_slot_key) %}
+                    {% set next_schedule = schedule_grid.get(next_slot_key) %}
+                    <td class="connection-cell">
+                        {% if current_schedule and next_schedule %}
+                            {% set can_merge = false %}
+                            {% if current_schedule.classroom_id and next_schedule.classroom_id and current_schedule.classroom_id == next_schedule.classroom_id %}
+                                {% set can_merge = true %}
+                            {% elif current_schedule.mixed_group_id and next_schedule.mixed_group_id and current_schedule.mixed_group_id == next_schedule.mixed_group_id %}
+                                {% set can_merge = true %}
+                            {% elif current_schedule.custom_task_title and next_schedule.custom_task_title and current_schedule.custom_task_title == next_schedule.custom_task_title %}
+                                {% set can_merge = true %}
+                            {% endif %}
+                            
+                            {% if can_merge %}
+                            {% set is_merged = current_schedule.has_merged_next or false %}
+                            <div class="period-connector {% if is_merged %}break-mode{% endif %}" 
+                                 data-weekday="{{ day_index }}" 
+                                 data-period-start="{{ period.number }}" 
+                                 data-period-end="{{ next_period.number }}"
+                                 title="{% if is_merged %}Cliquez pour séparer ces périodes{% else %}Cliquez pour fusionner ces périodes{% endif %}">
+                                <i class="fas {% if is_merged %}fa-unlink{% else %}fa-link{% endif %}"></i>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
@@ -440,6 +586,7 @@ let currentSlotForCustomTask = null;
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     initializeScheduleSlots();
+    initializePeriodConnectors();
 });
 
 function initializeScheduleSlots() {
@@ -707,6 +854,136 @@ document.addEventListener('keydown', function(e) {
         closeCustomTaskModal();
     }
 });
+
+// ========== FONCTIONS DE FUSION DES PÉRIODES ==========
+
+function initializePeriodConnectors() {
+    const connectors = document.querySelectorAll('.period-connector');
+    
+    connectors.forEach(connector => {
+        connector.addEventListener('click', function() {
+            const weekday = this.dataset.weekday;
+            const periodStart = parseInt(this.dataset.periodStart);
+            const periodEnd = parseInt(this.dataset.periodEnd);
+            
+            if (this.classList.contains('break-mode')) {
+                // Séparer les périodes fusionnées
+                separatePeriods(weekday, periodStart, periodEnd);
+            } else {
+                // Fusionner les périodes
+                mergePeriods(weekday, periodStart, periodEnd);
+            }
+        });
+    });
+}
+
+async function mergePeriods(weekday, periodStart, periodEnd) {
+    try {
+        const response = await fetch('/schedule/merge-periods', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                weekday: parseInt(weekday),
+                period_start: periodStart,
+                period_end: periodEnd
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Mettre à jour l'interface
+            updateMergedPeriodsUI(weekday, periodStart, periodEnd, true);
+            showSaveStatus();
+        } else {
+            console.error('Erreur lors de la fusion:', result.message);
+            alert('Erreur lors de la fusion: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion lors de la fusion');
+    }
+}
+
+async function separatePeriods(weekday, periodStart, periodEnd) {
+    try {
+        const response = await fetch('/schedule/separate-periods', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                weekday: parseInt(weekday),
+                period_start: periodStart,
+                period_end: periodEnd
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Mettre à jour l'interface
+            updateMergedPeriodsUI(weekday, periodStart, periodEnd, false);
+            showSaveStatus();
+        } else {
+            console.error('Erreur lors de la séparation:', result.message);
+            alert('Erreur lors de la séparation: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur de connexion lors de la séparation');
+    }
+}
+
+function updateMergedPeriodsUI(weekday, periodStart, periodEnd, isMerged) {
+    // Trouver le connecteur
+    const connector = document.querySelector(
+        `.period-connector[data-weekday="${weekday}"][data-period-start="${periodStart}"][data-period-end="${periodEnd}"]`
+    );
+    
+    if (connector) {
+        if (isMerged) {
+            connector.classList.add('break-mode');
+            connector.title = 'Cliquez pour séparer ces périodes';
+            connector.querySelector('i').className = 'fas fa-unlink';
+        } else {
+            connector.classList.remove('break-mode');
+            connector.title = 'Cliquez pour fusionner ces périodes';
+            connector.querySelector('i').className = 'fas fa-link';
+        }
+    }
+    
+    // Mettre à jour l'apparence des slots
+    for (let period = periodStart; period <= periodEnd; period++) {
+        const slot = document.querySelector(`.schedule-slot[data-weekday="${weekday}"][data-period="${period}"]`);
+        if (slot) {
+            if (isMerged) {
+                if (period === periodStart) {
+                    slot.classList.add('merged-start');
+                    // Ajouter indicateur de durée
+                    const duration = (periodEnd - periodStart + 1) * (currentUser.period_duration || 45);
+                    const durationElement = document.createElement('div');
+                    durationElement.className = 'merged-duration';
+                    durationElement.textContent = `${duration}min`;
+                    slot.appendChild(durationElement);
+                } else if (period === periodEnd) {
+                    slot.classList.add('merged-end');
+                } else {
+                    slot.classList.add('merged-middle');
+                }
+            } else {
+                slot.classList.remove('merged-start', 'merged-middle', 'merged-end');
+                // Supprimer l'indicateur de durée
+                const durationElement = slot.querySelector('.merged-duration');
+                if (durationElement) {
+                    durationElement.remove();
+                }
+            }
+        }
+    }
+}
 
 // Valider avec Enter dans le champ
 document.getElementById('customTaskTitle').addEventListener('keydown', function(e) {

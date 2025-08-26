@@ -342,3 +342,127 @@ def view_schedule():
                          schedule_grid=schedule_grid,
                          schedule_grid_json=schedule_grid_json,
                          days=days)
+
+@schedule_bp.route('/merge-periods', methods=['POST'])
+@login_required
+def merge_periods():
+    """Fusionner deux périodes consécutives avec la même classe/discipline"""
+    try:
+        data = request.get_json()
+        weekday = int(data.get('weekday'))
+        period_start = int(data.get('period_start'))
+        period_end = int(data.get('period_end'))
+        
+        # Vérifier que les périodes sont consécutives
+        if period_end != period_start + 1:
+            return jsonify({
+                'success': False,
+                'message': 'Les périodes doivent être consécutives'
+            })
+        
+        # Récupérer les schedules existants
+        schedule_start = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday,
+            period_number=period_start
+        ).first()
+        
+        schedule_end = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday,
+            period_number=period_end
+        ).first()
+        
+        # Vérifier qu'ils existent et sont identiques
+        if not schedule_start or not schedule_end:
+            return jsonify({
+                'success': False,
+                'message': 'Les deux périodes doivent être assignées'
+            })
+        
+        # Vérifier qu'ils ont la même classe/discipline
+        same_class = False
+        if (schedule_start.classroom_id and schedule_end.classroom_id and 
+            schedule_start.classroom_id == schedule_end.classroom_id):
+            same_class = True
+        elif (schedule_start.mixed_group_id and schedule_end.mixed_group_id and 
+              schedule_start.mixed_group_id == schedule_end.mixed_group_id):
+            same_class = True
+        elif (schedule_start.custom_task_title and schedule_end.custom_task_title and 
+              schedule_start.custom_task_title == schedule_end.custom_task_title):
+            same_class = True
+            
+        if not same_class:
+            return jsonify({
+                'success': False,
+                'message': 'Les périodes doivent avoir la même classe/discipline'
+            })
+        
+        # Marquer la période de fin comme fusionnée
+        schedule_end.is_merged = True
+        schedule_end.merged_with_previous = True
+        
+        # Marquer la période de début comme ayant une fusion
+        schedule_start.has_merged_next = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Périodes fusionnées avec succès'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Erreur lors de la fusion: {str(e)}'
+        })
+
+@schedule_bp.route('/separate-periods', methods=['POST'])
+@login_required  
+def separate_periods():
+    """Séparer des périodes fusionnées"""
+    try:
+        data = request.get_json()
+        weekday = int(data.get('weekday'))
+        period_start = int(data.get('period_start'))
+        period_end = int(data.get('period_end'))
+        
+        # Récupérer les schedules
+        schedule_start = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday,
+            period_number=period_start
+        ).first()
+        
+        schedule_end = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday,
+            period_number=period_end
+        ).first()
+        
+        if not schedule_start or not schedule_end:
+            return jsonify({
+                'success': False,
+                'message': 'Périodes non trouvées'
+            })
+        
+        # Séparer les périodes
+        schedule_end.is_merged = False
+        schedule_end.merged_with_previous = False
+        schedule_start.has_merged_next = False
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Périodes séparées avec succès'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Erreur lors de la séparation: {str(e)}'
+        })

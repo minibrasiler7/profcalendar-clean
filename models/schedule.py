@@ -27,6 +27,11 @@ class Schedule(db.Model):
     
     # Note spécifique pour ce créneau (optionnel)
     notes = db.Column(db.Text)
+    
+    # Champs pour la fusion des périodes
+    is_merged = db.Column(db.Boolean, default=False)  # Cette période est fusionnée
+    merged_with_previous = db.Column(db.Boolean, default=False)  # Fusionnée avec la période précédente
+    has_merged_next = db.Column(db.Boolean, default=False)  # A une période suivante fusionnée
 
     __table_args__ = (
         db.UniqueConstraint('user_id', 'weekday', 'period_number', name='_user_weekday_period_uc'),
