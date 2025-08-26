@@ -4282,16 +4282,45 @@ def load_seating_plan(classroom_param):
 
 # ===== ROUTES POUR LA GESTION DES GROUPES =====
 
-@planning_bp.route('/get-groups/<int:classroom_id>')
+@planning_bp.route('/get-groups/<classroom_param>')
 @login_required
-def get_groups(classroom_id):
+def get_groups(classroom_param):
     """Récupérer tous les groupes d'une classe"""
     try:
         from models.student_group import StudentGroup, StudentGroupMembership
         from models.student import Student
         
-        # Vérifier que la classe appartient à l'utilisateur
-        classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+        # Déterminer la classe selon le format du paramètre (ID numérique ou nom)
+        classroom = None
+        classroom_id = None
+        
+        try:
+            # Essayer d'abord comme ID numérique
+            classroom_id = int(classroom_param)
+            classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+        except (ValueError, TypeError):
+            # Si ce n'est pas un ID numérique, traiter comme nom de classe
+            if classroom_param.startswith('🔀 '):
+                # Classe mixte - trouver l'auto_classroom associée
+                from models.mixed_group import MixedGroup
+                mixed_group_name = classroom_param[2:]  # Enlever "🔀 "
+                mixed_group = MixedGroup.query.filter_by(
+                    teacher_id=current_user.id,
+                    name=mixed_group_name
+                ).first()
+                
+                if mixed_group and mixed_group.auto_classroom_id:
+                    classroom_id = mixed_group.auto_classroom_id
+                    classroom = Classroom.query.get(classroom_id)
+            else:
+                # Classe normale - chercher par class_group
+                classroom = Classroom.query.filter_by(
+                    class_group=classroom_param,
+                    user_id=current_user.id
+                ).first()
+                
+                if classroom:
+                    classroom_id = classroom.id
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
@@ -4382,14 +4411,42 @@ def create_group():
         if not name:
             return jsonify({'success': False, 'message': 'Le nom du groupe est obligatoire'}), 400
         
-        # Convertir classroom_id en entier si nécessaire
-        try:
-            classroom_id = int(classroom_id)
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        # Déterminer la classe selon le format du paramètre (ID numérique ou nom)
+        classroom = None
+        actual_classroom_id = None
         
-        # Vérifier que la classe appartient à l'utilisateur
-        classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+        if classroom_id:
+            try:
+                # Essayer d'abord comme ID numérique
+                actual_classroom_id = int(classroom_id)
+                classroom = Classroom.query.filter_by(id=actual_classroom_id, user_id=current_user.id).first()
+            except (ValueError, TypeError):
+                # Si ce n'est pas un ID numérique, traiter comme nom de classe
+                if isinstance(classroom_id, str):
+                    if classroom_id.startswith('🔀 '):
+                        # Classe mixte - trouver l'auto_classroom associée
+                        from models.mixed_group import MixedGroup
+                        mixed_group_name = classroom_id[2:]  # Enlever "🔀 "
+                        mixed_group = MixedGroup.query.filter_by(
+                            teacher_id=current_user.id,
+                            name=mixed_group_name
+                        ).first()
+                        
+                        if mixed_group and mixed_group.auto_classroom_id:
+                            actual_classroom_id = mixed_group.auto_classroom_id
+                            classroom = Classroom.query.get(actual_classroom_id)
+                    else:
+                        # Classe normale - chercher par class_group (nom de classe)
+                        classroom = Classroom.query.filter_by(
+                            class_group=classroom_id,
+                            user_id=current_user.id
+                        ).first()
+                        
+                        if classroom:
+                            actual_classroom_id = classroom.id
+                
+                if not classroom:
+                    return jsonify({'success': False, 'message': f'Classe non trouvée: {classroom_id}'}), 404
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
@@ -4403,14 +4460,14 @@ def create_group():
             
             valid_students = Student.query.filter(
                 Student.id.in_(student_ids),
-                Student.classroom_id == classroom_id
+                Student.classroom_id == actual_classroom_id
             ).count()
             if valid_students != len(student_ids):
                 return jsonify({'success': False, 'message': 'Certains élèves ne sont pas valides'}), 400
         
         # Créer le groupe
         group = StudentGroup(
-            classroom_id=classroom_id,
+            classroom_id=actual_classroom_id,
             user_id=current_user.id,
             name=name,
             description=description or None,
