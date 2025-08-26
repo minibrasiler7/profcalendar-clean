@@ -96,6 +96,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ class_files blueprint non trouvé")
         
+    # Blueprint temporaire pour migration schedule
+    try:
+        from migrate_schedule_fields import migrate_schedule_bp
+        app.register_blueprint(migrate_schedule_bp)
+        print("✅ migrate_schedule blueprint ajouté (temporaire)")
+    except ImportError:
+        print("❌ migrate_schedule blueprint non trouvé")
+        
         
     # mixed_groups n'existe pas, on le retire
     # try:
