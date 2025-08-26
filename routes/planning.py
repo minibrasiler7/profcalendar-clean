@@ -874,6 +874,25 @@ def save_planning():
         checklist_states = data.get('checklist_states', {})  # Récupérer les états des checkboxes
         group_id = data.get('group_id')  # Récupérer l'ID du groupe
 
+        # Convertir les IDs en entiers
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        
+        if mixed_group_id:
+            try:
+                mixed_group_id = int(mixed_group_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de groupe mixte invalide'}), 400
+        
+        if group_id:
+            try:
+                group_id = int(group_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
+
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
@@ -2519,6 +2538,13 @@ def update_sanction_display_preferences():
     classroom_id = data.get('classroom_id')
     confirmed = data.get('confirmed', False)
     
+    # Convertir classroom_id en entier
+    if classroom_id:
+        try:
+            classroom_id = int(classroom_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+    
     print(f"DEBUG: update_sanction_display_preferences called")
     print(f"DEBUG: user_id={current_user.id}, username={current_user.username}")
     print(f"DEBUG: classroom_id={classroom_id}, display_mode={display_mode}, confirmed={confirmed}")
@@ -3226,6 +3252,15 @@ def update_attendance():
         period_number = data.get('period_number')
         status = data.get('status', 'present')
         late_minutes = data.get('late_minutes')
+        
+        # Convertir les IDs en entiers
+        try:
+            if student_id:
+                student_id = int(student_id)
+            if classroom_id:
+                classroom_id = int(classroom_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
 
         print(f"DEBUG update_attendance: student_id={student_id}, classroom_id={classroom_id}, date={date_str}, period={period_number}")
         
@@ -3373,6 +3408,13 @@ def save_lesson_planning():
         title = data.get('title', '').strip()
         description = data.get('description', '').strip()
         checklist_states = data.get('checklist_states', {})
+        
+        # Convertir classroom_id en entier
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -3604,6 +3646,13 @@ def check_sanction_thresholds():
         classroom_id = data.get('classroom_id')
         initial_counts = data.get('initial_counts', {})  # Compteurs au début de la période
         
+        # Convertir classroom_id en entier
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
         if not classroom:
@@ -3695,6 +3744,13 @@ def calculate_next_lesson_date():
         min_days = data.get('min_days', 0)
         current_date = datetime.strptime(data.get('current_date'), '%Y-%m-%d').date()
         
+        # Convertir classroom_id en entier
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        
         # Date minimale = date actuelle + nombre de jours minimum
         min_date = current_date + timedelta(days=min_days)
         
@@ -3759,6 +3815,13 @@ def add_sanction_to_planning():
         classroom_id = data.get('classroom_id')
         student_name = data.get('student_name')
         sanction_text = data.get('sanction_text')
+        
+        # Convertir classroom_id en entier
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
         
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         
@@ -4482,6 +4545,19 @@ def apply_group_pattern():
         checklist_states = data.get('checklist_states', {})
         pattern_type = data.get('pattern_type')  # 'same' ou 'alternate'
         selected_group_id = data.get('group_id')
+        
+        # Convertir les IDs en entiers
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        
+        if selected_group_id:
+            try:
+                selected_group_id = int(selected_group_id)
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
         
         # Convertir la date de début
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
