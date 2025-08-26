@@ -69,9 +69,9 @@ def render_planning_with_checkboxes(planning):
             content = match.group(3)
             is_checked = states.get(str(checkbox_index), False)
             
-            # Créer le HTML de la checkbox
+            # Créer le HTML de la checkbox avec structure flex
             checked_attr = 'checked' if is_checked else ''
-            checkbox_html = f'''<div style="margin-left: {len(indent) * 20}px;">
+            checkbox_html = f'''<div class="checkbox-item" style="margin-left: {len(indent) * 20}px;">
                 <input type="checkbox" class="planning-checkbox" id="checkbox_{checkbox_index}" 
                        data-index="{checkbox_index}" {checked_attr}
                        onchange="updateCheckboxState({checkbox_index}, this.checked)">

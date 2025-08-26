@@ -237,12 +237,21 @@ if (typeof pdfjsLib !== 'undefined') {
     white-space: pre-wrap;
 }
 
+/* Style spécifique pour les checkboxes dans la description de planification */
+.planning-description .checkbox-item {
+    margin: 0.125rem 0;
+}
+
+.planning-description > div:not(.checkbox-item) {
+    margin: 0.25rem 0;
+}
+
 /* Styles pour les checkboxes dans la planification */
-.planning-checklist-item {
+.planning-checklist-item, .checkbox-item {
     display: flex;
     align-items: flex-start;
     gap: 0.5rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     min-height: 1.5rem;
 }
 
@@ -257,6 +266,8 @@ if (typeof pdfjsLib !== 'undefined') {
     flex: 1;
     cursor: pointer;
     user-select: none;
+    line-height: 1.4;
+    padding-left: 0.125rem;
 }
 
 .planning-checkbox:checked + .planning-checkbox-label {
