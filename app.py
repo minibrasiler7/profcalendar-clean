@@ -96,13 +96,6 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ class_files blueprint non trouvé")
         
-    # Blueprint temporaire pour migration timezone
-    try:
-        from migrate_timezone import migrate_bp
-        app.register_blueprint(migrate_bp)
-        print("✅ migrate_timezone blueprint ajouté (temporaire)")
-    except ImportError:
-        print("❌ migrate_timezone blueprint non trouvé")
         
     # mixed_groups n'existe pas, on le retire
     # try:
