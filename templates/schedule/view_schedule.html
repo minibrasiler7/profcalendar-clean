@@ -581,6 +581,7 @@
 const classrooms = {{ classrooms_json | tojson }};
 const periods = {{ periods_json | tojson }};
 let currentSchedule = {{ schedule_grid_json | tojson }};
+const currentUser = {{ current_user | tojson }};
 let pendingChanges = new Set();
 let currentSlotForCustomTask = null;
 
@@ -860,12 +861,15 @@ document.addEventListener('keydown', function(e) {
 
 function initializePeriodConnectors() {
     const connectors = document.querySelectorAll('.period-connector');
+    console.log('Found', connectors.length, 'period connectors');
     
     connectors.forEach(connector => {
         connector.addEventListener('click', function() {
             const weekday = this.dataset.weekday;
             const periodStart = parseInt(this.dataset.periodStart);
             const periodEnd = parseInt(this.dataset.periodEnd);
+            
+            console.log('Connector clicked:', weekday, periodStart, periodEnd);
             
             if (this.classList.contains('break-mode')) {
                 // Séparer les périodes fusionnées
@@ -895,6 +899,7 @@ async function mergePeriods(weekday, periodStart, periodEnd) {
         const result = await response.json();
         
         if (result.success) {
+            console.log('Merge successful, updating UI...');
             // Mettre à jour l'interface
             updateMergedPeriodsUI(weekday, periodStart, periodEnd, true);
             showSaveStatus();
@@ -939,10 +944,14 @@ async function separatePeriods(weekday, periodStart, periodEnd) {
 }
 
 function updateMergedPeriodsUI(weekday, periodStart, periodEnd, isMerged) {
+    console.log('Updating UI for:', weekday, periodStart, periodEnd, isMerged);
+    
     // Trouver le connecteur
     const connector = document.querySelector(
         `.period-connector[data-weekday="${weekday}"][data-period-start="${periodStart}"][data-period-end="${periodEnd}"]`
     );
+    
+    console.log('Connector found:', connector);
     
     if (connector) {
         if (isMerged) {
@@ -959,6 +968,7 @@ function updateMergedPeriodsUI(weekday, periodStart, periodEnd, isMerged) {
     // Mettre à jour l'apparence des slots
     for (let period = periodStart; period <= periodEnd; period++) {
         const slot = document.querySelector(`.schedule-slot[data-weekday="${weekday}"][data-period="${period}"]`);
+        console.log('Slot found for period', period, ':', slot);
         if (slot) {
             if (isMerged) {
                 if (period === periodStart) {
