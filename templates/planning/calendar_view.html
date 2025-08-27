@@ -1120,6 +1120,31 @@ if (typeof pdfjsLib !== 'undefined') {
     height: 3px;
     background: #3b82f6;
 }
+
+/* Styles pour les slots fusionnés dans le modal */
+.day-schedule-slot.merged-slot {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-left-width: 6px;
+    position: relative;
+}
+
+.day-schedule-slot.merged-slot .slot-period {
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.day-schedule-slot.merged-slot::after {
+    content: 'Fusionné';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.65rem;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+}
 </style>
 {% endblock %}
 
@@ -1177,31 +1202,38 @@ if (typeof pdfjsLib !== 'undefined') {
                     </thead>
                     <tbody>
                         {% for period in periods %}
+                        {% set period_num = period.number %}
+                        
+                        {# Vérifier si cette période doit être skippée car fusionnée avec la précédente #}
+                        {% set should_skip = false %}
+                        {% for day_idx in range(5) %}
+                            {% if merged_info.get(day_idx, {}).get(period_num, {}).get('merged_with_previous', false) %}
+                                {% set should_skip = true %}
+                                {% break %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if not should_skip %}
                         <tr>
-                            <td class="time-slot {% if period.get('is_merged') %}merged-period{% endif %}">
-                                <div class="period-number">P{{ period.number }}</div>
+                            <td class="time-slot">
+                                <div class="period-number">P{{ period_num }}</div>
                                 <div class="period-time">
                                     {{ period.start.strftime('%H:%M') }}<br>
                                     {{ period.end.strftime('%H:%M') }}
                                 </div>
-                                {% if period.get('is_merged') %}
-                                <div class="merged-indicator">Fusionné</div>
-                                {% endif %}
                             </td>
                             {% for date in week_dates %}
                             {% set i = loop.index0 %}
-                            {% if period.get('is_merged') %}
-                                {% set period_nums = period.number.split('-') %}
-                                {% set base_period = period_nums[0] %}
-                                {% set planning_key = date.strftime('%Y-%m-%d') + '_' + base_period %}
-                                {% set schedule_key = i|string + '_' + base_period %}
-                            {% else %}
-                                {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period.number|string %}
-                                {% set schedule_key = i|string + '_' + period.number|string %}
-                            {% endif %}
-                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if period.get('is_merged') %} merged-period{% endif %}"
+                            {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period_num|string %}
+                            {% set schedule_key = i|string + '_' + period_num|string %}
+                            
+                            {# Vérifier si cette période est fusionnée pour ce jour spécifique #}
+                            {% set day_merged_info = merged_info.get(i, {}).get(period_num, {}) %}
+                            {% set is_merged_for_day = day_merged_info.get('has_merged_next', false) %}
+                            
+                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}"
                                 data-date="{{ date.strftime('%Y-%m-%d') }}"
-                                data-period="{{ period.number }}"
+                                data-period="{% if is_merged_for_day %}{{ period_num }}-{{ period_num + 1 }}{% else %}{{ period_num }}{% endif %}"
                                 {% if schedule_key in schedule_grid %}
                                     {% set schedule = schedule_grid[schedule_key] %}
                                     {% if schedule.classroom_id %}
@@ -1286,6 +1318,7 @@ if (typeof pdfjsLib !== 'undefined') {
                             </td>
                             {% endfor %}
                         </tr>
+                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -3277,14 +3310,44 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
     
     let html = '<div class="day-schedules-list">';
     
-    scheduleSlots.forEach(slot => {
+    // Traiter les slots en gérant les périodes fusionnées
+    const processedSlots = [];
+    const skipSlots = new Set();
+    
+    scheduleSlots.forEach((slot, index) => {
+        if (skipSlots.has(index)) return;
+        
+        // Vérifier si ce slot est fusionné avec le suivant
+        const nextSlot = scheduleSlots[index + 1];
+        const isMergedWithNext = slot.has_merged_next;
+        
+        if (isMergedWithNext && nextSlot && nextSlot.merged_with_previous) {
+            // Créer un slot fusionné
+            const mergedSlot = {
+                ...slot,
+                period_number_display: `${slot.period_number}-${nextSlot.period_number}`,
+                period_end: nextSlot.period_end,
+                is_merged: true
+            };
+            processedSlots.push(mergedSlot);
+            skipSlots.add(index + 1); // Skip le slot suivant
+        } else {
+            processedSlots.push({
+                ...slot,
+                period_number_display: slot.period_number,
+                is_merged: false
+            });
+        }
+    });
+    
+    processedSlots.forEach(slot => {
         const planning = slot.planning;
         const hasPlanning = planning !== null;
         
         html += `
-            <div class="day-schedule-slot" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')">
+            <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')">
                 <div class="slot-header">
-                    <div class="slot-period">Période ${slot.period_number}</div>
+                    <div class="slot-period">Période ${slot.period_number_display}</div>
                     <div class="slot-time">${slot.period_start} - ${slot.period_end}</div>
                     ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
                         <i class="fas fa-edit"></i>

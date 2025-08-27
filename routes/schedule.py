@@ -341,7 +341,8 @@ def view_schedule():
                          periods_json=periods_json,
                          schedule_grid=schedule_grid,
                          schedule_grid_json=schedule_grid_json,
-                         days=days)
+                         days=days,
+                         current_user=current_user)
 
 @schedule_bp.route('/merge-periods', methods=['POST'])
 @login_required
