@@ -1724,6 +1724,7 @@ const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroo
 const periodsData = {{ periods_json | tojson }};
 const classrooms = {{ classrooms_json | tojson }};
 const scheduleGrid = {{ schedule_grid_json | tojson }};
+const mergedInfo = {{ merged_info | tojson }};
 let currentPlanningCell = null;
 let isExtendedView = false;
 
@@ -3312,8 +3313,15 @@ async function loadDayScheduleSlots(dateStr, classroomId, existingPlannings) {
         // Filtrer les horaires pour cette classe et ce jour
         const todaySchedules = [];
         
-        // Parcourir toutes les périodes
+        // Parcourir toutes les périodes en gérant les fusions
+        const skipPeriods = new Set();
+        
         periods.forEach(period => {
+            // Si cette période doit être ignorée (déjà traitée comme partie d'une fusion)
+            if (skipPeriods.has(period.number)) {
+                return;
+            }
+            
             // Vérifier si cette classe a cours à cette période ce jour dans l'horaire type
             const scheduleKey = `${weekday}_${period.number}`;
             const schedule = scheduleGrid[scheduleKey];
@@ -3347,12 +3355,38 @@ async function loadDayScheduleSlots(dateStr, classroomId, existingPlannings) {
             
             // Créer un créneau s'il y a soit un horaire type, soit une planification existante
             if (scheduleMatches || hasExistingPlanning) {
-                todaySchedules.push({
+                // Vérifier si cette période est fusionnée avec la suivante
+                const mergedData = mergedInfo[weekday] && mergedInfo[weekday][period.number];
+                const hasMergedNext = mergedData && mergedData.has_merged_next;
+                
+                let slotData = {
                     period_number: period.number,
                     period_start: period.start,
                     period_end: period.end,
                     planning: existingPlanning || null
-                });
+                };
+                
+                // Si cette période est fusionnée avec la suivante
+                if (hasMergedNext) {
+                    const nextPeriod = periods.find(p => p.number === period.number + 1);
+                    if (nextPeriod) {
+                        // Créer un slot étendu
+                        slotData = {
+                            period_number: `${period.number}-${nextPeriod.number}`,
+                            period_start: period.start,
+                            period_end: nextPeriod.end,
+                            planning: existingPlanning || null,
+                            is_merged: true,
+                            has_merged_next: true
+                        };
+                        
+                        // Ignorer la période suivante
+                        skipPeriods.add(nextPeriod.number);
+                        console.log(`Created merged slot: P${period.number}-${nextPeriod.number}`);
+                    }
+                }
+                
+                todaySchedules.push(slotData);
             }
         });
         
@@ -3402,46 +3436,20 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
     
     let html = '<div class="day-schedules-list">';
     
-    // Traiter les slots en gérant les périodes fusionnées
-    const processedSlots = [];
-    const skipSlots = new Set();
-    
-    scheduleSlots.forEach((slot, index) => {
-        if (skipSlots.has(index)) return;
-        
-        // Vérifier si ce slot est fusionné avec le suivant
-        const nextSlot = scheduleSlots[index + 1];
-        const isMergedWithNext = slot.has_merged_next;
-        
-        if (isMergedWithNext && nextSlot && nextSlot.merged_with_previous) {
-            // Créer un slot fusionné
-            const mergedSlot = {
-                ...slot,
-                period_number_display: `${slot.period_number}-${nextSlot.period_number}`,
-                period_end: nextSlot.period_end,
-                is_merged: true
-            };
-            processedSlots.push(mergedSlot);
-            skipSlots.add(index + 1); // Skip le slot suivant
-        } else {
-            processedSlots.push({
-                ...slot,
-                period_number_display: slot.period_number,
-                is_merged: false
-            });
-        }
-    });
-    
-    processedSlots.forEach(slot => {
+    // Les slots arrivent déjà avec la fusion gérée depuis loadDayScheduleSlots
+    scheduleSlots.forEach(slot => {
         const planning = slot.planning;
         const hasPlanning = planning !== null;
         
+        // Extraire le premier numéro de période pour les clics (pour "1-2", prendre "1")
+        const basePeriodNumber = slot.is_merged ? slot.period_number.split('-')[0] : slot.period_number;
+        
         html += `
-            <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')">
+            <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${basePeriodNumber}, '${dateStr}', '${classroomId}')">
                 <div class="slot-header">
-                    <div class="slot-period">Période ${slot.period_number_display}</div>
+                    <div class="slot-period">Période ${slot.period_number}</div>
                     <div class="slot-time">${slot.period_start} - ${slot.period_end}</div>
-                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot(${slot.period_number}, '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
+                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot(${basePeriodNumber}, '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
                         <i class="fas fa-edit"></i>
                     </button>` : ''}
                 </div>
