@@ -1154,8 +1154,8 @@ if (typeof pdfjsLib !== 'undefined') {
     top: 0;
     left: 0;
     right: 0;
-    /* Hauteur calculée: exactement 2 fois la hauteur de la cellule */
-    height: 200%;
+    /* La hauteur sera calculée dynamiquement par JavaScript */
+    /* height sera définie via style inline par le JS */
     /* S'assurer que le bloc apparaît au-dessus de la cellule suivante */
     z-index: 5;
     /* Indicateur visuel subtil de fusion avec bordure un peu plus marquée */
@@ -1910,10 +1910,60 @@ function switchClassroomTab(classroomId, buttonElement) {
     window.location.href = currentUrl.toString();
 }
 
+// Calculer dynamiquement les hauteurs des blocs fusionnés
+function calculateMergedBlockHeights() {
+    console.log('🔧 Calculating merged block heights...');
+    
+    // Attendre un peu que le DOM soit complètement rendu
+    setTimeout(() => {
+        const mergedBlocks = document.querySelectorAll('.class-block.merged-block');
+        console.log('Found', mergedBlocks.length, 'merged blocks to adjust');
+        
+        mergedBlocks.forEach(block => {
+            try {
+                // Trouver la cellule parente
+                const parentCell = block.closest('.schedule-cell.merged-period');
+                if (!parentCell) {
+                    console.warn('No parent cell found for merged block');
+                    return;
+                }
+                
+                // Trouver la ligne de tableau de la cellule parente
+                const parentRow = parentCell.closest('tr');
+                if (!parentRow) {
+                    console.warn('No parent row found');
+                    return;
+                }
+                
+                // Trouver la ligne suivante (celle qui contient la période fusionnée)
+                const nextRow = parentRow.nextElementSibling;
+                if (!nextRow) {
+                    console.warn('No next row found');
+                    return;
+                }
+                
+                // Calculer la hauteur totale des deux lignes
+                const parentRowHeight = parentRow.getBoundingClientRect().height;
+                const nextRowHeight = nextRow.getBoundingClientRect().height;
+                const totalHeight = parentRowHeight + nextRowHeight;
+                
+                console.log(`Setting merged block height: ${totalHeight}px (${parentRowHeight}px + ${nextRowHeight}px)`);
+                
+                // Appliquer la hauteur calculée
+                block.style.height = totalHeight + 'px';
+                
+            } catch (error) {
+                console.error('Error calculating merged block height:', error);
+            }
+        });
+    }, 500); // Délai pour laisser le temps au CSS de se charger
+}
+
 // Initialiser les données de planification au chargement
 document.addEventListener('DOMContentLoaded', function() {
     loadWeeklyPlannings();
     applyClassroomColor();
+    calculateMergedBlockHeights();
 
     // Restaurer la préférence de vue
     const savedViewMode = localStorage.getItem('calendarViewMode');
