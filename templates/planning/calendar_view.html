@@ -1146,31 +1146,22 @@ if (typeof pdfjsLib !== 'undefined') {
     font-weight: 500;
 }
 
+
 /* Styles pour les class-block fusionnés dans la vue hebdomadaire */
 .class-block.merged-block {
-    position: relative;
-    /* Hauteur étendue pour couvrir 2 périodes plus l'espace entre */
-    height: calc(200% + 20px);
-    /* S'assurer que le bloc apparaît au-dessus de la cellule suivante */
-    z-index: 10;
-    /* Bordure pour indiquer la fusion */
-    border-left: 4px solid rgba(59, 130, 246, 0.8);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
-}
-
-.class-block.merged-block::after {
-    content: 'Périodes fusionnées';
+    /* Position absolue pour s'étendre au-delà de la cellule courante */
     position: absolute;
-    bottom: 2px;
-    left: 4px;
-    right: 4px;
-    font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.9);
-    text-align: center;
-    background: rgba(59, 130, 246, 0.3);
-    padding: 1px 3px;
-    border-radius: 3px;
-    font-weight: 500;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Hauteur calculée: hauteur de cellule normale × 2 + bordures du tableau */
+    height: calc(200% + 1px);
+    /* S'assurer que le bloc apparaît au-dessus de la cellule suivante */
+    z-index: 5;
+    /* Indicateur visuel subtil de fusion avec bordure un peu plus marquée */
+    border-left: 4px solid rgba(59, 130, 246, 0.7);
+    /* Ombre plus marquée pour se distinguer */
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
 }
 
 /* Style pour les cellules qui sont la continuation d'une période fusionnée */
