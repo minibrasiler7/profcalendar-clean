@@ -892,7 +892,13 @@ if (typeof pdfjsLib !== 'undefined') {
                     </div>
                     <div class="lesson-detail">
                         <i class="fas fa-clock"></i>
-                        <span>Période {{ lesson.period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})</span>
+                        <span>
+                            {% if lesson.is_merged and lesson.end_period_number and lesson.end_period_number != lesson.period_number %}
+                                Période {{ lesson.period_number }}-{{ lesson.end_period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
+                            {% else %}
+                                Période {{ lesson.period_number }} ({{ lesson.start_time.strftime('%H:%M') }} - {{ lesson.end_time.strftime('%H:%M') }})
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1291,6 +1297,7 @@ if (typeof pdfjsLib !== 'undefined') {
 // Variables globales
 const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") }}';
 const periodNumber = {{ lesson.period_number }};
+const endPeriodNumber = {% if lesson.end_period_number %}{{ lesson.end_period_number }}{% else %}{{ lesson.period_number }}{% endif %};
 const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 const mixedGroupId = {{ lesson.mixed_group_id if lesson.mixed_group_id else 'null' }};
 let isEditingPlanning = false;

@@ -1080,6 +1080,43 @@ def lesson_view():
 
     # Récupérer les périodes du jour
     periods = calculate_periods(current_user)
+    
+    def get_merged_period_info(schedule):
+        """Récupère les informations de période fusionnée pour un Schedule"""
+        if not schedule:
+            return None, None, None
+            
+        start_period = schedule.period_number
+        end_period = schedule.period_number
+        
+        # Si cette période est fusionnée avec la suivante
+        if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
+            # Chercher toutes les périodes fusionnées qui suivent
+            current_period = schedule.period_number + 1
+            while True:
+                next_schedule = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    weekday=schedule.weekday,
+                    period_number=current_period
+                ).first()
+                
+                if next_schedule and hasattr(next_schedule, 'merged_with_previous') and next_schedule.merged_with_previous:
+                    end_period = next_schedule.period_number
+                    if hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next:
+                        current_period += 1
+                    else:
+                        break
+                else:
+                    break
+        
+        # Calculer les horaires de début et fin
+        start_period_info = next((p for p in periods if p['number'] == start_period), None)
+        end_period_info = next((p for p in periods if p['number'] == end_period), None)
+        
+        if start_period_info and end_period_info:
+            return start_period, end_period, (start_period_info['start'], end_period_info['end'])
+        
+        return start_period, end_period, None
 
     # Trouver le cours actuel ou le prochain
     current_lesson = None
@@ -1089,91 +1126,142 @@ def lesson_view():
 
     # Vérifier si on est actuellement en cours (seulement si on est à la date du jour)
     if search_start_date == current_date:
-        for period in periods:
-            period_start = period['start']
-            period_end = period['end']
-
-            # Vérifier si on est dans cette période
-            if period_start <= current_time <= period_end:
+        # D'abord récupérer tous les schedules du jour pour identifier les périodes fusionnées
+        all_schedules = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday
+        ).order_by(Schedule.period_number).all()
+        
+        # Créer une liste des périodes avec gestion des fusions
+        period_schedule_map = {}
+        for schedule in all_schedules:
+            if schedule.classroom_id or schedule.mixed_group_id:  # Ignorer les tâches personnalisées
+                start_period, end_period, time_range = get_merged_period_info(schedule)
+                if time_range and start_period not in period_schedule_map:  # Éviter les doublons
+                    period_schedule_map[start_period] = {
+                        'schedule': schedule,
+                        'start_period': start_period,
+                        'end_period': end_period,
+                        'time_range': time_range
+                    }
+        
+        # Vérifier si on est dans une période (fusionnée ou non)
+        for period_num, period_info in period_schedule_map.items():
+            time_start, time_end = period_info['time_range']
+            
+            if time_start <= current_time <= time_end:
                 # Chercher d'abord s'il y a une planification spécifique pour cette période
                 planning_check = Planning.query.filter_by(
                     user_id=current_user.id,
                     date=current_date,
-                    period_number=period['number']
+                    period_number=period_info['start_period']
                 ).first()
                 
                 if planning_check and (planning_check.classroom_id or planning_check.mixed_group_id):
-                    # Ignorer les tâches personnalisées (sans classroom_id ni mixed_group_id)
-                    # Créer un objet Schedule-like à partir de la planification
+                    # Créer un objet avec les informations de période fusionnée
                     current_lesson = type('obj', (object,), {
                         'classroom_id': planning_check.classroom_id,
                         'mixed_group_id': planning_check.mixed_group_id,
-                        'period_number': planning_check.period_number,
+                        'period_number': period_info['start_period'],
+                        'end_period_number': period_info['end_period'],
                         'weekday': weekday,
-                        'start_time': period_start,
-                        'end_time': period_end,
+                        'start_time': time_start,
+                        'end_time': time_end,
                         'classroom': planning_check.classroom if planning_check.classroom_id else None,
-                        'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None
+                        'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None,
+                        'is_merged': period_info['start_period'] != period_info['end_period']
                     })()
                     is_current = True
                     break
                 else:
-                    # Si pas de planification, chercher dans l'horaire type
-                    schedule = Schedule.query.filter_by(
-                        user_id=current_user.id,
-                        weekday=weekday,
-                        period_number=period['number']
-                    ).first()
-
-                    if schedule and (schedule.classroom_id or schedule.mixed_group_id):
-                        # Ignorer les tâches personnalisées de l'horaire type
-                        current_lesson = schedule
-                        is_current = True
-                        break
+                    # Utiliser l'horaire type avec informations de fusion
+                    schedule = period_info['schedule']
+                    current_lesson = type('obj', (object,), {
+                        'classroom_id': schedule.classroom_id,
+                        'mixed_group_id': schedule.mixed_group_id,
+                        'period_number': period_info['start_period'],
+                        'end_period_number': period_info['end_period'],
+                        'weekday': schedule.weekday,
+                        'start_time': time_start,
+                        'end_time': time_end,
+                        'classroom': schedule.classroom,
+                        'mixed_group': schedule.mixed_group,
+                        'is_merged': period_info['start_period'] != period_info['end_period']
+                    })()
+                    is_current = True
+                    break
 
     # Si pas de cours actuel, chercher le prochain
     if not current_lesson:
         # D'abord chercher dans la journée de départ (aujourd'hui ou début d'année)
-        for period in periods:
+        # Récupérer tous les schedules du jour pour identifier les périodes fusionnées
+        all_schedules = Schedule.query.filter_by(
+            user_id=current_user.id,
+            weekday=weekday
+        ).order_by(Schedule.period_number).all()
+        
+        # Créer une liste des périodes avec gestion des fusions
+        period_schedule_map = {}
+        for schedule in all_schedules:
+            if schedule.classroom_id or schedule.mixed_group_id:  # Ignorer les tâches personnalisées
+                start_period, end_period, time_range = get_merged_period_info(schedule)
+                if time_range and start_period not in period_schedule_map:  # Éviter les doublons
+                    period_schedule_map[start_period] = {
+                        'schedule': schedule,
+                        'start_period': start_period,
+                        'end_period': end_period,
+                        'time_range': time_range
+                    }
+        
+        # Chercher la prochaine période (fusionnée ou non)
+        for period_num in sorted(period_schedule_map.keys()):
+            period_info = period_schedule_map[period_num]
+            time_start, time_end = period_info['time_range']
+            
             # Si on est le jour actuel, ne prendre que les périodes futures
-            if search_start_date == current_date and period['start'] <= now.time():
+            if search_start_date == current_date and time_start <= now.time():
                 continue
 
             # Chercher d'abord s'il y a une planification spécifique
             planning_check = Planning.query.filter_by(
                 user_id=current_user.id,
                 date=search_start_date,
-                period_number=period['number']
+                period_number=period_info['start_period']
             ).first()
 
             if planning_check and (planning_check.classroom_id or planning_check.mixed_group_id):
-                # Ignorer les tâches personnalisées
-                # Créer un objet Schedule-like à partir de la planification
+                # Créer un objet avec les informations de période fusionnée
                 next_lesson = type('obj', (object,), {
                     'classroom_id': planning_check.classroom_id,
                     'mixed_group_id': planning_check.mixed_group_id,
-                    'period_number': planning_check.period_number,
+                    'period_number': period_info['start_period'],
+                    'end_period_number': period_info['end_period'],
                     'weekday': weekday,
-                    'start_time': period['start'],
-                    'end_time': period['end'],
+                    'start_time': time_start,
+                    'end_time': time_end,
                     'classroom': planning_check.classroom if planning_check.classroom_id else None,
-                    'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None
+                    'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None,
+                    'is_merged': period_info['start_period'] != period_info['end_period']
                 })()
                 lesson_date = search_start_date
                 break
             else:
-                # Si pas de planification, chercher dans l'horaire type
-                schedule = Schedule.query.filter_by(
-                    user_id=current_user.id,
-                    weekday=weekday,
-                    period_number=period['number']
-                ).first()
-
-                if schedule and (schedule.classroom_id or schedule.mixed_group_id):
-                    # Ignorer les tâches personnalisées de l'horaire type
-                    next_lesson = schedule
-                    lesson_date = search_start_date
-                    break
+                # Utiliser l'horaire type avec informations de fusion
+                schedule = period_info['schedule']
+                next_lesson = type('obj', (object,), {
+                    'classroom_id': schedule.classroom_id,
+                    'mixed_group_id': schedule.mixed_group_id,
+                    'period_number': period_info['start_period'],
+                    'end_period_number': period_info['end_period'],
+                    'weekday': schedule.weekday,
+                    'start_time': time_start,
+                    'end_time': time_end,
+                    'classroom': schedule.classroom,
+                    'mixed_group': schedule.mixed_group,
+                    'is_merged': period_info['start_period'] != period_info['end_period']
+                })()
+                lesson_date = search_start_date
+                break
 
         # Si pas de cours ce jour-là, chercher les jours suivants
         if not next_lesson:
