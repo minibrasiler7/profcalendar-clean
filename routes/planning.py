@@ -523,6 +523,47 @@ def calendar_view():
 
     periods = calculate_periods(current_user)
     schedules = current_user.schedules.all()
+    
+    # Créer une version des périodes adaptée pour l'affichage avec fusion
+    display_periods = []
+    merged_period_numbers = set()
+    
+    # Identifier les périodes fusionnées
+    for schedule in schedules:
+        if schedule.merged_with_previous:
+            merged_period_numbers.add(schedule.period_number)
+    
+    # Créer la liste des périodes à afficher
+    for period in periods:
+        if period['number'] not in merged_period_numbers:
+            # Pour les périodes fusionnées, calculer la durée étendue
+            extended_duration = period
+            
+            # Vérifier si cette période est fusionnée avec la suivante
+            next_period_schedule = None
+            for schedule in schedules:
+                if (schedule.period_number == period['number'] and 
+                    schedule.has_merged_next):
+                    next_period_schedule = schedule
+                    break
+            
+            if next_period_schedule:
+                # Trouver la période suivante pour calculer la fin
+                next_period = None
+                for p in periods:
+                    if p['number'] == period['number'] + 1:
+                        next_period = p
+                        break
+                
+                if next_period:
+                    extended_duration = {
+                        'number': f"{period['number']}-{next_period['number']}",
+                        'start': period['start'],
+                        'end': next_period['end'],
+                        'is_merged': True
+                    }
+            
+            display_periods.append(extended_duration)
 
     # Convertir les périodes pour JSON (convertir les objets time en chaînes)
     periods_json = []
@@ -533,11 +574,23 @@ def calendar_view():
             'end': period['end'].strftime('%H:%M')
         })
 
-    # Organiser les horaires par jour et période
+    # Organiser les horaires par jour et période en gérant les périodes fusionnées
     schedule_grid = {}
+    merged_periods = set()  # Set pour tracker les périodes fusionnées à ignorer
+    
     for schedule in schedules:
         key = f"{schedule.weekday}_{schedule.period_number}"
+        
+        # Si cette période est fusionnée avec la précédente, on l'ignore dans l'affichage
+        if schedule.merged_with_previous:
+            merged_periods.add(key)
+            continue
+        
         schedule_grid[key] = schedule
+        
+        # Si cette période a une fusion suivante, on l'étend
+        if schedule.has_merged_next:
+            schedule_grid[key].is_merged_display = True
 
     # Récupérer les plannings de la semaine (pour toutes les classes et groupes mixtes)
     week_plannings = Planning.query.filter(
@@ -656,7 +709,7 @@ def calendar_view():
                          current_week=current_week,
                          classrooms=classrooms,
                          classrooms_json=classrooms_dict,
-                         periods=periods,
+                         periods=display_periods,  # Utiliser les périodes d'affichage avec fusion
                          periods_json=periods_json,
                          schedule_grid=schedule_grid,
                          schedule_grid_json=schedule_grid_json,
@@ -665,7 +718,8 @@ def calendar_view():
                          holidays_info=holidays_info,
                          selected_classroom_id=selected_classroom_id,
                          days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
-                         today=date_type.today())
+                         today=date_type.today(),
+                         merged_periods=merged_periods)  # Passer aussi les périodes fusionnées
 
 def calculate_periods(user):
     """Calcule les périodes en fonction de la configuration de l'utilisateur"""

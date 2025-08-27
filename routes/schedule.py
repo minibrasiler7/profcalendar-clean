@@ -348,10 +348,21 @@ def view_schedule():
 def merge_periods():
     """Fusionner deux périodes consécutives avec la même classe/discipline"""
     try:
+        print(f"[DEBUG] Merge periods called for user {current_user.id}")
         data = request.get_json()
+        print(f"[DEBUG] Received data: {data}")
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Aucune donnée reçue'
+            })
+            
         weekday = int(data.get('weekday'))
         period_start = int(data.get('period_start'))
         period_end = int(data.get('period_end'))
+        
+        print(f"[DEBUG] Parameters: weekday={weekday}, period_start={period_start}, period_end={period_end}")
         
         # Vérifier que les périodes sont consécutives
         if period_end != period_start + 1:
@@ -372,6 +383,9 @@ def merge_periods():
             weekday=weekday,
             period_number=period_end
         ).first()
+        
+        print(f"[DEBUG] Found schedule_start: {schedule_start}")
+        print(f"[DEBUG] Found schedule_end: {schedule_end}")
         
         # Vérifier qu'ils existent et sont identiques
         if not schedule_start or not schedule_end:
@@ -405,7 +419,9 @@ def merge_periods():
         # Marquer la période de début comme ayant une fusion
         schedule_start.has_merged_next = True
         
+        print(f"[DEBUG] About to commit changes...")
         db.session.commit()
+        print(f"[DEBUG] Changes committed successfully")
         
         return jsonify({
             'success': True,
@@ -413,6 +429,9 @@ def merge_periods():
         })
         
     except Exception as e:
+        print(f"[ERROR] Exception during merge: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
         db.session.rollback()
         return jsonify({
             'success': False,
