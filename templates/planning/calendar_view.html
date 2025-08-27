@@ -1145,6 +1145,50 @@ if (typeof pdfjsLib !== 'undefined') {
     border-radius: 10px;
     font-weight: 500;
 }
+
+/* Styles pour les class-block fusionnés dans la vue hebdomadaire */
+.class-block.merged-block {
+    position: relative;
+    /* Hauteur étendue pour couvrir 2 périodes plus l'espace entre */
+    height: calc(200% + 20px);
+    /* S'assurer que le bloc apparaît au-dessus de la cellule suivante */
+    z-index: 10;
+    /* Bordure pour indiquer la fusion */
+    border-left: 4px solid rgba(59, 130, 246, 0.8);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.class-block.merged-block::after {
+    content: 'Périodes fusionnées';
+    position: absolute;
+    bottom: 2px;
+    left: 4px;
+    right: 4px;
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    background: rgba(59, 130, 246, 0.3);
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+/* Style pour les cellules qui sont la continuation d'une période fusionnée */
+.schedule-cell.merged-continuation {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+    position: relative;
+}
+
+.schedule-cell.merged-continuation::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-left: 3px solid rgba(59, 130, 246, 0.4);
+    pointer-events: none;
+}
 </style>
 {% endblock %}
 
@@ -1229,8 +1273,9 @@ if (typeof pdfjsLib !== 'undefined') {
                             {# Vérifier si cette période est fusionnée pour ce jour spécifique #}
                             {% set day_merged_info = merged_info.get(i, {}).get(period_num, {}) %}
                             {% set is_merged_for_day = day_merged_info.get('has_merged_next', false) %}
+                            {% set is_merged_with_previous = day_merged_info.get('merged_with_previous', false) %}
                             
-                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}"
+                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}{% if is_merged_with_previous %} merged-continuation{% endif %}"
                                 data-date="{{ date.strftime('%Y-%m-%d') }}"
                                 data-period="{% if is_merged_for_day %}{{ period_num }}-{{ period_num + 1 }}{% else %}{{ period_num }}{% endif %}"
                                 {% if schedule_key in schedule_grid %}
@@ -1248,7 +1293,10 @@ if (typeof pdfjsLib !== 'undefined') {
                                 onclick="openPlanningModal(this)">
                                 {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
 
-                                {% if holiday_info.is_holiday %}
+                                {# Si cette période est fusionnée avec la précédente, ne rien afficher #}
+                                {% if is_merged_with_previous %}
+                                    <!-- Cellule fusionnée - contenu affiché dans la période précédente -->
+                                {% elif holiday_info.is_holiday %}
                                     <!-- Jour férié -->
                                     <div class="holiday-block">
                                         <div class="holiday-day-name">{{ holiday_info.name }}</div>
@@ -1258,15 +1306,15 @@ if (typeof pdfjsLib !== 'undefined') {
                                         <!-- Planification spécifique -->
                                         {% set planning = planning_grid[planning_key] %}
                                         {% if planning.classroom_id %}
-                                        <div class="class-block planned" style="background-color: {{ planning.classroom.color }};">
+                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.classroom.color }};">
                                             <div class="class-name">{{ planning.classroom.name }}</div>
                                             <div class="class-subject">{{ planning.classroom.subject }}</div>
                                         {% elif planning.mixed_group_id %}
-                                        <div class="class-block planned" style="background-color: {{ planning.mixed_group.color }};">
+                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.mixed_group.color }};">
                                             <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
                                             <div class="class-subject">{{ planning.mixed_group.subject }}</div>
                                         {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
-                                        <div class="class-block planned" style="background-color: #6B7280;">
+                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280;">
                                             <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
                                             <div class="class-subject">Autre</div>
                                         {% endif %}
@@ -1297,17 +1345,17 @@ if (typeof pdfjsLib !== 'undefined') {
                                         <!-- Horaire type -->
                                         {% set schedule = schedule_grid[schedule_key] %}
                                         {% if schedule.classroom_id %}
-                                            <div class="class-block" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
+                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
                                                 <div class="class-name">{{ schedule.classroom.name }}</div>
                                                 <div class="class-subject">{{ schedule.classroom.subject }}</div>
                                             </div>
                                         {% elif schedule.mixed_group_id %}
-                                            <div class="class-block" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
+                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
                                                 <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
                                                 <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
                                             </div>
                                         {% elif schedule.custom_task_title %}
-                                            <div class="class-block" style="background-color: #6B7280; opacity: 0.7;">
+                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280; opacity: 0.7;">
                                                 <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
                                                 <div class="class-subject">Autre</div>
                                             </div>
