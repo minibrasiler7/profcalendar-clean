@@ -334,6 +334,14 @@ def view_schedule():
 
     days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']
 
+    # Créer une version JSON-sérialisable de current_user
+    current_user_json = {
+        'id': current_user.id,
+        'period_duration': current_user.period_duration or 45,
+        'day_start_time': current_user.day_start_time.strftime('%H:%M') if current_user.day_start_time else '08:00',
+        'day_end_time': current_user.day_end_time.strftime('%H:%M') if current_user.day_end_time else '17:00'
+    }
+
     return render_template('schedule/view_schedule.html',
                          classrooms=classrooms,
                          classrooms_json=classrooms_dict,
@@ -342,7 +350,8 @@ def view_schedule():
                          schedule_grid=schedule_grid,
                          schedule_grid_json=schedule_grid_json,
                          days=days,
-                         current_user=current_user)
+                         current_user=current_user,
+                         current_user_json=current_user_json)
 
 @schedule_bp.route('/merge-periods', methods=['POST'])
 @login_required
