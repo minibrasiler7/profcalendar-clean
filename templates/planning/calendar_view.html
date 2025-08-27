@@ -1207,9 +1207,8 @@ if (typeof pdfjsLib !== 'undefined') {
                         {# Vérifier si cette période doit être skippée car fusionnée avec la précédente #}
                         {% set should_skip = false %}
                         {% for day_idx in range(5) %}
-                            {% if merged_info.get(day_idx, {}).get(period_num, {}).get('merged_with_previous', false) %}
+                            {% if not should_skip and merged_info.get(day_idx, {}).get(period_num, {}).get('merged_with_previous', false) %}
                                 {% set should_skip = true %}
-                                {% break %}
                             {% endif %}
                         {% endfor %}
                         
