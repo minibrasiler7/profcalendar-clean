@@ -3441,15 +3441,12 @@ function renderDayScheduleSlots(scheduleSlots, dateStr, classroomId) {
         const planning = slot.planning;
         const hasPlanning = planning !== null;
         
-        // Extraire le premier numéro de période pour les clics (pour "1-2", prendre "1")
-        const basePeriodNumber = slot.is_merged ? slot.period_number.split('-')[0] : slot.period_number;
-        
         html += `
-            <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot(${basePeriodNumber}, '${dateStr}', '${classroomId}')">
+            <div class="day-schedule-slot ${slot.is_merged ? 'merged-slot' : ''}" style="border-left: 4px solid ${classroomColor}" onclick="editDaySlot('${slot.period_number}', '${dateStr}', '${classroomId}')">
                 <div class="slot-header">
                     <div class="slot-period">Période ${slot.period_number}</div>
                     <div class="slot-time">${slot.period_start} - ${slot.period_end}</div>
-                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot(${basePeriodNumber}, '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
+                    ${!isPastDate ? `<button class="btn-edit-slot" onclick="event.stopPropagation(); editDaySlot('${slot.period_number}', '${dateStr}', '${classroomId}')" title="Modifier ce créneau">
                         <i class="fas fa-edit"></i>
                     </button>` : ''}
                 </div>
@@ -3476,15 +3473,19 @@ let currentEditingSlot = null;
 function editDaySlot(periodNumber, dateStr, classroomId) {
     console.log(`📝 Édition créneau: Période ${periodNumber}, Date: ${dateStr}, Classe: ${classroomId}`);
     
+    // Extraire le numéro de période de base pour les appels API (pour "1-2", prendre "1")
+    const basePeriodNumber = periodNumber.includes('-') ? periodNumber.split('-')[0] : periodNumber;
+    
     // Stocker les informations du créneau en cours d'édition
     currentEditingSlot = {
-        period: periodNumber,
+        period: periodNumber,        // Garder le format complet pour l'affichage ("1-2")
+        basePeriod: basePeriodNumber, // Période de base pour les API (1)
         date: dateStr,
         classroomId: classroomId
     };
     
-    // Récupérer les données existantes pour ce créneau
-    getDaySlotData(dateStr, periodNumber, classroomId).then(data => {
+    // Récupérer les données existantes pour ce créneau (utiliser la période de base)
+    getDaySlotData(dateStr, basePeriodNumber, classroomId).then(data => {
         if (data.success && data.planning) {
             // Pré-remplir avec les données existantes
             showDaySlotEditModal(data.planning.title || '', data.planning.description || '');
@@ -3650,7 +3651,7 @@ async function saveDaySlot() {
             },
             body: JSON.stringify({
                 date: currentEditingSlot.date,
-                period_number: currentEditingSlot.period,
+                period_number: currentEditingSlot.basePeriod,
                 classroom_id: currentEditingSlot.classroomId,
                 title: title,
                 description: description,
@@ -3673,7 +3674,7 @@ async function saveDaySlot() {
                     },
                     body: JSON.stringify({
                         start_date: currentEditingSlot.date,
-                        period_number: currentEditingSlot.period,
+                        period_number: currentEditingSlot.basePeriod,
                         classroom_id: currentEditingSlot.classroomId,
                         title: title,
                         description: description,
