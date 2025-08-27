@@ -6,6 +6,20 @@ function openPlanningModal(cell, fromAnnualView = false) {
     currentPlanningCell = cell;
     const date = cell.dataset.date;
     const period = cell.dataset.period;
+    
+    // Gérer les périodes fusionnées (format "3-4")
+    let basePeriod = period;
+    let displayPeriod = period;
+    let isMergedPeriod = false;
+    
+    if (period.includes('-')) {
+        // Période fusionnée, extraire le numéro de base
+        const periodParts = period.split('-');
+        basePeriod = periodParts[0];
+        displayPeriod = `${periodParts[0]}-${periodParts[1]}`;
+        isMergedPeriod = true;
+        console.log('Merged period detected:', period, 'using base period:', basePeriod);
+    }
 
     // Si c'est depuis la vue annuelle, ouvrir le modal de planification journalière
     if (fromAnnualView) {
@@ -14,10 +28,10 @@ function openPlanningModal(cell, fromAnnualView = false) {
     }
 
     // Vérifier si la période est passée de plus de 24h
-    const isPastPeriod = isPeriodPast(date, period);
+    const isPastPeriod = isPeriodPast(date, basePeriod);
 
-    // Récupérer les données existantes
-    getPlanningData(date, period).then(data => {
+    // Récupérer les données existantes (utiliser basePeriod pour l'API)
+    getPlanningData(date, basePeriod).then(data => {
         if (data.success && data.planning) {
             // Formatter l'ID de classe pour le modal
             let modalClassroomValue = '';
@@ -166,7 +180,7 @@ function openPlanningModal(cell, fromAnnualView = false) {
             day: 'numeric',
             month: 'long'
         });
-        document.getElementById('modalTitle').textContent = `Planifier - ${dateStr} - Période ${period}`;
+        document.getElementById('modalTitle').textContent = `Planifier - ${dateStr} - Période ${displayPeriod}`;
 
         // Afficher le modal
         document.getElementById('planningModal').classList.add('show');
@@ -620,7 +634,7 @@ async function saveDayPlanning(date, buttonElement) {
                     },
                     body: JSON.stringify({
                         date: date,
-                        period_number: parseInt(period),
+                        period_number: parseInt(basePeriod),
                         classroom_id: classroomId ? parseInt(classroomId) : null,
                         title: title,
                         description: description,
@@ -684,6 +698,13 @@ async function savePlanning() {
 
     const date = currentPlanningCell.dataset.date;
     const period = currentPlanningCell.dataset.period;
+    
+    // Gérer les périodes fusionnées - utiliser la période de base pour la sauvegarde
+    let basePeriod = period;
+    if (period.includes('-')) {
+        basePeriod = period.split('-')[0];
+        console.log('Save merged period: using base period', basePeriod, 'for period', period);
+    }
     const classroomId = document.getElementById('modalClassroom').value;
     const title = document.getElementById('modalPlanningTitle').value;
     const description = document.getElementById('modalDescription').value;
@@ -706,7 +727,7 @@ async function savePlanning() {
             },
             body: JSON.stringify({
                 date: date,
-                period_number: parseInt(period),
+                period_number: parseInt(basePeriod),
                 classroom_id: classroomId && classroomId.startsWith('classroom_') && classroomId !== 'custom_task' ? parseInt(classroomId.split('_')[1]) : null,
                 mixed_group_id: classroomId && classroomId.startsWith('mixed_group_') && classroomId !== 'custom_task' ? parseInt(classroomId.split('_')[2]) : null,
                 title: title,
@@ -729,7 +750,7 @@ async function savePlanning() {
                     },
                     body: JSON.stringify({
                         start_date: date,
-                        period_number: parseInt(period),
+                        period_number: parseInt(basePeriod),
                         classroom_id: classroomId && classroomId.startsWith('classroom_') && classroomId !== 'custom_task' ? parseInt(classroomId.split('_')[1]) : null,
                         mixed_group_id: classroomId && classroomId.startsWith('mixed_group_') && classroomId !== 'custom_task' ? parseInt(classroomId.split('_')[2]) : null,
                         title: title,

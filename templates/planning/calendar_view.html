@@ -1087,6 +1087,39 @@ if (typeof pdfjsLib !== 'undefined') {
     border-top: 1px solid #e5e7eb;
     background-color: #f9fafb;
 }
+
+/* Styles pour les périodes fusionnées */
+.time-slot.merged-period {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-left: 4px solid #3b82f6;
+}
+
+.time-slot.merged-period .period-number {
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.merged-indicator {
+    font-size: 0.75rem;
+    color: #3b82f6;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.schedule-cell.merged-period {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    position: relative;
+}
+
+.schedule-cell.merged-period::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #3b82f6;
+}
 </style>
 {% endblock %}
 
@@ -1145,18 +1178,28 @@ if (typeof pdfjsLib !== 'undefined') {
                     <tbody>
                         {% for period in periods %}
                         <tr>
-                            <td class="time-slot">
+                            <td class="time-slot {% if period.get('is_merged') %}merged-period{% endif %}">
                                 <div class="period-number">P{{ period.number }}</div>
                                 <div class="period-time">
                                     {{ period.start.strftime('%H:%M') }}<br>
                                     {{ period.end.strftime('%H:%M') }}
                                 </div>
+                                {% if period.get('is_merged') %}
+                                <div class="merged-indicator">Fusionné</div>
+                                {% endif %}
                             </td>
                             {% for date in week_dates %}
                             {% set i = loop.index0 %}
-                            {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period.number|string %}
-                            {% set schedule_key = i|string + '_' + period.number|string %}
-                            <td class="schedule-cell {% if date == today %}today{% endif %}"
+                            {% if period.get('is_merged') %}
+                                {% set period_nums = period.number.split('-') %}
+                                {% set base_period = period_nums[0] %}
+                                {% set planning_key = date.strftime('%Y-%m-%d') + '_' + base_period %}
+                                {% set schedule_key = i|string + '_' + base_period %}
+                            {% else %}
+                                {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period.number|string %}
+                                {% set schedule_key = i|string + '_' + period.number|string %}
+                            {% endif %}
+                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if period.get('is_merged') %} merged-period{% endif %}"
                                 data-date="{{ date.strftime('%Y-%m-%d') }}"
                                 data-period="{{ period.number }}"
                                 {% if schedule_key in schedule_grid %}
