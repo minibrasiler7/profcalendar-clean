@@ -1089,8 +1089,11 @@ def lesson_view():
         start_period = schedule.period_number
         end_period = schedule.period_number
         
+        print(f"DEBUG get_merged_period_info: checking period {start_period}, has_merged_next={getattr(schedule, 'has_merged_next', False)}")
+        
         # Si cette période est fusionnée avec la suivante
         if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
+            print(f"DEBUG get_merged_period_info: period {start_period} has merged next")
             # Chercher toutes les périodes fusionnées qui suivent
             current_period = schedule.period_number + 1
             while True:
@@ -1100,8 +1103,13 @@ def lesson_view():
                     period_number=current_period
                 ).first()
                 
+                print(f"DEBUG get_merged_period_info: checking next period {current_period}, found={next_schedule is not None}")
+                if next_schedule:
+                    print(f"DEBUG get_merged_period_info: next period {current_period} merged_with_previous={getattr(next_schedule, 'merged_with_previous', False)}")
+                
                 if next_schedule and hasattr(next_schedule, 'merged_with_previous') and next_schedule.merged_with_previous:
                     end_period = next_schedule.period_number
+                    print(f"DEBUG get_merged_period_info: extended end_period to {end_period}")
                     if hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next:
                         current_period += 1
                     else:
@@ -1112,6 +1120,8 @@ def lesson_view():
         # Calculer les horaires de début et fin
         start_period_info = next((p for p in periods if p['number'] == start_period), None)
         end_period_info = next((p for p in periods if p['number'] == end_period), None)
+        
+        print(f"DEBUG get_merged_period_info: final result start={start_period}, end={end_period}, time_range_found={start_period_info is not None and end_period_info is not None}")
         
         if start_period_info and end_period_info:
             return start_period, end_period, (start_period_info['start'], end_period_info['end'])
@@ -1290,7 +1300,7 @@ def lesson_view():
                 if is_holiday(future_date, current_user):
                     continue
 
-                # Chercher le premier cours de la journée (exclure les tâches personnalisées)
+                # Chercher le premier cours de la journée avec support des périodes fusionnées
                 # D'abord chercher s'il y a des planifications spécifiques pour ce jour
                 first_planning = Planning.query.filter_by(
                     user_id=current_user.id,
@@ -1303,31 +1313,57 @@ def lesson_view():
                     # Récupérer les informations de période depuis la configuration
                     period_info = next((p for p in periods if p['number'] == first_planning.period_number), None)
                     if period_info:
-                        # Créer un objet Schedule-like à partir de la planification
+                        # Créer un objet Schedule-like à partir de la planification avec support fusionné
                         next_lesson = type('obj', (object,), {
                             'classroom_id': first_planning.classroom_id,
                             'mixed_group_id': first_planning.mixed_group_id,
                             'period_number': first_planning.period_number,
+                            'end_period_number': first_planning.period_number,  # Pas de fusion dans Planning
                             'weekday': future_weekday,
                             'start_time': period_info['start'],
                             'end_time': period_info['end'],
                             'classroom': first_planning.classroom if first_planning.classroom_id else None,
-                            'mixed_group': first_planning.mixed_group if first_planning.mixed_group_id else None
+                            'mixed_group': first_planning.mixed_group if first_planning.mixed_group_id else None,
+                            'is_merged': False
                         })()
                         lesson_date = future_date
                         break
                 else:
-                    # Si pas de planification, chercher dans l'horaire type
-                    first_schedule = Schedule.query.filter_by(
+                    # Si pas de planification, chercher dans l'horaire type avec support des fusions
+                    all_future_schedules = Schedule.query.filter_by(
                         user_id=current_user.id,
                         weekday=future_weekday
-                    ).order_by(Schedule.period_number).first()
+                    ).filter(
+                        (Schedule.classroom_id.isnot(None)) | (Schedule.mixed_group_id.isnot(None))
+                    ).order_by(Schedule.period_number).all()
+                    
+                    if all_future_schedules:
+                        # Utiliser la logique de fusion pour le premier schedule trouvé
+                        first_schedule = all_future_schedules[0]
+                        start_period, end_period, time_range = get_merged_period_info(first_schedule)
+                        
+                        if time_range:
+                            next_lesson = type('obj', (object,), {
+                                'classroom_id': first_schedule.classroom_id,
+                                'mixed_group_id': first_schedule.mixed_group_id,
+                                'period_number': start_period,
+                                'end_period_number': end_period,
+                                'weekday': first_schedule.weekday,
+                                'start_time': time_range[0],
+                                'end_time': time_range[1],
+                                'classroom': first_schedule.classroom,
+                                'mixed_group': first_schedule.mixed_group,
+                                'is_merged': start_period != end_period
+                            })()
+                            lesson_date = future_date
+                            break
 
-                    if first_schedule and (first_schedule.classroom_id or first_schedule.mixed_group_id):
-                        # Ignorer les tâches personnalisées de l'horaire type
-                        next_lesson = first_schedule
-                        lesson_date = future_date
-                        break
+    # Debug: log des informations de détection
+    print(f"DEBUG lesson_view: current_date={current_date}, weekday={weekday}")
+    print(f"DEBUG lesson_view: current_lesson={current_lesson is not None}, next_lesson={next_lesson is not None}")
+    if next_lesson:
+        print(f"DEBUG lesson_view: next lesson period={getattr(next_lesson, 'period_number', 'N/A')}, end_period={getattr(next_lesson, 'end_period_number', 'N/A')}, is_merged={getattr(next_lesson, 'is_merged', 'N/A')}")
+        print(f"DEBUG lesson_view: lesson_date={lesson_date}")
 
     # Préparer les données pour l'affichage
     lesson = current_lesson or next_lesson
