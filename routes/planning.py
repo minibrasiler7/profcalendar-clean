@@ -1089,11 +1089,8 @@ def lesson_view():
         start_period = schedule.period_number
         end_period = schedule.period_number
         
-        print(f"DEBUG get_merged_period_info: checking period {start_period}, has_merged_next={getattr(schedule, 'has_merged_next', False)}")
-        
         # Si cette période est fusionnée avec la suivante
         if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
-            print(f"DEBUG get_merged_period_info: period {start_period} has merged next")
             # Chercher toutes les périodes fusionnées qui suivent
             current_period = schedule.period_number + 1
             while True:
@@ -1103,13 +1100,8 @@ def lesson_view():
                     period_number=current_period
                 ).first()
                 
-                print(f"DEBUG get_merged_period_info: checking next period {current_period}, found={next_schedule is not None}")
-                if next_schedule:
-                    print(f"DEBUG get_merged_period_info: next period {current_period} merged_with_previous={getattr(next_schedule, 'merged_with_previous', False)}")
-                
                 if next_schedule and hasattr(next_schedule, 'merged_with_previous') and next_schedule.merged_with_previous:
                     end_period = next_schedule.period_number
-                    print(f"DEBUG get_merged_period_info: extended end_period to {end_period}")
                     if hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next:
                         current_period += 1
                     else:
@@ -1120,8 +1112,6 @@ def lesson_view():
         # Calculer les horaires de début et fin
         start_period_info = next((p for p in periods if p['number'] == start_period), None)
         end_period_info = next((p for p in periods if p['number'] == end_period), None)
-        
-        print(f"DEBUG get_merged_period_info: final result start={start_period}, end={end_period}, time_range_found={start_period_info is not None and end_period_info is not None}")
         
         if start_period_info and end_period_info:
             return start_period, end_period, (start_period_info['start'], end_period_info['end'])
@@ -1357,13 +1347,6 @@ def lesson_view():
                             })()
                             lesson_date = future_date
                             break
-
-    # Debug: log des informations de détection
-    print(f"DEBUG lesson_view: current_date={current_date}, weekday={weekday}")
-    print(f"DEBUG lesson_view: current_lesson={current_lesson is not None}, next_lesson={next_lesson is not None}")
-    if next_lesson:
-        print(f"DEBUG lesson_view: next lesson period={getattr(next_lesson, 'period_number', 'N/A')}, end_period={getattr(next_lesson, 'end_period_number', 'N/A')}, is_merged={getattr(next_lesson, 'is_merged', 'N/A')}")
-        print(f"DEBUG lesson_view: lesson_date={lesson_date}")
 
     # Préparer les données pour l'affichage
     lesson = current_lesson or next_lesson

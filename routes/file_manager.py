@@ -985,40 +985,17 @@ def test_serve(file_id):
 def serve_file(file_id):
     """Sert un fichier pour l'affichage inline (pour le viewer d'annotation)"""
     try:
-        print(f"[DEBUG] === DEBUT serve_file file_id={file_id} ===")
-        
-        # Import simple pour tester
         from models.student import ClassFile
         
-        print(f"[DEBUG] Import réussi, recherche du fichier...")
-        
-        # Debug: compter le nombre total de fichiers
-        total_files = ClassFile.query.count()
-        print(f"[DEBUG] Nombre total de ClassFile en base: {total_files}")
-        
-        # Debug: lister les IDs existants autour de cette ID
-        nearby_files = ClassFile.query.filter(
-            ClassFile.id.between(file_id - 5, file_id + 5)
-        ).all()
-        print(f"[DEBUG] Fichiers avec IDs proches de {file_id}: {[f.id for f in nearby_files]}")
-        
-        # Recherche simple du fichier de classe
+        # Recherche du fichier de classe
         class_file = ClassFile.query.filter_by(id=file_id).first()
         
-        print(f"[DEBUG] ClassFile trouvé: {class_file}")
-        
         if not class_file:
-            print(f"[DEBUG] Aucun fichier trouvé avec id={file_id}")
-            print(f"[DEBUG] Tous les fichiers disponibles: {[f.id for f in ClassFile.query.all()]}")
-            return "Fichier introuvable", 404
-            
-        print(f"[DEBUG] Fichier: {class_file.original_filename}")
-        print(f"[DEBUG] Classroom ID: {class_file.classroom_id}")
+            return "Fichier introuvable dans la base de données", 404
         
-        # Vérification simple des droits
+        # Vérification des droits
         if hasattr(class_file, 'classroom') and hasattr(class_file.classroom, 'user_id'):
             if class_file.classroom.user_id != current_user.id:
-                print(f"[DEBUG] Accès refusé - user_id:{current_user.id} vs {class_file.classroom.user_id}")
                 return "Accès refusé", 403
         
         # Construction du chemin selon le type de fichier
@@ -1028,18 +1005,13 @@ def serve_file(file_id):
         else:
             # Fichier normal de classe
             file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', str(class_file.classroom_id), class_file.filename)
-        print(f"[DEBUG] Chemin complet: {file_path}")
-        print(f"[DEBUG] Fichier existe: {os.path.exists(file_path)}")
         
         if not os.path.exists(file_path):
-            print(f"[DEBUG] Fichier physique introuvable")
-            return "Fichier physique introuvable", 404
+            return f"Fichier '{class_file.original_filename}' manquant sur le serveur. Veuillez le re-télécharger.", 404
         
-        # Mimetype simple
+        # Mimetype
         mimetype = 'application/pdf' if class_file.file_type == 'pdf' else 'application/octet-stream'
-        print(f"[DEBUG] Mimetype: {mimetype}")
         
-        print(f"[DEBUG] === FIN serve_file - envoi du fichier ===")
         return send_file(file_path, mimetype=mimetype, as_attachment=False)
         
     except Exception as e:
