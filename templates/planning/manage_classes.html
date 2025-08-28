@@ -5229,7 +5229,11 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     const studentId = studentLabel.dataset.studentId || studentLabel.dataset.studentid;
     const studentName = studentLabel.dataset.originalName || studentLabel.querySelector('span').textContent;
     
-    console.log('Placing student:', studentName, 'on desk:', desk.id);
+    console.log('=== PLACING STUDENT ===');
+    console.log('Student Name:', studentName);
+    console.log('Student ID:', studentId);
+    console.log('Desk ID:', desk.id);
+    console.log('StudentLabel before removal:', studentLabel);
     
     // Créer l'élément étudiant placé
     const studentPlaced = document.createElement('div');
@@ -5257,7 +5261,9 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     targetSlot.appendChild(studentPlaced);
     
     // Supprimer l'étiquette de la liste
+    console.log('Removing studentLabel:', studentLabel);
     studentLabel.remove();
+    console.log('StudentLabel removed. Remaining labels:', document.querySelectorAll('.student-label').length);
     
     // Ajuster la largeur de la table en fonction du contenu (avec petit délai pour le rendu)
     setTimeout(() => adjustDeskWidth(desk), 10);
@@ -5286,6 +5292,8 @@ function formatStudentName(fullName) {
 
 // Retirer un étudiant d'une table
 function removeStudentFromDesk(studentId) {
+    console.log('=== REMOVING STUDENT ===');
+    console.log('Student ID to remove:', studentId);
     const studentPlaced = seatingWorkspace.querySelector(`.student-placed[data-student-id="${studentId}"]`) ||
                          seatingWorkspace.querySelector(`.student-placed[data-studentid="${studentId}"]`);
     if (!studentPlaced) return;
@@ -5318,6 +5326,8 @@ function removeStudentFromDesk(studentId) {
     studentLabel.dataset.originalName = studentName; // Sauvegarder le nom complet
     
     studentsContainer.appendChild(studentLabel);
+    console.log('Student re-added to sidebar:', studentName);
+    console.log('Total labels now:', studentsContainer.querySelectorAll('.student-label').length);
     
     // Mettre à jour le compteur
     const studentsCountSpan = document.getElementById('sidebar-students-count');
@@ -5825,29 +5835,42 @@ function placeStudentInSlot(studentLabel, slot) {
         return false;
     }
     
-    // Cacher le label original dans la barre latérale
-    studentLabel.style.display = 'none';
+    const studentId = studentLabel.dataset.studentId || studentLabel.dataset.studentid;
+    const studentName = studentLabel.dataset.originalName || studentLabel.querySelector('span').textContent;
     
-    // Créer une copie dans la table
-    const studentPlaced = studentLabel.cloneNode(true);
-    studentPlaced.classList.remove('student-label');
-    studentPlaced.classList.add('student-placed');
-    studentPlaced.style.display = 'block';
-    studentPlaced.style.opacity = '1';
+    console.log('=== PLACING STUDENT IN SLOT (LOADING) ===');
+    console.log('Student Name:', studentName);
+    console.log('Student ID:', studentId);
     
-    // Ajouter un bouton de suppression
-    const removeBtn = document.createElement('span');
-    removeBtn.classList.add('remove-student');
-    removeBtn.innerHTML = '×';
-    removeBtn.onclick = function(e) {
-        e.stopPropagation();
-        removeStudentFromDesk(studentPlaced.dataset.studentId);
-    };
+    // Créer l'élément étudiant placé avec la nouvelle structure
+    const studentPlaced = document.createElement('div');
+    studentPlaced.className = 'student-placed';
+    studentPlaced.dataset.studentId = studentId;
+    studentPlaced.dataset.originalName = studentName; // Sauvegarder le nom complet
+    
+    // Créer un span pour le nom (séparé du bouton)
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'student-name';
+    nameSpan.textContent = formatStudentName(studentName);
+    
+    // Ajouter un bouton pour retirer l'étudiant
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'student-remove';
+    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+    removeBtn.onclick = () => removeStudentFromDesk(studentId);
+    
+    studentPlaced.appendChild(nameSpan);
     studentPlaced.appendChild(removeBtn);
     
     // Marquer le slot comme occupé
     slot.classList.add('occupied');
+    slot.innerHTML = ''; // Vider le slot
     slot.appendChild(studentPlaced);
+    
+    // SUPPRIMER l'étiquette de la barre latérale (pas juste cacher)
+    console.log('Removing studentLabel from sidebar during load:', studentLabel);
+    studentLabel.remove();
+    console.log('StudentLabel removed during load. Remaining labels:', document.querySelectorAll('.student-label').length);
     
     // Ajuster la largeur de la table (avec petit délai pour le rendu)
     const desk = slot.closest('.seating-element');
