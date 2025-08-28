@@ -4668,6 +4668,10 @@ function setupSeatingEventListeners() {
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mousemove', handleMouseMove);
     
+    // Support tactile pour les tablettes
+    document.addEventListener('touchmove', handleTouchMove, {passive: false});
+    document.addEventListener('touchend', handleTouchEnd);
+    
     // Event listener pour empêcher la sélection de texte pendant le drag
     document.addEventListener('selectstart', function(e) {
         if (isDragging) {
@@ -4891,6 +4895,40 @@ function handleElementMouseDown(e) {
     console.log('Drag offset:', dragOffset.x, dragOffset.y);
 }
 
+// Gestion tactile du début de drag
+function handleElementTouchStart(e) {
+    if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
+        return; // Ne pas déclencher le drag pour le bouton de suppression
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    
+    isDragging = true;
+    currentDragElement = e.currentTarget;
+    
+    // Obtenir la position actuelle de l'élément et du touch
+    const elementRect = currentDragElement.getBoundingClientRect();
+    const workspaceRect = seatingWorkspace.getBoundingClientRect();
+    
+    // Calculer l'offset du touch par rapport à l'élément
+    dragOffset.x = touch.clientX - elementRect.left;
+    dragOffset.y = touch.clientY - elementRect.top;
+    
+    currentDragElement.style.zIndex = '1000';
+    currentDragElement.classList.add('dragging');
+    
+    // Changer le curseur de tout le document
+    document.body.style.cursor = 'grabbing';
+    
+    console.log('Start touch dragging element:', currentDragElement.id);
+    console.log('Touch position:', touch.clientX, touch.clientY);
+    console.log('Element position:', elementRect.left, elementRect.top);
+    console.log('Touch drag offset:', dragOffset.x, dragOffset.y);
+}
+
 // Gestion du mousemove
 function handleMouseMove(e) {
     if (!isDragging || !currentDragElement) return;
@@ -4917,6 +4955,43 @@ function handleMouseMove(e) {
 function handleMouseUp(e) {
     if (isDragging && currentDragElement) {
         console.log('Stop dragging element:', currentDragElement.id);
+        currentDragElement.style.zIndex = '';
+        currentDragElement.classList.remove('dragging');
+    }
+    
+    // Restaurer le curseur
+    document.body.style.cursor = '';
+    
+    isDragging = false;
+    currentDragElement = null;
+}
+
+// Gestion tactile pour tablettes
+function handleTouchMove(e) {
+    if (!isDragging || !currentDragElement) return;
+    
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const workspaceRect = seatingWorkspace.getBoundingClientRect();
+    
+    // Calculer la nouvelle position relative au workspace
+    let newX = touch.clientX - workspaceRect.left - dragOffset.x;
+    let newY = touch.clientY - workspaceRect.top - dragOffset.y;
+    
+    // Contraindre aux limites de l'espace de travail
+    newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - currentDragElement.offsetWidth));
+    newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - currentDragElement.offsetHeight));
+    
+    currentDragElement.style.left = newX + 'px';
+    currentDragElement.style.top = newY + 'px';
+    
+    console.log('Touch moving to:', newX, newY);
+}
+
+function handleTouchEnd(e) {
+    if (isDragging && currentDragElement) {
+        console.log('Stop touch dragging element:', currentDragElement.id);
         currentDragElement.style.zIndex = '';
         currentDragElement.classList.remove('dragging');
     }
@@ -5443,6 +5518,53 @@ function setupElementDragging(element) {
         document.addEventListener('mousemove', moveElement);
         document.addEventListener('mouseup', stopDragging);
     };
+    
+    // Support tactile pour tablettes
+    element.ontouchstart = function(e) {
+        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        isDraggingElement = true;
+        
+        const touch = e.touches[0];
+        const rect = element.getBoundingClientRect();
+        offsetX = touch.clientX - rect.left;
+        offsetY = touch.clientY - rect.top;
+        
+        element.style.cursor = 'grabbing';
+        element.style.zIndex = '1000';
+        
+        function moveTouchElement(e) {
+            if (!isDraggingElement) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            const workspaceRect = seatingWorkspace.getBoundingClientRect();
+            let newX = touch.clientX - workspaceRect.left - offsetX;
+            let newY = touch.clientY - workspaceRect.top - offsetY;
+            
+            // Contraindre aux limites
+            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
+            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
+            
+            element.style.left = newX + 'px';
+            element.style.top = newY + 'px';
+        }
+        
+        function stopTouchDragging() {
+            isDraggingElement = false;
+            element.style.cursor = 'grab';
+            element.style.zIndex = '';
+            document.removeEventListener('touchmove', moveTouchElement);
+            document.removeEventListener('touchend', stopTouchDragging);
+        }
+        
+        document.addEventListener('touchmove', moveTouchElement, {passive: false});
+        document.addEventListener('touchend', stopTouchDragging);
+    };
 }
 
 // Charger un plan de classe depuis le serveur
@@ -5726,6 +5848,79 @@ document.addEventListener('dragstart', function(e) {
 document.addEventListener('dragend', function(e) {
     if (e.target.classList.contains('student-label')) {
         e.target.style.opacity = '';
+    }
+});
+
+// Support tactile pour les étudiants sur tablettes
+let touchDraggedStudent = null;
+let studentTouchStartPos = null;
+let isDraggingStudent = false;
+
+document.addEventListener('touchstart', function(e) {
+    if (e.target.classList.contains('student-label')) {
+        e.preventDefault();
+        touchDraggedStudent = e.target;
+        isDraggingStudent = false; // Pas encore en cours de drag
+        
+        const touch = e.touches[0];
+        studentTouchStartPos = {
+            x: touch.clientX,
+            y: touch.clientY,
+            startTime: Date.now()
+        };
+        
+        console.log('Touch start on student:', touchDraggedStudent.dataset.studentId);
+    }
+});
+
+document.addEventListener('touchmove', function(e) {
+    if (!touchDraggedStudent) return;
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - studentTouchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - studentTouchStartPos.y);
+    
+    // Commencer le drag si on bouge de plus de 10px
+    if (!isDraggingStudent && (deltaX > 10 || deltaY > 10)) {
+        isDraggingStudent = true;
+        touchDraggedStudent.style.opacity = '0.5';
+        touchDraggedStudent.style.pointerEvents = 'none'; // Éviter les conflits
+        console.log('Start touch dragging student:', touchDraggedStudent.dataset.studentId);
+    }
+    
+    if (isDraggingStudent) {
+        e.preventDefault();
+        // Créer un feedback visuel de drag si nécessaire
+    }
+});
+
+document.addEventListener('touchend', function(e) {
+    if (!touchDraggedStudent) return;
+    
+    const touch = e.changedTouches[0];
+    const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (isDraggingStudent && elementUnderTouch) {
+        // Trouver le bureau le plus proche
+        const desk = elementUnderTouch.closest('.seating-element');
+        if (desk) {
+            console.log('Touch drop student on desk:', desk.id);
+            // Utiliser la même logique que le drop souris
+            const studentId = touchDraggedStudent.dataset.studentId || touchDraggedStudent.dataset.studentid;
+            if (studentId) {
+                placeStudentOnDesk(touchDraggedStudent, desk, touch.clientX);
+            }
+        }
+    }
+    
+    // Nettoyage
+    if (touchDraggedStudent) {
+        touchDraggedStudent.style.opacity = '';
+        touchDraggedStudent.style.pointerEvents = '';
+        touchDraggedStudent = null;
+        isDraggingStudent = false;
+        studentTouchStartPos = null;
+        console.log('End touch drag student');
     }
 });
 
