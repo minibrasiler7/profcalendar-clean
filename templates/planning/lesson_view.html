@@ -5978,15 +5978,9 @@ function loadSeatingPlan() {
                     slot.classList.add('occupied');
                     console.log(`DEBUG lesson_view: Placed student ${displayName} (${student.full_name}) in slot`);
                 } else {
-                    // Si vraiment pas trouvé, utiliser le nom stocké dans le placement si disponible
-                    if (placement.student_name) {
-                        const displayName = formatStudentName(placement.student_name);
-                        slot.innerHTML = `<div class="student-placed student-not-found">${displayName} (non trouvé)</div>`;
-                        slot.classList.add('occupied');
-                        console.log(`DEBUG lesson_view: Using stored name for student ${placement.student_id}: ${placement.student_name}`);
-                    } else {
-                        console.log(`DEBUG lesson_view: Student ${placement.student_id} not found in studentsData:`, studentsData.map(s => ({id: s.id, name: s.full_name})));
-                    }
+                    // Si l'étudiant n'est pas trouvé, laisser le slot vide
+                    console.log(`DEBUG lesson_view: Student ${placement.student_id} (${placement.student_name || 'nom non disponible'}) not found, leaving slot empty`);
+                    console.log(`DEBUG lesson_view: Available students:`, studentsData.map(s => ({id: s.id, name: s.full_name})));
                 }
             }
         }
