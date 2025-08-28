@@ -992,6 +992,16 @@ def serve_file(file_id):
         
         print(f"[DEBUG] Import réussi, recherche du fichier...")
         
+        # Debug: compter le nombre total de fichiers
+        total_files = ClassFile.query.count()
+        print(f"[DEBUG] Nombre total de ClassFile en base: {total_files}")
+        
+        # Debug: lister les IDs existants autour de cette ID
+        nearby_files = ClassFile.query.filter(
+            ClassFile.id.between(file_id - 5, file_id + 5)
+        ).all()
+        print(f"[DEBUG] Fichiers avec IDs proches de {file_id}: {[f.id for f in nearby_files]}")
+        
         # Recherche simple du fichier de classe
         class_file = ClassFile.query.filter_by(id=file_id).first()
         
@@ -999,6 +1009,7 @@ def serve_file(file_id):
         
         if not class_file:
             print(f"[DEBUG] Aucun fichier trouvé avec id={file_id}")
+            print(f"[DEBUG] Tous les fichiers disponibles: {[f.id for f in ClassFile.query.all()]}")
             return "Fichier introuvable", 404
             
         print(f"[DEBUG] Fichier: {class_file.original_filename}")
