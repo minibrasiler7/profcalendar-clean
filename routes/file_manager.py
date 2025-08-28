@@ -986,6 +986,7 @@ def serve_file(file_id):
     """Sert un fichier pour l'affichage inline (pour le viewer d'annotation)"""
     try:
         from models.student import ClassFile
+        from flask import Response
         
         # Recherche du fichier de classe
         class_file = ClassFile.query.filter_by(id=file_id).first()
@@ -998,21 +999,29 @@ def serve_file(file_id):
             if class_file.classroom.user_id != current_user.id:
                 return "Accès refusé", 403
         
-        # Construction du chemin selon le type de fichier
-        if class_file.is_student_shared:
-            # Fichier partagé avec les élèves
-            file_path = os.path.join(current_app.root_path, 'uploads', 'student_shared', str(class_file.classroom_id), class_file.filename)
+        # Vérifier le contenu BLOB
+        if class_file.file_content:
+            # Servir depuis la base de données (BLOB)
+            mimetype = class_file.mime_type or 'application/octet-stream'
+            return Response(
+                class_file.file_content,
+                mimetype=mimetype,
+                headers={
+                    'Content-Disposition': f'inline; filename="{class_file.original_filename}"'
+                }
+            )
         else:
-            # Fichier normal de classe
-            file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', str(class_file.classroom_id), class_file.filename)
-        
-        if not os.path.exists(file_path):
-            return f"Fichier '{class_file.original_filename}' manquant sur le serveur. Veuillez le re-télécharger.", 404
-        
-        # Mimetype
-        mimetype = 'application/pdf' if class_file.file_type == 'pdf' else 'application/octet-stream'
-        
-        return send_file(file_path, mimetype=mimetype, as_attachment=False)
+            # Fallback: essayer de servir depuis le fichier physique (pour compatibilité)
+            if class_file.is_student_shared:
+                file_path = os.path.join(current_app.root_path, 'uploads', 'student_shared', str(class_file.classroom_id), class_file.filename)
+            else:
+                file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', str(class_file.classroom_id), class_file.filename)
+            
+            if os.path.exists(file_path):
+                mimetype = 'application/pdf' if class_file.file_type == 'pdf' else 'application/octet-stream'
+                return send_file(file_path, mimetype=mimetype, as_attachment=False)
+            else:
+                return f"Fichier '{class_file.original_filename}' manquant sur le serveur.", 404
         
     except Exception as e:
         print(f"[ERROR] ERREUR dans serve_file: {e}")
@@ -1025,46 +1034,84 @@ def serve_file(file_id):
 def download_file(file_id):
     """Télécharger un fichier"""
     from models.file_manager import UserFile
+    from flask import Response
 
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
     ).first_or_404()
 
-    file_path = os.path.join(current_app.root_path, file.get_file_path())
-
-    if not os.path.exists(file_path):
-        flash('Fichier introuvable', 'error')
-        return redirect(url_for('file_manager.index'))
-
-    return send_file(file_path,
-                     download_name=file.original_filename,
-                     as_attachment=True)
+    # Vérifier le contenu BLOB en premier
+    if file.file_content:
+        # Servir depuis la base de données (BLOB)
+        mimetype = file.mime_type or 'application/octet-stream'
+        return Response(
+            file.file_content,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'attachment; filename="{file.original_filename}"'
+            }
+        )
+    else:
+        # Fallback: essayer de servir depuis le fichier physique
+        file_path = os.path.join(current_app.root_path, file.get_file_path())
+        
+        if os.path.exists(file_path):
+            return send_file(file_path,
+                           download_name=file.original_filename,
+                           as_attachment=True)
+        else:
+            flash('Fichier introuvable', 'error')
+            return redirect(url_for('file_manager.index'))
 
 @file_manager_bp.route('/preview/<int:file_id>')
 @login_required
 def preview_file(file_id):
     """Aperçu d'un fichier"""
     from models.file_manager import UserFile
+    from flask import Response
 
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
     ).first_or_404()
 
-    file_path = os.path.join(current_app.root_path, file.get_file_path())
+    # Pour les images, utiliser la miniature BLOB si disponible
+    if file.thumbnail_content and request.args.get('thumbnail'):
+        return Response(
+            file.thumbnail_content,
+            mimetype='image/jpeg',
+            headers={
+                'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'
+            }
+        )
 
-    if not os.path.exists(file_path):
-        flash('Fichier introuvable', 'error')
-        return redirect(url_for('file_manager.index'))
-
-    # Pour les images, utiliser la miniature si disponible
-    if file.thumbnail_path and request.args.get('thumbnail'):
-        thumbnail_path = os.path.join(current_app.root_path, file.get_thumbnail_path())
-        if os.path.exists(thumbnail_path):
-            return send_file(thumbnail_path, mimetype='image/jpeg')
-
-    return send_file(file_path, mimetype=file.mime_type)
+    # Vérifier le contenu BLOB en premier
+    if file.file_content:
+        # Servir depuis la base de données (BLOB)
+        mimetype = file.mime_type or 'application/octet-stream'
+        return Response(
+            file.file_content,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'inline; filename="{file.original_filename}"'
+            }
+        )
+    else:
+        # Fallback: essayer de servir depuis le fichier physique
+        file_path = os.path.join(current_app.root_path, file.get_file_path())
+        
+        if os.path.exists(file_path):
+            # Pour les images, utiliser la miniature physique si demandée
+            if file.thumbnail_path and request.args.get('thumbnail'):
+                thumbnail_path = os.path.join(current_app.root_path, file.get_thumbnail_path())
+                if os.path.exists(thumbnail_path):
+                    return send_file(thumbnail_path, mimetype='image/jpeg')
+            
+            return send_file(file_path, mimetype=file.mime_type)
+        else:
+            flash('Fichier introuvable', 'error')
+            return redirect(url_for('file_manager.index'))
 
 @file_manager_bp.route('/delete-file/<int:file_id>', methods=['DELETE'])
 @login_required

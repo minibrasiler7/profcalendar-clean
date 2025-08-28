@@ -86,6 +86,8 @@ class ClassFile(db.Model):
     is_pinned = db.Column(db.Boolean, default=False)  # Nouveau champ pour l'épinglage
     pin_order = db.Column(db.Integer, default=0)      # Ordre d'épinglage
     is_student_shared = db.Column(db.Boolean, default=False)  # Fichier envoyé uniquement aux élèves
+    file_content = db.Column(db.LargeBinary)  # Contenu du fichier en BLOB
+    mime_type = db.Column(db.String(100))  # Type MIME pour le serving
 
     # Relations
     classroom = db.relationship('Classroom', backref=db.backref('files', lazy='dynamic'))

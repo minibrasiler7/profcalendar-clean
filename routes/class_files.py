@@ -95,28 +95,56 @@ def copy_file_to_class():
                 'message': f'Le fichier "{user_file.original_filename}" existe déjà dans cette classe'
             })
         
-        # Copier le fichier physiquement vers le dossier de la classe
-        success, new_filename = copy_file_physically(user_file, class_id)
+        # Lire le contenu du fichier source
+        file_content = None
+        mime_type = user_file.mime_type
         
-        if not success:
+        if user_file.file_content:
+            # Le fichier source est déjà en BLOB
+            file_content = user_file.file_content
+        else:
+            # Lire le fichier physique si disponible
+            try:
+                from flask import current_app
+                source_path = os.path.join(current_app.root_path, user_file.get_file_path())
+                if os.path.exists(source_path):
+                    with open(source_path, 'rb') as f:
+                        file_content = f.read()
+            except Exception as e:
+                print(f"⚠️  Impossible de lire le fichier source: {e}")
+        
+        if not file_content:
             return jsonify({
                 'success': False,
-                'message': 'Erreur lors de la copie du fichier'
+                'message': 'Fichier source inaccessible'
             })
+        
+        # Déterminer le type MIME si pas défini
+        if not mime_type:
+            if user_file.file_type == 'pdf':
+                mime_type = 'application/pdf'
+            elif user_file.file_type in ['jpg', 'jpeg']:
+                mime_type = 'image/jpeg'
+            elif user_file.file_type == 'png':
+                mime_type = 'image/png'
+            else:
+                mime_type = 'application/octet-stream'
         
         # Créer la description avec le chemin du dossier
         description = "Copié depuis le gestionnaire de fichiers"
         if folder_path:
             description = f"Copié dans le dossier: {folder_path}"
         
-        # Créer l'entrée dans la base de données
+        # Créer l'entrée dans la base de données avec le contenu BLOB
         class_file = ClassFile(
             classroom_id=class_id,
-            filename=new_filename,
+            filename=f"{uuid.uuid4()}.{user_file.file_type}",  # Nom unique
             original_filename=user_file.original_filename,
             file_type=user_file.file_type,
             file_size=user_file.file_size,
-            description=description
+            description=description,
+            file_content=file_content,
+            mime_type=mime_type
         )
         
         db.session.add(class_file)
@@ -230,16 +258,45 @@ def copy_folder_recursive(folder, class_id, base_path):
             # Copier le fichier physiquement
             success, new_filename = copy_file_physically(file, class_id)
             
-            if success:
-                # Créer l'entrée en base
+            # Lire le contenu du fichier pour le stockage BLOB
+            file_content = None
+            mime_type = file.mime_type
+            
+            if file.file_content:
+                file_content = file.file_content
+            else:
+                try:
+                    from flask import current_app
+                    source_path = os.path.join(current_app.root_path, file.get_file_path())
+                    if os.path.exists(source_path):
+                        with open(source_path, 'rb') as f:
+                            file_content = f.read()
+                except Exception as e:
+                    print(f"⚠️  Erreur lecture fichier {file.original_filename}: {e}")
+            
+            if file_content:
+                # Déterminer le type MIME si pas défini
+                if not mime_type:
+                    if file.file_type == 'pdf':
+                        mime_type = 'application/pdf'
+                    elif file.file_type in ['jpg', 'jpeg']:
+                        mime_type = 'image/jpeg'
+                    elif file.file_type == 'png':
+                        mime_type = 'image/png'
+                    else:
+                        mime_type = 'application/octet-stream'
+                
+                # Créer l'entrée en base avec BLOB
                 description = f"Copié dans le dossier: {current_path}"
                 class_file = ClassFile(
                     classroom_id=class_id,
-                    filename=new_filename,
+                    filename=f"{uuid.uuid4()}.{file.file_type}",
                     original_filename=file.original_filename,
                     file_type=file.file_type,
                     file_size=file.file_size,
-                    description=description
+                    description=description,
+                    file_content=file_content,
+                    mime_type=mime_type
                 )
                 db.session.add(class_file)
                 copied_count += 1
@@ -421,23 +478,34 @@ def upload_class_file():
         class_folder = os.path.join(current_app.root_path, 'uploads', 'class_files', str(classroom_id))
         os.makedirs(class_folder, exist_ok=True)
         
-        # Sauvegarder le fichier
-        file_path = os.path.join(class_folder, unique_filename)
-        file.save(file_path)
+        # Lire le contenu du fichier pour stockage BLOB
+        file_content = file.read()
+        file_size = len(file_content)
+        
+        # Déterminer le type MIME
+        mime_type = 'application/octet-stream'
+        if file_ext == 'pdf':
+            mime_type = 'application/pdf'
+        elif file_ext in ['jpg', 'jpeg']:
+            mime_type = 'image/jpeg'
+        elif file_ext == 'png':
+            mime_type = 'image/png'
         
         # Créer la description avec le chemin du dossier
         description = "Uploadé directement"
         if folder_path:
             description = f"Copié dans le dossier: {folder_path}"
         
-        # Créer l'entrée dans la base de données
+        # Créer l'entrée dans la base de données avec BLOB
         class_file = ClassFile(
             classroom_id=classroom_id,
             filename=unique_filename,
             original_filename=secure_filename(file.filename),
             file_type=file_ext,
-            file_size=os.path.getsize(file_path),
-            description=description
+            file_size=file_size,
+            description=description,
+            file_content=file_content,
+            mime_type=mime_type
         )
         
         db.session.add(class_file)
@@ -461,7 +529,8 @@ def upload_class_file():
 def preview_class_file(file_id):
     """Aperçu d'un fichier de classe"""
     try:
-        from flask import send_file, current_app
+        from flask import Response
+        import io
         
         # Vérifier que le fichier appartient à une classe de l'utilisateur
         class_file = db.session.query(ClassFile).join(
@@ -474,20 +543,21 @@ def preview_class_file(file_id):
         if not class_file:
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
         
-        file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', 
-                               str(class_file.classroom_id), class_file.filename)
-        
-        if not os.path.exists(file_path):
-            return jsonify({'success': False, 'message': 'Fichier physique introuvable'}), 404
+        # Vérifier que le contenu BLOB existe
+        if not class_file.file_content:
+            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
         
         # Déterminer le type MIME
-        mimetype = 'application/octet-stream'
-        if class_file.file_type == 'pdf':
-            mimetype = 'application/pdf'
-        elif class_file.file_type in ['png', 'jpg', 'jpeg']:
-            mimetype = f'image/{class_file.file_type}'
+        mimetype = class_file.mime_type or 'application/octet-stream'
         
-        return send_file(file_path, mimetype=mimetype)
+        # Créer une réponse avec le contenu BLOB
+        return Response(
+            class_file.file_content,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'inline; filename="{class_file.original_filename}"'
+            }
+        )
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
@@ -497,7 +567,8 @@ def preview_class_file(file_id):
 def download_class_file(file_id):
     """Télécharger un fichier de classe"""
     try:
-        from flask import send_file, current_app
+        from flask import Response
+        import io
         
         # Vérifier que le fichier appartient à une classe de l'utilisateur
         class_file = db.session.query(ClassFile).join(
@@ -510,16 +581,20 @@ def download_class_file(file_id):
         if not class_file:
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
         
-        file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', 
-                               str(class_file.classroom_id), class_file.filename)
+        # Vérifier que le contenu BLOB existe
+        if not class_file.file_content:
+            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
         
-        if not os.path.exists(file_path):
-            return jsonify({'success': False, 'message': 'Fichier physique introuvable'}), 404
+        # Déterminer le type MIME
+        mimetype = class_file.mime_type or 'application/octet-stream'
         
-        return send_file(
-            file_path, 
-            as_attachment=True,
-            download_name=class_file.original_filename
+        # Créer une réponse de téléchargement avec le contenu BLOB
+        return Response(
+            class_file.file_content,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'attachment; filename="{class_file.original_filename}"'
+            }
         )
         
     except Exception as e:

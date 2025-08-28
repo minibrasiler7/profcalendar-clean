@@ -62,6 +62,8 @@ class UserFile(db.Model):
     description = db.Column(db.Text)
     thumbnail_path = db.Column(db.String(255))  # Chemin vers la miniature pour les images
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    file_content = db.Column(db.LargeBinary)  # Contenu du fichier en BLOB
+    thumbnail_content = db.Column(db.LargeBinary)  # Contenu de la miniature en BLOB
 
     # Relations
     user = db.relationship('User', backref=db.backref('files', lazy='dynamic'))
