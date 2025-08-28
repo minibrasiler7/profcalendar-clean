@@ -5880,6 +5880,18 @@ function updateUndoButton() {
 }
 
 // Fonction pour charger et afficher le plan de classe
+// Fonction utilitaire pour formater le nom des étudiants (Prénom + première lettre du nom)
+function formatStudentName(fullName) {
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+        return parts[0]; // Si qu'un seul nom, le retourner tel quel
+    }
+    
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${firstName} ${lastNameInitial}.`;
+}
+
 function loadSeatingPlan() {
     console.log('=== DEBUG loadSeatingPlan called ===');
     console.log('seating_plan available:', {{ 'true' if seating_plan else 'false' }});
@@ -5927,31 +5939,32 @@ function loadSeatingPlan() {
             if (slots[placement.slot_index]) {
                 const slot = slots[placement.slot_index];
                 
-                // D'abord essayer de trouver l'étudiant par ID
+                // D'abord essayer de trouver l'étudiant par ID (priorité absolue)
                 let student = studentsData.find(s => 
                     s.id === placement.student_id || String(s.id) === String(placement.student_id)
                 );
                 
-                // Si pas trouvé par ID et qu'on a un nom dans le placement, essayer de mapper par nom
+                // Si pas trouvé par ID et qu'on a un nom dans le placement, essayer plusieurs stratégies
                 if (!student && placement.student_name) {
-                    student = studentsData.find(s => 
-                        s.full_name === placement.student_name ||
-                        (s.first_name + ' ' + (s.last_name || '')).trim() === placement.student_name
-                    );
-                    console.log(`DEBUG lesson_view: Student ${placement.student_id} not found by ID, trying by name "${placement.student_name}": ${student ? 'found' : 'not found'}`);
-                }
-                
-                // Fallback: si toujours pas trouvé, essayer un mapping intelligent par index
-                if (!student && studentsData.length > 0) {
-                    // Créer un mapping basé sur l'ordre des IDs dans le placement vs l'ordre dans studentsData
-                    const allPlacements = planData.students_placement || [];
-                    const placementIds = [...new Set(allPlacements.map(p => p.student_id))].sort((a, b) => a - b);
-                    const currentIndex = placementIds.indexOf(placement.student_id);
+                    // Stratégie 1: nom complet exact
+                    student = studentsData.find(s => s.full_name === placement.student_name);
                     
-                    if (currentIndex >= 0 && currentIndex < studentsData.length) {
-                        student = studentsData[currentIndex];
-                        console.log(`DEBUG lesson_view: Using fallback mapping - placement index ${currentIndex} -> student ${student.full_name}`);
+                    if (!student) {
+                        // Stratégie 2: prénom + nom de famille
+                        student = studentsData.find(s => 
+                            (s.first_name + ' ' + (s.last_name || '')).trim() === placement.student_name
+                        );
                     }
+                    
+                    if (!student) {
+                        // Stratégie 3: nom abrégé vers nom complet (nouveau format vers ancien)
+                        student = studentsData.find(s => {
+                            const formattedName = formatStudentName(s.full_name);
+                            return formattedName === placement.student_name;
+                        });
+                    }
+                    
+                    console.log(`DEBUG lesson_view: Student ${placement.student_id} not found by ID, trying by name "${placement.student_name}": ${student ? 'found' : 'not found'}`);
                 }
                 
                 console.log(`DEBUG lesson_view: Placement student_id=${placement.student_id}, Found student:`, student);
@@ -5959,13 +5972,16 @@ function loadSeatingPlan() {
                 console.log(`DEBUG lesson_view: Available students:`, studentsData);
                 
                 if (student) {
-                    slot.innerHTML = `<div class="student-placed">${student.full_name}</div>`;
+                    // Utiliser le format abrégé pour l'affichage
+                    const displayName = formatStudentName(student.full_name);
+                    slot.innerHTML = `<div class="student-placed">${displayName}</div>`;
                     slot.classList.add('occupied');
-                    console.log(`DEBUG lesson_view: Placed student ${student.full_name} in slot`);
+                    console.log(`DEBUG lesson_view: Placed student ${displayName} (${student.full_name}) in slot`);
                 } else {
                     // Si vraiment pas trouvé, utiliser le nom stocké dans le placement si disponible
                     if (placement.student_name) {
-                        slot.innerHTML = `<div class="student-placed student-not-found">${placement.student_name} (non trouvé)</div>`;
+                        const displayName = formatStudentName(placement.student_name);
+                        slot.innerHTML = `<div class="student-placed student-not-found">${displayName} (non trouvé)</div>`;
                         slot.classList.add('occupied');
                         console.log(`DEBUG lesson_view: Using stored name for student ${placement.student_id}: ${placement.student_name}`);
                     } else {
