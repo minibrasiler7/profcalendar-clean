@@ -4180,9 +4180,9 @@
                             <!-- Les étiquettes d'élèves seront ajoutées ici dynamiquement -->
                             {% if students %}
                                 {% for student in students %}
-                                    <div class="student-label" draggable="true" data-student-id="{{ student.id }}">
+                                    <div class="student-label" draggable="true" data-student-id="{{ student.id }}" data-original-name="{{ student.full_name }}">
                                         <i class="fas fa-user"></i>
-                                        <span>{{ student.full_name }}</span>
+                                        <span>{{ student.first_name }} {{ student.last_name[0] if student.last_name else '' }}.</span>
                                     </div>
                                 {% endfor %}
                             {% else %}
@@ -4822,7 +4822,7 @@ function deleteElement(elementId) {
     const studentSlots = element.querySelectorAll('.student-slot .student-placed');
     studentSlots.forEach(studentPlaced => {
         const studentId = studentPlaced.dataset.studentId;
-        const studentName = studentPlaced.textContent;
+        const studentName = studentPlaced.dataset.originalName || studentPlaced.textContent;
         
         // Remettre l'étiquette dans la liste des étudiants
         const studentsContainer = document.getElementById('students-labels-container');
@@ -4832,8 +4832,9 @@ function deleteElement(elementId) {
         studentLabel.dataset.studentId = studentId;
         studentLabel.innerHTML = `
             <i class="fas fa-user"></i>
-            <span>${studentName}</span>
+            <span>${formatStudentName(studentName)}</span>
         `;
+        studentLabel.dataset.originalName = studentName; // Sauvegarder le nom complet
         studentsContainer.appendChild(studentLabel);
     });
     
@@ -5219,7 +5220,7 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     }
     
     const studentId = studentLabel.dataset.studentId || studentLabel.dataset.studentid;
-    const studentName = studentLabel.querySelector('span').textContent;
+    const studentName = studentLabel.dataset.originalName || studentLabel.querySelector('span').textContent;
     
     console.log('Placing student:', studentName, 'on desk:', desk.id);
     
@@ -5227,7 +5228,8 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     const studentPlaced = document.createElement('div');
     studentPlaced.className = 'student-placed';
     studentPlaced.dataset.studentId = studentId;
-    studentPlaced.textContent = studentName;
+    studentPlaced.dataset.originalName = studentName; // Sauvegarder le nom complet
+    studentPlaced.textContent = formatStudentName(studentName);
     
     // Ajouter un bouton pour retirer l'étudiant
     const removeBtn = document.createElement('button');
@@ -5258,13 +5260,25 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     updateSeatingStats();
 }
 
+// Fonction utilitaire pour formater le nom des étudiants (Prénom + première lettre du nom)
+function formatStudentName(fullName) {
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) {
+        return parts[0]; // Si qu'un seul nom, le retourner tel quel
+    }
+    
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${firstName} ${lastNameInitial}.`;
+}
+
 // Retirer un étudiant d'une table
 function removeStudentFromDesk(studentId) {
     const studentPlaced = seatingWorkspace.querySelector(`.student-placed[data-student-id="${studentId}"]`) ||
                          seatingWorkspace.querySelector(`.student-placed[data-studentid="${studentId}"]`);
     if (!studentPlaced) return;
     
-    const studentName = studentPlaced.textContent;
+    const studentName = studentPlaced.dataset.originalName || studentPlaced.textContent; // Utiliser le nom original
     const slot = studentPlaced.parentElement;
     
     // Retirer de la table
@@ -5285,8 +5299,9 @@ function removeStudentFromDesk(studentId) {
     studentLabel.dataset.studentId = studentId;
     studentLabel.innerHTML = `
         <i class="fas fa-user"></i>
-        <span>${studentName}</span>
+        <span>${formatStudentName(studentName)}</span>
     `;
+    studentLabel.dataset.originalName = studentName; // Sauvegarder le nom complet
     
     studentsContainer.appendChild(studentLabel);
     
