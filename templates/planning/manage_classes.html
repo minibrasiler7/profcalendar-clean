@@ -1329,6 +1329,11 @@
     text-align: center;
 }
 
+.student-placed .student-name {
+    flex: 1;
+    text-align: center;
+}
+
 .student-remove, .remove-student {
     position: absolute;
     top: -5px;
@@ -4822,7 +4827,9 @@ function deleteElement(elementId) {
     const studentSlots = element.querySelectorAll('.student-slot .student-placed');
     studentSlots.forEach(studentPlaced => {
         const studentId = studentPlaced.dataset.studentId;
-        const studentName = studentPlaced.dataset.originalName || studentPlaced.textContent;
+        const studentName = studentPlaced.dataset.originalName || 
+                           studentPlaced.querySelector('.student-name')?.textContent || 
+                           studentPlaced.textContent;
         
         // Remettre l'étiquette dans la liste des étudiants
         const studentsContainer = document.getElementById('students-labels-container');
@@ -5110,8 +5117,8 @@ function adjustDeskWidth(desk) {
             if (slot.classList.contains('occupied')) {
                 const studentPlaced = slot.querySelector('.student-placed');
                 if (studentPlaced) {
-                    const name = studentPlaced.textContent || '';
-                    const cleanName = name.replace('×', '').trim();
+                    const nameElement = studentPlaced.querySelector('.student-name');
+                    const cleanName = nameElement ? nameElement.textContent.trim() : '';
                     
                     // Mesurer la largeur du texte
                     const tempElement = document.createElement('span');
@@ -5152,8 +5159,8 @@ function adjustDeskWidth(desk) {
         if (slot && slot.classList.contains('occupied')) {
             const studentPlaced = slot.querySelector('.student-placed');
             if (studentPlaced) {
-                const name = studentPlaced.textContent || '';
-                const cleanName = name.replace('×', '').trim();
+                const nameElement = studentPlaced.querySelector('.student-name');
+                const cleanName = nameElement ? nameElement.textContent.trim() : '';
                 
                 // Mesurer la largeur du texte
                 const tempElement = document.createElement('span');
@@ -5229,7 +5236,11 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     studentPlaced.className = 'student-placed';
     studentPlaced.dataset.studentId = studentId;
     studentPlaced.dataset.originalName = studentName; // Sauvegarder le nom complet
-    studentPlaced.textContent = formatStudentName(studentName);
+    
+    // Créer un span pour le nom (séparé du bouton)
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'student-name';
+    nameSpan.textContent = formatStudentName(studentName);
     
     // Ajouter un bouton pour retirer l'étudiant
     const removeBtn = document.createElement('button');
@@ -5237,6 +5248,7 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
     removeBtn.innerHTML = '<i class="fas fa-times"></i>';
     removeBtn.onclick = () => removeStudentFromDesk(studentId);
     
+    studentPlaced.appendChild(nameSpan);
     studentPlaced.appendChild(removeBtn);
     
     // Marquer le slot comme occupé
@@ -5278,7 +5290,9 @@ function removeStudentFromDesk(studentId) {
                          seatingWorkspace.querySelector(`.student-placed[data-studentid="${studentId}"]`);
     if (!studentPlaced) return;
     
-    const studentName = studentPlaced.dataset.originalName || studentPlaced.textContent; // Utiliser le nom original
+    const studentName = studentPlaced.dataset.originalName || 
+                       studentPlaced.querySelector('.student-name')?.textContent || 
+                       studentPlaced.textContent; // Utiliser le nom original en priorité
     const slot = studentPlaced.parentElement;
     
     // Retirer de la table
@@ -5368,7 +5382,9 @@ function saveSeatingPlan() {
     const placedStudents = seatingWorkspace.querySelectorAll('.student-placed');
     placedStudents.forEach(studentPlaced => {
         const studentId = studentPlaced.dataset.studentId;
-        const studentName = studentPlaced.textContent.trim();
+        const studentName = studentPlaced.dataset.originalName || 
+                           studentPlaced.querySelector('.student-name')?.textContent.trim() || 
+                           studentPlaced.textContent.trim();
         const desk = studentPlaced.closest('.seating-element');
         const slot = studentPlaced.parentElement;
         const slotIndex = Array.from(desk.querySelectorAll('.student-slot')).indexOf(slot);
