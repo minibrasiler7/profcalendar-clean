@@ -988,11 +988,36 @@ def serve_file(file_id):
         from models.student import ClassFile
         from flask import Response
         
+        print(f"🔍 [DEBUG] serve_file appelé avec file_id={file_id}")
+        
         # Recherche du fichier de classe
         class_file = ClassFile.query.filter_by(id=file_id).first()
+        print(f"🔍 [DEBUG] ClassFile trouvé: {class_file is not None}")
         
         if not class_file:
-            return "Fichier introuvable dans la base de données", 404
+            # Essayer avec UserFile aussi pour les fichiers personnels
+            from models.file_manager import UserFile
+            user_file = UserFile.query.filter_by(id=file_id, user_id=current_user.id).first()
+            print(f"🔍 [DEBUG] UserFile trouvé: {user_file is not None}")
+            
+            if user_file:
+                # Servir le fichier utilisateur
+                if user_file.file_content:
+                    mimetype = user_file.mime_type or 'application/octet-stream'
+                    print(f"🔍 [DEBUG] Serving UserFile BLOB: {user_file.original_filename}")
+                    return Response(
+                        user_file.file_content,
+                        mimetype=mimetype,
+                        headers={
+                            'Content-Disposition': f'inline; filename="{user_file.original_filename}"'
+                        }
+                    )
+                else:
+                    print(f"❌ [DEBUG] UserFile {file_id} n'a pas de contenu BLOB")
+                    return f"Fichier utilisateur '{user_file.original_filename}' sans contenu BLOB", 404
+            else:
+                print(f"❌ [DEBUG] Aucun fichier trouvé avec ID {file_id}")
+                return "Fichier introuvable dans la base de données", 404
         
         # Vérification des droits
         if hasattr(class_file, 'classroom') and hasattr(class_file.classroom, 'user_id'):
@@ -1003,6 +1028,7 @@ def serve_file(file_id):
         if class_file.file_content:
             # Servir depuis la base de données (BLOB)
             mimetype = class_file.mime_type or 'application/octet-stream'
+            print(f"🔍 [DEBUG] Serving ClassFile BLOB: {class_file.original_filename}")
             return Response(
                 class_file.file_content,
                 mimetype=mimetype,
@@ -1011,6 +1037,7 @@ def serve_file(file_id):
                 }
             )
         else:
+            print(f"❌ [DEBUG] ClassFile {file_id} n'a pas de contenu BLOB")
             # Fallback: essayer de servir depuis le fichier physique (pour compatibilité)
             if class_file.is_student_shared:
                 file_path = os.path.join(current_app.root_path, 'uploads', 'student_shared', str(class_file.classroom_id), class_file.filename)
