@@ -1149,472 +1149,66 @@ def test_sanctions():
 @planning_bp.route('/lesson')
 @login_required
 def lesson_view():
-    """Affiche la vue du cours actuel ou du prochain cours"""
-    from datetime import time as time_type
+    """Affiche la vue du cours actuel ou du prochain cours - VERSION SIMPLIFIÉE"""
     from models.student import Student
     from models.attendance import Attendance
     from models.class_collaboration import ClassMaster
     from models.user_preferences import UserSanctionPreferences
 
-    # Obtenir l'heure actuelle selon le fuseau horaire de l'utilisateur
-    now = current_user.get_local_datetime()
-    current_time = now.time()
-    current_date = now.date()
-    weekday = current_date.weekday()
+    current_app.logger.error("=== LESSON VIEW === Using get_current_or_next_lesson()")
+    
+    # Utiliser la même logique que le dashboard
+    lesson, is_current, lesson_date = get_current_or_next_lesson(current_user)
+    
+    if not lesson:
+        current_app.logger.error("=== LESSON VIEW === No lesson found")
+        return render_template('planning/lesson_view.html', 
+                             lesson=None, 
+                             is_current_lesson=False)
+    
+    current_app.logger.error(f"=== LESSON VIEW === Found lesson: P{lesson.period_number} on {lesson_date}")
 
-    # Déterminer la date de recherche selon l'année scolaire
-    search_start_date = current_date
-
-    # Si on est avant le début de l'année scolaire, commencer la recherche au début
-    if current_user.school_year_start and current_date < current_user.school_year_start:
-        search_start_date = current_user.school_year_start
-        # Ajuster weekday pour la date de début
-        weekday = search_start_date.weekday()
-        # Pour la recherche du premier cours, on ne vérifie pas l'heure actuelle
-        current_time = time_type(0, 0)  # Minuit pour prendre tous les cours du jour
-
-    # Récupérer les périodes du jour
+    # Obtenir les données nécessaires pour le template
     periods = calculate_periods(current_user)
     
-    def get_merged_period_info(schedule):
-        """Récupère les informations de période fusionnée pour un Schedule"""
-        if not schedule:
-            return None, None, None
-            
-        start_period = schedule.period_number
-        end_period = schedule.period_number
-        
-        # Si cette période est fusionnée avec la suivante
-        if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
-            # Chercher toutes les périodes fusionnées qui suivent
-            current_period = schedule.period_number + 1
-            while True:
-                next_schedule = Schedule.query.filter_by(
-                    user_id=current_user.id,
-                    weekday=schedule.weekday,
-                    period_number=current_period
-                ).first()
-                
-                if next_schedule and hasattr(next_schedule, 'merged_with_previous') and next_schedule.merged_with_previous:
-                    end_period = next_schedule.period_number
-                    if hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next:
-                        current_period += 1
-                    else:
-                        break
-                else:
-                    break
-        
-        # Calculer les horaires de début et fin
-        start_period_info = next((p for p in periods if p['number'] == start_period), None)
-        end_period_info = next((p for p in periods if p['number'] == end_period), None)
-        
-        if start_period_info and end_period_info:
-            return start_period, end_period, (start_period_info['start'], end_period_info['end'])
-        
-        return start_period, end_period, None
-
-    # Trouver le cours actuel ou le prochain
-    current_lesson = None
-    next_lesson = None
-    is_current = False
-    lesson_date = search_start_date
-
-    # Vérifier si on est actuellement en cours (seulement si on est à la date du jour)
-    if search_start_date == current_date:
-        # D'abord récupérer tous les schedules du jour pour identifier les périodes fusionnées
-        all_schedules = Schedule.query.filter_by(
-            user_id=current_user.id,
-            weekday=weekday
-        ).order_by(Schedule.period_number).all()
-        
-        # Créer une liste des périodes avec gestion des fusions
-        period_schedule_map = {}
-        for schedule in all_schedules:
-            if schedule.classroom_id or schedule.mixed_group_id:  # Ignorer les tâches personnalisées
-                start_period, end_period, time_range = get_merged_period_info(schedule)
-                if time_range and start_period not in period_schedule_map:  # Éviter les doublons
-                    period_schedule_map[start_period] = {
-                        'schedule': schedule,
-                        'start_period': start_period,
-                        'end_period': end_period,
-                        'time_range': time_range
-                    }
-        
-        # Vérifier si on est dans une période (fusionnée ou non)
-        for period_num, period_info in period_schedule_map.items():
-            time_start, time_end = period_info['time_range']
-            
-            if time_start <= current_time <= time_end:
-                # Chercher d'abord s'il y a une planification spécifique pour cette période
-                planning_check = Planning.query.filter_by(
-                    user_id=current_user.id,
-                    date=current_date,
-                    period_number=period_info['start_period']
-                ).first()
-                
-                if planning_check and (planning_check.classroom_id or planning_check.mixed_group_id):
-                    # Créer un objet avec les informations de période fusionnée
-                    current_lesson = type('obj', (object,), {
-                        'classroom_id': planning_check.classroom_id,
-                        'mixed_group_id': planning_check.mixed_group_id,
-                        'period_number': period_info['start_period'],
-                        'end_period_number': period_info['end_period'],
-                        'weekday': weekday,
-                        'start_time': time_start,
-                        'end_time': time_end,
-                        'classroom': planning_check.classroom if planning_check.classroom_id else None,
-                        'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None,
-                        'is_merged': period_info['start_period'] != period_info['end_period']
-                    })()
-                    is_current = True
-                    break
-                else:
-                    # Utiliser l'horaire type avec informations de fusion
-                    schedule = period_info['schedule']
-                    current_lesson = type('obj', (object,), {
-                        'classroom_id': schedule.classroom_id,
-                        'mixed_group_id': schedule.mixed_group_id,
-                        'period_number': period_info['start_period'],
-                        'end_period_number': period_info['end_period'],
-                        'weekday': schedule.weekday,
-                        'start_time': time_start,
-                        'end_time': time_end,
-                        'classroom': schedule.classroom,
-                        'mixed_group': schedule.mixed_group,
-                        'is_merged': period_info['start_period'] != period_info['end_period']
-                    })()
-                    is_current = True
-                    break
-
-    # Si pas de cours actuel, chercher le prochain
-    if not current_lesson:
-        # D'abord chercher dans la journée de départ (aujourd'hui ou début d'année)
-        # Récupérer tous les schedules du jour pour identifier les périodes fusionnées
-        all_schedules = Schedule.query.filter_by(
-            user_id=current_user.id,
-            weekday=weekday
-        ).order_by(Schedule.period_number).all()
-        
-        # Créer une liste des périodes avec gestion des fusions
-        period_schedule_map = {}
-        for schedule in all_schedules:
-            if schedule.classroom_id or schedule.mixed_group_id:  # Ignorer les tâches personnalisées
-                start_period, end_period, time_range = get_merged_period_info(schedule)
-                if time_range and start_period not in period_schedule_map:  # Éviter les doublons
-                    period_schedule_map[start_period] = {
-                        'schedule': schedule,
-                        'start_period': start_period,
-                        'end_period': end_period,
-                        'time_range': time_range
-                    }
-        
-        # Chercher la prochaine période (fusionnée ou non)
-        for period_num in sorted(period_schedule_map.keys()):
-            period_info = period_schedule_map[period_num]
-            time_start, time_end = period_info['time_range']
-            
-            # Si on est le jour actuel, ne prendre que les périodes futures
-            if search_start_date == current_date and time_start <= now.time():
-                continue
-
-            # Chercher d'abord s'il y a une planification spécifique
-            planning_check = Planning.query.filter_by(
-                user_id=current_user.id,
-                date=search_start_date,
-                period_number=period_info['start_period']
-            ).first()
-
-            if planning_check and (planning_check.classroom_id or planning_check.mixed_group_id):
-                # Créer un objet avec les informations de période fusionnée
-                next_lesson = type('obj', (object,), {
-                    'classroom_id': planning_check.classroom_id,
-                    'mixed_group_id': planning_check.mixed_group_id,
-                    'period_number': period_info['start_period'],
-                    'end_period_number': period_info['end_period'],
-                    'weekday': weekday,
-                    'start_time': time_start,
-                    'end_time': time_end,
-                    'classroom': planning_check.classroom if planning_check.classroom_id else None,
-                    'mixed_group': planning_check.mixed_group if planning_check.mixed_group_id else None,
-                    'is_merged': period_info['start_period'] != period_info['end_period']
-                })()
-                lesson_date = search_start_date
-                break
-            else:
-                # Utiliser l'horaire type avec informations de fusion
-                schedule = period_info['schedule']
-                next_lesson = type('obj', (object,), {
-                    'classroom_id': schedule.classroom_id,
-                    'mixed_group_id': schedule.mixed_group_id,
-                    'period_number': period_info['start_period'],
-                    'end_period_number': period_info['end_period'],
-                    'weekday': schedule.weekday,
-                    'start_time': time_start,
-                    'end_time': time_end,
-                    'classroom': schedule.classroom,
-                    'mixed_group': schedule.mixed_group,
-                    'is_merged': period_info['start_period'] != period_info['end_period']
-                })()
-                lesson_date = search_start_date
-                break
-
-        # Si pas de cours ce jour-là, chercher les jours suivants
-        if not next_lesson:
-            # Calculer le nombre de jours maximum à chercher
-            if current_user.school_year_end:
-                max_days = (current_user.school_year_end - search_start_date).days
-                # Limiter à 365 jours pour éviter les boucles infinies
-                max_days = min(max_days, 365)
-            else:
-                max_days = 365
-
-            for days_ahead in range(1, max_days + 1):
-                future_date = search_start_date + timedelta(days=days_ahead)
-
-                # Vérifier qu'on ne dépasse pas la fin de l'année scolaire
-                if current_user.school_year_end and future_date > current_user.school_year_end:
-                    break
-
-                future_weekday = future_date.weekday()
-
-                # Ignorer les weekends
-                if future_weekday >= 5:
-                    continue
-
-                # Vérifier si c'est un jour de vacances
-                if is_holiday(future_date, current_user):
-                    continue
-
-                # Chercher le premier cours de la journée avec support des périodes fusionnées
-                # D'abord chercher s'il y a des planifications spécifiques pour ce jour
-                first_planning = Planning.query.filter_by(
-                    user_id=current_user.id,
-                    date=future_date
-                ).filter(
-                    (Planning.classroom_id.isnot(None)) | (Planning.mixed_group_id.isnot(None))
-                ).order_by(Planning.period_number).first()
-
-                if first_planning:
-                    # Récupérer les informations de période depuis la configuration
-                    period_info = next((p for p in periods if p['number'] == first_planning.period_number), None)
-                    if period_info:
-                        # Créer un objet Schedule-like à partir de la planification avec support fusionné
-                        next_lesson = type('obj', (object,), {
-                            'classroom_id': first_planning.classroom_id,
-                            'mixed_group_id': first_planning.mixed_group_id,
-                            'period_number': first_planning.period_number,
-                            'end_period_number': first_planning.period_number,  # Pas de fusion dans Planning
-                            'weekday': future_weekday,
-                            'start_time': period_info['start'],
-                            'end_time': period_info['end'],
-                            'classroom': first_planning.classroom if first_planning.classroom_id else None,
-                            'mixed_group': first_planning.mixed_group if first_planning.mixed_group_id else None,
-                            'is_merged': False
-                        })()
-                        lesson_date = future_date
-                        break
-                else:
-                    # Si pas de planification, chercher dans l'horaire type avec support des fusions
-                    all_future_schedules = Schedule.query.filter_by(
-                        user_id=current_user.id,
-                        weekday=future_weekday
-                    ).filter(
-                        (Schedule.classroom_id.isnot(None)) | (Schedule.mixed_group_id.isnot(None))
-                    ).order_by(Schedule.period_number).all()
-                    
-                    if all_future_schedules:
-                        # Utiliser la logique de fusion pour le premier schedule trouvé
-                        first_schedule = all_future_schedules[0]
-                        start_period, end_period, time_range = get_merged_period_info(first_schedule)
-                        
-                        if time_range:
-                            next_lesson = type('obj', (object,), {
-                                'classroom_id': first_schedule.classroom_id,
-                                'mixed_group_id': first_schedule.mixed_group_id,
-                                'period_number': start_period,
-                                'end_period_number': end_period,
-                                'weekday': first_schedule.weekday,
-                                'start_time': time_range[0],
-                                'end_time': time_range[1],
-                                'classroom': first_schedule.classroom,
-                                'mixed_group': first_schedule.mixed_group,
-                                'is_merged': start_period != end_period
-                            })()
-                            lesson_date = future_date
-                            break
-
-    # Préparer les données pour l'affichage
-    lesson = current_lesson or next_lesson
-
-    if not lesson:
-        flash('Aucun cours programmé dans votre emploi du temps.', 'info')
-        return redirect(url_for('planning.dashboard'))
-
     # Récupérer la planification si elle existe
     planning = None
-    if lesson:
+    if hasattr(lesson, 'classroom_id') and lesson.classroom_id:
         planning = Planning.query.filter_by(
             user_id=current_user.id,
             date=lesson_date,
             period_number=lesson.period_number
         ).first()
 
-    # Déterminer la classe à utiliser (normale ou auto-créée pour groupe mixte)
+    # Déterminer la classroom à utiliser
     lesson_classroom = None
-    if lesson.classroom_id:
-        # Classe traditionnelle
-        lesson_classroom = Classroom.query.filter_by(
-            id=lesson.classroom_id,
-            user_id=current_user.id
-        ).first()
-    elif lesson.mixed_group_id:
-        # Groupe mixte - utiliser la classe auto-créée
+    if hasattr(lesson, 'classroom_id') and lesson.classroom_id:
+        lesson_classroom = Classroom.query.get(lesson.classroom_id)
+    elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
+        # Pour les groupes mixtes, utiliser la première classroom du groupe
         from models.mixed_group import MixedGroup
-        mixed_group = MixedGroup.query.filter_by(
-            id=lesson.mixed_group_id,
-            teacher_id=current_user.id
-        ).first()
-        
-        if mixed_group and mixed_group.auto_classroom_id:
-            lesson_classroom = Classroom.query.filter_by(
-                id=mixed_group.auto_classroom_id,
-                user_id=current_user.id
-            ).first()
-    
-    if not lesson_classroom:
-        flash('Classe non trouvée ou non autorisée.', 'error')
-        return redirect(url_for('planning.dashboard'))
-    
-    # Vérifier si la classe est temporaire (non approuvée)
-    if lesson_classroom.is_temporary:
-        flash('Cette classe est en attente d\'approbation par le maître de classe.', 'warning')
-        return redirect(url_for('planning.dashboard'))
+        mixed_group = MixedGroup.query.get(lesson.mixed_group_id)
+        if mixed_group and mixed_group.classrooms:
+            lesson_classroom = mixed_group.classrooms[0]
 
-    # Vérifier si le groupe de cette classe est en mode centralisé
-    group_name = lesson_classroom.class_group or lesson_classroom.name
-    
-    # Trouver s'il y a un maître de classe dans le groupe
-    group_classrooms = Classroom.query.filter(
-        (Classroom.class_group == group_name) if lesson_classroom.class_group 
-        else (Classroom.name == group_name)
-    ).all()
-    
-    class_master = None
-    for classroom in group_classrooms:
-        class_master = ClassMaster.query.filter_by(classroom_id=classroom.id).first()
-        if class_master:
-            break
-    
-    # Vérifier si le groupe est en mode centralisé
-    is_centralized_mode = False
-    if class_master:
-        master_prefs = UserSanctionPreferences.query.filter_by(
-            user_id=class_master.master_teacher_id,
-            classroom_id=class_master.classroom_id
-        ).first()
-        if master_prefs and master_prefs.display_mode == 'centralized':
-            is_centralized_mode = True
-    
-    print(f"DEBUG lesson_view: Group {group_name} is in centralized mode: {is_centralized_mode}")
-    
-    # En mode centralisé, redéfinir lesson_classroom pour utiliser celle du maître de classe
-    if is_centralized_mode and class_master:
-        lesson_classroom = Classroom.query.get(class_master.classroom_id)
-        print(f"DEBUG lesson_view: Using master's classroom {class_master.classroom_id} for students in centralized mode")
-        # Aussi redéfinir lesson pour utiliser la classe du maître
-        lesson.classroom_id = class_master.classroom_id
-        lesson.classroom = lesson_classroom
-    else:
-        print(f"DEBUG lesson_view: Using original classroom for students in normal mode")
-
-    # Récupérer les élèves selon le groupe de la planification
-    if planning and planning.group_id:
-        # Si un groupe spécifique est assigné à cette planification, récupérer seulement ses élèves
-        from models.student_group import StudentGroupMembership
-        students = Student.query.join(
-            StudentGroupMembership,
-            Student.id == StudentGroupMembership.student_id
-        ).filter(
-            StudentGroupMembership.group_id == planning.group_id
-        ).order_by(Student.last_name, Student.first_name).all()
-    else:
-        # Si aucun groupe spécifique ou pas de planification, récupérer tous les élèves de la classe
+    # Récupérer les élèves
+    students = []
+    if lesson_classroom:
         students = lesson_classroom.get_students()
-        # Trier les élèves par nom
         students = sorted(students, key=lambda s: (s.last_name, s.first_name))
 
     # Récupérer les présences existantes pour ce cours
     attendance_records = {}
-    if lesson:
+    if students:
         attendances = Attendance.query.filter_by(
-            classroom_id=lesson.classroom_id,
             date=lesson_date,
             period_number=lesson.period_number
+        ).filter(
+            Attendance.student_id.in_([s.id for s in students])
         ).all()
-
+        
         for attendance in attendances:
-            attendance_records[attendance.student_id] = {
-                'status': attendance.status,
-                'late_minutes': attendance.late_minutes,
-                'comment': attendance.comment
-            }
-
-    # Récupérer les modèles de sanctions importés dans cette classe
-    from models.sanctions import SanctionTemplate, ClassroomSanctionImport
-    from models.student_sanctions import StudentSanctionCount
-    from models.user_preferences import UserSanctionPreferences
-    
-    # Vérifier le mode de sanction pour cette classe
-    lesson_prefs = UserSanctionPreferences.get_or_create_for_user_classroom(current_user.id, lesson_classroom.id)
-    
-    if lesson_prefs.display_mode == 'centralized':
-        # En mode centralisé, récupérer TOUS les modèles actifs du maître de classe
-        from models.class_collaboration import ClassMaster
-        
-        # Utiliser le class_master déjà trouvé plus haut
-        # (pas besoin de le rechercher à nouveau)
-        
-        if class_master:
-            # Récupérer TOUS les modèles actifs du maître de classe (pas seulement les importés)
-            imported_sanctions = SanctionTemplate.query.filter_by(
-                user_id=class_master.master_teacher_id,
-                is_active=True
-            ).order_by(SanctionTemplate.name).all()
-        else:
-            imported_sanctions = []
-    else:
-        # Mode normal : récupérer les modèles de l'utilisateur actuel
-        imported_sanctions = db.session.query(SanctionTemplate).join(ClassroomSanctionImport).filter(
-            ClassroomSanctionImport.classroom_id == lesson.classroom_id,
-            ClassroomSanctionImport.is_active == True,
-            SanctionTemplate.user_id == current_user.id,
-            SanctionTemplate.is_active == True
-        ).order_by(SanctionTemplate.name).all()
-
-    # Créer le tableau des coches pour chaque élève/sanction
-    sanctions_data = {}
-    for student in students:
-        sanctions_data[student.id] = {}
-        for sanction in imported_sanctions:
-            # Récupérer ou créer le compteur de coches
-            count = StudentSanctionCount.query.filter_by(
-                student_id=student.id,
-                template_id=sanction.id
-            ).first()
-            
-            if not count:
-                # Créer un nouveau compteur à 0
-                count = StudentSanctionCount(
-                    student_id=student.id,
-                    template_id=sanction.id,
-                    check_count=0
-                )
-                db.session.add(count)
-            
-            sanctions_data[student.id][sanction.id] = count.check_count
-    
-    # Sauvegarder les nouveaux compteurs créés
-    db.session.commit()
+            attendance_records[attendance.student_id] = attendance
 
     # Calculer le temps restant si cours en cours
     remaining_seconds = 0
@@ -1626,97 +1220,26 @@ def lesson_view():
         end_period = next((p for p in periods if p['number'] == end_period_number), None)
         
         if end_period:
-            end_datetime = datetime.combine(current_date, end_period['end'])
+            from datetime import datetime
+            end_datetime = datetime.combine(lesson_date, end_period['end'])
             now_datetime = current_user.get_local_datetime()  # Utiliser le fuseau horaire local
 
             if end_datetime > now_datetime:
                 remaining_seconds = int((end_datetime - now_datetime.replace(tzinfo=None)).total_seconds())
                 hours = remaining_seconds // 3600
                 minutes = (remaining_seconds % 3600) // 60
-
+                
                 if hours > 0:
-                    time_remaining = f"{hours}:{minutes:02d}:00"
+                    time_remaining = f"{hours}h{minutes:02d}min"
                 else:
-                    time_remaining = f"{minutes}:{remaining_seconds % 60:02d}"
+                    time_remaining = f"{minutes}min"
 
-    # Récupérer le plan de classe actif pour cette classe
-    seating_plan = None
-    try:
-        if lesson and lesson_classroom:
-            from models.seating_plan import SeatingPlan
-            import json
-            
-            seating_plan_record = SeatingPlan.query.filter_by(
-                classroom_id=lesson_classroom.id,
-                user_id=current_user.id,
-                is_active=True
-            ).first()
-            
-            if seating_plan_record:
-                seating_plan = {
-                    'id': seating_plan_record.id,
-                    'name': seating_plan_record.name,
-                    'plan_data': json.loads(seating_plan_record.plan_data)
-                }
-    except Exception as e:
-        print(f"Erreur plan de classe: {e}")
-        seating_plan = None
-
-    # Récupérer les informations du groupe si il y en a un
-    current_group = None
-    if planning and planning.group_id:
-        from models.student_group import StudentGroup
-        current_group = StudentGroup.query.filter_by(
-            id=planning.group_id,
-            user_id=current_user.id
-        ).first()
-
-    # Récupérer les préférences utilisateur pour l'affichage des aménagements
-    from models.user_preferences import UserPreferences
-    preferences = UserPreferences.get_or_create_for_user(current_user.id)
-    
-    # Récupérer les aménagements des élèves si l'affichage est activé
+    # Template variables minimales
+    sanctions_data = {}
     student_accommodations = {}
-    if preferences.show_accommodations != 'none':
-        from models.accommodation import StudentAccommodation, AccommodationTemplate
-        
-        for student in students:
-            # Récupérer les aménagements prédéfinis (avec template)
-            template_accommodations = db.session.query(StudentAccommodation, AccommodationTemplate).join(
-                AccommodationTemplate,
-                StudentAccommodation.template_id == AccommodationTemplate.id
-            ).filter(
-                StudentAccommodation.student_id == student.id,
-                StudentAccommodation.is_active == True
-            ).all()
-            
-            # Récupérer les aménagements personnalisés (sans template)
-            custom_accommodations = StudentAccommodation.query.filter(
-                StudentAccommodation.student_id == student.id,
-                StudentAccommodation.template_id.is_(None),
-                StudentAccommodation.is_active == True
-            ).all()
-            
-            all_accommodations = []
-            
-            # Ajouter les aménagements prédéfinis
-            for student_acc, acc_template in template_accommodations:
-                all_accommodations.append({
-                    'name': acc_template.name,
-                    'emoji': acc_template.emoji,
-                    'time_multiplier': acc_template.time_multiplier
-                })
-            
-            # Ajouter les aménagements personnalisés
-            for student_acc in custom_accommodations:
-                all_accommodations.append({
-                    'name': student_acc.custom_name,
-                    'emoji': student_acc.custom_emoji,
-                    'time_multiplier': student_acc.custom_time_multiplier
-                })
-            
-            if all_accommodations:
-                student_accommodations[student.id] = all_accommodations
+    imported_sanctions = []
+    seating_plan = None
+    current_group = None
 
     # Importer la fonction de rendu des checkboxes
     from utils.jinja_filters import render_planning_with_checkboxes
@@ -1736,10 +1259,8 @@ def lesson_view():
                          current_group=current_group,
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
-                         accommodation_display=preferences.show_accommodations,
-                         render_planning_with_checkboxes=render_planning_with_checkboxes)
-
-@planning_bp.route('/get-class-resources/<int:classroom_id>')
+                         accommodation_display=True,
+                         render_planning_with_checkboxes=render_planning_with_checkboxes)@planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required
 def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
