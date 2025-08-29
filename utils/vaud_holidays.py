@@ -114,3 +114,13 @@ def get_vaud_holidays(school_year_start):
     """Retourne les vacances scolaires vaudoises pour l'année scolaire donnée"""
     school_year = get_school_year(school_year_start)
     return VAUD_HOLIDAYS.get(school_year, [])
+
+def is_holiday(check_date, user):
+    """Vérifie si une date est un jour de vacances scolaires"""
+    holidays = get_vaud_holidays(check_date)
+    
+    for holiday in holidays:
+        if holiday['start'] <= check_date <= holiday['end']:
+            return True
+    
+    return False
