@@ -347,9 +347,13 @@ def get_current_or_next_lesson(user):
     current_time = now.time()
     current_date = now.date()
     weekday = current_date.weekday()
+    
+    # Debug visible dans les logs
+    current_app.logger.error(f"=== LESSON DEBUG === current_time: {current_time}, date: {current_date}, weekday: {weekday}")
 
     # Récupérer les périodes du jour
     periods = calculate_periods(user)
+    current_app.logger.error(f"=== LESSON DEBUG === Periods found: {len(periods)}")
 
     # 1. Vérifier si on est actuellement en cours
     for period in periods:
@@ -510,28 +514,42 @@ def get_current_or_next_lesson(user):
                     })()
                     return lesson, False, current_date
 
-    # 3. Si pas de cours aujourd'hui, chercher les jours suivants
-    for days_ahead in range(1, 8):  # Chercher sur une semaine
-        future_date = current_date + timedelta(days=days_ahead)
-        future_weekday = future_date.weekday()
+    # 3. Si pas de cours aujourd'hui, chercher les jours suivants - COMMENCER DEMAIN
+    search_dates = []
+    
+    # Si on est en fin de journée (après toutes les périodes), commencer la recherche demain
+    if periods and current_time > periods[-1]['end']:
+        current_app.logger.error(f"=== LESSON DEBUG === After all periods today, searching from tomorrow")
+        search_dates = [current_date + timedelta(days=i) for i in range(1, 8)]
+    else:
+        # Sinon, chercher aujourd'hui puis les jours suivants
+        search_dates = [current_date + timedelta(days=i) for i in range(0, 8)]
+    
+    for search_date in search_dates:
+        search_weekday = search_date.weekday()
+        
+        current_app.logger.error(f"=== LESSON DEBUG === Searching date: {search_date}, weekday: {search_weekday}")
 
         # Ignorer les weekends
-        if future_weekday >= 5:
+        if search_weekday >= 5:
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping weekend day {search_date}")
             continue
 
         # Vérifier si c'est un jour de vacances
-        if is_holiday(future_date, user):
+        if is_holiday(search_date, user):
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday {search_date}")
             continue
 
         # Chercher d'abord dans les planifications spécifiques
         first_planning = Planning.query.filter_by(
             user_id=user.id,
-            date=future_date
+            date=search_date
         ).filter(
             db.or_(Planning.classroom_id.isnot(None), Planning.mixed_group_id.isnot(None))
         ).order_by(Planning.period_number).first()
 
         if first_planning:
+            current_app.logger.error(f"=== LESSON DEBUG === Found planning: {first_planning.period_number}")
             period_info = next((p for p in periods if p['number'] == first_planning.period_number), None)
             if period_info:
                 lesson = type('obj', (object,), {
@@ -539,24 +557,26 @@ def get_current_or_next_lesson(user):
                     'mixed_group_id': first_planning.mixed_group_id,
                     'period_number': first_planning.period_number,
                     'end_period_number': first_planning.period_number,
-                    'weekday': future_weekday,
+                    'weekday': search_weekday,
                     'start_time': period_info['start'],
                     'end_time': period_info['end'],
                     'classroom': first_planning.classroom if first_planning.classroom_id else None,
                     'mixed_group': first_planning.mixed_group if first_planning.mixed_group_id else None,
                     'is_merged': False
                 })()
-                return lesson, False, future_date
+                current_app.logger.error(f"=== LESSON DEBUG === Returning planning lesson: P{first_planning.period_number}")
+                return lesson, False, search_date
         else:
             # Chercher dans l'horaire type - prendre le PREMIER cours du jour
             first_schedule = Schedule.query.filter_by(
                 user_id=user.id,
-                weekday=future_weekday
+                weekday=search_weekday
             ).filter(
                 db.or_(Schedule.classroom_id.isnot(None), Schedule.mixed_group_id.isnot(None))
             ).order_by(Schedule.period_number).first()
 
             if first_schedule:
+                current_app.logger.error(f"=== LESSON DEBUG === Found schedule: {first_schedule.period_number}")
                 first_period_info = next((p for p in periods if p['number'] == first_schedule.period_number), None)
                 if first_period_info:
                     # Logique de fusion pour le premier cours
@@ -568,7 +588,7 @@ def get_current_or_next_lesson(user):
                         while current_period <= len(periods):
                             next_schedule = Schedule.query.filter_by(
                                 user_id=user.id,
-                                weekday=future_weekday,
+                                weekday=search_weekday,
                                 period_number=current_period
                             ).first()
                             
@@ -598,7 +618,8 @@ def get_current_or_next_lesson(user):
                         'mixed_group': first_schedule.mixed_group,
                         'is_merged': first_schedule.period_number != end_period
                     })()
-                    return lesson, False, future_date
+                    current_app.logger.error(f"=== LESSON DEBUG === Returning schedule lesson: P{first_schedule.period_number}")
+                    return lesson, False, search_date
 
     return None, False, None
 
