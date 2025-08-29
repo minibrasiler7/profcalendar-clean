@@ -1260,7 +1260,9 @@ def lesson_view():
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
                          accommodation_display=True,
-                         render_planning_with_checkboxes=render_planning_with_checkboxes)@planning_bp.route('/get-class-resources/<int:classroom_id>')
+                         render_planning_with_checkboxes=render_planning_with_checkboxes)
+
+@planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required
 def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
