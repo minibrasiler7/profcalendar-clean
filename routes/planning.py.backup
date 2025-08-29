@@ -349,150 +349,278 @@ def get_current_or_next_lesson(user):
     current_date = now.date()
     weekday = current_date.weekday()
     
+    # Debug visible dans les logs
     current_app.logger.error(f"=== LESSON DEBUG === current_time: {current_time}, date: {current_date}, weekday: {weekday}")
 
     # Récupérer les périodes du jour
     periods = calculate_periods(user)
     current_app.logger.error(f"=== LESSON DEBUG === Periods found: {len(periods)}")
-    
-    def is_lesson_period(planning=None, schedule=None):
-        """Vérifie si une période représente un cours (pas de type 'Autre')"""
-        if planning:
-            # Planning avec classroom ou mixed_group
-            return planning.classroom_id or planning.mixed_group_id
-        elif schedule:
-            # Schedule avec classroom ou mixed_group (pas custom_task_title qui est 'Autre')
-            return schedule.classroom_id or schedule.mixed_group_id
-        return False
-    
-    def get_lesson_for_period(date, period_number, weekday_num):
-        """Récupère une leçon pour une période donnée - suit la logique du calendrier"""
-        # 1. Chercher d'abord dans Planning (priorité comme le calendrier)
-        planning = Planning.query.filter_by(
-            user_id=user.id,
-            date=date,
-            period_number=period_number
-        ).first()
-        
-        current_app.logger.error(f"=== LESSON DEBUG === P{period_number} on {date}: Planning found: {planning is not None}, classroom_id: {getattr(planning, 'classroom_id', None)}, mixed_group_id: {getattr(planning, 'mixed_group_id', None)}")
-        
-        if planning and is_lesson_period(planning=planning):
-            period_info = next((p for p in periods if p['number'] == period_number), None)
-            if not period_info:
-                return None
-                
-            lesson = type('obj', (object,), {
-                'classroom_id': planning.classroom_id,
-                'mixed_group_id': planning.mixed_group_id,
-                'period_number': planning.period_number,
-                'end_period_number': planning.period_number,
-                'weekday': weekday_num,
-                'start_time': period_info['start'],
-                'end_time': period_info['end'],
-                'classroom': planning.classroom if planning.classroom_id else None,
-                'mixed_group': planning.mixed_group if planning.mixed_group_id else None,
-                'is_merged': False
-            })()
-            return lesson
-        
-        # 2. Si pas de Planning, chercher dans Schedule (fallback comme le calendrier)
-        schedule = Schedule.query.filter_by(
-            user_id=user.id,
-            weekday=weekday_num,
-            period_number=period_number
-        ).first()
-        
-        current_app.logger.error(f"=== LESSON DEBUG === P{period_number} on {date}: Schedule found: {schedule is not None}, classroom_id: {getattr(schedule, 'classroom_id', None)}, mixed_group_id: {getattr(schedule, 'mixed_group_id', None)}")
-        
-        if schedule and is_lesson_period(schedule=schedule):
-            period_info = next((p for p in periods if p['number'] == period_number), None)
-            if not period_info:
-                return None
-            
-            # Gestion des périodes fusionnées
-            end_period = period_number
-            end_time = period_info['end']
-            
-            # Vérifier si cette période est fusionnée avec les suivantes
-            if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
-                current_period = period_number + 1
-                while current_period <= len(periods):
-                    next_schedule = Schedule.query.filter_by(
-                        user_id=user.id,
-                        weekday=weekday_num,
-                        period_number=current_period
-                    ).first()
-                    
-                    if (next_schedule and 
-                        hasattr(next_schedule, 'merged_with_previous') and 
-                        next_schedule.merged_with_previous):
-                        end_period = current_period
-                        end_period_info = next((p for p in periods if p['number'] == current_period), None)
-                        if end_period_info:
-                            end_time = end_period_info['end']
-                        
-                        if not (hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next):
-                            break
-                        current_period += 1
-                    else:
-                        break
-            
-            lesson = type('obj', (object,), {
-                'classroom_id': schedule.classroom_id,
-                'mixed_group_id': schedule.mixed_group_id,
-                'period_number': schedule.period_number,
-                'end_period_number': end_period,
-                'weekday': schedule.weekday,
-                'start_time': period_info['start'],
-                'end_time': end_time,
-                'classroom': schedule.classroom,
-                'mixed_group': schedule.mixed_group,
-                'is_merged': schedule.period_number != end_period
-            })()
-            return lesson
-        
-        return None
 
     # 1. Vérifier si on est actuellement en cours
     for period in periods:
         if period['start'] <= current_time <= period['end']:
-            lesson = get_lesson_for_period(current_date, period['number'], weekday)
-            if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Current lesson found: P{lesson.period_number}")
+            # Chercher d'abord dans les planifications spécifiques
+            planning = Planning.query.filter_by(
+                user_id=user.id,
+                date=current_date,
+                period_number=period['number']
+            ).filter(
+                db.or_(Planning.classroom_id.isnot(None), Planning.mixed_group_id.isnot(None))
+            ).first()
+            
+            if planning:
+                # Créer un objet lesson à partir de la planification
+                lesson = type('obj', (object,), {
+                    'classroom_id': planning.classroom_id,
+                    'mixed_group_id': planning.mixed_group_id,
+                    'period_number': planning.period_number,
+                    'end_period_number': planning.period_number,
+                    'weekday': weekday,
+                    'start_time': period['start'],
+                    'end_time': period['end'],
+                    'classroom': planning.classroom if planning.classroom_id else None,
+                    'mixed_group': planning.mixed_group if planning.mixed_group_id else None,
+                    'is_merged': False
+                })()
                 return lesson, True, current_date
+            else:
+                # Chercher dans l'horaire type
+                schedule = Schedule.query.filter_by(
+                    user_id=user.id,
+                    weekday=weekday,
+                    period_number=period['number']
+                ).filter(
+                    db.or_(Schedule.classroom_id.isnot(None), Schedule.mixed_group_id.isnot(None))
+                ).first()
+                
+                if schedule:
+                    # Gestion des périodes fusionnées pour Schedule
+                    end_period = period['number']
+                    end_time = period['end']
+                    
+                    # Vérifier si cette période est fusionnée avec les suivantes
+                    if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
+                        # Chercher la dernière période fusionnée
+                        current_period = period['number'] + 1
+                        while current_period <= len(periods):
+                            next_schedule = Schedule.query.filter_by(
+                                user_id=user.id,
+                                weekday=weekday,
+                                period_number=current_period
+                            ).first()
+                            
+                            if (next_schedule and 
+                                hasattr(next_schedule, 'merged_with_previous') and 
+                                next_schedule.merged_with_previous):
+                                end_period = current_period
+                                end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                                if end_period_info:
+                                    end_time = end_period_info['end']
+                                
+                                if not (hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next):
+                                    break
+                                current_period += 1
+                            else:
+                                break
+                    
+                    lesson = type('obj', (object,), {
+                        'classroom_id': schedule.classroom_id,
+                        'mixed_group_id': schedule.mixed_group_id,
+                        'period_number': schedule.period_number,
+                        'end_period_number': end_period,
+                        'weekday': schedule.weekday,
+                        'start_time': period['start'],
+                        'end_time': end_time,
+                        'classroom': schedule.classroom,
+                        'mixed_group': schedule.mixed_group,
+                        'is_merged': schedule.period_number != end_period
+                    })()
+                    return lesson, True, current_date
 
     # 2. Si pas de cours actuel, chercher le prochain aujourd'hui
     for period in periods:
         if period['start'] > current_time:
-            lesson = get_lesson_for_period(current_date, period['number'], weekday)
-            if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Next lesson today: P{lesson.period_number}")
+            # Chercher d'abord dans les planifications spécifiques
+            planning = Planning.query.filter_by(
+                user_id=user.id,
+                date=current_date,
+                period_number=period['number']
+            ).filter(
+                db.or_(Planning.classroom_id.isnot(None), Planning.mixed_group_id.isnot(None))
+            ).first()
+            
+            if planning:
+                lesson = type('obj', (object,), {
+                    'classroom_id': planning.classroom_id,
+                    'mixed_group_id': planning.mixed_group_id,
+                    'period_number': planning.period_number,
+                    'end_period_number': planning.period_number,
+                    'weekday': weekday,
+                    'start_time': period['start'],
+                    'end_time': period['end'],
+                    'classroom': planning.classroom if planning.classroom_id else None,
+                    'mixed_group': planning.mixed_group if planning.mixed_group_id else None,
+                    'is_merged': False
+                })()
                 return lesson, False, current_date
+            else:
+                # Chercher dans l'horaire type
+                schedule = Schedule.query.filter_by(
+                    user_id=user.id,
+                    weekday=weekday,
+                    period_number=period['number']
+                ).filter(
+                    db.or_(Schedule.classroom_id.isnot(None), Schedule.mixed_group_id.isnot(None))
+                ).first()
+                
+                if schedule:
+                    # Même logique de fusion que ci-dessus
+                    end_period = period['number']
+                    end_time = period['end']
+                    
+                    if hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
+                        current_period = period['number'] + 1
+                        while current_period <= len(periods):
+                            next_schedule = Schedule.query.filter_by(
+                                user_id=user.id,
+                                weekday=weekday,
+                                period_number=current_period
+                            ).first()
+                            
+                            if (next_schedule and 
+                                hasattr(next_schedule, 'merged_with_previous') and 
+                                next_schedule.merged_with_previous):
+                                end_period = current_period
+                                end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                                if end_period_info:
+                                    end_time = end_period_info['end']
+                                
+                                if not (hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next):
+                                    break
+                                current_period += 1
+                            else:
+                                break
+                    
+                    lesson = type('obj', (object,), {
+                        'classroom_id': schedule.classroom_id,
+                        'mixed_group_id': schedule.mixed_group_id,
+                        'period_number': schedule.period_number,
+                        'end_period_number': end_period,
+                        'weekday': schedule.weekday,
+                        'start_time': period['start'],
+                        'end_time': end_time,
+                        'classroom': schedule.classroom,
+                        'mixed_group': schedule.mixed_group,
+                        'is_merged': schedule.period_number != end_period
+                    })()
+                    return lesson, False, current_date
 
-    # 3. Chercher dans les jours suivants (jusqu'à 2 semaines)
-    for days_ahead in range(1, 15):
-        search_date = current_date + timedelta(days=days_ahead)
+    # 3. Si pas de cours aujourd'hui, chercher les jours suivants - COMMENCER DEMAIN
+    search_dates = []
+    
+    # Si on est en fin de journée (après toutes les périodes), commencer la recherche demain
+    if periods and current_time > periods[-1]['end']:
+        current_app.logger.error(f"=== LESSON DEBUG === After all periods today, searching from tomorrow")
+        search_dates = [current_date + timedelta(days=i) for i in range(1, 8)]
+    else:
+        # Sinon, chercher aujourd'hui puis les jours suivants
+        search_dates = [current_date + timedelta(days=i) for i in range(0, 8)]
+    
+    for search_date in search_dates:
         search_weekday = search_date.weekday()
         
-        current_app.logger.error(f"=== LESSON DEBUG === Checking date: {search_date}, weekday: {search_weekday}")
-        
-        # Ignorer les week-ends et les jours fériés
-        if search_weekday >= 5:  # Samedi ou dimanche
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping weekend: {search_date}")
+        current_app.logger.error(f"=== LESSON DEBUG === Searching date: {search_date}, weekday: {search_weekday}")
+
+        # Ignorer les weekends
+        if search_weekday >= 5:
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping weekend day {search_date}")
             continue
-            
+
+        # Vérifier si c'est un jour de vacances
         if is_holiday(search_date, user):
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday: {search_date}")
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday {search_date}")
             continue
-        
-        # Pour chaque période du jour, chercher une leçon
-        current_app.logger.error(f"=== LESSON DEBUG === Checking all periods for {search_date}")
-        for period in periods:
-            current_app.logger.error(f"=== LESSON DEBUG === Checking period P{period['number']} on {search_date}")
-            lesson = get_lesson_for_period(search_date, period['number'], search_weekday)
-            if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Next lesson found on {search_date}: P{lesson.period_number}")
+
+        # Chercher d'abord dans les planifications spécifiques
+        first_planning = Planning.query.filter_by(
+            user_id=user.id,
+            date=search_date
+        ).filter(
+            db.or_(Planning.classroom_id.isnot(None), Planning.mixed_group_id.isnot(None))
+        ).order_by(Planning.period_number).first()
+
+        if first_planning:
+            current_app.logger.error(f"=== LESSON DEBUG === Found planning: {first_planning.period_number}")
+            period_info = next((p for p in periods if p['number'] == first_planning.period_number), None)
+            if period_info:
+                lesson = type('obj', (object,), {
+                    'classroom_id': first_planning.classroom_id,
+                    'mixed_group_id': first_planning.mixed_group_id,
+                    'period_number': first_planning.period_number,
+                    'end_period_number': first_planning.period_number,
+                    'weekday': search_weekday,
+                    'start_time': period_info['start'],
+                    'end_time': period_info['end'],
+                    'classroom': first_planning.classroom if first_planning.classroom_id else None,
+                    'mixed_group': first_planning.mixed_group if first_planning.mixed_group_id else None,
+                    'is_merged': False
+                })()
+                current_app.logger.error(f"=== LESSON DEBUG === Returning planning lesson: P{first_planning.period_number}")
                 return lesson, False, search_date
+        else:
+            # Chercher dans l'horaire type - prendre le PREMIER cours du jour
+            first_schedule = Schedule.query.filter_by(
+                user_id=user.id,
+                weekday=search_weekday
+            ).filter(
+                db.or_(Schedule.classroom_id.isnot(None), Schedule.mixed_group_id.isnot(None))
+            ).order_by(Schedule.period_number).first()
+
+            if first_schedule:
+                current_app.logger.error(f"=== LESSON DEBUG === Found schedule: {first_schedule.period_number}")
+                first_period_info = next((p for p in periods if p['number'] == first_schedule.period_number), None)
+                if first_period_info:
+                    # Logique de fusion pour le premier cours
+                    end_period = first_schedule.period_number
+                    end_time = first_period_info['end']
+                    
+                    if hasattr(first_schedule, 'has_merged_next') and first_schedule.has_merged_next:
+                        current_period = first_schedule.period_number + 1
+                        while current_period <= len(periods):
+                            next_schedule = Schedule.query.filter_by(
+                                user_id=user.id,
+                                weekday=search_weekday,
+                                period_number=current_period
+                            ).first()
+                            
+                            if (next_schedule and 
+                                hasattr(next_schedule, 'merged_with_previous') and 
+                                next_schedule.merged_with_previous):
+                                end_period = current_period
+                                end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                                if end_period_info:
+                                    end_time = end_period_info['end']
+                                
+                                if not (hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next):
+                                    break
+                                current_period += 1
+                            else:
+                                break
+                    
+                    lesson = type('obj', (object,), {
+                        'classroom_id': first_schedule.classroom_id,
+                        'mixed_group_id': first_schedule.mixed_group_id,
+                        'period_number': first_schedule.period_number,
+                        'end_period_number': end_period,
+                        'weekday': first_schedule.weekday,
+                        'start_time': first_period_info['start'],
+                        'end_time': end_time,
+                        'classroom': first_schedule.classroom,
+                        'mixed_group': first_schedule.mixed_group,
+                        'is_merged': first_schedule.period_number != end_period
+                    })()
+                    current_app.logger.error(f"=== LESSON DEBUG === Returning schedule lesson: P{first_schedule.period_number}")
+                    return lesson, False, search_date
 
     return None, False, None
 

@@ -30,14 +30,20 @@ def migrate_class_files():
     print("🔄 Migration des fichiers de classe...")
     
     class_files = ClassFile.query.all()
+    print(f"📊 Total class files found: {len(class_files)}")
+    
     migrated_count = 0
     error_count = 0
+    already_migrated = 0
     
     for class_file in class_files:
         try:
             # Ignorer si déjà migré
             if class_file.file_content:
+                already_migrated += 1
                 continue
+            
+            print(f"🔍 Processing file {class_file.id}: {class_file.original_filename}")
             
             # Construire le chemin du fichier physique
             file_path = os.path.join(
@@ -78,7 +84,7 @@ def migrate_class_files():
     # Sauvegarder les changements
     try:
         db.session.commit()
-        print(f"🎉 Migration terminée: {migrated_count} fichiers migrés, {error_count} erreurs")
+        print(f"🎉 Migration class files terminée: {migrated_count} fichiers migrés, {already_migrated} déjà migrés, {error_count} erreurs")
     except Exception as e:
         db.session.rollback()
         print(f"❌ Erreur lors de la sauvegarde: {e}")
@@ -88,14 +94,20 @@ def migrate_user_files():
     print("🔄 Migration des fichiers utilisateur...")
     
     user_files = UserFile.query.all()
+    print(f"📊 Total user files found: {len(user_files)}")
+    
     migrated_count = 0
     error_count = 0
+    already_migrated = 0
     
     for user_file in user_files:
         try:
             # Ignorer si déjà migré
             if user_file.file_content:
+                already_migrated += 1
                 continue
+            
+            print(f"🔍 Processing user file {user_file.id}: {user_file.original_filename}")
             
             # Construire le chemin du fichier physique
             file_path = user_file.get_file_path()
@@ -128,7 +140,7 @@ def migrate_user_files():
     # Sauvegarder les changements
     try:
         db.session.commit()
-        print(f"🎉 Migration terminée: {migrated_count} fichiers migrés, {error_count} erreurs")
+        print(f"🎉 Migration user files terminée: {migrated_count} fichiers migrés, {already_migrated} déjà migrés, {error_count} erreurs")
     except Exception as e:
         db.session.rollback()
         print(f"❌ Erreur lors de la sauvegarde: {e}")
