@@ -1,0 +1,10 @@
+This file was created to trigger a new deployment on Render.
+Timestamp: 2025-08-29 19:10:00
+
+Changes included:
+- Fixed lesson detection logic to follow calendar view precedence
+- Added comprehensive debug logging for lesson detection
+- Enhanced BLOB migration script with detailed reporting
+- Added diagnostic scripts for troubleshooting
+
+The new debug logs should show detailed period-by-period analysis instead of the generic "Found planning: 4" message.
