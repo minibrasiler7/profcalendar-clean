@@ -141,17 +141,22 @@ def ensure_database_schema():
         # Créer toutes les tables si elles n'existent pas
         db.create_all()
         
-        # Pour SQLite, vérifier si les colonnes existent avant de les ajouter
+        # Vérifier si les colonnes existent avant de les ajouter
         from sqlalchemy import text, inspect
         
         inspector = inspect(db.engine)
+        
+        # Déterminer le type de base de données pour choisir le bon type BLOB
+        db_type = db.engine.dialect.name
+        blob_type = "BYTEA" if db_type == "postgresql" else "BLOB"
+        print(f"🔍 Base de données détectée: {db_type}, utilisant le type: {blob_type}")
         
         # Vérifier les colonnes pour class_files
         if 'class_files' in inspector.get_table_names():
             columns = [col['name'] for col in inspector.get_columns('class_files')]
             
             if 'file_content' not in columns:
-                db.session.execute(text("ALTER TABLE class_files ADD COLUMN file_content BLOB"))
+                db.session.execute(text(f"ALTER TABLE class_files ADD COLUMN file_content {blob_type}"))
                 print("✅ Colonne file_content ajoutée à class_files")
             
             if 'mime_type' not in columns:
@@ -163,11 +168,11 @@ def ensure_database_schema():
             columns = [col['name'] for col in inspector.get_columns('user_files')]
             
             if 'file_content' not in columns:
-                db.session.execute(text("ALTER TABLE user_files ADD COLUMN file_content BLOB"))
+                db.session.execute(text(f"ALTER TABLE user_files ADD COLUMN file_content {blob_type}"))
                 print("✅ Colonne file_content ajoutée à user_files")
             
             if 'thumbnail_content' not in columns:
-                db.session.execute(text("ALTER TABLE user_files ADD COLUMN thumbnail_content BLOB"))
+                db.session.execute(text(f"ALTER TABLE user_files ADD COLUMN thumbnail_content {blob_type}"))
                 print("✅ Colonne thumbnail_content ajoutée à user_files")
         
         db.session.commit()
