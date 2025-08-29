@@ -349,7 +349,7 @@ def get_current_or_next_lesson(user):
     current_date = now.date()
     weekday = current_date.weekday()
     
-    current_app.logger.error(f"=== LESSON DEBUG === current_time: {current_time}, date: {current_date}, weekday: {weekday}")
+    current_app.logger.error(f"🚀 NEW LESSON DETECTION DEPLOYED 🚀 current_time: {current_time}, date: {current_date}, weekday: {weekday}")
 
     # Récupérer les périodes du jour
     periods = calculate_periods(user)
