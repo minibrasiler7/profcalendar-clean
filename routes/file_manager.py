@@ -190,26 +190,28 @@ def get_class_files(class_id):
         ).all()
         print(f"🔍 DEBUG: {len(all_user_class_files)} fichier(s) total pour toutes les classes de user {current_user.id}")
         for i, file in enumerate(all_user_class_files):
-            print(f"🔍   ALL_FILES [{i+1}] ClassID:{file.classroom_id} | ID:{file.id} | {file.original_filename}")
+            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
+            print(f"🔍   ALL_FILES [{i+1}] ClassID:{file.classroom_id} | ID:{file.id} | {filename}")
         
         # Diagnostic: Afficher les détails de chaque fichier
         for i, file in enumerate(class_files):
-            print(f"🔍   [{i+1}] {file.original_filename} | Type: {file.file_type} | Description: {file.description[:50] if file.description else 'None'}")
+            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
+            file_type = file.user_file.file_type if file.user_file else 'Unknown'
+            print(f"🔍   [{i+1}] {filename} | Type: {file_type} | Dossier: {file.folder_path}")
 
         files_data = []
         for file in class_files:
-            # Extraire le nom du dossier depuis la description si c'est une copie
-            folder_path = None
-            if file.description and "Copié dans le dossier:" in file.description:
-                folder_path = file.description.split("Copié dans le dossier:")[1].strip()
-
+            if not file.user_file:
+                # Fichier source supprimé, on ignore
+                continue
+                
             files_data.append({
                 'id': file.id,
-                'original_filename': file.original_filename,
-                'file_type': file.file_type,
-                'file_size': file.file_size,
-                'folder_name': folder_path,
-                'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None
+                'original_filename': file.user_file.original_filename,
+                'file_type': file.user_file.file_type,
+                'file_size': file.user_file.file_size,
+                'folder_name': file.folder_path,
+                'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             })
 
         return jsonify({
