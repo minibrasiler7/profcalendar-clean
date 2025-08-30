@@ -10,8 +10,8 @@ services:
       - key: FLASK_ENV
         value: production
       - key: UPLOAD_FOLDER
-        value: /opt/render/project/persistent/uploads
+        value: /opt/render/project/src/uploads
     disk:
       name: profcalendar-storage
-      mountPath: /opt/render/project/persistent
+      mountPath: /opt/render/project/src/uploads
       sizeGB: 1
