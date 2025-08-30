@@ -19,8 +19,11 @@ def copy_file_physically(user_file, class_id):
     try:
         from flask import current_app
         
-        # Chemin source
-        source_path = os.path.join(current_app.root_path, user_file.get_file_path())
+        # Chemin source avec UPLOAD_FOLDER configuré
+        rel_path = user_file.get_file_path()  # 'uploads/files/user_id/filename'
+        if rel_path.startswith('uploads/'):
+            rel_path = rel_path[8:]  # Enlever 'uploads/'
+        source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
         
         if not os.path.exists(source_path):
             print(f"❌ Fichier source introuvable: {source_path}")
@@ -109,7 +112,11 @@ def copy_file_to_class():
             # Lire le fichier physique si disponible
             try:
                 from flask import current_app
-                source_path = os.path.join(current_app.root_path, user_file.get_file_path())
+                # Construire le chemin avec UPLOAD_FOLDER configuré
+                rel_path = user_file.get_file_path()  # 'uploads/files/user_id/filename'
+                if rel_path.startswith('uploads/'):
+                    rel_path = rel_path[8:]  # Enlever 'uploads/'
+                source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
                 if os.path.exists(source_path):
                     with open(source_path, 'rb') as f:
                         file_content = f.read()
@@ -270,7 +277,11 @@ def copy_folder_recursive(folder, class_id, base_path):
             else:
                 try:
                     from flask import current_app
-                    source_path = os.path.join(current_app.root_path, file.get_file_path())
+                    # Construire le chemin avec UPLOAD_FOLDER configuré  
+                    rel_path = file.get_file_path()  # 'uploads/files/user_id/filename'
+                    if rel_path.startswith('uploads/'):
+                        rel_path = rel_path[8:]  # Enlever 'uploads/'
+                    source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
                     if os.path.exists(source_path):
                         with open(source_path, 'rb') as f:
                             file_content = f.read()

@@ -27,6 +27,13 @@ def allowed_file(filename):
     """Vérifie si le fichier est autorisé"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_absolute_file_path(user_file):
+    """Convertit le chemin relatif d'un UserFile en chemin absolu avec la configuration UPLOAD_FOLDER"""
+    rel_path = user_file.get_file_path()  # 'uploads/files/user_id/filename'
+    if rel_path.startswith('uploads/'):
+        rel_path = rel_path[8:]  # Enlever 'uploads/'
+    return os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
+
 def get_user_total_storage(user):
     """Calcule l'utilisation totale de stockage d'un utilisateur"""
     from models.file_manager import UserFile
@@ -575,7 +582,7 @@ def delete_multiple():
 
                 if user_file:
                     # Supprimer le fichier physique
-                    file_path = os.path.join(current_app.root_path, user_file.get_file_path())
+                    file_path = get_absolute_file_path(user_file)
                     if os.path.exists(file_path):
                         os.remove(file_path)
 
@@ -605,7 +612,7 @@ def delete_multiple():
                         
                         # Supprimer les fichiers physiques du dossier
                         for file in folder.files:
-                            file_path = os.path.join(current_app.root_path, file.get_file_path())
+                            file_path = get_absolute_file_path(file)
                             if os.path.exists(file_path):
                                 os.remove(file_path)
 
@@ -1072,7 +1079,7 @@ def download_file(file_id):
         )
     else:
         # Fallback: essayer de servir depuis le fichier physique
-        file_path = os.path.join(current_app.root_path, file.get_file_path())
+        file_path = get_absolute_file_path(file)
         
         if os.path.exists(file_path):
             return send_file(file_path,
@@ -1117,12 +1124,16 @@ def preview_file(file_id):
         )
     else:
         # Fallback: essayer de servir depuis le fichier physique
-        file_path = os.path.join(current_app.root_path, file.get_file_path())
+        file_path = get_absolute_file_path(file)
         
         if os.path.exists(file_path):
             # Pour les images, utiliser la miniature physique si demandée
             if file.thumbnail_path and request.args.get('thumbnail'):
-                thumbnail_path = os.path.join(current_app.root_path, file.get_thumbnail_path())
+                # Gérer le chemin de thumbnail avec UPLOAD_FOLDER
+                thumbnail_rel_path = file.get_thumbnail_path()  # 'uploads/thumbnails/user_id/filename'
+                if thumbnail_rel_path.startswith('uploads/'):
+                    thumbnail_rel_path = thumbnail_rel_path[8:]  # Enlever 'uploads/'
+                thumbnail_path = os.path.join(current_app.config['UPLOAD_FOLDER'], thumbnail_rel_path)
                 if os.path.exists(thumbnail_path):
                     return send_file(thumbnail_path, mimetype='image/jpeg')
             
@@ -1150,7 +1161,7 @@ def delete_file(file_id):
 
     try:
         # Supprimer le fichier physique
-        file_path = os.path.join(current_app.root_path, file.get_file_path())
+        file_path = get_absolute_file_path(file)
         if os.path.exists(file_path):
             os.remove(file_path)
 
@@ -1199,7 +1210,7 @@ def delete_folder(folder_id):
             
             # Supprimer les fichiers physiques du dossier
             for file in folder.files:
-                file_path = os.path.join(current_app.root_path, file.get_file_path())
+                file_path = get_absolute_file_path(file)
                 if os.path.exists(file_path):
                     os.remove(file_path)
 

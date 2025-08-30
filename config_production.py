@@ -43,8 +43,8 @@ class ProductionConfig:
     # HTTPS
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'False').lower() == 'true'
     
-    # Upload et fichiers
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max
+    # Upload et fichiers  
+    MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB max (pour les gros PDF)
     # Utiliser le stockage persistant Render si disponible
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/opt/render/project/persistent/uploads')
     
