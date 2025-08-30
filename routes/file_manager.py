@@ -469,12 +469,27 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
             print(f"Fichier déjà existant: {user_file.original_filename} dans {folder_path}")
             return False  # Fichier déjà existant
 
-        # Vérifier que le fichier source a du contenu BLOB
-        if not user_file.file_content:
-            print(f"❌ Pas de contenu BLOB pour le fichier: {user_file.original_filename} (ID: {user_file.id})")
-            return False
-
-        print(f"✅ Fichier BLOB trouvé: {user_file.original_filename} ({len(user_file.file_content)} octets)")
+        # Vérifier le contenu du fichier (BLOB ou fichier physique)
+        file_content = None
+        
+        if user_file.file_content:
+            # Le fichier est en BLOB
+            file_content = user_file.file_content
+            print(f"✅ Fichier BLOB trouvé: {user_file.original_filename} ({len(file_content)} octets)")
+        else:
+            # Lire le fichier physique sur disque persistant
+            file_path = get_absolute_file_path(user_file)
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                    print(f"✅ Fichier physique lu: {user_file.original_filename} ({len(file_content)} octets)")
+                except Exception as e:
+                    print(f"❌ Erreur lecture fichier physique {file_path}: {e}")
+                    return False
+            else:
+                print(f"❌ Fichier introuvable: BLOB et physique manquants pour {user_file.original_filename} (chemin: {file_path})")
+                return False
 
         # Créer l'entrée en base de données avec le nouveau modèle
         class_file = ClassFile(
