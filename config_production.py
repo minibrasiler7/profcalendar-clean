@@ -45,7 +45,8 @@ class ProductionConfig:
     
     # Upload et fichiers
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max
-    UPLOAD_FOLDER = 'uploads'
+    # Utiliser le stockage persistant Render si disponible
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/opt/render/project/persistent/uploads')
     
     # Rate limiting
     RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'True').lower() == 'true'

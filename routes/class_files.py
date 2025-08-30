@@ -27,7 +27,7 @@ def copy_file_physically(user_file, class_id):
             return False, None
         
         # Créer le dossier de destination
-        class_folder = os.path.join(current_app.root_path, 'uploads', 'class_files', str(class_id))
+        class_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(class_id))
         os.makedirs(class_folder, exist_ok=True)
         
         # Générer un nom unique
@@ -375,7 +375,7 @@ def delete_class_file(file_id):
         # Supprimer le fichier physique
         try:
             from flask import current_app
-            file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', 
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
                                    str(class_file.classroom_id), class_file.filename)
             if os.path.exists(file_path):
                 os.remove(file_path)
@@ -478,7 +478,7 @@ def upload_class_file():
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
         
         # Créer le dossier de destination
-        class_folder = os.path.join(current_app.root_path, 'uploads', 'class_files', str(classroom_id))
+        class_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(classroom_id))
         os.makedirs(class_folder, exist_ok=True)
         
         # Lire le contenu du fichier pour stockage BLOB
@@ -731,7 +731,7 @@ def delete_class_folder_by_path():
                 try:
                     # Supprimer le fichier physique
                     from flask import current_app
-                    file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', 
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
                                            str(classroom_id), class_file.filename)
                     if os.path.exists(file_path):
                         os.remove(file_path)

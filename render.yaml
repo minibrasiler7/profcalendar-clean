@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: profcalendar-clean
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: FLASK_ENV
+        value: production
+      - key: UPLOAD_FOLDER
+        value: /opt/render/project/persistent/uploads
+    disk:
+      name: profcalendar-storage
+      mountPath: /opt/render/project/persistent
+      sizeGB: 1

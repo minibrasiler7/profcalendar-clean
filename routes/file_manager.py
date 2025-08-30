@@ -17,7 +17,7 @@ import io
 file_manager_bp = Blueprint('file_manager', __name__, url_prefix='/file_manager')
 
 # Configuration
-UPLOAD_FOLDER = 'uploads'
+# UPLOAD_FOLDER sera récupéré depuis la configuration Flask au lieu d'être codé en dur
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB (permet des PDF volumineux)
 MAX_TOTAL_STORAGE = 5 * 1024 * 1024 * 1024  # 5 GB de stockage total
@@ -791,7 +791,7 @@ def upload_with_structure():
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
         
         # Créer les dossiers
-        user_folder = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'files', str(current_user.id))
+        user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
         os.makedirs(user_folder, exist_ok=True)
         
         # Sauvegarder le fichier
@@ -812,7 +812,7 @@ def upload_with_structure():
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
             thumbnail_filename = f"thumb_{unique_filename}"
-            thumbnail_folder = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'thumbnails', str(current_user.id))
+            thumbnail_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id))
             thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
             
             if create_thumbnail(file_path, thumbnail_path):
@@ -916,7 +916,7 @@ def upload_file():
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
         # Créer les dossiers
-        user_folder = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'files', str(current_user.id))
+        user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
         os.makedirs(user_folder, exist_ok=True)
 
         # Sauvegarder le fichier
@@ -937,7 +937,7 @@ def upload_file():
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
             thumbnail_filename = f"thumb_{unique_filename}"
-            thumbnail_folder = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'thumbnails', str(current_user.id))
+            thumbnail_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id))
             thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
 
             if create_thumbnail(file_path, thumbnail_path):
@@ -1031,9 +1031,9 @@ def serve_file(file_id):
             current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile {file_id} has no BLOB content")
             # Fallback: essayer de servir depuis le fichier physique (pour compatibilité)
             if class_file.is_student_shared:
-                file_path = os.path.join(current_app.root_path, 'uploads', 'student_shared', str(class_file.classroom_id), class_file.filename)
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(class_file.classroom_id), class_file.filename)
             else:
-                file_path = os.path.join(current_app.root_path, 'uploads', 'class_files', str(class_file.classroom_id), class_file.filename)
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(class_file.classroom_id), class_file.filename)
             
             if os.path.exists(file_path):
                 mimetype = 'application/pdf' if class_file.file_type == 'pdf' else 'application/octet-stream'
@@ -1262,7 +1262,7 @@ def delete_class_file(file_id):
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
 
         # Supprimer le fichier physique
-        file_path = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'class_files', 
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
                                 str(class_file.classroom_id), class_file.filename)
         
         print(f"🔍 Chemin du fichier physique: {file_path}")
@@ -1350,7 +1350,7 @@ def delete_class_folder():
         deleted_count = 0
         for class_file in class_files:
             # Supprimer le fichier physique
-            file_path = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'class_files', 
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
                                    str(class_file.classroom_id), class_file.filename)
             
             print(f"🔍 Suppression fichier physique: {file_path}")
@@ -1659,7 +1659,7 @@ def cleanup_all_files():
                 print(f"ℹ️ Dossier {upload_dir} n'existe pas")
         
         # 7. Recréer les dossiers de base
-        base_upload_dir = os.path.join(current_app.root_path, 'uploads')
+        base_upload_dir = current_app.config['UPLOAD_FOLDER']
         if not os.path.exists(base_upload_dir):
             os.makedirs(base_upload_dir)
             print(f"✅ Dossier de base uploads recréé")

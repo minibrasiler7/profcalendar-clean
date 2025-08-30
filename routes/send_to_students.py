@@ -133,7 +133,7 @@ def send_pdf_to_students():
         unique_filename = f"{uuid.uuid4().hex[:8]}_{original_filename}"
         
         # Créer le dossier de destination pour les fichiers partagés avec les élèves
-        shared_folder = os.path.join(current_app.root_path, 'uploads', 'student_shared', str(classroom.id))
+        shared_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(classroom.id))
         os.makedirs(shared_folder, exist_ok=True)
         
         # Chemin complet du fichier
