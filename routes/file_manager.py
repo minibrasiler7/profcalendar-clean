@@ -8,7 +8,7 @@ import shutil
 from datetime import datetime
 from PIL import Image
 from models.file_manager import FileFolder, UserFile
-from models.student import ClassFile
+from models.class_file import ClassFile
 import io
 
 # Importer les modèles après leur création
@@ -30,13 +30,14 @@ def allowed_file(filename):
 def get_user_total_storage(user):
     """Calcule l'utilisation totale de stockage d'un utilisateur"""
     from models.file_manager import UserFile
-    from models.student import ClassFile
+    from models.class_file import ClassFile
     
     # Calculer la taille des UserFiles
     user_files_size = sum(f.file_size or 0 for f in user.files.all())
     
-    # Calculer la taille des ClassFiles
-    class_files_size = sum(f.file_size or 0 for f in ClassFile.query.filter_by(teacher_id=user.id).all())
+    # Calculer la taille des ClassFiles (via la relation user_file)
+    class_files = ClassFile.query.join(UserFile).filter(UserFile.user_id == user.id).all()
+    class_files_size = sum(cf.user_file.file_size or 0 for cf in class_files)
     
     return user_files_size + class_files_size
 
@@ -1011,7 +1012,7 @@ def test_serve(file_id):
 def serve_file(file_id):
     """Sert un fichier pour l'affichage inline (pour le viewer d'annotation)"""
     try:
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         from flask import Response
         
         current_app.logger.error(f"=== SERVE_FILE DEBUG === file_id={file_id}, user_id={current_user.id}")
@@ -1539,7 +1540,7 @@ def save_annotations():
             return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
             
         # Vérifier que le fichier existe et appartient à l'utilisateur
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         from models.classroom import Classroom
         
         class_file = ClassFile.query.join(
@@ -1593,7 +1594,7 @@ def load_annotations(file_id):
         from models.file_manager import FileAnnotation
             
         # Vérifier que le fichier existe et appartient à l'utilisateur
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         from models.classroom import Classroom
         
         class_file = ClassFile.query.join(
@@ -1640,7 +1641,7 @@ def cleanup_all_files():
     
     try:
         from models.file_manager import FileFolder, UserFile
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         import shutil
         
         print("=== DEBUT DU NETTOYAGE ===")

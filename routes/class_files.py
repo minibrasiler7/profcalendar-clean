@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models.student import ClassFile  # Utiliser le modèle existant
+from models.class_file import ClassFile  # Utiliser le modèle existant
 from models.file_manager import UserFile, FileFolder
 from models.classroom import Classroom
 from datetime import datetime
