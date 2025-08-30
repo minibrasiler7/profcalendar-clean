@@ -3,7 +3,8 @@ from models.user import User, Holiday, Break
 from models.classroom import Classroom
 from models.schedule import Schedule
 from models.planning import Planning
-from models.student import Student, Grade, ClassFile, Chapter, ClassroomChapter, StudentFile
+from models.student import Student, Grade, Chapter, ClassroomChapter, StudentFile
+from models.class_file import ClassFile
 from models.student_info_history import StudentInfoHistory
 from models.attendance import Attendance
 from models.file_manager import FileFolder, UserFile, FileShare

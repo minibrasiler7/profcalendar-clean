@@ -212,7 +212,7 @@ def dashboard():
     
     # Récupérer les fichiers partagés avec l'élève (pour le dashboard, on prend les 5 plus récents)
     from models.file_sharing import StudentFileShare
-    from models.student import ClassFile
+    from models.class_file import ClassFile
     
     recent_shared_files = db.session.query(StudentFileShare, ClassFile).join(
         ClassFile, StudentFileShare.file_id == ClassFile.id
@@ -331,7 +331,7 @@ def files():
     
     # Récupérer seulement les fichiers spécifiquement partagés avec cet élève
     from models.file_sharing import StudentFileShare
-    from models.student import ClassFile
+    from models.class_file import ClassFile
     
     shared_files = db.session.query(StudentFileShare, ClassFile).join(
         ClassFile, StudentFileShare.file_id == ClassFile.id
@@ -359,7 +359,7 @@ def download_file(file_id):
     try:
         from flask import send_file, current_app
         from models.file_sharing import StudentFileShare
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         import os
         
         # Récupérer tous les élèves liés (classe originale + classes dérivées)
@@ -436,7 +436,7 @@ def preview_file(file_id):
     try:
         from flask import send_file, current_app
         from models.file_sharing import StudentFileShare
-        from models.student import ClassFile
+        from models.class_file import ClassFile
         import os
         
         # Récupérer tous les élèves liés (classe originale + classes dérivées)

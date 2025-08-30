@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from extensions import db
-from models.student import ClassFile
+from models.class_file import ClassFile
 from models.file_sharing import StudentFileShare
 from models.classroom import Classroom
 from models.student import Student
