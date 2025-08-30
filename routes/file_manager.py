@@ -275,20 +275,8 @@ def copy_folder_to_class():
                 if copy_single_file_to_class(file, class_id, current_folder_path):
                     copied_count += 1
 
-            # Si le dossier est vide (pas de fichiers), créer un marqueur de dossier
-            if len(files_in_folder) == 0 and len(list(source_folder.subfolders)) == 0:
-                # Créer un fichier marqueur pour représenter le dossier vide
-                marker_file = ClassFile(
-                    classroom_id=class_id,
-                    filename='.folder_marker',
-                    original_filename=f'[Dossier vide: {source_folder.name}]',
-                    file_type='folder',
-                    file_size=0,
-                    description=f"Copié dans le dossier: {current_folder_path}"
-                )
-                db.session.add(marker_file)
-                copied_count += 1
-                print(f"📁 Marqueur créé pour dossier vide: {current_folder_path}")
+            # Si le dossier est vide (pas de fichiers), on n'a plus besoin de créer des marqueurs
+            # Le nouveau système utilise les folder_path pour représenter la structure
 
             # Copier récursivement les sous-dossiers
             for subfolder in source_folder.subfolders:
@@ -323,7 +311,8 @@ def copy_folder_to_class():
         # Debug supplémentaire: lister les fichiers réellement dans cette classe
         debug_files = ClassFile.query.filter_by(classroom_id=class_id).all()
         for i, file in enumerate(debug_files):
-            print(f"🔍   DIAGNOSTIC [{i+1}] ID:{file.id} | {file.original_filename} | Description: {file.description[:50] if file.description else 'None'}")
+            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
+            print(f"🔍   DIAGNOSTIC [{i+1}] ID:{file.id} | {filename} | Dossier: {file.folder_path}")
         
         # Si aucun fichier physique n'existe, avertir l'utilisateur
         if total_files_in_folder > 0 and copied_count == 0:
@@ -461,55 +450,30 @@ def copy_folder_to_class_folder():
 def copy_single_file_to_class(user_file, class_id, folder_path=None):
     """Fonction utilitaire pour copier un fichier vers une classe"""
     try:
-        # Construire la description avec le chemin complet
-        if folder_path:
-            description = f"Copié dans le dossier: {folder_path}"
-            # Construire un identifiant unique basé sur le fichier et le chemin
-            unique_key = f"{user_file.original_filename}_{folder_path}"
-        else:
-            description = "Copié depuis le gestionnaire de fichiers"
-            unique_key = user_file.original_filename
-
         # Vérifier si le fichier n'existe pas déjà dans ce chemin spécifique
+        folder_path_clean = folder_path or ''
         existing_file = ClassFile.query.filter_by(
             classroom_id=class_id,
-            original_filename=user_file.original_filename,
-            description=description
+            user_file_id=user_file.id,
+            folder_path=folder_path_clean
         ).first()
 
         if existing_file:
             print(f"Fichier déjà existant: {user_file.original_filename} dans {folder_path}")
             return False  # Fichier déjà existant
 
-        # Copier le fichier physique
-        source_path = os.path.join(current_app.root_path, user_file.get_file_path())
-
-        if not os.path.exists(source_path):
-            print(f"❌ Fichier source introuvable: {source_path}")
-            print(f"❌ Fichier demandé: {user_file.original_filename} (ID: {user_file.id})")
+        # Vérifier que le fichier source a du contenu BLOB
+        if not user_file.file_content:
+            print(f"❌ Pas de contenu BLOB pour le fichier: {user_file.original_filename} (ID: {user_file.id})")
             return False
 
-        # Créer le dossier de destination pour la classe
-        class_folder = os.path.join(current_app.root_path, UPLOAD_FOLDER, 'class_files', str(class_id))
-        os.makedirs(class_folder, exist_ok=True)
+        print(f"✅ Fichier BLOB trouvé: {user_file.original_filename} ({len(user_file.file_content)} octets)")
 
-        # Générer un nouveau nom de fichier unique
-        file_ext = user_file.file_type
-        unique_filename = f"{uuid.uuid4()}.{file_ext}"
-        dest_path = os.path.join(class_folder, unique_filename)
-
-        # Copier le fichier
-        shutil.copy2(source_path, dest_path)
-        print(f"✅ Fichier physique copié: {source_path} -> {dest_path}")
-
-        # Créer l'entrée en base de données
+        # Créer l'entrée en base de données avec le nouveau modèle
         class_file = ClassFile(
             classroom_id=class_id,
-            filename=unique_filename,
-            original_filename=user_file.original_filename,
-            file_type=user_file.file_type,
-            file_size=user_file.file_size,
-            description=description
+            user_file_id=user_file.id,
+            folder_path=folder_path_clean
         )
 
         db.session.add(class_file)
