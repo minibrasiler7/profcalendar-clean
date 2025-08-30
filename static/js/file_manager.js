@@ -1327,7 +1327,7 @@ function handleFiles(files) {
 // Valider un fichier
 function validateFile(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    const maxSize = 100 * 1024 * 1024; // 100 MB
+    const maxSize = 200 * 1024 * 1024; // 200 MB
 
     if (!allowedTypes.includes(file.type)) {
         showNotification('error', `Type de fichier non autorisé: ${file.name}`);
@@ -1335,7 +1335,7 @@ function validateFile(file) {
     }
 
     if (file.size > maxSize) {
-        showNotification('error', `Fichier trop volumineux: ${file.name} (max 100 MB)`);
+        showNotification('error', `Fichier trop volumineux: ${file.name} (max 200 MB)`);
         return false;
     }
 

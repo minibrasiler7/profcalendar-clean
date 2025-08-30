@@ -19,12 +19,26 @@ file_manager_bp = Blueprint('file_manager', __name__, url_prefix='/file_manager'
 # Configuration
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB (permet des PDF jusqu'à 40MB confortablement)
+MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB (permet des PDF volumineux)
+MAX_TOTAL_STORAGE = 5 * 1024 * 1024 * 1024  # 5 GB de stockage total
 THUMBNAIL_SIZE = (200, 200)
 
 def allowed_file(filename):
     """Vérifie si le fichier est autorisé"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_user_total_storage(user):
+    """Calcule l'utilisation totale de stockage d'un utilisateur"""
+    from models.file_manager import UserFile
+    from models.student import ClassFile
+    
+    # Calculer la taille des UserFiles
+    user_files_size = sum(f.file_size or 0 for f in user.files.all())
+    
+    # Calculer la taille des ClassFiles
+    class_files_size = sum(f.file_size or 0 for f in ClassFile.query.filter_by(teacher_id=user.id).all())
+    
+    return user_files_size + class_files_size
 
 def create_thumbnail(image_path, thumbnail_path):
     """Crée une miniature pour une image"""
@@ -765,6 +779,12 @@ def upload_with_structure():
     if file_size > MAX_FILE_SIZE:
         return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
     
+    # Vérifier la limite de stockage total
+    current_storage = get_user_total_storage(current_user)
+    if current_storage + file_size > MAX_TOTAL_STORAGE:
+        remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
+        return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
+    
     try:
         # Déterminer le dossier de destination
         target_folder_id = parent_folder_id
@@ -917,6 +937,12 @@ def upload_file():
 
     if file_size > MAX_FILE_SIZE:
         return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+
+    # Vérifier la limite de stockage total
+    current_storage = get_user_total_storage(current_user)
+    if current_storage + file_size > MAX_TOTAL_STORAGE:
+        remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
+        return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
 
     try:
         # Générer un nom unique

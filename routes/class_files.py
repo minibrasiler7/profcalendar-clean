@@ -9,6 +9,9 @@ import os
 import uuid
 import shutil
 
+# Import des limites depuis file_manager
+from routes.file_manager import MAX_FILE_SIZE, MAX_TOTAL_STORAGE, get_user_total_storage
+
 class_files_bp = Blueprint('class_files', __name__, url_prefix='/api/class-files')
 
 def copy_file_physically(user_file, class_id):
@@ -481,6 +484,16 @@ def upload_class_file():
         # Lire le contenu du fichier pour stockage BLOB
         file_content = file.read()
         file_size = len(file_content)
+        
+        # Vérifier la taille du fichier
+        if file_size > MAX_FILE_SIZE:
+            return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+        
+        # Vérifier la limite de stockage total
+        current_storage = get_user_total_storage(current_user)
+        if current_storage + file_size > MAX_TOTAL_STORAGE:
+            remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
+            return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
         
         # Déterminer le type MIME
         mime_type = 'application/octet-stream'
