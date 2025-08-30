@@ -71,8 +71,8 @@ class Grade(db.Model):
         return f'<Grade {self.title} - {self.grade}/{self.max_grade}>'
 
 
-class ClassFile(db.Model):
-    """Modèle pour les fichiers de classe"""
+class LegacyClassFile(db.Model):
+    """Modèle pour les fichiers de classe (version legacy)"""
     __tablename__ = 'class_files'
 
     id = db.Column(db.Integer, primary_key=True)

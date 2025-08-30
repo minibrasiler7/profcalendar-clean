@@ -15,7 +15,7 @@ class StudentFileShare(db.Model):
     viewed_at = db.Column(db.DateTime)  # Quand l'élève a vu le fichier
     
     # Relations
-    file = db.relationship('ClassFile', backref='student_shares')
+    file = db.relationship('LegacyClassFile', backref='student_shares')
     student = db.relationship('Student', backref='shared_files')
     teacher = db.relationship('User', backref='shared_student_files')
     

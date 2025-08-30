@@ -3,7 +3,7 @@ from models.user import User, Holiday, Break
 from models.classroom import Classroom
 from models.schedule import Schedule
 from models.planning import Planning
-from models.student import Student, Grade, Chapter, ClassroomChapter, StudentFile
+from models.student import Student, Grade, LegacyClassFile, Chapter, ClassroomChapter, StudentFile
 from models.class_file import ClassFile
 from models.student_info_history import StudentInfoHistory
 from models.attendance import Attendance
@@ -23,7 +23,7 @@ from models.user_preferences import UserPreferences, UserSanctionPreferences
 from models.accommodation import AccommodationTemplate, StudentAccommodation
 
 __all__ = ['User', 'Holiday', 'Break', 'Classroom', 'Schedule', 'Planning',
-           'Student', 'Grade', 'ClassFile', 'Chapter', 'ClassroomChapter', 'StudentFile', 'StudentInfoHistory', 'Attendance', 'FileFolder', 'UserFile', 'FileShare',
+           'Student', 'Grade', 'LegacyClassFile', 'ClassFile', 'Chapter', 'ClassroomChapter', 'StudentFile', 'StudentInfoHistory', 'Attendance', 'FileFolder', 'UserFile', 'FileShare',
            'SanctionTemplate', 'SanctionThreshold', 'SanctionOption', 'ClassroomSanctionImport', 'StudentSanctionRecord', 'StudentSanctionCount',
            'Evaluation', 'EvaluationGrade', 'SeatingPlan', 'StudentGroup', 'StudentGroupMembership',
            'ClassMaster', 'TeacherAccessCode', 'TeacherCollaboration', 'SharedClassroom', 'StudentClassroomLink', 'TeacherInvitation', 'InvitationClassroom',
