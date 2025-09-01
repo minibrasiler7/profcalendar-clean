@@ -381,17 +381,47 @@ def get_current_or_next_lesson(user):
             if not period_info:
                 return None
                 
+            # Vérifier s'il y a des planifications fusionnées avec les périodes suivantes
+            end_period = period_number
+            end_time = period_info['end']
+            is_merged = False
+            
+            # Rechercher les planifications fusionnées
+            current_period = period_number + 1
+            while current_period <= len(periods):
+                next_planning = Planning.query.filter_by(
+                    user_id=user.id,
+                    date=date,
+                    period_number=current_period
+                ).first()
+                
+                # Vérifier si la planification suivante est identique (même classe/groupe mixte)
+                if (next_planning and 
+                    next_planning.classroom_id == planning.classroom_id and
+                    next_planning.mixed_group_id == planning.mixed_group_id and
+                    next_planning.group_id == planning.group_id and
+                    is_lesson_period(planning=next_planning)):
+                    
+                    end_period = current_period
+                    end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                    if end_period_info:
+                        end_time = end_period_info['end']
+                    is_merged = True
+                    current_period += 1
+                else:
+                    break
+                
             lesson = type('obj', (object,), {
                 'classroom_id': planning.classroom_id,
                 'mixed_group_id': planning.mixed_group_id,
                 'period_number': planning.period_number,
-                'end_period_number': planning.period_number,
+                'end_period_number': end_period,
                 'weekday': weekday_num,
                 'start_time': period_info['start'],
-                'end_time': period_info['end'],
+                'end_time': end_time,
                 'classroom': planning.classroom if planning.classroom_id else None,
                 'mixed_group': planning.mixed_group if planning.mixed_group_id else None,
-                'is_merged': False
+                'is_merged': is_merged
             })()
             return lesson
         
@@ -1182,19 +1212,33 @@ def lesson_view():
 
     # Déterminer la classroom à utiliser
     lesson_classroom = None
+    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has classroom_id: {hasattr(lesson, 'classroom_id')}, value: {getattr(lesson, 'classroom_id', None)}")
+    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has mixed_group_id: {hasattr(lesson, 'mixed_group_id')}, value: {getattr(lesson, 'mixed_group_id', None)}")
+    
     if hasattr(lesson, 'classroom_id') and lesson.classroom_id:
         lesson_classroom = Classroom.query.get(lesson.classroom_id)
+        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom {lesson.classroom_id}, found: {lesson_classroom is not None}")
     elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
         # Pour les groupes mixtes, utiliser la première classroom du groupe
         from models.mixed_group import MixedGroup
         mixed_group = MixedGroup.query.get(lesson.mixed_group_id)
+        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group {lesson.mixed_group_id}, found: {mixed_group is not None}")
         if mixed_group and mixed_group.classrooms:
             lesson_classroom = mixed_group.classrooms[0]
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Mixed group has {len(mixed_group.classrooms)} classrooms, using first: {lesson_classroom.id if lesson_classroom else None}")
+    
+    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
 
     # Récupérer les élèves
     students = []
-    if lesson_classroom:
+    if planning:
+        # Si on a une planification, utiliser sa méthode get_students() pour gérer les groupes
+        students = planning.get_students()
+    elif lesson_classroom:
+        # Sinon, utiliser tous les élèves de la classe
         students = lesson_classroom.get_students()
+    
+    if students:
         students = sorted(students, key=lambda s: (s.last_name, s.first_name))
 
     # Récupérer les présences existantes pour ce cours

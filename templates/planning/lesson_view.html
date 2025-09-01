@@ -1900,6 +1900,12 @@ async function loadClassResources() {
     try {
         showResourcesLoading(true);
         
+        // Vérifier qu'on a un classroomId valide
+        if (!classroomId || classroomId === 'null') {
+            showNoResources();
+            return;
+        }
+        
         const response = await fetch(`{{ url_for('planning.get_class_resources', classroom_id=0) }}`.replace('0', classroomId));
         const result = await response.json();
         
