@@ -1311,7 +1311,7 @@ def lesson_view():
 def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
     try:
-        from models.class_file import ClassFile
+        from models.student import LegacyClassFile as ClassFile
         from models.classroom import Classroom
         
         # Vérifier que la classe appartient à l'utilisateur
@@ -1377,7 +1377,7 @@ def get_class_resources(classroom_id):
 def toggle_pin_resource():
     """Épingler ou désépingler une ressource"""
     try:
-        from models.class_file import ClassFile
+        from models.student import LegacyClassFile as ClassFile
         from models.classroom import Classroom
         
         data = request.get_json()
@@ -3375,7 +3375,7 @@ def save_file_annotations():
         
         # Vérifier que le fichier appartient à l'utilisateur (fichier de classe)
         from models.file_manager import UserFile, FileAnnotation
-        from models.class_file import ClassFile
+        from models.student import LegacyClassFile as ClassFile
         
         # D'abord chercher dans user_files
         user_file = UserFile.query.filter_by(id=file_id, user_id=current_user.id).first()
@@ -3671,7 +3671,7 @@ def get_file_annotations(file_id):
         
         # Vérifier que le fichier appartient à l'utilisateur
         from models.file_manager import UserFile, FileAnnotation
-        from models.class_file import ClassFile
+        from models.student import LegacyClassFile as ClassFile
         
         # D'abord chercher dans user_files
         user_file = UserFile.query.filter_by(id=file_id, user_id=current_user.id).first()
