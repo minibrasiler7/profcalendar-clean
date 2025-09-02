@@ -1243,6 +1243,43 @@ def test_sanctions():
                          lesson_date=lesson_date,
                          is_current=is_current_lesson)
 
+@planning_bp.route('/debug/move-files/<int:from_classroom>/<int:to_classroom>')
+@login_required
+def debug_move_files(from_classroom, to_classroom):
+    """Route de debug pour déplacer des fichiers entre classes"""
+    try:
+        from models.student import LegacyClassFile as ClassFile
+        from models.classroom import Classroom
+        
+        # Vérifier que les deux classes appartiennent à l'utilisateur
+        source_classroom = Classroom.query.filter_by(id=from_classroom, user_id=current_user.id).first()
+        target_classroom = Classroom.query.filter_by(id=to_classroom, user_id=current_user.id).first()
+        
+        if not source_classroom or not target_classroom:
+            return jsonify({'success': False, 'message': 'Classes introuvables'}), 404
+        
+        # Récupérer tous les fichiers de la classe source
+        files_to_move = ClassFile.query.filter_by(classroom_id=from_classroom).all()
+        
+        current_app.logger.error(f"=== FILE MOVE DEBUG === Moving {len(files_to_move)} files from {source_classroom.name} to {target_classroom.name}")
+        
+        # Déplacer chaque fichier
+        for file in files_to_move:
+            file.classroom_id = to_classroom
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Moved {len(files_to_move)} files from {source_classroom.name} to {target_classroom.name}',
+            'moved_count': len(files_to_move)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error moving files: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
 @planning_bp.route('/lesson')
 @login_required
 def lesson_view():
@@ -1276,6 +1313,34 @@ def lesson_view():
             date=lesson_date,
             period_number=lesson.period_number
         ).first()
+        
+        # Si pas de planification trouvée et que c'est une période fusionnée,
+        # chercher dans les périodes précédentes fusionnées
+        if not planning and hasattr(lesson, 'is_merged') and lesson.is_merged:
+            current_app.logger.error(f"=== MERGED PLANNING DEBUG === No planning for P{lesson.period_number}, searching in merged periods")
+            
+            # Chercher dans les périodes précédentes jusqu'au début de la fusion
+            for check_period in range(lesson.period_number - 1, 0, -1):
+                planning = Planning.query.filter_by(
+                    user_id=current_user.id,
+                    date=lesson_date,
+                    period_number=check_period
+                ).first()
+                
+                if planning:
+                    current_app.logger.error(f"=== MERGED PLANNING DEBUG === Found planning in P{check_period}, using for P{lesson.period_number}")
+                    break
+                
+                # Vérifier si cette période précédente est aussi fusionnée
+                schedule = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    weekday=lesson_date.weekday(),
+                    period_number=check_period
+                ).first()
+                
+                if not (schedule and hasattr(schedule, 'has_merged_next') and schedule.has_merged_next):
+                    # Cette période n'est pas fusionnée, arrêter la recherche
+                    break
 
     # Déterminer la classroom à utiliser
     lesson_classroom = None
