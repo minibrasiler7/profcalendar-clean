@@ -149,7 +149,8 @@ class Planning(db.Model):
         """Retourne la liste des élèves concernés par cette planification"""
         if self.group_id:
             # Si un groupe spécifique est défini, on utilise ce groupe
-            return self.group.students.all()
+            # Accéder aux étudiants via les memberships
+            return [membership.student for membership in self.group.memberships.all()]
         elif self.classroom_id:
             # Sinon, tous les élèves de la classe
             return self.classroom.students.all()

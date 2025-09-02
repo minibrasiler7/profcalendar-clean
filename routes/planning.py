@@ -1430,8 +1430,16 @@ def get_class_resources(classroom_id):
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
         
         # Afficher aussi les classes qui ont des fichiers pour debug
-        all_classrooms_with_files = db.session.query(ClassFile.classroom_id, db.func.count(ClassFile.id)).group_by(ClassFile.classroom_id).all()
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === All classrooms with files: {all_classrooms_with_files}")
+        from models.classroom import Classroom
+        classrooms_with_files = db.session.query(
+            ClassFile.classroom_id, 
+            db.func.count(ClassFile.id),
+            Classroom.name
+        ).join(Classroom).group_by(ClassFile.classroom_id, Classroom.name).all()
+        
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === All classrooms with files:")
+        for classroom_id, file_count, classroom_name in classrooms_with_files:
+            current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom {classroom_id} ({classroom_name}): {file_count} files")
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
