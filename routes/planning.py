@@ -386,30 +386,66 @@ def get_current_or_next_lesson(user):
             end_time = period_info['end']
             is_merged = False
             
-            # Rechercher les planifications fusionnées
-            current_period = period_number + 1
-            while current_period <= len(periods):
-                next_planning = Planning.query.filter_by(
-                    user_id=user.id,
-                    date=date,
-                    period_number=current_period
-                ).first()
-                
-                # Vérifier si la planification suivante est identique (même classe/groupe mixte)
-                if (next_planning and 
-                    next_planning.classroom_id == planning.classroom_id and
-                    next_planning.mixed_group_id == planning.mixed_group_id and
-                    next_planning.group_id == planning.group_id and
-                    is_lesson_period(planning=next_planning)):
+            # D'abord vérifier l'horaire type (Schedule) pour les périodes fusionnées
+            schedule = Schedule.query.filter_by(
+                user_id=user.id,
+                weekday=weekday_num,
+                period_number=period_number
+            ).first()
+            
+            current_app.logger.error(f"=== MERGED PERIODS DEBUG === P{period_number} weekday {weekday_num}: Schedule found: {schedule is not None}")
+            if schedule:
+                current_app.logger.error(f"=== MERGED PERIODS DEBUG === Schedule has_merged_next: {getattr(schedule, 'has_merged_next', False)}")
+            
+            if schedule and hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
+                # Utiliser la logique des Schedule pour les périodes fusionnées
+                current_period = period_number + 1
+                while current_period <= len(periods):
+                    next_schedule = Schedule.query.filter_by(
+                        user_id=user.id,
+                        weekday=weekday_num,
+                        period_number=current_period
+                    ).first()
                     
-                    end_period = current_period
-                    end_period_info = next((p for p in periods if p['number'] == current_period), None)
-                    if end_period_info:
-                        end_time = end_period_info['end']
-                    is_merged = True
-                    current_period += 1
-                else:
-                    break
+                    if (next_schedule and 
+                        hasattr(next_schedule, 'merged_with_previous') and 
+                        next_schedule.merged_with_previous):
+                        end_period = current_period
+                        end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                        if end_period_info:
+                            end_time = end_period_info['end']
+                        is_merged = True
+                        
+                        if not (hasattr(next_schedule, 'has_merged_next') and next_schedule.has_merged_next):
+                            break
+                        current_period += 1
+                    else:
+                        break
+            else:
+                # Si pas de fusion dans Schedule, chercher les planifications consécutives identiques
+                current_period = period_number + 1
+                while current_period <= len(periods):
+                    next_planning = Planning.query.filter_by(
+                        user_id=user.id,
+                        date=date,
+                        period_number=current_period
+                    ).first()
+                    
+                    # Vérifier si la planification suivante est identique (même classe/groupe mixte)
+                    if (next_planning and 
+                        next_planning.classroom_id == planning.classroom_id and
+                        next_planning.mixed_group_id == planning.mixed_group_id and
+                        next_planning.group_id == planning.group_id and
+                        is_lesson_period(planning=next_planning)):
+                        
+                        end_period = current_period
+                        end_period_info = next((p for p in periods if p['number'] == current_period), None)
+                        if end_period_info:
+                            end_time = end_period_info['end']
+                        is_merged = True
+                        current_period += 1
+                    else:
+                        break
                 
             lesson = type('obj', (object,), {
                 'classroom_id': planning.classroom_id,
@@ -1331,6 +1367,8 @@ def get_class_resources(classroom_id):
             ClassFile.pin_order.asc(),
             ClassFile.original_filename.asc()
         ).all()
+        
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(class_files)} files for classroom {classroom_id}")
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
