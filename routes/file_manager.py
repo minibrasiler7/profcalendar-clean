@@ -1016,9 +1016,10 @@ def serve_file(file_id):
         
         current_app.logger.error(f"=== SERVE_FILE DEBUG === file_id={file_id}, user_id={current_user.id}")
         
-        # Recherche du fichier de classe
-        class_file = ClassFile.query.filter_by(id=file_id).first()
-        current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile found: {class_file is not None}")
+        # Recherche du fichier de classe dans le système legacy
+        from models.student import LegacyClassFile
+        class_file = LegacyClassFile.query.filter_by(id=file_id).first()
+        current_app.logger.error(f"=== SERVE_FILE DEBUG === LegacyClassFile found: {class_file is not None}")
         
         if not class_file:
             # Essayer avec UserFile aussi pour les fichiers personnels
@@ -1045,7 +1046,7 @@ def serve_file(file_id):
                 current_app.logger.error(f"=== SERVE_FILE DEBUG === No file found with ID {file_id}")
                 return "Fichier introuvable dans la base de données", 404
         
-        # Vérification des droits
+        # Vérification des droits pour LegacyClassFile
         if hasattr(class_file, 'classroom') and hasattr(class_file.classroom, 'user_id'):
             if class_file.classroom.user_id != current_user.id:
                 return "Accès refusé", 403
@@ -1295,11 +1296,14 @@ def delete_class_file(file_id):
     try:
         from models.classroom import Classroom
         
+        # Utiliser le système legacy pour vérifier le fichier
+        from models.student import LegacyClassFile
+        
         # Vérifier que le fichier appartient à une classe de l'utilisateur
-        class_file = ClassFile.query.join(
-            Classroom, ClassFile.classroom_id == Classroom.id
+        class_file = LegacyClassFile.query.join(
+            Classroom, LegacyClassFile.classroom_id == Classroom.id
         ).filter(
-            ClassFile.id == file_id,
+            LegacyClassFile.id == file_id,
             Classroom.user_id == current_user.id
         ).first()
 
@@ -1381,14 +1385,16 @@ def delete_class_folder():
         print(f"🔍 Recherche des fichiers avec description exacte: '{folder_description_exact}'")
         print(f"🔍 Recherche des fichiers avec préfixe: '{folder_description_prefix}'")
         
+        # Utiliser le système legacy pour trouver les fichiers
+        from models.student import LegacyClassFile
+        
         # Chercher les fichiers dans le dossier exact ET dans tous ses sous-dossiers
-        # Exclure les fichiers partagés uniquement avec les élèves
-        class_files = ClassFile.query.filter(
-            ClassFile.classroom_id == class_id,
-            ClassFile.is_student_shared == False,
+        # Dans le système legacy, on utilise la description pour identifier les dossiers
+        class_files = LegacyClassFile.query.filter(
+            LegacyClassFile.classroom_id == class_id,
             db.or_(
-                ClassFile.description == folder_description_exact,
-                ClassFile.description.like(folder_description_prefix + '%')
+                LegacyClassFile.description == folder_description_exact,
+                LegacyClassFile.description.like(folder_description_prefix + '%')
             )
         ).all()
         
