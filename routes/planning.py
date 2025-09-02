@@ -1380,13 +1380,9 @@ def lesson_view():
         file_count = ClassFile.query.filter_by(classroom_id=lesson.classroom_id).count()
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Classroom {lesson.classroom_id} has {file_count} files")
         
-        # Si cette classroom n'a pas de fichiers, essayer de trouver une classroom avec des fichiers
+        # Si cette classroom n'a pas de fichiers, conserver la classe originale
         if file_count == 0:
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom, searching for classroom with files")
-            classroom_with_files = find_classroom_with_files()
-            if classroom_with_files:
-                lesson_classroom = classroom_with_files
-                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom with files: {lesson_classroom.id}")
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom {lesson.classroom_id}, but keeping original classroom")
             
     elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
         # Pour les groupes mixtes, chercher une classroom avec des fichiers
@@ -1410,11 +1406,8 @@ def lesson_view():
                 lesson_classroom = mixed_group.classrooms[0]
                 current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in mixed group classrooms, using first: {lesson_classroom.id}")
                 
-                # En dernier recours, chercher n'importe quelle classroom avec des fichiers
-                classroom_with_files = find_classroom_with_files()
-                if classroom_with_files:
-                    lesson_classroom = classroom_with_files
-                    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using any classroom with files: {lesson_classroom.id}")
+                # Conserver la première classroom du groupe même sans fichiers
+                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files found, keeping first classroom of mixed group")
     
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
 

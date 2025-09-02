@@ -609,10 +609,15 @@ def delete_multiple():
                         if os.path.exists(thumbnail_path):
                             os.remove(thumbnail_path)
 
-                    # D'abord supprimer toutes les copies dans les classes
-                    from models.class_file import ClassFile
-                    class_copies = ClassFile.query.filter_by(user_file_id=user_file.id).all()
-                    for copy in class_copies:
+                    # D'abord supprimer toutes les copies dans les classes (système legacy)
+                    from models.student import LegacyClassFile
+                    # Les fichiers legacy utilisent 'filename' pour identifier les copies
+                    legacy_copies = LegacyClassFile.query.filter_by(filename=user_file.filename).all()
+                    for copy in legacy_copies:
+                        # Supprimer le fichier physique s'il existe
+                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', copy.filename)
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
                         db.session.delete(copy)
                     
                     # Ensuite supprimer le fichier original de la base de données
@@ -1242,10 +1247,15 @@ def delete_folder(folder_id):
                     if os.path.exists(thumbnail_path):
                         os.remove(thumbnail_path)
                 
-                # D'abord supprimer toutes les copies dans les classes
-                from models.class_file import ClassFile
-                class_copies = ClassFile.query.filter_by(user_file_id=file.id).all()
-                for copy in class_copies:
+                # D'abord supprimer toutes les copies dans les classes (système legacy)
+                from models.student import LegacyClassFile
+                # Les fichiers legacy utilisent 'filename' pour identifier les copies
+                legacy_copies = LegacyClassFile.query.filter_by(filename=file.filename).all()
+                for copy in legacy_copies:
+                    # Supprimer le fichier physique s'il existe
+                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', copy.filename)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
                     db.session.delete(copy)
                 
                 # Ensuite supprimer le fichier original de la base de données
