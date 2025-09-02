@@ -2137,7 +2137,7 @@ async function loadClassFiles(classroomId) {
     noFiles.style.display = 'none';
     
     try {
-        const response = await fetch(`/api/class-files/${numericId}`);
+        const response = await fetch(`/file_manager/get-class-files/${numericId}`);
         console.log('Réponse API:', response);
         
         if (!response.ok) {
@@ -2484,7 +2484,7 @@ async function openPdfInViewer(fileId, fileName) {
 // Charger un document PDF (copié de lesson_view.html)
 async function loadPDF(fileId) {
     try {
-        const url = `/api/class-files/preview/${fileId}`;
+        const url = `/file_manager/preview/${fileId}`;
         console.log('📄 Chargement du PDF depuis:', url);
         
         const loadingTask = pdfjsLib.getDocument(url);
@@ -3907,7 +3907,7 @@ async function loadDayClassFiles(classroomId) {
     noFiles.style.display = 'none';
     
     try {
-        const response = await fetch(`/api/class-files/${numericId}`);
+        const response = await fetch(`/file_manager/get-class-files/${numericId}`);
         console.log('Réponse API:', response);
         
         if (!response.ok) {
@@ -4252,7 +4252,7 @@ async function openDayPdfInViewer(fileId, fileName) {
 // Charger un document PDF pour la vue journalière
 async function loadDayPDF(fileId) {
     try {
-        const url = `/api/class-files/preview/${fileId}`;
+        const url = `/file_manager/preview/${fileId}`;
         console.log('📄 Chargement du PDF depuis:', url);
         
         const loadingTask = pdfjsLib.getDocument(url);
@@ -4929,7 +4929,7 @@ async function getStudentsForClass(classId) {
             apiClassId = parts[parts.length - 1]; // Prendre le dernier élément (l'ID numérique)
         }
         
-        const response = await fetch(`/api/class-files/students/list/${apiClassId}`);
+        const response = await fetch(`/file_manager/get-class-files/${apiClassId}`);
         if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
         }

@@ -8223,7 +8223,7 @@ async function loadClassFiles(folderPath = '', classroomId = null) {
     currentClassFolderByClass[classroomId] = folderPath; // Spécifique à la classe
     
     try {
-        const url = `/api/class-files/list/${classroomId}`;
+        const url = `/file_manager/get-class-files/${classroomId}`;
             
         const response = await fetch(url);
         const result = await response.json();
