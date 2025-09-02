@@ -609,7 +609,13 @@ def delete_multiple():
                         if os.path.exists(thumbnail_path):
                             os.remove(thumbnail_path)
 
-                    # Supprimer de la base de données
+                    # D'abord supprimer toutes les copies dans les classes
+                    from models.class_file import ClassFile
+                    class_copies = ClassFile.query.filter_by(user_file_id=user_file.id).all()
+                    for copy in class_copies:
+                        db.session.delete(copy)
+                    
+                    # Ensuite supprimer le fichier original de la base de données
                     db.session.delete(user_file)
                     deleted_count += 1
 
@@ -1236,7 +1242,13 @@ def delete_folder(folder_id):
                     if os.path.exists(thumbnail_path):
                         os.remove(thumbnail_path)
                 
-                # Supprimer le fichier de la base de données
+                # D'abord supprimer toutes les copies dans les classes
+                from models.class_file import ClassFile
+                class_copies = ClassFile.query.filter_by(user_file_id=file.id).all()
+                for copy in class_copies:
+                    db.session.delete(copy)
+                
+                # Ensuite supprimer le fichier original de la base de données
                 db.session.delete(file)
             
             # Supprimer le dossier de la base de données

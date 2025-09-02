@@ -8,13 +8,13 @@ class ClassFile(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
-    user_file_id = db.Column(db.Integer, db.ForeignKey('user_files.id'), nullable=False)
+    user_file_id = db.Column(db.Integer, db.ForeignKey('user_files.id', ondelete='CASCADE'), nullable=False)
     folder_path = db.Column(db.String(500), default='')  # Chemin du dossier dans la classe (ex: "Chapitre 1/Exercices")
     copied_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relations
     classroom = db.relationship('Classroom', backref='class_files_v2')
-    user_file = db.relationship('UserFile', backref='class_copies')
+    user_file = db.relationship('UserFile', backref=db.backref('class_copies', cascade='all, delete-orphan'))
     
     def get_full_path(self):
         """Retourne le chemin complet du fichier dans la classe"""

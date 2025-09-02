@@ -2137,7 +2137,7 @@ async function loadClassFiles(classroomId) {
     noFiles.style.display = 'none';
     
     try {
-        const response = await fetch(`/file_manager/get-class-files/${numericId}`);
+        const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
         
         if (!response.ok) {
@@ -3907,7 +3907,7 @@ async function loadDayClassFiles(classroomId) {
     noFiles.style.display = 'none';
     
     try {
-        const response = await fetch(`/file_manager/get-class-files/${numericId}`);
+        const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
         
         if (!response.ok) {
@@ -4929,7 +4929,7 @@ async function getStudentsForClass(classId) {
             apiClassId = parts[parts.length - 1]; // Prendre le dernier élément (l'ID numérique)
         }
         
-        const response = await fetch(`/file_manager/get-class-files/${apiClassId}`);
+        const response = await fetch(`/planning/get-class-resources/${apiClassId}`);
         if (!response.ok) {
             throw new Error(`Erreur HTTP: ${response.status}`);
         }

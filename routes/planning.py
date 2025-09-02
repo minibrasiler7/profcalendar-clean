@@ -1347,17 +1347,74 @@ def lesson_view():
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has classroom_id: {hasattr(lesson, 'classroom_id')}, value: {getattr(lesson, 'classroom_id', None)}")
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has mixed_group_id: {hasattr(lesson, 'mixed_group_id')}, value: {getattr(lesson, 'mixed_group_id', None)}")
     
+    # Fonction pour trouver une classroom qui a des fichiers
+    def find_classroom_with_files():
+        from models.student import LegacyClassFile as ClassFile
+        
+        # Obtenir toutes les classes de l'utilisateur qui ont des fichiers
+        classrooms_with_files = db.session.query(
+            Classroom.id, 
+            Classroom.name,
+            db.func.count(ClassFile.id).label('file_count')
+        ).join(ClassFile, Classroom.id == ClassFile.classroom_id).filter(
+            Classroom.user_id == current_user.id
+        ).group_by(Classroom.id, Classroom.name).all()
+        
+        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Found {len(classrooms_with_files)} classrooms with files:")
+        for classroom_id, name, file_count in classrooms_with_files:
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG ===   - Classroom {classroom_id} ({name}): {file_count} files")
+        
+        # Si on trouve des classrooms avec des fichiers, utiliser la première
+        if classrooms_with_files:
+            classroom_id_with_files = classrooms_with_files[0][0]
+            return Classroom.query.get(classroom_id_with_files)
+        
+        return None
+    
     if hasattr(lesson, 'classroom_id') and lesson.classroom_id:
         lesson_classroom = Classroom.query.get(lesson.classroom_id)
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom {lesson.classroom_id}, found: {lesson_classroom is not None}")
+        
+        # Vérifier si cette classroom a des fichiers
+        from models.student import LegacyClassFile as ClassFile
+        file_count = ClassFile.query.filter_by(classroom_id=lesson.classroom_id).count()
+        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Classroom {lesson.classroom_id} has {file_count} files")
+        
+        # Si cette classroom n'a pas de fichiers, essayer de trouver une classroom avec des fichiers
+        if file_count == 0:
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom, searching for classroom with files")
+            classroom_with_files = find_classroom_with_files()
+            if classroom_with_files:
+                lesson_classroom = classroom_with_files
+                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom with files: {lesson_classroom.id}")
+            
     elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
-        # Pour les groupes mixtes, utiliser la première classroom du groupe
+        # Pour les groupes mixtes, chercher une classroom avec des fichiers
         from models.mixed_group import MixedGroup
         mixed_group = MixedGroup.query.get(lesson.mixed_group_id)
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group {lesson.mixed_group_id}, found: {mixed_group is not None}")
+        
         if mixed_group and mixed_group.classrooms:
-            lesson_classroom = mixed_group.classrooms[0]
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Mixed group has {len(mixed_group.classrooms)} classrooms, using first: {lesson_classroom.id if lesson_classroom else None}")
+            # Chercher parmi les classrooms du groupe mixte celle qui a des fichiers
+            from models.student import LegacyClassFile as ClassFile
+            for classroom in mixed_group.classrooms:
+                file_count = ClassFile.query.filter_by(classroom_id=classroom.id).count()
+                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Mixed group classroom {classroom.id} has {file_count} files")
+                if file_count > 0:
+                    lesson_classroom = classroom
+                    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group classroom with files: {classroom.id}")
+                    break
+            
+            # Si aucune classroom du groupe mixte n'a de fichiers, utiliser la première
+            if not lesson_classroom and mixed_group.classrooms:
+                lesson_classroom = mixed_group.classrooms[0]
+                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in mixed group classrooms, using first: {lesson_classroom.id}")
+                
+                # En dernier recours, chercher n'importe quelle classroom avec des fichiers
+                classroom_with_files = find_classroom_with_files()
+                if classroom_with_files:
+                    lesson_classroom = classroom_with_files
+                    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using any classroom with files: {lesson_classroom.id}")
     
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
 
