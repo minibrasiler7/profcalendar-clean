@@ -340,14 +340,45 @@ def is_school_year(date, user):
 
 def get_current_or_next_lesson(user):
     """Trouve le cours actuel ou le prochain cours - suit la logique de la vue calendrier"""
-    from datetime import time as time_type
+    from datetime import time as time_type, datetime
     from utils.vaud_holidays import is_holiday
+    from flask import request
     
-    # Obtenir l'heure actuelle selon le fuseau horaire de l'utilisateur
-    now = user.get_local_datetime()
-    current_time = now.time()
-    current_date = now.date()
-    weekday = current_date.weekday()
+    # Mode debug : permettre de simuler une heure/date spécifique via paramètres URL
+    debug_date = request.args.get('debug_date')  # Format: 2025-09-02
+    debug_time = request.args.get('debug_time')  # Format: 08:00 ou 14:30
+    
+    if debug_date or debug_time:
+        current_app.logger.error(f"=== DEBUG MODE === debug_date={debug_date}, debug_time={debug_time}")
+        
+        # Utiliser la date de debug si fournie, sinon la date actuelle
+        if debug_date:
+            try:
+                current_date = datetime.strptime(debug_date, '%Y-%m-%d').date()
+            except ValueError:
+                current_app.logger.error(f"=== DEBUG MODE === Invalid debug_date format: {debug_date}")
+                current_date = user.get_local_datetime().date()
+        else:
+            current_date = user.get_local_datetime().date()
+        
+        # Utiliser l'heure de debug si fournie, sinon l'heure actuelle
+        if debug_time:
+            try:
+                current_time = datetime.strptime(debug_time, '%H:%M').time()
+            except ValueError:
+                current_app.logger.error(f"=== DEBUG MODE === Invalid debug_time format: {debug_time}")
+                current_time = user.get_local_datetime().time()
+        else:
+            current_time = user.get_local_datetime().time()
+        
+        weekday = current_date.weekday()
+        current_app.logger.error(f"=== DEBUG MODE === Using debug date/time: {current_date} {current_time} (weekday: {weekday})")
+    else:
+        # Obtenir l'heure actuelle selon le fuseau horaire de l'utilisateur
+        now = user.get_local_datetime()
+        current_time = now.time()
+        current_date = now.date()
+        weekday = current_date.weekday()
     
     current_app.logger.error(f"🚀 NEW LESSON DETECTION DEPLOYED 🚀 current_time: {current_time}, date: {current_date}, weekday: {weekday}")
 
@@ -1301,10 +1332,37 @@ def lesson_view():
         
         if end_period:
             from datetime import datetime
+            from flask import request
             end_datetime = datetime.combine(lesson_date, end_period['end'])
-            now_datetime = current_user.get_local_datetime()  # Utiliser le fuseau horaire local
+            
+            # Mode debug : utiliser l'heure de debug si disponible
+            debug_time = request.args.get('debug_time')
+            debug_date = request.args.get('debug_date')
+            
+            if debug_time or debug_date:
+                # Utiliser la même logique de debug que get_current_or_next_lesson
+                if debug_date:
+                    try:
+                        debug_date_obj = datetime.strptime(debug_date, '%Y-%m-%d').date()
+                    except ValueError:
+                        debug_date_obj = lesson_date
+                else:
+                    debug_date_obj = lesson_date
+                
+                if debug_time:
+                    try:
+                        debug_time_obj = datetime.strptime(debug_time, '%H:%M').time()
+                        now_datetime = datetime.combine(debug_date_obj, debug_time_obj)
+                    except ValueError:
+                        now_datetime = current_user.get_local_datetime()
+                else:
+                    now_datetime = current_user.get_local_datetime()
+                    
+                current_app.logger.error(f"=== TIMER DEBUG === Using debug now: {now_datetime}, end: {end_datetime}")
+            else:
+                now_datetime = current_user.get_local_datetime()
 
-            if end_datetime > now_datetime:
+            if end_datetime > now_datetime.replace(tzinfo=None):
                 remaining_seconds = int((end_datetime - now_datetime.replace(tzinfo=None)).total_seconds())
                 hours = remaining_seconds // 3600
                 minutes = (remaining_seconds % 3600) // 60
@@ -1369,6 +1427,11 @@ def get_class_resources(classroom_id):
         ).all()
         
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(class_files)} files for classroom {classroom_id}")
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
+        
+        # Afficher aussi les classes qui ont des fichiers pour debug
+        all_classrooms_with_files = db.session.query(ClassFile.classroom_id, db.func.count(ClassFile.id)).group_by(ClassFile.classroom_id).all()
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === All classrooms with files: {all_classrooms_with_files}")
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
