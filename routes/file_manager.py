@@ -1386,18 +1386,15 @@ def delete_class_folder():
         print(f"🔍 Recherche des fichiers avec préfixe: '{folder_description_prefix}'")
         
         # Debug: Montrer tous les fichiers de cette classe pour comprendre la structure
-        all_files_debug = LegacyClassFile.query.filter_by(classroom_id=class_id).limit(10).all()
+        from models.class_file import ClassFile as NewClassFile
+        all_files_debug = NewClassFile.query.filter_by(classroom_id=class_id).limit(10).all()
         print(f"🔍 DEBUG - Exemples de fichiers dans classe {class_id}:")
         for f in all_files_debug:
-            print(f"🔍   - {f.original_filename} | Description: '{f.description}'")
-        
-        # Utiliser le système legacy pour trouver les fichiers
-        from models.student import LegacyClassFile
+            filename = f.user_file.original_filename if f.user_file else 'Fichier supprimé'
+            print(f"🔍   - {filename} | FolderPath: '{f.folder_path}'")
         
         # Chercher les fichiers dans le dossier exact ET dans tous ses sous-dossiers
-        # Utiliser le nouveau système ClassFile car c'est là que sont vraiment les fichiers avec folder_path
-        from models.class_file import ClassFile as NewClassFile
-        
+        # Utiliser le nouveau système ClassFile car les logs montrent que les fichiers utilisent folder_path
         class_files = NewClassFile.query.filter(
             NewClassFile.classroom_id == class_id,
             db.or_(
@@ -1408,21 +1405,17 @@ def delete_class_folder():
         
         print(f"🔍 Fichiers trouvés: {len(class_files)}")
         for cf in class_files:
-            print(f"🔍   - {cf.original_filename} (ID: {cf.id}) | Description: '{cf.description}'")
+            filename = cf.user_file.original_filename if cf.user_file else 'Fichier supprimé'
+            print(f"🔍   - {filename} (ID: {cf.id}) | FolderPath: '{cf.folder_path}'")
         
         # Supprimer tous les fichiers du dossier
         deleted_count = 0
         for class_file in class_files:
-            # Supprimer le fichier physique
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
-                                   str(class_file.classroom_id), class_file.filename)
+            # Dans le nouveau système, les fichiers sont stockés en BLOB dans user_file
+            # Pas de fichier physique à supprimer pour les ClassFile v2
             
-            print(f"🔍 Suppression fichier physique: {file_path}")
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print("✅ Fichier physique supprimé")
-            else:
-                print("⚠️  Fichier physique déjà inexistant")
+            filename = class_file.user_file.original_filename if class_file.user_file else 'Fichier supprimé'
+            print(f"🔍 Suppression fichier: {filename}")
             
             # Supprimer l'entrée de la base de données
             db.session.delete(class_file)
