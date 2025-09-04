@@ -1395,12 +1395,14 @@ def delete_class_folder():
         from models.student import LegacyClassFile
         
         # Chercher les fichiers dans le dossier exact ET dans tous ses sous-dossiers
-        # Dans le système legacy, on utilise la description pour identifier les dossiers
-        class_files = LegacyClassFile.query.filter(
-            LegacyClassFile.classroom_id == class_id,
+        # Utiliser le nouveau système ClassFile car c'est là que sont vraiment les fichiers avec folder_path
+        from models.class_file import ClassFile as NewClassFile
+        
+        class_files = NewClassFile.query.filter(
+            NewClassFile.classroom_id == class_id,
             db.or_(
-                LegacyClassFile.description == folder_description_exact,
-                LegacyClassFile.description.like(folder_description_prefix + '%')
+                NewClassFile.folder_path == folder_path,
+                NewClassFile.folder_path.like(f"{folder_path}/%")
             )
         ).all()
         
