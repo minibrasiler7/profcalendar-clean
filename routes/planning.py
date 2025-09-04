@@ -1349,7 +1349,7 @@ def lesson_view():
     
     # Fonction pour trouver une classroom qui a des fichiers
     def find_classroom_with_files():
-        from models.student import LegacyClassFile as ClassFile
+        from models.class_file import ClassFile
         
         # Obtenir toutes les classes de l'utilisateur qui ont des fichiers
         classrooms_with_files = db.session.query(
@@ -1376,7 +1376,7 @@ def lesson_view():
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom {lesson.classroom_id}, found: {lesson_classroom is not None}")
         
         # Vérifier si cette classroom a des fichiers
-        from models.student import LegacyClassFile as ClassFile
+        from models.class_file import ClassFile
         file_count = ClassFile.query.filter_by(classroom_id=lesson.classroom_id).count()
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Classroom {lesson.classroom_id} has {file_count} files")
         
@@ -1392,7 +1392,7 @@ def lesson_view():
         
         if mixed_group and mixed_group.classrooms:
             # Chercher parmi les classrooms du groupe mixte celle qui a des fichiers
-            from models.student import LegacyClassFile as ClassFile
+            from models.class_file import ClassFile
             for classroom in mixed_group.classrooms:
                 file_count = ClassFile.query.filter_by(classroom_id=classroom.id).count()
                 current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Mixed group classroom {classroom.id} has {file_count} files")
@@ -1520,7 +1520,7 @@ def lesson_view():
 def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
     try:
-        from models.student import LegacyClassFile as ClassFile
+        from models.class_file import ClassFile
         from models.classroom import Classroom
         
         # Vérifier que la classe appartient à l'utilisateur
@@ -1532,20 +1532,18 @@ def get_class_resources(classroom_id):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
         
-        # Récupérer tous les fichiers de la classe, triés par épinglage puis par nom
+        # Récupérer tous les fichiers de la classe, triés par nom
         class_files = ClassFile.query.filter_by(
             classroom_id=classroom_id
         ).order_by(
-            ClassFile.is_pinned.desc(),
-            ClassFile.pin_order.asc(),
-            ClassFile.original_filename.asc()
+            ClassFile.folder_path.asc(),
+            ClassFile.copied_at.desc()
         ).all()
         
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(class_files)} files for classroom {classroom_id}")
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
         
         # Afficher aussi les classes qui ont des fichiers pour debug
-        from models.classroom import Classroom
         classrooms_with_files = db.session.query(
             ClassFile.classroom_id, 
             db.func.count(ClassFile.id),
@@ -1558,33 +1556,27 @@ def get_class_resources(classroom_id):
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
-        pinned_files = []
         
         for file in class_files:
-            # Extraire le chemin du dossier depuis la description
-            folder_path = ''
-            if file.description and "Copié dans le dossier:" in file.description:
-                folder_path = file.description.split("Copié dans le dossier:")[1].strip()
+            # Dans le nouveau système, le chemin du dossier est dans folder_path
+            folder_path = file.folder_path or ''
             
             file_data = {
                 'id': file.id,
-                'original_filename': file.original_filename,
-                'file_type': file.file_type,
-                'file_size': file.file_size,
+                'original_filename': file.user_file.original_filename if file.user_file else 'Fichier supprimé',
+                'file_type': file.user_file.file_extension if file.user_file else 'unknown',
+                'file_size': file.user_file.file_size if file.user_file else 0,
                 'folder_path': folder_path,
-                'is_pinned': file.is_pinned,
-                'pin_order': file.pin_order,
-                'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None
+                'is_pinned': False,  # Pas d'épinglage dans le nouveau système
+                'pin_order': 0,
+                'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             }
             
-            if file.is_pinned:
-                pinned_files.append(file_data)
-            else:
-                files_data.append(file_data)
+            files_data.append(file_data)
         
         return jsonify({
             'success': True,
-            'pinned_files': pinned_files,
+            'pinned_files': [],  # Pas d'épinglage dans le nouveau système
             'files': files_data,
             'class_name': classroom.name
         })
