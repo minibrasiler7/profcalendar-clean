@@ -1385,6 +1385,12 @@ def delete_class_folder():
         print(f"🔍 Recherche des fichiers avec description exacte: '{folder_description_exact}'")
         print(f"🔍 Recherche des fichiers avec préfixe: '{folder_description_prefix}'")
         
+        # Debug: Montrer tous les fichiers de cette classe pour comprendre la structure
+        all_files_debug = LegacyClassFile.query.filter_by(classroom_id=class_id).limit(10).all()
+        print(f"🔍 DEBUG - Exemples de fichiers dans classe {class_id}:")
+        for f in all_files_debug:
+            print(f"🔍   - {f.original_filename} | Description: '{f.description}'")
+        
         # Utiliser le système legacy pour trouver les fichiers
         from models.student import LegacyClassFile
         
@@ -1400,7 +1406,7 @@ def delete_class_folder():
         
         print(f"🔍 Fichiers trouvés: {len(class_files)}")
         for cf in class_files:
-            print(f"🔍   - {cf.original_filename} (ID: {cf.id})")
+            print(f"🔍   - {cf.original_filename} (ID: {cf.id}) | Description: '{cf.description}'")
         
         # Supprimer tous les fichiers du dossier
         deleted_count = 0
