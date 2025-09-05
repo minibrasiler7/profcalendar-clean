@@ -1037,20 +1037,42 @@ def serve_file(file_id):
                     current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.file_content size: {len(new_class_file.user_file.file_content)} bytes")
             
             # Servir via user_file
-            if new_class_file.user_file and new_class_file.user_file.file_content:
-                mimetype = new_class_file.user_file.mime_type or 'application/octet-stream'
-                filename = new_class_file.user_file.original_filename
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile BLOB: {filename}")
-                return Response(
-                    new_class_file.user_file.file_content,
-                    mimetype=mimetype,
-                    headers={
-                        'Content-Disposition': f'inline; filename="{filename}"'
-                    }
-                )
+            if new_class_file.user_file:
+                user_file = new_class_file.user_file
+                mimetype = user_file.mime_type or 'application/octet-stream'
+                filename = user_file.original_filename
+                
+                # Essayer d'abord le BLOB
+                if user_file.file_content:
+                    current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile BLOB: {filename}")
+                    return Response(
+                        user_file.file_content,
+                        mimetype=mimetype,
+                        headers={
+                            'Content-Disposition': f'inline; filename="{filename}"'
+                        }
+                    )
+                # Si pas de BLOB, essayer le fichier physique
+                else:
+                    file_path = user_file.get_file_path()
+                    full_path = os.path.join(current_app.root_path, file_path)
+                    current_app.logger.error(f"=== SERVE_FILE DEBUG === No BLOB, trying physical file: {full_path}")
+                    
+                    if os.path.exists(full_path):
+                        current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving physical file: {filename}")
+                        from flask import send_file
+                        return send_file(
+                            full_path,
+                            mimetype=mimetype,
+                            as_attachment=False,
+                            download_name=filename
+                        )
+                    else:
+                        current_app.logger.error(f"=== SERVE_FILE DEBUG === Physical file not found: {full_path}")
+                        return "Fichier physique introuvable", 404
             else:
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile {file_id} has no user_file or BLOB content")
-                return "Fichier de classe sans contenu", 404
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile {file_id} has no user_file")
+                return "Fichier de classe sans user_file", 404
         
         # 2. Ensuite chercher dans le système legacy
         from models.student import LegacyClassFile
