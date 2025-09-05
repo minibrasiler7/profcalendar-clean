@@ -1016,7 +1016,32 @@ def serve_file(file_id):
         
         current_app.logger.error(f"=== SERVE_FILE DEBUG === file_id={file_id}, user_id={current_user.id}")
         
-        # Recherche du fichier de classe dans le système legacy
+        # 1. D'abord chercher dans le nouveau système ClassFile
+        new_class_file = ClassFile.query.filter_by(id=file_id).first()
+        current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile found: {new_class_file is not None}")
+        
+        if new_class_file:
+            # Vérifier les droits
+            if new_class_file.classroom.user_id != current_user.id:
+                return "Accès refusé", 403
+                
+            # Servir via user_file
+            if new_class_file.user_file and new_class_file.user_file.file_content:
+                mimetype = new_class_file.user_file.mime_type or 'application/octet-stream'
+                filename = new_class_file.user_file.original_filename
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile BLOB: {filename}")
+                return Response(
+                    new_class_file.user_file.file_content,
+                    mimetype=mimetype,
+                    headers={
+                        'Content-Disposition': f'inline; filename="{filename}"'
+                    }
+                )
+            else:
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile {file_id} has no user_file or BLOB content")
+                return "Fichier de classe sans contenu", 404
+        
+        # 2. Ensuite chercher dans le système legacy
         from models.student import LegacyClassFile
         class_file = LegacyClassFile.query.filter_by(id=file_id).first()
         current_app.logger.error(f"=== SERVE_FILE DEBUG === LegacyClassFile found: {class_file is not None}")
