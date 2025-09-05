@@ -1024,7 +1024,18 @@ def serve_file(file_id):
             # Vérifier les droits
             if new_class_file.classroom.user_id != current_user.id:
                 return "Accès refusé", 403
-                
+            
+            # Debug détaillé
+            current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile.user_file_id: {new_class_file.user_file_id}")
+            current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile.user_file exists: {new_class_file.user_file is not None}")
+            
+            if new_class_file.user_file:
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.id: {new_class_file.user_file.id}")
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.original_filename: {new_class_file.user_file.original_filename}")
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile has file_content: {new_class_file.user_file.file_content is not None}")
+                if new_class_file.user_file.file_content:
+                    current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.file_content size: {len(new_class_file.user_file.file_content)} bytes")
+            
             # Servir via user_file
             if new_class_file.user_file and new_class_file.user_file.file_content:
                 mimetype = new_class_file.user_file.mime_type or 'application/octet-stream'
