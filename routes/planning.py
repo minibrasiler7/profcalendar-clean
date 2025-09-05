@@ -1564,7 +1564,7 @@ def get_class_resources(classroom_id):
             file_data = {
                 'id': file.id,
                 'original_filename': file.user_file.original_filename if file.user_file else 'Fichier supprimé',
-                'file_type': file.user_file.file_extension if file.user_file else 'unknown',
+                'file_type': file.user_file.file_type if file.user_file else 'unknown',
                 'file_size': file.user_file.file_size if file.user_file else 0,
                 'folder_path': folder_path,
                 'is_pinned': False,  # Pas d'épinglage dans le nouveau système
