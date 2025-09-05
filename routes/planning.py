@@ -1593,7 +1593,7 @@ def get_class_resources(classroom_id):
 def toggle_pin_resource():
     """Épingler ou désépingler une ressource"""
     try:
-        from models.student import LegacyClassFile as ClassFile
+        from models.class_file import ClassFile
         from models.classroom import Classroom
         
         data = request.get_json()
@@ -1602,11 +1602,29 @@ def toggle_pin_resource():
         if not file_id:
             return jsonify({'success': False, 'message': 'ID de fichier manquant'}), 400
         
-        # Vérifier que le fichier appartient à une classe de l'utilisateur
-        class_file = db.session.query(ClassFile).join(
+        # D'abord chercher dans le nouveau système
+        new_class_file = db.session.query(ClassFile).join(
             Classroom, ClassFile.classroom_id == Classroom.id
         ).filter(
             ClassFile.id == file_id,
+            Classroom.user_id == current_user.id
+        ).first()
+        
+        if new_class_file:
+            # Le nouveau système n'a pas d'épinglage, donc on retourne juste succès
+            return jsonify({
+                'success': True, 
+                'message': 'Épinglage non disponible dans le nouveau système',
+                'is_pinned': False,
+                'pin_order': 0
+            })
+        
+        # Fallback vers le système legacy
+        from models.student import LegacyClassFile
+        class_file = db.session.query(LegacyClassFile).join(
+            Classroom, LegacyClassFile.classroom_id == Classroom.id
+        ).filter(
+            LegacyClassFile.id == file_id,
             Classroom.user_id == current_user.id
         ).first()
         
@@ -1618,7 +1636,7 @@ def toggle_pin_resource():
         
         if class_file.is_pinned:
             # Si on épingle, donner le prochain ordre d'épinglage
-            max_pin_order = db.session.query(db.func.max(ClassFile.pin_order)).filter_by(
+            max_pin_order = db.session.query(db.func.max(LegacyClassFile.pin_order)).filter_by(
                 classroom_id=class_file.classroom_id,
                 is_pinned=True
             ).scalar() or 0
