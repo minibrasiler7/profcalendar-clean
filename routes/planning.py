@@ -1521,6 +1521,7 @@ def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
     try:
         from models.class_file import ClassFile
+        from models.student import LegacyClassFile
         from models.classroom import Classroom
         
         # Vérifier que la classe appartient à l'utilisateur
@@ -1532,33 +1533,20 @@ def get_class_resources(classroom_id):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
         
-        # Récupérer tous les fichiers de la classe, triés par nom
-        class_files = ClassFile.query.filter_by(
-            classroom_id=classroom_id
-        ).order_by(
-            ClassFile.folder_path.asc(),
-            ClassFile.copied_at.desc()
-        ).all()
+        # Récupérer les fichiers des DEUX systèmes
+        new_class_files = ClassFile.query.filter_by(classroom_id=classroom_id).all()
+        legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=classroom_id).all()
         
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(class_files)} files for classroom {classroom_id}")
+        total_files = len(new_class_files) + len(legacy_class_files)
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files = {total_files} total for classroom {classroom_id}")
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
-        
-        # Afficher aussi les classes qui ont des fichiers pour debug
-        classrooms_with_files = db.session.query(
-            ClassFile.classroom_id, 
-            db.func.count(ClassFile.id),
-            Classroom.name
-        ).join(Classroom).group_by(ClassFile.classroom_id, Classroom.name).all()
-        
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === All classrooms with files:")
-        for classroom_id, file_count, classroom_name in classrooms_with_files:
-            current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom {classroom_id} ({classroom_name}): {file_count} files")
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
+        pinned_files = []
         
-        for file in class_files:
-            # Dans le nouveau système, le chemin du dossier est dans folder_path
+        # Traiter les fichiers du nouveau système (sans épinglage)
+        for file in new_class_files:
             folder_path = file.folder_path or ''
             
             file_data = {
@@ -1567,16 +1555,42 @@ def get_class_resources(classroom_id):
                 'file_type': file.user_file.file_type if file.user_file else 'unknown',
                 'file_size': file.user_file.file_size if file.user_file else 0,
                 'folder_path': folder_path,
-                'is_pinned': False,  # Pas d'épinglage dans le nouveau système
+                'is_pinned': False,
                 'pin_order': 0,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             }
             
             files_data.append(file_data)
         
+        # Traiter les fichiers du système legacy (avec épinglage)
+        for file in legacy_class_files:
+            # Extraire le chemin du dossier depuis la description
+            folder_path = ''
+            if file.description and "Copié dans le dossier:" in file.description:
+                folder_path = file.description.split("Copié dans le dossier:")[1].strip()
+            
+            file_data = {
+                'id': file.id,
+                'original_filename': file.original_filename,
+                'file_type': file.file_type,
+                'file_size': file.file_size,
+                'folder_path': folder_path,
+                'is_pinned': file.is_pinned,
+                'pin_order': file.pin_order,
+                'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None
+            }
+            
+            if file.is_pinned:
+                pinned_files.append(file_data)
+            else:
+                files_data.append(file_data)
+        
+        # Trier les fichiers épinglés par pin_order
+        pinned_files.sort(key=lambda x: x['pin_order'])
+        
         return jsonify({
             'success': True,
-            'pinned_files': [],  # Pas d'épinglage dans le nouveau système
+            'pinned_files': pinned_files,
             'files': files_data,
             'class_name': classroom.name
         })
