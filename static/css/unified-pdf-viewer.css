@@ -574,6 +574,12 @@
     padding: var(--spacing-md);
     height: 0; /* Force le calcul de la hauteur par flexbox */
     max-height: none !important; /* Supprimer toute limite de hauteur */
+    
+    /* Support tactile amélioré pour iPad et appareils mobiles */
+    -webkit-overflow-scrolling: touch; /* Scroll fluide sur iOS */
+    touch-action: pan-y; /* Permettre le scroll vertical tactile */
+    overscroll-behavior: contain; /* Éviter le bounce sur les bords */
+    scroll-behavior: smooth; /* Scroll fluide avec momentum */
 }
 
 /* Mode continu */
@@ -601,6 +607,10 @@
     display: inline-block; /* Permet de centrer avec text-align */
     margin-bottom: var(--spacing-md);
     text-align: left; /* Remettre l'alignement normal pour le contenu */
+    
+    /* Support tactile pour les pages individuelles */
+    touch-action: manipulation; /* Optimiser les interactions tactiles */
+    user-select: none; /* Éviter la sélection accidentelle pendant le scroll */
 }
 
 .pdf-page-container:last-child {
@@ -834,6 +844,77 @@
 
 .unified-pdf-viewer[data-mode="preview"] .pdf-sidebar {
     width: 200px;
+}
+
+/* === SUPPORT TACTILE AVANCÉ === */
+
+/* Optimisations spécifiques pour les appareils tactiles */
+@media (hover: none) and (pointer: coarse) {
+    /* CSS spécifique aux appareils tactiles comme iPad */
+    .pdf-container {
+        /* Améliorer le scroll tactile */
+        -webkit-overflow-scrolling: touch !important;
+        overflow: auto;
+        scroll-snap-type: y proximity; /* Snap optionnel vers les pages */
+    }
+    
+    .pdf-page-container {
+        scroll-snap-align: start; /* Aligner sur le début de la page lors du snap */
+        touch-action: pan-y pinch-zoom; /* Permettre le scroll et zoom tactile */
+    }
+    
+    /* Améliorer les boutons tactiles */
+    .btn-tool,
+    .btn-annotation-tool,
+    .btn-nav {
+        min-height: 44px; /* Taille minimum recommandée pour le tactile */
+        min-width: 44px;
+    }
+    
+    /* Éviter les problèmes de survol sur tactile */
+    .btn-tool:hover,
+    .btn-annotation-tool:hover,
+    .btn-nav:hover {
+        background: var(--bg-tertiary);
+        transform: none; /* Pas d'effet de scale sur tactile */
+    }
+    
+    /* Améliorer la navigation tactile */
+    .pdf-canvas {
+        touch-action: pan-y pinch-zoom; /* Permettre scroll et zoom */
+    }
+    
+    .pdf-annotation-layer {
+        touch-action: none; /* Laisser les annotations gérer les événements tactiles */
+    }
+    
+    /* Améliorer l'interface sur tablettes */
+    .thumbnail-item {
+        min-height: 44px; /* Taille tactile minimum */
+        touch-action: manipulation;
+    }
+}
+
+/* Optimisations spécifiques pour iPad */
+@supports (-webkit-touch-callout: none) {
+    .pdf-container {
+        /* Forcer le scroll momentum sur iOS */
+        -webkit-overflow-scrolling: touch !important;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+    
+    /* Éviter le zoom accidentel sur double-tap */
+    .pdf-page-container {
+        touch-action: pan-y manipulation;
+    }
+    
+    /* Améliorer la réactivité tactile */
+    .btn-tool,
+    .btn-annotation-tool {
+        -webkit-tap-highlight-color: transparent; /* Supprimer le highlight iOS */
+        cursor: pointer;
+    }
 }
 
 /* === RESPONSIVE === */
