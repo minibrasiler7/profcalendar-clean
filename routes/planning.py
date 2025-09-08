@@ -14,6 +14,26 @@ from models.classroom_access_code import ClassroomAccessCode
 
 planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
 
+@planning_bp.route('/migrate-pinning')
+@login_required 
+def migrate_pinning():
+    """Migration temporaire pour ajouter les colonnes d'épinglage"""
+    try:
+        # Vérifier que l'utilisateur a les droits (optionnel, à supprimer après migration)
+        if current_user.id != 1:  # Adapter selon votre système
+            return jsonify({'error': 'Non autorisé'}), 403
+            
+        # Ajouter les colonnes
+        db.engine.execute("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE")
+        db.engine.execute("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS pin_order INTEGER DEFAULT 0")
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Migration terminée avec succès'})
+    except Exception as e:
+        current_app.logger.error(f"Erreur migration: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 def can_edit_student(student_id, current_user):
     """Vérifier si l'utilisateur peut modifier un élève"""
     from models.student import Student
