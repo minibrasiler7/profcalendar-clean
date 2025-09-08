@@ -24,9 +24,10 @@ def migrate_pinning():
             return jsonify({'error': 'Non autorisé'}), 403
             
         # Ajouter les colonnes
-        db.engine.execute("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE")
-        db.engine.execute("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS pin_order INTEGER DEFAULT 0")
-        db.session.commit()
+        with db.engine.connect() as conn:
+            conn.execute(db.text("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE"))
+            conn.execute(db.text("ALTER TABLE class_files_v2 ADD COLUMN IF NOT EXISTS pin_order INTEGER DEFAULT 0"))
+            conn.commit()
         
         return jsonify({'success': True, 'message': 'Migration terminée avec succès'})
     except Exception as e:
