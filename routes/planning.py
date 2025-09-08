@@ -1555,12 +1555,15 @@ def get_class_resources(classroom_id):
                 'file_type': file.user_file.file_type if file.user_file else 'unknown',
                 'file_size': file.user_file.file_size if file.user_file else 0,
                 'folder_path': folder_path,
-                'is_pinned': False,
-                'pin_order': 0,
+                'is_pinned': file.is_pinned,
+                'pin_order': file.pin_order,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             }
             
-            files_data.append(file_data)
+            if file.is_pinned:
+                pinned_files.append(file_data)
+            else:
+                files_data.append(file_data)
         
         # Traiter les fichiers du système legacy (avec épinglage)
         for file in legacy_class_files:
@@ -1625,12 +1628,29 @@ def toggle_pin_resource():
         ).first()
         
         if new_class_file:
-            # Le nouveau système n'a pas d'épinglage, donc on retourne juste succès
+            # Toggle pinning status
+            new_class_file.is_pinned = not new_class_file.is_pinned
+            
+            if new_class_file.is_pinned:
+                # Si on épingle, trouver le prochain numéro d'ordre
+                max_pin_order = db.session.query(db.func.max(ClassFile.pin_order)).filter(
+                    ClassFile.classroom_id == new_class_file.classroom_id,
+                    ClassFile.is_pinned == True
+                ).scalar() or 0
+                new_class_file.pin_order = max_pin_order + 1
+                message = f'Fichier "{new_class_file.user_file.original_filename}" épinglé'
+            else:
+                # Si on désépingle, remettre pin_order à 0
+                new_class_file.pin_order = 0
+                message = f'Fichier "{new_class_file.user_file.original_filename}" désépinglé'
+            
+            db.session.commit()
+            
             return jsonify({
                 'success': True, 
-                'message': 'Épinglage non disponible dans le nouveau système',
-                'is_pinned': False,
-                'pin_order': 0
+                'message': message,
+                'is_pinned': new_class_file.is_pinned,
+                'pin_order': new_class_file.pin_order
             })
         
         # Fallback vers le système legacy

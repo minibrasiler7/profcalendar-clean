@@ -11,6 +11,8 @@ class ClassFile(db.Model):
     user_file_id = db.Column(db.Integer, db.ForeignKey('user_files.id', ondelete='CASCADE'), nullable=False)
     folder_path = db.Column(db.String(500), default='')  # Chemin du dossier dans la classe (ex: "Chapitre 1/Exercices")
     copied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_pinned = db.Column(db.Boolean, default=False)  # Épinglage du fichier
+    pin_order = db.Column(db.Integer, default=0)      # Ordre d'épinglage
     
     # Relations
     classroom = db.relationship('Classroom', backref='class_files_v2')
