@@ -46,6 +46,13 @@
          * Gestion du début du touch
          */
         function handleTouchStart(e) {
+            // Ne pas interférer avec les canvas d'annotation
+            if (e.target.classList.contains('annotation-canvas') || 
+                e.target.closest('.pdf-annotation-layer') ||
+                e.target.id && e.target.id.startsWith('annotation-canvas-')) {
+                return;
+            }
+
             touchStartTime = Date.now();
             touchStartY = e.touches[0].clientY;
             lastTouchY = e.touches[0].clientY;
@@ -60,6 +67,13 @@
          */
         function handleTouchMove(e) {
             if (!isScrolling || e.touches.length !== 1) return;
+
+            // Ne pas interférer avec les canvas d'annotation
+            if (e.target.classList.contains('annotation-canvas') || 
+                e.target.closest('.pdf-annotation-layer') ||
+                e.target.id && e.target.id.startsWith('annotation-canvas-')) {
+                return;
+            }
 
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;

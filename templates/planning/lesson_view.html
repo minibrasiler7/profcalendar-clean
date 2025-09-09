@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
 <!-- Amélioration tactile pour iPad/tablettes -->
 <script src="{{ url_for('static', filename='js/touch-scroll-enhancement.js') }}"></script>
+<!-- Support tactile pour annotations PDF -->
+<script src="{{ url_for('static', filename='js/pdf-touch-annotations.js') }}"></script>
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
