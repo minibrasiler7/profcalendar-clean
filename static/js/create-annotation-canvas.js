@@ -48,8 +48,8 @@
         annotationCanvas.style.width = pdfCanvas.style.width || `${pdfCanvas.width}px`;
         annotationCanvas.style.height = pdfCanvas.style.height || `${pdfCanvas.height}px`;
         annotationCanvas.style.zIndex = '100';
-        annotationCanvas.style.pointerEvents = 'auto';
-        annotationCanvas.style.touchAction = 'none';
+        annotationCanvas.style.pointerEvents = 'none'; // Par défaut, laisser passer les événements
+        annotationCanvas.style.touchAction = 'none'; // Sera géré dynamiquement
         annotationCanvas.style.userSelect = 'none';
         
         // S'assurer que le conteneur parent a position relative
@@ -59,6 +59,43 @@
         
         // Ajouter au DOM
         pageWrapper.appendChild(annotationCanvas);
+
+        // Fonction de détection stylet locale
+        function isStylusTouch(touch) {
+            return touch.touchType === 'stylus' || 
+                   (touch.force !== undefined && touch.radiusX !== undefined && 
+                    touch.force > 0.05 && (touch.radiusX < 10 || touch.radiusY < 10));
+        }
+
+        // Ajouter un système de détection globale des touches sur le conteneur parent
+        pageWrapper.addEventListener('touchstart', function(e) {
+            const touches = Array.from(e.touches || []);
+            const hasStylusOnly = touches.length === 1 && isStylusTouch(touches[0]);
+            
+            if (hasStylusOnly) {
+                // Activer le canvas pour intercepter les événements stylet
+                annotationCanvas.style.pointerEvents = 'auto';
+                if (window.debugLog_custom) {
+                    window.debugLog_custom(`✏️ Canvas P${pageNum} activé pour stylet`);
+                }
+            } else {
+                // Désactiver le canvas pour laisser passer scroll/zoom
+                annotationCanvas.style.pointerEvents = 'none';
+                if (window.debugLog_custom) {
+                    window.debugLog_custom(`👆 Canvas P${pageNum} désactivé: ${touches.length} touches`);
+                }
+            }
+        }, { passive: true, capture: true });
+
+        // Désactiver le canvas quand on lève tous les doigts
+        pageWrapper.addEventListener('touchend', function(e) {
+            if (e.touches.length === 0) {
+                annotationCanvas.style.pointerEvents = 'none';
+                if (window.debugLog_custom) {
+                    window.debugLog_custom(`🛑 Canvas P${pageNum} désactivé - fin de touch`);
+                }
+            }
+        }, { passive: true });
         
         console.log(`✅ Canvas d'annotation créé pour page ${pageNum}: ${annotationCanvas.width}x${annotationCanvas.height}`);
         if (window.debugLog_custom) {
@@ -103,8 +140,12 @@
             const touches = Array.from(e.touches || []);
             const stylusTouch = touches.find(isStylusTouch);
             
+            // Si ce n'est PAS un stylet seul, laisser passer l'événement
             if (!stylusTouch || touches.length !== 1) {
-                return; // Pas de stylet seul = pas de dessin
+                if (window.debugLog_custom) {
+                    window.debugLog_custom(`👆 Geste non-stylet P${pageNum}: ${touches.length} touches, stylet: ${!!stylusTouch}`);
+                }
+                return; // Ne pas preventDefault/stopPropagation - laisser passer
             }
 
             if (window.debugLog_custom) {
@@ -141,7 +182,10 @@
          * Mouvement du stylet
          */
         function handleStylusMove(e) {
-            if (!pageIsDrawing) return;
+            // Si on n'est pas en train de dessiner, laisser passer tous les événements
+            if (!pageIsDrawing) {
+                return; // Ne pas intercepter les gestes de scroll/zoom
+            }
 
             const touches = Array.from(e.touches || []);
             const stylusTouch = touches.find(isStylusTouch);
@@ -210,11 +254,11 @@
             pageCurrentStroke = [];
         }
 
-        // Ajouter les événements
-        annotationCanvas.addEventListener('touchstart', handleStylusStart, { passive: false });
-        annotationCanvas.addEventListener('touchmove', handleStylusMove, { passive: false });
-        annotationCanvas.addEventListener('touchend', handleStylusEnd, { passive: false });
-        annotationCanvas.addEventListener('touchcancel', handleStylusEnd, { passive: false });
+        // Ajouter les événements - NE PAS utiliser capture pour permettre la propagation
+        annotationCanvas.addEventListener('touchstart', handleStylusStart, { passive: false, capture: false });
+        annotationCanvas.addEventListener('touchmove', handleStylusMove, { passive: false, capture: false });
+        annotationCanvas.addEventListener('touchend', handleStylusEnd, { passive: false, capture: false });
+        annotationCanvas.addEventListener('touchcancel', handleStylusEnd, { passive: false, capture: false });
 
         console.log(`✅ Événements stylet configurés pour page ${pageNum}`);
     }
