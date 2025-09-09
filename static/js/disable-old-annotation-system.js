@@ -12,7 +12,7 @@
      * Désactiver les fonctions problématiques
      */
     function disableOldSystem() {
-        // Liste des fonctions à désactiver
+        // Liste des fonctions à désactiver - TOUTES les fonctions d'annotation
         const functionsToDisable = [
             'startDrawing',
             'startDrawingMultiPage', 
@@ -21,7 +21,12 @@
             'stopDrawing',
             'stopDrawingMultiPage',
             'handleTouch',
-            'handleTouchMultiPage'
+            'handleTouchMultiPage',
+            'setupAnnotations',
+            'enableDrawing',
+            'disableDrawing',
+            'getCanvasCoordinates',
+            'initializeCanvases'
         ];
 
         functionsToDisable.forEach(funcName => {
@@ -193,11 +198,20 @@
         // Bloquer unified-pdf-viewer immédiatement
         blockUnifiedPdfViewer();
         
+        // Bloquer aussi immédiatement les fonctions globales
+        disableOldSystem();
+        
         // Désactiver après un délai pour laisser les autres systèmes se charger
         setTimeout(() => {
-            disableOldSystem();
+            disableOldSystem(); // Re-bloquer
             cleanupOldListeners();
             blockUnifiedPdfViewer(); // Re-bloquer au cas où
+        }, 1000);
+        
+        // Re-bloquer après plus de temps
+        setTimeout(() => {
+            disableOldSystem();
+            blockUnifiedPdfViewer();
         }, 3000);
         
         /**
@@ -207,10 +221,15 @@
             // NE PAS bloquer les fonctions d'ouverture du PDF !
             const functionsToKeep = ['openFileViewer', 'openFileWithUnifiedViewer', 'loadPDF'];
             
-            // Bloquer seulement les fonctions d'annotation problématiques
+            // Bloquer TOUTES les fonctions d'annotation problématiques (single + multi page)
             const problematicFunctions = [
+                // Fonctions multipage
                 'setupMultiPageAnnotations', 'startDrawingMultiPage', 'drawMultiPage', 'stopDrawingMultiPage',
-                'handleTouchMultiPage', 'getCanvasCoordinates', 'initializeCanvases'
+                'handleTouchMultiPage', 'getCanvasCoordinates', 'initializeCanvases',
+                // Fonctions single page problématiques
+                'startDrawing', 'draw', 'stopDrawing', 'handleTouch',
+                // Autres fonctions d'annotation
+                'setupAnnotations', 'enableDrawing', 'disableDrawing'
             ];
 
             problematicFunctions.forEach(funcName => {
