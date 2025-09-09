@@ -105,16 +105,30 @@
          * Gestion du début du dessin tactile
          */
         function handleTouchStart(e) {
+            // Seulement pour 1 doigt (dessin), pas pour les gestes multi-touch
+            if (e.touches.length !== 1) return;
+
+            // Log pour debug
+            if (window.debugLog_custom) {
+                window.debugLog_custom(`🎨 TouchStart sur ${pageNum}, touches: ${e.touches.length}`);
+            }
+
             // Empêcher les autres interactions tactiles pendant le dessin
             e.preventDefault();
             e.stopPropagation();
-
-            if (e.touches.length !== 1) return;
 
             const tools = getAnnotationTools();
             const touch = e.touches[0];
             const rect = annotationCanvas.getBoundingClientRect();
             const ctx = annotationCanvas.getContext('2d');
+
+            // Vérifier que le canvas et contexte sont valides
+            if (!ctx || annotationCanvas.width === 0 || annotationCanvas.height === 0) {
+                if (window.debugLog_custom) {
+                    window.debugLog_custom(`❌ Canvas invalide: ${annotationCanvas.width}x${annotationCanvas.height}`);
+                }
+                return;
+            }
 
             // Coordonnées relatives au canvas
             const x = (touch.clientX - rect.left) * (annotationCanvas.width / rect.width);
@@ -134,6 +148,10 @@
             // Commencer le chemin
             ctx.beginPath();
             ctx.moveTo(x, y);
+
+            if (window.debugLog_custom) {
+                window.debugLog_custom(`✅ Dessin initié: ${Math.round(x)},${Math.round(y)} avec ${tools.tool}`);
+            }
 
             console.log('🎨 Début du dessin tactile sur page', pageNum, 'à', x, y);
         }

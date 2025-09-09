@@ -46,13 +46,17 @@
          * Gestion du début du touch
          */
         function handleTouchStart(e) {
-            // Ne pas interférer avec les canvas d'annotation
-            if (e.target.classList.contains('annotation-canvas') || 
-                e.target.closest('.pdf-annotation-layer') ||
-                e.target.id && e.target.id.startsWith('annotation-canvas-')) {
+            // Ne pas interférer avec les canvas d'annotation SAUF si c'est un scroll à 2+ doigts
+            const isAnnotationCanvas = e.target.classList.contains('annotation-canvas') || 
+                                     e.target.closest('.pdf-annotation-layer') ||
+                                     (e.target.id && e.target.id.startsWith('annotation-canvas-'));
+            
+            if (isAnnotationCanvas && e.touches.length === 1) {
+                // Dessin avec 1 doigt sur canvas = laisser passer aux annotations
                 return;
             }
 
+            // Si 2+ doigts OU pas sur canvas d'annotation = gérer le scroll
             touchStartTime = Date.now();
             touchStartY = e.touches[0].clientY;
             lastTouchY = e.touches[0].clientY;
@@ -66,15 +70,19 @@
          * Gestion du mouvement tactile
          */
         function handleTouchMove(e) {
-            if (!isScrolling || e.touches.length !== 1) return;
+            if (!isScrolling) return;
 
-            // Ne pas interférer avec les canvas d'annotation
-            if (e.target.classList.contains('annotation-canvas') || 
-                e.target.closest('.pdf-annotation-layer') ||
-                e.target.id && e.target.id.startsWith('annotation-canvas-')) {
+            // Permettre le scroll à 2+ doigts même sur canvas d'annotation
+            const isAnnotationCanvas = e.target.classList.contains('annotation-canvas') || 
+                                     e.target.closest('.pdf-annotation-layer') ||
+                                     (e.target.id && e.target.id.startsWith('annotation-canvas-'));
+            
+            if (isAnnotationCanvas && e.touches.length === 1) {
+                // 1 doigt sur canvas = laisser aux annotations
                 return;
             }
 
+            // Scroll avec 1 doigt hors canvas OU 2+ doigts partout
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
             
