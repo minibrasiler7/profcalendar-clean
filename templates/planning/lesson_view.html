@@ -15,6 +15,8 @@
 <script src="{{ url_for('static', filename='js/pdf-touch-annotations.js') }}"></script>
 <!-- Debug overlay pour iPad -->
 <script src="{{ url_for('static', filename='js/debug-overlay.js') }}"></script>
+<!-- Correctif des erreurs d'annotation -->
+<script src="{{ url_for('static', filename='js/fix-annotation-errors.js') }}"></script>
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {

@@ -133,10 +133,40 @@
         document.addEventListener('click', function(e) {
             if (e.target.classList.contains('btn-annotation-tool')) {
                 debugLog_custom('🔧 Outil sélectionné: ' + (e.target.dataset.tool || 'unknown'));
+                // Forcer la re-détection des canvas après sélection d'outil
+                setTimeout(() => {
+                    const canvases = document.querySelectorAll('[id^="annotation-canvas-"]');
+                    debugLog_custom('🔍 Re-scan: ' + canvases.length + ' canvas trouvés après outil');
+                }, 500);
             }
             if (e.target.classList.contains('color-btn')) {
                 debugLog_custom('🎨 Couleur sélectionnée: ' + e.target.style.backgroundColor);
             }
+        });
+
+        // Monitorer la création des canvas PDF
+        const pdfObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.id && node.id.includes('canvas')) {
+                            debugLog_custom('📋 Nouveau canvas détecté: ' + node.id);
+                        }
+                        if (node.querySelectorAll) {
+                            const newCanvases = node.querySelectorAll('canvas');
+                            if (newCanvases.length > 0) {
+                                debugLog_custom('📋 ' + newCanvases.length + ' canvas ajoutés dans ' + (node.className || node.tagName));
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+        // Observer tout le document pour les canvas
+        pdfObserver.observe(document.body, {
+            childList: true,
+            subtree: true
         });
     }
 
