@@ -122,10 +122,37 @@
             }
         }, true);
 
-        // Test de scroll à deux doigts
+        // Analyser tous les types de touch
         document.addEventListener('touchstart', function(e) {
-            if (e.touches.length === 2) {
-                debugLog_custom('✌️ Scroll 2 doigts détecté');
+            const touches = Array.from(e.touches);
+            let stylusCount = 0;
+            let fingerCount = 0;
+            
+            touches.forEach(touch => {
+                const isStylus = touch.touchType === 'stylus' || 
+                               (touch.force !== undefined && touch.radiusX !== undefined && 
+                                touch.force > 0.1 && (touch.radiusX < 5 || touch.radiusY < 5));
+                if (isStylus) {
+                    stylusCount++;
+                } else {
+                    fingerCount++;
+                }
+            });
+            
+            if (stylusCount > 0 || fingerCount > 1) {
+                const touchType = stylusCount > 0 ? 
+                    `✏️ ${stylusCount} stylet + ${fingerCount} doigts` : 
+                    `✌️ ${fingerCount} doigts`;
+                debugLog_custom(touchType + ' détecté');
+                
+                // Log détaillé des propriétés
+                if (stylusCount > 0) {
+                    touches.forEach((touch, i) => {
+                        if (touch.touchType === 'stylus' || (touch.force > 0.1 && touch.radiusX < 5)) {
+                            debugLog_custom(`✏️ Stylet ${i}: force=${touch.force?.toFixed(2)}, radius=${touch.radiusX?.toFixed(1)}`);
+                        }
+                    });
+                }
             }
         }, true);
 

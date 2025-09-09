@@ -21,6 +21,33 @@
     console.log('📱 Amélioration tactile activée pour:', isIOS ? 'iOS' : 'Appareil tactile');
 
     /**
+     * Analyser les types de touch (stylet vs doigt)
+     */
+    function analyzeTouchTypes(e) {
+        const touches = Array.from(e.touches || []);
+        const analysis = {
+            total: touches.length,
+            stylus: 0,
+            finger: 0
+        };
+
+        touches.forEach(touch => {
+            // Détecter le stylet via touchType ou caractéristiques physiques
+            const isStylus = touch.touchType === 'stylus' || 
+                           (touch.force !== undefined && touch.radiusX !== undefined && 
+                            touch.force > 0.1 && (touch.radiusX < 5 || touch.radiusY < 5));
+            
+            if (isStylus) {
+                analysis.stylus++;
+            } else {
+                analysis.finger++;
+            }
+        });
+
+        return analysis;
+    }
+
+    /**
      * Améliore le scroll tactile pour un conteneur PDF
      */
     function enhanceTouchScroll() {
@@ -46,17 +73,19 @@
          * Gestion du début du touch
          */
         function handleTouchStart(e) {
-            // Ne pas interférer avec les canvas d'annotation SAUF si c'est un scroll à 2+ doigts
-            const isAnnotationCanvas = e.target.classList.contains('annotation-canvas') || 
-                                     e.target.closest('.pdf-annotation-layer') ||
-                                     (e.target.id && e.target.id.startsWith('annotation-canvas-'));
+            // Analyser les types de touch
+            const touchAnalysis = analyzeTouchTypes(e);
             
-            if (isAnnotationCanvas && e.touches.length === 1) {
-                // Dessin avec 1 doigt sur canvas = laisser passer aux annotations
-                return;
+            // Ignorer complètement si c'est un stylet seul
+            if (touchAnalysis.stylus > 0 && touchAnalysis.finger === 0) {
+                return; // Laisser le stylet gérer les annotations
             }
 
-            // Si 2+ doigts OU pas sur canvas d'annotation = gérer le scroll
+            // Ne gérer que les gestes avec des doigts
+            if (touchAnalysis.finger === 0) {
+                return; // Pas de doigts = pas de scroll
+            }
+
             touchStartTime = Date.now();
             touchStartY = e.touches[0].clientY;
             lastTouchY = e.touches[0].clientY;
@@ -72,17 +101,21 @@
         function handleTouchMove(e) {
             if (!isScrolling) return;
 
-            // Permettre le scroll à 2+ doigts même sur canvas d'annotation
-            const isAnnotationCanvas = e.target.classList.contains('annotation-canvas') || 
-                                     e.target.closest('.pdf-annotation-layer') ||
-                                     (e.target.id && e.target.id.startsWith('annotation-canvas-'));
+            // Analyser les types de touch
+            const touchAnalysis = analyzeTouchTypes(e);
             
-            if (isAnnotationCanvas && e.touches.length === 1) {
-                // 1 doigt sur canvas = laisser aux annotations
+            // Arrêter le scroll si un stylet apparaît
+            if (touchAnalysis.stylus > 0 && touchAnalysis.finger === 0) {
+                isScrolling = false;
                 return;
             }
 
-            // Scroll avec 1 doigt hors canvas OU 2+ doigts partout
+            // Continuer seulement avec des doigts
+            if (touchAnalysis.finger === 0) {
+                isScrolling = false;
+                return;
+            }
+
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
             
