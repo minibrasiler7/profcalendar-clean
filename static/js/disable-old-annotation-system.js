@@ -204,22 +204,31 @@
          * Bloquer complètement unified-pdf-viewer.js
          */
         function blockUnifiedPdfViewer() {
-            const unifiedFunctions = [
-                'openFileViewer', 'openFileWithUnifiedViewer', 'closeFileViewer',
-                'loadPDF', 'renderAllPages', 'renderSinglePage', 'setupMultiPageAnnotations'
+            // NE PAS bloquer les fonctions d'ouverture du PDF !
+            const functionsToKeep = ['openFileViewer', 'openFileWithUnifiedViewer', 'loadPDF'];
+            
+            // Bloquer seulement les fonctions d'annotation problématiques
+            const problematicFunctions = [
+                'setupMultiPageAnnotations', 'startDrawingMultiPage', 'drawMultiPage', 'stopDrawingMultiPage',
+                'handleTouchMultiPage', 'getCanvasCoordinates', 'initializeCanvases'
             ];
 
-            unifiedFunctions.forEach(funcName => {
+            problematicFunctions.forEach(funcName => {
                 if (window[funcName]) {
                     window[funcName] = function(...args) {
-                        console.log(`🚫 ${funcName} bloquée (unified-pdf-viewer)`);
+                        console.log(`🚫 ${funcName} bloquée (annotations seulement)`);
                         if (window.debugLog_custom) {
-                            window.debugLog_custom(`🚫 ${funcName} bloquée`);
+                            window.debugLog_custom(`🚫 ${funcName} annotation bloquée`);
                         }
                         return null;
                     };
                 }
             });
+            
+            console.log('✅ Ouverture PDF préservée, annotations bloquées');
+            if (window.debugLog_custom) {
+                window.debugLog_custom('✅ PDF ouverture OK, annotations bloquées');
+            }
         }
         
         console.log('✅ Ancien système désactivé - Nouveau système stylet actif');
