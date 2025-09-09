@@ -190,11 +190,37 @@
         enableNativeScroll();
         forceNewSystemOnly();
         
+        // Bloquer unified-pdf-viewer immédiatement
+        blockUnifiedPdfViewer();
+        
         // Désactiver après un délai pour laisser les autres systèmes se charger
         setTimeout(() => {
             disableOldSystem();
             cleanupOldListeners();
+            blockUnifiedPdfViewer(); // Re-bloquer au cas où
         }, 3000);
+        
+        /**
+         * Bloquer complètement unified-pdf-viewer.js
+         */
+        function blockUnifiedPdfViewer() {
+            const unifiedFunctions = [
+                'openFileViewer', 'openFileWithUnifiedViewer', 'closeFileViewer',
+                'loadPDF', 'renderAllPages', 'renderSinglePage', 'setupMultiPageAnnotations'
+            ];
+
+            unifiedFunctions.forEach(funcName => {
+                if (window[funcName]) {
+                    window[funcName] = function(...args) {
+                        console.log(`🚫 ${funcName} bloquée (unified-pdf-viewer)`);
+                        if (window.debugLog_custom) {
+                            window.debugLog_custom(`🚫 ${funcName} bloquée`);
+                        }
+                        return null;
+                    };
+                }
+            });
+        }
         
         console.log('✅ Ancien système désactivé - Nouveau système stylet actif');
         if (window.debugLog_custom) {
