@@ -119,12 +119,14 @@
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
             
-            // Scroll fluide
-            pdfContainer.scrollTop += deltaY;
+            // Laisser le scroll natif faire le travail, juste éviter le bounce
+            if (pdfContainer.scrollTop === 0 && deltaY < 0) {
+                e.preventDefault(); // Éviter le bounce en haut
+            } else if (pdfContainer.scrollTop >= pdfContainer.scrollHeight - pdfContainer.clientHeight && deltaY > 0) {
+                e.preventDefault(); // Éviter le bounce en bas
+            }
+            
             lastTouchY = currentY;
-
-            // Empêcher le scroll du body sur iOS
-            e.preventDefault();
         }
 
         /**
@@ -181,13 +183,11 @@
             }
         }
 
-        // Ajouter les événements tactiles
-        pdfContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-        pdfContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        // Utiliser principalement le scroll natif, avec amélioration tactile légère
+        pdfContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+        pdfContainer.addEventListener('touchmove', handleTouchMove, { passive: false }); // Pour éviter le bounce
         pdfContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
         pdfContainer.addEventListener('touchcancel', handleTouchEnd, { passive: true });
-        pdfContainer.addEventListener('gesturestart', handleTouchGesture, { passive: false });
-        pdfContainer.addEventListener('gesturechange', handleTouchGesture, { passive: false });
 
         console.log('✅ Amélioration tactile appliquée au conteneur PDF');
     }
