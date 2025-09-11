@@ -3563,30 +3563,65 @@ class UnifiedPDFViewer {
         annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
         annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
 
-        // Support tactile
+        // Support tactile avec distinction stylet/doigt
         annotationCanvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
+            // Analyser le type de touch
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.startDrawing(mouseEvent, pageNum);
+            const isStylus = this.isStylusTouch(touch);
+            const isSingleTouch = e.touches.length === 1;
+            
+            // Déterminer si les annotations avec doigts sont autorisées
+            const allowFingerAnnotations = this.currentMode.allowFingerAnnotations || 
+                                         window.forceFingerAnnotations || 
+                                         false;
+            
+            // Permettre les annotations avec le stylet ou avec les doigts si autorisé
+            if ((isStylus || allowFingerAnnotations) && isSingleTouch) {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                // Ajouter les propriétés manquantes
+                mouseEvent.target = e.target;
+                mouseEvent.isStylusEvent = isStylus;
+                this.startDrawing(mouseEvent, pageNum);
+                this.log(`✏️ Annotation ${isStylus ? 'stylet' : 'doigt'} initiée sur page ${pageNum}`);
+            } else if (isSingleTouch) {
+                // Touch avec doigt non-autorisé - permettre le scroll
+                this.log(`👆 Touch détecté (doigt) sur page ${pageNum} - scroll autorisé`);
+            }
+            // Multi-touch (zoom/scroll) - laisser passer sans intervention
         });
 
         annotationCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.draw(mouseEvent, pageNum);
+            const isStylus = this.isStylusTouch(touch);
+            const isSingleTouch = e.touches.length === 1;
+            const allowFingerAnnotations = this.currentMode.allowFingerAnnotations || 
+                                         window.forceFingerAnnotations || 
+                                         false;
+            
+            // Continuer le dessin avec le stylet ou doigt si autorisé et en cours
+            if ((isStylus || allowFingerAnnotations) && isSingleTouch && this.isDrawing) {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                // Ajouter les propriétés manquantes
+                mouseEvent.target = e.target;
+                mouseEvent.isStylusEvent = isStylus;
+                this.draw(mouseEvent, pageNum);
+            }
         });
 
         annotationCanvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.stopDrawing(null, pageNum);
+            // Seulement empêcher l'événement par défaut si on était en train de dessiner
+            if (this.isDrawing) {
+                e.preventDefault();
+                this.stopDrawing(null, pageNum);
+            }
         });
     }
     
@@ -3873,6 +3908,36 @@ class UnifiedPDFViewer {
         return baseCoords;
     }
     
+    /**
+     * Détecter si un touch provient d'un stylet
+     */
+    isStylusTouch(touch) {
+        // Méthode 1: Propriété touchType (supporté par certains navigateurs)
+        if (touch.touchType === 'stylus') {
+            return true;
+        }
+        
+        // Méthode 2: Analyse des caractéristiques physiques
+        if (touch.force !== undefined && touch.radiusX !== undefined && touch.radiusY !== undefined) {
+            // Stylet a généralement une pression plus élevée et un rayon plus petit
+            const avgRadius = (touch.radiusX + touch.radiusY) / 2;
+            const hasHighPressure = touch.force > 0.1;
+            const hasSmallRadius = avgRadius < 8; // Rayon plus petit que le doigt
+            
+            if (hasHighPressure && hasSmallRadius) {
+                return true;
+            }
+        }
+        
+        // Méthode 3: Heuristique basée sur la précision du pointer
+        if (window.PointerEvent && touch.pointerType) {
+            return touch.pointerType === 'pen';
+        }
+        
+        // Par défaut, considérer comme un doigt si pas de stylet détecté
+        return false;
+    }
+    
     startDrawing(e, pageNum) {
         if (!this.currentMode.annotations) {
             this.log('Annotations désactivées pour ce mode');
@@ -3881,6 +3946,13 @@ class UnifiedPDFViewer {
         
         this.log(`Début du dessin sur page ${pageNum}, outil: ${this.currentTool}`);
         this.isDrawing = true;
+        
+        // Vérification de sécurité pour e.target
+        if (!e.target) {
+            this.log('Erreur: e.target est null dans startDrawing');
+            return;
+        }
+        
         const rect = e.target.getBoundingClientRect();
         
         // Ajuster les coordonnées pour le mode split
@@ -4067,6 +4139,12 @@ class UnifiedPDFViewer {
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) {
             this.log(`ERREUR: Context d'annotation non trouvé pour page ${pageNum}`);
+            return;
+        }
+        
+        // Vérification de sécurité pour e.target
+        if (!e.target) {
+            this.log('Erreur: e.target est null dans draw');
             return;
         }
         
