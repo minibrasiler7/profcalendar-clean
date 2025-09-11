@@ -3560,6 +3560,19 @@ class UnifiedPDFViewer {
         // Initialiser touch-action pour permettre scroll/zoom par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         
+        // Variables pour la gestion du pinch-to-zoom
+        let initialPinchDistance = 0;
+        let initialScale = this.currentScale;
+        let isPinching = false;
+        
+        // Fonction utilitaire pour calculer la distance entre deux touches
+        const getTouchDistance = (touches) => {
+            if (touches.length < 2) return 0;
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+        
         // Événements de dessin sur le canvas d'annotation
         annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
         annotationCanvas.addEventListener('mousemove', (e) => this.draw(e, pageNum));
@@ -3579,12 +3592,21 @@ class UnifiedPDFViewer {
                                          window.forceFingerAnnotations || 
                                          false;
             
-            // Gérer les multi-touch pour zoom/scroll - ne pas bloquer
+            // Gérer les multi-touch pour zoom/scroll (pinch-to-zoom)
             if (isMultiTouch) {
-                this.log(`✌️ ${e.touches.length} doigts détecté - permettre zoom/scroll`);
-                // Permettre le geste natif en définissant touch-action temporairement
-                annotationCanvas.style.touchAction = 'pinch-zoom pan-x pan-y';
-                return; // Ne pas appeler preventDefault() pour permettre le zoom
+                this.log(`✌️ ${e.touches.length} doigts détecté - initialiser pinch-to-zoom`);
+                
+                if (e.touches.length === 2) {
+                    // Initialiser le pinch-to-zoom
+                    isPinching = true;
+                    initialPinchDistance = getTouchDistance(e.touches);
+                    initialScale = this.currentScale;
+                    
+                    // Empêcher le scroll pendant le zoom
+                    e.preventDefault();
+                    this.log(`🔍 Pinch démarré - distance: ${Math.round(initialPinchDistance)}, scale: ${initialScale}`);
+                }
+                return;
             }
             
             // Permettre les annotations avec le stylet ou avec les doigts si autorisé
@@ -3626,9 +3648,29 @@ class UnifiedPDFViewer {
                                          window.forceFingerAnnotations || 
                                          false;
             
-            // Permettre les gestes multi-touch pour zoom/scroll
-            if (isMultiTouch) {
-                return; // Laisser le navigateur gérer le zoom/scroll
+            // Gérer les gestes multi-touch pour zoom (pinch-to-zoom)
+            if (isMultiTouch && isPinching) {
+                if (e.touches.length === 2) {
+                    const currentDistance = getTouchDistance(e.touches);
+                    
+                    if (initialPinchDistance > 0 && currentDistance > 0) {
+                        // Calculer le facteur de zoom
+                        const scale = currentDistance / initialPinchDistance;
+                        const newScale = Math.max(
+                            this.options.minZoom, 
+                            Math.min(this.options.maxZoom, initialScale * scale)
+                        );
+                        
+                        // Appliquer le zoom si le changement est significatif
+                        if (Math.abs(newScale - this.currentScale) > 0.1) {
+                            this.log(`🔍 Pinch zoom: ${this.currentScale.toFixed(2)} → ${newScale.toFixed(2)}`);
+                            this.setZoom(newScale);
+                        }
+                        
+                        e.preventDefault();
+                    }
+                }
+                return;
             }
             
             // Continuer le dessin avec le stylet ou doigt si autorisé et en cours
@@ -3656,6 +3698,13 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('touchend', (e) => {
+            // Réinitialiser le pinch-to-zoom si nécessaire
+            if (isPinching && e.touches.length < 2) {
+                isPinching = false;
+                initialPinchDistance = 0;
+                this.log(`🔍 Pinch terminé - scale final: ${this.currentScale.toFixed(2)}`);
+            }
+            
             // Remettre le touch-action par défaut après l'interaction
             setTimeout(() => {
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
