@@ -1663,7 +1663,13 @@ class UnifiedPDFViewer {
         }
 
         this.currentScale = value;
-        this.renderPage(this.currentPage);
+        
+        // Re-render toutes les pages avec le nouveau zoom
+        this.renderAllPages().catch(error => {
+            console.error('Erreur lors du re-render après zoom:', error);
+            // Fallback: render seulement la page courante
+            this.renderPage(this.currentPage);
+        });
         
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
@@ -3581,6 +3587,9 @@ class UnifiedPDFViewer {
 
         // Support tactile avec distinction stylet/doigt
         annotationCanvas.addEventListener('touchstart', (e) => {
+            // Debug détaillé des touches
+            console.log(`[PINCH DEBUG] TouchStart: ${e.touches.length} touches détectées`);
+            
             // Analyser le type de touch
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
@@ -3594,6 +3603,7 @@ class UnifiedPDFViewer {
             
             // Gérer les multi-touch pour zoom/scroll (pinch-to-zoom)
             if (isMultiTouch) {
+                console.log(`[PINCH DEBUG] Multi-touch détecté: ${e.touches.length} touches`);
                 this.log(`✌️ ${e.touches.length} doigts détecté - initialiser pinch-to-zoom`);
                 
                 if (e.touches.length === 2) {
@@ -3601,6 +3611,8 @@ class UnifiedPDFViewer {
                     isPinching = true;
                     initialPinchDistance = getTouchDistance(e.touches);
                     initialScale = this.currentScale;
+                    
+                    console.log(`[PINCH DEBUG] Pinch initialisé - distance: ${initialPinchDistance}, scale: ${initialScale}`);
                     
                     // Empêcher le scroll pendant le zoom
                     e.preventDefault();
@@ -3662,8 +3674,9 @@ class UnifiedPDFViewer {
                         );
                         
                         // Appliquer le zoom si le changement est significatif
-                        if (Math.abs(newScale - this.currentScale) > 0.1) {
+                        if (Math.abs(newScale - this.currentScale) > 0.05) {
                             this.log(`🔍 Pinch zoom: ${this.currentScale.toFixed(2)} → ${newScale.toFixed(2)}`);
+                            this.log(`🔍 Application du setZoom(${newScale.toFixed(2)})...`);
                             this.setZoom(newScale);
                         }
                         
