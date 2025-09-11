@@ -3557,6 +3557,9 @@ class UnifiedPDFViewer {
      * Configuration des événements d'annotation pour une page spécifique
      */
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
+        // Initialiser touch-action pour permettre scroll/zoom par défaut
+        annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        
         // Événements de dessin sur le canvas d'annotation
         annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
         annotationCanvas.addEventListener('mousemove', (e) => this.draw(e, pageNum));
@@ -3569,15 +3572,25 @@ class UnifiedPDFViewer {
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
             const isSingleTouch = e.touches.length === 1;
+            const isMultiTouch = e.touches.length > 1;
             
             // Déterminer si les annotations avec doigts sont autorisées
             const allowFingerAnnotations = this.currentMode.allowFingerAnnotations || 
                                          window.forceFingerAnnotations || 
                                          false;
             
+            // Gérer les multi-touch pour zoom/scroll - ne pas bloquer
+            if (isMultiTouch) {
+                this.log(`✌️ ${e.touches.length} doigts détecté - permettre zoom/scroll`);
+                // Permettre le geste natif en définissant touch-action temporairement
+                annotationCanvas.style.touchAction = 'pinch-zoom pan-x pan-y';
+                return; // Ne pas appeler preventDefault() pour permettre le zoom
+            }
+            
             // Permettre les annotations avec le stylet ou avec les doigts si autorisé
             if ((isStylus || allowFingerAnnotations) && isSingleTouch) {
                 e.preventDefault();
+                annotationCanvas.style.touchAction = 'none'; // Bloquer pour annotations
                 const mouseEvent = new MouseEvent('mousedown', {
                     clientX: touch.clientX,
                     clientY: touch.clientY
@@ -3599,17 +3612,24 @@ class UnifiedPDFViewer {
             } else if (isSingleTouch) {
                 // Touch avec doigt non-autorisé - permettre le scroll
                 this.log(`👆 Touch détecté (doigt) sur page ${pageNum} - scroll autorisé`);
+                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+                // Ne pas appeler preventDefault() pour permettre le scroll
             }
-            // Multi-touch (zoom/scroll) - laisser passer sans intervention
         });
 
         annotationCanvas.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
             const isSingleTouch = e.touches.length === 1;
+            const isMultiTouch = e.touches.length > 1;
             const allowFingerAnnotations = this.currentMode.allowFingerAnnotations || 
                                          window.forceFingerAnnotations || 
                                          false;
+            
+            // Permettre les gestes multi-touch pour zoom/scroll
+            if (isMultiTouch) {
+                return; // Laisser le navigateur gérer le zoom/scroll
+            }
             
             // Continuer le dessin avec le stylet ou doigt si autorisé et en cours
             if ((isStylus || allowFingerAnnotations) && isSingleTouch && this.isDrawing) {
@@ -3632,9 +3652,15 @@ class UnifiedPDFViewer {
                 mouseEvent.isStylusEvent = isStylus;
                 this.draw(mouseEvent, pageNum);
             }
+            // Pour single touch sans annotation, laisser le scroll se faire naturellement
         });
 
         annotationCanvas.addEventListener('touchend', (e) => {
+            // Remettre le touch-action par défaut après l'interaction
+            setTimeout(() => {
+                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+            }, 100);
+            
             // Seulement empêcher l'événement par défaut si on était en train de dessiner
             if (this.isDrawing) {
                 e.preventDefault();

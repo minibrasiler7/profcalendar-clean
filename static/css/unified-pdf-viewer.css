@@ -885,7 +885,7 @@
     }
     
     .pdf-annotation-layer {
-        touch-action: none; /* Laisser les annotations gérer les événements tactiles */
+        touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll/zoom par défaut */
     }
     
     /* Améliorer l'interface sur tablettes */
