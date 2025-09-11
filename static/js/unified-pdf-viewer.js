@@ -3582,8 +3582,17 @@ class UnifiedPDFViewer {
                     clientX: touch.clientX,
                     clientY: touch.clientY
                 });
-                // Ajouter les propriétés manquantes
-                mouseEvent.target = e.target;
+                // Ajouter les propriétés manquantes avec Object.defineProperty
+                try {
+                    Object.defineProperty(mouseEvent, 'target', {
+                        value: e.target,
+                        writable: false,
+                        configurable: true
+                    });
+                } catch (err) {
+                    // Si ça ne marche pas, on utilise une approche alternative
+                    console.warn('Cannot set target property on MouseEvent:', err);
+                }
                 mouseEvent.isStylusEvent = isStylus;
                 this.startDrawing(mouseEvent, pageNum);
                 this.log(`✏️ Annotation ${isStylus ? 'stylet' : 'doigt'} initiée sur page ${pageNum}`);
@@ -3609,8 +3618,17 @@ class UnifiedPDFViewer {
                     clientX: touch.clientX,
                     clientY: touch.clientY
                 });
-                // Ajouter les propriétés manquantes
-                mouseEvent.target = e.target;
+                // Ajouter les propriétés manquantes avec Object.defineProperty
+                try {
+                    Object.defineProperty(mouseEvent, 'target', {
+                        value: e.target,
+                        writable: false,
+                        configurable: true
+                    });
+                } catch (err) {
+                    // Si ça ne marche pas, on utilise une approche alternative
+                    console.warn('Cannot set target property on MouseEvent:', err);
+                }
                 mouseEvent.isStylusEvent = isStylus;
                 this.draw(mouseEvent, pageNum);
             }
@@ -3947,13 +3965,21 @@ class UnifiedPDFViewer {
         this.log(`Début du dessin sur page ${pageNum}, outil: ${this.currentTool}`);
         this.isDrawing = true;
         
-        // Vérification de sécurité pour e.target
-        if (!e.target) {
-            this.log('Erreur: e.target est null dans startDrawing');
-            return;
+        // Vérification de sécurité pour e.target et fallback
+        let targetElement = e.target;
+        if (!targetElement) {
+            // Fallback: essayer de trouver le canvas d'annotation de cette page
+            const pageElement = this.pageElements.get(pageNum);
+            targetElement = pageElement?.annotationCanvas;
+            
+            if (!targetElement) {
+                this.log('Erreur: impossible de déterminer l\'élément target dans startDrawing');
+                return;
+            }
+            this.log('Utilisation du canvas d\'annotation comme fallback target');
         }
         
-        const rect = e.target.getBoundingClientRect();
+        const rect = targetElement.getBoundingClientRect();
         
         // Ajuster les coordonnées pour le mode split
         const adjustedCoords = this.adjustCoordinatesForMode(e, rect, pageNum);
@@ -4142,13 +4168,21 @@ class UnifiedPDFViewer {
             return;
         }
         
-        // Vérification de sécurité pour e.target
-        if (!e.target) {
-            this.log('Erreur: e.target est null dans draw');
-            return;
+        // Vérification de sécurité pour e.target et fallback
+        let targetElement = e.target;
+        if (!targetElement) {
+            // Fallback: essayer de trouver le canvas d'annotation de cette page
+            const pageElement = this.pageElements.get(pageNum);
+            targetElement = pageElement?.annotationCanvas;
+            
+            if (!targetElement) {
+                this.log('Erreur: impossible de déterminer l\'élément target dans draw');
+                return;
+            }
+            this.log('Utilisation du canvas d\'annotation comme fallback target dans draw');
         }
         
-        const rect = e.target.getBoundingClientRect();
+        const rect = targetElement.getBoundingClientRect();
         const currentPoint = this.adjustCoordinatesForMode(e, rect, pageNum);
         
         // Logs de débogage pour le premier trait
