@@ -3607,16 +3607,20 @@ class UnifiedPDFViewer {
                 this.log(`✌️ ${e.touches.length} doigts détecté - initialiser pinch-to-zoom`);
                 
                 if (e.touches.length === 2) {
+                    console.log(`[PINCH DEBUG] About to initialize pinch...`);
                     // Initialiser le pinch-to-zoom
                     isPinching = true;
                     initialPinchDistance = getTouchDistance(e.touches);
                     initialScale = this.currentScale;
                     
                     console.log(`[PINCH DEBUG] Pinch initialisé - distance: ${initialPinchDistance}, scale: ${initialScale}`);
+                    this.log(`🔍 DEBUG: Pinch vars - isPinching: ${isPinching}, distance: ${initialPinchDistance}, scale: ${initialScale}`);
                     
                     // Empêcher le scroll pendant le zoom
                     e.preventDefault();
                     this.log(`🔍 Pinch démarré - distance: ${Math.round(initialPinchDistance)}, scale: ${initialScale}`);
+                } else {
+                    console.log(`[PINCH DEBUG] Not 2 touches, ignoring: ${e.touches.length}`);
                 }
                 return;
             }
@@ -3662,8 +3666,10 @@ class UnifiedPDFViewer {
             
             // Gérer les gestes multi-touch pour zoom (pinch-to-zoom)
             if (isMultiTouch && isPinching) {
+                console.log(`[PINCH DEBUG] TouchMove: isPinching=${isPinching}, touches=${e.touches.length}`);
                 if (e.touches.length === 2) {
                     const currentDistance = getTouchDistance(e.touches);
+                    console.log(`[PINCH DEBUG] Distances: initial=${initialPinchDistance}, current=${currentDistance}`);
                     
                     if (initialPinchDistance > 0 && currentDistance > 0) {
                         // Calculer le facteur de zoom
@@ -3673,15 +3679,23 @@ class UnifiedPDFViewer {
                             Math.min(this.options.maxZoom, initialScale * scale)
                         );
                         
-                        // Appliquer le zoom si le changement est significatif
-                        if (Math.abs(newScale - this.currentScale) > 0.05) {
+                        console.log(`[PINCH DEBUG] Scale calc: scale=${scale.toFixed(3)}, newScale=${newScale.toFixed(3)}, current=${this.currentScale.toFixed(3)}, diff=${Math.abs(newScale - this.currentScale).toFixed(3)}`);
+                        
+                        // Appliquer le zoom si le changement est significatif (réduire le seuil pour le dézoom)
+                        if (Math.abs(newScale - this.currentScale) > 0.02) {
                             this.log(`🔍 Pinch zoom: ${this.currentScale.toFixed(2)} → ${newScale.toFixed(2)}`);
                             this.log(`🔍 Application du setZoom(${newScale.toFixed(2)})...`);
                             this.setZoom(newScale);
+                        } else {
+                            console.log(`[PINCH DEBUG] Change too small: ${Math.abs(newScale - this.currentScale).toFixed(3)} < 0.02`);
                         }
                         
                         e.preventDefault();
+                    } else {
+                        console.log(`[PINCH DEBUG] Invalid distances: initial=${initialPinchDistance}, current=${currentDistance}`);
                     }
+                } else {
+                    console.log(`[PINCH DEBUG] Not 2 touches in move: ${e.touches.length}`);
                 }
                 return;
             }
