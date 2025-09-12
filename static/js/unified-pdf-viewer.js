@@ -58,7 +58,7 @@ class UnifiedPDFViewer {
             enableTouchGestures: true,
             autoSave: true,
             saveDelay: 3000,
-            maxZoom: 3.0,
+            maxZoom: 2.5,
             minZoom: 0.5,
             zoomStep: 0.25,
             viewMode: 'continuous', // 'single' ou 'continuous'
@@ -3587,9 +3587,6 @@ class UnifiedPDFViewer {
 
         // Support tactile avec distinction stylet/doigt
         annotationCanvas.addEventListener('touchstart', (e) => {
-            // Debug détaillé des touches
-            console.log(`[PINCH DEBUG] TouchStart: ${e.touches.length} touches détectées`);
-            
             // Analyser le type de touch
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
@@ -3603,24 +3600,17 @@ class UnifiedPDFViewer {
             
             // Gérer les multi-touch pour zoom/scroll (pinch-to-zoom)
             if (isMultiTouch) {
-                console.log(`[PINCH DEBUG] Multi-touch détecté: ${e.touches.length} touches`);
-                this.log(`✌️ ${e.touches.length} doigts détecté - initialiser pinch-to-zoom`);
+                this.log(`✌️ 2 doigts - pinch-to-zoom`);
                 
                 if (e.touches.length === 2) {
-                    console.log(`[PINCH DEBUG] About to initialize pinch...`);
                     // Initialiser le pinch-to-zoom
                     isPinching = true;
                     initialPinchDistance = getTouchDistance(e.touches);
                     initialScale = this.currentScale;
                     
-                    console.log(`[PINCH DEBUG] Pinch initialisé - distance: ${initialPinchDistance}, scale: ${initialScale}`);
-                    this.log(`🔍 DEBUG: Pinch vars - isPinching: ${isPinching}, distance: ${initialPinchDistance}, scale: ${initialScale}`);
-                    
                     // Empêcher le scroll pendant le zoom
                     e.preventDefault();
-                    this.log(`🔍 Pinch démarré - distance: ${Math.round(initialPinchDistance)}, scale: ${initialScale}`);
-                } else {
-                    console.log(`[PINCH DEBUG] Not 2 touches, ignoring: ${e.touches.length}`);
+                    this.log(`🔍 Pinch démarré - zoom: ${(initialScale * 100).toFixed(0)}%`);
                 }
                 return;
             }
@@ -3666,10 +3656,8 @@ class UnifiedPDFViewer {
             
             // Gérer les gestes multi-touch pour zoom (pinch-to-zoom)
             if (isMultiTouch && isPinching) {
-                console.log(`[PINCH DEBUG] TouchMove: isPinching=${isPinching}, touches=${e.touches.length}`);
                 if (e.touches.length === 2) {
                     const currentDistance = getTouchDistance(e.touches);
-                    console.log(`[PINCH DEBUG] Distances: initial=${initialPinchDistance}, current=${currentDistance}`);
                     
                     if (initialPinchDistance > 0 && currentDistance > 0) {
                         // Calculer le facteur de zoom
@@ -3679,23 +3667,14 @@ class UnifiedPDFViewer {
                             Math.min(this.options.maxZoom, initialScale * scale)
                         );
                         
-                        console.log(`[PINCH DEBUG] Scale calc: scale=${scale.toFixed(3)}, newScale=${newScale.toFixed(3)}, current=${this.currentScale.toFixed(3)}, diff=${Math.abs(newScale - this.currentScale).toFixed(3)}`);
-                        
-                        // Appliquer le zoom si le changement est significatif (réduire le seuil pour le dézoom)
-                        if (Math.abs(newScale - this.currentScale) > 0.02) {
-                            this.log(`🔍 Pinch zoom: ${this.currentScale.toFixed(2)} → ${newScale.toFixed(2)}`);
-                            this.log(`🔍 Application du setZoom(${newScale.toFixed(2)})...`);
+                        // Appliquer le zoom si le changement est significatif
+                        if (Math.abs(newScale - this.currentScale) > 0.01) {
+                            this.log(`🔍 Zoom: ${(this.currentScale * 100).toFixed(0)}% → ${(newScale * 100).toFixed(0)}%`);
                             this.setZoom(newScale);
-                        } else {
-                            console.log(`[PINCH DEBUG] Change too small: ${Math.abs(newScale - this.currentScale).toFixed(3)} < 0.02`);
                         }
                         
                         e.preventDefault();
-                    } else {
-                        console.log(`[PINCH DEBUG] Invalid distances: initial=${initialPinchDistance}, current=${currentDistance}`);
                     }
-                } else {
-                    console.log(`[PINCH DEBUG] Not 2 touches in move: ${e.touches.length}`);
                 }
                 return;
             }
@@ -3729,7 +3708,7 @@ class UnifiedPDFViewer {
             if (isPinching && e.touches.length < 2) {
                 isPinching = false;
                 initialPinchDistance = 0;
-                this.log(`🔍 Pinch terminé - scale final: ${this.currentScale.toFixed(2)}`);
+                this.log(`🔍 Pinch terminé - zoom final: ${(this.currentScale * 100).toFixed(0)}%`);
             }
             
             // Remettre le touch-action par défaut après l'interaction
