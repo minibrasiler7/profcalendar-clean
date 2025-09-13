@@ -59,9 +59,12 @@
                 
                 // Vérifier si c'est un listener de l'ancien système
                 const listenerStr = listener.toString();
-                if (listenerStr.includes('startDrawing') || 
-                    listenerStr.includes('drawMultiPage') ||
-                    listenerStr.includes('getBoundingClientRect')) {
+                // Ne bloquer QUE les anciens listeners, pas ceux du nouveau unified-pdf-viewer
+                if ((listenerStr.includes('drawMultiPage') ||
+                     listenerStr.includes('getBoundingClientRect')) &&
+                     !listenerStr.includes('this.startDrawing') &&
+                     !listenerStr.includes('✌️') &&
+                     !listenerStr.includes('isStylusTouch')) {
                     
                     console.log(`🚫 Blocage listener ${type} sur ${this.id} (ancien système)`);
                     if (window.debugLog_custom) {

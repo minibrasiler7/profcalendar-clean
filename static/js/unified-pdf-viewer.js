@@ -3587,6 +3587,7 @@ class UnifiedPDFViewer {
 
         // Support tactile avec distinction stylet/doigt
         annotationCanvas.addEventListener('touchstart', (e) => {
+            console.log(`[UNIFIED-PDF] TouchStart handler called for page ${pageNum}`);
             // Analyser le type de touch
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
