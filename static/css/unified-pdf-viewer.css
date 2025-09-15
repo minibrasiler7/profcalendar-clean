@@ -1337,3 +1337,26 @@
     color: #9CA3AF;
     font-style: italic;
 }
+
+/* === CURSEURS STYLET MODERNES === */
+
+/* Curseur point moderne pour stylo et surligneur */
+.pdf-annotation-layer.pen-cursor,
+.pdf-annotation-layer.highlighter-cursor {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="rgb(59,130,246)"/></svg>') 8 8, crosshair;
+}
+
+/* Curseur gomme moderne avec suivi du mouvement */
+.pdf-annotation-layer.eraser-cursor {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="rgb(239,68,68)" stroke-width="2" stroke-dasharray="2,2"/><circle cx="10" cy="10" r="3" fill="rgb(239,68,68)" opacity="0.6"/></svg>') 10 10, none;
+}
+
+/* Curseur texte */
+.pdf-annotation-layer.text-cursor {
+    cursor: text;
+}
+
+/* Curseur par défaut (pas d'outil sélectionné) */
+.pdf-annotation-layer {
+    cursor: default;
+}

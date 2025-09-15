@@ -3564,21 +3564,8 @@ class UnifiedPDFViewer {
      * Configuration des événements d'annotation pour une page spécifique
      */
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
-        // Initialiser touch-action pour permettre scroll/zoom par défaut
+        // Initialiser touch-action pour permettre scroll/zoom natif par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        
-        // Variables pour la gestion du pinch-to-zoom
-        let initialPinchDistance = 0;
-        let initialScale = this.currentScale;
-        let isPinching = false;
-        
-        // Fonction utilitaire pour calculer la distance entre deux touches
-        const getTouchDistance = (touches) => {
-            if (touches.length < 2) return 0;
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        };
         
         // Événements de dessin sur le canvas d'annotation
         annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
@@ -3599,17 +3586,9 @@ class UnifiedPDFViewer {
                                          window.forceFingerAnnotations || 
                                          false;
             
-            // Gérer les multi-touch pour zoom/scroll (pinch-to-zoom)
+            // Multi-touch (2+ doigts) : laisser le comportement natif du navigateur pour zoom/scroll
             if (isMultiTouch) {
-                if (e.touches.length === 2) {
-                    // Initialiser le pinch-to-zoom
-                    isPinching = true;
-                    initialPinchDistance = getTouchDistance(e.touches);
-                    initialScale = this.currentScale;
-                    
-                    // Empêcher le scroll pendant le zoom
-                    e.preventDefault();
-                }
+                // Ne pas interférer - laisser Safari gérer le zoom/scroll nativement
                 return;
             }
             
@@ -3636,10 +3615,9 @@ class UnifiedPDFViewer {
                 this.startDrawing(mouseEvent, pageNum);
                 this.log(`✏️ Annotation ${isStylus ? 'stylet' : 'doigt'} initiée sur page ${pageNum}`);
             } else if (isSingleTouch) {
-                // Touch avec doigt non-autorisé - permettre le scroll
-                this.log(`👆 Touch détecté (doigt) sur page ${pageNum} - scroll autorisé`);
+                // Touch avec doigt seul - laisser le comportement natif (scroll)
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-                // Ne pas appeler preventDefault() pour permettre le scroll
+                // Ne pas appeler preventDefault() pour permettre le scroll natif
             }
         });
 
@@ -3652,28 +3630,9 @@ class UnifiedPDFViewer {
                                          window.forceFingerAnnotations || 
                                          false;
             
-            // Gérer les gestes multi-touch pour zoom (pinch-to-zoom)
-            if (isMultiTouch && isPinching) {
-                if (e.touches.length === 2) {
-                    const currentDistance = getTouchDistance(e.touches);
-                    
-                    if (initialPinchDistance > 0 && currentDistance > 0) {
-                        // Calculer le facteur de zoom
-                        const scale = currentDistance / initialPinchDistance;
-                        const newScale = Math.max(
-                            this.options.minZoom, 
-                            Math.min(this.options.maxZoom, initialScale * scale)
-                        );
-                        
-                        // Appliquer le zoom immédiatement pour plus de réactivité
-                        if (Math.abs(newScale - this.currentScale) > 0.001) {
-                            this.setZoom(newScale);
-                        }
-                        
-                        e.preventDefault();
-                    }
-                }
-                return;
+            // Multi-touch : laisser le navigateur gérer nativement
+            if (isMultiTouch) {
+                return; // Ne pas interférer avec le comportement natif
             }
             
             // Continuer le dessin avec le stylet ou doigt si autorisé et en cours
@@ -3701,13 +3660,7 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('touchend', (e) => {
-            // Réinitialiser le pinch-to-zoom si nécessaire
-            if (isPinching && e.touches.length < 2) {
-                isPinching = false;
-                initialPinchDistance = 0;
-            }
-            
-            // Remettre le touch-action par défaut après l'interaction
+            // Toujours remettre le touch-action par défaut après l'interaction
             setTimeout(() => {
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
             }, 100);
@@ -3753,15 +3706,23 @@ class UnifiedPDFViewer {
         annotationCanvases.forEach((canvas, index) => {
             if (tool) {
                 canvas.style.pointerEvents = 'all';
-                canvas.style.cursor = tool === 'pen' ? 'crosshair' : 
-                                     tool === 'highlighter' ? 'crosshair' :
-                                     tool === 'eraser' ? 'none' :
-                                     tool === 'text' ? 'text' : 'default';
-                this.log(`Canvas ${index} activé pour l'outil ${tool}`);
+                
+                // Supprimer toutes les classes de curseur existantes
+                canvas.classList.remove('pen-cursor', 'highlighter-cursor', 'eraser-cursor', 'text-cursor');
+                
+                // Ajouter la classe de curseur appropriée
+                if (tool === 'pen') {
+                    canvas.classList.add('pen-cursor');
+                } else if (tool === 'highlighter') {
+                    canvas.classList.add('highlighter-cursor');
+                } else if (tool === 'eraser') {
+                    canvas.classList.add('eraser-cursor');
+                } else if (tool === 'text') {
+                    canvas.classList.add('text-cursor');
+                }
             } else {
                 canvas.style.pointerEvents = 'none';
-                canvas.style.cursor = 'default';
-                this.log(`Canvas ${index} désactivé`);
+                canvas.classList.remove('pen-cursor', 'highlighter-cursor', 'eraser-cursor', 'text-cursor');
             }
         });
         
