@@ -1664,12 +1664,13 @@ class UnifiedPDFViewer {
 
         this.currentScale = value;
         
-        // Re-render toutes les pages avec le nouveau zoom
-        this.renderAllPages().catch(error => {
-            console.error('Erreur lors du re-render après zoom:', error);
-            // Fallback: render seulement la page courante
-            this.renderPage(this.currentPage);
-        });
+        // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
+        setTimeout(() => {
+            this.renderAllPages().catch(error => {
+                // Fallback: render seulement la page courante
+                this.renderPage(this.currentPage);
+            });
+        }, 50);
         
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
@@ -3664,8 +3665,8 @@ class UnifiedPDFViewer {
                             Math.min(this.options.maxZoom, initialScale * scale)
                         );
                         
-                        // Appliquer le zoom si le changement est significatif
-                        if (Math.abs(newScale - this.currentScale) > 0.01) {
+                        // Appliquer le zoom immédiatement pour plus de réactivité
+                        if (Math.abs(newScale - this.currentScale) > 0.001) {
                             this.setZoom(newScale);
                         }
                         

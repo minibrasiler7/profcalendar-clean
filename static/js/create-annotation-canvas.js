@@ -21,14 +21,12 @@
     function createAnnotationCanvas(pageWrapper, pageNum) {
         const pdfCanvas = pageWrapper.querySelector(`#pdf-canvas-${pageNum}, .pdf-canvas`);
         if (!pdfCanvas) {
-            console.warn(`⚠️ PDF Canvas non trouvé pour page ${pageNum}`);
             return null;
         }
 
         // Vérifier si le canvas d'annotation existe déjà
         let annotationCanvas = pageWrapper.querySelector(`#annotation-canvas-${pageNum}`);
         if (annotationCanvas) {
-            console.log(`ℹ️ Canvas d'annotation existe déjà pour page ${pageNum}`);
             return annotationCanvas;
         }
 
@@ -75,14 +73,10 @@
             if (hasStylusOnly) {
                 // Activer le canvas pour intercepter les événements stylet
                 annotationCanvas.style.pointerEvents = 'auto';
-                if (window.debugLog_custom) {
-                    window.debugLog_custom(`✏️ Canvas P${pageNum} activé pour stylet`);
                 }
             } else {
                 // Désactiver le canvas pour laisser passer scroll/zoom
                 annotationCanvas.style.pointerEvents = 'none';
-                if (window.debugLog_custom) {
-                    window.debugLog_custom(`👆 Canvas P${pageNum} désactivé: ${touches.length} touches`);
                 }
             }
         }, { passive: true, capture: true });
@@ -91,15 +85,10 @@
         pageWrapper.addEventListener('touchend', function(e) {
             if (e.touches.length === 0) {
                 annotationCanvas.style.pointerEvents = 'none';
-                if (window.debugLog_custom) {
-                    window.debugLog_custom(`🛑 Canvas P${pageNum} désactivé - fin de touch`);
                 }
             }
         }, { passive: true });
         
-        console.log(`✅ Canvas d'annotation créé pour page ${pageNum}: ${annotationCanvas.width}x${annotationCanvas.height}`);
-        if (window.debugLog_custom) {
-            window.debugLog_custom(`✅ Canvas créé P${pageNum}: ${annotationCanvas.width}x${annotationCanvas.height}`);
         }
 
         return annotationCanvas;
@@ -142,14 +131,10 @@
             
             // Si ce n'est PAS un stylet seul, laisser passer l'événement
             if (!stylusTouch || touches.length !== 1) {
-                if (window.debugLog_custom) {
-                    window.debugLog_custom(`👆 Geste non-stylet P${pageNum}: ${touches.length} touches, stylet: ${!!stylusTouch}`);
                 }
                 return; // Ne pas preventDefault/stopPropagation - laisser passer
             }
 
-            if (window.debugLog_custom) {
-                window.debugLog_custom(`✏️ Dessin stylet P${pageNum} force:${stylusTouch.force?.toFixed(2)}`);
             }
 
             e.preventDefault();
@@ -224,8 +209,6 @@
 
             pageIsDrawing = false;
 
-            if (window.debugLog_custom) {
-                window.debugLog_custom(`🎨 Trait terminé P${pageNum}: ${pageCurrentStroke.length} points`);
             }
 
             // Sauvegarder si possible
@@ -246,7 +229,6 @@
                     try {
                         window.saveAnnotationToDatabase(annotation);
                     } catch (error) {
-                        console.warn('⚠️ Erreur sauvegarde annotation:', error);
                     }
                 }
             }
@@ -260,7 +242,6 @@
         annotationCanvas.addEventListener('touchend', handleStylusEnd, { passive: false, capture: false });
         annotationCanvas.addEventListener('touchcancel', handleStylusEnd, { passive: false, capture: false });
 
-        console.log(`✅ Événements stylet configurés pour page ${pageNum}`);
     }
 
     /**
@@ -273,8 +254,6 @@
         );
 
         if (pageWrappers.length === 0) {
-            if (window.debugLog_custom) {
-                window.debugLog_custom('⚠️ Aucune page PDF trouvée');
             }
             return;
         }
@@ -297,9 +276,6 @@
             }
         });
 
-        console.log(`✅ ${canvasCreated} canvas d'annotation créés sur ${pageWrappers.length} pages`);
-        if (window.debugLog_custom) {
-            window.debugLog_custom(`✅ ${canvasCreated} canvas créés automatiquement`);
         }
     }
 
@@ -332,8 +308,6 @@
             });
 
             if (hasNewPages) {
-                if (window.debugLog_custom) {
-                    window.debugLog_custom('🆕 Nouvelles pages PDF détectées');
                 }
                 setTimeout(processAllPages, 500);
             }
@@ -344,25 +318,19 @@
             subtree: true
         });
 
-        console.log('👁️ Observer pages PDF configuré');
     }
 
     /**
      * Test de diagnostic
      */
     window.testCanvasCreation = function() {
-        console.log('🧪 Test de création de canvas:');
         processAllPages();
         
         const annotationCanvases = document.querySelectorAll('.annotation-canvas');
-        console.log(`📊 Résultat: ${annotationCanvases.length} canvas d'annotation trouvés`);
         
         annotationCanvases.forEach((canvas, index) => {
-            console.log(`  Canvas ${index + 1}: ${canvas.id}, ${canvas.width}x${canvas.height}`);
         });
 
-        if (window.debugLog_custom) {
-            window.debugLog_custom(`🧪 Test: ${annotationCanvases.length} canvas trouvés`);
         }
     };
 
@@ -370,7 +338,6 @@
      * Initialisation
      */
     function init() {
-        console.log('🚀 Initialisation création canvas annotations...');
         
         // Traiter les pages existantes
         setTimeout(processAllPages, 1000);
@@ -382,9 +349,6 @@
         setTimeout(processAllPages, 3000);
         setTimeout(processAllPages, 5000);
         
-        console.log('✅ Système création canvas initialisé');
-        if (window.debugLog_custom) {
-            window.debugLog_custom('✅ Création auto canvas activée');
         }
     }
 

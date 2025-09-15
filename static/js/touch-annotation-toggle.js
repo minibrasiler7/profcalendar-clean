@@ -24,7 +24,6 @@
         try {
             localStorage.setItem('fingerAnnotationsEnabled', 'false');
         } catch (e) {
-            console.warn('Impossible de sauvegarder la préférence:', e);
         }
     }
 
@@ -33,7 +32,6 @@
      */
     function init() {
         setDefaultStylusMode();
-        console.log('🖊️ Mode stylet seul activé par défaut');
     }
 
     // Initialiser quand possible

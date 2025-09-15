@@ -14,11 +14,9 @@
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     if (!isTouchDevice) {
-        console.log('🖱️ Appareil non-tactile, skip PDF touch annotations');
         return;
     }
 
-    console.log('✏️ Activation des annotations tactiles PDF pour:', isIOS ? 'iOS' : 'Appareil tactile');
 
     // Variables globales pour le dessin
     let isDrawing = false;
@@ -64,7 +62,6 @@
                 childList: true, 
                 subtree: true 
             });
-            console.log('👁️ Observer tactile configuré pour les pages PDF');
         }
 
         // Configurer les pages existantes
@@ -83,7 +80,6 @@
         const annotationCanvas = pageWrapper.querySelector(`#annotation-canvas-${pageNum}`);
         
         if (!annotationCanvas) {
-            console.warn(`⚠️ Canvas d'annotation non trouvé pour la page ${pageNum}`);
             return;
         }
 
@@ -109,8 +105,6 @@
             if (e.touches.length !== 1) return;
 
             // Log pour debug
-            if (window.debugLog_custom) {
-                window.debugLog_custom(`🎨 TouchStart sur ${pageNum}, touches: ${e.touches.length}`);
             }
 
             // Empêcher les autres interactions tactiles pendant le dessin
@@ -124,8 +118,6 @@
 
             // Vérifier que le canvas et contexte sont valides
             if (!ctx || annotationCanvas.width === 0 || annotationCanvas.height === 0) {
-                if (window.debugLog_custom) {
-                    window.debugLog_custom(`❌ Canvas invalide: ${annotationCanvas.width}x${annotationCanvas.height}`);
                 }
                 return;
             }
@@ -149,11 +141,8 @@
             ctx.beginPath();
             ctx.moveTo(x, y);
 
-            if (window.debugLog_custom) {
-                window.debugLog_custom(`✅ Dessin initié: ${Math.round(x)},${Math.round(y)} avec ${tools.tool}`);
             }
 
-            console.log('🎨 Début du dessin tactile sur page', pageNum, 'à', x, y);
         }
 
         /**
@@ -213,7 +202,6 @@
 
                 // Utiliser la fonction globale de sauvegarde si elle existe
                 window.saveAnnotationToDatabase(annotation);
-                console.log('💾 Annotation tactile sauvegardée pour page', pageNum);
             }
 
             pageCurrentPath = [];
@@ -253,7 +241,6 @@
         // Marquer comme configuré
         pageWrapper.dataset.touchAnnotationsConfigured = 'true';
         
-        console.log('✅ Annotations tactiles configurées pour la page', pageNum);
     }
 
     /**
@@ -267,7 +254,6 @@
                 const tool = e.target.dataset.tool;
                 if (tool) {
                     currentTool = tool;
-                    console.log('🔧 Outil tactile changé:', tool);
                 }
             }
             
@@ -276,7 +262,6 @@
                 const color = e.target.style.backgroundColor;
                 if (color) {
                     currentColor = color;
-                    console.log('🎨 Couleur tactile changée:', color);
                 }
             }
         });
@@ -288,7 +273,6 @@
                 const width = control.dataset.width;
                 if (width) {
                     currentStrokeWidth = parseInt(width);
-                    console.log('📏 Épaisseur tactile changée:', width);
                 }
             });
         });
@@ -332,13 +316,11 @@
      * Initialisation principale
      */
     function init() {
-        console.log('🚀 Initialisation des annotations tactiles PDF...');
         
         initPDFTouchAnnotations();
         integrateWithExistingTools();
         enhanceToolResponsiveness();
         
-        console.log('✅ Annotations tactiles PDF initialisées');
     }
 
     // Initialiser au chargement du DOM
