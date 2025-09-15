@@ -1133,9 +1133,9 @@ if (typeof pdfjsLib !== 'undefined') {
                 {% endif %}
                 <div class="students-list">
                     {% for student in students %}
-                    {% set attendance = attendance_records.get(student.id, {}) %}
-                    {% set status = attendance.get('status', 'present') %}
-                    {% set late_minutes = attendance.get('late_minutes', 0) %}
+                    {% set attendance = attendance_records.get(student.id, None) %}
+                    {% set status = attendance.status if attendance else 'present' %}
+                    {% set late_minutes = attendance.late_minutes if attendance else 0 %}
 
                     <div class="student-attendance {{ status }}"
                          id="student-{{ student.id }}"
