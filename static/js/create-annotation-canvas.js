@@ -6,7 +6,7 @@
 (function() {
     'use strict';
 
-    console.log('🎨 Création automatique des canvas d\'annotation...');
+    // Création automatique des canvas d'annotation
 
     // Variables globales pour le dessin
     let isDrawing = false;

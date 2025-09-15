@@ -3587,7 +3587,6 @@ class UnifiedPDFViewer {
 
         // Support tactile avec distinction stylet/doigt
         annotationCanvas.addEventListener('touchstart', (e) => {
-            console.log(`[UNIFIED-PDF] TouchStart handler called for page ${pageNum}`);
             // Analyser le type de touch
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
@@ -3601,8 +3600,6 @@ class UnifiedPDFViewer {
             
             // Gérer les multi-touch pour zoom/scroll (pinch-to-zoom)
             if (isMultiTouch) {
-                this.log(`✌️ 2 doigts - pinch-to-zoom`);
-                
                 if (e.touches.length === 2) {
                     // Initialiser le pinch-to-zoom
                     isPinching = true;
@@ -3611,7 +3608,6 @@ class UnifiedPDFViewer {
                     
                     // Empêcher le scroll pendant le zoom
                     e.preventDefault();
-                    this.log(`🔍 Pinch démarré - zoom: ${(initialScale * 100).toFixed(0)}%`);
                 }
                 return;
             }
@@ -3670,7 +3666,6 @@ class UnifiedPDFViewer {
                         
                         // Appliquer le zoom si le changement est significatif
                         if (Math.abs(newScale - this.currentScale) > 0.01) {
-                            this.log(`🔍 Zoom: ${(this.currentScale * 100).toFixed(0)}% → ${(newScale * 100).toFixed(0)}%`);
                             this.setZoom(newScale);
                         }
                         
@@ -3709,7 +3704,6 @@ class UnifiedPDFViewer {
             if (isPinching && e.touches.length < 2) {
                 isPinching = false;
                 initialPinchDistance = 0;
-                this.log(`🔍 Pinch terminé - zoom final: ${(this.currentScale * 100).toFixed(0)}%`);
             }
             
             // Remettre le touch-action par défaut après l'interaction

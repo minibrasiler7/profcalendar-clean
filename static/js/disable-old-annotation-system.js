@@ -66,10 +66,7 @@
                      !listenerStr.includes('✌️') &&
                      !listenerStr.includes('isStylusTouch')) {
                     
-                    console.log(`🚫 Blocage listener ${type} sur ${this.id} (ancien système)`);
-                    if (window.debugLog_custom) {
-                        window.debugLog_custom(`🚫 Listener ${type} bloqué sur ${this.id}`);
-                    }
+                    // Bloquer listener de l'ancien système silencieusement
                     return; // Ne pas ajouter le listener
                 }
             }
