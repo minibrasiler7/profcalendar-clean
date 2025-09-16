@@ -3573,34 +3573,27 @@ class UnifiedPDFViewer {
         annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
         annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
 
-        // Support tactile avec distinction stylet/doigt
+        // Support tactile simplifié - ne bloquer QUE pour le stylet avec outil sélectionné
         annotationCanvas.addEventListener('touchstart', (e) => {
-            // Analyser le type de touch
-            const touch = e.touches[0];
-            const isStylus = this.isStylusTouch(touch);
-            const isSingleTouch = e.touches.length === 1;
-            const isMultiTouch = e.touches.length > 1;
-            
-            // Déterminer si les annotations avec doigts sont autorisées
-            const allowFingerAnnotations = this.currentMode.allowFingerAnnotations || 
-                                         window.forceFingerAnnotations || 
-                                         false;
-            
-            // Multi-touch (2+ doigts) : laisser le comportement natif du navigateur pour zoom/scroll
-            if (isMultiTouch) {
-                // Ne pas interférer - laisser Safari gérer le zoom/scroll nativement
-                return;
+            // Multi-touch : TOUJOURS laisser le comportement natif (zoom/scroll)
+            if (e.touches.length > 1) {
+                return; // Ne pas interférer du tout
             }
             
-            // Permettre les annotations avec le stylet ou avec les doigts si autorisé
-            if ((isStylus || allowFingerAnnotations) && isSingleTouch) {
+            // Single touch : vérifier si c'est un stylet
+            const touch = e.touches[0];
+            const isStylus = this.isStylusTouch(touch);
+            
+            // Seulement bloquer si c'est un stylet ET qu'on a un outil sélectionné
+            if (isStylus && this.currentTool && this.currentTool !== 'none') {
                 e.preventDefault();
-                annotationCanvas.style.touchAction = 'none'; // Bloquer pour annotations
+                annotationCanvas.style.touchAction = 'none';
+                
                 const mouseEvent = new MouseEvent('mousedown', {
                     clientX: touch.clientX,
                     clientY: touch.clientY
                 });
-                // Ajouter les propriétés manquantes avec Object.defineProperty
+                
                 try {
                     Object.defineProperty(mouseEvent, 'target', {
                         value: e.target,
@@ -3608,18 +3601,14 @@ class UnifiedPDFViewer {
                         configurable: true
                     });
                 } catch (err) {
-                    // Si ça ne marche pas, on utilise une approche alternative
-                    console.warn('Cannot set target property on MouseEvent:', err);
+                    // Fallback silencieux
                 }
-                mouseEvent.isStylusEvent = isStylus;
+                
+                mouseEvent.isStylusEvent = true;
                 this.startDrawing(mouseEvent, pageNum);
-                this.log(`✏️ Annotation ${isStylus ? 'stylet' : 'doigt'} initiée sur page ${pageNum}`);
-            } else if (isSingleTouch) {
-                // Touch avec doigt seul - laisser le comportement natif (scroll)
-                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-                // Ne pas appeler preventDefault() pour permettre le scroll natif
             }
-        });
+            // Sinon (doigt ou pas d'outil), laisser le comportement natif
+        }, { passive: false }); // Non-passif seulement pour pouvoir preventDefault si nécessaire
 
         annotationCanvas.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
@@ -3973,24 +3962,29 @@ class UnifiedPDFViewer {
             return true;
         }
         
-        // Méthode 2: Analyse des caractéristiques physiques
-        if (touch.force !== undefined && touch.radiusX !== undefined && touch.radiusY !== undefined) {
-            // Stylet a généralement une pression plus élevée et un rayon plus petit
-            const avgRadius = (touch.radiusX + touch.radiusY) / 2;
-            const hasHighPressure = touch.force > 0.1;
-            const hasSmallRadius = avgRadius < 8; // Rayon plus petit que le doigt
-            
-            if (hasHighPressure && hasSmallRadius) {
+        // Méthode 2: Apple Pencil détection (iOS Safari)
+        if (touch.force !== undefined) {
+            // Apple Pencil a généralement force > 0 même avec pression légère
+            if (touch.force > 0) {
                 return true;
             }
         }
         
-        // Méthode 3: Heuristique basée sur la précision du pointer
-        if (window.PointerEvent && touch.pointerType) {
-            return touch.pointerType === 'pen';
+        // Méthode 3: Détection par rayon (Apple Pencil a un rayon très petit)
+        if (touch.radiusX !== undefined && touch.radiusY !== undefined) {
+            const avgRadius = (touch.radiusX + touch.radiusY) / 2;
+            // Apple Pencil a généralement un rayon < 5
+            if (avgRadius < 5) {
+                return true;
+            }
         }
         
-        // Par défaut, considérer comme un doigt si pas de stylet détecté
+        // Méthode 4: Pointer events
+        if (window.PointerEvent && touch.pointerType === 'pen') {
+            return true;
+        }
+        
+        // Par défaut, considérer comme un doigt
         return false;
     }
     
