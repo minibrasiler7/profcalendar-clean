@@ -3689,7 +3689,7 @@ class UnifiedPDFViewer {
         }
         
         // Activer/désactiver les événements sur tous les canvas d'annotation
-        const annotationCanvases = document.querySelectorAll('.annotation-canvas');
+        const annotationCanvases = document.querySelectorAll('.pdf-annotation-layer');
         this.log(`Nombre de canvas d'annotation trouvés: ${annotationCanvases.length}`);
         
         annotationCanvases.forEach((canvas, index) => {
