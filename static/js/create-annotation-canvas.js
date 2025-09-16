@@ -60,9 +60,22 @@
 
         // Fonction de détection stylet locale
         function isStylusTouch(touch) {
-            return touch.touchType === 'stylus' || 
-                   (touch.force !== undefined && touch.radiusX !== undefined && 
-                    touch.force > 0.05 && (touch.radiusX < 10 || touch.radiusY < 10));
+            // Méthode 1: TouchType explicite (le plus fiable)
+            if (touch.touchType === 'stylus') return true;
+            
+            // Méthode 2: Force présente (Apple Pencil a toujours une pression > 0)
+            if (touch.force !== undefined && touch.force > 0) return true;
+            
+            // Méthode 3: Petit rayon de contact (stylet vs doigt)
+            if (touch.radiusX !== undefined && touch.radiusY !== undefined) {
+                const avgRadius = (touch.radiusX + touch.radiusY) / 2;
+                if (avgRadius < 5) return true;
+            }
+            
+            // Méthode 4: Vérification Pointer API (pour compatibilité)
+            if (window.PointerEvent && touch.pointerType === 'pen') return true;
+            
+            return false;
         }
 
         // Ajouter un système de détection globale des touches sur le conteneur parent
@@ -105,9 +118,22 @@
          * Détecter si c'est un stylet
          */
         function isStylusTouch(touch) {
-            return touch.touchType === 'stylus' || 
-                   (touch.force !== undefined && touch.radiusX !== undefined && 
-                    touch.force > 0.05 && (touch.radiusX < 10 || touch.radiusY < 10));
+            // Méthode 1: TouchType explicite (le plus fiable)
+            if (touch.touchType === 'stylus') return true;
+            
+            // Méthode 2: Force présente (Apple Pencil a toujours une pression > 0)
+            if (touch.force !== undefined && touch.force > 0) return true;
+            
+            // Méthode 3: Petit rayon de contact (stylet vs doigt)
+            if (touch.radiusX !== undefined && touch.radiusY !== undefined) {
+                const avgRadius = (touch.radiusX + touch.radiusY) / 2;
+                if (avgRadius < 5) return true;
+            }
+            
+            // Méthode 4: Vérification Pointer API (pour compatibilité)
+            if (window.PointerEvent && touch.pointerType === 'pen') return true;
+            
+            return false;
         }
 
         /**

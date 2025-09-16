@@ -11,10 +11,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
 <!-- Désactivation ancien système défaillant -->
 <script src="{{ url_for('static', filename='js/disable-old-annotation-system.js') }}"></script>
-<!-- Amélioration tactile pour iPad/tablettes -->
-<script src="{{ url_for('static', filename='js/touch-scroll-enhancement.js') }}"></script>
-<!-- Support tactile pour annotations PDF -->
-<script src="{{ url_for('static', filename='js/pdf-touch-annotations.js') }}"></script>
+<!-- Amélioration tactile pour iPad/tablettes - DÉSACTIVÉ (bloque le zoom natif) -->
+<!-- <script src="{{ url_for('static', filename='js/touch-scroll-enhancement.js') }}"></script> -->
+<!-- Support tactile pour annotations PDF - DÉSACTIVÉ (conflit avec système moderne) -->
+<!-- <script src="{{ url_for('static', filename='js/pdf-touch-annotations.js') }}"></script> -->
 <!-- Debug overlay pour iPad -->
 <script src="{{ url_for('static', filename='js/debug-overlay.js') }}"></script>
 <!-- Correctif des erreurs d'annotation -->
