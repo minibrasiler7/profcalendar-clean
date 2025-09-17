@@ -3575,20 +3575,24 @@ class UnifiedPDFViewer {
 
         // Support tactile simplifié - ne bloquer QUE pour le stylet avec outil sélectionné
         annotationCanvas.addEventListener('touchstart', (e) => {
+            this.log(`📱 TouchStart détecté! Touches: ${e.touches.length}, outil: ${this.currentTool}`);
+            
             // Multi-touch : TOUJOURS laisser le comportement natif (zoom/scroll)
             if (e.touches.length > 1) {
+                this.log(`👆 Multi-touch détecté (${e.touches.length}), laisser zoom natif`);
                 return; // Ne pas interférer du tout
             }
             
             // Single touch : vérifier si c'est un stylet
             const touch = e.touches[0];
             const isStylus = this.isStylusTouch(touch);
+            this.log(`🖊️ Détection stylet: ${isStylus}, force: ${touch.force}, touchType: ${touch.touchType}, radius: ${touch.radiusX}x${touch.radiusY}`);
             
             // Seulement bloquer si c'est un stylet ET qu'on a un outil sélectionné
             if (isStylus && this.currentTool && this.currentTool !== 'none') {
+                this.log(`✅ Stylet + outil détecté, démarrage annotation avec ${this.currentTool}`);
                 e.preventDefault();
                 annotationCanvas.style.touchAction = 'none';
-                annotationCanvas.style.pointerEvents = 'auto'; // Activer temporairement pour stylet
                 
                 const mouseEvent = new MouseEvent('mousedown', {
                     clientX: touch.clientX,
@@ -3607,6 +3611,8 @@ class UnifiedPDFViewer {
                 
                 mouseEvent.isStylusEvent = true;
                 this.startDrawing(mouseEvent, pageNum);
+            } else {
+                this.log(`🚫 Touch ignoré: stylet=${isStylus}, outil=${this.currentTool}, laisser comportement natif`);
             }
             // Sinon (doigt ou pas d'outil), laisser le comportement natif
         }, { passive: false }); // Non-passif seulement pour pouvoir preventDefault si nécessaire
@@ -3651,11 +3657,12 @@ class UnifiedPDFViewer {
             // Toujours remettre le touch-action par défaut après l'interaction
             setTimeout(() => {
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-                annotationCanvas.style.pointerEvents = 'none'; // Désactiver après usage
+                // NE PAS désactiver pointerEvents - laissé actif pour prochaine détection
             }, 100);
             
             // Seulement traiter si on était en train de dessiner avec un stylet
             if (this.isDrawing) {
+                this.log(`🏁 TouchEnd: Arrêt du dessin`);
                 e.preventDefault();
                 this.stopDrawing(null, pageNum);
             }
@@ -3695,8 +3702,9 @@ class UnifiedPDFViewer {
         
         annotationCanvases.forEach((canvas, index) => {
             if (tool) {
-                // NE PAS activer pointerEvents ici - laissé au système dynamique de détection stylet
-                canvas.style.pointerEvents = 'none'; // Par défaut désactivé, activé seulement pour stylet
+                // ACTIVER pointerEvents pour pouvoir recevoir les événements touch et détecter le stylet
+                canvas.style.pointerEvents = 'auto';
+                this.log(`🎯 Canvas ${index + 1} activé avec pointerEvents='auto' pour outil ${tool}`);
                 
                 // Supprimer toutes les classes de curseur existantes
                 canvas.classList.remove('pen-cursor', 'highlighter-cursor', 'eraser-cursor', 'text-cursor');
