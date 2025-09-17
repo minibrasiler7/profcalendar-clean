@@ -88,7 +88,8 @@
     --sidebar-min-width: 160px;
     --sidebar-max-width: 300px;
     --annotation-toolbar-height: 3rem;
-    overflow: hidden; /* Empêcher le scroll global */
+    overflow: hidden; /* Empêcher le scroll global sur le conteneur principal */
+    touch-action: pan-x pan-y pinch-zoom; /* Permettre zoom sur le conteneur principal */
 }
 
 .unified-pdf-viewer *,
@@ -225,6 +226,7 @@
     overflow: hidden;
     height: 100%;
     position: relative;
+    touch-action: pan-x pan-y pinch-zoom; /* Permettre zoom sur le conteneur principal */
 }
 
 /* === BARRE LATÉRALE === */
@@ -577,7 +579,7 @@
     
     /* Support tactile amélioré pour iPad et appareils mobiles */
     -webkit-overflow-scrolling: touch; /* Scroll fluide sur iOS */
-    touch-action: pan-y; /* Permettre le scroll vertical tactile */
+    touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll ET zoom tactile */
     overscroll-behavior: contain; /* Éviter le bounce sur les bords */
     scroll-behavior: smooth; /* Scroll fluide avec momentum */
 }
@@ -609,7 +611,7 @@
     text-align: left; /* Remettre l'alignement normal pour le contenu */
     
     /* Support tactile pour les pages individuelles */
-    touch-action: manipulation; /* Optimiser les interactions tactiles */
+    touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll ET zoom sur les pages */
     user-select: none; /* Éviter la sélection accidentelle pendant le scroll */
 }
 
@@ -860,7 +862,7 @@
     
     .pdf-page-container {
         scroll-snap-align: start; /* Aligner sur le début de la page lors du snap */
-        touch-action: pan-y pinch-zoom; /* Permettre le scroll et zoom tactile */
+        touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll ET zoom tactile */
     }
     
     /* Améliorer les boutons tactiles */
@@ -881,7 +883,7 @@
     
     /* Améliorer la navigation tactile */
     .pdf-canvas {
-        touch-action: pan-y pinch-zoom; /* Permettre scroll et zoom */
+        touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll et zoom */
     }
     
     .pdf-annotation-layer {
@@ -904,9 +906,9 @@
         overflow-x: hidden;
     }
     
-    /* Éviter le zoom accidentel sur double-tap */
+    /* Permettre zoom et scroll complets sur iOS */
     .pdf-page-container {
-        touch-action: pan-y manipulation;
+        touch-action: pan-x pan-y pinch-zoom;
     }
     
     /* Améliorer la réactivité tactile */
