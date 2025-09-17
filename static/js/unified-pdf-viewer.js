@@ -3573,13 +3573,23 @@ class UnifiedPDFViewer {
         annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
         annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
 
-        // Support tactile simplifié - ne bloquer QUE pour le stylet avec outil sélectionné
+        // Support tactile avec gestion dynamique des events pour laisser le zoom natif
         annotationCanvas.addEventListener('touchstart', (e) => {
             this.log(`📱 TouchStart détecté! Touches: ${e.touches.length}, outil: ${this.currentTool}`);
             
-            // Multi-touch : TOUJOURS laisser le comportement natif (zoom/scroll)
+            // Multi-touch : TOUJOURS désactiver le canvas et laisser zoom natif passer au PDF
             if (e.touches.length > 1) {
-                this.log(`👆 Multi-touch détecté (${e.touches.length}), laisser zoom natif`);
+                this.log(`👆 Multi-touch détecté (${e.touches.length}), désactiver canvas pour zoom natif`);
+                // Désactiver temporairement le canvas pour laisser passer les événements
+                annotationCanvas.style.pointerEvents = 'none';
+                
+                // Le ré-activer après un court délai pour la prochaine interaction
+                setTimeout(() => {
+                    if (this.currentTool && this.currentTool !== 'none') {
+                        annotationCanvas.style.pointerEvents = 'auto';
+                    }
+                }, 500);
+                
                 return; // Ne pas interférer du tout
             }
             
@@ -3612,18 +3622,46 @@ class UnifiedPDFViewer {
                 mouseEvent.isStylusEvent = true;
                 this.startDrawing(mouseEvent, pageNum);
             } else {
-                this.log(`🚫 Touch ignoré: stylet=${isStylus}, outil=${this.currentTool}, laisser comportement natif`);
+                this.log(`🚫 Touch ignoré: stylet=${isStylus}, outil=${this.currentTool}, désactiver canvas pour natif`);
+                // Désactiver temporairement le canvas pour laisser passer l'événement doigt au PDF
+                annotationCanvas.style.pointerEvents = 'none';
+                
+                // Le ré-activer après un délai pour la prochaine interaction
+                setTimeout(() => {
+                    if (this.currentTool && this.currentTool !== 'none') {
+                        annotationCanvas.style.pointerEvents = 'auto';
+                    }
+                }, 200);
             }
-            // Sinon (doigt ou pas d'outil), laisser le comportement natif
+            // Sinon (doigt ou pas d'outil), laisser le comportement natif passer au PDF
         }, { passive: false }); // Non-passif seulement pour pouvoir preventDefault si nécessaire
 
         annotationCanvas.addEventListener('touchmove', (e) => {
             // Seulement gérer si on est en train de dessiner
-            if (!this.isDrawing) return;
+            if (!this.isDrawing) {
+                // Si on n'est pas en train de dessiner, s'assurer que le canvas ne bloque pas multi-touch
+                if (e.touches.length > 1) {
+                    annotationCanvas.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        if (this.currentTool && this.currentTool !== 'none') {
+                            annotationCanvas.style.pointerEvents = 'auto';
+                        }
+                    }, 300);
+                }
+                return;
+            }
             
-            // Multi-touch : arrêter le dessin et laisser le zoom natif
+            // Multi-touch : arrêter le dessin et désactiver canvas pour laisser zoom natif
             if (e.touches.length > 1) {
+                this.log(`👆 Multi-touch pendant dessin, arrêt et activation zoom natif`);
                 this.stopDrawing(e, pageNum);
+                annotationCanvas.style.pointerEvents = 'none';
+                
+                setTimeout(() => {
+                    if (this.currentTool && this.currentTool !== 'none') {
+                        annotationCanvas.style.pointerEvents = 'auto';
+                    }
+                }, 500);
                 return;
             }
             
@@ -3657,7 +3695,12 @@ class UnifiedPDFViewer {
             // Toujours remettre le touch-action par défaut après l'interaction
             setTimeout(() => {
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-                // NE PAS désactiver pointerEvents - laissé actif pour prochaine détection
+                // Gérer les pointerEvents dynamiquement selon l'état de l'outil
+                if (this.currentTool && this.currentTool !== 'none') {
+                    annotationCanvas.style.pointerEvents = 'auto';
+                } else {
+                    annotationCanvas.style.pointerEvents = 'none';
+                }
             }, 100);
             
             // Seulement traiter si on était en train de dessiner avec un stylet
