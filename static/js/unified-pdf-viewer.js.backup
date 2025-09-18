@@ -1680,6 +1680,7 @@ class UnifiedPDFViewer {
     // Recherche
     async search(query = null) {
         // Implémentation de recherche sera ajoutée
+        console.log('Recherche:', query || this.elements.searchInput?.value);
     }
 
     /**
@@ -1687,6 +1688,7 @@ class UnifiedPDFViewer {
      */
     async toggleViewMode() {
         const newMode = this.options.viewMode === 'continuous' ? 'single' : 'continuous';
+        this.log(`Basculement vers mode: ${newMode}`);
         
         // Sauvegarder la page actuelle
         const currentPageBeforeSwitch = this.currentPage;
@@ -3159,6 +3161,7 @@ class UnifiedPDFViewer {
             }
         }
         
+        console.log('🧼 Panneau de suivi d’élèves supprimé complètement');
     }
     
     /**
@@ -3310,6 +3313,7 @@ class UnifiedPDFViewer {
      * Annule le dernier avertissement (placeholder)
      */
     undoLastWarning() {
+        console.log('Annulation du dernier avertissement - à implémenter');
     }
     
     /**
@@ -3465,6 +3469,7 @@ class UnifiedPDFViewer {
      * Nettoie et détruit l'instance du PDF viewer
      */
     destroy() {
+        console.log('🧼 Destruction du PDF viewer en cours...');
         
         try {
             // Fermer et supprimer le panneau de suivi d'élèves
@@ -3491,6 +3496,7 @@ class UnifiedPDFViewer {
                 clearTimeout(this.autoSaveTimer);
             }
             
+            console.log('✅ PDF viewer détruit avec succès');
         } catch (error) {
             console.error('❌ Erreur lors de la destruction du PDF viewer:', error);
         }
@@ -3688,18 +3694,6 @@ class UnifiedPDFViewer {
                     canvas.classList.add('eraser-cursor');
                 } else if (tool === 'text') {
                     canvas.classList.add('text-cursor');
-                }
-                
-                // IMPORTANT: Réinitialiser le globalCompositeOperation pour éviter les conflits entre outils
-                const pageNum = parseInt(canvas.id.replace('annotation-canvas-', '')) || 
-                              parseInt(canvas.closest('.pdf-page-container')?.id?.replace('page-', '')) || 
-                              index + 1;
-                const pageElement = this.pageElements.get(pageNum);
-                if (pageElement?.annotationCtx) {
-                    // Si on n'est PAS en mode gomme, s'assurer qu'on est en mode dessin normal
-                    if (tool !== 'eraser') {
-                        pageElement.annotationCtx.globalCompositeOperation = 'source-over';
-                    }
                 }
             } else {
                 canvas.style.pointerEvents = 'none';
@@ -4190,8 +4184,6 @@ class UnifiedPDFViewer {
             ctx.lineTo(currentPoint.x, currentPoint.y);
             ctx.stroke();
         } else if (this.currentTool === 'highlighter') {
-            // S'assurer qu'on n'est plus en mode effacement pour le surligneur
-            ctx.globalCompositeOperation = 'source-over';
             // Pour le surligneur, continuer le chemin existant pour un trait continu
             ctx.lineTo(currentPoint.x, currentPoint.y);
             ctx.stroke();
@@ -4314,11 +4306,13 @@ class UnifiedPDFViewer {
     
     stopDrawing(e, pageNum) {
         if (this.isDrawing) {
+            this.log(`Arrêt du dessin sur page ${pageNum}`);
             
             // Nettoyer le timer de ligne droite pour le stylo
             if (this.currentTool === 'pen' && this.straightLineTimer) {
                 clearTimeout(this.straightLineTimer);
                 this.straightLineTimer = null;
+                this.log('Timer ligne droite nettoyé');
             }
             
             const pageElement = this.pageElements.get(pageNum);
@@ -4414,6 +4408,7 @@ class UnifiedPDFViewer {
             if (pageElement?.annotationCanvas) {
                 // Ne pas désactiver pointer-events ici car l'outil est toujours sélectionné
                 // pageElement.annotationCanvas.style.pointerEvents = 'none';
+                this.log(`Dessin terminé sur page ${pageNum}`);
             }
             
             // Sauvegarder automatiquement si activé
@@ -4431,10 +4426,12 @@ class UnifiedPDFViewer {
             return;
         }
 
+        this.log('🔄 Conversion en ligne droite déclenchée');
         this.isStabilized = true;
 
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx || this.drawingPath.length < 2) {
+            this.log('❌ Impossible de convertir: contexte ou chemin invalide');
             return;
         }
 
@@ -4450,13 +4447,16 @@ class UnifiedPDFViewer {
 
         // Seulement convertir si la ligne fait au moins 20 pixels
         if (distance < 20) {
+            this.log('📏 Ligne trop courte pour conversion');
             return;
         }
 
+        this.log(`📐 Conversion ligne droite: ${startPoint.x},${startPoint.y} → ${endPoint.x},${endPoint.y} (distance: ${Math.round(distance)}px)`);
 
         // Restaurer l'état du canvas avant le trait actuel (efface seulement le trait en cours)
         if (this.currentStrokeImageData) {
             ctx.putImageData(this.currentStrokeImageData, 0, 0);
+            this.log('🔄 Canvas restauré à l\'état avant le trait');
         }
 
         // Dessiner la ligne droite parfaite
@@ -4472,6 +4472,7 @@ class UnifiedPDFViewer {
         ctx.lineTo(endPoint.x, endPoint.y);
         ctx.stroke();
 
+        this.log('✅ Ligne droite créée avec succès');
 
         // Mettre à jour le chemin avec juste les deux points
         this.drawingPath = [startPoint, endPoint];
@@ -4488,6 +4489,7 @@ class UnifiedPDFViewer {
         if (pageElement?.annotationCtx) {
             const canvas = pageElement.annotationCanvas;
             pageElement.annotationCtx.clearRect(0, 0, canvas.width, canvas.height);
+            this.log(`🧹 Annotations effacées pour page ${pageNum}`);
         }
     }
 
@@ -4503,6 +4505,7 @@ class UnifiedPDFViewer {
             canvas.style.filter = originalFilter;
         }, 150);
 
+        this.log('✨ Effet de confirmation affiché');
     }
 
     /**
@@ -4535,6 +4538,7 @@ class UnifiedPDFViewer {
         `;
 
         document.body.appendChild(this.rulerMeasureElement);
+        this.log('📏 Élément de mesure créé');
     }
 
     /**
@@ -4552,6 +4556,7 @@ class UnifiedPDFViewer {
         // Sauvegarder l'état propre du canvas la première fois (AVANT toute prévisualisation)
         if (!this.rulerCanvasState) {
             this.rulerCanvasState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            this.log('📸 État propre du canvas sauvegardé AVANT prévisualisation');
         }
         
         // Restaurer l'état propre du canvas (sans aucune prévisualisation)
@@ -4659,6 +4664,7 @@ class UnifiedPDFViewer {
         ctx.restore();
 
         this.rulerCanvasState = null;
+        this.log('📏 Ligne de règle finalisée');
     }
 
     /**
@@ -4669,6 +4675,7 @@ class UnifiedPDFViewer {
             this.rulerMeasureElement.style.display = 'none';
         }
         this.rulerCanvasState = null;
+        this.log('🧹 Affichage règle nettoyé');
     }
 
     /**
@@ -4689,6 +4696,7 @@ class UnifiedPDFViewer {
         ctx.arc(this.rulerCurrentPoint.x, this.rulerCurrentPoint.y, radius, 0, 2 * Math.PI);
         ctx.fill();
 
+        this.log('⚫ Points d\'extrémité noirs ajoutés');
     }
 
     /**
@@ -4721,6 +4729,7 @@ class UnifiedPDFViewer {
         `;
 
         document.body.appendChild(this.compassRadiusElement);
+        this.log('🧭 Élément de rayon créé');
     }
 
     /**
@@ -4738,6 +4747,7 @@ class UnifiedPDFViewer {
         // Sauvegarder l'état propre du canvas la première fois (AVANT toute prévisualisation)
         if (!this.compassCanvasState) {
             this.compassCanvasState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            this.log('📸 État propre du canvas sauvegardé AVANT prévisualisation compas');
         }
         
         // Restaurer l'état propre du canvas (sans aucune prévisualisation)
@@ -4864,6 +4874,7 @@ class UnifiedPDFViewer {
         ctx.restore();
 
         this.compassCanvasState = null;
+        this.log('🧭 Cercle du compas finalisé');
     }
 
     /**
@@ -4876,6 +4887,7 @@ class UnifiedPDFViewer {
         ctx.arc(this.compassCenterPoint.x, this.compassCenterPoint.y, 2, 0, 2 * Math.PI);
         ctx.fill();
 
+        this.log('⚫ Point central noir ajouté');
     }
 
     /**
@@ -4886,6 +4898,7 @@ class UnifiedPDFViewer {
             this.compassRadiusElement.style.display = 'none';
         }
         this.compassCanvasState = null;
+        this.log('🧹 Affichage compas nettoyé');
     }
 
     /**
@@ -4924,6 +4937,7 @@ class UnifiedPDFViewer {
         `;
 
         document.body.appendChild(this.protractorAngleElement);
+        this.log('📐 Élément d\'angle créé');
     }
 
     /**
@@ -4941,6 +4955,7 @@ class UnifiedPDFViewer {
         // Sauvegarder l'état propre du canvas la première fois
         if (!this.protractorCanvasState) {
             this.protractorCanvasState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            this.log('📸 État propre du canvas sauvegardé AVANT prévisualisation rapporteur');
         }
         
         // Restaurer l'état propre du canvas
@@ -4988,6 +5003,7 @@ class UnifiedPDFViewer {
             this.validateFirstLine(pageNum);
         }, this.protractorValidationTimeout);
 
+        this.log('⏰ Timer de validation rapporteur démarré (1.5s)');
     }
 
     /**
@@ -4998,6 +5014,7 @@ class UnifiedPDFViewer {
             return;
         }
 
+        this.log('✅ Premier trait validé - passage au deuxième trait');
         this.protractorState = 'drawing_second_line';
         this.protractorSecondPoint = { ...this.protractorFirstPoint }; // Commencer du même point
 
@@ -5038,6 +5055,7 @@ class UnifiedPDFViewer {
 
         // Sauvegarder l'état avec le premier trait
         this.protractorCanvasState = ctx.getImageData(0, 0, pageElement.annotationCanvas.width, pageElement.annotationCanvas.height);
+        this.log('📏 Premier trait dessiné de façon permanente');
     }
 
     /**
@@ -5056,6 +5074,7 @@ class UnifiedPDFViewer {
             canvas.style.filter = originalFilter;
         }, 200);
 
+        this.log('✨ Feedback de validation affiché');
     }
 
     /**
@@ -5219,6 +5238,7 @@ class UnifiedPDFViewer {
                 // Calculer le point corrigé pour l'aimantation
                 this.protractorSnappedPoint = this.calculateSnappedPoint(targetFullAngle);
                 
+                this.log(`🧲 Aimantation: ${displayAngle.toFixed(1)}° → ${snappedAngle}° (angle minimal)`);
             } else {
                 this.protractorSnappedPoint = null;
             }
@@ -5317,6 +5337,7 @@ class UnifiedPDFViewer {
         ctx.restore();
 
         this.protractorCanvasState = null;
+        this.log('📐 Angle du rapporteur finalisé');
     }
 
     /**
@@ -5344,6 +5365,7 @@ class UnifiedPDFViewer {
 
         // Log avec information d'aimantation
         const wasSnapped = this.protractorSnappedPoint ? ' (avec aimantation)' : '';
+        this.log(`⚫ Points d'extrémité noirs ajoutés${wasSnapped}`);
     }
 
     /**
@@ -5358,6 +5380,7 @@ class UnifiedPDFViewer {
             this.protractorValidationTimer = null;
         }
         this.protractorCanvasState = null;
+        this.log('🧹 Affichage rapporteur nettoyé');
     }
 
     /**
@@ -5372,6 +5395,7 @@ class UnifiedPDFViewer {
             clearTimeout(this.protractorValidationTimer);
             this.protractorValidationTimer = null;
         }
+        this.log('🔄 État rapporteur réinitialisé');
     }
 
     // =====================================================
@@ -5419,6 +5443,7 @@ class UnifiedPDFViewer {
         this.arcAngleElement.textContent = '0°';
         document.body.appendChild(this.arcAngleElement);
         
+        this.log('🌙 Éléments rayon et angle arc créés');
     }
 
     drawArcRadiusPreview(pageNum) {
@@ -5449,6 +5474,7 @@ class UnifiedPDFViewer {
         // Dessiner les points de référence
         this.drawArcRadiusMarkers(ctx);
         
+        this.log('🌙 Prévisualisation rayon arc mise à jour');
     }
 
     drawArcRadiusMarkers(ctx) {
@@ -5480,6 +5506,7 @@ class UnifiedPDFViewer {
             this.validateArcRadius(pageNum);
         }, this.arcValidationTimeout);
         
+        this.log('⏱️ Timer validation rayon arc démarré');
     }
 
     validateArcRadius(pageNum) {
@@ -5495,6 +5522,7 @@ class UnifiedPDFViewer {
         this.drawPermanentRadius(pageNum);
         this.showArcValidationFeedback(pageNum);
         
+        this.log('✅ Rayon arc validé - passage au tracé arc');
     }
 
     drawPermanentRadius(pageNum) {
@@ -5510,6 +5538,7 @@ class UnifiedPDFViewer {
         }
         
         // NE PAS resauvegarder - on garde l'état initial propre pour la finalisation
+        this.log('✏️ Canvas nettoyé, état propre conservé (rayon masqué)');
     }
 
     showArcValidationFeedback(pageNum) {
@@ -5524,6 +5553,7 @@ class UnifiedPDFViewer {
             canvas.style.filter = '';
         }, 200);
         
+        this.log('✨ Feedback validation rayon arc');
     }
 
     drawArcPreview(pageNum) {
@@ -5596,6 +5626,7 @@ class UnifiedPDFViewer {
         // Dessiner les marqueurs
         this.drawArcPreviewMarkers(ctx, radius, snappedPoint);
         
+        this.log('🌙 Prévisualisation arc mise à jour');
     }
 
     drawArcPreviewMarkers(ctx, radius, snappedPoint) {
@@ -5666,6 +5697,7 @@ class UnifiedPDFViewer {
             this.arcRadiusElement.style.display = 'block';
         }
         
+        this.log(`📏 Rayon arc: ${radiusCm.toFixed(1)} cm`);
     }
 
     updateArcAngle(pageNum) {
@@ -5720,6 +5752,7 @@ class UnifiedPDFViewer {
             this.arcAngleElement.style.display = 'block';
         }
         
+        this.log(`📐 Angle arc: ${displayText} (${snappedPoint ? 'aimanté' : 'libre'})`);
     }
 
     finalizeArc(pageNum) {
@@ -5789,6 +5822,7 @@ class UnifiedPDFViewer {
         const radiusCm = radius / this.a4PixelsPerCm;
         const snapInfo = snappedPoint ? ` (aimanté à ${snappedPoint.snappedAngle}°)` : '';
         
+        this.log(`✅ Arc finalisé - Rayon: ${radiusCm.toFixed(1)}cm, Angle: ${angleDeg.toFixed(1)}°${snapInfo}`);
     }
 
     drawFinalArcPoints(ctx) {
@@ -5821,6 +5855,7 @@ class UnifiedPDFViewer {
         
         this.arcCanvasState = null;
         
+        this.log('🧹 Affichage arc nettoyé');
     }
 
     resetArcState() {
@@ -5835,6 +5870,7 @@ class UnifiedPDFViewer {
             clearTimeout(this.arcValidationTimer);
             this.arcValidationTimer = null;
         }
+        this.log('🔄 État arc réinitialisé');
     }
 
     calculateArcSnappedPoint() {
@@ -5913,6 +5949,7 @@ class UnifiedPDFViewer {
     createTextInput(pageNum, position) {
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement) {
+            this.log('❌ Page element non trouvé pour page:', pageNum);
             return;
         }
         
@@ -5944,6 +5981,7 @@ class UnifiedPDFViewer {
         textInput.style.border = `2px solid ${this.currentColor}`;
         textInput.style.boxShadow = `0 2px 8px ${this.currentColor}33`; // 33 = 20% d'opacité
         
+        this.log('🎨 Couleur appliquée à la zone de texte (texte et bordure):', this.currentColor);
         
         // Stocker les infos pour la finalisation
         textInput.dataset.pageNum = pageNum;
@@ -5968,12 +6006,14 @@ class UnifiedPDFViewer {
         // Stocker la référence IMMÉDIATEMENT
         this.activeTextInput = textInput;
         
+        this.log('📝 TextInput créé et ajouté au DOM');
         
         // Focus avec délai pour s'assurer que l'élément est bien rendu
         setTimeout(() => {
             if (textInput.parentNode) {
                 textInput.focus();
                 textInput.select();
+                this.log('🎯 Focus donné au textarea');
             }
         }, 10);
         
@@ -5997,6 +6037,7 @@ class UnifiedPDFViewer {
                     !this.activeTextInput.contains(e.target) && 
                     this.activeTextInput.parentNode) {
                     
+                    this.log('👆 Clic extérieur détecté - finalisation du texte');
                     
                     // Empêcher la propagation pour éviter d'autres clics
                     e.preventDefault();
@@ -6015,11 +6056,13 @@ class UnifiedPDFViewer {
             };
             // Utiliser capture: true pour intercepter l'événement en premier
             document.addEventListener('click', this.textClickHandler, true);
+            this.log('👂 Gestionnaire clic extérieur installé (capture mode)');
         };
         
         // Délai de 200ms pour s'assurer que l'événement initial est terminé
         setTimeout(setupClickHandler, 200);
         
+        this.log('✅ Zone de texte créée avec gestionnaires d\'événements');
     }
     
     /**
@@ -6028,12 +6071,14 @@ class UnifiedPDFViewer {
     finalizeText(textInput) {
         // Vérifier que l'input existe encore et n'a pas déjà été supprimé
         if (!textInput || !textInput.parentNode) {
+            this.log('📝 Zone de texte déjà supprimée, abandon de la finalisation');
             return;
         }
         
         const text = textInput.value.trim();
         if (!text) {
             // Si pas de texte, juste supprimer l'input
+            this.log('📝 Pas de texte saisi, suppression de la zone');
             this.removeActiveTextInput();
             return;
         }
@@ -6044,6 +6089,7 @@ class UnifiedPDFViewer {
         
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) {
+            this.log('❌ Impossible de finaliser le texte - contexte non trouvé');
             this.removeActiveTextInput();
             return;
         }
@@ -6070,10 +6116,12 @@ class UnifiedPDFViewer {
         
         // Sauvegarder l'état APRÈS avoir ajouté le texte (comme les autres outils)
         this.saveCanvasState(pageNum);
+        this.log('💾 État canvas sauvé après ajout du texte');
         
         // Supprimer l'input
         this.removeActiveTextInput();
         
+        this.log('✅ Texte finalisé:', text);
         
         // Programmer la sauvegarde automatique
         if (this.options.autoSave) {
@@ -6088,12 +6136,14 @@ class UnifiedPDFViewer {
         if (this.activeTextInput) {
             this.activeTextInput.remove();
             this.activeTextInput = null;
+            this.log('📝 Zone de texte supprimée (pas de sauvegarde d\'état car pas de texte ajouté)');
         }
         
         // Nettoyer le gestionnaire de clic extérieur
         if (this.textClickHandler) {
             document.removeEventListener('click', this.textClickHandler, true);
             this.textClickHandler = null;
+            this.log('🧹 Gestionnaire clic extérieur nettoyé');
         }
     }
     
@@ -6109,6 +6159,7 @@ class UnifiedPDFViewer {
         const annotations = this.annotations.get(pageNum);
         if (annotations) {
             // Logique de rendu des annotations sauvegardées
+            console.log(`Rendu des annotations pour la page ${pageNum}:`, annotations);
         }
 
         // Redessiner la grille si elle était visible
@@ -6123,20 +6174,25 @@ class UnifiedPDFViewer {
         try {
             // Éviter les requêtes CORS lors des tests locaux
             if (window.location.protocol === 'file:') {
+                this.log('Mode fichier local - chargement annotations ignoré');
                 return;
             }
             
             const response = await fetch(`${this.options.apiEndpoints.loadAnnotations}/${this.fileId}`);
+            this.log(`📡 Requête annotations: ${this.options.apiEndpoints.loadAnnotations}/${this.fileId}`);
             
             if (response.ok) {
                 const data = await response.json();
+                this.log('📦 Données reçues:', data);
                 
                 // Restaurer les annotations canvas
                 if (data.annotations && data.annotations.canvasData) {
                     this.annotations = new Map(Object.entries(data.annotations.canvasData || {}));
+                    this.log(`✅ Annotations chargées: ${this.annotations.size} pages avec annotations`);
                 } else {
                     // Compatibilité avec l'ancien format
                     this.annotations = new Map(Object.entries(data.annotations || {}));
+                    this.log(`✅ Annotations chargées (ancien format): ${this.annotations.size} pages avec annotations`);
                 }
                 
                 // Restaurer la structure des pages
@@ -6146,21 +6202,25 @@ class UnifiedPDFViewer {
                     // Restaurer les pages vierges
                     if (pageStructure.blankPages) {
                         this.blankPages = new Set(pageStructure.blankPages);
+                        this.log(`📄 Pages vierges restaurées: ${this.blankPages.size}`);
                     }
                     
                     // Restaurer les pages supprimées
                     if (pageStructure.deletedPages) {
                         this.deletedPages = new Set(pageStructure.deletedPages);
+                        this.log(`🗑️ Pages supprimées restaurées: ${this.deletedPages.size}`);
                     }
                     
                     // Restaurer les pages ajoutées
                     if (pageStructure.addedPages) {
                         this.addedPages = new Map(Object.entries(pageStructure.addedPages));
+                        this.log(`➕ Pages ajoutées restaurées: ${this.addedPages.size}`);
                     }
                     
                     // Restaurer le total des pages si disponible
                     if (pageStructure.totalPages && pageStructure.totalPages !== this.totalPages) {
                         this.totalPages = pageStructure.totalPages;
+                        this.log(`📊 Total des pages restauré: ${this.totalPages}`);
                         
                         // Mettre à jour l'affichage de navigation
                         this.updateNavigationState();
@@ -6169,6 +6229,7 @@ class UnifiedPDFViewer {
                 
                 // Ne pas redessiner maintenant, cela sera fait après le rendu des pages
             } else {
+                this.log(`❌ Erreur HTTP: ${response.status} ${response.statusText}`);
             }
         } catch (error) {
             this.log('Erreur chargement annotations:', error);
@@ -6180,6 +6241,7 @@ class UnifiedPDFViewer {
      */
     async redrawAllAnnotations() {
         if (!this.annotations || this.annotations.size === 0) {
+            this.log('Aucune annotation à redessiner');
             return;
         }
         
@@ -6198,9 +6260,11 @@ class UnifiedPDFViewer {
                             const ctx = annotationCanvas.getContext('2d');
                             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                             ctx.drawImage(img, 0, 0);
+                            this.log(`🎨 Annotations restaurées pour page ${pageNum}`);
                         };
                         img.src = annotationData.imageData;
                     } catch (error) {
+                        this.log(`❌ Erreur lors de la restauration des annotations pour page ${pageNum}:`, error);
                     }
                 }
             }
@@ -6212,6 +6276,7 @@ class UnifiedPDFViewer {
         try {
             // Éviter les requêtes CORS lors des tests locaux
             if (window.location.protocol === 'file:') {
+                this.log('Mode fichier local - sauvegarde annotations ignorée');
                 return;
             }
             
@@ -6249,6 +6314,7 @@ class UnifiedPDFViewer {
                 }
             }
             
+            this.log(`💾 Sauvegarde de ${Object.keys(annotationsData.canvasData).length} pages avec annotations et structure des pages (pages vierges: ${annotationsData.pageStructure.blankPages.length}, pages supprimées: ${annotationsData.pageStructure.deletedPages.length})`);
             
             const response = await fetch(this.options.apiEndpoints.saveAnnotations, {
                 method: 'POST',
@@ -6260,6 +6326,7 @@ class UnifiedPDFViewer {
             });
             
             if (response.ok) {
+                this.log('Annotations sauvegardées');
                 this.emit('annotations-saved');
             }
         } catch (error) {
@@ -6299,6 +6366,7 @@ class UnifiedPDFViewer {
                 
                 // Ajouter l'état vide initial
                 this.undoStack.get(pageNum).push(emptyState);
+                this.log(`📄 Historique initialisé pour page ${pageNum}`);
             }
         });
         this.updateUndoRedoButtons();
@@ -6323,6 +6391,7 @@ class UnifiedPDFViewer {
             
             // Ajouter l'état vide initial
             this.undoStack.get(pageNum).push(emptyState);
+            this.log(`📄 Historique initialisé pour page ${pageNum}`);
             
             this.updateUndoRedoButtons();
         }
@@ -6358,6 +6427,7 @@ class UnifiedPDFViewer {
         // Vider la stack de redo quand on fait une nouvelle action
         this.redoStack.set(pageNum, []);
         
+        this.log(`💾 État canvas sauvé pour page ${pageNum} (${undoHistory.length} états)`);
         this.updateUndoRedoButtons();
     }
 
@@ -6370,6 +6440,7 @@ class UnifiedPDFViewer {
         
         // Vérifier qu'il y a au moins 2 états (pour pouvoir revenir à un état précédent)
         if (!undoHistory || undoHistory.length < 2) {
+            this.log('⚠️ Aucune action à annuler sur cette page');
             return;
         }
         
@@ -6390,6 +6461,7 @@ class UnifiedPDFViewer {
         const ctx = pageElement.annotationCtx;
         ctx.putImageData(previousState, 0, 0);
         
+        this.log(`↶ Annulation effectuée sur page ${pageNum} (${undoHistory.length} états restants)`);
         this.updateUndoRedoButtons();
         
         // Nettoyer les états des outils actifs
@@ -6404,6 +6476,7 @@ class UnifiedPDFViewer {
         const redoHistory = this.redoStack.get(pageNum);
         
         if (!redoHistory || redoHistory.length === 0) {
+            this.log('⚠️ Aucune action à refaire sur cette page');
             return;
         }
         
@@ -6423,6 +6496,7 @@ class UnifiedPDFViewer {
         const nextState = redoHistory.pop();
         ctx.putImageData(nextState, 0, 0);
         
+        this.log(`↷ Refaire effectué sur page ${pageNum} (${redoHistory.length} états restants)`);
         this.updateUndoRedoButtons();
         
         // Nettoyer les états des outils actifs
@@ -6444,6 +6518,7 @@ class UnifiedPDFViewer {
         // Sauvegarder l'état après effacement
         this.saveCanvasState(pageNum);
         
+        this.log(`🗑️ Page ${pageNum} effacée`);
         
         // Nettoyer les états des outils actifs
         this.resetToolStates();
@@ -6500,15 +6575,18 @@ class UnifiedPDFViewer {
         this.cleanupProtractorDisplay();
         this.cleanupArcDisplay();
         
+        this.log('🔄 États des outils réinitialisés');
     }
 
     /**
      * Méthodes d'interface publique
      */
     openFileDialog() {
+        console.log('Ouverture dialogue fichier');
     }
     
     showExportDialog() {
+        console.log('Affichage dialogue export');
     }
     
     rotateLeft() {
@@ -6540,8 +6618,10 @@ class UnifiedPDFViewer {
     async generateThumbnails() {
         if (!this.pdfDoc || !this.currentMode.features.includes('thumbnails')) return;
 
+        this.log('Génération des miniatures...');
         const container = this.elements.thumbnailsContainer;
         if (!container) {
+            this.log('Conteneur de miniatures non trouvé');
             return;
         }
 
@@ -6614,6 +6694,7 @@ class UnifiedPDFViewer {
                         pressTimer = setTimeout(() => {
                             isLongPress = true;
                             this.showThumbnailContextMenu(e, pageNum);
+                            this.log(`👆 Appui long détecté sur miniature ${pageNum}`);
                         }, 500); // 500ms pour l'appui long
                     });
 
@@ -6649,6 +6730,7 @@ class UnifiedPDFViewer {
                         touchTimer = setTimeout(() => {
                             isTouchLongPress = true;
                             this.showThumbnailContextMenu(e, pageNum);
+                            this.log(`📱 Appui long tactile détecté sur miniature ${pageNum}`);
                         }, 500); // 500ms pour l'appui long
                     });
 
@@ -6674,6 +6756,7 @@ class UnifiedPDFViewer {
 
                 // Rendre la page sur le canvas APRÈS l'avoir ajouté au DOM
                 const ctx = canvas.getContext('2d');
+                this.log(`Rendu miniature ${pageNum} - Canvas: ${canvas.width}x${canvas.height}`);
                 
                 // Dessiner un rectangle de test d'abord
                 ctx.fillStyle = '#e0e0e0';
@@ -6684,28 +6767,34 @@ class UnifiedPDFViewer {
                 
                 try {
                     await page.render({ canvasContext: ctx, viewport }).promise;
+                    this.log(`Miniature ${pageNum} rendue avec succès`);
                 } catch (renderError) {
                     this.log(`Erreur rendu miniature ${pageNum}:`, renderError);
                     // En cas d'erreur, laisser le rectangle de test
                 }
 
+                this.log(`Miniature ${pageNum} générée et rendue`);
             } catch (error) {
                 this.log('Erreur génération miniature page', pageNum, error);
             }
         }
 
+        this.log('Toutes les miniatures générées');
     }
     
     searchPrevious() {
         // Navigation recherche précédente
+        console.log('Recherche précédente');
     }
     
     searchNext() {
         // Navigation recherche suivante
+        console.log('Recherche suivante');
     }
     
     initTouchGestures() {
         // Initialisation des gestes tactiles
+        console.log('Gestes tactiles initialisés');
     }
 
     // =====================================================
@@ -6731,6 +6820,7 @@ class UnifiedPDFViewer {
         this.arrowLengthElement.textContent = '0.0 cm';
         
         this.container.appendChild(this.arrowLengthElement);
+        this.log('📏 Élément de longueur de flèche créé');
     }
 
     /**
@@ -6859,6 +6949,7 @@ class UnifiedPDFViewer {
         // Dessiner la flèche finale (sans prévisualisation)
         this.drawArrow(ctx, this.arrowStartPoint, this.arrowEndPoint, false);
         
+        this.log('➡️ Flèche finalisée');
     }
 
     /**
@@ -6875,6 +6966,7 @@ class UnifiedPDFViewer {
         this.arrowEndPoint = null;
         this.arrowCanvasState = null;
         
+        this.log('🧹 Affichage flèche nettoyé');
     }
 
     // =====================================================
@@ -6900,6 +6992,7 @@ class UnifiedPDFViewer {
         this.rectangleMeasureElement.textContent = '0.0 × 0.0 cm';
         
         this.container.appendChild(this.rectangleMeasureElement);
+        this.log('📐 Élément de dimensions du rectangle créé');
     }
 
     /**
@@ -7014,6 +7107,7 @@ class UnifiedPDFViewer {
         // Dessiner le rectangle final (sans prévisualisation)
         this.drawRectangle(ctx, this.rectangleStartPoint, this.rectangleEndPoint, false);
         
+        this.log('⬜ Rectangle finalisé');
     }
 
     /**
@@ -7030,6 +7124,7 @@ class UnifiedPDFViewer {
         this.rectangleEndPoint = null;
         this.rectangleCanvasState = null;
         
+        this.log('🧹 Affichage rectangle nettoyé');
     }
 
     // =====================================================
@@ -7055,6 +7150,7 @@ class UnifiedPDFViewer {
         this.circleMeasureElement.textContent = 'r: 0.0 cm';
         
         this.container.appendChild(this.circleMeasureElement);
+        this.log('🔵 Élément de rayon du cercle créé');
     }
 
     /**
@@ -7182,6 +7278,7 @@ class UnifiedPDFViewer {
         // Dessiner le cercle final (sans prévisualisation)
         this.drawCircle(ctx, this.circleStartPoint, this.circleEndPoint, false);
         
+        this.log('⭕ Cercle finalisé');
     }
 
     /**
@@ -7198,6 +7295,7 @@ class UnifiedPDFViewer {
         this.circleEndPoint = null;
         this.circleCanvasState = null;
         
+        this.log('🧹 Affichage cercle nettoyé');
     }
 
     /**
@@ -7257,6 +7355,7 @@ class UnifiedPDFViewer {
         }
 
         ctx.restore();
+        this.log(`🔲 Grille dessinée sur page ${pageNum} (taille: ${this.gridSizeCm}cm = ${gridSizePixels.toFixed(1)}px)`);
     }
 
     /**
@@ -7276,9 +7375,11 @@ class UnifiedPDFViewer {
             // Nettoyer la sauvegarde
             this.canvasStateBeforeGrid.delete(pageNum);
             
+            this.log(`🧹 Grille effacée de la page ${pageNum} - état restauré`);
         } else {
             // Fallback: si pas d'état sauvegardé, redessiner les annotations sans grille
             this.renderPageAnnotations(pageNum);
+            this.log(`🧹 Grille effacée de la page ${pageNum} - fallback utilisé`);
         }
     }
 
@@ -7291,6 +7392,7 @@ class UnifiedPDFViewer {
         const displayPageNumber = thumbnailElement?.dataset.pageNumber;
         const originalPageNumber = thumbnailElement?.dataset.originalPageNumber;
         
+        this.log(`🔍 DEBUG Menu contextuel - pageNumber reçu: ${pageNumber}, displayPageNumber: ${displayPageNumber}, originalPageNumber: ${originalPageNumber}`);
         
         // Utiliser le numéro d'affichage plutôt que le pageNumber passé en paramètre
         const correctPageNumber = displayPageNumber ? parseInt(displayPageNumber) : pageNumber;
@@ -7348,6 +7450,7 @@ class UnifiedPDFViewer {
             document.addEventListener('click', this.hideContextMenuHandler);
         }, 100);
 
+        this.log(`📋 Menu contextuel affiché pour page ${correctPageNumber}`);
     }
 
     /**
@@ -7384,10 +7487,12 @@ class UnifiedPDFViewer {
         // Identifier le type de page (originale ou blanche)
         const pageIdentifier = this.getPageIdentifier(pageNumber);
         
+        this.log(`🔍 DEBUG suppression - pageNumber: ${pageNumber}, type: ${pageIdentifier.type}, identifier: ${JSON.stringify(pageIdentifier)}`);
 
         if (confirm(`Êtes-vous sûr de vouloir supprimer la page ${pageNumber} ?`)) {
             try {
                 // Sauvegarder les annotations AVANT la suppression, en excluant la page à supprimer
+                this.log(`💾 Sauvegarde préventive des annotations (excluant page ${pageNumber})`);
                 this.saveAllAnnotations(pageNumber);
                 
                 // Calculer la page vers laquelle naviguer après suppression (page précédente)
@@ -7395,22 +7500,27 @@ class UnifiedPDFViewer {
                 
                 if (pageIdentifier.type === 'blank') {
                     // Supprimer une page blanche
+                    this.log(`🗑️ Début suppression page blanche ${pageNumber} (ID: ${pageIdentifier.id})`);
                     await this.removeBlankPage(pageIdentifier.id);
                     // Pas besoin de sauvegarder à nouveau, car déjà fait
                     this.skipNextAnnotationSave = true;
                     await this.updateUIAfterBlankPageDeletion(pageNumber);
                     this.skipNextAnnotationSave = false;
+                    this.log(`✅ Page blanche ${pageNumber} supprimée avec succès`);
                 } else {
                     // Supprimer une page originale
+                    this.log(`🗑️ Début suppression page originale ${pageNumber} (page ${pageIdentifier.pageNumber})`);
                     await this.removePageFromDocument(pageIdentifier.pageNumber);
                     // Pas besoin de sauvegarder à nouveau
                     this.skipNextAnnotationSave = true;
                     await this.updateUIAfterPageDeletion(pageIdentifier.pageNumber);
                     this.skipNextAnnotationSave = false;
+                    this.log(`✅ Page originale ${pageNumber} supprimée avec succès`);
                 }
                 
                 // Naviguer vers la page précédente (ou page 1 si on supprimait la première page)
                 this.goToPage(targetPageAfterDeletion);
+                this.log(`🎯 Navigation vers page précédente: ${targetPageAfterDeletion}`);
                 
                 // Sauvegarder automatiquement après suppression
                 this.scheduleAutoSave();
@@ -7426,15 +7536,18 @@ class UnifiedPDFViewer {
      * Supprime une page blanche
      */
     async removeBlankPage(blankPageId) {
+        this.log(`🗑️ Suppression page blanche ID: ${blankPageId}`);
         
         // Supprimer de la Map des pages ajoutées
         if (this.addedPages.has(blankPageId)) {
             this.addedPages.delete(blankPageId);
+            this.log(`✅ Page blanche ${blankPageId} supprimée de addedPages`);
         }
         
         // Mettre à jour le nombre total de pages
         this.totalPages--;
         
+        this.log(`📊 Nouveau nombre de pages après suppression page blanche: ${this.totalPages}`);
     }
 
     /**
@@ -7442,6 +7555,7 @@ class UnifiedPDFViewer {
      * @param {number} deletedPageNumber - Le numéro de page qui a été supprimé
      */
     async updateUIAfterBlankPageDeletion(deletedPageNumber = null) {
+        this.log(`🖥️ Mise à jour UI après suppression page blanche`);
         
         // Régénérer toutes les miniatures avec exclusion de la page supprimée
         await this.regenerateThumbnailsWithAddedPages(deletedPageNumber);
@@ -7462,6 +7576,7 @@ class UnifiedPDFViewer {
         // Mettre à jour la sélection des miniatures
         this.updateThumbnailSelection();
         
+        this.log(`✅ Interface mise à jour après suppression page blanche`);
     }
 
     /**
@@ -7478,13 +7593,16 @@ class UnifiedPDFViewer {
             const pageInfo = pageSequence[displayPageNumber - 1];
             
             if (pageInfo.isBlank) {
+                this.log(`🔢 Mapping: page affichage ${displayPageNumber} → page blanche ${pageInfo.id}`);
                 return { type: 'blank', id: pageInfo.id };
             } else {
+                this.log(`🔢 Mapping: page affichage ${displayPageNumber} → page originale ${pageInfo.originalPageNumber}`);
                 return { type: 'original', pageNumber: pageInfo.originalPageNumber };
             }
         }
         
         // Fallback vers la première page
+        this.log(`🔢 Mapping fallback: page affichage ${displayPageNumber} → page originale 1`);
         return { type: 'original', pageNumber: 1 };
     }
 
@@ -7511,6 +7629,7 @@ class UnifiedPDFViewer {
      * Supprime une page du document PDF en interne
      */
     async removePageFromDocument(pageNumber) {
+        this.log(`🔄 Suppression page ${pageNumber} du document...`);
         
         // Créer une liste des pages à conserver (toutes sauf celle supprimée)
         this.deletedPages = this.deletedPages || new Set();
@@ -7535,12 +7654,14 @@ class UnifiedPDFViewer {
         // Mettre à jour le nombre total de pages
         this.totalPages--;
         
+        this.log(`📊 Nouveau nombre de pages: ${this.totalPages}`);
     }
 
     /**
      * Renumérote les pages après suppression
      */
     async renumberPagesAfterDeletion(deletedPageNumber) {
+        this.log(`🔢 Renumerotation après suppression page ${deletedPageNumber}`);
         
         // Maps temporaires pour stocker les données renumerotées
         const newPages = new Map();
@@ -7596,12 +7717,14 @@ class UnifiedPDFViewer {
         this.undoStack = newUndoStack;
         this.redoStack = newRedoStack;
         
+        this.log(`✅ Renumerotation terminée`);
     }
 
     /**
      * Met à jour l'interface utilisateur après suppression
      */
     async updateUIAfterPageDeletion(deletedPageNumber) {
+        this.log(`🖥️ Mise à jour UI après suppression page ${deletedPageNumber}`);
         
         // Ajuster la page courante si nécessaire
         if (this.currentPage === deletedPageNumber) {
@@ -7639,12 +7762,14 @@ class UnifiedPDFViewer {
         // Mettre à jour la sélection des miniatures
         this.updateThumbnailSelection();
         
+        this.log(`✅ Interface mise à jour`);
     }
 
     /**
      * Régénère toutes les miniatures après modification
      */
     async regenerateThumbnails() {
+        this.log('🔄 Régénération des miniatures...');
         
         const container = document.getElementById('thumbnails-container');
         if (!container) return;
@@ -7663,12 +7788,14 @@ class UnifiedPDFViewer {
             await this.generateThumbnails();
         }
         
+        this.log('✅ Miniatures régénérées');
     }
 
     /**
      * Génère les miniatures uniquement pour les pages qui n'ont pas été supprimées
      */
     async generateThumbnailsForRemainingPages() {
+        this.log('📄 Génération des miniatures pour pages restantes...');
         
         const container = document.getElementById('thumbnails-container');
         if (!container || !this.pdfDoc) return;
@@ -7729,6 +7856,7 @@ class UnifiedPDFViewer {
                     pressTimer = setTimeout(() => {
                         isLongPress = true;
                         this.showThumbnailContextMenu(e, displayPageNumber);
+                        this.log(`👆 Appui long détecté sur miniature ${displayPageNumber}`);
                     }, 500);
                 });
 
@@ -7762,6 +7890,7 @@ class UnifiedPDFViewer {
                     touchTimer = setTimeout(() => {
                         isTouchLongPress = true;
                         this.showThumbnailContextMenu(e, displayPageNumber);
+                        this.log(`📱 Appui long tactile détecté sur miniature ${displayPageNumber}`);
                     }, 500);
                 });
 
@@ -7799,6 +7928,7 @@ class UnifiedPDFViewer {
                     viewport: viewport
                 }).promise;
 
+                this.log(`Miniature ${displayPageNumber} (page originale ${originalPageNum}) générée`);
             } catch (error) {
                 console.error(`Erreur rendu miniature ${displayPageNumber}:`, error);
             }
@@ -7806,6 +7936,7 @@ class UnifiedPDFViewer {
             displayPageNumber++;
         }
 
+        this.log(`✅ ${displayPageNumber - 1} miniatures générées pour pages restantes`);
     }
 
     /**
@@ -7814,6 +7945,7 @@ class UnifiedPDFViewer {
     async renderRemainingPagesInMainView() {
         if (!this.pdfDoc) return;
 
+        this.log('🔄 Rendu des pages restantes dans la vue principale...');
         
         // Vider le conteneur principal
         this.elements.pagesContainer.innerHTML = '';
@@ -7839,6 +7971,7 @@ class UnifiedPDFViewer {
         // Reconfigurer les outils d'annotation pour toutes les pages
         this.reconfigureAnnotationTools();
         
+        this.log(`✅ ${displayPageNumber - 1} pages restantes rendues dans la vue principale`);
     }
 
     /**
@@ -7907,6 +8040,7 @@ class UnifiedPDFViewer {
                 this.setupPageAnnotationEvents(displayPageNum, annotationCanvas);
             }
             
+            this.log(`Page ${displayPageNum} (originale ${originalPageNum}) créée et rendue`);
             
         } catch (error) {
             console.error(`Erreur création page ${displayPageNum}:`, error);
@@ -7932,6 +8066,7 @@ class UnifiedPDFViewer {
             
             // Ajouter l'état vide initial
             this.undoStack.get(pageNum).push(emptyState);
+            this.log(`📄 Historique initialisé pour page ${pageNum}`);
             
             this.updateUndoRedoButtons();
         }
@@ -7941,6 +8076,7 @@ class UnifiedPDFViewer {
      * Ajoute une page blanche après la page spécifiée
      */
     async addBlankPageAfter(pageNumber) {
+        this.log(`📄 Début ajout page blanche après la page ${pageNumber}`);
         
         if (confirm(`Ajouter une page blanche après la page ${pageNumber} ?`)) {
             try {
@@ -7950,6 +8086,7 @@ class UnifiedPDFViewer {
                 // Mettre à jour l'interface utilisateur
                 await this.updateUIAfterPageInsertionAtPosition(pageNumber);
                 
+                this.log(`✅ Page blanche ajoutée après la page ${pageNumber}`);
                 
                 // Sauvegarder automatiquement après ajout
                 this.scheduleAutoSave();
@@ -7965,6 +8102,7 @@ class UnifiedPDFViewer {
      * Ajoute une page avec graphique après la page spécifiée
      */
     async addGraphPageAfter(pageNumber) {
+        this.log(`📊 Début ajout page graphique après la page ${pageNumber}`);
 
         if (confirm(`Créer une page avec graphique après la page ${pageNumber} ?`)) {
             try {
@@ -7974,6 +8112,7 @@ class UnifiedPDFViewer {
                 // Mettre à jour l'interface utilisateur et naviguer vers la nouvelle page
                 await this.updateUIAfterGraphPageInsertionAtPosition(pageNumber);
                 
+                this.log(`✅ Page graphique ajoutée après la page ${pageNumber}`);
                 
                 // Sauvegarder automatiquement après ajout
                 this.scheduleAutoSave();
@@ -7989,6 +8128,7 @@ class UnifiedPDFViewer {
      * Insère une page graphique après la position d'affichage spécifiée
      */
     async insertGraphPageAfterDisplayPosition(displayPageNumber) {
+        this.log(`📊 Insertion page graphique après position d'affichage ${displayPageNumber}`);
         
         // Initialiser le système de pages ajoutées si nécessaire
         this.addedPages = this.addedPages || new Map();
@@ -8025,12 +8165,14 @@ class UnifiedPDFViewer {
         // Mettre à jour le nombre total de pages
         this.totalPages++;
         
+        this.log(`📊 Page graphique créée avec ID: ${graphPageId}, nouveau total: ${this.totalPages} pages`);
     }
 
     /**
      * Met à jour l'interface utilisateur après insertion de page graphique à une position
      */
     async updateUIAfterGraphPageInsertionAtPosition(displayPageNumber) {
+        this.log(`🖥️ Mise à jour UI après insertion page graphique après position ${displayPageNumber}`);
         
         // Régénérer toutes les miniatures avec les pages ajoutées
         await this.regenerateThumbnailsWithAddedPages();
@@ -8056,12 +8198,14 @@ class UnifiedPDFViewer {
             this.scheduleAutoSave();
         }
         
+        this.log(`✅ Interface mise à jour après insertion page graphique`);
     }
 
     /**
      * Insère une page graphique après la page originale spécifiée (ancienne méthode pour compatibilité)
      */
     async insertGraphPageAfter(originalPageNumber) {
+        this.log(`📊 Insertion page graphique après page originale ${originalPageNumber}`);
         
         // Initialiser le système de pages ajoutées si nécessaire
         this.addedPages = this.addedPages || new Map();
@@ -8094,12 +8238,14 @@ class UnifiedPDFViewer {
         // Mettre à jour le nombre total de pages
         this.totalPages++;
         
+        this.log(`📊 Page graphique créée avec ID: ${graphPageId}, nouveau total: ${this.totalPages} pages`);
     }
 
     /**
      * Met à jour l'interface utilisateur après insertion de page graphique
      */
     async updateUIAfterGraphPageInsertion(originalPageNumber) {
+        this.log(`🖥️ Mise à jour UI après insertion page graphique après ${originalPageNumber}`);
         
         // Régénérer toutes les miniatures avec les pages ajoutées
         await this.regenerateThumbnailsWithAddedPages();
@@ -8129,6 +8275,7 @@ class UnifiedPDFViewer {
         if (newGraphPageIndex !== -1) {
             const newPageNumber = newGraphPageIndex + 1;
             this.goToPage(newPageNumber);
+            this.log(`🎯 Navigation vers la nouvelle page graphique: ${newPageNumber}`);
             
             // Ouvrir automatiquement le panneau de contrôle graphique (temporairement désactivé pour test)
             // setTimeout(() => {
@@ -8139,12 +8286,14 @@ class UnifiedPDFViewer {
         // Mettre à jour la sélection des miniatures
         this.updateThumbnailSelection();
         
+        this.log(`✅ Interface mise à jour après insertion page graphique`);
     }
 
     /**
      * Insère une page blanche après la position d'affichage spécifiée
      */
     async insertBlankPageAfterDisplayPosition(displayPageNumber) {
+        this.log(`📄 Insertion page blanche après position d'affichage ${displayPageNumber}`);
         
         // Initialiser le système de pages ajoutées si nécessaire
         this.addedPages = this.addedPages || new Map();
@@ -8172,12 +8321,14 @@ class UnifiedPDFViewer {
         // Mettre à jour le nombre total de pages
         this.totalPages++;
         
+        this.log(`📊 Page blanche créée avec ID: ${blankPageId}, nouveau total: ${this.totalPages} pages`);
     }
 
     /**
      * Insère une page blanche après la page originale spécifiée (ancienne méthode pour compatibilité)
      */
     async insertBlankPageAfter(originalPageNumber) {
+        this.log(`📄 Insertion page blanche après page originale ${originalPageNumber}`);
         
         // Initialiser le système de pages ajoutées si nécessaire
         this.addedPages = this.addedPages || new Map();
@@ -8201,12 +8352,14 @@ class UnifiedPDFViewer {
         // Mettre à jour le nombre total de pages
         this.totalPages++;
         
+        this.log(`📊 Page blanche créée avec ID: ${blankPageId}, nouveau total: ${this.totalPages} pages`);
     }
 
     /**
      * Met à jour l'interface utilisateur après insertion de page à une position
      */
     async updateUIAfterPageInsertionAtPosition(displayPageNumber) {
+        this.log(`🖥️ Mise à jour UI après insertion page blanche après position ${displayPageNumber}`);
         
         // Régénérer toutes les miniatures avec les pages ajoutées
         await this.regenerateThumbnailsWithAddedPages();
@@ -8226,12 +8379,14 @@ class UnifiedPDFViewer {
             this.scheduleAutoSave();
         }
         
+        this.log(`✅ Interface mise à jour après insertion page`);
     }
 
     /**
      * Met à jour l'interface utilisateur après insertion de page (ancienne méthode pour compatibilité)
      */
     async updateUIAfterPageInsertion(originalPageNumber) {
+        this.log(`🖥️ Mise à jour UI après insertion page blanche après ${originalPageNumber}`);
         
         // Régénérer toutes les miniatures avec les pages ajoutées
         await this.regenerateThumbnailsWithAddedPages();
@@ -8258,11 +8413,13 @@ class UnifiedPDFViewer {
         if (newBlankPageIndex !== -1) {
             const newPageNumber = newBlankPageIndex + 1;
             this.goToPage(newPageNumber);
+            this.log(`🎯 Navigation vers la nouvelle page blanche: ${newPageNumber}`);
         }
         
         // Mettre à jour la sélection des miniatures
         this.updateThumbnailSelection();
         
+        this.log(`✅ Interface mise à jour après insertion`);
     }
 
     /**
@@ -8272,10 +8429,13 @@ class UnifiedPDFViewer {
     saveAllAnnotations(excludePageNumber = null) {
         // Si on doit ignorer la sauvegarde (déjà faite avant suppression)
         if (this.skipNextAnnotationSave) {
+            this.log('⏭️ Sauvegarde des annotations ignorée (déjà effectuée)');
             return;
         }
         
+        this.log('💾 Sauvegarde de toutes les annotations...');
         if (excludePageNumber) {
+            this.log(`⚠️ Exclusion de la page ${excludePageNumber} de la sauvegarde`);
         }
         
         // Vider la sauvegarde précédente si on ne fait pas d'exclusion
@@ -8292,6 +8452,7 @@ class UnifiedPDFViewer {
                 
                 // Ignorer la page à exclure
                 if (excludePageNumber && pageNumber === excludePageNumber) {
+                    this.log(`⏭️ Page ${pageNumber} ignorée (sera supprimée)`);
                     return;
                 }
                 
@@ -8308,9 +8469,11 @@ class UnifiedPDFViewer {
                     this.annotationBackup = new Map();
                 }
                 this.annotationBackup.set(pageKey, imageData);
+                this.log(`💾 Annotations sauvegardées pour ${pageKey}`);
             }
         });
         
+        this.log(`✅ ${annotationCanvases.length} annotations sauvegardées`);
     }
     
     /**
@@ -8318,9 +8481,11 @@ class UnifiedPDFViewer {
      */
     async restoreAllAnnotations() {
         if (!this.annotationBackup || this.annotationBackup.size === 0) {
+            this.log('ℹ️ Aucune annotation à restaurer');
             return;
         }
         
+        this.log('🔄 Restauration des annotations...');
         
         // Parcourir toutes les pages affichées pour restaurer les annotations
         const pageContainers = document.querySelectorAll('.pdf-page-container');
@@ -8344,6 +8509,7 @@ class UnifiedPDFViewer {
                     img.onload = () => {
                         const ctx = annotationCanvas.getContext('2d');
                         ctx.drawImage(img, 0, 0);
+                        this.log(`✅ Annotations restaurées pour ${pageKey} (page affichage ${displayPageNumber})`);
                     };
                     img.src = imageData;
                 }
@@ -8352,6 +8518,7 @@ class UnifiedPDFViewer {
         
         // Nettoyer la sauvegarde
         this.annotationBackup.clear();
+        this.log('✅ Toutes les annotations restaurées');
     }
 
     /**
@@ -8359,6 +8526,7 @@ class UnifiedPDFViewer {
      * @param {number} excludePageNumber - Numéro de page à exclure de la sauvegarde des annotations
      */
     async regenerateThumbnailsWithAddedPages(excludePageNumber = null) {
+        this.log('🔄 Régénération miniatures avec pages ajoutées...');
         
         const container = document.getElementById('thumbnails-container');
         if (!container) return;
@@ -8372,12 +8540,14 @@ class UnifiedPDFViewer {
         // Générer les miniatures dans l'ordre correct
         await this.generateThumbnailsWithAllPages();
         
+        this.log('✅ Miniatures avec pages ajoutées régénérées');
     }
 
     /**
      * Génère les miniatures pour toutes les pages (originales, supprimées, ajoutées)
      */
     async generateThumbnailsWithAllPages() {
+        this.log('📄 Génération miniatures avec toutes les pages...');
         
         const container = document.getElementById('thumbnails-container');
         if (!container || !this.pdfDoc) return;
@@ -8408,6 +8578,7 @@ class UnifiedPDFViewer {
             displayPageNumber++;
         }
         
+        this.log(`✅ ${displayPageNumber - 1} miniatures générées avec toutes les pages`);
     }
 
     /**
@@ -8416,6 +8587,9 @@ class UnifiedPDFViewer {
     createPageSequence() {
         const sequence = [];
         
+        this.log('🔄 Création séquence de pages...');
+        this.log(`📊 Pages supprimées: ${this.deletedPages ? Array.from(this.deletedPages).join(', ') : 'aucune'}`);
+        this.log(`📊 Pages ajoutées: ${this.addedPages ? this.addedPages.size : 0}`);
         
         // D'abord, créer une séquence de base avec les pages originales
         const baseSequence = [];
@@ -8449,6 +8623,7 @@ class UnifiedPDFViewer {
                     id: blankId,
                     blankData: blankData
                 });
+                this.log(`📄 Ajouté page blanche ${blankId} en position ${insertPosition + 1} (après position d'affichage ${blankData.insertAfterDisplay})`);
             } else if (blankData.insertAfter !== undefined) {
                 // Ancienne méthode : insertion basée sur le numéro de page original
                 let insertIndex = currentSequence.length;
@@ -8463,9 +8638,11 @@ class UnifiedPDFViewer {
                     id: blankId,
                     blankData: blankData
                 });
+                this.log(`📄 Ajouté page blanche ${blankId} en position ${insertIndex + 1} (après page originale ${blankData.insertAfter})`);
             }
         }
         
+        this.log(`✅ Séquence créée avec ${currentSequence.length} pages`);
         return currentSequence;
     }
 
@@ -8529,6 +8706,7 @@ class UnifiedPDFViewer {
         // Ajouter au conteneur
         container.appendChild(thumbnailItem);
 
+        this.log(`Miniature page blanche ${displayPageNum} (ID: ${blankPageId}) créée`);
     }
 
     /**
@@ -8577,6 +8755,7 @@ class UnifiedPDFViewer {
                 viewport: viewport
             }).promise;
 
+            this.log(`Miniature ${displayPageNum} (page originale ${originalPageNum}) générée`);
         } catch (error) {
             console.error(`Erreur rendu miniature ${displayPageNum}:`, error);
         }
@@ -8621,6 +8800,7 @@ class UnifiedPDFViewer {
                 pressTimer = setTimeout(() => {
                     isLongPress = true;
                     this.showThumbnailContextMenu(e, displayPageNum);
+                    this.log(`👆 Appui long détecté sur miniature ${displayPageNum}`);
                 }, 500);
             });
 
@@ -8654,6 +8834,7 @@ class UnifiedPDFViewer {
                 touchTimer = setTimeout(() => {
                     isTouchLongPress = true;
                     this.showThumbnailContextMenu(e, displayPageNum);
+                    this.log(`📱 Appui long tactile détecté sur miniature ${displayPageNum}`);
                 }, 500);
             });
 
@@ -8679,6 +8860,7 @@ class UnifiedPDFViewer {
     async renderAllPagesWithAddedPages() {
         if (!this.pdfDoc) return;
 
+        this.log('🔄 Rendu de toutes les pages avec pages ajoutées...');
         
         // Vider le conteneur principal
         this.elements.pagesContainer.innerHTML = '';
@@ -8703,6 +8885,7 @@ class UnifiedPDFViewer {
         // Reconfigurer les outils d'annotation pour toutes les pages
         this.reconfigureAnnotationTools();
         
+        this.log(`✅ ${displayPageNumber - 1} pages rendues avec pages ajoutées`);
     }
 
     /**
@@ -8780,6 +8963,7 @@ class UnifiedPDFViewer {
                 this.setupPageAnnotationEvents(displayPageNum, annotationCanvas);
             }
             
+            this.log(`Page blanche ${displayPageNum} (ID: ${blankPageId}) créée et rendue`);
             
         } catch (error) {
             console.error(`Erreur création page blanche ${displayPageNum}:`, error);
@@ -8790,10 +8974,12 @@ class UnifiedPDFViewer {
      * Reconfigure les outils d'annotation après régénération des pages
      */
     reconfigureAnnotationTools() {
+        this.log('🔧 Reconfiguration des outils d\'annotation...');
         
         // Réactiver l'outil courant pour toutes les pages
         this.setCurrentTool(this.currentTool);
         
+        this.log(`✅ Outils d'annotation reconfigurés pour l'outil: ${this.currentTool}`);
     }
 
     /**
@@ -9097,6 +9283,8 @@ class UnifiedPDFViewer {
         // Ajouter les événements
         this.setupGraphControlEvents();
 
+        this.log(`✅ Panneau graphique créé: ${panel.className}`);
+        this.log(`✅ Panneau ajouté au DOM: ${document.body.contains(panel)}`);
 
         return panel;
     }
@@ -9823,6 +10011,7 @@ class UnifiedPDFViewer {
                 }
             `;
             document.head.appendChild(style);
+            this.log('✅ Styles critiques avec responsive design et niveaux de compaction injectés');
         }
     }
 
@@ -9966,6 +10155,7 @@ class UnifiedPDFViewer {
      */
     showGraphControlPanel(pageNumber) {
         if (!this.isCurrentPageGraph(pageNumber)) {
+            this.log(`⚠️ Page ${pageNumber} n'est pas une page graphique`);
             return;
         }
 
@@ -9973,6 +10163,7 @@ class UnifiedPDFViewer {
         
         // Si le panneau existe déjà et est masqué, le réafficher
         if (this.graphControlPanel && this.graphControlPanel.style.display === 'none') {
+            this.log('🔄 Réouverture du panneau existant');
             this.loadGraphConfigToPanel(pageNumber);
             // Reconfigurer les événements au cas où ils seraient perdus
             this.setupGraphControlEvents();
@@ -9990,6 +10181,7 @@ class UnifiedPDFViewer {
         
         // Vérifier que le panneau est bien dans le DOM
         if (!document.body.contains(this.graphControlPanel)) {
+            this.log('⚠️ Le panneau n\'est pas dans le DOM, ajout forcé');
             document.body.appendChild(this.graphControlPanel);
         }
         
@@ -10005,6 +10197,9 @@ class UnifiedPDFViewer {
         this.graphControlPanel.style.transform = 'translateY(-50%) translateX(0)';
         this.graphControlPanel.style.opacity = '1';
         
+        this.log(`📊 Panneau de contrôle graphique ouvert pour page ${pageNumber}`);
+        this.log(`🔍 Panneau dans le DOM: ${document.body.contains(this.graphControlPanel)}`);
+        this.log(`🔍 Classes CSS: ${this.graphControlPanel.className}`);
         
         // S'assurer que le scroll n'est pas bloqué lors de l'ouverture
         this.forceRestoreScrolling();
@@ -10026,6 +10221,7 @@ class UnifiedPDFViewer {
                          rect.top >= 0 && rect.left >= 0 &&
                          rect.bottom <= window.innerHeight && rect.right <= window.innerWidth;
         
+        this.log(`🔍 Panneau visible: ${isVisible}, rect:`, rect);
         return isVisible;
     }
 
@@ -10153,6 +10349,7 @@ class UnifiedPDFViewer {
         document.body.appendChild(fallbackPanel);
         this.graphControlPanel = fallbackPanel;
         
+        this.log('🆘 Panneau de secours créé et affiché');
     }
 
     /**
@@ -10199,9 +10396,12 @@ class UnifiedPDFViewer {
                         this.downloadClickHandler = null;
                     }
                     this.initDownloadButton();
+                    this.log('🔄 Bouton de téléchargement complètement réinitialisé après fermeture panneau');
                 }, 200);
+                this.log('🔧 Vérification finale du scroll après fermeture panneau');
             }, 500);
             
+            this.log('📊 Panneau de contrôle graphique fermé');
         }
         // NE PAS mettre currentGraphPage à null ici pour permettre la réouverture
         // this.currentGraphPage = null;
@@ -10266,6 +10466,7 @@ class UnifiedPDFViewer {
             const rect = dropdown.getBoundingClientRect();
             if (rect.top < -1000 || rect.top > window.innerHeight + 1000) {
                 dropdown.remove();
+                console.log('🧹 Menu déroulant orphelin supprimé');
             }
         });
         
@@ -10285,6 +10486,7 @@ class UnifiedPDFViewer {
         //     this.initDownloadButton();
         // }, 100);
         
+        this.log('🔧 Scroll forcé à la restauration complète avec nettoyage des overlays');
     }
 
     /**
@@ -10355,6 +10557,7 @@ class UnifiedPDFViewer {
         this.updateGraphConfig(this.currentGraphPage, { xMin, xMax, yMin, yMax, gridSize });
         this.redrawCurrentGraphPage();
         
+        this.log(`📊 Axes mis à jour: X[${xMin}, ${xMax}], Y[${yMin}, ${yMax}], Grille: ${gridSize}`);
         this.showGraphMessage('Axes mis à jour avec succès!', 'success');
     }
 
@@ -10466,6 +10669,7 @@ class UnifiedPDFViewer {
         input.value = '';
         colorInput.value = this.generateRandomColor();
         
+        this.log(`📊 Fonction ajoutée: ${expression}`);
         this.showGraphMessage(`Fonction "${expression}" ajoutée avec succès!`, 'success');
     }
 
@@ -10571,6 +10775,7 @@ class UnifiedPDFViewer {
                     const removedFunction = pageData.graphConfig.functions.splice(functionIndex, 1)[0];
                     this.updateFunctionsList(pageData.graphConfig.functions);
                     this.redrawCurrentGraphPage();
+                    this.log(`📊 Fonction supprimée: ${removedFunction.expression}`);
                     this.showGraphMessage(`Fonction "${removedFunction.expression}" supprimée`, 'info');
                     // Sauvegarder automatiquement après suppression de fonction
                     this.scheduleAutoSave();
@@ -10598,6 +10803,7 @@ class UnifiedPDFViewer {
                         colorDiv.style.backgroundColor = newColor;
                     }
                     this.redrawCurrentGraphPage();
+                    this.log(`📊 Couleur de fonction mise à jour: ${func.expression} -> ${newColor}`);
                     // Sauvegarder automatiquement après changement de couleur
                     this.scheduleAutoSave();
                 }
@@ -10645,10 +10851,13 @@ class UnifiedPDFViewer {
      * Ajoute un bouton de contrôle graphique sur la page
      */
     addGraphControlButton(pageContainer, pageNumber) {
+        this.log(`🔘 Ajout bouton Configurer pour page ${pageNumber}`);
+        this.log(`🔍 Container reçu:`, pageContainer);
         
         // Supprimer le bouton existant s'il y en a un
         const existingButton = pageContainer.querySelector('.graph-control-btn');
         if (existingButton && existingButton.parentNode) {
+            this.log(`🗑️ Suppression bouton existant`);
             existingButton.parentNode.removeChild(existingButton);
         }
 
@@ -10700,23 +10909,29 @@ class UnifiedPDFViewer {
 
         // Événement de clic - Test simplifié
         controlButton.onclick = (e) => {
+            this.log(`🖱️ ONCLICK - Clic sur bouton Configurer pour page ${pageNumber}`);
+            this.log(`🔍 État actuel currentGraphPage: ${this.currentGraphPage}`);
+            this.log(`🔍 isCurrentPageGraph(${pageNumber}): ${this.isCurrentPageGraph(pageNumber)}`);
             this.showGraphControlPanel(pageNumber);
             return false; // Empêche la propagation
         };
 
         // Événement alternatif avec addEventListener
         controlButton.addEventListener('click', (e) => {
+            this.log(`🖱️ ADDEVENTLISTENER - Clic sur bouton Configurer pour page ${pageNumber}`);
             e.stopPropagation();
             this.showGraphControlPanel(pageNumber);
         }, true); // Utiliser la phase de capture
 
         // Test avec mousedown pour vérifier que le bouton répond
         controlButton.addEventListener('mousedown', (e) => {
+            this.log(`🖱️ MOUSEDOWN détecté sur bouton page ${pageNumber}`);
             e.stopPropagation();
         });
 
         // Test avec mouseup pour confirmer l'interaction
         controlButton.addEventListener('mouseup', (e) => {
+            this.log(`🖱️ MOUSEUP détecté sur bouton page ${pageNumber}`);
             e.stopPropagation();
         });
 
@@ -10726,6 +10941,7 @@ class UnifiedPDFViewer {
         // Positionner le bouton par rapport à la page et gérer sa visibilité
         const updateButtonPosition = () => {
             const pageRect = pageContainer.getBoundingClientRect();
+            this.log(`🔘 updateButtonPosition page ${pageNumber}: rect=${pageRect.top}, ${pageRect.left}, ${pageRect.width}x${pageRect.height}`);
             
             // Position absolue fixe sur la page - toujours visible si c'est une page graphique
             const buttonWidth = 80;
@@ -10741,6 +10957,7 @@ class UnifiedPDFViewer {
             const shouldBeVisible = this.shouldShowGraphButton(pageNumber);
             controlButton.style.display = shouldBeVisible ? 'flex' : 'none';
             
+            this.log(`🔘 Bouton page ${pageNumber}: position=(top: 15px, right: 15px), shouldBeVisible=${shouldBeVisible}`);
         };
         
         // Positionner initialement
@@ -10780,11 +10997,19 @@ class UnifiedPDFViewer {
             }
         };
         
+        this.log(`✅ Bouton Configurer ajouté à la page ${pageNumber}`);
+        this.log(`🔍 Bouton dans le DOM:`, document.body.contains(controlButton));
+        this.log(`🔍 Bouton visible:`, controlButton.offsetWidth > 0 && controlButton.offsetHeight > 0);
+        this.log(`🔍 Bouton position:`, controlButton.getBoundingClientRect());
+        this.log(`🔍 Bouton z-index:`, getComputedStyle(controlButton).zIndex);
+        this.log(`🔍 Bouton pointer-events:`, getComputedStyle(controlButton).pointerEvents);
         
         // Test direct de l'élément cliquable
         setTimeout(() => {
             const testButton = document.querySelector(`[data-page-number="${pageNumber}"] .graph-control-btn`);
+            this.log(`🔍 Test bouton trouvé après timeout:`, testButton ? 'OUI' : 'NON');
             if (testButton) {
+                this.log(`🔍 Test bouton cliquable:`, testButton.style.pointerEvents !== 'none');
             }
         }, 100);
     }
@@ -10795,6 +11020,7 @@ class UnifiedPDFViewer {
     shouldShowGraphButton(pageNumber) {
         // Ne pas afficher si ce n'est pas une page graphique
         if (!this.isCurrentPageGraph(pageNumber)) {
+            this.log(`🔘 shouldShowGraphButton(${pageNumber}): NON - pas une page graphique`);
             return false;
         }
         
@@ -10802,14 +11028,17 @@ class UnifiedPDFViewer {
         if (this.graphControlPanel && 
             this.graphControlPanel.style.display !== 'none' && 
             this.graphControlPanel.dataset.closing !== 'true') {
+            this.log(`🔘 shouldShowGraphButton(${pageNumber}): NON - panneau ouvert`);
             return false;
         }
         
         // Ne pas afficher si on n'est pas sur cette page
         if (this.currentPage !== pageNumber) {
+            this.log(`🔘 shouldShowGraphButton(${pageNumber}): NON - page courante est ${this.currentPage}`);
             return false;
         }
         
+        this.log(`🔘 shouldShowGraphButton(${pageNumber}): OUI - toutes conditions OK`);
         return true;
     }
 
@@ -10817,12 +11046,14 @@ class UnifiedPDFViewer {
      * Met à jour la visibilité de tous les boutons graphiques et s'assure qu'ils existent
      */
     updateAllGraphButtonsVisibility() {
+        this.log(`🔘 updateAllGraphButtonsVisibility: currentPage=${this.currentPage}`);
         
         // Vérifier et recréer les boutons manquants pour les pages graphiques visibles
         this.ensureGraphButtonsExist();
         
         if (this.graphButtons) {
             this.graphButtons.forEach((buttonData, pageNumber) => {
+                this.log(`🔘 Mise à jour bouton page ${pageNumber}, updatePosition existe: ${!!buttonData.updatePosition}`);
                 if (buttonData.updatePosition) {
                     buttonData.updatePosition();
                 }
@@ -10835,6 +11066,7 @@ class UnifiedPDFViewer {
      */
     ensureGraphButtonsExist() {
         const pageSequence = this.createPageSequence();
+        this.log(`🔘 ensureGraphButtonsExist: Vérification de ${pageSequence.length} pages`);
         
         pageSequence.forEach((pageInfo, index) => {
             const displayPageNum = index + 1;
@@ -10843,28 +11075,35 @@ class UnifiedPDFViewer {
             if (pageInfo.isBlank && pageInfo.id) {
                 const pageData = this.addedPages.get(pageInfo.id);
                 if (pageData?.isGraph) {
+                    this.log(`🔘 Page ${displayPageNum} est une page graphique`);
                     
                     // Vérifier si le bouton existe déjà
                     const existingButton = this.graphButtons?.get(displayPageNum);
                     const buttonExists = existingButton && document.body.contains(existingButton.button);
                     
+                    this.log(`🔘 Bouton page ${displayPageNum}: existe=${!!existingButton}, dans DOM=${buttonExists}`);
                     
                     if (!existingButton || !buttonExists) {
+                        this.log(`🔘 Recréation du bouton manquant pour page graphique ${displayPageNum}`);
                         
                         // Trouver le container de la page
                         const pageElement = this.pageElements.get(displayPageNum);
+                        this.log(`🔘 PageElement pour page ${displayPageNum}:`, !!pageElement, !!pageElement?.container);
                         
                         if (pageElement?.container) {
                             // Recréer le bouton
                             this.addGraphControlButton(pageElement.container, displayPageNum);
                         } else {
+                            this.log(`⚠️ Pas de container pour page graphique ${displayPageNum}, tentative de création différée`);
                             
                             // Essayer de recréer le container si nécessaire
                             setTimeout(() => {
                                 const pageElement = this.pageElements.get(displayPageNum);
                                 if (pageElement?.container) {
+                                    this.log(`🔘 Container trouvé après délai pour page ${displayPageNum}`);
                                     this.addGraphControlButton(pageElement.container, displayPageNum);
                                 } else {
+                                    this.log(`❌ Container toujours absent pour page ${displayPageNum} après délai`);
                                 }
                             }, 100);
                         }
@@ -10878,12 +11117,15 @@ class UnifiedPDFViewer {
      * Vérifie et affiche l'état des boutons Configurer dans toutes les pages graphiques
      */
     debugGraphButtons() {
+        this.log('🔍 DEBUG: Vérification des boutons Configurer...');
         
         const allButtons = document.querySelectorAll('.graph-control-btn');
+        this.log(`📊 Nombre total de boutons trouvés: ${allButtons.length}`);
         
         allButtons.forEach((btn, index) => {
             const pageContainer = btn.closest('.pdf-page-container');
             const pageNumber = pageContainer ? pageContainer.dataset.pageNumber : 'inconnu';
+            this.log(`🔘 Bouton ${index + 1}: page ${pageNumber}, visible: ${btn.offsetWidth > 0}`);
         });
         
         // Vérifier les pages graphiques spécifiquement
@@ -10895,6 +11137,7 @@ class UnifiedPDFViewer {
                 if (pageData?.isGraph) {
                     const pageElement = this.pageElements.get(displayPageNum);
                     const button = pageElement?.container?.querySelector('.graph-control-btn');
+                    this.log(`📊 Page graphique ${displayPageNum}: bouton ${button ? 'PRÉSENT' : 'ABSENT'}`);
                 }
             }
         });
@@ -10919,6 +11162,7 @@ class UnifiedPDFViewer {
             this.updateFunctionsList([]);
             this.redrawCurrentGraphPage();
             
+            this.log('📊 Toutes les fonctions effacées');
         }
     }
 
@@ -10953,10 +11197,12 @@ class UnifiedPDFViewer {
                     
                     localStorage.setItem('graph-configs', JSON.stringify(savedConfigs));
                     
+                    this.log('📊 Configuration graphique sauvegardée');
                     this.showGraphMessage('Configuration sauvegardée avec succès!', 'success');
                 }
             }
         } catch (error) {
+            this.log(`❌ Erreur sauvegarde: ${error.message}`);
             this.showGraphMessage('Erreur lors de la sauvegarde', 'error');
         }
     }
@@ -10997,9 +11243,11 @@ class UnifiedPDFViewer {
                 URL.revokeObjectURL(url);
                 
                 this.showGraphMessage('Image exportée avec succès!', 'success');
+                this.log('📊 Graphique exporté en image');
             }, 'image/png');
             
         } catch (error) {
+            this.log(`❌ Erreur export: ${error.message}`);
             this.showGraphMessage('Erreur lors de l\'export', 'error');
         }
     }
@@ -11008,6 +11256,7 @@ class UnifiedPDFViewer {
      * Gère les actions du menu de téléchargement
      */
     handleDownloadAction(action) {
+        this.log(`📋 Action de téléchargement demandée: ${action}`);
         switch (action) {
             case 'download':
                 this.downloadPDF();
@@ -11016,6 +11265,7 @@ class UnifiedPDFViewer {
                 this.sendToStudents();
                 break;
             default:
+                console.log('Action inconnue:', action);
         }
     }
     
@@ -11023,6 +11273,7 @@ class UnifiedPDFViewer {
      * Télécharge le PDF avec les annotations
      */
     async downloadPDF() {
+        console.log('🚨 downloadPDF() appelée - stack trace:');
         console.trace();
         
         // Afficher un indicateur de progression
@@ -11050,10 +11301,12 @@ class UnifiedPDFViewer {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
+            this.log('📄 PDF téléchargé avec succès');
             this.showSuccessMessage('PDF téléchargé avec succès !');
             
         } catch (error) {
             this.hideExportProgress();
+            this.log(`❌ Erreur téléchargement: ${error.message}`);
             this.showErrorMessage(`Erreur lors du téléchargement: ${error.message}`);
         }
     }
@@ -11161,6 +11414,7 @@ class UnifiedPDFViewer {
      * Ouvre le panneau de sélection pour envoyer le PDF aux élèves
      */
     async sendToStudents() {
+        console.log('📧 Ouverture du panneau d’envoi aux élèves');
         
         // Mettre à jour les données depuis le DOM principal
         this.updateStudentDataFromDOM();
@@ -11201,6 +11455,7 @@ class UnifiedPDFViewer {
         // Configurer les événements
         this.setupSendToStudentsEvents();
         
+        console.log('📧 Panneau d’envoi aux élèves créé et affiché');
     }
     
     /**
@@ -11235,6 +11490,7 @@ class UnifiedPDFViewer {
                 const result = await response.json();
                 this.showSendSuccess(result.message || 'Document envoyé avec succès!');
                 this.closeSendToStudentsPanel();
+                this.log(`📧 Document envoyé à ${selectedStudents.length} élève(s)`);
             } else {
                 throw new Error('Erreur serveur');
             }
@@ -11255,6 +11511,7 @@ class UnifiedPDFViewer {
         }
 
         try {
+            this.log('🔄 Début de l\'export PDF avec annotations...');
             
             // Importer jsPDF si nécessaire
             if (typeof window.jsPDF === 'undefined' && !(window.jspdf && window.jspdf.jsPDF)) {
@@ -11262,6 +11519,9 @@ class UnifiedPDFViewer {
             }
             
             // Debug: voir comment jsPDF est exposé
+            console.log('🔍 window.jsPDF:', window.jsPDF);
+            console.log('🔍 window.jspdf:', window.jspdf);
+            console.log('🔍 window.jspdf?.jsPDF:', window.jspdf?.jsPDF);
 
             // Accéder à jsPDF correctement selon la version
             const jsPDFConstructor = window.jspdf?.jsPDF || window.jsPDF;
@@ -11277,9 +11537,11 @@ class UnifiedPDFViewer {
             // Obtenir le nombre réel de pages dans le DOM
             const pageSequence = this.createPageSequence();
             const totalPagesInDOM = pageSequence.length;
+            this.log(`📊 Export de ${totalPagesInDOM} pages (${this.totalPages} pages originales + ${this.blankPages.size} pages ajoutées)`);
             
             // Traiter chaque page
             for (let pageNum = 1; pageNum <= totalPagesInDOM; pageNum++) {
+                this.log(`📄 Traitement de la page ${pageNum}/${totalPagesInDOM}`);
                 
                 // Mettre à jour l'indicateur de progression
                 const progressElement = document.querySelector('#export-progress-indicator span');
@@ -11290,7 +11552,9 @@ class UnifiedPDFViewer {
                 // Obtenir le canvas de la page avec annotations
                 const canvas = await this.getPageCanvasWithAnnotations(pageNum);
                 
+                this.log(`🔍 DEBUG: Canvas reçu pour page ${pageNum}: ${!!canvas}`);
                 if (canvas) {
+                    this.log(`🔍 DEBUG: Canvas dimensions: ${canvas.width}x${canvas.height}`);
                     // Convertir le canvas en image
                     const imgData = canvas.toDataURL('image/jpeg', 0.95);
                     
@@ -11327,16 +11591,20 @@ class UnifiedPDFViewer {
                     // Ajouter l'image au PDF
                     pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
                     
+                    this.log(`✅ Page ${pageNum} ajoutée au PDF (${imgWidth}x${imgHeight} à position ${x},${y})`);
                 } else {
+                    this.log(`❌ Pas de canvas pour la page ${pageNum} - page ignorée`);
                 }
             }
             
             // Générer le blob PDF
             const pdfBlob = pdf.output('blob');
+            this.log('✅ Export PDF terminé avec succès');
             
             return pdfBlob;
             
         } catch (error) {
+            this.log(`❌ Erreur lors de l'export: ${error.message}`);
             throw error;
         }
     }
@@ -11357,6 +11625,7 @@ class UnifiedPDFViewer {
             script.onload = () => {
                 // Vérifier que jsPDF est bien chargé
                 if (window.jspdf?.jsPDF || window.jsPDF) {
+                    this.log('✅ jsPDF chargé avec succès');
                     resolve();
                 } else {
                     reject(new Error('jsPDF chargé mais non trouvé dans window'));
@@ -11374,13 +11643,21 @@ class UnifiedPDFViewer {
      */
     async getPageCanvasWithAnnotations(pageNum) {
         try {
+            this.log(`🔍 DEBUG: Recherche canvas pour page ${pageNum}`);
             
             // D'abord essayer le fallback avec this.pageElements qui stocke les pages rendues
+            this.log(`🔍 DEBUG: this.pageElements existe: ${!!this.pageElements}`);
+            this.log(`🔍 DEBUG: this.pageElements.size: ${this.pageElements ? this.pageElements.size : 0}`);
             if (this.pageElements && this.pageElements.size > 0) {
+                this.log(`🔍 DEBUG: Pages disponibles dans pageElements: ${Array.from(this.pageElements.keys()).join(', ')}`);
             }
             
             if (this.pageElements && this.pageElements.has(pageNum)) {
                 const pageElement = this.pageElements.get(pageNum);
+                this.log(`✅ Page ${pageNum} trouvée dans pageElements`);
+                this.log(`🔍 DEBUG: pageElement: ${!!pageElement}`);
+                this.log(`🔍 DEBUG: pageElement.canvas: ${!!pageElement.canvas}`);
+                this.log(`🔍 DEBUG: canvas dimensions: ${pageElement.canvas ? pageElement.canvas.width + 'x' + pageElement.canvas.height : 'N/A'}`);
                 
                 // Créer un canvas composite avec le contenu de la page
                 const compositeCanvas = document.createElement('canvas');
@@ -11390,11 +11667,14 @@ class UnifiedPDFViewer {
                 
                 // Dessiner le PDF de base
                 compositeCtx.drawImage(pageElement.canvas, 0, 0);
+                this.log(`📋 Contenu PDF dessiné sur canvas composite pour page ${pageNum}`);
                 
                 // Dessiner les annotations
                 if (pageElement.annotationCanvas) {
                     compositeCtx.drawImage(pageElement.annotationCanvas, 0, 0);
+                    this.log(`📝 Annotations ajoutées pour la page ${pageNum}`);
                 } else {
+                    this.log(`ℹ️ Pas d'annotations pour la page ${pageNum}`);
                 }
                 
                 return compositeCanvas;
@@ -11403,23 +11683,30 @@ class UnifiedPDFViewer {
             // Chercher dans la zone principale du PDF (pas dans les miniatures)
             const pdfContainer = document.querySelector('#pdf-content-area, .pdf-content, .pdf-viewer-content');
             if (!pdfContainer) {
+                this.log(`⚠️ Conteneur principal PDF non trouvé`);
+                this.log(`⚠️ Page ${pageNum} non trouvée nulle part`);
                 return null;
             }
             
             // Trouver le conteneur de la page dans la zone principale
             const pageContainer = pdfContainer.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
             if (!pageContainer) {
+                this.log(`⚠️ Page ${pageNum} non trouvée dans le conteneur principal`);
                 return null;
             }
             
             // Debug: voir ce qu'il y a dans le conteneur
+            this.log(`🔍 Conteneur page ${pageNum} trouvé, classes: ${pageContainer.className}`);
             const canvases = pageContainer.querySelectorAll('canvas');
+            this.log(`🎨 Canvas trouvés dans la page ${pageNum}: ${canvases.length}`);
             canvases.forEach((c, i) => {
+                this.log(`  - Canvas ${i}: classes="${c.className}", width=${c.width}, height=${c.height}`);
             });
             
             // Obtenir le canvas PDF principal
             const mainCanvas = pageContainer.querySelector('.pdf-canvas');
             if (!mainCanvas) {
+                this.log(`⚠️ Canvas principal non trouvé pour la page ${pageNum}`);
                 return null;
             }
             
@@ -11436,6 +11723,7 @@ class UnifiedPDFViewer {
             const annotationCanvas = pageContainer.querySelector('.pdf-annotation-layer');
             if (annotationCanvas) {
                 compositeCtx.drawImage(annotationCanvas, 0, 0);
+                this.log(`📝 Annotations ajoutées pour la page ${pageNum}`);
             }
             
             // Dessiner les graphiques si c'est une page graphique
@@ -11443,12 +11731,14 @@ class UnifiedPDFViewer {
                 const graphCanvas = pageContainer.querySelector('.graph-canvas');
                 if (graphCanvas) {
                     compositeCtx.drawImage(graphCanvas, 0, 0);
+                    this.log(`📊 Graphiques ajoutés pour la page ${pageNum}`);
                 }
             }
             
             return compositeCanvas;
             
         } catch (error) {
+            this.log(`❌ Erreur lors de la composition de la page ${pageNum}: ${error.message}`);
             return null;
         }
     }
