@@ -6107,12 +6107,17 @@ class UnifiedPDFViewer {
 
         // Effacer le canvas d'annotation
         const ctx = pageElement.annotationCtx;
+        
+        // IMPORTANT: S'assurer que le contexte est en mode dessin normal avant de redessiner
+        ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        // Rendre les annotations existantes pour cette page
-        const annotations = this.annotations.get(pageNum);
-        if (annotations) {
-            // Logique de rendu des annotations sauvegardées
+        // Restaurer le dernier état sauvegardé au lieu de laisser le canvas vide
+        const undoHistory = this.undoStack.get(pageNum);
+        if (undoHistory && undoHistory.length > 0) {
+            // Restaurer le dernier état sauvegardé (sans le retirer de la stack)
+            const lastState = undoHistory[undoHistory.length - 1];
+            ctx.putImageData(lastState, 0, 0);
         }
 
         // Redessiner la grille si elle était visible
