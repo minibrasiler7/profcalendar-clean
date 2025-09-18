@@ -3696,10 +3696,9 @@ class UnifiedPDFViewer {
                               index + 1;
                 const pageElement = this.pageElements.get(pageNum);
                 if (pageElement?.annotationCtx) {
-                    // Si on n'est PAS en mode gomme, s'assurer qu'on est en mode dessin normal
-                    if (tool !== 'eraser') {
-                        pageElement.annotationCtx.globalCompositeOperation = 'source-over';
-                    }
+                    // TOUJOURS remettre en mode dessin normal quand on change d'outil
+                    // Le mode eraser sera activé uniquement pendant le dessin, pas de façon permanente
+                    pageElement.annotationCtx.globalCompositeOperation = 'source-over';
                 }
             } else {
                 canvas.style.pointerEvents = 'none';
@@ -4383,6 +4382,11 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'circle') {
                 this.finalizeCircle(pageNum);
                 this.cleanupCircleDisplay();
+            }
+            
+            // Pour la gomme, s'assurer de remettre le mode de composition normal
+            if (this.currentTool === 'eraser' && pageElement?.annotationCtx) {
+                pageElement.annotationCtx.globalCompositeOperation = 'source-over';
             }
             
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
