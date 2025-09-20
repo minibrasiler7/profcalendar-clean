@@ -1261,10 +1261,9 @@ class UnifiedPDFViewer {
             const ctx = canvas.getContext('2d');
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            // Rendre les annotations
-            if (this.currentMode.annotations && annotationCanvas) {
-                this.renderPageAnnotations(pageNum);
-            }
+            // Ne PAS appeler renderPageAnnotations au chargement initial
+            // Cela efface les canvas inutilement - les annotations sont déjà sur le canvas
+            // renderPageAnnotations sera appelée seulement quand nécessaire (grille, etc.)
 
             // Configurer les événements d'annotation pour cette page
             if (this.currentMode.annotations && annotationCanvas) {
@@ -3646,9 +3645,6 @@ class UnifiedPDFViewer {
      * Méthodes d'annotation de base
      */
     setCurrentTool(tool) {
-        // DEBUG: Tracer le changement d'outil
-        console.log('🔧 setCurrentTool appelé:', tool, 'ancien:', this.currentTool);
-        
         // Supprimer toute zone de texte active lors du changement d'outil
         if (this.currentTool === 'text' && tool !== 'text') {
             this.removeActiveTextInput();
@@ -4491,9 +4487,6 @@ class UnifiedPDFViewer {
      * Efface les annotations de la page (pour redessiner proprement)
      */
     clearPageAnnotations(pageNum) {
-        console.log('🚨 clearPageAnnotations appelé pour page', pageNum);
-        console.trace('Trace de l\'appel clearPageAnnotations');
-        
         const pageElement = this.pageElements.get(pageNum);
         if (pageElement?.annotationCtx) {
             const canvas = pageElement.annotationCanvas;
@@ -6108,10 +6101,6 @@ class UnifiedPDFViewer {
     }
     
     renderPageAnnotations(pageNum) {
-        // DEBUG: Tracer qui appelle cette fonction
-        console.log('🚨 renderPageAnnotations appelée pour page', pageNum);
-        console.trace('Trace de l\'appel renderPageAnnotations');
-        
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
 
@@ -6120,7 +6109,6 @@ class UnifiedPDFViewer {
         
         // IMPORTANT: S'assurer que le contexte est en mode dessin normal avant de redessiner
         ctx.globalCompositeOperation = 'source-over';
-        console.log('🧹 clearRect appelé dans renderPageAnnotations pour page', pageNum);
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         // Restaurer le dernier état sauvegardé au lieu de laisser le canvas vide
@@ -6459,8 +6447,6 @@ class UnifiedPDFViewer {
         
         // Effacer le canvas
         const ctx = pageElement.annotationCtx;
-        console.log('🧹 clearRect appelé dans clearCurrentPage pour page', pageNum);
-        console.trace('Trace clearCurrentPage');
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
         // Sauvegarder l'état après effacement
