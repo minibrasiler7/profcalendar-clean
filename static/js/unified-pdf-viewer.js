@@ -3723,16 +3723,12 @@ class UnifiedPDFViewer {
             }
         });
         
-        // Gestion du curseur personnalisé pour la gomme
+        // DÉSACTIVER le curseur personnalisé pour la gomme (il masque les annotations)
         if (this.elements.eraserCursor) {
-            if (tool === 'eraser') {
-                this.elements.eraserCursor.style.display = 'block';
-                this.updateEraserCursorSize();
-                this.setupEraserCursorEvents();
-            } else {
-                this.elements.eraserCursor.style.display = 'none';
-                this.removeEraserCursorEvents();
-            }
+            // TOUJOURS cacher le curseur personnalisé pour éviter qu'il masque les annotations
+            this.elements.eraserCursor.style.display = 'none';
+            this.removeEraserCursorEvents();
+            console.log(`🔧 FIX ERASER: Curseur personnalisé désactivé pour éviter masquage`);
         }
         
         // Debug CSS complet après changement d'outil
