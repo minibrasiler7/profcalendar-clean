@@ -3646,6 +3646,19 @@ class UnifiedPDFViewer {
      * Méthodes d'annotation de base
      */
     setCurrentTool(tool) {
+        console.log(`🛠️ CHANGEMENT OUTIL: ${this.currentTool} → ${tool}`);
+        
+        // Compter les annotations avant changement d'outil
+        let totalAnnotationsBefore = 0;
+        this.pageElements.forEach((pageElement, pageNum) => {
+            if (pageElement?.annotationCtx) {
+                const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
+                const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length; // Count alpha > 0
+                totalAnnotationsBefore += pixelCount;
+            }
+        });
+        console.log(`📊 Pixels d'annotation AVANT changement: ${totalAnnotationsBefore}`);
+        
         // Supprimer toute zone de texte active lors du changement d'outil
         if (this.currentTool === 'text' && tool !== 'text') {
             this.removeActiveTextInput();
@@ -3718,6 +3731,52 @@ class UnifiedPDFViewer {
             }
         }
         
+        // Compter les annotations après changement d'outil
+        const beforeCount = totalAnnotationsBefore; // Capturer la valeur avant
+        setTimeout(() => {
+            let totalAnnotationsAfter = 0;
+            this.pageElements.forEach((pageElement, pageNum) => {
+                if (pageElement?.annotationCtx) {
+                    const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
+                    const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length;
+                    totalAnnotationsAfter += pixelCount;
+                }
+            });
+            console.log(`📊 Pixels d'annotation APRÈS changement vers ${tool}: ${totalAnnotationsAfter}`);
+            
+            if (totalAnnotationsAfter === 0 && beforeCount > 0) {
+                console.error(`🚨 ANNOTATIONS PERDUES lors du changement vers ${tool}!`);
+                console.log(`🔍 Vérification des canvas:`);
+                this.pageElements.forEach((pageElement, pageNum) => {
+                    if (pageElement?.annotationCanvas) {
+                        console.log(`Page ${pageNum}: canvas visible=${pageElement.annotationCanvas.style.display !== 'none'}, opacity=${pageElement.annotationCanvas.style.opacity || '1'}`);
+                    }
+                });
+            }
+        }, 100);
+        
+    }
+    
+    /**
+     * Debug function to inspect annotations state
+     */
+    debugAnnotationsState() {
+        console.log('🔍 ÉTAT DES ANNOTATIONS:');
+        let totalPixels = 0;
+        this.pageElements.forEach((pageElement, pageNum) => {
+            if (pageElement?.annotationCtx) {
+                const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
+                const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length;
+                totalPixels += pixelCount;
+                console.log(`📄 Page ${pageNum}: ${pixelCount} pixels d'annotation`);
+                console.log(`   Canvas visible: ${pageElement.annotationCanvas.style.display !== 'none'}`);
+                console.log(`   Opacity: ${pageElement.annotationCanvas.style.opacity || '1'}`);
+                console.log(`   Z-index: ${pageElement.annotationCanvas.style.zIndex}`);
+            }
+        });
+        console.log(`📊 Total: ${totalPixels} pixels d'annotation`);
+        console.log(`🛠️ Outil actuel: ${this.currentTool}`);
+        return { totalPixels, currentTool: this.currentTool };
     }
     
     /**
@@ -12048,4 +12107,14 @@ if (typeof module !== 'undefined' && module.exports) {
 // Rendre la classe disponible globalement pour utilisation dans le navigateur
 if (typeof window !== 'undefined') {
     window.UnifiedPDFViewer = UnifiedPDFViewer;
+    
+    // Fonctions de debug globales une fois qu'un viewer est initialisé
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            if (window.pdfViewer) {
+                window.debugAnnotations = () => window.pdfViewer.debugAnnotationsState();
+                console.log('🔧 DEBUG: Fonction debug disponible: window.debugAnnotations()');
+            }
+        }, 2000);
+    });
 }
