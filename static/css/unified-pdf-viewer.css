@@ -1252,7 +1252,7 @@
     border: 1px solid rgba(100, 100, 100, 0.6);
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(2px);
+    /* backdrop-filter: blur(2px); -- SUPPRIMÉ car cela rend flou tout le fond */
     pointer-events: none;
     z-index: 9999;
     display: none;

@@ -1866,7 +1866,6 @@ class UnifiedPDFViewer {
         document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tool = e.currentTarget.dataset.tool;
-                console.log('🎯 Clic sur bouton outil:', tool);
                 this.setCurrentTool(tool);
             });
         });
@@ -3646,8 +3645,6 @@ class UnifiedPDFViewer {
      * Méthodes d'annotation de base
      */
     setCurrentTool(tool) {
-        console.log('🔧 setCurrentTool appelé:', tool, 'ancien:', this.currentTool);
-        
         // Supprimer toute zone de texte active lors du changement d'outil
         if (this.currentTool === 'text' && tool !== 'text') {
             this.removeActiveTextInput();
@@ -3672,7 +3669,6 @@ class UnifiedPDFViewer {
         
         // Activer/désactiver les événements sur tous les canvas d'annotation
         const annotationCanvases = document.querySelectorAll('.pdf-annotation-layer');
-        console.log('📋 Nombre de canvas trouvés pour', tool, ':', annotationCanvases.length);
         
         annotationCanvases.forEach((canvas, index) => {
             if (tool) {
