@@ -1866,6 +1866,7 @@ class UnifiedPDFViewer {
         document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tool = e.currentTarget.dataset.tool;
+                console.log('🔧 NOUVELLE VERSION - Clic outil:', tool);
                 this.setCurrentTool(tool);
             });
         });
