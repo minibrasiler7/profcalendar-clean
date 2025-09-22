@@ -1247,7 +1247,8 @@
 }
 
 /* === CURSEUR PERSONNALISÉ GOMME === */
-.eraser-cursor {
+/* IMPORTANT: Cibler uniquement le div curseur, PAS les canvas */
+div.eraser-cursor {
     position: fixed;
     border: 1px solid rgba(100, 100, 100, 0.6);
     border-radius: 50%;
@@ -1262,7 +1263,7 @@
         0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.eraser-cursor::before {
+div.eraser-cursor::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -1274,7 +1275,7 @@
     border-radius: 50%;
 }
 
-.eraser-cursor::after {
+div.eraser-cursor::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -1299,7 +1300,7 @@
 }
 
 /* Effet subtil au survol - plus discret */
-.eraser-cursor:hover {
+div.eraser-cursor:hover {
     opacity: 0.9;
     transform: scale(1.02);
 }
