@@ -3731,8 +3731,8 @@ class UnifiedPDFViewer {
             }
         }
         
-        // Compter les annotations après changement d'outil
-        const beforeCount = totalAnnotationsBefore; // Capturer la valeur avant
+        // Debug CSS complet après changement d'outil
+        const beforeCount = totalAnnotationsBefore;
         setTimeout(() => {
             let totalAnnotationsAfter = 0;
             this.pageElements.forEach((pageElement, pageNum) => {
@@ -3744,14 +3744,43 @@ class UnifiedPDFViewer {
             });
             console.log(`📊 Pixels d'annotation APRÈS changement vers ${tool}: ${totalAnnotationsAfter}`);
             
+            // DEBUG CSS: Vérifier les propriétés visuelles de tous les canvas
+            console.log(`🎨 DEBUG CSS pour outil ${tool}:`);
+            this.pageElements.forEach((pageElement, pageNum) => {
+                if (pageElement?.annotationCanvas) {
+                    const canvas = pageElement.annotationCanvas;
+                    const computedStyle = window.getComputedStyle(canvas);
+                    console.log(`📄 Page ${pageNum}:`);
+                    console.log(`   display: ${canvas.style.display || computedStyle.display}`);
+                    console.log(`   opacity: ${canvas.style.opacity || computedStyle.opacity}`);
+                    console.log(`   visibility: ${canvas.style.visibility || computedStyle.visibility}`);
+                    console.log(`   z-index: ${canvas.style.zIndex || computedStyle.zIndex}`);
+                    console.log(`   pointer-events: ${canvas.style.pointerEvents || computedStyle.pointerEvents}`);
+                    console.log(`   classes: ${canvas.className}`);
+                    console.log(`   position: ${computedStyle.position}`);
+                    console.log(`   transform: ${computedStyle.transform}`);
+                    
+                    // Vérifier si le canvas est masqué par d'autres éléments
+                    const rect = canvas.getBoundingClientRect();
+                    console.log(`   rect: ${rect.width}x${rect.height} at (${rect.left}, ${rect.top})`);
+                }
+            });
+            
+            // Vérifier aussi le curseur personnalisé de la gomme
+            if (tool === 'eraser' && this.elements.eraserCursor) {
+                const eraserStyle = window.getComputedStyle(this.elements.eraserCursor);
+                console.log(`🔍 Curseur gomme:`);
+                console.log(`   display: ${this.elements.eraserCursor.style.display || eraserStyle.display}`);
+                console.log(`   opacity: ${this.elements.eraserCursor.style.opacity || eraserStyle.opacity}`);
+                console.log(`   z-index: ${this.elements.eraserCursor.style.zIndex || eraserStyle.zIndex}`);
+                console.log(`   backdrop-filter: ${eraserStyle.backdropFilter}`);
+                console.log(`   filter: ${eraserStyle.filter}`);
+            }
+            
             if (totalAnnotationsAfter === 0 && beforeCount > 0) {
                 console.error(`🚨 ANNOTATIONS PERDUES lors du changement vers ${tool}!`);
-                console.log(`🔍 Vérification des canvas:`);
-                this.pageElements.forEach((pageElement, pageNum) => {
-                    if (pageElement?.annotationCanvas) {
-                        console.log(`Page ${pageNum}: canvas visible=${pageElement.annotationCanvas.style.display !== 'none'}, opacity=${pageElement.annotationCanvas.style.opacity || '1'}`);
-                    }
-                });
+            } else if (beforeCount > 0 && totalAnnotationsAfter === beforeCount) {
+                console.log(`✅ Annotations préservées (${totalAnnotationsAfter} pixels) - problème d'affichage CSS uniquement`);
             }
         }, 100);
         

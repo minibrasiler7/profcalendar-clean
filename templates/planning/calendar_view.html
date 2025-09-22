@@ -1717,7 +1717,7 @@ if (typeof pdfjsLib !== 'undefined') {
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/planning.js') }}"></script>
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=1758543671&cache_bust={{ range(1000000, 9999999) | random }}&debug={{ range(100, 999) | random }}&trace=annotations"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=1758543772&cache_bust={{ range(1000000, 9999999) | random }}&debug={{ range(100, 999) | random }}&trace=annotations"></script>
 <script>
 const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
 const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
