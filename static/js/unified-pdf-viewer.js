@@ -3699,6 +3699,10 @@ class UnifiedPDFViewer {
                     canvas.classList.add('highlighter-cursor');
                 } else if (tool === 'eraser') {
                     canvas.classList.add('eraser-cursor');
+                    // FIX CRITIQUE: Forcer l'affichage des canvas quand eraser est sélectionné
+                    canvas.style.display = 'block';
+                    canvas.style.visibility = 'visible';
+                    console.log(`🔧 FIX ERASER: Canvas ${canvas.id} forcé visible`);
                 } else if (tool === 'text') {
                     canvas.classList.add('text-cursor');
                 }
