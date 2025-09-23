@@ -12,8 +12,12 @@ class Config:
     database_url = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'database', 'teacher_planner.db')
     
-    if database_url.startswith('postgresql://'):
+    # Debug: afficher l'URL de base de données (masquer le mot de passe)
+    if database_url.startswith('postgresql'):
+        print(f"🔧 DATABASE: PostgreSQL détecté")
         database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+    else:
+        print(f"🔧 DATABASE: SQLite utilisé - {database_url}")
     
     SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
