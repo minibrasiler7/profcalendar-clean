@@ -1227,16 +1227,19 @@ class UnifiedPDFViewer {
 
             // Créer le canvas d'annotation si nécessaire
             let annotationCanvas = null;
+            let annotationCtx = null;
             if (this.currentMode.annotations) {
                 annotationCanvas = document.createElement('canvas');
                 annotationCanvas.className = 'pdf-annotation-layer';
-                annotationCanvas.width = viewport.width;
-                annotationCanvas.height = viewport.height;
                 annotationCanvas.dataset.pageNumber = pageNum;
                 annotationCanvas.style.position = 'absolute';
                 annotationCanvas.style.top = '0';
                 annotationCanvas.style.left = '0';
                 annotationCanvas.style.pointerEvents = 'none';
+                
+                // Configuration haute résolution pour tracé lisse
+                const { ctx } = this.setupHighDPICanvas(annotationCanvas, viewport.width, viewport.height);
+                annotationCtx = ctx;
             }
 
             // Ajouter un indicateur de page
@@ -1261,7 +1264,7 @@ class UnifiedPDFViewer {
                 canvas: canvas,
                 annotationCanvas: annotationCanvas,
                 ctx: canvas.getContext('2d'),
-                annotationCtx: annotationCanvas?.getContext('2d'),
+                annotationCtx: annotationCtx, // Utiliser le contexte haute résolution
                 viewport: viewport
             });
 
@@ -12240,14 +12243,22 @@ class UnifiedPDFViewer {
         }
 
         try {
-            // Configuration optimisée pour stylo
+            // Configuration ultra-optimisée style Freeform
             const options = {
-                size: this.currentLineWidth * 2, // Taille adaptée
-                thinning: 0.6, // Variation d'épaisseur selon pression
-                smoothing: 0.5, // Lissage modéré
-                streamline: 0.5, // Réduction du bruit
-                easing: (t) => t, // Courbe de lissage linéaire
-                last: true // C'est le dernier segment
+                size: this.currentLineWidth * 1.8, // Taille adaptée
+                thinning: 0.8, // Plus de variation d'épaisseur
+                smoothing: 0.8, // Lissage maximum
+                streamline: 0.7, // Réduction du bruit élevée
+                easing: (t) => Math.sin((t * Math.PI) / 2), // Courbe naturelle
+                last: true,
+                start: {
+                    taper: 5, // Effilement au début
+                    cap: true
+                },
+                end: {
+                    taper: 5, // Effilement à la fin
+                    cap: true
+                }
             };
 
             return getStroke(points, options);
@@ -12359,6 +12370,78 @@ class UnifiedPDFViewer {
         
         ctx.stroke();
         ctx.restore();
+    }
+
+    // =====================================
+    // Optimisation haute résolution (Retina/iPad)
+    // =====================================
+
+    /**
+     * Configure un canvas pour haute résolution
+     * @param {HTMLCanvasElement} canvas - Canvas à optimiser
+     * @param {number} width - Largeur logique
+     * @param {number} height - Hauteur logique
+     */
+    setupHighDPICanvas(canvas, width, height) {
+        const dpr = window.devicePixelRatio || 1;
+        
+        if (this.options.debug) {
+            console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, size=${width}x${height}`);
+        }
+
+        // Définir la taille physique du canvas (pixels réels)
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        
+        // Définir la taille CSS (taille logique)
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        
+        // Mettre à l'échelle le contexte pour correspondre au DPR
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        
+        // Améliorer la qualité de rendu
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        return { dpr, ctx };
+    }
+
+    /**
+     * Optimise tous les canvas d'annotation pour haute résolution
+     */
+    optimizeCanvasResolution() {
+        this.pageElements.forEach((pageElement, pageNum) => {
+            if (pageElement?.annotationCanvas) {
+                const canvas = pageElement.annotationCanvas;
+                const rect = canvas.getBoundingClientRect();
+                
+                // Sauvegarder le contenu actuel
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                tempCtx.drawImage(canvas, 0, 0);
+                
+                // Reconfigurer en haute résolution
+                const { ctx } = this.setupHighDPICanvas(canvas, rect.width, rect.height);
+                
+                // Restaurer le contenu avec mise à l'échelle
+                const dpr = window.devicePixelRatio || 1;
+                ctx.save();
+                ctx.scale(1/dpr, 1/dpr); // Compenser le scale automatique pour la restauration
+                ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+                ctx.restore();
+                
+                // Mettre à jour la référence du contexte
+                pageElement.annotationCtx = ctx;
+                
+                if (this.options.debug) {
+                    console.log(`🎨 Page ${pageNum}: Canvas optimisé ${rect.width}x${rect.height} → ${canvas.width}x${canvas.height}`);
+                }
+            }
+        });
     }
 }
 
