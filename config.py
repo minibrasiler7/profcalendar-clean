@@ -8,14 +8,16 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
 
     # Configuration base de données
-    # Fix pour Render: convertir postgresql:// vers postgresql+psycopg2://
+    # Utiliser psycopg3 moderne (compatible Python 3.13)
     database_url = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'database', 'teacher_planner.db')
     
-    # Debug: afficher l'URL de base de données (masquer le mot de passe)
+    # Debug: afficher l'URL de base de données
     if database_url.startswith('postgresql'):
-        print(f"🔧 DATABASE: PostgreSQL détecté")
-        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        print(f"🔧 DATABASE: PostgreSQL détecté (psycopg3)")
+        # psycopg3 utilise postgresql+psycopg:// ou postgresql://
+        if not database_url.startswith('postgresql+psycopg'):
+            database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
     else:
         print(f"🔧 DATABASE: SQLite utilisé - {database_url}")
     
