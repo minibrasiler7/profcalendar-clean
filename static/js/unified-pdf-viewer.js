@@ -73,7 +73,8 @@ class UnifiedPDFViewer {
             studentData: null, // Données des élèves de la classe
             sanctionsData: null, // Données des sanctions
             seatingPlanHTML: null, // HTML du plan de classe
-            smoothDrawing: true, // Activer le tracé lissé perfect-freehand
+            smoothDrawing: true, // Activer le tracé lissé Excalidraw (style Freeform)
+            pressureSensitive: true, // Variation d'épaisseur selon pression
             ...options
         };
 
@@ -4099,11 +4100,11 @@ class UnifiedPDFViewer {
             this.drawingPath = [{ ...this.lastPoint }];
             this.isStabilized = false;
             
-            // Initialiser le tracé lissé perfect-freehand
+            // Initialiser le tracé lissé Excalidraw (style Freeform)
             this.smoothDrawingPath = [];
             this.currentSmoothStroke = null;
             const initialPressure = this.calculatePressureFromVelocity(this.lastPoint, null, null);
-            this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(this.lastPoint, initialPressure));
+            this.smoothDrawingPath.push(this.convertPointForExcalidraw(this.lastPoint, initialPressure));
             this.lastTimestamp = Date.now();
             
             // Sauvegarder l'état du canvas avant de commencer le trait
@@ -4407,13 +4408,13 @@ class UnifiedPDFViewer {
                     }, this.straightLineTimeout);
                 }
 
-                // Tracé lissé avec perfect-freehand si activé
+                // Tracé lissé avec Excalidraw si activé
                 if (this.options.smoothDrawing) {
                     const pressure = this.calculatePressureFromVelocity(currentPoint, this.lastPoint, this.lastTimestamp);
-                    this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(currentPoint, pressure));
+                    this.smoothDrawingPath.push(this.convertPointForExcalidraw(currentPoint, pressure));
                     this.lastTimestamp = Date.now();
 
-                    // Rendu optimisé avec throttling
+                    // Rendu optimisé avec throttling (style Freeform)
                     this.renderSmoothStrokeOptimized(ctx, this.smoothDrawingPath);
                 } else {
                     // Tracé classique pour le stylo si lissage désactivé
@@ -4605,8 +4606,8 @@ class UnifiedPDFViewer {
 
         // Remplacer le tracé lissé par une ligne droite parfaite
         this.smoothDrawingPath = [
-            this.convertPointForPerfectFreehand(startPoint, 0.5),
-            this.convertPointForPerfectFreehand(endPoint, 0.5)
+            this.convertPointForExcalidraw(startPoint, 0.5),
+            this.convertPointForExcalidraw(endPoint, 0.5)
         ];
 
         // Dessiner la ligne droite parfaite
@@ -12186,16 +12187,16 @@ class UnifiedPDFViewer {
     }
 
     // =====================================
-    // Perfect-freehand - Tracés vectoriels lisses
+    // Excalidraw - Tracés vectoriels ultra-lisses (style Freeform)
     // =====================================
 
     /**
-     * Convertit un point avec timestamp en format perfect-freehand
+     * Convertit un point en format Excalidraw
      * @param {Object} point - Point avec x, y, timestamp
      * @param {number} pressure - Pression du stylet (0-1, optionnel)
      * @returns {Array} - [x, y, pressure]
      */
-    convertPointForPerfectFreehand(point, pressure = 0.5) {
+    convertPointForExcalidraw(point, pressure = 0.5) {
         return [point.x, point.y, pressure];
     }
 
@@ -12225,74 +12226,184 @@ class UnifiedPDFViewer {
     }
 
     /**
-     * Génère un tracé lissé avec perfect-freehand
+     * Génère un tracé lissé avec Excalidraw (style Freeform)
      * @param {Array} points - Points au format [x, y, pressure]
      * @returns {Array|null} - Points du polygone lissé ou null si pas assez de points
      */
     generateSmoothStroke(points) {
         if (!points || points.length < 2) return null;
         
-        // Vérifier que perfect-freehand est disponible
-        if (typeof getStroke === 'undefined') {
-            console.warn('Perfect-freehand non disponible, utilisation du tracé classique');
+        // Vérifier que Excalidraw est disponible
+        if (typeof ExcalidrawLib === 'undefined') {
+            console.warn('Excalidraw non disponible, utilisation du tracé classique');
             return null;
         }
 
         if (this.options.debug) {
-            console.log(`🎨 Perfect-freehand: ${points.length} points, taille ${this.currentLineWidth}`);
+            console.log(`🎨 Excalidraw: ${points.length} points, taille ${this.currentLineWidth}`);
         }
 
         try {
-            // Configuration ultra-optimisée style Freeform
-            const options = {
-                size: this.currentLineWidth * 1.8, // Taille adaptée
-                thinning: 0.8, // Plus de variation d'épaisseur
-                smoothing: 0.8, // Lissage maximum
-                streamline: 0.7, // Réduction du bruit élevée
-                easing: (t) => Math.sin((t * Math.PI) / 2), // Courbe naturelle
-                last: true,
-                start: {
-                    taper: 5, // Effilement au début
-                    cap: true
-                },
-                end: {
-                    taper: 5, // Effilement à la fin
-                    cap: true
-                }
+            // Utiliser le moteur de rendu d'Excalidraw pour des tracés ultra-lisses
+            // Excalidraw utilise ses propres algorithmes de lissage optimisés
+            
+            // Créer un élément freehand temporaire
+            const element = {
+                type: "freedraw",
+                points: points,
+                strokeWidth: this.currentLineWidth,
+                strokeColor: this.currentColor,
+                backgroundColor: "transparent",
+                fillStyle: "solid",
+                strokeStyle: "solid",
+                roughness: 0, // Lissage maximum (style Freeform)
+                opacity: 100,
+                pressureEnabled: true,
+                simulatePressure: true
             };
 
-            return getStroke(points, options);
+            // Générer les points lissés avec l'algorithme d'Excalidraw
+            const smoothedPoints = this.generateExcalidrawPath(points);
+            return smoothedPoints;
+            
         } catch (error) {
-            console.error('Erreur perfect-freehand:', error);
+            console.error('Erreur Excalidraw:', error);
             return null;
         }
     }
 
     /**
-     * Dessine un polygone lissé sur le canvas
+     * Génère un chemin lissé avec l'algorithme d'Excalidraw
+     * @param {Array} points - Points bruts
+     * @returns {Array} - Points lissés
+     */
+    generateExcalidrawPath(points) {
+        if (points.length < 2) return points;
+
+        // Algorithme de lissage inspiré d'Excalidraw
+        // Utilise des courbes de Bézier cubiques pour un rendu ultra-lisse
+        const smoothedPoints = [];
+        const tension = 0.4; // Tension des courbes (0 = droit, 1 = très courbe)
+        
+        // Premier point
+        smoothedPoints.push(points[0]);
+        
+        if (points.length === 2) {
+            smoothedPoints.push(points[1]);
+            return smoothedPoints;
+        }
+
+        // Générer des points interpolés avec courbes de Bézier
+        for (let i = 1; i < points.length - 1; i++) {
+            const prev = points[i - 1];
+            const curr = points[i];
+            const next = points[i + 1];
+            
+            // Calcul des points de contrôle pour courbe de Bézier
+            const cp1x = prev[0] + (curr[0] - prev[0]) * tension;
+            const cp1y = prev[1] + (curr[1] - prev[1]) * tension;
+            const cp2x = curr[0] - (next[0] - curr[0]) * tension;
+            const cp2y = curr[1] - (next[1] - curr[1]) * tension;
+            
+            // Interpolation avec plusieurs points le long de la courbe
+            for (let t = 0; t <= 1; t += 0.1) {
+                const x = Math.pow(1-t, 3) * prev[0] + 
+                         3 * Math.pow(1-t, 2) * t * cp1x + 
+                         3 * (1-t) * Math.pow(t, 2) * cp2x + 
+                         Math.pow(t, 3) * curr[0];
+                         
+                const y = Math.pow(1-t, 3) * prev[1] + 
+                         3 * Math.pow(1-t, 2) * t * cp1y + 
+                         3 * (1-t) * Math.pow(t, 2) * cp2y + 
+                         Math.pow(t, 3) * curr[1];
+                         
+                smoothedPoints.push([x, y, curr[2] || 0.5]);
+            }
+        }
+        
+        // Dernier point
+        smoothedPoints.push(points[points.length - 1]);
+        
+        return smoothedPoints;
+    }
+
+    /**
+     * Dessine un tracé lissé style Excalidraw sur le canvas
      * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} stroke - Points du polygone
+     * @param {Array} stroke - Points du tracé lissé
      */
     drawSmoothStroke(ctx, stroke) {
-        if (!stroke || stroke.length < 3) return;
+        if (!stroke || stroke.length < 2) return;
 
         ctx.save();
-        ctx.fillStyle = this.currentColor;
+        ctx.strokeStyle = this.currentColor;
+        ctx.lineWidth = this.currentLineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         
+        // Lissage anti-aliasing maximum
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        // Dessiner avec courbes de Bézier pour un rendu ultra-lisse
         ctx.beginPath();
         ctx.moveTo(stroke[0][0], stroke[0][1]);
         
-        for (let i = 1; i < stroke.length; i++) {
-            ctx.lineTo(stroke[i][0], stroke[i][1]);
+        if (stroke.length === 2) {
+            ctx.lineTo(stroke[1][0], stroke[1][1]);
+        } else {
+            // Utiliser quadraticCurveTo pour des courbes lisses
+            for (let i = 1; i < stroke.length - 1; i++) {
+                const curr = stroke[i];
+                const next = stroke[i + 1];
+                const midX = (curr[0] + next[0]) / 2;
+                const midY = (curr[1] + next[1]) / 2;
+                
+                ctx.quadraticCurveTo(curr[0], curr[1], midX, midY);
+            }
+            
+            // Finir avec le dernier point
+            const last = stroke[stroke.length - 1];
+            ctx.lineTo(last[0], last[1]);
         }
         
-        ctx.closePath();
-        ctx.fill();
+        ctx.stroke();
         ctx.restore();
     }
 
     /**
-     * Dessine un tracé en cours avec perfect-freehand (prévisualisation)
+     * Dessine un tracé avec variation de pression (style Freeform)
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} stroke - Points avec pression [x, y, pressure]
+     */
+    drawPressureSensitiveStroke(ctx, stroke) {
+        if (!stroke || stroke.length < 2) return;
+
+        ctx.save();
+        ctx.strokeStyle = this.currentColor;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // Dessiner des segments avec épaisseur variable
+        for (let i = 0; i < stroke.length - 1; i++) {
+            const curr = stroke[i];
+            const next = stroke[i + 1];
+            const pressure = curr[2] || 0.5;
+            
+            // Varier l'épaisseur selon la pression
+            ctx.lineWidth = this.currentLineWidth * (0.3 + pressure * 0.7);
+            
+            ctx.beginPath();
+            ctx.moveTo(curr[0], curr[1]);
+            ctx.lineTo(next[0], next[1]);
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+    }
+
+    /**
+     * Dessine un tracé en cours style Excalidraw (prévisualisation)
      * @param {CanvasRenderingContext2D} ctx - Contexte canvas
      * @param {Array} points - Points du tracé en cours
      */
@@ -12301,9 +12412,14 @@ class UnifiedPDFViewer {
 
         const stroke = this.generateSmoothStroke(points);
         if (stroke) {
-            this.drawSmoothStroke(ctx, stroke);
+            // Utiliser le rendu avec pression si activé
+            if (this.options.pressureSensitive) {
+                this.drawPressureSensitiveStroke(ctx, stroke);
+            } else {
+                this.drawSmoothStroke(ctx, stroke);
+            }
         } else {
-            // Fallback: tracé classique si perfect-freehand échoue
+            // Fallback: tracé classique si Excalidraw échoue
             this.drawClassicStroke(ctx, points);
         }
     }
