@@ -75,6 +75,8 @@ class UnifiedPDFViewer {
             seatingPlanHTML: null, // HTML du plan de classe
             smoothDrawing: true, // Activer le tracé lissé Excalidraw (style Freeform)
             pressureSensitive: true, // Variation d'épaisseur selon pression
+            antiAliasing: true, // Anti-aliasing avancé pour contours lisses
+            blurEffect: 0.5, // Léger flou pour lisser les pixels (0-2)
             ...options
         };
 
@@ -137,7 +139,8 @@ class UnifiedPDFViewer {
         this.smoothDrawingPath = []; // Points pour perfect-freehand
         this.currentSmoothStroke = null; // Tracé lissé actuel
         this.lastRenderTime = 0; // Dernier timestamp de rendu
-        this.renderThrottleMs = 16; // ~60fps maximum
+        this.renderThrottleMs = 8; // ~120fps pour stylets rapides
+        this.fastDrawingMode = false; // Mode dessin rapide automatique
         this.lastTimestamp = null; // Timestamp du dernier point
         
         // Variables pour l'outil rapporteur
@@ -3658,18 +3661,9 @@ class UnifiedPDFViewer {
      * Méthodes d'annotation de base
      */
     setCurrentTool(tool) {
-        console.log(`🛠️ CHANGEMENT OUTIL: ${this.currentTool} → ${tool}`);
-        
-        // Compter les annotations avant changement d'outil
-        let totalAnnotationsBefore = 0;
-        this.pageElements.forEach((pageElement, pageNum) => {
-            if (pageElement?.annotationCtx) {
-                const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
-                const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length; // Count alpha > 0
-                totalAnnotationsBefore += pixelCount;
-            }
-        });
-        console.log(`📊 Pixels d'annotation AVANT changement: ${totalAnnotationsBefore}`);
+        if (this.options.debug) {
+            console.log(`🛠️ CHANGEMENT OUTIL: ${this.currentTool} → ${tool}`);
+        }
         
         // Supprimer toute zone de texte active lors du changement d'outil
         if (this.currentTool === 'text' && tool !== 'text') {
@@ -3677,8 +3671,12 @@ class UnifiedPDFViewer {
         }
         
         this.currentTool = tool;
-        document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tool === tool);
+        
+        // Optimisation: utiliser requestAnimationFrame pour éviter les blocages
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tool === tool);
+            });
         });
         
         // Mettre à jour la palette de couleurs selon l'outil
@@ -3743,20 +3741,12 @@ class UnifiedPDFViewer {
             console.log(`🔧 FIX ERASER: Curseur personnalisé désactivé pour éviter masquage`);
         }
         
-        // Debug CSS complet après changement d'outil
-        const beforeCount = totalAnnotationsBefore;
-        setTimeout(() => {
-            let totalAnnotationsAfter = 0;
-            this.pageElements.forEach((pageElement, pageNum) => {
-                if (pageElement?.annotationCtx) {
-                    const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
-                    const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length;
-                    totalAnnotationsAfter += pixelCount;
-                }
-            });
-            console.log(`📊 Pixels d'annotation APRÈS changement vers ${tool}: ${totalAnnotationsAfter}`);
-            
-            // DEBUG CSS: Vérifier les propriétés visuelles de tous les canvas
+        // Debug optimisé: uniquement si debug activé
+        if (this.options.debug) {
+            setTimeout(() => {
+                console.log(`✅ Outil changé vers: ${tool}`);
+                
+                // DEBUG CSS: Vérifier les propriétés visuelles de tous les canvas
             console.log(`🎨 DEBUG CSS pour outil ${tool}:`);
             this.pageElements.forEach((pageElement, pageNum) => {
                 if (pageElement?.annotationCanvas) {
@@ -12336,14 +12326,22 @@ class UnifiedPDFViewer {
         if (!stroke || stroke.length < 2) return;
 
         ctx.save();
+        
+        // Anti-aliasing avancé pour contours ultra-lisses
+        if (this.options.antiAliasing) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Effet de flou léger pour lisser les contours pixellisés
+            if (this.options.blurEffect > 0) {
+                ctx.filter = `blur(${this.options.blurEffect}px)`;
+            }
+        }
+        
         ctx.strokeStyle = this.currentColor;
         ctx.lineWidth = this.currentLineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        
-        // Lissage anti-aliasing maximum
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         
         // Dessiner avec courbes de Bézier pour un rendu ultra-lisse
         ctx.beginPath();
@@ -12368,6 +12366,9 @@ class UnifiedPDFViewer {
         }
         
         ctx.stroke();
+        
+        // Reset du filtre pour ne pas affecter d'autres éléments
+        ctx.filter = 'none';
         ctx.restore();
     }
 
@@ -12380,6 +12381,18 @@ class UnifiedPDFViewer {
         if (!stroke || stroke.length < 2) return;
 
         ctx.save();
+        
+        // Anti-aliasing pour les traits avec pression
+        if (this.options.antiAliasing) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Flou adapté pour les traits avec pression
+            if (this.options.blurEffect > 0) {
+                ctx.filter = `blur(${this.options.blurEffect * 0.7}px)`;
+            }
+        }
+        
         ctx.strokeStyle = this.currentColor;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -12399,6 +12412,8 @@ class UnifiedPDFViewer {
             ctx.stroke();
         }
         
+        // Reset du filtre
+        ctx.filter = 'none';
         ctx.restore();
     }
 
@@ -12433,8 +12448,16 @@ class UnifiedPDFViewer {
     renderSmoothStrokeOptimized(ctx, points, force = false) {
         const now = Date.now();
         
-        // Throttling: limite à ~60fps sauf si forcé
-        if (!force && (now - this.lastRenderTime) < this.renderThrottleMs) {
+        // Détection dessin rapide automatique
+        if (points.length > 5) {
+            const recentPoints = points.slice(-5);
+            const avgDistance = this.calculateAverageDistance(recentPoints);
+            this.fastDrawingMode = avgDistance > 15; // Pixels/point
+        }
+        
+        // Throttling dynamique: plus rapide pour dessin rapide
+        const dynamicThrottle = this.fastDrawingMode ? 4 : this.renderThrottleMs; // 250fps vs 120fps
+        if (!force && (now - this.lastRenderTime) < dynamicThrottle) {
             return;
         }
         
@@ -12443,16 +12466,18 @@ class UnifiedPDFViewer {
         // Optimisation: Ne pas redessiner si pas assez de points
         if (!points || points.length < 2) return;
         
-        // Optimisation: Limiter le nombre de points pour les très longs tracés
+        // Optimisation adaptée: Moins agressive pour dessin rapide
         let optimizedPoints = points;
-        if (points.length > 100) {
-            // Garder les premiers, derniers et échantillonner le milieu
-            const start = points.slice(0, 10);
-            const end = points.slice(-10);
-            const middle = points.slice(10, -10);
-            const step = Math.max(1, Math.floor(middle.length / 30));
-            const sampledMiddle = middle.filter((_, i) => i % step === 0);
-            optimizedPoints = [...start, ...sampledMiddle, ...end];
+        const maxPoints = this.fastDrawingMode ? 200 : 100; // Plus de points en mode rapide
+        if (points.length > maxPoints) {
+            // Garder plus de points pour les traits rapides
+            const keepRatio = this.fastDrawingMode ? 0.7 : 0.4;
+            const step = Math.max(1, Math.floor(1 / keepRatio));
+            optimizedPoints = points.filter((_, i) => i % step === 0);
+            // Toujours garder le dernier point
+            if (optimizedPoints[optimizedPoints.length - 1] !== points[points.length - 1]) {
+                optimizedPoints.push(points[points.length - 1]);
+            }
         }
         
         // Effacer et redessiner
@@ -12461,6 +12486,24 @@ class UnifiedPDFViewer {
         }
         
         this.drawSmoothPreview(ctx, optimizedPoints);
+    }
+    
+    /**
+     * Calcule la distance moyenne entre les points récents
+     * @param {Array} points - Points récents
+     * @returns {number} Distance moyenne
+     */
+    calculateAverageDistance(points) {
+        if (points.length < 2) return 0;
+        
+        let totalDistance = 0;
+        for (let i = 1; i < points.length; i++) {
+            const dx = points[i][0] - points[i-1][0];
+            const dy = points[i][1] - points[i-1][1];
+            totalDistance += Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        return totalDistance / (points.length - 1);
     }
 
     /**
