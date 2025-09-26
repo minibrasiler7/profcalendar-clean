@@ -324,6 +324,14 @@ class UnifiedPDFViewer {
         // Configurer le mode d'affichage initial
         this.setupViewMode();
         
+        // Log de configuration perfect-freehand
+        console.log(`🎨 CONFIGURATION PERFECT-FREEHAND:`, {
+            smoothDrawing: this.options.smoothDrawing,
+            pressureSensitive: this.options.pressureSensitive,
+            antiAliasing: this.options.antiAliasing,
+            blurEffect: this.options.blurEffect
+        });
+
         // Activer l'outil par défaut si les annotations sont disponibles
         if (this.currentMode.annotations && this.currentTool) {
             setTimeout(() => {
@@ -4408,6 +4416,11 @@ class UnifiedPDFViewer {
                     const pressure = this.calculatePressureFromVelocity(currentPoint, this.lastPoint, this.lastTimestamp);
                     this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(currentPoint, pressure));
                     this.lastTimestamp = Date.now();
+
+                    // Log pour confirmer le tracé avec stylet
+                    if (this.smoothDrawingPath.length % 10 === 0) {
+                        console.log(`🖊️ STYLET ACTIF - Perfect-freehand: ${this.smoothDrawingPath.length} points`);
+                    }
 
                     // Rendu optimisé avec throttling (style Freeform)
                     this.renderSmoothStrokeOptimized(ctx, this.smoothDrawingPath);
@@ -12230,10 +12243,13 @@ class UnifiedPDFViewer {
         
         // Vérifier que perfect-freehand est disponible
         if (typeof getStroke === 'undefined') {
-            console.warn('Perfect-freehand non disponible, utilisation du tracé classique');
+            console.warn('❌ Perfect-freehand non disponible, utilisation du tracé classique');
             return null;
         }
 
+        // Log visible pour confirmer l'utilisation de perfect-freehand
+        console.log(`✅ PERFECT-FREEHAND ACTIF: ${points.length} points, taille ${this.currentLineWidth}px`);
+        
         if (this.options.debug) {
             console.log(`🎨 Perfect-freehand optimisé: ${points.length} points, taille ${this.currentLineWidth}`);
         }
