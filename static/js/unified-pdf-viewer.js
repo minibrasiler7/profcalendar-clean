@@ -4417,9 +4417,9 @@ class UnifiedPDFViewer {
                     this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(currentPoint, pressure));
                     this.lastTimestamp = Date.now();
 
-                    // Log pour confirmer le tracé avec stylet
-                    if (this.smoothDrawingPath.length % 10 === 0) {
-                        console.log(`🖊️ STYLET ACTIF - Perfect-freehand: ${this.smoothDrawingPath.length} points`);
+                    // Log réduit pour les performances
+                    if (this.options.debug && this.smoothDrawingPath.length % 30 === 0) {
+                        console.log(`🖊️ STYLET ACTIF: ${this.smoothDrawingPath.length} points`);
                     }
 
                     // Rendu optimisé avec throttling (style Freeform)
@@ -12247,28 +12247,26 @@ class UnifiedPDFViewer {
             return null;
         }
 
-        // Log visible pour confirmer l'utilisation de perfect-freehand
-        console.log(`✅ PERFECT-FREEHAND ACTIF: ${points.length} points, taille ${this.currentLineWidth}px`);
-        
-        if (this.options.debug) {
+        // Log réduit pour ne pas ralentir
+        if (this.options.debug && points.length % 20 === 0) {
             console.log(`🎨 Perfect-freehand optimisé: ${points.length} points, taille ${this.currentLineWidth}`);
         }
 
         try {
-            // Configuration ultra-optimisée style Freeform
+            // Configuration équilibrée - moins de correction, plus naturel
             const options = {
-                size: this.currentLineWidth * 1.8, // Taille adaptée
-                thinning: 0.8, // Plus de variation d'épaisseur
-                smoothing: 0.85, // Lissage maximum amélioré
-                streamline: 0.75, // Réduction du bruit élevée
-                easing: (t) => Math.sin((t * Math.PI) / 2), // Courbe naturelle
+                size: this.currentLineWidth * 1.2, // Taille plus proche de l'original
+                thinning: 0.6, // Moins de variation d'épaisseur
+                smoothing: 0.5, // Lissage modéré pour garder le naturel
+                streamline: 0.3, // Moins de correction automatique
+                easing: (t) => t, // Linéaire pour plus de naturel
                 last: true,
                 start: {
-                    taper: 5, // Effilement au début
+                    taper: 0, // Pas d'effilement au début
                     cap: true
                 },
                 end: {
-                    taper: 5, // Effilement à la fin
+                    taper: 0, // Pas d'effilement à la fin
                     cap: true
                 }
             };
@@ -12290,30 +12288,24 @@ class UnifiedPDFViewer {
     drawSmoothStroke(ctx, stroke) {
         if (!stroke || stroke.length < 3) return;
 
-        console.log(`🎨 RENDU PERFECT-FREEHAND: ${stroke.length} points polygone, couleur: ${this.currentColor}`);
+        if (this.options.debug && stroke.length > 50) {
+            console.log(`🎨 RENDU PERFECT-FREEHAND: ${stroke.length} points polygone`);
+        }
 
         ctx.save();
         
-        // Réinitialiser tous les styles pour éviter les conflits
+        // Configuration simple et efficace
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1.0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'transparent';
         
-        // Anti-aliasing avancé pour contours ultra-lisses
-        if (this.options.antiAliasing) {
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            
-            // Effet de flou léger pour lisser les contours pixellisés (réduit car peut causer transparence)
-            if (this.options.blurEffect > 0) {
-                ctx.filter = `blur(${this.options.blurEffect * 0.3}px)`;
-            }
-        }
+        // Pas de flou pour éviter la transparence
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
         // Couleur de remplissage solide
         ctx.fillStyle = this.currentColor;
         
+        // Dessiner le polygone
         ctx.beginPath();
         ctx.moveTo(stroke[0][0], stroke[0][1]);
         
@@ -12324,16 +12316,11 @@ class UnifiedPDFViewer {
         ctx.closePath();
         ctx.fill();
         
-        // Optionnel: ajouter un contour très fin pour renforcer
-        if (this.options.blurEffect > 0) {
-            ctx.filter = 'none';
-            ctx.strokeStyle = this.currentColor;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-        }
+        // Ajouter un contour fin de la même couleur pour solidifier
+        ctx.strokeStyle = this.currentColor;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
         
-        // Reset complet
-        ctx.filter = 'none';
         ctx.restore();
     }
 
@@ -12389,6 +12376,12 @@ class UnifiedPDFViewer {
      */
     drawSmoothPreview(ctx, points) {
         if (!points || points.length < 2) return;
+
+        // Optimisation: utiliser tracé classique pour l'écriture rapide en temps réel
+        if (this.fastDrawingMode || points.length < 5) {
+            this.drawClassicStroke(ctx, points);
+            return;
+        }
 
         const stroke = this.generateSmoothStroke(points);
         if (stroke) {
