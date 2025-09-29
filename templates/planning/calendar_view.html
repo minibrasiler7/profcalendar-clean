@@ -12,11 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Font Awesome pour les icônes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Perfect-freehand pour tracés lisses via ESM -->
-<script type="module">
-  import { getStroke } from 'https://cdn.skypack.dev/perfect-freehand@1.2.2';
-  window.getStroke = getStroke;
-</script>
+<!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
 <!-- Lecteur PDF unifié -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
 <script>
@@ -1726,7 +1722,7 @@ if (typeof pdfjsLib !== 'undefined') {
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/planning.js') }}"></script>
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=20250923001&cache_bust={{ range(1000000, 9999999) | random }}&debug={{ range(100, 999) | random }}&trace=annotations&fixed=perfectfreehand"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
 <script>
 const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
 const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};

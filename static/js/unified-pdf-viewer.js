@@ -73,10 +73,10 @@ class UnifiedPDFViewer {
             studentData: null, // Données des élèves de la classe
             sanctionsData: null, // Données des sanctions
             seatingPlanHTML: null, // HTML du plan de classe
-            smoothDrawing: true, // Activer le tracé lissé perfect-freehand optimisé
+            smoothDrawing: false, // Désactiver perfect-freehand - utiliser tracé natif lissé
             pressureSensitive: true, // Variation d'épaisseur selon pression
             antiAliasing: true, // Anti-aliasing avancé pour contours lisses
-            blurEffect: 0.5, // Léger flou pour lisser les pixels (0-2)
+            blurEffect: 0, // Pas de flou - rendu net
             ...options
         };
 
@@ -12473,19 +12473,43 @@ class UnifiedPDFViewer {
         if (points.length < 2) return;
 
         ctx.save();
+        
+        // Configuration optimisée pour un rendu fluide
         ctx.strokeStyle = this.currentColor;
         ctx.lineWidth = this.currentLineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        ctx.beginPath();
-        ctx.moveTo(points[0][0], points[0][1]);
+        // Anti-aliasing pour des contours lisses
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
-        for (let i = 1; i < points.length; i++) {
-            ctx.lineTo(points[i][0], points[i][1]);
+        if (points.length === 2) {
+            // Trait simple
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            ctx.lineTo(points[1][0], points[1][1]);
+            ctx.stroke();
+        } else {
+            // Tracé lissé avec courbes quadratiques
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            
+            for (let i = 1; i < points.length - 1; i++) {
+                const curr = points[i];
+                const next = points[i + 1];
+                const midX = (curr[0] + next[0]) / 2;
+                const midY = (curr[1] + next[1]) / 2;
+                
+                ctx.quadraticCurveTo(curr[0], curr[1], midX, midY);
+            }
+            
+            // Finir avec le dernier point
+            const last = points[points.length - 1];
+            ctx.lineTo(last[0], last[1]);
+            ctx.stroke();
         }
         
-        ctx.stroke();
         ctx.restore();
     }
 
