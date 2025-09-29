@@ -324,13 +324,16 @@ class UnifiedPDFViewer {
         // Configurer le mode d'affichage initial
         this.setupViewMode();
         
-        // Log de configuration perfect-freehand
-        console.log(`🎨 CONFIGURATION PERFECT-FREEHAND:`, {
+        // Log de configuration du système de dessin natif
+        console.log(`🎨 CONFIGURATION DESSIN NATIF:`, {
             smoothDrawing: this.options.smoothDrawing,
             pressureSensitive: this.options.pressureSensitive,
             antiAliasing: this.options.antiAliasing,
             blurEffect: this.options.blurEffect
         });
+        
+        // Gestion automatique du cache
+        this.manageBrowserCache();
 
         // Activer l'outil par défaut si les annotations sont disponibles
         if (this.currentMode.annotations && this.currentTool) {
@@ -12474,30 +12477,38 @@ class UnifiedPDFViewer {
 
         ctx.save();
         
-        // Configuration optimisée pour un rendu fluide
+        // Configuration premium pour écriture ultra-lisse
         ctx.strokeStyle = this.currentColor;
         ctx.lineWidth = this.currentLineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        // Anti-aliasing pour des contours lisses
+        // Anti-aliasing maximum + lissage étendu
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
+        // Appliquer un léger effet de lissage avec ombre portée
+        ctx.shadowColor = this.currentColor;
+        ctx.shadowBlur = 0.5;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
         if (points.length === 2) {
-            // Trait simple
+            // Trait simple avec lissage
             ctx.beginPath();
             ctx.moveTo(points[0][0], points[0][1]);
             ctx.lineTo(points[1][0], points[1][1]);
             ctx.stroke();
         } else {
-            // Tracé lissé avec courbes quadratiques
-            ctx.beginPath();
-            ctx.moveTo(points[0][0], points[0][1]);
+            // Tracé ultra-lissé avec courbes de Bézier et pré-lissage
+            const smoothedPoints = this.smoothPoints(points);
             
-            for (let i = 1; i < points.length - 1; i++) {
-                const curr = points[i];
-                const next = points[i + 1];
+            ctx.beginPath();
+            ctx.moveTo(smoothedPoints[0][0], smoothedPoints[0][1]);
+            
+            for (let i = 1; i < smoothedPoints.length - 1; i++) {
+                const curr = smoothedPoints[i];
+                const next = smoothedPoints[i + 1];
                 const midX = (curr[0] + next[0]) / 2;
                 const midY = (curr[1] + next[1]) / 2;
                 
@@ -12505,12 +12516,38 @@ class UnifiedPDFViewer {
             }
             
             // Finir avec le dernier point
-            const last = points[points.length - 1];
+            const last = smoothedPoints[smoothedPoints.length - 1];
             ctx.lineTo(last[0], last[1]);
             ctx.stroke();
         }
         
         ctx.restore();
+    }
+    
+    /**
+     * Lisse les points pour un rendu plus arrondi
+     * @param {Array} points - Points bruts
+     * @returns {Array} - Points lissés
+     */
+    smoothPoints(points) {
+        if (points.length < 3) return points;
+        
+        const smoothed = [points[0]]; // Premier point inchangé
+        
+        for (let i = 1; i < points.length - 1; i++) {
+            const prev = points[i - 1];
+            const curr = points[i];
+            const next = points[i + 1];
+            
+            // Moyenne pondérée pour lisser
+            const smoothX = (prev[0] * 0.2 + curr[0] * 0.6 + next[0] * 0.2);
+            const smoothY = (prev[1] * 0.2 + curr[1] * 0.6 + next[1] * 0.2);
+            
+            smoothed.push([smoothX, smoothY, curr[2] || 0.5]);
+        }
+        
+        smoothed.push(points[points.length - 1]); // Dernier point inchangé
+        return smoothed;
     }
 
     // =====================================
@@ -12583,6 +12620,80 @@ class UnifiedPDFViewer {
                 }
             }
         });
+    }
+    
+    // =====================================
+    // Gestion automatique du cache
+    // =====================================
+    
+    /**
+     * Gère automatiquement le cache du navigateur
+     */
+    manageBrowserCache() {
+        try {
+            // Vérifier l'usage du stockage
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+                navigator.storage.estimate().then(estimate => {
+                    const usedMB = (estimate.usage / 1024 / 1024).toFixed(2);
+                    const quotaMB = (estimate.quota / 1024 / 1024).toFixed(2);
+                    const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
+                    
+                    console.log(`💾 CACHE: ${usedMB}MB utilisés sur ${quotaMB}MB (${percentUsed}%)`);
+                    
+                    // Si plus de 80% du cache est utilisé, proposer de le vider
+                    if (estimate.usage / estimate.quota > 0.8) {
+                        console.warn('⚠️ CACHE PLEIN: Plus de 80% du cache utilisé - performance réduite');
+                        this.showCacheWarning();
+                    }
+                });
+            }
+            
+            // Mettre à jour le timestamp de la dernière visite
+            const now = Date.now();
+            const lastVisit = localStorage.getItem('pdf_viewer_last_visit');
+            
+            if (lastVisit) {
+                const daysSinceLastVisit = (now - parseInt(lastVisit)) / (1000 * 60 * 60 * 24);
+                
+                // Si plus de 7 jours, suggérer un nettoyage du cache
+                if (daysSinceLastVisit > 7) {
+                    console.log('🧹 SUGGESTION: Cache ancien détecté, nettoyage recommandé');
+                }
+            }
+            
+            localStorage.setItem('pdf_viewer_last_visit', now.toString());
+            
+        } catch (error) {
+            console.log('📱 Gestion cache non disponible sur cette plateforme');
+        }
+    }
+    
+    /**
+     * Affiche un avertissement sur le cache plein
+     */
+    showCacheWarning() {
+        // Créer une notification discrète
+        const notification = document.createElement('div');
+        notification.innerHTML = `
+            <div style="position: fixed; top: 20px; right: 20px; background: #f39c12; color: white; 
+                        padding: 15px; border-radius: 8px; z-index: 10000; max-width: 300px; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px;">
+                <strong>🚀 Performance</strong><br>
+                Cache plein détecté. Pour une expérience optimale :<br>
+                <em>Réglages → Safari → Effacer historique et données</em>
+                <button onclick="this.parentElement.parentElement.remove()" 
+                        style="float: right; background: none; border: none; color: white; font-size: 18px; cursor: pointer;">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-suppression après 10 secondes
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 10000);
     }
 }
 
