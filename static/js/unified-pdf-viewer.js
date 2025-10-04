@@ -12174,13 +12174,14 @@ class UnifiedPDFViewer {
         }
 
         const engine = new window.PDFAnnotationEngine({
-            size: this.currentLineWidth * 1.5, // Brush Alpine plus large
-            thinning: 0.7, // Plus de variation d'épaisseur (effet brush naturel)
-            smoothing: 0.65, // Plus de lissage pour fluidité
-            streamline: 0.6, // Plus de streamline pour courbes fluides
+            size: this.currentLineWidth, // Taille exacte choisie par l'utilisateur
+            thinning: 0, // Pas de variation - largeur constante quelle que soit la vitesse
+            smoothing: 0.5, // Lissage modéré pour fluidité sans sticky
+            streamline: 0.3, // Faible streamline pour réactivité immédiate (pas de sticky)
             color: this.currentColor,
             opacity: 1.0,
             renderThrottle: 0, // Pas de throttle - rendu à chaque événement pour zéro latence
+            simulatePressure: false, // Désactiver simulation de pression pour trait constant
         });
 
         this.annotationEngines.set(pageNum, engine);
