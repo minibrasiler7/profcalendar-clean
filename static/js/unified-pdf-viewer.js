@@ -3524,10 +3524,12 @@ class UnifiedPDFViewer {
         let activeStylusPointerId = null; // Tracker l'ID du stylet actif
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
-            // Stylet ou souris : activer le dessin
+            // Stylet ou souris : activer le dessin ET bloquer scroll
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 e.preventDefault();
                 activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
+                // Bloquer scroll/zoom pendant dessin avec stylet
+                annotationCanvas.style.touchAction = 'none';
                 this.startDrawing(e, pageNum);
             }
             // Doigt : laisser passer SAUF si stylet déjà actif (palm rejection)
@@ -3559,7 +3561,9 @@ class UnifiedPDFViewer {
             if (e.pointerId === activeStylusPointerId) {
                 e.preventDefault();
                 this.stopDrawing(e, pageNum);
-                activeStylusPointerId = null; // Libérer pour permettre scroll/zoom
+                activeStylusPointerId = null; // Libérer
+                // Restaurer scroll/zoom avec les doigts
+                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
             }
             // Bloquer pointerup des doigts pendant dessin stylet
             else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
@@ -3573,17 +3577,20 @@ class UnifiedPDFViewer {
             if (e.pointerId === activeStylusPointerId) {
                 this.stopDrawing(e, pageNum);
                 activeStylusPointerId = null;
+                // Restaurer scroll/zoom
+                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
             }
         });
 
         annotationCanvas.addEventListener('pointerleave', (e) => {
             if (e.pointerId === activeStylusPointerId) {
                 this.stopDrawing(e, pageNum);
+                // Note: on ne réinitialise pas activeStylusPointerId ici car le stylet peut revenir
             }
         });
 
-        // Permettre scroll/zoom avec les doigts quand stylet pas actif
-        annotationCanvas.style.touchAction = 'auto';
+        // Par défaut : permettre scroll/zoom avec les doigts
+        annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
 
         // ANCIENS TouchEvents - Gardés en fallback pour compatibilité mais désactivés si PointerEvents supportés
         if (!window.PointerEvent) {
