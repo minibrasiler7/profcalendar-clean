@@ -3519,40 +3519,71 @@ class UnifiedPDFViewer {
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         
         // Utiliser PointerEvents modernes pour meilleure gestion stylet + palm rejection
-        // PointerEvent gère automatiquement stylet, souris et touch, avec palm rejection natif
+        // Stratégie : Bloquer UNIQUEMENT les doigts quand le stylet est actif
+
+        let activeStylusPointerId = null; // Tracker l'ID du stylet actif
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
-            // FILTRER : Seulement stylet et souris, PAS les doigts (palm rejection)
+            // Stylet ou souris : activer le dessin
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 e.preventDefault();
+                activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
                 this.startDrawing(e, pageNum);
             }
-            // Les doigts (touch) sont ignorés = palm rejection automatique
+            // Doigt : laisser passer SAUF si stylet déjà actif (palm rejection)
+            else if (e.pointerType === 'touch') {
+                if (activeStylusPointerId !== null) {
+                    // Stylet actif = bloquer les doigts (palm rejection)
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                // Sinon laisser passer pour scroll/zoom
+            }
         });
 
         annotationCanvas.addEventListener('pointermove', (e) => {
-            // FILTRER : Seulement continuer si c'est le même type de pointeur
-            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+            // Continuer le dessin si c'est le stylet/souris actif
+            if (e.pointerId === activeStylusPointerId) {
                 e.preventDefault();
                 this.draw(e, pageNum);
+            }
+            // Bloquer les mouvements de doigts pendant que stylet dessine
+            else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
+                e.preventDefault();
+                e.stopPropagation();
             }
         });
 
         annotationCanvas.addEventListener('pointerup', (e) => {
-            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+            // Fin du dessin avec stylet/souris
+            if (e.pointerId === activeStylusPointerId) {
                 e.preventDefault();
                 this.stopDrawing(e, pageNum);
+                activeStylusPointerId = null; // Libérer pour permettre scroll/zoom
+            }
+            // Bloquer pointerup des doigts pendant dessin stylet
+            else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        annotationCanvas.addEventListener('pointercancel', (e) => {
+            // Réinitialiser si le pointeur est annulé
+            if (e.pointerId === activeStylusPointerId) {
+                this.stopDrawing(e, pageNum);
+                activeStylusPointerId = null;
             }
         });
 
         annotationCanvas.addEventListener('pointerleave', (e) => {
-            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+            if (e.pointerId === activeStylusPointerId) {
                 this.stopDrawing(e, pageNum);
             }
         });
 
-        // Désactiver le style CSS touch-action pour laisser PointerEvents gérer
-        annotationCanvas.style.touchAction = 'none';
+        // Permettre scroll/zoom avec les doigts quand stylet pas actif
+        annotationCanvas.style.touchAction = 'auto';
 
         // ANCIENS TouchEvents - Gardés en fallback pour compatibilité mais désactivés si PointerEvents supportés
         if (!window.PointerEvent) {
