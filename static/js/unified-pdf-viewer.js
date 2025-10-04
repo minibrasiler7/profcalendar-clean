@@ -1649,15 +1649,20 @@ class UnifiedPDFViewer {
         }
 
         this.currentScale = value;
-        
+
         // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
-        setTimeout(() => {
-            this.renderAllPages().catch(error => {
+        const self = this;
+        setTimeout(function() {
+            self.renderAllPages().then(function() {
+                // Re-rendre les annotations vectorielles après le rendu des pages
+                self.rerenderAllVectorAnnotations();
+            }).catch(function(error) {
                 // Fallback: render seulement la page courante
-                this.renderPage(this.currentPage);
+                self.renderPage(self.currentPage);
+                self.rerenderAllVectorAnnotations();
             });
         }, 50);
-        
+
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
         }
@@ -6423,9 +6428,19 @@ class UnifiedPDFViewer {
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
 
+        // Sauvegarder les données vectorielles du moteur d'annotation
+        const engine = this.annotationEngines.get(pageNum);
+        let annotationData = null;
+
+        if (engine) {
+            // Exporter les données vectorielles (strokes perfect-freehand)
+            annotationData = engine.export();
+        }
+
+        // Aussi sauvegarder l'ImageData pour les autres outils (highlighter, shapes, etc.)
         const ctx = pageElement.annotationCtx;
         const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-        
+
         // Initialiser les stacks pour cette page si nécessaire
         if (!this.undoStack.has(pageNum)) {
             this.undoStack.set(pageNum, []);
@@ -6433,20 +6448,77 @@ class UnifiedPDFViewer {
         if (!this.redoStack.has(pageNum)) {
             this.redoStack.set(pageNum, []);
         }
-        
-        // Ajouter l'état actuel à la stack d'undo
+
+        // Ajouter l'état actuel à la stack d'undo (avec données vectorielles + bitmap)
         const undoHistory = this.undoStack.get(pageNum);
-        undoHistory.push(imageData);
-        
+        undoHistory.push({
+            imageData: imageData,
+            vectorData: annotationData // Données vectorielles du stylo
+        });
+
         // Limiter la taille de l'historique (par exemple 20 états)
         if (undoHistory.length > 20) {
             undoHistory.shift(); // Supprimer le plus ancien
         }
-        
+
         // Vider la stack de redo quand on fait une nouvelle action
         this.redoStack.set(pageNum, []);
-        
+
         this.updateUndoRedoButtons();
+    }
+
+    /**
+     * Re-rendre toutes les annotations vectorielles sur toutes les pages
+     * (utilisé après un changement de zoom pour que les annotations restent nettes)
+     */
+    rerenderAllVectorAnnotations() {
+        const self = this;
+        this.annotationEngines.forEach(function(engine, pageNum) {
+            const pageElement = self.pageElements.get(pageNum);
+            if (pageElement?.annotationCtx) {
+                const ctx = pageElement.annotationCtx;
+
+                // Effacer uniquement les strokes vectoriels (pas les autres annotations)
+                // Pour cela, on efface tout et on re-rend depuis l'historique
+                const undoHistory = self.undoStack.get(pageNum);
+                if (undoHistory && undoHistory.length > 0) {
+                    const latestState = undoHistory[undoHistory.length - 1];
+                    self.restoreCanvasState(pageNum, latestState);
+                }
+            }
+        });
+    }
+
+    /**
+     * Restaure l'état du canvas depuis les données sauvegardées (vectorielles + bitmap)
+     */
+    restoreCanvasState(pageNum, state) {
+        const pageElement = this.pageElements.get(pageNum);
+        if (!pageElement?.annotationCtx) return;
+
+        const ctx = pageElement.annotationCtx;
+
+        // Effacer le canvas
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        // Restaurer les données vectorielles si disponibles
+        if (state.vectorData) {
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine) {
+                // Importer les données vectorielles dans le moteur
+                engine.import(state.vectorData);
+
+                // Re-rendre tous les strokes vectoriels
+                engine.renderAllStrokes(ctx);
+            }
+        }
+
+        // Restaurer aussi l'ImageData pour les autres outils (highlighter, shapes, etc.)
+        // en composite mode pour superposer sur les strokes vectoriels
+        if (state.imageData) {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.putImageData(state.imageData, 0, 0);
+        }
     }
 
     /**
@@ -6455,31 +6527,30 @@ class UnifiedPDFViewer {
     undo() {
         const pageNum = this.currentPage;
         const undoHistory = this.undoStack.get(pageNum);
-        
+
         // Vérifier qu'il y a au moins 2 états (pour pouvoir revenir à un état précédent)
         if (!undoHistory || undoHistory.length < 2) {
             return;
         }
-        
+
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
-        
+
         // Retirer le dernier état (l'état actuel avec la dernière action)
         const currentState = undoHistory.pop();
-        
+
         // Sauvegarder cet état dans la stack de redo
         if (!this.redoStack.has(pageNum)) {
             this.redoStack.set(pageNum, []);
         }
         this.redoStack.get(pageNum).push(currentState);
-        
+
         // Restaurer l'état précédent (avant la dernière action)
         const previousState = undoHistory[undoHistory.length - 1];
-        const ctx = pageElement.annotationCtx;
-        ctx.putImageData(previousState, 0, 0);
-        
+        this.restoreCanvasState(pageNum, previousState);
+
         this.updateUndoRedoButtons();
-        
+
         // Nettoyer les états des outils actifs
         this.resetToolStates();
     }
@@ -6490,29 +6561,34 @@ class UnifiedPDFViewer {
     redo() {
         const pageNum = this.currentPage;
         const redoHistory = this.redoStack.get(pageNum);
-        
+
         if (!redoHistory || redoHistory.length === 0) {
             return;
         }
-        
+
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
-        
+
         // Sauvegarder l'état actuel dans la stack d'undo
         const ctx = pageElement.annotationCtx;
-        const currentState = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-        
+        const currentImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const engine = this.annotationEngines.get(pageNum);
+        const currentVectorData = engine ? engine.export() : null;
+
         if (!this.undoStack.has(pageNum)) {
             this.undoStack.set(pageNum, []);
         }
-        this.undoStack.get(pageNum).push(currentState);
-        
+        this.undoStack.get(pageNum).push({
+            imageData: currentImageData,
+            vectorData: currentVectorData
+        });
+
         // Restaurer l'état suivant
         const nextState = redoHistory.pop();
-        ctx.putImageData(nextState, 0, 0);
-        
+        this.restoreCanvasState(pageNum, nextState);
+
         this.updateUndoRedoButtons();
-        
+
         // Nettoyer les états des outils actifs
         this.resetToolStates();
     }
