@@ -3530,6 +3530,7 @@ class UnifiedPDFViewer {
         // Fonction de rendu avec requestAnimationFrame
         const renderBufferedPoints = () => {
             if (pointsBuffer.length > 0 && this.isDrawing) {
+                console.log('🎬 RAF: Traitement de', pointsBuffer.length, 'points dans le buffer');
                 // Traiter tous les points en attente
                 while (pointsBuffer.length > 0) {
                     const point = pointsBuffer.shift();
@@ -3540,6 +3541,8 @@ class UnifiedPDFViewer {
             // Continuer le rendu si on dessine
             if (this.isDrawing) {
                 animationFrameId = requestAnimationFrame(renderBufferedPoints);
+            } else {
+                console.log('⏸️ RAF arrêté - isDrawing = false');
             }
         };
 
@@ -3559,6 +3562,7 @@ class UnifiedPDFViewer {
                 if (this.isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
                     // Ajouter au buffer au lieu de dessiner directement
                     pointsBuffer.push({ event: e, timestamp: performance.now() });
+                    console.log('📥 pointerrawupdate: point ajouté au buffer - total:', pointsBuffer.length);
                 }
             });
         } else {
@@ -3567,6 +3571,7 @@ class UnifiedPDFViewer {
             annotationCanvas.addEventListener('pointermove', (e) => {
                 if (this.isDrawing) {
                     pointsBuffer.push({ event: e, timestamp: performance.now() });
+                    console.log('📥 pointermove: point ajouté au buffer - total:', pointsBuffer.length);
                 }
             });
         }
@@ -4262,21 +4267,37 @@ class UnifiedPDFViewer {
     }
     
     draw(e, pageNum) {
-        if (!this.isDrawing || !this.currentMode.annotations) return;
-        
-        const pageElement = this.pageElements.get(pageNum);
-        if (!pageElement?.annotationCtx) {
+        // 🔍 DEBUG: Log tous les appels à draw()
+        if (this.currentTool === 'pen') {
+            console.log('📝 draw() appelé - isDrawing:', this.isDrawing, 'annotations:', this.currentMode.annotations);
+        }
+
+        if (!this.isDrawing || !this.currentMode.annotations) {
+            if (this.currentTool === 'pen') {
+                console.warn('❌ draw() bloqué - isDrawing:', this.isDrawing, 'annotations:', this.currentMode.annotations);
+            }
             return;
         }
-        
+
+        const pageElement = this.pageElements.get(pageNum);
+        if (!pageElement?.annotationCtx) {
+            if (this.currentTool === 'pen') {
+                console.warn('❌ draw() bloqué - pas de annotationCtx pour page', pageNum);
+            }
+            return;
+        }
+
         // Vérification de sécurité pour e.target et fallback
         let targetElement = e.target;
         if (!targetElement) {
             // Fallback: essayer de trouver le canvas d'annotation de cette page
             const pageElement = this.pageElements.get(pageNum);
             targetElement = pageElement?.annotationCanvas;
-            
+
             if (!targetElement) {
+                if (this.currentTool === 'pen') {
+                    console.warn('❌ draw() bloqué - pas de target element');
+                }
                 return;
             }
         }
@@ -4418,38 +4439,49 @@ class UnifiedPDFViewer {
 
                 // Utiliser le nouveau moteur d'annotation perfect-freehand
                 const engine = this.annotationEngines.get(pageNum);
-                if (engine) {
-                    // Interpoler les points si la distance est grande (éviter les trous)
-                    const dx = currentPoint.x - this.lastPoint.x;
-                    const dy = currentPoint.y - this.lastPoint.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                if (!engine) {
+                    console.error('❌ Pas de moteur d\'annotation pour page', pageNum);
+                    return;
+                }
 
-                    // Si distance > 5 pixels, interpoler des points intermédiaires
-                    if (distance > 5) {
-                        const steps = Math.ceil(distance / 3); // Point tous les 3 pixels
-                        for (let i = 1; i <= steps; i++) {
-                            const t = i / steps;
-                            const interpX = this.lastPoint.x + dx * t;
-                            const interpY = this.lastPoint.y + dy * t;
-                            const pressure = 0.5;
-                            engine.addPoint(interpX, interpY, pressure);
-                        }
-                    } else {
-                        // Sinon ajouter le point directement
+                console.log('✅ Moteur trouvé, ajout point:', currentPoint.x.toFixed(2), currentPoint.y.toFixed(2));
+
+                // Interpoler les points si la distance est grande (éviter les trous)
+                const dx = currentPoint.x - this.lastPoint.x;
+                const dy = currentPoint.y - this.lastPoint.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                console.log('📏 Distance depuis dernier point:', distance.toFixed(2), 'px');
+
+                // Si distance > 5 pixels, interpoler des points intermédiaires
+                if (distance > 5) {
+                    const steps = Math.ceil(distance / 3); // Point tous les 3 pixels
+                    console.log('🔗 Interpolation de', steps, 'points intermédiaires');
+                    for (let i = 1; i <= steps; i++) {
+                        const t = i / steps;
+                        const interpX = this.lastPoint.x + dx * t;
+                        const interpY = this.lastPoint.y + dy * t;
                         const pressure = 0.5;
-                        engine.addPoint(currentPoint.x, currentPoint.y, pressure);
+                        engine.addPoint(interpX, interpY, pressure);
                     }
+                } else {
+                    // Sinon ajouter le point directement
+                    const pressure = 0.5;
+                    engine.addPoint(currentPoint.x, currentPoint.y, pressure);
+                }
 
-                    // Toujours re-rendre le stroke en cours
-                    const strokePoints = engine.currentStroke;
-                    if (strokePoints) {
-                        // Restaurer l'état du canvas
-                        if (this.currentStrokeImageData) {
-                            ctx.putImageData(this.currentStrokeImageData, 0, 0);
-                        }
-                        // Dessiner le stroke en cours
-                        engine.renderCurrentStroke(ctx);
+                // Toujours re-rendre le stroke en cours
+                const strokePoints = engine.currentStroke;
+                if (strokePoints) {
+                    console.log('🎨 Rendu stroke avec', strokePoints.length, 'points');
+                    // Restaurer l'état du canvas
+                    if (this.currentStrokeImageData) {
+                        ctx.putImageData(this.currentStrokeImageData, 0, 0);
                     }
+                    // Dessiner le stroke en cours
+                    engine.renderCurrentStroke(ctx);
+                } else {
+                    console.warn('⚠️ Pas de strokePoints retournés par le moteur');
                 }
             } else {
                 // Tracé classique pour les autres outils
