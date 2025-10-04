@@ -3522,6 +3522,8 @@ class UnifiedPDFViewer {
         // Stratégie : Bloquer UNIQUEMENT les doigts quand le stylet est actif
 
         let activeStylusPointerId = null; // Tracker l'ID du stylet actif
+        let scrollBlocker = null; // Timer pour bloquer le scroll programmatique
+        let savedScrollPositions = null; // Positions de scroll sauvegardées
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
             console.log('🎯 POINTERDOWN page', pageNum, '- Type:', e.pointerType, 'ID:', e.pointerId);
@@ -3559,7 +3561,37 @@ class UnifiedPDFViewer {
                 // Ré-activer seulement sur le canvas d'annotation pour permettre le dessin
                 annotationCanvas.style.pointerEvents = 'auto';
 
+                // Sauvegarder les positions de scroll actuelles
+                savedScrollPositions = {
+                    windowX: window.scrollX,
+                    windowY: window.scrollY,
+                    pdfContainer: pdfContainer ? { x: pdfContainer.scrollLeft, y: pdfContainer.scrollTop } : null,
+                    viewport: viewport ? { x: viewport.scrollLeft, y: viewport.scrollTop } : null,
+                    body: { x: body.scrollLeft, y: body.scrollTop }
+                };
+
+                // Installer un bloqueur de scroll qui restaure la position
+                const preventScroll = function() {
+                    if (savedScrollPositions) {
+                        window.scrollTo(savedScrollPositions.windowX, savedScrollPositions.windowY);
+                        if (pdfContainer && savedScrollPositions.pdfContainer) {
+                            pdfContainer.scrollLeft = savedScrollPositions.pdfContainer.x;
+                            pdfContainer.scrollTop = savedScrollPositions.pdfContainer.y;
+                        }
+                        if (viewport && savedScrollPositions.viewport) {
+                            viewport.scrollLeft = savedScrollPositions.viewport.x;
+                            viewport.scrollTop = savedScrollPositions.viewport.y;
+                        }
+                        body.scrollLeft = savedScrollPositions.body.x;
+                        body.scrollTop = savedScrollPositions.body.y;
+                    }
+                };
+
+                // Bloquer le scroll programmatique en surveillant constamment
+                scrollBlocker = setInterval(preventScroll, 16); // 60fps
+
                 console.log('📦 Overflow bloqué - pdf:', pdfContainer?.style.overflow, 'body:', body.style.overflow);
+                console.log('🔒 Scroll bloqué aux positions:', savedScrollPositions);
 
                 this.startDrawing(e, pageNum);
             }
@@ -3615,6 +3647,13 @@ class UnifiedPDFViewer {
                 // Restaurer scroll sur body et html
                 body.style.overflow = 'auto';
                 html.style.overflow = 'auto';
+
+                // Arrêter le bloqueur de scroll
+                if (scrollBlocker) {
+                    clearInterval(scrollBlocker);
+                    scrollBlocker = null;
+                }
+                savedScrollPositions = null;
             }
             // Bloquer pointerup des doigts pendant dessin stylet
             else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
@@ -3650,6 +3689,13 @@ class UnifiedPDFViewer {
                 // Restaurer scroll sur body et html
                 body.style.overflow = 'auto';
                 html.style.overflow = 'auto';
+
+                // Arrêter le bloqueur de scroll
+                if (scrollBlocker) {
+                    clearInterval(scrollBlocker);
+                    scrollBlocker = null;
+                }
+                savedScrollPositions = null;
             }
         });
 
