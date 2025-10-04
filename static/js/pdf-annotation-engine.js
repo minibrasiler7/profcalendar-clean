@@ -4,8 +4,7 @@
  * @version 2.0.0
  */
 
-(function(window) {
-    'use strict';
+'use strict';
 
 class PDFAnnotationEngine {
     constructor(options = {}) {
@@ -360,5 +359,3 @@ if (typeof window !== 'undefined') {
         console.log('✅ perfect-freehand (getStroke) disponible');
     }
 }
-
-})(window);
