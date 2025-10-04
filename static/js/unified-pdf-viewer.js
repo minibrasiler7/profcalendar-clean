@@ -3524,8 +3524,11 @@ class UnifiedPDFViewer {
         let activeStylusPointerId = null; // Tracker l'ID du stylet actif
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
+            console.log('🎯 POINTERDOWN page', pageNum, '- Type:', e.pointerType, 'ID:', e.pointerId);
+
             // Stylet ou souris : activer le dessin ET bloquer scroll
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                console.log('✅ Stylet/Souris détecté - Blocage scroll...');
                 e.preventDefault();
                 e.stopPropagation(); // Empêcher la propagation au conteneur parent
                 activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
@@ -3550,6 +3553,8 @@ class UnifiedPDFViewer {
                 // Bloquer scroll sur body et html aussi
                 body.style.overflow = 'hidden';
                 html.style.overflow = 'hidden';
+
+                console.log('📦 Overflow bloqué - pdf:', pdfContainer?.style.overflow, 'body:', body.style.overflow);
 
                 this.startDrawing(e, pageNum);
             }
