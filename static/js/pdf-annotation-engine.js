@@ -4,7 +4,8 @@
  * @version 2.0.0
  */
 
-import { getStroke } from 'perfect-freehand';
+(function(window) {
+    'use strict';
 
 class PDFAnnotationEngine {
     constructor(options = {}) {
@@ -80,8 +81,13 @@ class PDFAnnotationEngine {
 
         this.lastRenderTime = now;
 
-        // Générer le stroke avec perfect-freehand
-        this.currentStroke = getStroke(this.currentPath, {
+        // Générer le stroke avec perfect-freehand (utiliser window.getStroke)
+        if (typeof window.getStroke === 'undefined') {
+            console.warn('perfect-freehand (getStroke) non disponible');
+            return null;
+        }
+
+        this.currentStroke = window.getStroke(this.currentPath, {
             size: this.options.size,
             thinning: this.options.thinning,
             smoothing: this.options.smoothing,
@@ -105,7 +111,12 @@ class PDFAnnotationEngine {
         this.isDrawing = false;
 
         // Générer le stroke final (sans throttling)
-        const finalStroke = getStroke(this.currentPath, {
+        if (typeof window.getStroke === 'undefined') {
+            console.warn('perfect-freehand (getStroke) non disponible');
+            return null;
+        }
+
+        const finalStroke = window.getStroke(this.currentPath, {
             size: this.options.size,
             thinning: this.options.thinning,
             smoothing: this.options.smoothing,
@@ -337,4 +348,7 @@ class PDFAnnotationEngine {
     }
 }
 
-export default PDFAnnotationEngine;
+// Exposer globalement pour compatibilité sans modules ES6
+window.PDFAnnotationEngine = PDFAnnotationEngine;
+
+})(window);

@@ -7788,16 +7788,17 @@ body .thumbnail-canvas {
 
 <!-- Perfect Freehand - Bibliothèque d'annotation vectorielle -->
 <script type="module">
-    // Importer perfect-freehand depuis CDN
+    // Importer perfect-freehand depuis CDN et exposer globalement
     import { getStroke } from 'https://cdn.skypack.dev/perfect-freehand@1.2.0';
     window.getStroke = getStroke;
+    console.log('✅ perfect-freehand chargé');
 </script>
 
 <!-- Moteur d'annotation PDF (nouveau système) -->
-<script type="module" src="{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script src="{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 
 <!-- Lecteur PDF Unifié -->
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 <script>
 // Variables globales pour le lecteur PDF unifié
 let unifiedPDFViewer = null;

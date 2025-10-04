@@ -134,14 +134,9 @@ class UnifiedPDFViewer {
         this.startPoint = null; // Point de départ pour la ligne droite
         this.isStabilized = false; // Flag pour éviter les multiples conversions
         this.currentStrokeImageData = null; // Sauvegarde du canvas avant le trait actuel
-        
-        // Perfect-freehand pour tracés lisses
-        this.smoothDrawingPath = []; // Points pour perfect-freehand
-        this.currentSmoothStroke = null; // Tracé lissé actuel
-        this.lastRenderTime = 0; // Dernier timestamp de rendu
-        this.renderThrottleMs = 2; // ~500fps pour stylets rapides - réactivité maximale
-        this.fastDrawingMode = false; // Mode dessin rapide automatique
-        this.lastTimestamp = null; // Timestamp du dernier point
+
+        // Nouveau moteur d'annotation avec perfect-freehand
+        this.annotationEngines = new Map(); // Un moteur par page
         
         // Variables pour l'outil rapporteur
         this.protractorState = 'initial'; // 'initial', 'drawing_first_line', 'waiting_validation', 'drawing_second_line'
@@ -4036,26 +4031,28 @@ class UnifiedPDFViewer {
             this.startPoint = { ...this.lastPoint };
             this.drawingPath = [{ ...this.lastPoint }];
             this.isStabilized = false;
-            
-            // Initialiser le tracé lissé perfect-freehand optimisé
-            this.smoothDrawingPath = [];
-            this.currentSmoothStroke = null;
-            const initialPressure = this.calculatePressureFromVelocity(this.lastPoint, null, null);
-            this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(this.lastPoint, initialPressure));
-            this.lastTimestamp = Date.now();
-            
+
             // Sauvegarder l'état du canvas avant de commencer le trait
             const pageElement = this.pageElements.get(pageNum);
             if (pageElement?.annotationCanvas) {
                 const ctx = pageElement.annotationCtx;
                 this.currentStrokeImageData = ctx.getImageData(0, 0, pageElement.annotationCanvas.width, pageElement.annotationCanvas.height);
             }
-            
+
+            // Initialiser le moteur d'annotation pour cette page si nécessaire
+            if (!this.annotationEngines.has(pageNum)) {
+                this.initAnnotationEngine(pageNum);
+            }
+
+            // Démarrer le tracé avec le nouveau moteur perfect-freehand
+            const engine = this.annotationEngines.get(pageNum);
+            const pressure = e.pressure || this.calculatePressureFromVelocity(this.lastPoint, null);
+            engine.startPath(this.lastPoint.x, this.lastPoint.y, pressure);
+
             // Démarrer le timer pour la ligne droite automatique
             this.straightLineTimer = setTimeout(() => {
                 this.convertToStraightLine(pageNum);
             }, this.straightLineTimeout);
-            
         }
 
         // Initialiser l'outil règle
@@ -4327,16 +4324,16 @@ class UnifiedPDFViewer {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
-            // Pour le stylo, ajouter le point au chemin et vérifier si on bouge
+            // Pour le stylo, utiliser le nouveau moteur perfect-freehand
             if (this.currentTool === 'pen') {
                 this.drawingPath.push({ ...currentPoint });
-                
+
                 // Si on bouge significativement, annuler le timer de ligne droite
                 const distance = Math.sqrt(
-                    Math.pow(currentPoint.x - this.startPoint.x, 2) + 
+                    Math.pow(currentPoint.x - this.startPoint.x, 2) +
                     Math.pow(currentPoint.y - this.startPoint.y, 2)
                 );
-                
+
                 // Si on bouge de plus de 10 pixels du point de départ, reset le timer
                 if (distance > 10 && this.straightLineTimer && !this.isStabilized) {
                     clearTimeout(this.straightLineTimer);
@@ -4345,22 +4342,21 @@ class UnifiedPDFViewer {
                     }, this.straightLineTimeout);
                 }
 
-                // Tracé lissé avec perfect-freehand si activé
-                if (this.options.smoothDrawing) {
-                    const pressure = this.calculatePressureFromVelocity(currentPoint, this.lastPoint, this.lastTimestamp);
-                    this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(currentPoint, pressure));
-                    this.lastTimestamp = Date.now();
+                // Utiliser le nouveau moteur d'annotation perfect-freehand
+                const engine = this.annotationEngines.get(pageNum);
+                if (engine) {
+                    const pressure = e.pressure || engine.calculatePressureFromVelocity(currentPoint, this.lastPoint);
+                    const strokePoints = engine.addPoint(currentPoint.x, currentPoint.y, pressure);
 
-                    // Performance optimisée - logs supprimés
-
-                    // Rendu optimisé avec throttling (style Freeform)
-                    this.renderSmoothStrokeOptimized(ctx, this.smoothDrawingPath);
-                } else {
-                    // Tracé classique pour le stylo si lissage désactivé
-                    ctx.beginPath();
-                    ctx.moveTo(this.lastPoint.x, this.lastPoint.y);
-                    ctx.lineTo(currentPoint.x, currentPoint.y);
-                    ctx.stroke();
+                    // Rendu en temps réel si le moteur retourne des points (pas throttlé)
+                    if (strokePoints) {
+                        // Restaurer l'état du canvas
+                        if (this.currentStrokeImageData) {
+                            ctx.putImageData(this.currentStrokeImageData, 0, 0);
+                        }
+                        // Dessiner le stroke en cours
+                        engine.renderCurrentStroke(ctx);
+                    }
                 }
             } else {
                 // Tracé classique pour les autres outils
@@ -4383,20 +4379,14 @@ class UnifiedPDFViewer {
                 this.straightLineTimer = null;
             }
 
-            // Finaliser le tracé lissé pour le stylo
-            if (this.currentTool === 'pen' && this.options.smoothDrawing && this.smoothDrawingPath.length > 1) {
-                const pageElement = this.pageElements.get(pageNum);
-                if (pageElement?.annotationCtx) {
-                    const ctx = pageElement.annotationCtx;
-                    
-                    // Effacer le canvas et redessiner le tracé final avec force (pas de throttling)
-                    this.renderSmoothStrokeOptimized(ctx, this.smoothDrawingPath, true);
-                    
+            // Finaliser le tracé avec le nouveau moteur perfect-freehand
+            if (this.currentTool === 'pen') {
+                const engine = this.annotationEngines.get(pageNum);
+                if (engine) {
+                    const pathData = engine.endPath();
+
                     // Nettoyer les données temporaires
-                    this.smoothDrawingPath = [];
-                    this.currentSmoothStroke = null;
                     this.currentStrokeImageData = null;
-                    this.lastTimestamp = null;
                 }
             }
             
@@ -12167,413 +12157,47 @@ class UnifiedPDFViewer {
         return pressure;
     }
 
-    /**
-     * Génère un tracé lissé avec perfect-freehand optimisé
-     * @param {Array} points - Points au format [x, y, pressure]
-     * @returns {Array|null} - Points du polygone lissé ou null si pas assez de points
-     */
-    generateSmoothStroke(points) {
-        if (!points || points.length < 2) return null;
-        
-        // Vérifier que perfect-freehand est disponible
-        if (typeof getStroke === 'undefined') {
-            console.warn('❌ Perfect-freehand non disponible, utilisation du tracé classique');
-            return null;
-        }
-
-        // Performance optimisée - logs supprimés
-
-        try {
-            // Configuration équilibrée - moins de correction, plus naturel
-            const options = {
-                size: this.currentLineWidth * 1.2, // Taille plus proche de l'original
-                thinning: 0.6, // Moins de variation d'épaisseur
-                smoothing: 0.5, // Lissage modéré pour garder le naturel
-                streamline: 0.3, // Moins de correction automatique
-                easing: (t) => t, // Linéaire pour plus de naturel
-                last: true,
-                start: {
-                    taper: 0, // Pas d'effilement au début
-                    cap: true
-                },
-                end: {
-                    taper: 0, // Pas d'effilement à la fin
-                    cap: true
-                }
-            };
-
-            return getStroke(points, options);
-            
-        } catch (error) {
-            console.error('Erreur perfect-freehand:', error);
-            return null;
-        }
-    }
-
+    // ========================================
+    // ANCIEN SYSTÈME DE DESSIN - SUPPRIMÉ
+    // Remplacé par PDFAnnotationEngine + perfect-freehand
+    // ========================================
 
     /**
-     * Dessine un polygone lissé perfect-freehand sur le canvas
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} stroke - Points du polygone
+     * Initialise le moteur d'annotation pour une page
+     * @param {number} pageNum - Numéro de la page
      */
-    drawSmoothStroke(ctx, stroke) {
-        if (!stroke || stroke.length < 3) return;
-
-        // Performance optimisée - logs supprimés
-
-        ctx.save();
-        
-        // Configuration simple et efficace
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1.0;
-        
-        // Pas de flou pour éviter la transparence
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        
-        // Couleur de remplissage solide
-        ctx.fillStyle = this.currentColor;
-        
-        // Dessiner le polygone
-        ctx.beginPath();
-        ctx.moveTo(stroke[0][0], stroke[0][1]);
-        
-        for (let i = 1; i < stroke.length; i++) {
-            ctx.lineTo(stroke[i][0], stroke[i][1]);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        
-        // Ajouter un contour fin de la même couleur pour solidifier
-        ctx.strokeStyle = this.currentColor;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-
-    /**
-     * Dessine un tracé avec variation de pression (style Freeform)
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} stroke - Points avec pression [x, y, pressure]
-     */
-    drawPressureSensitiveStroke(ctx, stroke) {
-        if (!stroke || stroke.length < 2) return;
-
-        ctx.save();
-        
-        // Anti-aliasing pour les traits avec pression
-        if (this.options.antiAliasing) {
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            
-            // Flou adapté pour les traits avec pression
-            if (this.options.blurEffect > 0) {
-                ctx.filter = `blur(${this.options.blurEffect * 0.7}px)`;
-            }
-        }
-        
-        ctx.strokeStyle = this.currentColor;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
-        // Dessiner des segments avec épaisseur variable
-        for (let i = 0; i < stroke.length - 1; i++) {
-            const curr = stroke[i];
-            const next = stroke[i + 1];
-            const pressure = curr[2] || 0.5;
-            
-            // Varier l'épaisseur selon la pression
-            ctx.lineWidth = this.currentLineWidth * (0.3 + pressure * 0.7);
-            
-            ctx.beginPath();
-            ctx.moveTo(curr[0], curr[1]);
-            ctx.lineTo(next[0], next[1]);
-            ctx.stroke();
-        }
-        
-        // Reset du filtre
-        ctx.filter = 'none';
-        ctx.restore();
-    }
-
-    /**
-     * Dessine un tracé en cours avec perfect-freehand (prévisualisation)
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} points - Points du tracé en cours
-     */
-    drawSmoothPreview(ctx, points) {
-        if (!points || points.length < 2) return;
-
-        // Optimisation: utiliser tracé classique pour l'écriture rapide en temps réel
-        if (this.fastDrawingMode || points.length < 5) {
-            this.drawClassicStroke(ctx, points);
+    initAnnotationEngine(pageNum) {
+        // Vérifier que window.PDFAnnotationEngine est disponible
+        if (typeof window.PDFAnnotationEngine === 'undefined') {
+            console.error('PDFAnnotationEngine non disponible');
             return;
         }
 
-        const stroke = this.generateSmoothStroke(points);
-        if (stroke) {
-            // Utiliser le rendu avec pression si activé
-            if (this.options.pressureSensitive) {
-                this.drawPressureSensitiveStroke(ctx, stroke);
-            } else {
-                this.drawSmoothStroke(ctx, stroke);
-            }
-        } else {
-            // Fallback: tracé classique si perfect-freehand échoue
-            this.drawClassicStroke(ctx, points);
-        }
+        const engine = new window.PDFAnnotationEngine({
+            size: this.currentLineWidth,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.4,
+            color: this.currentColor,
+            opacity: 1.0,
+            renderThrottle: 16, // 60fps
+        });
+
+        this.annotationEngines.set(pageNum, engine);
     }
 
     /**
-     * Rendu optimisé avec throttling pour les performances
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} points - Points du tracé
-     * @param {boolean} force - Forcer le rendu même si throttlé
+     * Met à jour les options du moteur d'annotation
+     * @param {number} pageNum - Numéro de la page
      */
-    renderSmoothStrokeOptimized(ctx, points, force = false) {
-        const now = Date.now();
-        
-        // Détection dessin rapide automatique
-        if (points.length > 5) {
-            const recentPoints = points.slice(-5);
-            const avgDistance = this.calculateAverageDistance(recentPoints);
-            this.fastDrawingMode = avgDistance > 15; // Pixels/point
+    updateAnnotationEngineOptions(pageNum) {
+        const engine = this.annotationEngines.get(pageNum);
+        if (engine) {
+            engine.updateOptions({
+                size: this.currentLineWidth,
+                color: this.currentColor,
+            });
         }
-        
-        // Throttling dynamique: plus rapide pour dessin rapide
-        const dynamicThrottle = this.fastDrawingMode ? 1 : this.renderThrottleMs; // 1000fps vs 500fps
-        if (!force && (now - this.lastRenderTime) < dynamicThrottle) {
-            return;
-        }
-        
-        this.lastRenderTime = now;
-        
-        // Optimisation: Ne pas redessiner si pas assez de points
-        if (!points || points.length < 2) return;
-        
-        // Optimisation ultra-conservative pour ne jamais perdre de points
-        let optimizedPoints = points;
-        const maxPoints = this.fastDrawingMode ? 500 : 300; // Beaucoup plus de points conservés
-        if (points.length > maxPoints) {
-            // Garder le maximum de points possibles
-            const keepRatio = this.fastDrawingMode ? 0.9 : 0.8; // Garder 80-90% des points
-            const step = Math.max(1, Math.floor(1 / keepRatio));
-            optimizedPoints = points.filter((_, i) => i % step === 0);
-            // Toujours garder le dernier point
-            if (optimizedPoints[optimizedPoints.length - 1] !== points[points.length - 1]) {
-                optimizedPoints.push(points[points.length - 1]);
-            }
-        }
-        
-        // Effacer et redessiner
-        if (this.currentStrokeImageData) {
-            ctx.putImageData(this.currentStrokeImageData, 0, 0);
-        }
-        
-        this.drawSmoothPreview(ctx, optimizedPoints);
-    }
-    
-    /**
-     * Calcule la distance moyenne entre les points récents
-     * @param {Array} points - Points récents
-     * @returns {number} Distance moyenne
-     */
-    calculateAverageDistance(points) {
-        if (points.length < 2) return 0;
-        
-        let totalDistance = 0;
-        for (let i = 1; i < points.length; i++) {
-            const dx = points[i][0] - points[i-1][0];
-            const dy = points[i][1] - points[i-1][1];
-            totalDistance += Math.sqrt(dx * dx + dy * dy);
-        }
-        
-        return totalDistance / (points.length - 1);
-    }
-
-    /**
-     * Tracé classique de fallback
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} points - Points au format [x, y, pressure]
-     */
-    drawClassicStroke(ctx, points) {
-        if (points.length < 2) return;
-
-        ctx.save();
-        
-        // Configuration PREMIUM Apple Freeform - qualité maximale
-        ctx.strokeStyle = this.currentColor;
-        ctx.lineWidth = this.currentLineWidth;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
-        // Anti-aliasing net et précis
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // Trait net sans flou pour éviter la pixellisation
-        // Suppression des effets de shadow qui causent le flou
-        ctx.globalAlpha = 1.0; // Opacité complète pour trait net
-        
-        if (points.length === 2) {
-            // Trait simple avec lissage
-            ctx.beginPath();
-            ctx.moveTo(points[0][0], points[0][1]);
-            ctx.lineTo(points[1][0], points[1][1]);
-            ctx.stroke();
-        } else {
-            // RENDU PREMIUM: Catmull-Rom splines pour un lissé parfait
-            const ultraSmoothPoints = this.applyCatmullRomSmoothing(this.smoothPoints(points));
-            
-            // Triple pass pour qualité Apple Freeform
-            this.drawMultiPassStroke(ctx, ultraSmoothPoints);
-        }
-        
-        ctx.restore();
-    }
-    
-    /**
-     * Lisse les points pour un rendu plus arrondi
-     * @param {Array} points - Points bruts
-     * @returns {Array} - Points lissés
-     */
-    smoothPoints(points) {
-        if (points.length < 3) return points;
-        
-        const smoothed = [points[0]];
-        
-        for (let i = 1; i < points.length - 1; i++) {
-            const prev = points[i - 1];
-            const curr = points[i];
-            const next = points[i + 1];
-            
-            // Lissage gaussien amélioré (plus doux que la moyenne simple)
-            const smoothX = (prev[0] * 0.15 + curr[0] * 0.7 + next[0] * 0.15);
-            const smoothY = (prev[1] * 0.15 + curr[1] * 0.7 + next[1] * 0.15);
-            
-            // Calculer la vitesse pour variation d'épaisseur naturelle
-            const speed = Math.sqrt(Math.pow(curr[0] - prev[0], 2) + Math.pow(curr[1] - prev[1], 2));
-            const pressure = Math.max(0.3, Math.min(1.0, 1.0 - speed / 50)); // Pressure adaptive
-            
-            smoothed.push([smoothX, smoothY, pressure]);
-        }
-        
-        smoothed.push(points[points.length - 1]);
-        return smoothed;
-    }
-    
-    /**
-     * ULTRA-LISSAGE: Applique un lissage Catmull-Rom pour courbes parfaites (niveau Apple Freeform)
-     * @param {Array} points - Points déjà lissés
-     * @returns {Array} - Points ultra-lissés avec courbes Catmull-Rom
-     */
-    applyCatmullRomSmoothing(points) {
-        if (points.length < 4) return points;
-        
-        const ultraSmooth = [];
-        const segments = 4; // Densité de subdivision pour courbes ultra-lisses
-        
-        for (let i = 0; i < points.length - 3; i++) {
-            const p0 = points[i];
-            const p1 = points[i + 1];
-            const p2 = points[i + 2];
-            const p3 = points[i + 3];
-            
-            for (let t = 0; t <= segments; t++) {
-                const tt = t / segments;
-                const ttt = tt * tt;
-                const tttt = ttt * tt;
-                
-                // Formule Catmull-Rom pour courbes ultra-naturelles
-                const x = 0.5 * (
-                    (2 * p1[0]) +
-                    (-p0[0] + p2[0]) * tt +
-                    (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * ttt +
-                    (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * tttt
-                );
-                
-                const y = 0.5 * (
-                    (2 * p1[1]) +
-                    (-p0[1] + p2[1]) * tt +
-                    (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * ttt +
-                    (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * tttt
-                );
-                
-                // Interpoler la pression aussi
-                const pressure = p1[2] || 0.5;
-                ultraSmooth.push([x, y, pressure]);
-            }
-        }
-        
-        return ultraSmooth;
-    }
-    
-    /**
-     * RENDU MULTICOUCHE: Dessine avec plusieurs passes pour effet Apple Pencil naturel
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} points - Points ultra-lissés
-     */
-    drawMultiPassStroke(ctx, points) {
-        if (points.length < 2) return;
-        
-        // Pass 1: Couche de base avec légère transparence
-        ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.lineWidth = this.currentLineWidth * 1.2; // Légèrement plus épais pour la base
-        this.drawCurvedPath(ctx, points);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Pass 2: Couche principale
-        ctx.save();
-        ctx.globalAlpha = 0.7;
-        ctx.lineWidth = this.currentLineWidth;
-        this.drawCurvedPath(ctx, points);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Pass 3: Couche de finition pour netteté
-        ctx.save();
-        ctx.globalAlpha = 0.3;
-        ctx.lineWidth = this.currentLineWidth * 0.6; // Plus fin pour les détails
-        ctx.shadowBlur = 0; // Pas d'ombre pour la couche de netteté
-        this.drawCurvedPath(ctx, points);
-        ctx.stroke();
-        ctx.restore();
-    }
-    
-    /**
-     * Dessine un chemin courbe fluide avec variation de pression
-     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
-     * @param {Array} points - Points avec pression
-     */
-    drawCurvedPath(ctx, points) {
-        if (points.length < 2) return;
-        
-        ctx.beginPath();
-        ctx.moveTo(points[0][0], points[0][1]);
-        
-        for (let i = 1; i < points.length - 1; i++) {
-            const curr = points[i];
-            const next = points[i + 1];
-            const midX = (curr[0] + next[0]) / 2;
-            const midY = (curr[1] + next[1]) / 2;
-            
-            // Varier légèrement l'épaisseur selon la pression pour un effet naturel
-            const pressure = curr[2] || 0.5;
-            const dynamicWidth = this.currentLineWidth * (0.7 + pressure * 0.6);
-            if (Math.abs(ctx.lineWidth - dynamicWidth) > 0.5) {
-                ctx.lineWidth = dynamicWidth;
-            }
-            
-            ctx.quadraticCurveTo(curr[0], curr[1], midX, midY);
-        }
-        
-        // Terminer avec le dernier point
-        const last = points[points.length - 1];
-        ctx.lineTo(last[0], last[1]);
     }
 
     // =====================================
