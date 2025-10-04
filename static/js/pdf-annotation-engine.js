@@ -69,23 +69,25 @@ class PDFAnnotationEngine {
 
         const now = Date.now();
 
-        // Ajouter le point
+        // TOUJOURS ajouter le point (jamais sauter)
         this.currentPath.push([x, y, pressure]);
         this.lastPoint = { x, y, pressure, timestamp: now };
 
-        // Throttling pour performance
-        if (now - this.lastRenderTime < this.options.renderThrottle) {
-            return null;
-        }
-
-        this.lastRenderTime = now;
-
-        // Générer le stroke avec perfect-freehand (utiliser window.getStroke)
+        // Vérifier disponibilité de getStroke
         if (typeof window.getStroke === 'undefined') {
             console.warn('perfect-freehand (getStroke) non disponible');
             return null;
         }
 
+        // Throttling intelligent : toujours calculer le stroke pour éviter les trous
+        // Le throttle sera géré au niveau du rendu canvas
+        const shouldThrottle = (now - this.lastRenderTime) < this.options.renderThrottle;
+
+        if (!shouldThrottle) {
+            this.lastRenderTime = now;
+        }
+
+        // TOUJOURS générer le stroke pour éviter les trous visuels
         this.currentStroke = window.getStroke(this.currentPath, {
             size: this.options.size,
             thinning: this.options.thinning,
@@ -97,6 +99,7 @@ class PDFAnnotationEngine {
             simulatePressure: this.options.simulatePressure,
         });
 
+        // Toujours retourner le stroke (pas de null qui cause les trous)
         return this.currentStroke;
     }
 

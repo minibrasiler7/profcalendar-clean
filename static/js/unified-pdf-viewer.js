@@ -12180,7 +12180,7 @@ class UnifiedPDFViewer {
             streamline: 0.6, // Plus de streamline pour courbes fluides
             color: this.currentColor,
             opacity: 1.0,
-            renderThrottle: 4, // 250fps pour suivi parfait en écriture rapide
+            renderThrottle: 0, // Pas de throttle - rendu à chaque événement pour zéro latence
         });
 
         this.annotationEngines.set(pageNum, engine);
