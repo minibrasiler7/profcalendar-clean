@@ -139,7 +139,7 @@ class UnifiedPDFViewer {
         this.smoothDrawingPath = []; // Points pour perfect-freehand
         this.currentSmoothStroke = null; // Tracé lissé actuel
         this.lastRenderTime = 0; // Dernier timestamp de rendu
-        this.renderThrottleMs = 8; // ~120fps pour stylets rapides
+        this.renderThrottleMs = 2; // ~500fps pour stylets rapides - réactivité maximale
         this.fastDrawingMode = false; // Mode dessin rapide automatique
         this.lastTimestamp = null; // Timestamp du dernier point
         
@@ -324,13 +324,7 @@ class UnifiedPDFViewer {
         // Configurer le mode d'affichage initial
         this.setupViewMode();
         
-        // Log de configuration du système de dessin natif
-        console.log(`🎨 CONFIGURATION DESSIN NATIF:`, {
-            smoothDrawing: this.options.smoothDrawing,
-            pressureSensitive: this.options.pressureSensitive,
-            antiAliasing: this.options.antiAliasing,
-            blurEffect: this.options.blurEffect
-        });
+        // Configuration silencieuse pour performance maximale
         
         // Gestion automatique du cache
         this.manageBrowserCache();
@@ -1892,7 +1886,7 @@ class UnifiedPDFViewer {
         document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const tool = e.currentTarget.dataset.tool;
-                console.log('🔧 NOUVELLE VERSION - Clic outil:', tool);
+                // Performance optimisée - logs supprimés
                 this.setCurrentTool(tool);
             });
         });
@@ -3672,9 +3666,7 @@ class UnifiedPDFViewer {
      * Méthodes d'annotation de base
      */
     setCurrentTool(tool) {
-        if (this.options.debug) {
-            console.log(`🛠️ CHANGEMENT OUTIL: ${this.currentTool} → ${tool}`);
-        }
+        // Changement d'outil optimisé
         
         // Supprimer toute zone de texte active lors du changement d'outil
         if (this.currentTool === 'text' && tool !== 'text') {
@@ -3683,12 +3675,7 @@ class UnifiedPDFViewer {
         
         this.currentTool = tool;
         
-        // Optimisation: utiliser requestAnimationFrame pour éviter les blocages
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tool === tool);
-            });
-        });
+        // Optimisation: Mise à jour des boutons maintenant gérée dans updateToolCursor()
         
         // Mettre à jour la palette de couleurs selon l'outil
         this.updateColorPalette(tool);
@@ -3702,105 +3689,31 @@ class UnifiedPDFViewer {
             this.setCurrentLineWidth(2); // Épaisseur normale pour le stylo
         }
         
-        // Activer/désactiver les événements sur tous les canvas d'annotation
-        const annotationCanvases = document.querySelectorAll('.pdf-annotation-layer');
-        
-        annotationCanvases.forEach((canvas, index) => {
-            if (tool) {
-                // ACTIVER pointerEvents pour pouvoir recevoir les événements touch et détecter le stylet
-                canvas.style.pointerEvents = 'auto';
-                
-                // Supprimer toutes les classes de curseur existantes
-                canvas.classList.remove('pen-cursor', 'highlighter-cursor', 'eraser-cursor', 'text-cursor');
-                
-                // Ajouter la classe de curseur appropriée
-                if (tool === 'pen') {
-                    canvas.classList.add('pen-cursor');
-                } else if (tool === 'highlighter') {
-                    canvas.classList.add('highlighter-cursor');
-                } else if (tool === 'eraser') {
-                    canvas.classList.add('eraser-cursor');
-                    // FIX CRITIQUE: Forcer l'affichage des canvas quand eraser est sélectionné
-                    canvas.style.display = 'block';
-                    canvas.style.visibility = 'visible';
-                    console.log(`🔧 FIX ERASER: Canvas ${canvas.id} forcé visible`);
-                } else if (tool === 'text') {
-                    canvas.classList.add('text-cursor');
-                }
-                
-                // IMPORTANT: Réinitialiser le globalCompositeOperation pour éviter les conflits entre outils
-                const pageNum = parseInt(canvas.id.replace('annotation-canvas-', '')) || 
-                              parseInt(canvas.closest('.pdf-page-container')?.id?.replace('page-', '')) || 
-                              index + 1;
-                const pageElement = this.pageElements.get(pageNum);
-                if (pageElement?.annotationCtx) {
-                    // TOUJOURS remettre en mode dessin normal quand on change d'outil
-                    // Le mode eraser sera activé uniquement pendant le dessin, pas de façon permanente
+        // OPTIMISATION: Mise à jour instantanée du curseur
+        this.updateToolCursor(tool);
+
+        // Réinitialiser les contextes de manière optimisée - batch processing
+        requestAnimationFrame(() => {
+            for (const [pageNum, pageElement] of this.pageElements) {
+                if (pageElement?.annotationCtx && pageElement.annotationCanvas) {
+                    // Activer les événements et ajuster le mode de composition
+                    pageElement.annotationCanvas.style.pointerEvents = tool ? 'auto' : 'none';
                     pageElement.annotationCtx.globalCompositeOperation = 'source-over';
+
+                    // Fix spécial pour eraser
+                    if (tool === 'eraser') {
+                        pageElement.annotationCanvas.style.display = 'block';
+                        pageElement.annotationCanvas.style.visibility = 'visible';
+                    }
                 }
-            } else {
-                canvas.style.pointerEvents = 'none';
-                canvas.classList.remove('pen-cursor', 'highlighter-cursor', 'eraser-cursor', 'text-cursor');
             }
         });
-        
+
         // DÉSACTIVER le curseur personnalisé pour la gomme (il masque les annotations)
         if (this.elements.eraserCursor) {
             // TOUJOURS cacher le curseur personnalisé pour éviter qu'il masque les annotations
             this.elements.eraserCursor.style.display = 'none';
             this.removeEraserCursorEvents();
-            console.log(`🔧 FIX ERASER: Curseur personnalisé désactivé pour éviter masquage`);
-        }
-        
-        // Debug optimisé: uniquement si debug activé
-        if (this.options.debug) {
-            setTimeout(() => {
-                console.log(`✅ Outil changé vers: ${tool}`);
-                
-                // Compter les annotations après changement d'outil
-                let totalAnnotationsAfter = 0;
-                this.pageElements.forEach((pageElement, pageNum) => {
-                    if (pageElement?.annotationCtx) {
-                        const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
-                        const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length;
-                        totalAnnotationsAfter += pixelCount;
-                    }
-                });
-                console.log(`📊 Pixels d'annotation APRÈS changement vers ${tool}: ${totalAnnotationsAfter}`);
-                
-                // DEBUG CSS: Vérifier les propriétés visuelles de tous les canvas
-                console.log(`🎨 DEBUG CSS pour outil ${tool}:`);
-                this.pageElements.forEach((pageElement, pageNum) => {
-                    if (pageElement?.annotationCanvas) {
-                        const canvas = pageElement.annotationCanvas;
-                        const computedStyle = window.getComputedStyle(canvas);
-                        console.log(`📄 Page ${pageNum}:`);
-                        console.log(`   display: ${canvas.style.display || computedStyle.display}`);
-                        console.log(`   opacity: ${canvas.style.opacity || computedStyle.opacity}`);
-                        console.log(`   visibility: ${canvas.style.visibility || computedStyle.visibility}`);
-                        console.log(`   z-index: ${canvas.style.zIndex || computedStyle.zIndex}`);
-                        console.log(`   pointer-events: ${canvas.style.pointerEvents || computedStyle.pointerEvents}`);
-                        console.log(`   classes: ${canvas.className}`);
-                        console.log(`   position: ${computedStyle.position}`);
-                        console.log(`   transform: ${computedStyle.transform}`);
-                        
-                        // Vérifier si le canvas est masqué par d'autres éléments
-                        const rect = canvas.getBoundingClientRect();
-                        console.log(`   rect: ${rect.width}x${rect.height} at (${rect.left}, ${rect.top})`);
-                    }
-                });
-                
-                // Vérifier aussi le curseur personnalisé de la gomme
-                if (tool === 'eraser' && this.elements.eraserCursor) {
-                    const eraserStyle = window.getComputedStyle(this.elements.eraserCursor);
-                    console.log(`🔍 Curseur gomme:`);
-                    console.log(`   display: ${this.elements.eraserCursor.style.display || eraserStyle.display}`);
-                    console.log(`   opacity: ${this.elements.eraserCursor.style.opacity || eraserStyle.opacity}`);
-                    console.log(`   z-index: ${this.elements.eraserCursor.style.zIndex || eraserStyle.zIndex}`);
-                    console.log(`   backdrop-filter: ${eraserStyle.backdropFilter}`);
-                    console.log(`   filter: ${eraserStyle.filter}`);
-                }
-            }, 100);
         }
     }
     
@@ -3824,6 +3737,24 @@ class UnifiedPDFViewer {
         console.log(`📊 Total: ${totalPixels} pixels d'annotation`);
         console.log(`🛠️ Outil actuel: ${this.currentTool}`);
         return { totalPixels, currentTool: this.currentTool };
+    }
+    
+    /**
+     * OPTIMISATION: Met à jour le curseur d'outil via CSS global (performance maximale)
+     */
+    updateToolCursor(tool) {
+        // Supprimer toutes les classes d'outil du body pour reset
+        document.body.classList.remove('tool-pen', 'tool-highlighter', 'tool-eraser', 'tool-text');
+        
+        // Ajouter la classe pour l'outil actuel - utilise CSS pour tous les canvas à la fois
+        if (tool) {
+            document.body.classList.add(`tool-${tool}`);
+        }
+        
+        // Mise à jour instantanée des boutons UI
+        document.querySelectorAll('.btn-annotation-tool').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tool === tool);
+        });
     }
     
     /**
@@ -4420,10 +4351,7 @@ class UnifiedPDFViewer {
                     this.smoothDrawingPath.push(this.convertPointForPerfectFreehand(currentPoint, pressure));
                     this.lastTimestamp = Date.now();
 
-                    // Log réduit pour les performances
-                    if (this.options.debug && this.smoothDrawingPath.length % 30 === 0) {
-                        console.log(`🖊️ STYLET ACTIF: ${this.smoothDrawingPath.length} points`);
-                    }
+                    // Performance optimisée - logs supprimés
 
                     // Rendu optimisé avec throttling (style Freeform)
                     this.renderSmoothStrokeOptimized(ctx, this.smoothDrawingPath);
@@ -6364,7 +6292,10 @@ class UnifiedPDFViewer {
                         img.onload = () => {
                             const ctx = annotationCanvas.getContext('2d');
                             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                            ctx.drawImage(img, 0, 0);
+                            
+                            // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
+                            const dpr = window.devicePixelRatio || 1;
+                            ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
                         };
                         img.src = annotationData.imageData;
                     } catch (error) {
@@ -12250,10 +12181,7 @@ class UnifiedPDFViewer {
             return null;
         }
 
-        // Log réduit pour ne pas ralentir
-        if (this.options.debug && points.length % 20 === 0) {
-            console.log(`🎨 Perfect-freehand optimisé: ${points.length} points, taille ${this.currentLineWidth}`);
-        }
+        // Performance optimisée - logs supprimés
 
         try {
             // Configuration équilibrée - moins de correction, plus naturel
@@ -12291,9 +12219,7 @@ class UnifiedPDFViewer {
     drawSmoothStroke(ctx, stroke) {
         if (!stroke || stroke.length < 3) return;
 
-        if (this.options.debug && stroke.length > 50) {
-            console.log(`🎨 RENDU PERFECT-FREEHAND: ${stroke.length} points polygone`);
-        }
+        // Performance optimisée - logs supprimés
 
         ctx.save();
         
@@ -12417,7 +12343,7 @@ class UnifiedPDFViewer {
         }
         
         // Throttling dynamique: plus rapide pour dessin rapide
-        const dynamicThrottle = this.fastDrawingMode ? 4 : this.renderThrottleMs; // 250fps vs 120fps
+        const dynamicThrottle = this.fastDrawingMode ? 1 : this.renderThrottleMs; // 1000fps vs 500fps
         if (!force && (now - this.lastRenderTime) < dynamicThrottle) {
             return;
         }
@@ -12427,12 +12353,12 @@ class UnifiedPDFViewer {
         // Optimisation: Ne pas redessiner si pas assez de points
         if (!points || points.length < 2) return;
         
-        // Optimisation adaptée: Moins agressive pour dessin rapide
+        // Optimisation ultra-conservative pour ne jamais perdre de points
         let optimizedPoints = points;
-        const maxPoints = this.fastDrawingMode ? 200 : 100; // Plus de points en mode rapide
+        const maxPoints = this.fastDrawingMode ? 500 : 300; // Beaucoup plus de points conservés
         if (points.length > maxPoints) {
-            // Garder plus de points pour les traits rapides
-            const keepRatio = this.fastDrawingMode ? 0.7 : 0.4;
+            // Garder le maximum de points possibles
+            const keepRatio = this.fastDrawingMode ? 0.9 : 0.8; // Garder 80-90% des points
             const step = Math.max(1, Math.floor(1 / keepRatio));
             optimizedPoints = points.filter((_, i) => i % step === 0);
             // Toujours garder le dernier point
@@ -12477,21 +12403,19 @@ class UnifiedPDFViewer {
 
         ctx.save();
         
-        // Configuration premium pour écriture ultra-lisse
+        // Configuration PREMIUM Apple Freeform - qualité maximale
         ctx.strokeStyle = this.currentColor;
         ctx.lineWidth = this.currentLineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        // Anti-aliasing maximum + lissage étendu
+        // Anti-aliasing net et précis
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        
-        // Appliquer un léger effet de lissage avec ombre portée
-        ctx.shadowColor = this.currentColor;
-        ctx.shadowBlur = 0.5;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+
+        // Trait net sans flou pour éviter la pixellisation
+        // Suppression des effets de shadow qui causent le flou
+        ctx.globalAlpha = 1.0; // Opacité complète pour trait net
         
         if (points.length === 2) {
             // Trait simple avec lissage
@@ -12500,25 +12424,11 @@ class UnifiedPDFViewer {
             ctx.lineTo(points[1][0], points[1][1]);
             ctx.stroke();
         } else {
-            // Tracé ultra-lissé avec courbes de Bézier et pré-lissage
-            const smoothedPoints = this.smoothPoints(points);
+            // RENDU PREMIUM: Catmull-Rom splines pour un lissé parfait
+            const ultraSmoothPoints = this.applyCatmullRomSmoothing(this.smoothPoints(points));
             
-            ctx.beginPath();
-            ctx.moveTo(smoothedPoints[0][0], smoothedPoints[0][1]);
-            
-            for (let i = 1; i < smoothedPoints.length - 1; i++) {
-                const curr = smoothedPoints[i];
-                const next = smoothedPoints[i + 1];
-                const midX = (curr[0] + next[0]) / 2;
-                const midY = (curr[1] + next[1]) / 2;
-                
-                ctx.quadraticCurveTo(curr[0], curr[1], midX, midY);
-            }
-            
-            // Finir avec le dernier point
-            const last = smoothedPoints[smoothedPoints.length - 1];
-            ctx.lineTo(last[0], last[1]);
-            ctx.stroke();
+            // Triple pass pour qualité Apple Freeform
+            this.drawMultiPassStroke(ctx, ultraSmoothPoints);
         }
         
         ctx.restore();
@@ -12532,22 +12442,138 @@ class UnifiedPDFViewer {
     smoothPoints(points) {
         if (points.length < 3) return points;
         
-        const smoothed = [points[0]]; // Premier point inchangé
+        const smoothed = [points[0]];
         
         for (let i = 1; i < points.length - 1; i++) {
             const prev = points[i - 1];
             const curr = points[i];
             const next = points[i + 1];
             
-            // Moyenne pondérée pour lisser
-            const smoothX = (prev[0] * 0.2 + curr[0] * 0.6 + next[0] * 0.2);
-            const smoothY = (prev[1] * 0.2 + curr[1] * 0.6 + next[1] * 0.2);
+            // Lissage gaussien amélioré (plus doux que la moyenne simple)
+            const smoothX = (prev[0] * 0.15 + curr[0] * 0.7 + next[0] * 0.15);
+            const smoothY = (prev[1] * 0.15 + curr[1] * 0.7 + next[1] * 0.15);
             
-            smoothed.push([smoothX, smoothY, curr[2] || 0.5]);
+            // Calculer la vitesse pour variation d'épaisseur naturelle
+            const speed = Math.sqrt(Math.pow(curr[0] - prev[0], 2) + Math.pow(curr[1] - prev[1], 2));
+            const pressure = Math.max(0.3, Math.min(1.0, 1.0 - speed / 50)); // Pressure adaptive
+            
+            smoothed.push([smoothX, smoothY, pressure]);
         }
         
-        smoothed.push(points[points.length - 1]); // Dernier point inchangé
+        smoothed.push(points[points.length - 1]);
         return smoothed;
+    }
+    
+    /**
+     * ULTRA-LISSAGE: Applique un lissage Catmull-Rom pour courbes parfaites (niveau Apple Freeform)
+     * @param {Array} points - Points déjà lissés
+     * @returns {Array} - Points ultra-lissés avec courbes Catmull-Rom
+     */
+    applyCatmullRomSmoothing(points) {
+        if (points.length < 4) return points;
+        
+        const ultraSmooth = [];
+        const segments = 4; // Densité de subdivision pour courbes ultra-lisses
+        
+        for (let i = 0; i < points.length - 3; i++) {
+            const p0 = points[i];
+            const p1 = points[i + 1];
+            const p2 = points[i + 2];
+            const p3 = points[i + 3];
+            
+            for (let t = 0; t <= segments; t++) {
+                const tt = t / segments;
+                const ttt = tt * tt;
+                const tttt = ttt * tt;
+                
+                // Formule Catmull-Rom pour courbes ultra-naturelles
+                const x = 0.5 * (
+                    (2 * p1[0]) +
+                    (-p0[0] + p2[0]) * tt +
+                    (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * ttt +
+                    (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * tttt
+                );
+                
+                const y = 0.5 * (
+                    (2 * p1[1]) +
+                    (-p0[1] + p2[1]) * tt +
+                    (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * ttt +
+                    (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * tttt
+                );
+                
+                // Interpoler la pression aussi
+                const pressure = p1[2] || 0.5;
+                ultraSmooth.push([x, y, pressure]);
+            }
+        }
+        
+        return ultraSmooth;
+    }
+    
+    /**
+     * RENDU MULTICOUCHE: Dessine avec plusieurs passes pour effet Apple Pencil naturel
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} points - Points ultra-lissés
+     */
+    drawMultiPassStroke(ctx, points) {
+        if (points.length < 2) return;
+        
+        // Pass 1: Couche de base avec légère transparence
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = this.currentLineWidth * 1.2; // Légèrement plus épais pour la base
+        this.drawCurvedPath(ctx, points);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Pass 2: Couche principale
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = this.currentLineWidth;
+        this.drawCurvedPath(ctx, points);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Pass 3: Couche de finition pour netteté
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = this.currentLineWidth * 0.6; // Plus fin pour les détails
+        ctx.shadowBlur = 0; // Pas d'ombre pour la couche de netteté
+        this.drawCurvedPath(ctx, points);
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    /**
+     * Dessine un chemin courbe fluide avec variation de pression
+     * @param {CanvasRenderingContext2D} ctx - Contexte canvas
+     * @param {Array} points - Points avec pression
+     */
+    drawCurvedPath(ctx, points) {
+        if (points.length < 2) return;
+        
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        
+        for (let i = 1; i < points.length - 1; i++) {
+            const curr = points[i];
+            const next = points[i + 1];
+            const midX = (curr[0] + next[0]) / 2;
+            const midY = (curr[1] + next[1]) / 2;
+            
+            // Varier légèrement l'épaisseur selon la pression pour un effet naturel
+            const pressure = curr[2] || 0.5;
+            const dynamicWidth = this.currentLineWidth * (0.7 + pressure * 0.6);
+            if (Math.abs(ctx.lineWidth - dynamicWidth) > 0.5) {
+                ctx.lineWidth = dynamicWidth;
+            }
+            
+            ctx.quadraticCurveTo(curr[0], curr[1], midX, midY);
+        }
+        
+        // Terminer avec le dernier point
+        const last = points[points.length - 1];
+        ctx.lineTo(last[0], last[1]);
     }
 
     // =====================================
@@ -12615,9 +12641,7 @@ class UnifiedPDFViewer {
                 // Mettre à jour la référence du contexte
                 pageElement.annotationCtx = ctx;
                 
-                if (this.options.debug) {
-                    console.log(`🎨 Page ${pageNum}: Canvas optimisé ${rect.width}x${rect.height} → ${canvas.width}x${canvas.height}`);
-                }
+                // Performance optimisée - logs canvas supprimés
             }
         });
     }
