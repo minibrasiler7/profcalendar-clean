@@ -3518,14 +3518,46 @@ class UnifiedPDFViewer {
         // Initialiser touch-action pour permettre scroll/zoom natif par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         
-        // Événements de dessin sur le canvas d'annotation
-        annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
-        annotationCanvas.addEventListener('mousemove', (e) => this.draw(e, pageNum));
-        annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
-        annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
+        // Utiliser PointerEvents modernes pour meilleure gestion stylet + palm rejection
+        // PointerEvent gère automatiquement stylet, souris et touch, avec palm rejection natif
 
-        // Support tactile avec gestion dynamique des events pour laisser le zoom natif
-        annotationCanvas.addEventListener('touchstart', (e) => {
+        annotationCanvas.addEventListener('pointerdown', (e) => {
+            // FILTRER : Seulement stylet et souris, PAS les doigts (palm rejection)
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                e.preventDefault();
+                this.startDrawing(e, pageNum);
+            }
+            // Les doigts (touch) sont ignorés = palm rejection automatique
+        });
+
+        annotationCanvas.addEventListener('pointermove', (e) => {
+            // FILTRER : Seulement continuer si c'est le même type de pointeur
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                e.preventDefault();
+                this.draw(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerup', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                e.preventDefault();
+                this.stopDrawing(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerleave', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                this.stopDrawing(e, pageNum);
+            }
+        });
+
+        // Désactiver le style CSS touch-action pour laisser PointerEvents gérer
+        annotationCanvas.style.touchAction = 'none';
+
+        // ANCIENS TouchEvents - Gardés en fallback pour compatibilité mais désactivés si PointerEvents supportés
+        if (!window.PointerEvent) {
+            // Support tactile avec gestion dynamique des events pour laisser le zoom natif
+            annotationCanvas.addEventListener('touchstart', (e) => {
             
             // Multi-touch : TOUJOURS désactiver le canvas et laisser zoom natif passer au PDF
             if (e.touches.length > 1) {
@@ -3655,6 +3687,7 @@ class UnifiedPDFViewer {
             }
             // Sinon laisser le comportement natif (ex: tap, scroll, zoom)
         });
+        } // Fin du fallback TouchEvents
     }
     
     /**
