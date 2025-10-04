@@ -3518,201 +3518,14 @@ class UnifiedPDFViewer {
         // Initialiser touch-action pour permettre scroll/zoom natif par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         
-        // Utiliser PointerEvents modernes pour meilleure gestion stylet + palm rejection
-        // Stratégie : Bloquer UNIQUEMENT les doigts quand le stylet est actif
+        // Événements de dessin sur le canvas d'annotation
+        annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
+        annotationCanvas.addEventListener('mousemove', (e) => this.draw(e, pageNum));
+        annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
+        annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
 
-        let activeStylusPointerId = null; // Tracker l'ID du stylet actif
-        let scrollBlocker = null; // Timer pour bloquer le scroll programmatique
-        let savedScrollPositions = null; // Positions de scroll sauvegardées
-
-        annotationCanvas.addEventListener('pointerdown', (e) => {
-            console.log('🎯 POINTERDOWN page', pageNum, '- Type:', e.pointerType, 'ID:', e.pointerId);
-
-            // Stylet ou souris : activer le dessin ET bloquer scroll
-            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-                console.log('✅ Stylet/Souris détecté - Blocage scroll...');
-                e.preventDefault();
-                e.stopPropagation(); // Empêcher la propagation au conteneur parent
-                activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
-
-                // Bloquer scroll/zoom pendant dessin avec stylet - sur TOUS les conteneurs parents
-                annotationCanvas.style.touchAction = 'none';
-
-                // Bloquer tous les conteneurs scrollables parents
-                const pdfContainer = document.getElementById('pdf-container');
-                const viewport = document.getElementById('viewport');
-                const body = document.body;
-                const html = document.documentElement;
-
-                if (pdfContainer) {
-                    pdfContainer.style.touchAction = 'none';
-                    pdfContainer.style.overflow = 'hidden';
-                    pdfContainer.style.pointerEvents = 'none'; // Bloquer TOUS les événements sur le PDF
-                }
-                if (viewport) {
-                    viewport.style.touchAction = 'none';
-                    viewport.style.overflow = 'hidden';
-                    viewport.style.pointerEvents = 'none';
-                }
-                // Bloquer scroll sur body et html aussi
-                body.style.overflow = 'hidden';
-                html.style.overflow = 'hidden';
-
-                // Ré-activer seulement sur le canvas d'annotation pour permettre le dessin
-                annotationCanvas.style.pointerEvents = 'auto';
-
-                // Sauvegarder les positions de scroll actuelles
-                savedScrollPositions = {
-                    windowX: window.scrollX,
-                    windowY: window.scrollY,
-                    pdfContainer: pdfContainer ? { x: pdfContainer.scrollLeft, y: pdfContainer.scrollTop } : null,
-                    viewport: viewport ? { x: viewport.scrollLeft, y: viewport.scrollTop } : null,
-                    body: { x: body.scrollLeft, y: body.scrollTop }
-                };
-
-                // Installer un bloqueur de scroll qui restaure la position
-                const preventScroll = function() {
-                    if (savedScrollPositions) {
-                        window.scrollTo(savedScrollPositions.windowX, savedScrollPositions.windowY);
-                        if (pdfContainer && savedScrollPositions.pdfContainer) {
-                            pdfContainer.scrollLeft = savedScrollPositions.pdfContainer.x;
-                            pdfContainer.scrollTop = savedScrollPositions.pdfContainer.y;
-                        }
-                        if (viewport && savedScrollPositions.viewport) {
-                            viewport.scrollLeft = savedScrollPositions.viewport.x;
-                            viewport.scrollTop = savedScrollPositions.viewport.y;
-                        }
-                        body.scrollLeft = savedScrollPositions.body.x;
-                        body.scrollTop = savedScrollPositions.body.y;
-                    }
-                };
-
-                // Bloquer le scroll programmatique en surveillant constamment
-                scrollBlocker = setInterval(preventScroll, 16); // 60fps
-
-                console.log('📦 Overflow bloqué - pdf:', pdfContainer?.style.overflow, 'body:', body.style.overflow);
-                console.log('🔒 Scroll bloqué aux positions:', savedScrollPositions);
-
-                this.startDrawing(e, pageNum);
-            }
-            // Doigt : laisser passer SAUF si stylet déjà actif (palm rejection)
-            else if (e.pointerType === 'touch') {
-                if (activeStylusPointerId !== null) {
-                    // Stylet actif = bloquer les doigts (palm rejection)
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                // Sinon laisser passer pour scroll/zoom
-            }
-        });
-
-        annotationCanvas.addEventListener('pointermove', (e) => {
-            // Continuer le dessin si c'est le stylet/souris actif
-            if (e.pointerId === activeStylusPointerId) {
-                e.preventDefault();
-                this.draw(e, pageNum);
-            }
-            // Bloquer les mouvements de doigts pendant que stylet dessine
-            else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        });
-
-        annotationCanvas.addEventListener('pointerup', (e) => {
-            // Fin du dessin avec stylet/souris
-            if (e.pointerId === activeStylusPointerId) {
-                e.preventDefault();
-                this.stopDrawing(e, pageNum);
-                activeStylusPointerId = null; // Libérer
-
-                // Restaurer scroll/zoom avec les doigts - sur TOUS les conteneurs
-                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-
-                const pdfContainer = document.getElementById('pdf-container');
-                const viewport = document.getElementById('viewport');
-                const body = document.body;
-                const html = document.documentElement;
-
-                if (pdfContainer) {
-                    pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
-                    pdfContainer.style.overflow = 'auto';
-                    pdfContainer.style.pointerEvents = 'auto'; // Réactiver les événements
-                }
-                if (viewport) {
-                    viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
-                    viewport.style.overflow = 'auto';
-                    viewport.style.pointerEvents = 'auto';
-                }
-                // Restaurer scroll sur body et html
-                body.style.overflow = 'auto';
-                html.style.overflow = 'auto';
-
-                // Arrêter le bloqueur de scroll
-                if (scrollBlocker) {
-                    clearInterval(scrollBlocker);
-                    scrollBlocker = null;
-                }
-                savedScrollPositions = null;
-            }
-            // Bloquer pointerup des doigts pendant dessin stylet
-            else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        });
-
-        annotationCanvas.addEventListener('pointercancel', (e) => {
-            // Réinitialiser si le pointeur est annulé
-            if (e.pointerId === activeStylusPointerId) {
-                this.stopDrawing(e, pageNum);
-                activeStylusPointerId = null;
-
-                // Restaurer scroll/zoom - sur TOUS les conteneurs
-                annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-
-                const pdfContainer = document.getElementById('pdf-container');
-                const viewport = document.getElementById('viewport');
-                const body = document.body;
-                const html = document.documentElement;
-
-                if (pdfContainer) {
-                    pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
-                    pdfContainer.style.overflow = 'auto';
-                    pdfContainer.style.pointerEvents = 'auto'; // Réactiver les événements
-                }
-                if (viewport) {
-                    viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
-                    viewport.style.overflow = 'auto';
-                    viewport.style.pointerEvents = 'auto';
-                }
-                // Restaurer scroll sur body et html
-                body.style.overflow = 'auto';
-                html.style.overflow = 'auto';
-
-                // Arrêter le bloqueur de scroll
-                if (scrollBlocker) {
-                    clearInterval(scrollBlocker);
-                    scrollBlocker = null;
-                }
-                savedScrollPositions = null;
-            }
-        });
-
-        annotationCanvas.addEventListener('pointerleave', (e) => {
-            if (e.pointerId === activeStylusPointerId) {
-                this.stopDrawing(e, pageNum);
-                // Note: on ne réinitialise pas activeStylusPointerId ici car le stylet peut revenir
-            }
-        });
-
-        // Par défaut : permettre scroll/zoom avec les doigts
-        annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-
-        // ANCIENS TouchEvents - Gardés en fallback pour compatibilité mais désactivés si PointerEvents supportés
-        if (!window.PointerEvent) {
-            // Support tactile avec gestion dynamique des events pour laisser le zoom natif
-            annotationCanvas.addEventListener('touchstart', (e) => {
+        // Support tactile avec gestion dynamique des events pour laisser le zoom natif
+        annotationCanvas.addEventListener('touchstart', (e) => {
             
             // Multi-touch : TOUJOURS désactiver le canvas et laisser zoom natif passer au PDF
             if (e.touches.length > 1) {
@@ -3842,7 +3655,6 @@ class UnifiedPDFViewer {
             }
             // Sinon laisser le comportement natif (ex: tap, scroll, zoom)
         });
-        } // Fin du fallback TouchEvents
     }
     
     /**
