@@ -349,6 +349,16 @@ class PDFAnnotationEngine {
 }
 
 // Exposer globalement pour compatibilité sans modules ES6
-window.PDFAnnotationEngine = PDFAnnotationEngine;
+if (typeof window !== 'undefined') {
+    window.PDFAnnotationEngine = PDFAnnotationEngine;
+    console.log('✅ PDFAnnotationEngine exposé globalement');
+
+    // Vérifier que getStroke est disponible
+    if (typeof window.getStroke === 'undefined') {
+        console.warn('⚠️ perfect-freehand (getStroke) pas encore chargé - attendez perfectFreehandLoaded event');
+    } else {
+        console.log('✅ perfect-freehand (getStroke) disponible');
+    }
+}
 
 })(window);

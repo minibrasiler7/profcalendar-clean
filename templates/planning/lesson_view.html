@@ -7792,13 +7792,39 @@ body .thumbnail-canvas {
     import { getStroke } from 'https://cdn.skypack.dev/perfect-freehand@1.2.0';
     window.getStroke = getStroke;
     console.log('✅ perfect-freehand chargé');
+
+    // Signaler que perfect-freehand est prêt
+    window.perfectFreehandReady = true;
+    window.dispatchEvent(new Event('perfectFreehandLoaded'));
 </script>
 
-<!-- Moteur d'annotation PDF (nouveau système) -->
-<script src="{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<!-- Moteur d'annotation PDF (nouveau système) - Chargé après perfect-freehand -->
+<script>
+    // Attendre que perfect-freehand soit chargé avant de charger le moteur d'annotation
+    function loadAnnotationEngine() {
+        if (window.perfectFreehandReady) {
+            const script = document.createElement('script');
+            script.src = "{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}";
+            script.onload = function() {
+                console.log('✅ PDFAnnotationEngine chargé');
+            };
+            document.head.appendChild(script);
+        } else {
+            window.addEventListener('perfectFreehandLoaded', function() {
+                const script = document.createElement('script');
+                script.src = "{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}";
+                script.onload = function() {
+                    console.log('✅ PDFAnnotationEngine chargé');
+                };
+                document.head.appendChild(script);
+            }, { once: true });
+        }
+    }
+    loadAnnotationEngine();
+</script>
 
 <!-- Lecteur PDF Unifié -->
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 <script>
 // Variables globales pour le lecteur PDF unifié
 let unifiedPDFViewer = null;
