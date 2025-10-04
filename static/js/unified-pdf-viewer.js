@@ -3545,14 +3545,19 @@ class UnifiedPDFViewer {
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'none';
                     pdfContainer.style.overflow = 'hidden';
+                    pdfContainer.style.pointerEvents = 'none'; // Bloquer TOUS les événements sur le PDF
                 }
                 if (viewport) {
                     viewport.style.touchAction = 'none';
                     viewport.style.overflow = 'hidden';
+                    viewport.style.pointerEvents = 'none';
                 }
                 // Bloquer scroll sur body et html aussi
                 body.style.overflow = 'hidden';
                 html.style.overflow = 'hidden';
+
+                // Ré-activer seulement sur le canvas d'annotation pour permettre le dessin
+                annotationCanvas.style.pointerEvents = 'auto';
 
                 console.log('📦 Overflow bloqué - pdf:', pdfContainer?.style.overflow, 'body:', body.style.overflow);
 
@@ -3600,10 +3605,12 @@ class UnifiedPDFViewer {
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
                     pdfContainer.style.overflow = 'auto';
+                    pdfContainer.style.pointerEvents = 'auto'; // Réactiver les événements
                 }
                 if (viewport) {
                     viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
                     viewport.style.overflow = 'auto';
+                    viewport.style.pointerEvents = 'auto';
                 }
                 // Restaurer scroll sur body et html
                 body.style.overflow = 'auto';
@@ -3633,10 +3640,12 @@ class UnifiedPDFViewer {
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
                     pdfContainer.style.overflow = 'auto';
+                    pdfContainer.style.pointerEvents = 'auto'; // Réactiver les événements
                 }
                 if (viewport) {
                     viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
                     viewport.style.overflow = 'auto';
+                    viewport.style.pointerEvents = 'auto';
                 }
                 // Restaurer scroll sur body et html
                 body.style.overflow = 'auto';
