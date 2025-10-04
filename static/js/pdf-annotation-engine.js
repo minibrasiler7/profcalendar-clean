@@ -15,7 +15,7 @@ class PDFAnnotationEngine {
             thinning: options.thinning || 0.5,
             smoothing: options.smoothing || 0.5,
             streamline: options.streamline || 0.5,
-            easing: options.easing || (t) => t,
+            easing: options.easing || function(t) { return t; },
             start: options.start || { taper: 0, cap: true },
             end: options.end || { taper: 0, cap: true },
             simulatePressure: options.simulatePressure !== false,
@@ -340,9 +340,10 @@ class PDFAnnotationEngine {
      */
     renderAllStrokes(ctx) {
         const visiblePaths = this.getVisiblePaths();
+        const self = this;
 
-        visiblePaths.forEach(pathData => {
-            this.drawStroke(ctx, pathData.stroke, pathData.color, pathData.opacity);
+        visiblePaths.forEach(function(pathData) {
+            self.drawStroke(ctx, pathData.stroke, pathData.color, pathData.opacity);
         });
     }
 }
