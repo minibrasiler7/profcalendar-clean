@@ -3522,12 +3522,80 @@ class UnifiedPDFViewer {
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
         // Initialiser touch-action pour permettre scroll/zoom natif par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        
+
+        // Buffer de points pour haute fréquence (pointerrawupdate)
+        const pointsBuffer = [];
+        let animationFrameId = null;
+
+        // Fonction de rendu avec requestAnimationFrame
+        const renderBufferedPoints = () => {
+            if (pointsBuffer.length > 0 && this.isDrawing) {
+                // Traiter tous les points en attente
+                while (pointsBuffer.length > 0) {
+                    const point = pointsBuffer.shift();
+                    this.draw(point.event, pageNum);
+                }
+            }
+
+            // Continuer le rendu si on dessine
+            if (this.isDrawing) {
+                animationFrameId = requestAnimationFrame(renderBufferedPoints);
+            }
+        };
+
         // Événements de dessin sur le canvas d'annotation
-        annotationCanvas.addEventListener('mousedown', (e) => this.startDrawing(e, pageNum));
-        annotationCanvas.addEventListener('mousemove', (e) => this.draw(e, pageNum));
-        annotationCanvas.addEventListener('mouseup', (e) => this.stopDrawing(e, pageNum));
-        annotationCanvas.addEventListener('mouseout', (e) => this.stopDrawing(e, pageNum));
+        annotationCanvas.addEventListener('mousedown', (e) => {
+            this.startDrawing(e, pageNum);
+            // Démarrer la boucle de rendu
+            if (!animationFrameId) {
+                animationFrameId = requestAnimationFrame(renderBufferedPoints);
+            }
+        });
+
+        // Essayer d'utiliser pointerrawupdate pour haute fréquence (240Hz sur iPad)
+        if ('onpointerrawupdate' in annotationCanvas) {
+            console.log('✅ pointerrawupdate supporté - haute fréquence activée');
+            annotationCanvas.addEventListener('pointerrawupdate', (e) => {
+                if (this.isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
+                    // Ajouter au buffer au lieu de dessiner directement
+                    pointsBuffer.push({ event: e, timestamp: performance.now() });
+                }
+            });
+        } else {
+            // Fallback sur mousemove/pointermove
+            console.log('⚠️ pointerrawupdate non supporté - fallback sur pointermove');
+            annotationCanvas.addEventListener('pointermove', (e) => {
+                if (this.isDrawing) {
+                    pointsBuffer.push({ event: e, timestamp: performance.now() });
+                }
+            });
+        }
+
+        // Garder mousemove comme fallback pour souris
+        annotationCanvas.addEventListener('mousemove', (e) => {
+            if (this.isDrawing && !('onpointerrawupdate' in annotationCanvas)) {
+                pointsBuffer.push({ event: e, timestamp: performance.now() });
+            }
+        });
+
+        annotationCanvas.addEventListener('mouseup', (e) => {
+            this.stopDrawing(e, pageNum);
+            // Arrêter la boucle de rendu
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            pointsBuffer.length = 0; // Vider le buffer
+        });
+
+        annotationCanvas.addEventListener('mouseout', (e) => {
+            this.stopDrawing(e, pageNum);
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            pointsBuffer.length = 0;
+        });
 
         // Support tactile avec gestion dynamique des events pour laisser le zoom natif
         annotationCanvas.addEventListener('touchstart', (e) => {
@@ -4351,11 +4419,29 @@ class UnifiedPDFViewer {
                 // Utiliser le nouveau moteur d'annotation perfect-freehand
                 const engine = this.annotationEngines.get(pageNum);
                 if (engine) {
-                    // Toujours utiliser une pression constante de 0.5 pour largeur uniforme
-                    const pressure = 0.5;
-                    const strokePoints = engine.addPoint(currentPoint.x, currentPoint.y, pressure);
+                    // Interpoler les points si la distance est grande (éviter les trous)
+                    const dx = currentPoint.x - this.lastPoint.x;
+                    const dy = currentPoint.y - this.lastPoint.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    // Rendu en temps réel si le moteur retourne des points (pas throttlé)
+                    // Si distance > 5 pixels, interpoler des points intermédiaires
+                    if (distance > 5) {
+                        const steps = Math.ceil(distance / 3); // Point tous les 3 pixels
+                        for (let i = 1; i <= steps; i++) {
+                            const t = i / steps;
+                            const interpX = this.lastPoint.x + dx * t;
+                            const interpY = this.lastPoint.y + dy * t;
+                            const pressure = 0.5;
+                            engine.addPoint(interpX, interpY, pressure);
+                        }
+                    } else {
+                        // Sinon ajouter le point directement
+                        const pressure = 0.5;
+                        engine.addPoint(currentPoint.x, currentPoint.y, pressure);
+                    }
+
+                    // Toujours re-rendre le stroke en cours
+                    const strokePoints = engine.currentStroke;
                     if (strokePoints) {
                         // Restaurer l'état du canvas
                         if (this.currentStrokeImageData) {
