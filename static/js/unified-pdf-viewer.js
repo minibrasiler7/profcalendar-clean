@@ -4051,7 +4051,8 @@ class UnifiedPDFViewer {
 
             // Démarrer le tracé avec le nouveau moteur perfect-freehand
             const engine = this.annotationEngines.get(pageNum);
-            const pressure = e.pressure || this.calculatePressureFromVelocity(this.lastPoint, null);
+            // Toujours utiliser une pression constante de 0.5 pour largeur uniforme
+            const pressure = 0.5;
             engine.startPath(this.lastPoint.x, this.lastPoint.y, pressure);
 
             // Démarrer le timer pour la ligne droite automatique
@@ -4350,7 +4351,8 @@ class UnifiedPDFViewer {
                 // Utiliser le nouveau moteur d'annotation perfect-freehand
                 const engine = this.annotationEngines.get(pageNum);
                 if (engine) {
-                    const pressure = e.pressure || engine.calculatePressureFromVelocity(currentPoint, this.lastPoint);
+                    // Toujours utiliser une pression constante de 0.5 pour largeur uniforme
+                    const pressure = 0.5;
                     const strokePoints = engine.addPoint(currentPoint.x, currentPoint.y, pressure);
 
                     // Rendu en temps réel si le moteur retourne des points (pas throttlé)
@@ -12251,13 +12253,16 @@ class UnifiedPDFViewer {
 
         const engine = new window.PDFAnnotationEngine({
             size: this.currentLineWidth, // Taille exacte choisie par l'utilisateur
-            thinning: 0, // Pas de variation - largeur constante quelle que soit la vitesse
-            smoothing: 0.5, // Lissage modéré pour fluidité sans sticky
-            streamline: 0.3, // Faible streamline pour réactivité immédiate (pas de sticky)
+            thinning: 0, // Pas de variation - largeur constante
+            smoothing: 0.2, // Très faible lissage pour suivre précisément le stylet
+            streamline: 0.05, // Quasi-nul pour réactivité maximale - pas de sticky
+            easing: function(t) { return t; }, // Linear easing - pas d'accélération
             color: this.currentColor,
             opacity: 1.0,
-            renderThrottle: 0, // Pas de throttle - rendu à chaque événement pour zéro latence
-            simulatePressure: false, // Désactiver simulation de pression pour trait constant
+            renderThrottle: 0, // Pas de throttle - rendu immédiat
+            simulatePressure: false, // Désactiver simulation de pression
+            start: { taper: 0, cap: true }, // Pas de taper au début
+            end: { taper: 0, cap: true }, // Pas de taper à la fin
         });
 
         this.annotationEngines.set(pageNum, engine);
