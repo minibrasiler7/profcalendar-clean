@@ -4470,16 +4470,20 @@ class UnifiedPDFViewer {
                     engine.addPoint(currentPoint.x, currentPoint.y, pressure);
                 }
 
-                // Toujours re-rendre le stroke en cours
+                // Rendu incrémental pour performance maximale
                 const strokePoints = engine.currentStroke;
                 if (strokePoints) {
                     console.log('🎨 Rendu stroke avec', strokePoints.length, 'points');
-                    // Restaurer l'état du canvas
-                    if (this.currentStrokeImageData) {
-                        ctx.putImageData(this.currentStrokeImageData, 0, 0);
-                    }
-                    // Dessiner le stroke en cours
+
+                    // OPTIMISATION: Dessiner directement sur le canvas sans effacer
+                    // Cela évite de redessiner tous les points à chaque frame
+                    // Le rendu est cumulatif et beaucoup plus rapide
+
+                    // Ne pas restaurer currentStrokeImageData - on dessine incrémentalement
                     engine.renderCurrentStroke(ctx);
+
+                    // Sauvegarder l'état actuel pour le prochain frame
+                    this.currentStrokeImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
                 } else {
                     console.warn('⚠️ Pas de strokePoints retournés par le moteur');
                 }
