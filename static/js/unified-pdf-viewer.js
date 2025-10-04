@@ -3527,9 +3527,17 @@ class UnifiedPDFViewer {
             // Stylet ou souris : activer le dessin ET bloquer scroll
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 e.preventDefault();
+                e.stopPropagation(); // Empêcher la propagation au conteneur parent
                 activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
-                // Bloquer scroll/zoom pendant dessin avec stylet
+
+                // Bloquer scroll/zoom pendant dessin avec stylet - sur canvas ET conteneur
                 annotationCanvas.style.touchAction = 'none';
+                const pdfContainer = document.getElementById('pdf-container');
+                if (pdfContainer) {
+                    pdfContainer.style.touchAction = 'none';
+                    pdfContainer.style.overflow = 'hidden'; // Bloquer scroll complètement
+                }
+
                 this.startDrawing(e, pageNum);
             }
             // Doigt : laisser passer SAUF si stylet déjà actif (palm rejection)
@@ -3562,8 +3570,14 @@ class UnifiedPDFViewer {
                 e.preventDefault();
                 this.stopDrawing(e, pageNum);
                 activeStylusPointerId = null; // Libérer
-                // Restaurer scroll/zoom avec les doigts
+
+                // Restaurer scroll/zoom avec les doigts - sur canvas ET conteneur
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+                const pdfContainer = document.getElementById('pdf-container');
+                if (pdfContainer) {
+                    pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
+                    pdfContainer.style.overflow = 'auto'; // Restaurer scroll
+                }
             }
             // Bloquer pointerup des doigts pendant dessin stylet
             else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
@@ -3577,8 +3591,14 @@ class UnifiedPDFViewer {
             if (e.pointerId === activeStylusPointerId) {
                 this.stopDrawing(e, pageNum);
                 activeStylusPointerId = null;
-                // Restaurer scroll/zoom
+
+                // Restaurer scroll/zoom - sur canvas ET conteneur
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+                const pdfContainer = document.getElementById('pdf-container');
+                if (pdfContainer) {
+                    pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
+                    pdfContainer.style.overflow = 'auto';
+                }
             }
         });
 
