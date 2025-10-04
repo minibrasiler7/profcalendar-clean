@@ -3530,13 +3530,26 @@ class UnifiedPDFViewer {
                 e.stopPropagation(); // Empêcher la propagation au conteneur parent
                 activeStylusPointerId = e.pointerId; // Mémoriser l'ID du stylet
 
-                // Bloquer scroll/zoom pendant dessin avec stylet - sur canvas ET conteneur
+                // Bloquer scroll/zoom pendant dessin avec stylet - sur TOUS les conteneurs parents
                 annotationCanvas.style.touchAction = 'none';
+
+                // Bloquer tous les conteneurs scrollables parents
                 const pdfContainer = document.getElementById('pdf-container');
+                const viewport = document.getElementById('viewport');
+                const body = document.body;
+                const html = document.documentElement;
+
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'none';
-                    pdfContainer.style.overflow = 'hidden'; // Bloquer scroll complètement
+                    pdfContainer.style.overflow = 'hidden';
                 }
+                if (viewport) {
+                    viewport.style.touchAction = 'none';
+                    viewport.style.overflow = 'hidden';
+                }
+                // Bloquer scroll sur body et html aussi
+                body.style.overflow = 'hidden';
+                html.style.overflow = 'hidden';
 
                 this.startDrawing(e, pageNum);
             }
@@ -3571,13 +3584,25 @@ class UnifiedPDFViewer {
                 this.stopDrawing(e, pageNum);
                 activeStylusPointerId = null; // Libérer
 
-                // Restaurer scroll/zoom avec les doigts - sur canvas ET conteneur
+                // Restaurer scroll/zoom avec les doigts - sur TOUS les conteneurs
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+
                 const pdfContainer = document.getElementById('pdf-container');
+                const viewport = document.getElementById('viewport');
+                const body = document.body;
+                const html = document.documentElement;
+
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
-                    pdfContainer.style.overflow = 'auto'; // Restaurer scroll
+                    pdfContainer.style.overflow = 'auto';
                 }
+                if (viewport) {
+                    viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
+                    viewport.style.overflow = 'auto';
+                }
+                // Restaurer scroll sur body et html
+                body.style.overflow = 'auto';
+                html.style.overflow = 'auto';
             }
             // Bloquer pointerup des doigts pendant dessin stylet
             else if (e.pointerType === 'touch' && activeStylusPointerId !== null) {
@@ -3592,13 +3617,25 @@ class UnifiedPDFViewer {
                 this.stopDrawing(e, pageNum);
                 activeStylusPointerId = null;
 
-                // Restaurer scroll/zoom - sur canvas ET conteneur
+                // Restaurer scroll/zoom - sur TOUS les conteneurs
                 annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+
                 const pdfContainer = document.getElementById('pdf-container');
+                const viewport = document.getElementById('viewport');
+                const body = document.body;
+                const html = document.documentElement;
+
                 if (pdfContainer) {
                     pdfContainer.style.touchAction = 'pan-x pan-y pinch-zoom';
                     pdfContainer.style.overflow = 'auto';
                 }
+                if (viewport) {
+                    viewport.style.touchAction = 'pan-x pan-y pinch-zoom';
+                    viewport.style.overflow = 'auto';
+                }
+                // Restaurer scroll sur body et html
+                body.style.overflow = 'auto';
+                html.style.overflow = 'auto';
             }
         });
 
