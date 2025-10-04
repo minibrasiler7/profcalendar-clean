@@ -4449,13 +4449,13 @@ class UnifiedPDFViewer {
                 // Interpoler les points si la distance est grande (éviter les trous)
                 const dx = currentPoint.x - this.lastPoint.x;
                 const dy = currentPoint.y - this.lastPoint.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const pointDistance = Math.sqrt(dx * dx + dy * dy);
 
-                console.log('📏 Distance depuis dernier point:', distance.toFixed(2), 'px');
+                console.log('📏 Distance depuis dernier point:', pointDistance.toFixed(2), 'px');
 
                 // Si distance > 5 pixels, interpoler des points intermédiaires
-                if (distance > 5) {
-                    const steps = Math.ceil(distance / 3); // Point tous les 3 pixels
+                if (pointDistance > 5) {
+                    const steps = Math.ceil(pointDistance / 3); // Point tous les 3 pixels
                     console.log('🔗 Interpolation de', steps, 'points intermédiaires');
                     for (let i = 1; i <= steps; i++) {
                         const t = i / steps;
