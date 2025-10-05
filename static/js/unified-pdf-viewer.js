@@ -1172,15 +1172,30 @@ class UnifiedPDFViewer {
         if (!this.pdfDoc) return;
 
         // Si des pages ont été ajoutées ou supprimées, utiliser la méthode spécialisée
-        const hasModifications = (this.deletedPages && this.deletedPages.size > 0) || 
+        const hasModifications = (this.deletedPages && this.deletedPages.size > 0) ||
                                (this.addedPages && this.addedPages.size > 0) ||
                                (this.blankPages && this.blankPages.size > 0);
-        
+
         if (hasModifications) {
             return await this.renderAllPagesWithAddedPages();
         }
 
-        
+        // SAUVEGARDER l'historique existant avant de recréer les pages
+        console.log('💾 Sauvegarde de l\'historique avant re-rendu...');
+        const savedUndoStack = new Map();
+        const savedRedoStack = new Map();
+        this.undoStack.forEach((stack, pageNum) => {
+            if (stack && stack.length > 0) {
+                savedUndoStack.set(pageNum, stack.slice()); // Copier le tableau
+                console.log(`  - Page ${pageNum}: ${stack.length} états undo`);
+            }
+        });
+        this.redoStack.forEach((stack, pageNum) => {
+            if (stack && stack.length > 0) {
+                savedRedoStack.set(pageNum, stack.slice());
+            }
+        });
+
         // Vider le conteneur
         this.elements.pagesContainer.innerHTML = '';
         this.pageElements.clear();
@@ -1192,9 +1207,19 @@ class UnifiedPDFViewer {
 
         // Configurer la détection de page visible
         this.setupPageVisibilityObserver();
-        
+
         // Initialiser l'historique undo/redo avec un état vide pour chaque page
         this.initializeUndoHistory();
+
+        // RESTAURER l'historique sauvegardé
+        console.log('📥 Restauration de l\'historique après re-rendu...');
+        savedUndoStack.forEach((stack, pageNum) => {
+            this.undoStack.set(pageNum, stack);
+            console.log(`  - Page ${pageNum}: ${stack.length} états restaurés`);
+        });
+        savedRedoStack.forEach((stack, pageNum) => {
+            this.redoStack.set(pageNum, stack);
+        });
         
         
         // Debug: Vérifier la hauteur totale du conteneur
@@ -1666,6 +1691,13 @@ class UnifiedPDFViewer {
                 self.renderPage(self.currentPage);
                 self.rerenderAllVectorAnnotations();
             });
+
+            // APPEL DIRECT supplémentaire pour s'assurer que les vecteurs sont toujours re-rendus
+            // même si renderAllPages ne retourne pas de promesse correcte
+            setTimeout(function() {
+                console.log('🔄 Appel direct de rerenderAllVectorAnnotations après zoom');
+                self.rerenderAllVectorAnnotations();
+            }, 300);
         }, 50);
 
         if (this.elements.zoomSelect) {
@@ -6523,7 +6555,10 @@ class UnifiedPDFViewer {
         const undoHistory = this.undoStack.get(pageNum);
         undoHistory.push({
             imageData: imageData,
-            vectorData: annotationData // Données vectorielles du stylo
+            vectorData: annotationData, // Données vectorielles du stylo
+            canvasWidth: ctx.canvas.width, // Sauvegarder la taille du canvas
+            canvasHeight: ctx.canvas.height,
+            scale: this.currentScale // Sauvegarder le zoom actuel
         });
 
         // Limiter la taille de l'historique (par exemple 20 états)
@@ -6535,6 +6570,55 @@ class UnifiedPDFViewer {
         this.redoStack.set(pageNum, []);
 
         this.updateUndoRedoButtons();
+    }
+
+    /**
+     * Transforme les données vectorielles selon un ratio de zoom
+     */
+    transformVectorData(vectorData, scaleRatio) {
+        if (!vectorData || !vectorData.paths) return vectorData;
+
+        // Créer une copie profonde des données
+        const transformed = {
+            version: vectorData.version,
+            options: vectorData.options,
+            paths: []
+        };
+
+        // Transformer chaque stroke
+        vectorData.paths.forEach(pathData => {
+            // Transformer les points originaux
+            const transformedPoints = pathData.points.map(point => {
+                return [
+                    point[0] * scaleRatio,  // x
+                    point[1] * scaleRatio,  // y
+                    point[2]                // pressure (inchangée)
+                ];
+            });
+
+            // Recalculer le stroke avec getStroke
+            let transformedStroke = null;
+            if (typeof window.getStroke !== 'undefined') {
+                transformedStroke = window.getStroke(transformedPoints, {
+                    size: vectorData.options.size,
+                    thinning: vectorData.options.thinning,
+                    smoothing: vectorData.options.smoothing,
+                    streamline: vectorData.options.streamline,
+                    easing: vectorData.options.easing,
+                    start: vectorData.options.start,
+                    end: vectorData.options.end,
+                    simulatePressure: vectorData.options.simulatePressure
+                });
+            }
+
+            transformed.paths.push({
+                ...pathData,
+                points: transformedPoints,
+                stroke: transformedStroke || pathData.stroke
+            });
+        });
+
+        return transformed;
     }
 
     /**
@@ -6574,8 +6658,17 @@ class UnifiedPDFViewer {
 
         const ctx = pageElement.annotationCtx;
 
+        // Calculer le ratio de transformation si le zoom a changé
+        const savedScale = state.scale || 1.0;
+        const currentScale = this.currentScale;
+        const scaleRatio = currentScale / savedScale;
+
         console.log(`🎨 Restauration page ${pageNum}:`, {
             canvasSize: `${ctx.canvas.width}x${ctx.canvas.height}`,
+            savedSize: `${state.canvasWidth}x${state.canvasHeight}`,
+            savedScale: savedScale,
+            currentScale: currentScale,
+            scaleRatio: scaleRatio,
             hasVectorData: !!state.vectorData,
             vectorPaths: state.vectorData?.paths?.length || 0,
             hasImageData: !!state.imageData
@@ -6589,8 +6682,17 @@ class UnifiedPDFViewer {
             const engine = this.annotationEngines.get(pageNum);
             if (engine) {
                 console.log(`  ✏️ Rendu de ${state.vectorData.paths.length} strokes vectoriels`);
-                // Importer et redessiner tous les strokes vectoriels
-                engine.import(state.vectorData);
+
+                // Si le zoom a changé, transformer les coordonnées des points
+                if (Math.abs(scaleRatio - 1.0) > 0.01) {
+                    console.log(`  🔄 Transformation des strokes (ratio: ${scaleRatio.toFixed(2)})`);
+                    const transformedData = this.transformVectorData(state.vectorData, scaleRatio);
+                    engine.import(transformedData);
+                } else {
+                    // Pas de changement de zoom, importer directement
+                    engine.import(state.vectorData);
+                }
+
                 ctx.globalCompositeOperation = 'source-over';
                 engine.renderAllStrokes(ctx);
             } else {
