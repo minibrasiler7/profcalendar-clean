@@ -3563,7 +3563,10 @@ class UnifiedPDFViewer {
             }
         });
 
-        // Support tactile avec gestion dynamique des events pour laisser le zoom natif
+        // TEMPORAIREMENT DÉSACTIVÉ: Support tactile - laissons pointer events gérer tout
+        // Les pointer events gèrent automatiquement touch + stylet + souris
+        // Les touch events bloquaient les pointer events avec preventDefault
+        /*
         annotationCanvas.addEventListener('touchstart', (e) => {
             
             // Multi-touch : TOUJOURS désactiver le canvas et laisser zoom natif passer au PDF
@@ -3694,8 +3697,9 @@ class UnifiedPDFViewer {
             }
             // Sinon laisser le comportement natif (ex: tap, scroll, zoom)
         });
+        */
     }
-    
+
     /**
      * Méthodes d'annotation de base
      */
