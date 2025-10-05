@@ -3530,17 +3530,23 @@ class UnifiedPDFViewer {
         // Fonction de rendu avec requestAnimationFrame
         let frameCount = 0;
         let totalPointsProcessed = 0;
+        let loopStarted = false;
         const renderBufferedPoints = () => {
             // Continuer la boucle tant qu'on dessine, même si buffer vide
             if (this.isDrawing) {
+                frameCount++;
+
+                if (!loopStarted) {
+                    console.log('🔄 Boucle de rendu démarrée');
+                    loopStarted = true;
+                }
+
                 if (pointsBuffer.length > 0) {
                     const bufferSize = pointsBuffer.length;
                     totalPointsProcessed += bufferSize;
-                    frameCount++;
 
-                    if (frameCount % 30 === 0) { // Log tous les 30 frames (~500ms à 60fps)
-                        console.log(`📊 Frame ${frameCount}: ${bufferSize} points dans le buffer, ${totalPointsProcessed} total traités`);
-                    }
+                    // Log plus fréquent pour debug
+                    console.log(`📊 Frame ${frameCount}: ${bufferSize} points, ${totalPointsProcessed} total`);
 
                     // Traiter tous les points en attente
                     while (pointsBuffer.length > 0) {
@@ -3553,8 +3559,12 @@ class UnifiedPDFViewer {
                 animationFrameId = requestAnimationFrame(renderBufferedPoints);
             } else {
                 // Reset des compteurs quand on arrête
+                if (loopStarted) {
+                    console.log(`🛑 Boucle arrêtée - ${frameCount} frames, ${totalPointsProcessed} points traités`);
+                }
                 frameCount = 0;
                 totalPointsProcessed = 0;
+                loopStarted = false;
             }
         };
 
@@ -3569,12 +3579,14 @@ class UnifiedPDFViewer {
 
         // Essayer d'utiliser pointerrawupdate pour haute fréquence (240Hz sur iPad)
         if ('onpointerrawupdate' in annotationCanvas) {
+            console.log('📱 Utilisation de pointerrawupdate pour capture haute fréquence');
             annotationCanvas.addEventListener('pointerrawupdate', (e) => {
                 if (this.isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
                     pointsBuffer.push({ event: e, timestamp: performance.now() });
                 }
             });
         } else {
+            console.log('🖱️ Fallback sur pointermove pour capture de points');
             // Fallback sur mousemove/pointermove
             annotationCanvas.addEventListener('pointermove', (e) => {
                 if (this.isDrawing) {
