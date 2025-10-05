@@ -3964,12 +3964,19 @@ class UnifiedPDFViewer {
     
     setCurrentLineWidth(width) {
         this.currentLineWidth = width;
-        
+
+        console.log('📏 Changement de largeur du stylo:', width);
+
         // Les outils géométriques utilisent maintenant directement this.currentLineWidth
         document.querySelectorAll('.stroke-btn').forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.width) === width);
         });
-        
+
+        // Mettre à jour tous les moteurs d'annotation existants
+        this.annotationEngines.forEach((engine, pageNum) => {
+            this.updateAnnotationEngineOptions(pageNum);
+        });
+
         // Mettre à jour la taille du curseur de la gomme si elle est active
         if (this.currentTool === 'eraser') {
             this.updateEraserCursorSize();
@@ -4116,6 +4123,7 @@ class UnifiedPDFViewer {
 
             // Démarrer le tracé avec le nouveau moteur perfect-freehand
             const engine = this.annotationEngines.get(pageNum);
+            console.log('🎨 Début du tracé - Largeur:', engine.options.size, 'Position:', this.lastPoint);
             // Toujours utiliser une pression constante de 0.5 pour largeur uniforme
             const pressure = 0.5;
             engine.startPath(this.lastPoint.x, this.lastPoint.y, pressure);
@@ -4437,18 +4445,16 @@ class UnifiedPDFViewer {
 
                 // Rendu optimisé : effacer l'ancien stroke et redessiner le nouveau
                 const strokePoints = engine.currentStroke;
-                if (strokePoints && this.currentStrokeImageData) {
-                    // Restaurer l'état avant le dernier stroke pour éviter accumulation
-                    ctx.putImageData(this.currentStrokeImageData, 0, 0);
+                if (strokePoints) {
+                    if (this.currentStrokeImageData) {
+                        // Restaurer l'état avant le dernier stroke pour éviter accumulation
+                        ctx.putImageData(this.currentStrokeImageData, 0, 0);
+                    }
 
                     // Dessiner le nouveau stroke complet
                     engine.renderCurrentStroke(ctx);
 
                     // Sauvegarder l'état pour le prochain frame
-                    this.currentStrokeImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-                } else if (strokePoints) {
-                    // Premier point : juste dessiner
-                    engine.renderCurrentStroke(ctx);
                     this.currentStrokeImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
                 }
             } else {
