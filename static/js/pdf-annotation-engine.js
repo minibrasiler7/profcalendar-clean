@@ -159,6 +159,15 @@ class PDFAnnotationEngine {
     drawStroke(ctx, strokePoints, color = this.options.color, opacity = this.options.opacity) {
         if (!strokePoints || strokePoints.length < 3) return;
 
+        // Log pour vérifier le rendu vectoriel
+        console.log('🎨 Rendu vectoriel avec perfect-freehand:', {
+            nbPoints: strokePoints.length,
+            format: 'polygone vectoriel',
+            premiers5Points: strokePoints.slice(0, 5),
+            color,
+            opacity
+        });
+
         ctx.save();
 
         // Configuration du rendu

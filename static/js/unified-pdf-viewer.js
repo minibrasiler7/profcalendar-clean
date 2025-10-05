@@ -12336,16 +12336,25 @@ class UnifiedPDFViewer {
 
         const engine = new window.PDFAnnotationEngine({
             size: this.currentLineWidth, // Taille exacte choisie par l'utilisateur
-            thinning: 0, // Pas de variation - largeur constante
-            smoothing: 0.2, // Très faible lissage pour suivre précisément le stylet
-            streamline: 0.05, // Quasi-nul pour réactivité maximale - pas de sticky
+            thinning: 0.5, // Variation d'épaisseur naturelle
+            smoothing: 0.5, // Lissage optimal pour un rendu fluide
+            streamline: 0.5, // Équilibre entre réactivité et fluidité
             easing: function(t) { return t; }, // Linear easing - pas d'accélération
             color: this.currentColor,
             opacity: 1.0,
             renderThrottle: 0, // Pas de throttle - rendu immédiat
-            simulatePressure: false, // Désactiver simulation de pression
+            simulatePressure: true, // Simulation de pression pour variation naturelle
             start: { taper: 0, cap: true }, // Pas de taper au début
             end: { taper: 0, cap: true }, // Pas de taper à la fin
+        });
+
+        console.log('✅ PDFAnnotationEngine initialisé avec perfect-freehand (rendu vectoriel)', {
+            pageNum,
+            size: this.currentLineWidth,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+            simulatePressure: true
         });
 
         this.annotationEngines.set(pageNum, engine);
