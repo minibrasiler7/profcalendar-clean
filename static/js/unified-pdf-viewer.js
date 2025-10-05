@@ -4435,17 +4435,20 @@ class UnifiedPDFViewer {
                     engine.addPoint(currentPoint.x, currentPoint.y, pressure);
                 }
 
-                // Rendu incrémental pour performance maximale
+                // Rendu optimisé : effacer l'ancien stroke et redessiner le nouveau
                 const strokePoints = engine.currentStroke;
-                if (strokePoints) {
-                    // OPTIMISATION: Dessiner directement sur le canvas sans effacer
-                    // Cela évite de redessiner tous les points à chaque frame
-                    // Le rendu est cumulatif et beaucoup plus rapide
+                if (strokePoints && this.currentStrokeImageData) {
+                    // Restaurer l'état avant le dernier stroke pour éviter accumulation
+                    ctx.putImageData(this.currentStrokeImageData, 0, 0);
 
-                    // Ne pas restaurer currentStrokeImageData - on dessine incrémentalement
+                    // Dessiner le nouveau stroke complet
                     engine.renderCurrentStroke(ctx);
 
-                    // Sauvegarder l'état actuel pour le prochain frame
+                    // Sauvegarder l'état pour le prochain frame
+                    this.currentStrokeImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+                } else if (strokePoints) {
+                    // Premier point : juste dessiner
+                    engine.renderCurrentStroke(ctx);
                     this.currentStrokeImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
                 }
             } else {
@@ -6522,7 +6525,9 @@ class UnifiedPDFViewer {
             annotationData = engine.export();
         }
 
-        // Aussi sauvegarder l'ImageData pour les autres outils (highlighter, shapes, etc.)
+        // Sauvegarder l'ImageData pour les autres outils (highlighter, shapes, etc.)
+        // Note: Cette imageData contient aussi les strokes vectoriels actuels (en bitmap)
+        // mais ils seront redessinés en vectoriel lors de la restauration
         const ctx = pageElement.annotationCtx;
         const imageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -6586,23 +6591,31 @@ class UnifiedPDFViewer {
         // Effacer le canvas
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        // Restaurer les données vectorielles si disponibles
-        if (state.vectorData) {
+        // Redessiner les strokes vectoriels à la nouvelle résolution/zoom
+        if (state.vectorData && state.vectorData.paths && state.vectorData.paths.length > 0) {
             const engine = this.annotationEngines.get(pageNum);
             if (engine) {
-                // Importer les données vectorielles dans le moteur
+                // Importer et redessiner tous les strokes vectoriels
                 engine.import(state.vectorData);
-
-                // Re-rendre tous les strokes vectoriels
+                ctx.globalCompositeOperation = 'source-over';
                 engine.renderAllStrokes(ctx);
             }
         }
 
-        // Restaurer aussi l'ImageData pour les autres outils (highlighter, shapes, etc.)
-        // en composite mode pour superposer sur les strokes vectoriels
+        // PUIS restaurer les autres annotations (highlighter, shapes, texte)
+        // en mode 'destination-over' pour les dessiner SOUS les strokes vectoriels
         if (state.imageData) {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.putImageData(state.imageData, 0, 0);
+            // On ne peut pas utiliser putImageData avec compositing, donc on crée un canvas temporaire
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = ctx.canvas.width;
+            tempCanvas.height = ctx.canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(state.imageData, 0, 0);
+
+            // Dessiner l'imageData SOUS les strokes vectoriels (qui sont déjà sur ctx)
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.globalCompositeOperation = 'source-over'; // Remettre par défaut
         }
     }
 
