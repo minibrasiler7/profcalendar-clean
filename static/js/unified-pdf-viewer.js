@@ -1650,13 +1650,18 @@ class UnifiedPDFViewer {
 
         this.currentScale = value;
 
+        console.log(`🔍 Zoom changé vers ${value}x`);
+
         // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
         const self = this;
         setTimeout(function() {
+            console.log('📄 Début du re-rendu des pages après zoom...');
             self.renderAllPages().then(function() {
+                console.log('✅ Pages re-rendues, appel de rerenderAllVectorAnnotations');
                 // Re-rendre les annotations vectorielles après le rendu des pages
                 self.rerenderAllVectorAnnotations();
             }).catch(function(error) {
+                console.error('❌ Erreur re-rendu pages:', error);
                 // Fallback: render seulement la page courante
                 self.renderPage(self.currentPage);
                 self.rerenderAllVectorAnnotations();
