@@ -345,7 +345,9 @@ class PDFAnnotationEngine {
         const visiblePaths = this.getVisiblePaths();
         const self = this;
 
-        visiblePaths.forEach(function(pathData) {
+        console.log(`    🖊️ Rendu de ${visiblePaths.length} strokes (historyIndex: ${this.historyIndex})`);
+        visiblePaths.forEach(function(pathData, index) {
+            console.log(`      - Stroke ${index}: ${pathData.stroke?.length || 0} points`);
             self.drawStroke(ctx, pathData.stroke, pathData.color, pathData.opacity);
         });
     }

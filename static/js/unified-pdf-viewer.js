@@ -3528,8 +3528,18 @@ class UnifiedPDFViewer {
         let animationFrameId = null;
 
         // Fonction de rendu avec requestAnimationFrame
+        let frameCount = 0;
+        let totalPointsProcessed = 0;
         const renderBufferedPoints = () => {
             if (pointsBuffer.length > 0 && this.isDrawing) {
+                const bufferSize = pointsBuffer.length;
+                totalPointsProcessed += bufferSize;
+                frameCount++;
+
+                if (frameCount % 30 === 0) { // Log tous les 30 frames (~500ms à 60fps)
+                    console.log(`📊 Frame ${frameCount}: ${bufferSize} points dans le buffer, ${totalPointsProcessed} total traités`);
+                }
+
                 // Traiter tous les points en attente
                 while (pointsBuffer.length > 0) {
                     const point = pointsBuffer.shift();
@@ -3540,6 +3550,10 @@ class UnifiedPDFViewer {
             // Continuer le rendu si on dessine
             if (this.isDrawing) {
                 animationFrameId = requestAnimationFrame(renderBufferedPoints);
+            } else {
+                // Reset des compteurs quand on arrête
+                frameCount = 0;
+                totalPointsProcessed = 0;
             }
         };
 
@@ -4419,6 +4433,7 @@ class UnifiedPDFViewer {
                 // Utiliser le nouveau moteur d'annotation perfect-freehand
                 const engine = this.annotationEngines.get(pageNum);
                 if (!engine) {
+                    console.error(`❌ CRITIQUE: Pas de moteur d'annotation pour la page ${pageNum} pendant le dessin!`);
                     return;
                 }
 
@@ -6568,6 +6583,7 @@ class UnifiedPDFViewer {
      * (utilisé après un changement de zoom pour que les annotations restent nettes)
      */
     rerenderAllVectorAnnotations() {
+        console.log('🔄 Re-rendu vectoriel après zoom - Nombre de pages:', this.annotationEngines.size);
         const self = this;
         this.annotationEngines.forEach(function(engine, pageNum) {
             const pageElement = self.pageElements.get(pageNum);
@@ -6577,8 +6593,10 @@ class UnifiedPDFViewer {
                 // Effacer uniquement les strokes vectoriels (pas les autres annotations)
                 // Pour cela, on efface tout et on re-rend depuis l'historique
                 const undoHistory = self.undoStack.get(pageNum);
+                console.log(`  📄 Page ${pageNum}: ${undoHistory?.length || 0} états dans l'historique`);
                 if (undoHistory && undoHistory.length > 0) {
                     const latestState = undoHistory[undoHistory.length - 1];
+                    console.log(`    - VectorData: ${latestState.vectorData?.paths?.length || 0} strokes`);
                     self.restoreCanvasState(pageNum, latestState);
                 }
             }
@@ -6590,9 +6608,19 @@ class UnifiedPDFViewer {
      */
     restoreCanvasState(pageNum, state) {
         const pageElement = this.pageElements.get(pageNum);
-        if (!pageElement?.annotationCtx) return;
+        if (!pageElement?.annotationCtx) {
+            console.warn(`⚠️ Page ${pageNum}: Pas de contexte d'annotation`);
+            return;
+        }
 
         const ctx = pageElement.annotationCtx;
+
+        console.log(`🎨 Restauration page ${pageNum}:`, {
+            canvasSize: `${ctx.canvas.width}x${ctx.canvas.height}`,
+            hasVectorData: !!state.vectorData,
+            vectorPaths: state.vectorData?.paths?.length || 0,
+            hasImageData: !!state.imageData
+        });
 
         // Effacer le canvas
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -6601,10 +6629,13 @@ class UnifiedPDFViewer {
         if (state.vectorData && state.vectorData.paths && state.vectorData.paths.length > 0) {
             const engine = this.annotationEngines.get(pageNum);
             if (engine) {
+                console.log(`  ✏️ Rendu de ${state.vectorData.paths.length} strokes vectoriels`);
                 // Importer et redessiner tous les strokes vectoriels
                 engine.import(state.vectorData);
                 ctx.globalCompositeOperation = 'source-over';
                 engine.renderAllStrokes(ctx);
+            } else {
+                console.warn(`  ⚠️ Pas de moteur d'annotation pour la page ${pageNum}`);
             }
         }
 
