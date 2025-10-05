@@ -3523,102 +3523,39 @@ class UnifiedPDFViewer {
         // Initialiser touch-action pour permettre scroll/zoom natif par défaut
         annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
 
-        // Buffer de points pour haute fréquence (pointerrawupdate)
-        const pointsBuffer = [];
-        let animationFrameId = null;
+        console.log(`🎯 Configuration événements pour page ${pageNum}`);
 
-        // Fonction de rendu avec requestAnimationFrame
-        let frameCount = 0;
-        let totalPointsProcessed = 0;
-        let loopStarted = false;
-        const renderBufferedPoints = () => {
-            // Continuer la boucle tant qu'on dessine, même si buffer vide
-            if (this.isDrawing) {
-                frameCount++;
-
-                if (!loopStarted) {
-                    console.log('🔄 Boucle de rendu démarrée');
-                    loopStarted = true;
-                }
-
-                if (pointsBuffer.length > 0) {
-                    const bufferSize = pointsBuffer.length;
-                    totalPointsProcessed += bufferSize;
-
-                    // Log plus fréquent pour debug
-                    console.log(`📊 Frame ${frameCount}: ${bufferSize} points, ${totalPointsProcessed} total`);
-
-                    // Traiter tous les points en attente
-                    while (pointsBuffer.length > 0) {
-                        const point = pointsBuffer.shift();
-                        this.draw(point.event, pageNum);
-                    }
-                }
-
-                // Continuer le rendu tant qu'on dessine
-                animationFrameId = requestAnimationFrame(renderBufferedPoints);
-            } else {
-                // Reset des compteurs quand on arrête
-                if (loopStarted) {
-                    console.log(`🛑 Boucle arrêtée - ${frameCount} frames, ${totalPointsProcessed} points traités`);
-                }
-                frameCount = 0;
-                totalPointsProcessed = 0;
-                loopStarted = false;
-            }
-        };
+        // SIMPLIFICATION: Appel direct de draw() sans buffer
+        // Plus simple, plus fiable, et suffisant pour la plupart des cas
 
         // Événements de dessin sur le canvas d'annotation
-        annotationCanvas.addEventListener('mousedown', (e) => {
+        // Utiliser les événements pointer pour meilleur support stylet + souris
+        annotationCanvas.addEventListener('pointerdown', (e) => {
+            console.log(`🖱️ PointerDown sur page ${pageNum}, type: ${e.pointerType}`);
             this.startDrawing(e, pageNum);
-            // Démarrer la boucle de rendu
-            if (!animationFrameId) {
-                animationFrameId = requestAnimationFrame(renderBufferedPoints);
+        });
+
+        annotationCanvas.addEventListener('pointermove', (e) => {
+            if (this.isDrawing) {
+                this.draw(e, pageNum);
             }
         });
 
-        // Essayer d'utiliser pointerrawupdate pour haute fréquence (240Hz sur iPad)
-        if ('onpointerrawupdate' in annotationCanvas) {
-            console.log('📱 Utilisation de pointerrawupdate pour capture haute fréquence');
-            annotationCanvas.addEventListener('pointerrawupdate', (e) => {
-                if (this.isDrawing && (e.pointerType === 'pen' || e.pointerType === 'mouse')) {
-                    pointsBuffer.push({ event: e, timestamp: performance.now() });
-                }
-            });
-        } else {
-            console.log('🖱️ Fallback sur pointermove pour capture de points');
-            // Fallback sur mousemove/pointermove
-            annotationCanvas.addEventListener('pointermove', (e) => {
-                if (this.isDrawing) {
-                    pointsBuffer.push({ event: e, timestamp: performance.now() });
-                }
-            });
-        }
-
-        // Garder mousemove comme fallback pour souris
-        annotationCanvas.addEventListener('mousemove', (e) => {
-            if (this.isDrawing && !('onpointerrawupdate' in annotationCanvas)) {
-                pointsBuffer.push({ event: e, timestamp: performance.now() });
-            }
-        });
-
-        annotationCanvas.addEventListener('mouseup', (e) => {
+        annotationCanvas.addEventListener('pointerup', (e) => {
+            console.log(`🖱️ PointerUp sur page ${pageNum}`);
             this.stopDrawing(e, pageNum);
-            // Arrêter la boucle de rendu
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            pointsBuffer.length = 0; // Vider le buffer
         });
 
-        annotationCanvas.addEventListener('mouseout', (e) => {
-            this.stopDrawing(e, pageNum);
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
+        annotationCanvas.addEventListener('pointerout', (e) => {
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
             }
-            pointsBuffer.length = 0;
+        });
+
+        annotationCanvas.addEventListener('pointercancel', (e) => {
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
+            }
         });
 
         // Support tactile avec gestion dynamique des events pour laisser le zoom natif
