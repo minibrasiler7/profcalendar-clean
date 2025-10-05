@@ -3531,24 +3531,25 @@ class UnifiedPDFViewer {
         let frameCount = 0;
         let totalPointsProcessed = 0;
         const renderBufferedPoints = () => {
-            if (pointsBuffer.length > 0 && this.isDrawing) {
-                const bufferSize = pointsBuffer.length;
-                totalPointsProcessed += bufferSize;
-                frameCount++;
-
-                if (frameCount % 30 === 0) { // Log tous les 30 frames (~500ms à 60fps)
-                    console.log(`📊 Frame ${frameCount}: ${bufferSize} points dans le buffer, ${totalPointsProcessed} total traités`);
-                }
-
-                // Traiter tous les points en attente
-                while (pointsBuffer.length > 0) {
-                    const point = pointsBuffer.shift();
-                    this.draw(point.event, pageNum);
-                }
-            }
-
-            // Continuer le rendu si on dessine
+            // Continuer la boucle tant qu'on dessine, même si buffer vide
             if (this.isDrawing) {
+                if (pointsBuffer.length > 0) {
+                    const bufferSize = pointsBuffer.length;
+                    totalPointsProcessed += bufferSize;
+                    frameCount++;
+
+                    if (frameCount % 30 === 0) { // Log tous les 30 frames (~500ms à 60fps)
+                        console.log(`📊 Frame ${frameCount}: ${bufferSize} points dans le buffer, ${totalPointsProcessed} total traités`);
+                    }
+
+                    // Traiter tous les points en attente
+                    while (pointsBuffer.length > 0) {
+                        const point = pointsBuffer.shift();
+                        this.draw(point.event, pageNum);
+                    }
+                }
+
+                // Continuer le rendu tant qu'on dessine
                 animationFrameId = requestAnimationFrame(renderBufferedPoints);
             } else {
                 // Reset des compteurs quand on arrête
