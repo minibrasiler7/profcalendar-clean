@@ -36,8 +36,8 @@ class SimplePenAnnotation {
         this.originalTouchAction = this.canvas.style.touchAction;
         this.originalUserSelect = this.canvas.style.userSelect;
 
-        // IMPORTANT: Configurer les styles pour bloquer le scroll
-        this.canvas.style.touchAction = 'none';
+        // IMPORTANT: Permettre scroll/zoom par défaut, bloquer seulement pendant le dessin
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         this.canvas.style.userSelect = 'none';
         this.canvas.style.webkitUserSelect = 'none';
         this.canvas.style.msUserSelect = 'none';
@@ -57,9 +57,19 @@ class SimplePenAnnotation {
     handlePointerDown(e) {
         if (!this.isEnabled) return;
 
+        // IMPORTANT: Seulement dessiner avec le stylet (pen), pas avec les doigts (touch)
+        // Permettre aux doigts de scroller/zoomer normalement
+        if (e.pointerType !== 'pen' && e.pointerType !== 'mouse') {
+            // C'est un doigt (touch) - ne pas bloquer, laisser le scroll/zoom natif
+            return;
+        }
+
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
         e.stopPropagation();
+
+        // Bloquer le scroll pendant le dessin avec le stylet
+        this.canvas.style.touchAction = 'none';
 
         // CRITIQUE: Capturer le pointeur pour recevoir tous les événements
         // même si le pointeur sort de l'élément
@@ -117,6 +127,9 @@ class SimplePenAnnotation {
 
         this.isDrawing = false;
         this.pointerId = null;
+
+        // Réactiver le scroll/zoom avec les doigts après le dessin
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
@@ -204,13 +217,15 @@ class SimplePenAnnotation {
 
     enable() {
         this.isEnabled = true;
-        this.canvas.style.touchAction = 'none';
+        // Permettre scroll/zoom par défaut, bloquer seulement pendant le dessin
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
     }
 
     disable() {
         this.isEnabled = false;
         this.isDrawing = false;
-        this.canvas.style.touchAction = this.originalTouchAction || 'auto';
+        // Restaurer le comportement par défaut quand désactivé
+        this.canvas.style.touchAction = this.originalTouchAction || 'pan-x pan-y pinch-zoom';
     }
 
     destroy() {
