@@ -7798,24 +7798,18 @@ body .thumbnail-canvas {
     window.dispatchEvent(new Event('perfectFreehandLoaded'));
 </script>
 
-<!-- Moteur d'annotation PDF (nouveau système) - Chargé après perfect-freehand -->
+<!-- Simple Pen Annotation System - Chargé après perfect-freehand -->
 <script>
-    // Attendre que perfect-freehand soit chargé avant de charger le moteur d'annotation
+    // Attendre que perfect-freehand soit chargé avant de charger le système d'annotation
     function loadAnnotationEngine() {
         if (window.perfectFreehandReady) {
             const script = document.createElement('script');
-            script.src = "{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}";
-            script.onload = function() {
-                console.log('✅ PDFAnnotationEngine chargé');
-            };
+            script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
             document.head.appendChild(script);
         } else {
             window.addEventListener('perfectFreehandLoaded', function() {
                 const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/pdf-annotation-engine.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}";
-                script.onload = function() {
-                    console.log('✅ PDFAnnotationEngine chargé');
-                };
+                script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
                 document.head.appendChild(script);
             }, { once: true });
         }
