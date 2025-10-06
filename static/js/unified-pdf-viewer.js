@@ -3555,45 +3555,14 @@ class UnifiedPDFViewer {
     
     /**
      * Configuration des événements d'annotation pour une page spécifique
+     * Note: SimplePenAnnotation gère maintenant ses propres événements pointer
+     * Cette fonction initialise simplement le moteur d'annotation pour le stylo
      */
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
-        // Initialiser touch-action pour permettre scroll/zoom natif par défaut
-        annotationCanvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-
-        console.log(`🎯 Configuration événements pour page ${pageNum}`);
-
-        // SIMPLIFICATION: Appel direct de draw() sans buffer
-        // Plus simple, plus fiable, et suffisant pour la plupart des cas
-
-        // Événements de dessin sur le canvas d'annotation
-        // Utiliser les événements pointer pour meilleur support stylet + souris
-        annotationCanvas.addEventListener('pointerdown', (e) => {
-            console.log(`🖱️ PointerDown sur page ${pageNum}, type: ${e.pointerType}`);
-            this.startDrawing(e, pageNum);
-        });
-
-        annotationCanvas.addEventListener('pointermove', (e) => {
-            if (this.isDrawing) {
-                this.draw(e, pageNum);
-            }
-        });
-
-        annotationCanvas.addEventListener('pointerup', (e) => {
-            console.log(`🖱️ PointerUp sur page ${pageNum}`);
-            this.stopDrawing(e, pageNum);
-        });
-
-        annotationCanvas.addEventListener('pointerout', (e) => {
-            if (this.isDrawing) {
-                this.stopDrawing(e, pageNum);
-            }
-        });
-
-        annotationCanvas.addEventListener('pointercancel', (e) => {
-            if (this.isDrawing) {
-                this.stopDrawing(e, pageNum);
-            }
-        });
+        // Initialiser le moteur d'annotation si l'outil stylo est actif
+        if (this.currentTool === 'pen' && !this.annotationEngines.has(pageNum)) {
+            this.initAnnotationEngine(pageNum);
+        }
 
         // TEMPORAIREMENT DÉSACTIVÉ: Support tactile - laissons pointer events gérer tout
         // Les pointer events gèrent automatiquement touch + stylet + souris
@@ -3761,6 +3730,23 @@ class UnifiedPDFViewer {
         
         // OPTIMISATION: Mise à jour instantanée du curseur
         this.updateToolCursor(tool);
+
+        // Gérer SimplePenAnnotation pour l'outil stylo
+        if (tool === 'pen') {
+            // Activer SimplePenAnnotation pour toutes les pages
+            this.pageElements.forEach((pageElement, pageNum) => {
+                if (!this.annotationEngines.has(pageNum)) {
+                    this.initAnnotationEngine(pageNum);
+                } else {
+                    this.annotationEngines.get(pageNum).enable();
+                }
+            });
+        } else {
+            // Désactiver SimplePenAnnotation quand on change d'outil
+            this.annotationEngines.forEach(engine => {
+                engine.disable();
+            });
+        }
 
         // Réinitialiser les contextes de manière optimisée - batch processing
         requestAnimationFrame(() => {
@@ -12439,33 +12425,26 @@ class UnifiedPDFViewer {
      * @param {number} pageNum - Numéro de la page
      */
     initAnnotationEngine(pageNum) {
-        // Vérifier que window.PDFAnnotationEngine est disponible
-        if (typeof window.PDFAnnotationEngine === 'undefined') {
-            console.error('PDFAnnotationEngine non disponible');
+        // Vérifier que SimplePenAnnotation est disponible
+        if (typeof window.SimplePenAnnotation === 'undefined') {
+            console.error('SimplePenAnnotation non disponible');
             return;
         }
 
-        const engine = new window.PDFAnnotationEngine({
-            size: this.currentLineWidth, // Taille exacte choisie par l'utilisateur
-            thinning: 0.5, // Variation d'épaisseur naturelle
-            smoothing: 0.5, // Lissage optimal pour un rendu fluide
-            streamline: 0.5, // Équilibre entre réactivité et fluidité
-            easing: function(t) { return t; }, // Linear easing - pas d'accélération
-            color: this.currentColor,
-            opacity: 1.0,
-            renderThrottle: 0, // Pas de throttle - rendu immédiat
-            simulatePressure: true, // Simulation de pression pour variation naturelle
-            start: { taper: 0, cap: true }, // Pas de taper au début
-            end: { taper: 0, cap: true }, // Pas de taper à la fin
-        });
+        const pageElement = this.pageElements.get(pageNum);
+        if (!pageElement?.annotationCanvas) {
+            console.error(`Canvas d'annotation non trouvé pour la page ${pageNum}`);
+            return;
+        }
 
-        console.log('✅ PDFAnnotationEngine initialisé avec perfect-freehand (rendu vectoriel)', {
-            pageNum,
+        const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
             size: this.currentLineWidth,
             thinning: 0.5,
             smoothing: 0.5,
             streamline: 0.5,
-            simulatePressure: true
+            simulatePressure: true,
+            color: this.currentColor,
+            opacity: 1.0
         });
 
         this.annotationEngines.set(pageNum, engine);
