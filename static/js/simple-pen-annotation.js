@@ -36,9 +36,8 @@ class SimplePenAnnotation {
         this.originalTouchAction = this.canvas.style.touchAction;
         this.originalUserSelect = this.canvas.style.userSelect;
 
-        // CRITIQUE: touch-action doit être 'none' AVANT que le navigateur traite l'événement
-        // On filtrera les événements doigts vs stylet en JavaScript
-        this.canvas.style.touchAction = 'none';
+        // IMPORTANT: Par défaut, permettre le scroll/zoom avec les doigts
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         this.canvas.style.userSelect = 'none';
         this.canvas.style.webkitUserSelect = 'none';
         this.canvas.style.msUserSelect = 'none';
@@ -47,45 +46,61 @@ class SimplePenAnnotation {
         this.handlePointerDown = this.handlePointerDown.bind(this);
         this.handlePointerMove = this.handlePointerMove.bind(this);
         this.handlePointerUp = this.handlePointerUp.bind(this);
+        this.handlePointerEnter = this.handlePointerEnter.bind(this);
+        this.handlePointerLeave = this.handlePointerLeave.bind(this);
 
         // Ajouter les event listeners
         this.canvas.addEventListener('pointerdown', this.handlePointerDown);
         this.canvas.addEventListener('pointermove', this.handlePointerMove);
         this.canvas.addEventListener('pointerup', this.handlePointerUp);
         this.canvas.addEventListener('pointercancel', this.handlePointerUp);
+        this.canvas.addEventListener('pointerenter', this.handlePointerEnter);
+        this.canvas.addEventListener('pointerleave', this.handlePointerLeave);
+    }
+
+    handlePointerEnter(e) {
+        // Détecter quand le stylet survole le canvas et bloquer le scroll
+        if (e.pointerType === 'pen') {
+            this.canvas.style.touchAction = 'none';
+        }
+    }
+
+    handlePointerLeave(e) {
+        // Quand le stylet quitte le canvas, réactiver le scroll pour les doigts
+        if (e.pointerType === 'pen' && !this.isDrawing) {
+            this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        }
     }
 
     handlePointerDown(e) {
         if (!this.isEnabled) return;
 
-        // STRATÉGIE: touch-action: none bloque tout par défaut
-        // On détecte les doigts et on les ignore pour que le navigateur gère le scroll
         const isStylus = e.pointerType === 'pen';
         const isMouse = e.pointerType === 'mouse';
         const isFinger = e.pointerType === 'touch';
 
         if (isFinger) {
-            // Doigt détecté - ne rien faire, laisser le navigateur gérer le scroll/zoom
-            // Ne PAS appeler preventDefault() pour permettre le scroll natif
+            // Doigt détecté - ne rien faire, laisser le scroll/zoom natif
             return;
         }
 
         if (!isStylus && !isMouse) {
-            // Type de pointeur inconnu - ignorer par sécurité
+            // Type de pointeur inconnu - ignorer
             return;
         }
 
-        // C'est un stylet ou une souris - dessiner
+        // Stylet ou souris - bloquer le scroll et dessiner
+        this.canvas.style.touchAction = 'none';
+
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
         e.stopPropagation();
 
         // CRITIQUE: Capturer le pointeur pour recevoir tous les événements
-        // même si le pointeur sort de l'élément
         try {
             this.canvas.setPointerCapture(e.pointerId);
         } catch (err) {
-            // Silently fail - certains navigateurs peuvent refuser
+            // Silently fail
         }
 
         this.isDrawing = true;
@@ -136,6 +151,9 @@ class SimplePenAnnotation {
 
         this.isDrawing = false;
         this.pointerId = null;
+
+        // Réactiver le scroll/zoom après le dessin
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
@@ -223,7 +241,7 @@ class SimplePenAnnotation {
 
     enable() {
         this.isEnabled = true;
-        this.canvas.style.touchAction = 'none';
+        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
     }
 
     disable() {
@@ -237,6 +255,8 @@ class SimplePenAnnotation {
         this.canvas.removeEventListener('pointermove', this.handlePointerMove);
         this.canvas.removeEventListener('pointerup', this.handlePointerUp);
         this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
+        this.canvas.removeEventListener('pointerenter', this.handlePointerEnter);
+        this.canvas.removeEventListener('pointerleave', this.handlePointerLeave);
 
         // Restaurer les styles originaux
         this.canvas.style.touchAction = this.originalTouchAction;
