@@ -27,11 +27,20 @@ class SimplePenAnnotation {
 
         // État du dessin
         this.isDrawing = false;
+        this.isEnabled = true;
         this.currentPoints = [];
         this.strokes = []; // Historique de tous les strokes
+        this.pointerId = null;
 
-        // IMPORTANT: Configurer touch-action inline
+        // Sauvegarder les styles CSS originaux
+        this.originalTouchAction = this.canvas.style.touchAction;
+        this.originalUserSelect = this.canvas.style.userSelect;
+
+        // IMPORTANT: Configurer les styles pour bloquer le scroll
         this.canvas.style.touchAction = 'none';
+        this.canvas.style.userSelect = 'none';
+        this.canvas.style.webkitUserSelect = 'none';
+        this.canvas.style.msUserSelect = 'none';
 
         // Bind event handlers
         this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -46,13 +55,22 @@ class SimplePenAnnotation {
     }
 
     handlePointerDown(e) {
+        if (!this.isEnabled) return;
+
+        // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
+        e.stopPropagation();
 
         // CRITIQUE: Capturer le pointeur pour recevoir tous les événements
         // même si le pointeur sort de l'élément
-        this.canvas.setPointerCapture(e.pointerId);
+        try {
+            this.canvas.setPointerCapture(e.pointerId);
+        } catch (err) {
+            // Silently fail - certains navigateurs peuvent refuser
+        }
 
         this.isDrawing = true;
+        this.pointerId = e.pointerId;
 
         // Coordonnées relatives au canvas
         const rect = this.canvas.getBoundingClientRect();
@@ -67,7 +85,9 @@ class SimplePenAnnotation {
         if (!this.isDrawing) return;
         if (e.buttons !== 1) return; // Seulement si le bouton est enfoncé
 
+        // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
+        e.stopPropagation();
 
         // Coordonnées relatives au canvas
         const rect = this.canvas.getBoundingClientRect();
@@ -84,12 +104,19 @@ class SimplePenAnnotation {
     handlePointerUp(e) {
         if (!this.isDrawing) return;
 
+        // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
+        e.stopPropagation();
 
         // Libérer la capture du pointeur
-        this.canvas.releasePointerCapture(e.pointerId);
+        try {
+            this.canvas.releasePointerCapture(e.pointerId);
+        } catch (err) {
+            // Silently fail
+        }
 
         this.isDrawing = false;
+        this.pointerId = null;
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
@@ -175,11 +202,26 @@ class SimplePenAnnotation {
         Object.assign(this.options, newOptions);
     }
 
+    enable() {
+        this.isEnabled = true;
+        this.canvas.style.touchAction = 'none';
+    }
+
+    disable() {
+        this.isEnabled = false;
+        this.isDrawing = false;
+        this.canvas.style.touchAction = this.originalTouchAction || 'auto';
+    }
+
     destroy() {
         this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
         this.canvas.removeEventListener('pointermove', this.handlePointerMove);
         this.canvas.removeEventListener('pointerup', this.handlePointerUp);
         this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
+
+        // Restaurer les styles originaux
+        this.canvas.style.touchAction = this.originalTouchAction;
+        this.canvas.style.userSelect = this.originalUserSelect;
     }
 }
 
