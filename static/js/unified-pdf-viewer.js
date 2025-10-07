@@ -3569,6 +3569,13 @@ class UnifiedPDFViewer {
             // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
             if (this.currentTool === 'pen') return;
 
+            // IMPORTANT: Vérifier que le stylet touche vraiment l'écran
+            // e.buttons === 0 signifie que le stylet survole sans toucher (hover)
+            // On ne commence à dessiner que si le stylet touche vraiment (buttons > 0)
+            if (e.buttons === 0) {
+                return; // Hover seulement, ne pas dessiner
+            }
+
             // Pour tous les autres outils, gérer normalement
             this.startDrawing(e, pageNum);
         });
@@ -3576,6 +3583,13 @@ class UnifiedPDFViewer {
         annotationCanvas.addEventListener('pointermove', (e) => {
             // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
             if (this.currentTool === 'pen') return;
+
+            // Si le stylet est en hover (buttons === 0), afficher le curseur
+            // mais ne pas dessiner
+            if (e.buttons === 0) {
+                // Le curseur CSS s'occupera de l'affichage visuel
+                return;
+            }
 
             if (this.isDrawing) {
                 this.draw(e, pageNum);
