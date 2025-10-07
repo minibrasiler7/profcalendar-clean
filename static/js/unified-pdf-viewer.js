@@ -1680,9 +1680,7 @@ class UnifiedPDFViewer {
         // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
         const self = this;
         setTimeout(function() {
-            console.log('📄 Début du re-rendu des pages après zoom...');
             self.renderAllPages().then(function() {
-                console.log('✅ Pages re-rendues, appel de rerenderAllVectorAnnotations');
                 // Re-rendre les annotations vectorielles après le rendu des pages
                 self.rerenderAllVectorAnnotations();
             }).catch(function(error) {
@@ -1695,7 +1693,6 @@ class UnifiedPDFViewer {
             // APPEL DIRECT supplémentaire pour s'assurer que les vecteurs sont toujours re-rendus
             // même si renderAllPages ne retourne pas de promesse correcte
             setTimeout(function() {
-                console.log('🔄 Appel direct de rerenderAllVectorAnnotations après zoom');
                 self.rerenderAllVectorAnnotations();
             }, 300);
         }, 50);
@@ -3777,21 +3774,14 @@ class UnifiedPDFViewer {
      * Debug function to inspect annotations state
      */
     debugAnnotationsState() {
-        console.log('🔍 ÉTAT DES ANNOTATIONS:');
         let totalPixels = 0;
         this.pageElements.forEach((pageElement, pageNum) => {
             if (pageElement?.annotationCtx) {
                 const imageData = pageElement.annotationCtx.getImageData(0, 0, pageElement.annotationCtx.canvas.width, pageElement.annotationCtx.canvas.height);
                 const pixelCount = imageData.data.filter((value, index) => index % 4 === 3 && value > 0).length;
                 totalPixels += pixelCount;
-                console.log(`📄 Page ${pageNum}: ${pixelCount} pixels d'annotation`);
-                console.log(`   Canvas visible: ${pageElement.annotationCanvas.style.display !== 'none'}`);
-                console.log(`   Opacity: ${pageElement.annotationCanvas.style.opacity || '1'}`);
-                console.log(`   Z-index: ${pageElement.annotationCanvas.style.zIndex}`);
             }
         });
-        console.log(`📊 Total: ${totalPixels} pixels d'annotation`);
-        console.log(`🛠️ Outil actuel: ${this.currentTool}`);
         return { totalPixels, currentTool: this.currentTool };
     }
     
@@ -3945,11 +3935,16 @@ class UnifiedPDFViewer {
     
     setCurrentColor(color) {
         this.currentColor = color;
-        
+
         // Les outils géométriques utilisent maintenant directement this.currentColor
-        
+
         document.querySelectorAll('.color-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.color === color);
+        });
+
+        // Mettre à jour tous les moteurs d'annotation existants
+        this.annotationEngines.forEach((engine, pageNum) => {
+            this.updateAnnotationEngineOptions(pageNum);
         });
     }
     
@@ -6612,7 +6607,6 @@ class UnifiedPDFViewer {
      * (utilisé après un changement de zoom pour que les annotations restent nettes)
      */
     rerenderAllVectorAnnotations() {
-        console.log('🔄 Re-rendu vectoriel après zoom - Nombre de pages:', this.annotationEngines.size);
         const self = this;
         this.annotationEngines.forEach(function(engine, pageNum) {
             const pageElement = self.pageElements.get(pageNum);
@@ -6622,10 +6616,8 @@ class UnifiedPDFViewer {
                 // Effacer uniquement les strokes vectoriels (pas les autres annotations)
                 // Pour cela, on efface tout et on re-rend depuis l'historique
                 const undoHistory = self.undoStack.get(pageNum);
-                console.log(`  📄 Page ${pageNum}: ${undoHistory?.length || 0} états dans l'historique`);
                 if (undoHistory && undoHistory.length > 0) {
                     const latestState = undoHistory[undoHistory.length - 1];
-                    console.log(`    - VectorData: ${latestState.vectorData?.paths?.length || 0} strokes`);
                     self.restoreCanvasState(pageNum, latestState);
                 }
             }
@@ -6649,17 +6641,6 @@ class UnifiedPDFViewer {
         const currentScale = this.currentScale;
         const scaleRatio = currentScale / savedScale;
 
-        console.log(`🎨 Restauration page ${pageNum}:`, {
-            canvasSize: `${ctx.canvas.width}x${ctx.canvas.height}`,
-            savedSize: `${state.canvasWidth}x${state.canvasHeight}`,
-            savedScale: savedScale,
-            currentScale: currentScale,
-            scaleRatio: scaleRatio,
-            hasVectorData: !!state.vectorData,
-            vectorPaths: state.vectorData?.paths?.length || 0,
-            hasImageData: !!state.imageData
-        });
-
         // Effacer le canvas
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
@@ -6667,11 +6648,8 @@ class UnifiedPDFViewer {
         if (state.vectorData && state.vectorData.paths && state.vectorData.paths.length > 0) {
             const engine = this.annotationEngines.get(pageNum);
             if (engine) {
-                console.log(`  ✏️ Rendu de ${state.vectorData.paths.length} strokes vectoriels`);
-
                 // Si le zoom a changé, transformer les coordonnées des points
                 if (Math.abs(scaleRatio - 1.0) > 0.01) {
-                    console.log(`  🔄 Transformation des strokes (ratio: ${scaleRatio.toFixed(2)})`);
                     const transformedData = this.transformVectorData(state.vectorData, scaleRatio);
                     engine.import(transformedData);
                 } else {
@@ -12623,7 +12601,6 @@ if (typeof window !== 'undefined') {
         setTimeout(() => {
             if (window.pdfViewer) {
                 window.debugAnnotations = () => window.pdfViewer.debugAnnotationsState();
-                console.log('🔧 DEBUG: Fonction debug disponible: window.debugAnnotations()');
             }
         }, 2000);
     });
