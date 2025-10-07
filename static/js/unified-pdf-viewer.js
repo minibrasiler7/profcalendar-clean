@@ -3552,14 +3552,67 @@ class UnifiedPDFViewer {
     
     /**
      * Configuration des événements d'annotation pour une page spécifique
-     * Note: SimplePenAnnotation gère maintenant ses propres événements pointer
-     * Cette fonction initialise simplement le moteur d'annotation pour le stylo
+     * Note: SimplePenAnnotation gère ses propres événements pour l'outil 'pen'
+     * Cette fonction configure les événements pour TOUS LES AUTRES OUTILS
      */
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
         // Initialiser le moteur d'annotation si l'outil stylo est actif
         if (this.currentTool === 'pen' && !this.annotationEngines.has(pageNum)) {
             this.initAnnotationEngine(pageNum);
         }
+
+        // Configuration des événements pointer pour TOUS LES AUTRES OUTILS
+        // (highlighter, rectangle, circle, arrow, line, text, eraser)
+        // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
+
+        annotationCanvas.addEventListener('pointerdown', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            // IMPORTANT: Vérifier que le stylet touche vraiment l'écran
+            // e.buttons === 0 signifie que le stylet survole sans toucher (hover)
+            // On ne commence à dessiner que si le stylet touche vraiment (buttons > 0)
+            if (e.buttons === 0) {
+                return; // Hover seulement, ne pas dessiner
+            }
+
+            // Pour tous les autres outils, gérer normalement
+            this.startDrawing(e, pageNum);
+        });
+
+        annotationCanvas.addEventListener('pointermove', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            // Si le stylet est en hover (buttons === 0), afficher le curseur
+            // mais ne pas dessiner
+            if (e.buttons === 0) {
+                // Le curseur CSS s'occupera de l'affichage visuel
+                return;
+            }
+
+            if (this.isDrawing) {
+                this.draw(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerup', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerleave', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
+            }
+        });
 
         // TEMPORAIREMENT DÉSACTIVÉ: Support tactile - laissons pointer events gérer tout
         // Les pointer events gèrent automatiquement touch + stylet + souris
