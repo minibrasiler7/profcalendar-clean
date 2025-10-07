@@ -50,11 +50,12 @@ class SimplePenAnnotation {
         this.handlePointerLeave = this.handlePointerLeave.bind(this);
 
         // Ajouter les event listeners
-        this.canvas.addEventListener('pointerdown', this.handlePointerDown);
-        this.canvas.addEventListener('pointermove', this.handlePointerMove);
-        this.canvas.addEventListener('pointerup', this.handlePointerUp);
-        this.canvas.addEventListener('pointercancel', this.handlePointerUp);
-        this.canvas.addEventListener('pointerenter', this.handlePointerEnter);
+        // IMPORTANT: passive: false pour pouvoir appeler preventDefault()
+        this.canvas.addEventListener('pointerdown', this.handlePointerDown, { passive: false });
+        this.canvas.addEventListener('pointermove', this.handlePointerMove, { passive: false });
+        this.canvas.addEventListener('pointerup', this.handlePointerUp, { passive: false });
+        this.canvas.addEventListener('pointercancel', this.handlePointerUp, { passive: false });
+        this.canvas.addEventListener('pointerenter', this.handlePointerEnter, { passive: false });
         this.canvas.addEventListener('pointerleave', this.handlePointerLeave);
     }
 
@@ -62,8 +63,12 @@ class SimplePenAnnotation {
         // Détecter quand le stylet survole le canvas et bloquer le scroll
         console.log(`🔍 PointerEnter: type=${e.pointerType}, touchAction AVANT=${this.canvas.style.touchAction}`);
         if (e.pointerType === 'pen') {
+            // CRITIQUE: Appeler preventDefault() immédiatement pour bloquer le scroll
+            // Ne pas attendre que touch-action CSS soit appliqué (trop lent)
+            e.preventDefault();
+            e.stopPropagation();
             this.canvas.style.touchAction = 'none';
-            console.log(`✏️ Stylet détecté en ENTER - touchAction mis à 'none'`);
+            console.log(`✏️ Stylet détecté en ENTER - preventDefault() + touchAction='none'`);
         } else if (e.pointerType === 'touch') {
             // IMPORTANT: Un doigt entre - s'assurer que le scroll est activé
             // (peut arriver si le stylet a laissé touchAction: none)
@@ -75,9 +80,11 @@ class SimplePenAnnotation {
     handlePointerLeave(e) {
         // Quand le stylet quitte le canvas, réactiver le scroll pour les doigts
         console.log(`🔍 PointerLeave: type=${e.pointerType}, isDrawing=${this.isDrawing}`);
-        if (e.pointerType === 'pen' && !this.isDrawing) {
-            this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-            console.log(`✏️ Stylet quitté - touchAction restauré à 'pan-x pan-y pinch-zoom'`);
+        if (e.pointerType === 'pen') {
+            if (!this.isDrawing) {
+                this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+                console.log(`✏️ Stylet quitté - touchAction restauré à 'pan-x pan-y pinch-zoom'`);
+            }
         }
     }
 
