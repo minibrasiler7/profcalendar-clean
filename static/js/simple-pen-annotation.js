@@ -48,6 +48,8 @@ class SimplePenAnnotation {
         this.handlePointerUp = this.handlePointerUp.bind(this);
         this.handlePointerEnter = this.handlePointerEnter.bind(this);
         this.handlePointerLeave = this.handlePointerLeave.bind(this);
+        this.handleTouchStart = this.handleTouchStart.bind(this);
+        this.handleTouchMove = this.handleTouchMove.bind(this);
 
         // Ajouter les event listeners
         // IMPORTANT: passive: false pour pouvoir appeler preventDefault()
@@ -57,6 +59,37 @@ class SimplePenAnnotation {
         this.canvas.addEventListener('pointercancel', this.handlePointerUp, { passive: false });
         this.canvas.addEventListener('pointerenter', this.handlePointerEnter, { passive: false });
         this.canvas.addEventListener('pointerleave', this.handlePointerLeave);
+
+        // CRITIQUE: Bloquer aussi les événements touch natifs pour le stylet
+        // Safari génère parfois des événements touch même pour le stylet
+        this.canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+        this.canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    }
+
+    handleTouchStart(e) {
+        // Bloquer touchstart si c'est un stylet (détecté par touchType stylus)
+        const touch = e.touches[0];
+        const isStylus = touch && touch.touchType === 'stylus';
+
+        console.log(`🔍 TouchStart: touches=${e.touches.length}, touchType=${touch?.touchType}, isStylus=${isStylus}`);
+
+        if (isStylus || this.canvas.style.touchAction === 'none') {
+            // Stylet ou touchAction déjà à none (stylet détecté précédemment)
+            console.log(`✏️ TouchStart bloqué - stylus ou touchAction=none`);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }
+
+    handleTouchMove(e) {
+        // Toujours bloquer touchmove si touchAction est none (stylet actif)
+        if (this.canvas.style.touchAction === 'none' || this.isDrawing) {
+            console.log(`✏️ TouchMove bloqué - touchAction=none ou isDrawing=true`);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
     }
 
     handlePointerEnter(e) {
@@ -287,6 +320,8 @@ class SimplePenAnnotation {
         this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
         this.canvas.removeEventListener('pointerenter', this.handlePointerEnter);
         this.canvas.removeEventListener('pointerleave', this.handlePointerLeave);
+        this.canvas.removeEventListener('touchstart', this.handleTouchStart);
+        this.canvas.removeEventListener('touchmove', this.handleTouchMove);
 
         // Restaurer les styles originaux
         this.canvas.style.touchAction = this.originalTouchAction;
