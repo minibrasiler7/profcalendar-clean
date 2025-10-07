@@ -32,6 +32,10 @@ class SimplePenAnnotation {
         this.strokes = []; // Historique de tous les strokes
         this.pointerId = null;
 
+        // IMPORTANT: Sauvegarder l'état initial du canvas pour préserver les autres annotations
+        this.backgroundImageData = null;
+        this.saveBackground();
+
         // Sauvegarder les styles CSS originaux
         this.originalTouchAction = this.canvas.style.touchAction;
         this.originalUserSelect = this.canvas.style.userSelect;
@@ -209,11 +213,28 @@ class SimplePenAnnotation {
 
         this.currentPoints = [];
         this.redraw();
+
+        // Mettre à jour le background pour inclure le nouveau stroke
+        this.saveBackground();
+    }
+
+    saveBackground() {
+        // Sauvegarder l'état actuel du canvas (annotations des autres outils)
+        try {
+            this.backgroundImageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        } catch (e) {
+            console.error('Erreur lors de la sauvegarde du background:', e);
+        }
     }
 
     redraw() {
         // Effacer le canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // IMPORTANT: Restaurer le background (annotations des autres outils)
+        if (this.backgroundImageData) {
+            this.ctx.putImageData(this.backgroundImageData, 0, 0);
+        }
 
         // Redessiner tous les strokes sauvegardés
         this.strokes.forEach(strokeData => {
@@ -286,12 +307,16 @@ class SimplePenAnnotation {
     enable() {
         this.isEnabled = true;
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // Sauvegarder le background actuel pour préserver les autres annotations
+        this.saveBackground();
     }
 
     disable() {
         this.isEnabled = false;
         this.isDrawing = false;
         this.canvas.style.touchAction = this.originalTouchAction || 'auto';
+        // Sauvegarder à nouveau pour capturer les nouveaux strokes au background
+        this.saveBackground();
     }
 
     destroy() {
