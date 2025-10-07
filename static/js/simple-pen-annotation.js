@@ -60,37 +60,49 @@ class SimplePenAnnotation {
 
     handlePointerEnter(e) {
         // Détecter quand le stylet survole le canvas et bloquer le scroll
+        console.log(`🔍 PointerEnter: type=${e.pointerType}, touchAction AVANT=${this.canvas.style.touchAction}`);
         if (e.pointerType === 'pen') {
             this.canvas.style.touchAction = 'none';
+            console.log(`✏️ Stylet détecté en ENTER - touchAction mis à 'none'`);
         }
     }
 
     handlePointerLeave(e) {
         // Quand le stylet quitte le canvas, réactiver le scroll pour les doigts
+        console.log(`🔍 PointerLeave: type=${e.pointerType}, isDrawing=${this.isDrawing}`);
         if (e.pointerType === 'pen' && !this.isDrawing) {
             this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+            console.log(`✏️ Stylet quitté - touchAction restauré à 'pan-x pan-y pinch-zoom'`);
         }
     }
 
     handlePointerDown(e) {
-        if (!this.isEnabled) return;
+        if (!this.isEnabled) {
+            console.log(`⚠️ PointerDown ignoré - isEnabled=false`);
+            return;
+        }
 
         const isStylus = e.pointerType === 'pen';
         const isMouse = e.pointerType === 'mouse';
         const isFinger = e.pointerType === 'touch';
 
+        console.log(`🔍 PointerDown: type=${e.pointerType}, touchAction=${this.canvas.style.touchAction}, isStylus=${isStylus}, isFinger=${isFinger}`);
+
         if (isFinger) {
             // Doigt détecté - ne rien faire, laisser le scroll/zoom natif
+            console.log(`👆 Doigt détecté - événement ignoré pour permettre scroll`);
             return;
         }
 
         if (!isStylus && !isMouse) {
             // Type de pointeur inconnu - ignorer
+            console.log(`❓ Type de pointeur inconnu: ${e.pointerType}`);
             return;
         }
 
         // Stylet ou souris - bloquer le scroll et dessiner
         this.canvas.style.touchAction = 'none';
+        console.log(`✏️ Stylet/souris - touchAction forcé à 'none', preventDefault() appelé`);
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
@@ -136,7 +148,12 @@ class SimplePenAnnotation {
     }
 
     handlePointerUp(e) {
-        if (!this.isDrawing) return;
+        if (!this.isDrawing) {
+            console.log(`⚠️ PointerUp ignoré - isDrawing=false`);
+            return;
+        }
+
+        console.log(`🔍 PointerUp: type=${e.pointerType}`);
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
@@ -154,6 +171,7 @@ class SimplePenAnnotation {
 
         // Réactiver le scroll/zoom après le dessin
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        console.log(`✅ PointerUp terminé - touchAction restauré à 'pan-x pan-y pinch-zoom', stroke sauvegardé`);
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
