@@ -64,6 +64,11 @@ class SimplePenAnnotation {
         if (e.pointerType === 'pen') {
             this.canvas.style.touchAction = 'none';
             console.log(`✏️ Stylet détecté en ENTER - touchAction mis à 'none'`);
+        } else if (e.pointerType === 'touch') {
+            // IMPORTANT: Un doigt entre - s'assurer que le scroll est activé
+            // (peut arriver si le stylet a laissé touchAction: none)
+            this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+            console.log(`👆 Doigt détecté en ENTER - touchAction restauré à 'pan-x pan-y pinch-zoom'`);
         }
     }
 
