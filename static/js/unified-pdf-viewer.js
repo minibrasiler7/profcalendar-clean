@@ -3552,14 +3552,53 @@ class UnifiedPDFViewer {
     
     /**
      * Configuration des événements d'annotation pour une page spécifique
-     * Note: SimplePenAnnotation gère maintenant ses propres événements pointer
-     * Cette fonction initialise simplement le moteur d'annotation pour le stylo
+     * Note: SimplePenAnnotation gère ses propres événements pour l'outil 'pen'
+     * Cette fonction configure les événements pour TOUS LES AUTRES OUTILS
      */
     setupPageAnnotationEvents(pageNum, annotationCanvas) {
         // Initialiser le moteur d'annotation si l'outil stylo est actif
         if (this.currentTool === 'pen' && !this.annotationEngines.has(pageNum)) {
             this.initAnnotationEngine(pageNum);
         }
+
+        // Configuration des événements pointer pour TOUS LES AUTRES OUTILS
+        // (highlighter, rectangle, circle, arrow, line, text, eraser)
+        // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
+
+        annotationCanvas.addEventListener('pointerdown', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            // Pour tous les autres outils, gérer normalement
+            this.startDrawing(e, pageNum);
+        });
+
+        annotationCanvas.addEventListener('pointermove', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            if (this.isDrawing) {
+                this.draw(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerup', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
+            }
+        });
+
+        annotationCanvas.addEventListener('pointerleave', (e) => {
+            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
+            if (this.currentTool === 'pen') return;
+
+            if (this.isDrawing) {
+                this.stopDrawing(e, pageNum);
+            }
+        });
 
         // TEMPORAIREMENT DÉSACTIVÉ: Support tactile - laissons pointer events gérer tout
         // Les pointer events gèrent automatiquement touch + stylet + souris
