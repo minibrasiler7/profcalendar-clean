@@ -1820,7 +1820,31 @@ class UnifiedPDFViewer {
     }
 
     // Méthodes publiques pour contrôle externe
-    destroy() {
+    async destroy() {
+        console.log('🗑️ Destruction du PDF viewer - nettoyage complet');
+
+        // IMPORTANT: Sauvegarder les annotations avant de détruire
+        if (this.currentMode.annotations && this.fileId) {
+            console.log('  💾 Sauvegarde des annotations avant fermeture...');
+            try {
+                await this.saveAnnotations();
+                console.log('  ✅ Annotations sauvegardées');
+            } catch (error) {
+                console.error('  ❌ Erreur lors de la sauvegarde:', error);
+            }
+        }
+
+        // IMPORTANT: Détruire tous les moteurs d'annotation SimplePenAnnotation
+        if (this.annotationEngines) {
+            console.log(`  🧹 Nettoyage de ${this.annotationEngines.size} moteurs d'annotation`);
+            this.annotationEngines.forEach((engine, pageNum) => {
+                if (engine && typeof engine.destroy === 'function') {
+                    engine.destroy();
+                }
+            });
+            this.annotationEngines.clear();
+        }
+
         // Nettoyage lors de la destruction
         if (this.saveTimeout) {
             clearTimeout(this.saveTimeout);
@@ -1828,30 +1852,32 @@ class UnifiedPDFViewer {
         if (this.pageObserver) {
             this.pageObserver.disconnect();
         }
-        
+
         // Fermer le panneau de configuration du graphique s'il est ouvert
         if (this.graphControlPanel) {
             this.hideGraphControlPanel();
         }
-        
+
         // Nettoyer les event handlers du graphique
         if (this.graphEventHandlers) {
             this.graphEventHandlers = null;
         }
-        
+
         // Nettoyer le handler de téléchargement
         if (this.downloadClickHandler) {
             document.removeEventListener('click', this.downloadClickHandler, true);
             this.downloadClickHandler = null;
         }
-        
+
         // Nettoyer le handler de clic texte s'il existe
         if (this.textClickHandler) {
             document.removeEventListener('click', this.textClickHandler, true);
             this.textClickHandler = null;
         }
-        
+
         this.eventListeners.clear();
+
+        console.log('✅ Destruction terminée');
     }
 
     // Gestion du redimensionnement
@@ -6452,9 +6478,12 @@ class UnifiedPDFViewer {
         try {
             // Éviter les requêtes CORS lors des tests locaux
             if (window.location.protocol === 'file:') {
+                console.log('⚠️ Mode file:// - sauvegarde désactivée');
                 return;
             }
-            
+
+            console.log('💾 Début de la sauvegarde des annotations...');
+
             // Capturer les données des canvas d'annotation et la structure des pages
             const annotationsData = {
                 canvasData: {},
@@ -6465,8 +6494,9 @@ class UnifiedPDFViewer {
                     totalPages: this.totalPages
                 }
             };
-            
+
             // Capturer les annotations depuis this.pageElements (méthode originale)
+            let pagesWithContent = 0;
             for (const [pageNum, pageElement] of this.pageElements) {
                 if (pageElement.annotationCtx) {
                     const canvas = pageElement.annotationCtx.canvas;
@@ -6478,16 +6508,21 @@ class UnifiedPDFViewer {
                         // Vérifier tous les canaux de couleur (R, G, B) ou l'alpha
                         return (channel < 3 && value !== 255) || (channel === 3 && value > 0);
                     });
-                    
+
                     if (hasContent) {
                         annotationsData.canvasData[pageNum] = {
                             imageData: canvas.toDataURL('image/png'),
                             width: canvas.width,
                             height: canvas.height
                         };
+                        pagesWithContent++;
+                        console.log(`  ✏️ Page ${pageNum}: annotations trouvées (${canvas.width}x${canvas.height})`);
                     }
                 }
             }
+
+            console.log(`📊 Total: ${pagesWithContent} pages avec annotations`);
+
             
             
             const response = await fetch(this.options.apiEndpoints.saveAnnotations, {
@@ -6498,11 +6533,15 @@ class UnifiedPDFViewer {
                     annotations: annotationsData
                 })
             });
-            
+
             if (response.ok) {
+                console.log('✅ Annotations sauvegardées avec succès');
                 this.emit('annotations-saved');
+            } else {
+                console.error('❌ Erreur HTTP lors de la sauvegarde:', response.status, response.statusText);
             }
         } catch (error) {
+            console.error('❌ Erreur sauvegarde annotations:', error);
             this.log('Erreur sauvegarde annotations:', error);
         }
     }
