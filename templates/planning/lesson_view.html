@@ -7925,22 +7925,22 @@ function openFileWithUnifiedViewer(filePath, fileName) {
 }
 
 // Fonction pour fermer le viewer (mise à jour pour le nouveau lecteur)
-function closeFileViewer() {
+async function closeFileViewer() {
     console.log('🔄 Fermeture du lecteur PDF unifié');
-    
+
     const modal = document.getElementById('fileViewerModal');
     if (modal) {
         modal.style.display = 'none';
         document.body.style.overflow = '';
     }
-    
+
     // Nettoyer l'instance du lecteur si nécessaire
     if (unifiedPDFViewer) {
         // Appeler la méthode destroy pour nettoyer tout, y compris le panneau de graphique
-        unifiedPDFViewer.destroy();
+        await unifiedPDFViewer.destroy();
         console.log('📄 Lecteur PDF unifié nettoyé et panneau de graphique fermé');
     }
-    
+
     currentPDFUrl = null;
 }
 
