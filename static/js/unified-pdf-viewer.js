@@ -6354,13 +6354,22 @@ class UnifiedPDFViewer {
             
             if (response.ok) {
                 const data = await response.json();
-                
+
+                console.log('📥 Annotations chargées:', {
+                    hasAnnotations: !!data.annotations,
+                    hasCanvasData: !!(data.annotations && data.annotations.canvasData),
+                    annotationsKeys: data.annotations ? Object.keys(data.annotations) : [],
+                    canvasDataKeys: (data.annotations && data.annotations.canvasData) ? Object.keys(data.annotations.canvasData) : []
+                });
+
                 // Restaurer les annotations canvas
                 if (data.annotations && data.annotations.canvasData) {
                     this.annotations = new Map(Object.entries(data.annotations.canvasData || {}));
+                    console.log('✅ Annotations chargées depuis canvasData, pages:', Array.from(this.annotations.keys()));
                 } else {
                     // Compatibilité avec l'ancien format
                     this.annotations = new Map(Object.entries(data.annotations || {}));
+                    console.log('✅ Annotations chargées depuis ancien format, pages:', Array.from(this.annotations.keys()));
                 }
                 
                 // Restaurer la structure des pages
@@ -6404,12 +6413,16 @@ class UnifiedPDFViewer {
      */
     async redrawAllAnnotations() {
         if (!this.annotations || this.annotations.size === 0) {
+            console.log('⚠️ Pas d\'annotations à redessiner');
             return;
         }
-        
+
+        console.log(`🎨 Redessinage de ${this.annotations.size} pages avec annotations`);
+
         // Utiliser l'ancien système simple basé sur les numéros de page
         for (const [pageNumStr, annotationData] of this.annotations) {
             const pageNum = parseInt(pageNumStr);
+            console.log(`  📄 Page ${pageNum}: hasImageData=${!!annotationData?.imageData}, width=${annotationData?.width}, height=${annotationData?.height}`);
             const pageContainer = document.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
             
             if (pageContainer) {
