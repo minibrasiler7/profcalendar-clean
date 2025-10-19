@@ -1822,16 +1822,20 @@ class UnifiedPDFViewer {
     // Méthodes publiques pour contrôle externe
     async destroy() {
         console.log('🗑️ Destruction du PDF viewer - nettoyage complet');
+        console.log(`  📋 État: currentMode.annotations=${this.currentMode?.annotations}, fileId=${this.fileId}`);
 
         // IMPORTANT: Sauvegarder les annotations avant de détruire
         if (this.currentMode.annotations && this.fileId) {
             console.log('  💾 Sauvegarde des annotations avant fermeture...');
+            console.log(`  📊 Pages chargées: ${this.pageElements.size}`);
             try {
                 await this.saveAnnotations();
-                console.log('  ✅ Annotations sauvegardées');
+                console.log('  ✅ Annotations sauvegardées après destroy()');
             } catch (error) {
                 console.error('  ❌ Erreur lors de la sauvegarde:', error);
             }
+        } else {
+            console.log(`  ⚠️ Sauvegarde ignorée - annotations=${this.currentMode?.annotations}, fileId=${this.fileId}`);
         }
 
         // IMPORTANT: Détruire tous les moteurs d'annotation SimplePenAnnotation
@@ -6483,6 +6487,7 @@ class UnifiedPDFViewer {
             }
 
             console.log('💾 Début de la sauvegarde des annotations...');
+            console.log(`  🔍 Nombre de pages dans pageElements: ${this.pageElements.size}`);
 
             // Capturer les données des canvas d'annotation et la structure des pages
             const annotationsData = {
@@ -6497,7 +6502,9 @@ class UnifiedPDFViewer {
 
             // Capturer les annotations depuis this.pageElements (méthode originale)
             let pagesWithContent = 0;
+            let pagesChecked = 0;
             for (const [pageNum, pageElement] of this.pageElements) {
+                pagesChecked++;
                 if (pageElement.annotationCtx) {
                     const canvas = pageElement.annotationCtx.canvas;
                     // Vérifier si le canvas contient des dessins (pas complètement vide)
@@ -6517,28 +6524,36 @@ class UnifiedPDFViewer {
                         };
                         pagesWithContent++;
                         console.log(`  ✏️ Page ${pageNum}: annotations trouvées (${canvas.width}x${canvas.height})`);
+                    } else {
+                        console.log(`  ⚪ Page ${pageNum}: vide`);
                     }
+                } else {
+                    console.log(`  ⚠️ Page ${pageNum}: pas de annotationCtx`);
                 }
             }
 
-            console.log(`📊 Total: ${pagesWithContent} pages avec annotations`);
+            console.log(`📊 Total: ${pagesWithContent} pages avec annotations sur ${pagesChecked} pages vérifiées`);
 
-            
-            
+            const payloadToSave = {
+                file_id: this.fileId,
+                annotations: annotationsData
+            };
+
+            console.log(`  📤 Envoi au serveur: file_id=${this.fileId}, pages avec contenu=${Object.keys(annotationsData.canvasData).length}`);
+
             const response = await fetch(this.options.apiEndpoints.saveAnnotations, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    file_id: this.fileId,
-                    annotations: annotationsData
-                })
+                body: JSON.stringify(payloadToSave)
             });
 
             if (response.ok) {
-                console.log('✅ Annotations sauvegardées avec succès');
+                console.log('✅ Annotations sauvegardées avec succès sur le serveur');
                 this.emit('annotations-saved');
             } else {
                 console.error('❌ Erreur HTTP lors de la sauvegarde:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('  📄 Réponse serveur:', errorText);
             }
         } catch (error) {
             console.error('❌ Erreur sauvegarde annotations:', error);
