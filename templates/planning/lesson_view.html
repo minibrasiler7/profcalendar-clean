@@ -5351,28 +5351,53 @@ async function loadImage(fileId, container) {
 // Fonction saveAnnotations dupliquée supprimée - déjà définie plus haut
 
 // Fermer le viewer amélioré
-function closeFileViewer() {
+async function closeFileViewer() {
     try {
+        console.log('🔄 Fermeture du viewer - début');
+
+        // IMPORTANT: Si unifiedPDFViewer existe, utiliser son système de fermeture
+        if (typeof unifiedPDFViewer !== 'undefined' && unifiedPDFViewer) {
+            console.log('  📦 Utilisation du lecteur PDF unifié pour la fermeture');
+
+            const modal = document.getElementById('fileViewerModal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            // CRITIQUE: Await destroy() pour sauvegarder les annotations
+            await unifiedPDFViewer.destroy();
+            console.log('  ✅ Lecteur PDF unifié nettoyé');
+
+            // IMPORTANT: Réinitialiser la variable pour permettre une nouvelle création
+            unifiedPDFViewer = null;
+            currentPDFUrl = null;
+            return;
+        }
+
+        // ANCIEN SYSTÈME (fallback si pas de unifiedPDFViewer)
+        console.log('  📄 Utilisation de l\'ancien système de fermeture');
+
         // Si on est en vue split, fermer toute la vue split
         if (isSplitViewActive) {
             closeSplitView();
             return;
         }
-        
+
         // Sauvegarder les annotations de la page actuelle avant de fermer
         console.log('📄 Fermeture du viewer - sauvegarde des annotations de la page actuelle...');
         saveCurrentPageAnnotations();
-        
+
         // Sauvegarder toutes les annotations
         if (Object.keys(annotationsByPage).length > 0 || annotations.length > 0) {
             saveAnnotations();
         }
-        
+
         const modal = document.getElementById('fileViewerModal');
         if (modal) {
             modal.classList.remove('show');
         }
-        
+
         // Nettoyer les variables
         currentFileId = null;
         annotations = [];
@@ -5385,17 +5410,17 @@ function closeFileViewer() {
         pdfCtx = null;
         annotationCanvas = null;
         annotationCtx = null;
-        
+
         if (saveTimeout) {
             clearTimeout(saveTimeout);
             saveTimeout = null;
         }
-        
+
         // Masquer la barre latérale
         document.getElementById('pageSidebar').classList.remove('show');
-        
+
     } catch (error) {
-        console.error('Erreur lors de la fermeture:', error);
+        console.error('❌ Erreur lors de la fermeture:', error);
         const modal = document.getElementById('fileViewerModal');
         if (modal) {
             modal.style.display = 'none';
@@ -7924,25 +7949,8 @@ function openFileWithUnifiedViewer(filePath, fileName) {
         });
 }
 
-// Fonction pour fermer le viewer (mise à jour pour le nouveau lecteur)
-async function closeFileViewer() {
-    console.log('🔄 Fermeture du lecteur PDF unifié');
-
-    const modal = document.getElementById('fileViewerModal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
-    }
-
-    // Nettoyer l'instance du lecteur si nécessaire
-    if (unifiedPDFViewer) {
-        // Appeler la méthode destroy pour nettoyer tout, y compris le panneau de graphique
-        await unifiedPDFViewer.destroy();
-        console.log('📄 Lecteur PDF unifié nettoyé et panneau de graphique fermé');
-    }
-
-    currentPDFUrl = null;
-}
+// closeFileViewer() est défini plus haut dans le fichier (ligne ~5354)
+// Ne pas dupliquer la fonction ici
 
 // Fonction modifiée pour ouvrir les fichiers (remplace l'ancienne fonction openFile)
 function openFile(filePath, fileName, fileType) {
