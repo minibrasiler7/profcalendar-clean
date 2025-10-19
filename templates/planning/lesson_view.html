@@ -5366,7 +5366,15 @@ async function closeFileViewer() {
             }
 
             // CRITIQUE: Await destroy() pour sauvegarder les annotations
-            await unifiedPDFViewer.destroy();
+            try {
+                console.log('  🔧 Appel de unifiedPDFViewer.destroy()...');
+                await unifiedPDFViewer.destroy();
+                console.log('  ✅ destroy() terminé avec succès');
+            } catch (error) {
+                console.error('  ❌ Erreur lors de destroy():', error);
+                console.error('  📊 Stack:', error.stack);
+            }
+
             console.log('  ✅ Lecteur PDF unifié nettoyé');
 
             // IMPORTANT: Réinitialiser la variable pour permettre une nouvelle création
