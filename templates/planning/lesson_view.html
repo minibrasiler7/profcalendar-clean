@@ -5368,8 +5368,12 @@ async function closeFileViewer() {
             // CRITIQUE: Await destroy() pour sauvegarder les annotations
             try {
                 console.log('  🔧 Appel de unifiedPDFViewer.destroy()...');
-                await unifiedPDFViewer.destroy();
-                console.log('  ✅ destroy() terminé avec succès');
+                console.log('  📊 Type de unifiedPDFViewer:', typeof unifiedPDFViewer);
+                console.log('  📊 Type de destroy:', typeof unifiedPDFViewer.destroy);
+                console.log('  📊 unifiedPDFViewer:', unifiedPDFViewer);
+
+                const destroyResult = await unifiedPDFViewer.destroy();
+                console.log('  ✅ destroy() terminé avec succès, résultat:', destroyResult);
             } catch (error) {
                 console.error('  ❌ Erreur lors de destroy():', error);
                 console.error('  📊 Stack:', error.stack);
