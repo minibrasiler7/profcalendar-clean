@@ -1120,6 +1120,15 @@ class UnifiedPDFViewer {
             // Redessiner les annotations après le rendu des pages
             if (this.currentMode.annotations && this.fileId && this.annotations && this.annotations.size > 0) {
                 await this.redrawAllAnnotations();
+
+                // IMPORTANT: Sauvegarder le background dans SimplePenAnnotation après le rechargement
+                // Sinon le premier trait va effacer toutes les annotations chargées
+                this.annotationEngines.forEach((engine, pageNum) => {
+                    if (engine && typeof engine.saveBackground === 'function') {
+                        engine.saveBackground();
+                        console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
+                    }
+                });
             }
             
             // Ajuster automatiquement à la largeur si souhaité
