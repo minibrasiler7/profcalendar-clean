@@ -230,38 +230,15 @@ class SimplePenAnnotation {
     }
 
     redraw() {
-        // DEBUG: Log l'état du backgroundImageData
-        console.log('🔄 SimplePenAnnotation.redraw() appelé');
-        console.log(`  📊 backgroundImageData exists: ${!!this.backgroundImageData}`);
-        if (this.backgroundImageData) {
-            console.log(`  📐 Dimensions: ${this.backgroundImageData.width}x${this.backgroundImageData.height}`);
-
-            // Vérifier s'il y a des pixels non-transparents
-            const data = this.backgroundImageData.data;
-            let nonTransparentPixels = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                const alpha = data[i + 3];
-                if (alpha > 0) {
-                    nonTransparentPixels++;
-                }
-            }
-            console.log(`  🎨 Pixels non-transparents: ${nonTransparentPixels} / ${data.length / 4}`);
-        }
-        console.log(`  ✏️ Strokes sauvegardés: ${this.strokes.length}`);
-        console.log(`  🖊️ Points du stroke actuel: ${this.currentPoints.length}`);
-
-        // Effacer le canvas
+        // IMPORTANT: Effacer le canvas et restaurer le background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // IMPORTANT: Restaurer le background (annotations des autres outils)
+        // Restaurer le background (annotations des autres outils)
         if (this.backgroundImageData) {
-            console.log('  ♻️ Restauration du backgroundImageData...');
             this.ctx.putImageData(this.backgroundImageData, 0, 0);
-        } else {
-            console.log('  ⚠️ PAS de backgroundImageData à restaurer!');
         }
 
-        // Redessiner tous les strokes sauvegardés
+        // Redessiner tous les strokes sauvegardés de SimplePenAnnotation
         this.strokes.forEach(strokeData => {
             this.drawStroke(strokeData.points, strokeData.options);
         });
@@ -313,6 +290,7 @@ class SimplePenAnnotation {
     clear() {
         this.strokes = [];
         this.currentPoints = [];
+        // Effacer tout le canvas (y compris les annotations des autres outils)
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 

@@ -6454,32 +6454,51 @@ class UnifiedPDFViewer {
 
         console.log(`🎨 Redessinage de ${this.annotations.size} pages avec annotations`);
 
+        // IMPORTANT: Créer un tableau de Promises pour attendre que toutes les images soient chargées
+        const loadPromises = [];
+
         // Utiliser l'ancien système simple basé sur les numéros de page
         for (const [pageNumStr, annotationData] of this.annotations) {
             const pageNum = parseInt(pageNumStr);
             console.log(`  📄 Page ${pageNum}: hasImageData=${!!annotationData?.imageData}, width=${annotationData?.width}, height=${annotationData?.height}`);
             const pageContainer = document.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
-            
+
             if (pageContainer) {
                 const annotationCanvas = pageContainer.querySelector('.pdf-annotation-layer');
-                
+
                 if (annotationCanvas && annotationData?.imageData) {
-                    try {
-                        const img = new Image();
-                        img.onload = () => {
-                            const ctx = annotationCanvas.getContext('2d');
-                            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                            
-                            // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
-                            const dpr = window.devicePixelRatio || 1;
-                            ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-                        };
-                        img.src = annotationData.imageData;
-                    } catch (error) {
-                    }
+                    // Créer une Promise pour le chargement de cette image
+                    const loadPromise = new Promise((resolve, reject) => {
+                        try {
+                            const img = new Image();
+                            img.onload = () => {
+                                const ctx = annotationCanvas.getContext('2d');
+                                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                                // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
+                                const dpr = window.devicePixelRatio || 1;
+                                ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
+                                console.log(`  ✅ Image chargée et dessinée pour la page ${pageNum}`);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.error(`  ❌ Erreur chargement image page ${pageNum}`);
+                                reject(new Error(`Failed to load image for page ${pageNum}`));
+                            };
+                            img.src = annotationData.imageData;
+                        } catch (error) {
+                            console.error(`  ❌ Erreur traitement page ${pageNum}:`, error);
+                            reject(error);
+                        }
+                    });
+                    loadPromises.push(loadPromise);
                 }
             }
         }
+
+        // IMPORTANT: Attendre que TOUTES les images soient chargées et dessinées
+        await Promise.all(loadPromises);
+        console.log('✅ Toutes les images d\'annotations ont été chargées et dessinées');
     }
     
     async saveAnnotations() {
