@@ -12551,6 +12551,14 @@ class UnifiedPDFViewer {
         });
 
         this.annotationEngines.set(pageNum, engine);
+
+        // IMPORTANT: Sauvegarder le background après la création
+        // pour capturer les annotations déjà présentes sur le canvas
+        // Sinon le premier trait va effacer ces annotations
+        if (engine && typeof engine.saveBackground === 'function') {
+            engine.saveBackground();
+            console.log(`  🔄 Background sauvegardé après création du moteur pour la page ${pageNum}`);
+        }
     }
 
     /**
