@@ -32,9 +32,11 @@ class SimplePenAnnotation {
         this.strokes = []; // Historique de tous les strokes
         this.pointerId = null;
 
-        // IMPORTANT: Sauvegarder l'état initial du canvas pour préserver les autres annotations
+        // IMPORTANT: Initialiser backgroundImageData mais NE PAS sauvegarder automatiquement
+        // Le background sera sauvegardé manuellement après le chargement des annotations
+        // pour éviter de sauvegarder un canvas vide
         this.backgroundImageData = null;
-        this.saveBackground();
+        // this.saveBackground(); // DÉSACTIVÉ - sera appelé manuellement après le chargement
 
         // Sauvegarder les styles CSS originaux
         this.originalTouchAction = this.canvas.style.touchAction;
@@ -228,15 +230,15 @@ class SimplePenAnnotation {
     }
 
     redraw() {
-        // Effacer le canvas
+        // IMPORTANT: Effacer le canvas et restaurer le background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // IMPORTANT: Restaurer le background (annotations des autres outils)
+        // Restaurer le background (annotations des autres outils)
         if (this.backgroundImageData) {
             this.ctx.putImageData(this.backgroundImageData, 0, 0);
         }
 
-        // Redessiner tous les strokes sauvegardés
+        // Redessiner tous les strokes sauvegardés de SimplePenAnnotation
         this.strokes.forEach(strokeData => {
             this.drawStroke(strokeData.points, strokeData.options);
         });
@@ -288,6 +290,7 @@ class SimplePenAnnotation {
     clear() {
         this.strokes = [];
         this.currentPoints = [];
+        // Effacer tout le canvas (y compris les annotations des autres outils)
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 

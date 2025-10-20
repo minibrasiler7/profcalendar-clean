@@ -1120,6 +1120,15 @@ class UnifiedPDFViewer {
             // Redessiner les annotations après le rendu des pages
             if (this.currentMode.annotations && this.fileId && this.annotations && this.annotations.size > 0) {
                 await this.redrawAllAnnotations();
+
+                // IMPORTANT: Sauvegarder le background dans SimplePenAnnotation après le rechargement
+                // Sinon le premier trait va effacer toutes les annotations chargées
+                this.annotationEngines.forEach((engine, pageNum) => {
+                    if (engine && typeof engine.saveBackground === 'function') {
+                        engine.saveBackground();
+                        console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
+                    }
+                });
             }
             
             // Ajuster automatiquement à la largeur si souhaité
@@ -1820,7 +1829,35 @@ class UnifiedPDFViewer {
     }
 
     // Méthodes publiques pour contrôle externe
-    destroy() {
+    async destroy() {
+        console.log('🗑️ Destruction du PDF viewer - nettoyage complet');
+        console.log(`  📋 État: currentMode.annotations=${this.currentMode?.annotations}, fileId=${this.fileId}`);
+
+        // IMPORTANT: Sauvegarder les annotations avant de détruire
+        if (this.currentMode.annotations && this.fileId) {
+            console.log('  💾 Sauvegarde des annotations avant fermeture...');
+            console.log(`  📊 Pages chargées: ${this.pageElements.size}`);
+            try {
+                await this.saveAnnotations();
+                console.log('  ✅ Annotations sauvegardées après destroy()');
+            } catch (error) {
+                console.error('  ❌ Erreur lors de la sauvegarde:', error);
+            }
+        } else {
+            console.log(`  ⚠️ Sauvegarde ignorée - annotations=${this.currentMode?.annotations}, fileId=${this.fileId}`);
+        }
+
+        // IMPORTANT: Détruire tous les moteurs d'annotation SimplePenAnnotation
+        if (this.annotationEngines) {
+            console.log(`  🧹 Nettoyage de ${this.annotationEngines.size} moteurs d'annotation`);
+            this.annotationEngines.forEach((engine, pageNum) => {
+                if (engine && typeof engine.destroy === 'function') {
+                    engine.destroy();
+                }
+            });
+            this.annotationEngines.clear();
+        }
+
         // Nettoyage lors de la destruction
         if (this.saveTimeout) {
             clearTimeout(this.saveTimeout);
@@ -1828,30 +1865,61 @@ class UnifiedPDFViewer {
         if (this.pageObserver) {
             this.pageObserver.disconnect();
         }
-        
+
         // Fermer le panneau de configuration du graphique s'il est ouvert
         if (this.graphControlPanel) {
             this.hideGraphControlPanel();
         }
-        
+
         // Nettoyer les event handlers du graphique
         if (this.graphEventHandlers) {
             this.graphEventHandlers = null;
         }
-        
+
         // Nettoyer le handler de téléchargement
         if (this.downloadClickHandler) {
             document.removeEventListener('click', this.downloadClickHandler, true);
             this.downloadClickHandler = null;
         }
-        
+
         // Nettoyer le handler de clic texte s'il existe
         if (this.textClickHandler) {
             document.removeEventListener('click', this.textClickHandler, true);
             this.textClickHandler = null;
         }
-        
+
         this.eventListeners.clear();
+
+        // Code fusionné de l'ancienne méthode destroy() dupliquée (ligne ~3551)
+        try {
+            // Fermer et supprimer le panneau de suivi d'élèves
+            if (this.studentTrackingPanel) {
+                this.studentTrackingPanel.style.display = 'none';
+                // Différer la suppression pour éviter les conflits
+                setTimeout(() => {
+                    this.removeStudentTrackingPanel();
+                }, 100);
+            }
+
+            // Nettoyer les autres ressources du PDF viewer
+            if (this.graphPanel) {
+                this.closeGraphPanel();
+            }
+
+            // Nettoyer les événements globaux
+            if (this.resizeObserver) {
+                this.resizeObserver.disconnect();
+            }
+
+            // Nettoyer les timers
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du nettoyage final:', error);
+        }
+
+        console.log('✅ Destruction terminée');
     }
 
     // Gestion du redimensionnement
@@ -3515,40 +3583,7 @@ class UnifiedPDFViewer {
         }).join('');
     }
     
-    /**
-     * Nettoie et détruit l'instance du PDF viewer
-     */
-    destroy() {
-        
-        try {
-            // Fermer et supprimer le panneau de suivi d'élèves
-            if (this.studentTrackingPanel) {
-                this.studentTrackingPanel.style.display = 'none';
-                // Différer la suppression pour éviter les conflits
-                setTimeout(() => {
-                    this.removeStudentTrackingPanel();
-                }, 100);
-            }
-            
-            // Nettoyer les autres ressources du PDF viewer
-            if (this.graphPanel) {
-                this.closeGraphPanel();
-            }
-            
-            // Nettoyer les événements globaux
-            if (this.resizeObserver) {
-                this.resizeObserver.disconnect();
-            }
-            
-            // Nettoyer les timers
-            if (this.autoSaveTimer) {
-                clearTimeout(this.autoSaveTimer);
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur lors de la destruction du PDF viewer:', error);
-        }
-    }
+    // SUPPRIMÉ: Méthode destroy() dupliquée - fusionnée dans la méthode async destroy() à la ligne ~1823
     
     /**
      * Configuration des événements d'annotation pour une page spécifique
@@ -6354,13 +6389,22 @@ class UnifiedPDFViewer {
             
             if (response.ok) {
                 const data = await response.json();
-                
+
+                console.log('📥 Annotations chargées:', {
+                    hasAnnotations: !!data.annotations,
+                    hasCanvasData: !!(data.annotations && data.annotations.canvasData),
+                    annotationsKeys: data.annotations ? Object.keys(data.annotations) : [],
+                    canvasDataKeys: (data.annotations && data.annotations.canvasData) ? Object.keys(data.annotations.canvasData) : []
+                });
+
                 // Restaurer les annotations canvas
                 if (data.annotations && data.annotations.canvasData) {
                     this.annotations = new Map(Object.entries(data.annotations.canvasData || {}));
+                    console.log('✅ Annotations chargées depuis canvasData, pages:', Array.from(this.annotations.keys()));
                 } else {
                     // Compatibilité avec l'ancien format
                     this.annotations = new Map(Object.entries(data.annotations || {}));
+                    console.log('✅ Annotations chargées depuis ancien format, pages:', Array.from(this.annotations.keys()));
                 }
                 
                 // Restaurer la structure des pages
@@ -6404,34 +6448,57 @@ class UnifiedPDFViewer {
      */
     async redrawAllAnnotations() {
         if (!this.annotations || this.annotations.size === 0) {
+            console.log('⚠️ Pas d\'annotations à redessiner');
             return;
         }
-        
+
+        console.log(`🎨 Redessinage de ${this.annotations.size} pages avec annotations`);
+
+        // IMPORTANT: Créer un tableau de Promises pour attendre que toutes les images soient chargées
+        const loadPromises = [];
+
         // Utiliser l'ancien système simple basé sur les numéros de page
         for (const [pageNumStr, annotationData] of this.annotations) {
             const pageNum = parseInt(pageNumStr);
+            console.log(`  📄 Page ${pageNum}: hasImageData=${!!annotationData?.imageData}, width=${annotationData?.width}, height=${annotationData?.height}`);
             const pageContainer = document.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
-            
+
             if (pageContainer) {
                 const annotationCanvas = pageContainer.querySelector('.pdf-annotation-layer');
-                
+
                 if (annotationCanvas && annotationData?.imageData) {
-                    try {
-                        const img = new Image();
-                        img.onload = () => {
-                            const ctx = annotationCanvas.getContext('2d');
-                            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                            
-                            // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
-                            const dpr = window.devicePixelRatio || 1;
-                            ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-                        };
-                        img.src = annotationData.imageData;
-                    } catch (error) {
-                    }
+                    // Créer une Promise pour le chargement de cette image
+                    const loadPromise = new Promise((resolve, reject) => {
+                        try {
+                            const img = new Image();
+                            img.onload = () => {
+                                const ctx = annotationCanvas.getContext('2d');
+                                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                                // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
+                                const dpr = window.devicePixelRatio || 1;
+                                ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
+                                console.log(`  ✅ Image chargée et dessinée pour la page ${pageNum}`);
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                console.error(`  ❌ Erreur chargement image page ${pageNum}`);
+                                reject(new Error(`Failed to load image for page ${pageNum}`));
+                            };
+                            img.src = annotationData.imageData;
+                        } catch (error) {
+                            console.error(`  ❌ Erreur traitement page ${pageNum}:`, error);
+                            reject(error);
+                        }
+                    });
+                    loadPromises.push(loadPromise);
                 }
             }
         }
+
+        // IMPORTANT: Attendre que TOUTES les images soient chargées et dessinées
+        await Promise.all(loadPromises);
+        console.log('✅ Toutes les images d\'annotations ont été chargées et dessinées');
     }
     
     async saveAnnotations() {
@@ -6439,9 +6506,13 @@ class UnifiedPDFViewer {
         try {
             // Éviter les requêtes CORS lors des tests locaux
             if (window.location.protocol === 'file:') {
+                console.log('⚠️ Mode file:// - sauvegarde désactivée');
                 return;
             }
-            
+
+            console.log('💾 Début de la sauvegarde des annotations...');
+            console.log(`  🔍 Nombre de pages dans pageElements: ${this.pageElements.size}`);
+
             // Capturer les données des canvas d'annotation et la structure des pages
             const annotationsData = {
                 canvasData: {},
@@ -6452,9 +6523,12 @@ class UnifiedPDFViewer {
                     totalPages: this.totalPages
                 }
             };
-            
+
             // Capturer les annotations depuis this.pageElements (méthode originale)
+            let pagesWithContent = 0;
+            let pagesChecked = 0;
             for (const [pageNum, pageElement] of this.pageElements) {
+                pagesChecked++;
                 if (pageElement.annotationCtx) {
                     const canvas = pageElement.annotationCtx.canvas;
                     // Vérifier si le canvas contient des dessins (pas complètement vide)
@@ -6465,31 +6539,48 @@ class UnifiedPDFViewer {
                         // Vérifier tous les canaux de couleur (R, G, B) ou l'alpha
                         return (channel < 3 && value !== 255) || (channel === 3 && value > 0);
                     });
-                    
+
                     if (hasContent) {
                         annotationsData.canvasData[pageNum] = {
                             imageData: canvas.toDataURL('image/png'),
                             width: canvas.width,
                             height: canvas.height
                         };
+                        pagesWithContent++;
+                        console.log(`  ✏️ Page ${pageNum}: annotations trouvées (${canvas.width}x${canvas.height})`);
+                    } else {
+                        console.log(`  ⚪ Page ${pageNum}: vide`);
                     }
+                } else {
+                    console.log(`  ⚠️ Page ${pageNum}: pas de annotationCtx`);
                 }
             }
-            
-            
+
+            console.log(`📊 Total: ${pagesWithContent} pages avec annotations sur ${pagesChecked} pages vérifiées`);
+
+            const payloadToSave = {
+                file_id: this.fileId,
+                annotations: annotationsData
+            };
+
+            console.log(`  📤 Envoi au serveur: file_id=${this.fileId}, pages avec contenu=${Object.keys(annotationsData.canvasData).length}`);
+
             const response = await fetch(this.options.apiEndpoints.saveAnnotations, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    file_id: this.fileId,
-                    annotations: annotationsData
-                })
+                body: JSON.stringify(payloadToSave)
             });
-            
+
             if (response.ok) {
+                console.log('✅ Annotations sauvegardées avec succès sur le serveur');
                 this.emit('annotations-saved');
+            } else {
+                console.error('❌ Erreur HTTP lors de la sauvegarde:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('  📄 Réponse serveur:', errorText);
             }
         } catch (error) {
+            console.error('❌ Erreur sauvegarde annotations:', error);
             this.log('Erreur sauvegarde annotations:', error);
         }
     }
@@ -12479,6 +12570,9 @@ class UnifiedPDFViewer {
         });
 
         this.annotationEngines.set(pageNum, engine);
+
+        // NOTE: Le background sera sauvegardé après redrawAllAnnotations()
+        // pour capturer les annotations chargées. Voir ligne ~1126
     }
 
     /**
