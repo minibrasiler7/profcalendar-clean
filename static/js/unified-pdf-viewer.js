@@ -6904,18 +6904,28 @@ class UnifiedPDFViewer {
         const pageNum = this.currentPage;
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
-        
+
         // Effacer le canvas
         const ctx = pageElement.annotationCtx;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        
+
+        // IMPORTANT: Si SimplePenAnnotation est actif pour cette page, effacer ses strokes aussi
+        const engine = this.annotationEngines.get(pageNum);
+        if (engine && typeof engine.clear === 'function') {
+            engine.clear();
+            // Sauvegarder un nouveau background vide pour éviter que les annotations réapparaissent
+            if (typeof engine.saveBackground === 'function') {
+                engine.saveBackground();
+            }
+        }
+
         // Sauvegarder l'état après effacement
         this.saveCanvasState(pageNum);
-        
-        
+
+
         // Nettoyer les états des outils actifs
         this.resetToolStates();
-        
+
         // Programmer la sauvegarde automatique
         if (this.options.autoSave) {
             this.scheduleAutoSave();

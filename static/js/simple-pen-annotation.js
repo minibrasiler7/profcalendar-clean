@@ -38,6 +38,10 @@ class SimplePenAnnotation {
         this.backgroundImageData = null;
         // this.saveBackground(); // DÉSACTIVÉ - sera appelé manuellement après le chargement
 
+        // OPTIMISATION: Throttle pour limiter les redraws pendant le dessin
+        this.lastRedrawTime = 0;
+        this.redrawThrottle = 16; // ~60fps max
+
         // Sauvegarder les styles CSS originaux
         this.originalTouchAction = this.canvas.style.touchAction;
         this.originalUserSelect = this.canvas.style.userSelect;
@@ -179,8 +183,13 @@ class SimplePenAnnotation {
         // Ajouter le point
         this.currentPoints.push([x, y, e.pressure || 0.5]);
 
-        // Redessiner
-        this.redraw();
+        // OPTIMISATION: Throttle redraws à ~60fps pour éviter la dégradation de performance
+        // Cela limite le nombre de redraws complets tout en collectant tous les points
+        const now = Date.now();
+        if (now - this.lastRedrawTime > this.redrawThrottle) {
+            this.redraw();
+            this.lastRedrawTime = now;
+        }
     }
 
     handlePointerUp(e) {
