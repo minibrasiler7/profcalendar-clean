@@ -1881,6 +1881,35 @@ class UnifiedPDFViewer {
 
         this.eventListeners.clear();
 
+        // Code fusionné de l'ancienne méthode destroy() dupliquée (ligne ~3551)
+        try {
+            // Fermer et supprimer le panneau de suivi d'élèves
+            if (this.studentTrackingPanel) {
+                this.studentTrackingPanel.style.display = 'none';
+                // Différer la suppression pour éviter les conflits
+                setTimeout(() => {
+                    this.removeStudentTrackingPanel();
+                }, 100);
+            }
+
+            // Nettoyer les autres ressources du PDF viewer
+            if (this.graphPanel) {
+                this.closeGraphPanel();
+            }
+
+            // Nettoyer les événements globaux
+            if (this.resizeObserver) {
+                this.resizeObserver.disconnect();
+            }
+
+            // Nettoyer les timers
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du nettoyage final:', error);
+        }
+
         console.log('✅ Destruction terminée');
     }
 
@@ -3545,40 +3574,7 @@ class UnifiedPDFViewer {
         }).join('');
     }
     
-    /**
-     * Nettoie et détruit l'instance du PDF viewer
-     */
-    destroy() {
-        
-        try {
-            // Fermer et supprimer le panneau de suivi d'élèves
-            if (this.studentTrackingPanel) {
-                this.studentTrackingPanel.style.display = 'none';
-                // Différer la suppression pour éviter les conflits
-                setTimeout(() => {
-                    this.removeStudentTrackingPanel();
-                }, 100);
-            }
-            
-            // Nettoyer les autres ressources du PDF viewer
-            if (this.graphPanel) {
-                this.closeGraphPanel();
-            }
-            
-            // Nettoyer les événements globaux
-            if (this.resizeObserver) {
-                this.resizeObserver.disconnect();
-            }
-            
-            // Nettoyer les timers
-            if (this.autoSaveTimer) {
-                clearTimeout(this.autoSaveTimer);
-            }
-            
-        } catch (error) {
-            console.error('❌ Erreur lors de la destruction du PDF viewer:', error);
-        }
-    }
+    // SUPPRIMÉ: Méthode destroy() dupliquée - fusionnée dans la méthode async destroy() à la ligne ~1823
     
     /**
      * Configuration des événements d'annotation pour une page spécifique
