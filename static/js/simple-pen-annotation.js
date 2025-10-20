@@ -32,9 +32,11 @@ class SimplePenAnnotation {
         this.strokes = []; // Historique de tous les strokes
         this.pointerId = null;
 
-        // IMPORTANT: Sauvegarder l'état initial du canvas pour préserver les autres annotations
+        // IMPORTANT: Initialiser backgroundImageData mais NE PAS sauvegarder automatiquement
+        // Le background sera sauvegardé manuellement après le chargement des annotations
+        // pour éviter de sauvegarder un canvas vide
         this.backgroundImageData = null;
-        this.saveBackground();
+        // this.saveBackground(); // DÉSACTIVÉ - sera appelé manuellement après le chargement
 
         // Sauvegarder les styles CSS originaux
         this.originalTouchAction = this.canvas.style.touchAction;
