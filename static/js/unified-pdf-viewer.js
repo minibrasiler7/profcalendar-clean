@@ -1164,14 +1164,17 @@ class UnifiedPDFViewer {
             }
 
             this.showLoading(false);
-            
+
             // Activer l'outil par défaut (stylo) après le chargement du PDF
             if (this.currentMode.annotations) {
                 this.setCurrentTool('pen');
             }
-            
+
+            // Mettre à jour l'état des boutons undo/redo après le chargement
+            this.updateUndoRedoButtons();
+
             this.emit('pdf-loaded', { totalPages: this.totalPages, fileName: this.fileName });
-            
+
         } catch (error) {
             this.showLoading(false);
             this.showError('Erreur lors du chargement du PDF: ' + error.message);
