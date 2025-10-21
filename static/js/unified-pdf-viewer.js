@@ -147,6 +147,8 @@ class UnifiedPDFViewer {
         this.protractorValidationTimeout = 1000; // 1.5 secondes
         this.protractorCanvasState = null;
         this.protractorAngleElement = null;
+        this.protractorLastValidationPoint = null; // Dernier point qui a déclenché le timer
+        this.protractorMovementTolerance = 5; // Tolérance de mouvement en pixels pour le stylet
         // Aimantation aux angles entiers
         this.protractorSnapToInteger = true; // Activer l'aimantation par défaut
         this.protractorSnapTolerance = 2; // Tolérance d'aimantation en degrés
@@ -175,6 +177,8 @@ class UnifiedPDFViewer {
         this.arcCanvasState = null; // Sauvegarde du canvas
         this.arcRadiusElement = null; // Élément d'affichage du rayon pendant le tracé
         this.arcAngleElement = null; // Élément d'affichage de l'angle pendant le tracé
+        this.arcLastValidationPoint = null; // Dernier point qui a déclenché le timer
+        this.arcMovementTolerance = 5; // Tolérance de mouvement en pixels pour le stylet
         // Aimantation aux angles entiers pour l'arc
         this.arcSnapToInteger = true; // Activer l'aimantation par défaut
         this.arcSnapTolerance = 2; // Tolérance d'aimantation en degrés
@@ -4401,20 +4405,29 @@ class UnifiedPDFViewer {
             if (this.protractorState === 'drawing_first_line') {
                 this.protractorFirstPoint = { ...currentPoint };
                 this.drawProtractorFirstLinePreview(pageNum);
-                
+
                 // Logique de validation par immobilité
                 const distance = Math.sqrt(
-                    Math.pow(currentPoint.x - this.protractorCenterPoint.x, 2) + 
+                    Math.pow(currentPoint.x - this.protractorCenterPoint.x, 2) +
                     Math.pow(currentPoint.y - this.protractorCenterPoint.y, 2)
                 );
-                
+
                 // Si on a bougé assez loin du centre et qu'on n'a pas encore démarré le timer
                 if (distance > 20 && !this.protractorValidationTimer) {
+                    this.protractorLastValidationPoint = { ...currentPoint };
                     this.startProtractorValidationTimer(pageNum);
-                } 
-                // Si on bouge pendant le timer, le relancer
-                else if (distance > 20 && this.protractorValidationTimer) {
-                    this.startProtractorValidationTimer(pageNum); // Ceci va nettoyer l'ancien timer
+                }
+                // Si on bouge pendant le timer, ne le relancer que si le mouvement est significatif
+                else if (distance > 20 && this.protractorValidationTimer && this.protractorLastValidationPoint) {
+                    const movementSinceLastValidation = Math.sqrt(
+                        Math.pow(currentPoint.x - this.protractorLastValidationPoint.x, 2) +
+                        Math.pow(currentPoint.y - this.protractorLastValidationPoint.y, 2)
+                    );
+                    // Ne relancer le timer que si le mouvement dépasse la tolérance
+                    if (movementSinceLastValidation > this.protractorMovementTolerance) {
+                        this.protractorLastValidationPoint = { ...currentPoint };
+                        this.startProtractorValidationTimer(pageNum);
+                    }
                 }
             } else if (this.protractorState === 'drawing_second_line') {
                 this.protractorSecondPoint = { ...currentPoint };
@@ -4427,20 +4440,29 @@ class UnifiedPDFViewer {
                 this.arcRadiusPoint = { ...currentPoint };
                 this.drawArcRadiusPreview(pageNum);
                 this.updateArcRadius(pageNum);
-                
+
                 // Logique de validation par immobilité (comme le rapporteur)
                 const distance = Math.sqrt(
-                    Math.pow(currentPoint.x - this.arcCenterPoint.x, 2) + 
+                    Math.pow(currentPoint.x - this.arcCenterPoint.x, 2) +
                     Math.pow(currentPoint.y - this.arcCenterPoint.y, 2)
                 );
-                
+
                 // Si on a bougé assez loin du centre et qu'on n'a pas encore démarré le timer
                 if (distance > 20 && !this.arcValidationTimer) {
+                    this.arcLastValidationPoint = { ...currentPoint };
                     this.startArcValidationTimer(pageNum);
-                } 
-                // Si on bouge pendant le timer, le relancer
-                else if (distance > 20 && this.arcValidationTimer) {
-                    this.startArcValidationTimer(pageNum);
+                }
+                // Si on bouge pendant le timer, ne le relancer que si le mouvement est significatif
+                else if (distance > 20 && this.arcValidationTimer && this.arcLastValidationPoint) {
+                    const movementSinceLastValidation = Math.sqrt(
+                        Math.pow(currentPoint.x - this.arcLastValidationPoint.x, 2) +
+                        Math.pow(currentPoint.y - this.arcLastValidationPoint.y, 2)
+                    );
+                    // Ne relancer le timer que si le mouvement dépasse la tolérance
+                    if (movementSinceLastValidation > this.arcMovementTolerance) {
+                        this.arcLastValidationPoint = { ...currentPoint };
+                        this.startArcValidationTimer(pageNum);
+                    }
                 }
             } else if (this.arcState === 'drawing_arc') {
                 this.arcEndPoint = { ...currentPoint };
@@ -5622,6 +5644,7 @@ class UnifiedPDFViewer {
         this.protractorCenterPoint = null;
         this.protractorFirstPoint = null;
         this.protractorSecondPoint = null;
+        this.protractorLastValidationPoint = null;
         if (this.protractorValidationTimer) {
             clearTimeout(this.protractorValidationTimer);
             this.protractorValidationTimer = null;
@@ -6084,6 +6107,7 @@ class UnifiedPDFViewer {
         this.arcRadiusPoint = null;
         this.arcEndPoint = null;
         this.arcSnappedEndPoint = null;
+        this.arcLastValidationPoint = null;
         this.arcCanvasState = null; // Réinitialiser l'état canvas
         if (this.arcValidationTimer) {
             clearTimeout(this.arcValidationTimer);
