@@ -3648,8 +3648,27 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointerup', (e) => {
-            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
-            if (this.currentTool === 'pen') return;
+            // Pour le stylo, sauvegarder l'état après le trait
+            if (this.currentTool === 'pen') {
+                // SimplePenAnnotation gère le dessin, mais on doit sauvegarder l'état
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    // Sauvegarder l'état pour l'historique undo/redo
+                    this.saveCanvasState(pageNum);
+                    // Sauvegarder automatiquement sur le serveur
+                    if (this.fileId) {
+                        this.saveAnnotations().catch(err => {
+                            console.error('Erreur lors de la sauvegarde automatique:', err);
+                        });
+                    }
+                    // Sauvegarder le background pour SimplePenAnnotation
+                    const engine = this.annotationEngines.get(pageNum);
+                    if (engine && typeof engine.saveBackground === 'function') {
+                        engine.saveBackground();
+                    }
+                }
+                return;
+            }
 
             if (this.isDrawing) {
                 this.stopDrawing(e, pageNum);
@@ -6831,40 +6850,29 @@ class UnifiedPDFViewer {
         // Effacer le canvas
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        // Redessiner les strokes vectoriels à la nouvelle résolution/zoom
-        if (state.vectorData && state.vectorData.paths && state.vectorData.paths.length > 0) {
-            const engine = this.annotationEngines.get(pageNum);
-            if (engine) {
-                // Si le zoom a changé, transformer les coordonnées des points
-                if (Math.abs(scaleRatio - 1.0) > 0.01) {
-                    const transformedData = this.transformVectorData(state.vectorData, scaleRatio);
-                    engine.import(transformedData);
-                } else {
-                    // Pas de changement de zoom, importer directement
-                    engine.import(state.vectorData);
-                }
-
-                ctx.globalCompositeOperation = 'source-over';
-                engine.renderAllStrokes(ctx);
-            } else {
-                console.warn(`  ⚠️ Pas de moteur d'annotation pour la page ${pageNum}`);
-            }
-        }
-
-        // PUIS restaurer les autres annotations (highlighter, shapes, texte)
-        // en mode 'destination-over' pour les dessiner SOUS les strokes vectoriels
+        // Restaurer simplement l'image depuis l'imageData
         if (state.imageData) {
-            // On ne peut pas utiliser putImageData avec compositing, donc on crée un canvas temporaire
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = ctx.canvas.width;
-            tempCanvas.height = ctx.canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.putImageData(state.imageData, 0, 0);
+            // Vérifier si les dimensions correspondent
+            if (state.imageData.width === ctx.canvas.width && state.imageData.height === ctx.canvas.height) {
+                // Dimensions identiques, restaurer directement
+                ctx.putImageData(state.imageData, 0, 0);
+            } else {
+                // Dimensions différentes (zoom changé), redimensionner
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = state.imageData.width;
+                tempCanvas.height = state.imageData.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(state.imageData, 0, 0);
 
-            // Dessiner l'imageData SOUS les strokes vectoriels (qui sont déjà sur ctx)
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.drawImage(tempCanvas, 0, 0);
-            ctx.globalCompositeOperation = 'source-over'; // Remettre par défaut
+                // Redessiner en adaptant aux nouvelles dimensions
+                ctx.drawImage(tempCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            }
+
+            // Après restauration, sauvegarder le background pour SimplePenAnnotation
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine && typeof engine.saveBackground === 'function') {
+                engine.saveBackground();
+            }
         }
     }
 
