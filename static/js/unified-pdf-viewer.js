@@ -3617,8 +3617,14 @@ class UnifiedPDFViewer {
         // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
-            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
-            if (this.currentTool === 'pen') return;
+            // Pour l'outil pen, juste marquer isDrawing pour le pointerup
+            if (this.currentTool === 'pen') {
+                // SimplePenAnnotation gère le dessin, mais on doit tracker isDrawing
+                if (e.buttons > 0) {  // Seulement si vraiment en contact
+                    this.isDrawing = true;
+                }
+                return;
+            }
 
             // IMPORTANT: Vérifier que le stylet touche vraiment l'écran
             // e.buttons === 0 signifie que le stylet survole sans toucher (hover)
