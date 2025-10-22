@@ -942,9 +942,6 @@ class UnifiedPDFViewer {
                 <button class="btn-tool" id="btn-clear-page" title="Effacer la page">
                     <i class="fas fa-trash"></i>
                 </button>
-                <button class="btn-tool" id="btn-fullscreen" title="Plein écran">
-                    <i class="fas fa-expand"></i>
-                </button>
             </div>
             <div class="download-menu-container" style="position: relative;">
                 <button class="download-btn" id="btn-download-menu" title="Options de téléchargement" style="position: relative; z-index: 10;">
@@ -2020,10 +2017,7 @@ class UnifiedPDFViewer {
         document.getElementById('btn-undo')?.addEventListener('click', () => this.undo());
         document.getElementById('btn-redo')?.addEventListener('click', () => this.redo());
         document.getElementById('btn-clear-page')?.addEventListener('click', () => this.clearCurrentPage());
-        
-        // Bouton plein écran
-        document.getElementById('btn-fullscreen')?.addEventListener('click', () => this.toggleFullscreen());
-        
+
         // Bouton suivi élève
         document.getElementById('btn-student-tracking')?.addEventListener('click', () => this.openStudentTracking());
     }
@@ -4660,7 +4654,14 @@ class UnifiedPDFViewer {
             
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
             this.saveCanvasState(pageNum);
-            
+
+            // Sauvegarder automatiquement les annotations après chaque trait
+            if (this.fileId) {
+                this.saveAnnotations().catch(err => {
+                    console.error('Erreur lors de la sauvegarde automatique:', err);
+                });
+            }
+
             this.isDrawing = false;
             this.lastPoint = null;
             this.drawingLogged = false; // Reset pour le prochain trait
@@ -6966,24 +6967,32 @@ class UnifiedPDFViewer {
         const pageNum = this.currentPage;
         const undoHistory = this.undoStack.get(pageNum) || [];
         const redoHistory = this.redoStack.get(pageNum) || [];
-        
+
         const undoBtn = document.getElementById('btn-undo');
         const redoBtn = document.getElementById('btn-redo');
-        
+
+        console.log(`📝 UpdateUndoRedoButtons - Page ${pageNum}: undo=${undoHistory.length}, redo=${redoHistory.length}`);
+
         // Pour undo, on peut annuler s'il y a au moins 2 états (un état précédent + l'état actuel)
         const canUndo = undoHistory.length >= 2;
         const undoCount = Math.max(0, undoHistory.length - 1); // -1 car le dernier est l'état actuel
-        
+
         if (undoBtn) {
             undoBtn.disabled = !canUndo;
             undoBtn.style.opacity = canUndo ? '1' : '0.5';
             undoBtn.title = canUndo ? `Annuler (${undoCount} action${undoCount > 1 ? 's' : ''})` : 'Aucune action à annuler';
+            console.log(`  🔴 Undo button: disabled=${undoBtn.disabled}, canUndo=${canUndo}`);
+        } else {
+            console.log(`  ⚠️ Undo button not found in DOM`);
         }
-        
+
         if (redoBtn) {
             redoBtn.disabled = redoHistory.length === 0;
             redoBtn.style.opacity = redoHistory.length === 0 ? '0.5' : '1';
             redoBtn.title = redoHistory.length === 0 ? 'Aucune action à refaire' : `Refaire (${redoHistory.length} action${redoHistory.length > 1 ? 's' : ''})`;
+            console.log(`  🔵 Redo button: disabled=${redoBtn.disabled}`);
+        } else {
+            console.log(`  ⚠️ Redo button not found in DOM`);
         }
     }
 
