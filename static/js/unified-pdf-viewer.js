@@ -6874,10 +6874,17 @@ class UnifiedPDFViewer {
                 ctx.drawImage(tempCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
             }
 
-            // Après restauration, sauvegarder le background pour SimplePenAnnotation
+            // Après restauration, mettre à jour SimplePenAnnotation
             const engine = this.annotationEngines.get(pageNum);
-            if (engine && typeof engine.saveBackground === 'function') {
-                engine.saveBackground();
+            if (engine) {
+                // Effacer les strokes de SimplePenAnnotation pour éviter qu'ils réapparaissent
+                if (typeof engine.clearStrokes === 'function') {
+                    engine.clearStrokes();
+                }
+                // Sauvegarder le nouveau background (état restauré)
+                if (typeof engine.saveBackground === 'function') {
+                    engine.saveBackground();
+                }
             }
         }
     }
@@ -6914,6 +6921,13 @@ class UnifiedPDFViewer {
 
         // Nettoyer les états des outils actifs
         this.resetToolStates();
+
+        // Sauvegarder automatiquement après undo
+        if (this.fileId) {
+            this.saveAnnotations().catch(err => {
+                console.error('Erreur lors de la sauvegarde automatique après undo:', err);
+            });
+        }
     }
 
     /**
@@ -6934,14 +6948,17 @@ class UnifiedPDFViewer {
         const ctx = pageElement.annotationCtx;
         const currentImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
         const engine = this.annotationEngines.get(pageNum);
-        const currentVectorData = engine ? engine.export() : null;
+        const currentVectorData = (engine && typeof engine.export === 'function') ? engine.export() : null;
 
         if (!this.undoStack.has(pageNum)) {
             this.undoStack.set(pageNum, []);
         }
         this.undoStack.get(pageNum).push({
             imageData: currentImageData,
-            vectorData: currentVectorData
+            vectorData: currentVectorData,
+            canvasWidth: ctx.canvas.width,
+            canvasHeight: ctx.canvas.height,
+            scale: this.currentScale
         });
 
         // Restaurer l'état suivant
@@ -6952,6 +6969,13 @@ class UnifiedPDFViewer {
 
         // Nettoyer les états des outils actifs
         this.resetToolStates();
+
+        // Sauvegarder automatiquement après redo
+        if (this.fileId) {
+            this.saveAnnotations().catch(err => {
+                console.error('Erreur lors de la sauvegarde automatique après redo:', err);
+            });
+        }
     }
 
     /**

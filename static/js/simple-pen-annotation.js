@@ -303,6 +303,13 @@ class SimplePenAnnotation {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
+    clearStrokes() {
+        // Effacer seulement les strokes de SimplePenAnnotation, pas le canvas
+        // Utilisé après un undo/redo pour éviter que les strokes réapparaissent
+        this.strokes = [];
+        this.currentPoints = [];
+    }
+
     undo() {
         if (this.strokes.length > 0) {
             this.strokes.pop();
