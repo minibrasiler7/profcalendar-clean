@@ -1130,6 +1130,21 @@ class UnifiedPDFViewer {
                         console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
                     }
                 });
+
+                // IMPORTANT: Réinitialiser l'historique undo avec l'état actuel après chargement des annotations
+                // Cela permet d'avoir un état initial correct pour pouvoir annuler
+                console.log('🔄 Réinitialisation de l\'historique undo après chargement des annotations...');
+                this.pageElements.forEach((pageElement, pageNum) => {
+                    if (pageElement?.annotationCtx) {
+                        const ctx = pageElement.annotationCtx;
+                        const currentState = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                        // Réinitialiser les stacks pour cette page
+                        this.undoStack.set(pageNum, [currentState]);
+                        this.redoStack.set(pageNum, []);
+                        console.log(`  ✅ Page ${pageNum}: historique réinitialisé avec annotations`);
+                    }
+                });
             }
             
             // Ajuster automatiquement à la largeur si souhaité
@@ -6685,7 +6700,7 @@ class UnifiedPDFViewer {
         const engine = this.annotationEngines.get(pageNum);
         let annotationData = null;
 
-        if (engine) {
+        if (engine && typeof engine.export === 'function') {
             // Exporter les données vectorielles (strokes perfect-freehand)
             annotationData = engine.export();
         }
