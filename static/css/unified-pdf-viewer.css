@@ -1341,17 +1341,17 @@ div.eraser-cursor:hover {
     font-style: italic;
 }
 
-/* === CURSEURS STYLET MODERNES === */
+/* === CURSEURS STYLET MODERNES AVEC APPLE PENCIL === */
 
-/* Curseur point moderne pour stylo et surligneur */
+/* Cacher le curseur système pour le stylo et la gomme, on utilise un curseur personnalisé */
 .pdf-annotation-layer.pen-cursor,
-.pdf-annotation-layer.highlighter-cursor {
-    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="rgb(59,130,246)"/></svg>') 8 8, crosshair;
+.pdf-annotation-layer.eraser-cursor {
+    cursor: none !important;
 }
 
-/* Curseur gomme moderne avec suivi du mouvement */
-.pdf-annotation-layer.eraser-cursor {
-    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="rgb(239,68,68)" stroke-width="2" stroke-dasharray="2,2"/><circle cx="10" cy="10" r="3" fill="rgb(239,68,68)" opacity="0.6"/></svg>') 10 10, none;
+/* Curseur pour le surligneur */
+.pdf-annotation-layer.highlighter-cursor {
+    cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="rgb(59,130,246)"/></svg>') 8 8, crosshair;
 }
 
 /* Curseur texte */
@@ -1362,4 +1362,114 @@ div.eraser-cursor:hover {
 /* Curseur par défaut (pas d'outil sélectionné) */
 .pdf-annotation-layer {
     cursor: default;
+}
+
+/* === CURSEUR STYLO PERSONNALISÉ === */
+.custom-pen-cursor {
+    position: fixed;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+    transition: opacity 0.1s ease-out, transform 0.05s ease-out;
+    will-change: transform;
+}
+
+/* Animation pulse subtile */
+@keyframes penPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.custom-pen-cursor.hovering {
+    display: block;
+    animation: penPulse 2s ease-in-out infinite;
+}
+
+.custom-pen-cursor.drawing {
+    display: block;
+    animation: none;
+}
+
+/* Cercle extérieur du curseur stylo */
+.custom-pen-cursor::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+/* Point central du curseur stylo */
+.custom-pen-cursor::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 50%;
+}
+
+/* === CURSEUR GOMME PERSONNALISÉ === */
+.custom-eraser-cursor {
+    position: fixed;
+    border: 2px solid rgba(239, 68, 68, 0.8);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+    transition: opacity 0.1s ease-out, transform 0.05s ease-out;
+    will-change: transform;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.custom-eraser-cursor.hovering,
+.custom-eraser-cursor.drawing {
+    display: block;
+}
+
+/* Animation rotation pour la gomme */
+@keyframes eraserRotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.custom-eraser-cursor.hovering {
+    animation: eraserRotate 3s linear infinite;
+}
+
+/* Cercle intérieur de la gomme */
+.custom-eraser-cursor::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    border: 1px dashed rgba(239, 68, 68, 0.4);
+    border-radius: 50%;
+}
+
+/* Point central de la gomme */
+.custom-eraser-cursor::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    background: rgba(239, 68, 68, 0.6);
+    border-radius: 50%;
 }
