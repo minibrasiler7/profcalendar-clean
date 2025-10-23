@@ -6780,9 +6780,17 @@ class UnifiedPDFViewer {
             }
 
             if (cursor) {
-                // Positionner le curseur
-                cursor.style.left = `${e.clientX}px`;
-                cursor.style.top = `${e.clientY}px`;
+                // Obtenir la taille du curseur pour le centrer correctement
+                const cursorSize = cursor === this.customPenCursor
+                    ? Math.max(4, this.currentLineWidth * 2)
+                    : this.currentLineWidth * 12;
+
+                const radius = cursorSize / 2;
+
+                // Positionner le curseur - décaler d'un rayon à gauche et un rayon vers le haut
+                // pour que le centre du curseur soit exactement sous la pointe du stylet
+                cursor.style.left = `${e.clientX - radius}px`;
+                cursor.style.top = `${e.clientY - radius}px`;
 
                 // Toujours en mode hovering (jamais drawing car on cache quand on touche)
                 cursor.classList.add('hovering');
