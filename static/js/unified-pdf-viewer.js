@@ -6680,15 +6680,19 @@ class UnifiedPDFViewer {
             this.customPenCursor = document.createElement('div');
             this.customPenCursor.className = 'custom-pen-cursor';
             this.customPenCursor.style.color = this.currentColor;
+            // Taille basée sur l'épaisseur du stylo (minimum 4px pour visibilité)
+            const penSize = Math.max(4, this.currentLineWidth * 2);
+            this.customPenCursor.style.width = `${penSize}px`;
+            this.customPenCursor.style.height = `${penSize}px`;
             document.body.appendChild(this.customPenCursor);
         }
 
-        // Créer le curseur gomme
+        // Créer le curseur gomme (style loupe/bulle)
         if (!this.customEraserCursor) {
             this.customEraserCursor = document.createElement('div');
             this.customEraserCursor.className = 'custom-eraser-cursor';
-            // Taille basée sur l'épaisseur de la gomme
-            const eraserSize = this.currentLineWidth * 10;
+            // Taille basée sur l'épaisseur de la gomme (plus grande pour effet loupe)
+            const eraserSize = this.currentLineWidth * 12;
             this.customEraserCursor.style.width = `${eraserSize}px`;
             this.customEraserCursor.style.height = `${eraserSize}px`;
             document.body.appendChild(this.customEraserCursor);
@@ -6750,23 +6754,27 @@ class UnifiedPDFViewer {
         this.cursorUpdateRAF = requestAnimationFrame(() => {
             const isPen = e.pointerType === 'pen' || e.pointerType === 'mouse';
             const isTouch = e.pointerType === 'touch';
+            const isTouching = e.buttons > 0; // Le stylet touche l'écran
 
-            // Ne pas afficher de curseur pour les doigts
-            if (isTouch) {
+            // Ne pas afficher de curseur pour les doigts OU si le stylet touche l'écran
+            if (isTouch || isTouching) {
                 this.hideCustomCursor();
                 return;
             }
 
-            // Déterminer quel curseur afficher
+            // Déterminer quel curseur afficher (seulement en survol, pas en dessin)
             let cursor = null;
             if (this.currentTool === 'pen' && isPen) {
                 cursor = this.customPenCursor;
-                // Mettre à jour la couleur
+                // Mettre à jour la couleur et la taille
                 cursor.style.color = this.currentColor;
+                const penSize = Math.max(4, this.currentLineWidth * 2);
+                cursor.style.width = `${penSize}px`;
+                cursor.style.height = `${penSize}px`;
             } else if (this.currentTool === 'eraser' && isPen) {
                 cursor = this.customEraserCursor;
-                // Mettre à jour la taille
-                const eraserSize = this.currentLineWidth * 10;
+                // Mettre à jour la taille (effet loupe)
+                const eraserSize = this.currentLineWidth * 12;
                 cursor.style.width = `${eraserSize}px`;
                 cursor.style.height = `${eraserSize}px`;
             }
@@ -6776,16 +6784,9 @@ class UnifiedPDFViewer {
                 cursor.style.left = `${e.clientX}px`;
                 cursor.style.top = `${e.clientY}px`;
 
-                // Déterminer l'état (hovering ou drawing)
-                if (e.buttons > 0) {
-                    // En train de dessiner
-                    cursor.classList.remove('hovering');
-                    cursor.classList.add('drawing');
-                } else {
-                    // Au survol
-                    cursor.classList.remove('drawing');
-                    cursor.classList.add('hovering');
-                }
+                // Toujours en mode hovering (jamais drawing car on cache quand on touche)
+                cursor.classList.add('hovering');
+                cursor.classList.remove('drawing');
 
                 // Cacher les autres curseurs
                 if (cursor === this.customPenCursor) {
@@ -6808,7 +6809,7 @@ class UnifiedPDFViewer {
     }
 
     /**
-     * Met à jour la couleur du curseur stylo
+     * Met à jour la couleur et la taille du curseur stylo
      */
     updatePenCursorColor(color) {
         if (this.customPenCursor) {
@@ -6817,11 +6818,22 @@ class UnifiedPDFViewer {
     }
 
     /**
+     * Met à jour la taille du curseur stylo
+     */
+    updatePenCursorSize(size) {
+        if (this.customPenCursor) {
+            const penSize = Math.max(4, size * 2);
+            this.customPenCursor.style.width = `${penSize}px`;
+            this.customPenCursor.style.height = `${penSize}px`;
+        }
+    }
+
+    /**
      * Met à jour la taille du curseur gomme
      */
     updateEraserCursorSize(size) {
         if (this.customEraserCursor) {
-            const eraserSize = size * 10;
+            const eraserSize = size * 12;
             this.customEraserCursor.style.width = `${eraserSize}px`;
             this.customEraserCursor.style.height = `${eraserSize}px`;
         }
