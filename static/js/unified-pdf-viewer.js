@@ -137,7 +137,7 @@ class UnifiedPDFViewer {
 
         // Nouveau moteur d'annotation avec perfect-freehand
         this.annotationEngines = new Map(); // Un moteur par page
-        
+
         // Variables pour l'outil rapporteur
         this.protractorState = 'initial'; // 'initial', 'drawing_first_line', 'waiting_validation', 'drawing_second_line'
         this.protractorCenterPoint = null;
@@ -3661,11 +3661,10 @@ class UnifiedPDFViewer {
                     this.isDrawing = false;
                     // Sauvegarder l'état pour l'historique undo/redo
                     this.saveCanvasState(pageNum);
-                    // Sauvegarder automatiquement sur le serveur
+                    // Sauvegarder automatiquement sur le serveur avec debounce
+                    // (attendre 3 secondes après la dernière annotation)
                     if (this.fileId) {
-                        this.saveAnnotations().catch(err => {
-                            console.error('Erreur lors de la sauvegarde automatique:', err);
-                        });
+                        this.scheduleAutoSave();
                     }
                     // Sauvegarder le background pour SimplePenAnnotation
                     const engine = this.annotationEngines.get(pageNum);
@@ -4695,11 +4694,9 @@ class UnifiedPDFViewer {
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
             this.saveCanvasState(pageNum);
 
-            // Sauvegarder automatiquement les annotations après chaque trait
+            // Sauvegarder automatiquement les annotations avec debounce
             if (this.fileId) {
-                this.saveAnnotations().catch(err => {
-                    console.error('Erreur lors de la sauvegarde automatique:', err);
-                });
+                this.scheduleAutoSave();
             }
 
             this.isDrawing = false;
@@ -6922,11 +6919,9 @@ class UnifiedPDFViewer {
         // Nettoyer les états des outils actifs
         this.resetToolStates();
 
-        // Sauvegarder automatiquement après undo
+        // Sauvegarder automatiquement après undo avec debounce
         if (this.fileId) {
-            this.saveAnnotations().catch(err => {
-                console.error('Erreur lors de la sauvegarde automatique après undo:', err);
-            });
+            this.scheduleAutoSave();
         }
     }
 
@@ -6970,11 +6965,9 @@ class UnifiedPDFViewer {
         // Nettoyer les états des outils actifs
         this.resetToolStates();
 
-        // Sauvegarder automatiquement après redo
+        // Sauvegarder automatiquement après redo avec debounce
         if (this.fileId) {
-            this.saveAnnotations().catch(err => {
-                console.error('Erreur lors de la sauvegarde automatique après redo:', err);
-            });
+            this.scheduleAutoSave();
         }
     }
 
