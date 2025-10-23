@@ -6939,25 +6939,20 @@ class UnifiedPDFViewer {
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) return;
 
-        // Sauvegarder l'état actuel dans la stack d'undo
-        const ctx = pageElement.annotationCtx;
-        const currentImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-        const engine = this.annotationEngines.get(pageNum);
-        const currentVectorData = (engine && typeof engine.export === 'function') ? engine.export() : null;
+        // Récupérer l'état à restaurer depuis la pile redo
+        const nextState = redoHistory.pop();
 
+        // Initialiser la stack d'undo si nécessaire
         if (!this.undoStack.has(pageNum)) {
             this.undoStack.set(pageNum, []);
         }
-        this.undoStack.get(pageNum).push({
-            imageData: currentImageData,
-            vectorData: currentVectorData,
-            canvasWidth: ctx.canvas.width,
-            canvasHeight: ctx.canvas.height,
-            scale: this.currentScale
-        });
 
-        // Restaurer l'état suivant
-        const nextState = redoHistory.pop();
+        // Ajouter cet état à la pile undo
+        // Note: On ajoute directement nextState, pas l'état actuel du canvas,
+        // car l'état actuel est déjà le dernier élément de undoStack
+        this.undoStack.get(pageNum).push(nextState);
+
+        // Restaurer l'état
         this.restoreCanvasState(pageNum, nextState);
 
         this.updateUndoRedoButtons();
