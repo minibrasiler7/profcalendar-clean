@@ -137,7 +137,7 @@ class UnifiedPDFViewer {
 
         // Nouveau moteur d'annotation avec perfect-freehand
         this.annotationEngines = new Map(); // Un moteur par page
-        
+
         // Variables pour l'outil rapporteur
         this.protractorState = 'initial'; // 'initial', 'drawing_first_line', 'waiting_validation', 'drawing_second_line'
         this.protractorCenterPoint = null;
@@ -942,9 +942,6 @@ class UnifiedPDFViewer {
                 <button class="btn-tool" id="btn-clear-page" title="Effacer la page">
                     <i class="fas fa-trash"></i>
                 </button>
-                <button class="btn-tool" id="btn-fullscreen" title="Plein écran">
-                    <i class="fas fa-expand"></i>
-                </button>
             </div>
             <div class="download-menu-container" style="position: relative;">
                 <button class="download-btn" id="btn-download-menu" title="Options de téléchargement" style="position: relative; z-index: 10;">
@@ -1133,6 +1130,21 @@ class UnifiedPDFViewer {
                         console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
                     }
                 });
+
+                // IMPORTANT: Réinitialiser l'historique undo avec l'état actuel après chargement des annotations
+                // Cela permet d'avoir un état initial correct pour pouvoir annuler
+                console.log('🔄 Réinitialisation de l\'historique undo après chargement des annotations...');
+                this.pageElements.forEach((pageElement, pageNum) => {
+                    if (pageElement?.annotationCtx) {
+                        const ctx = pageElement.annotationCtx;
+                        const currentState = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                        // Réinitialiser les stacks pour cette page
+                        this.undoStack.set(pageNum, [currentState]);
+                        this.redoStack.set(pageNum, []);
+                        console.log(`  ✅ Page ${pageNum}: historique réinitialisé avec annotations`);
+                    }
+                });
             }
             
             // Ajuster automatiquement à la largeur si souhaité
@@ -1164,14 +1176,17 @@ class UnifiedPDFViewer {
             }
 
             this.showLoading(false);
-            
+
             // Activer l'outil par défaut (stylo) après le chargement du PDF
             if (this.currentMode.annotations) {
                 this.setCurrentTool('pen');
             }
-            
+
+            // Mettre à jour l'état des boutons undo/redo après le chargement
+            this.updateUndoRedoButtons();
+
             this.emit('pdf-loaded', { totalPages: this.totalPages, fileName: this.fileName });
-            
+
         } catch (error) {
             this.showLoading(false);
             this.showError('Erreur lors du chargement du PDF: ' + error.message);
@@ -2017,10 +2032,7 @@ class UnifiedPDFViewer {
         document.getElementById('btn-undo')?.addEventListener('click', () => this.undo());
         document.getElementById('btn-redo')?.addEventListener('click', () => this.redo());
         document.getElementById('btn-clear-page')?.addEventListener('click', () => this.clearCurrentPage());
-        
-        // Bouton plein écran
-        document.getElementById('btn-fullscreen')?.addEventListener('click', () => this.toggleFullscreen());
-        
+
         // Bouton suivi élève
         document.getElementById('btn-student-tracking')?.addEventListener('click', () => this.openStudentTracking());
     }
@@ -3605,8 +3617,14 @@ class UnifiedPDFViewer {
         // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
-            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
-            if (this.currentTool === 'pen') return;
+            // Pour l'outil pen, juste marquer isDrawing pour le pointerup
+            if (this.currentTool === 'pen') {
+                // SimplePenAnnotation gère le dessin, mais on doit tracker isDrawing
+                if (e.buttons > 0) {  // Seulement si vraiment en contact
+                    this.isDrawing = true;
+                }
+                return;
+            }
 
             // IMPORTANT: Vérifier que le stylet touche vraiment l'écran
             // e.buttons === 0 signifie que le stylet survole sans toucher (hover)
@@ -3636,8 +3654,26 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointerup', (e) => {
-            // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
-            if (this.currentTool === 'pen') return;
+            // Pour le stylo, sauvegarder l'état après le trait
+            if (this.currentTool === 'pen') {
+                // SimplePenAnnotation gère le dessin, mais on doit sauvegarder l'état
+                if (this.isDrawing) {
+                    this.isDrawing = false;
+                    // Sauvegarder l'état pour l'historique undo/redo
+                    this.saveCanvasState(pageNum);
+                    // Sauvegarder automatiquement sur le serveur avec debounce
+                    // (attendre 3 secondes après la dernière annotation)
+                    if (this.fileId) {
+                        this.scheduleAutoSave();
+                    }
+                    // Sauvegarder le background pour SimplePenAnnotation
+                    const engine = this.annotationEngines.get(pageNum);
+                    if (engine && typeof engine.saveBackground === 'function') {
+                        engine.saveBackground();
+                    }
+                }
+                return;
+            }
 
             if (this.isDrawing) {
                 this.stopDrawing(e, pageNum);
@@ -4657,7 +4693,12 @@ class UnifiedPDFViewer {
             
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
             this.saveCanvasState(pageNum);
-            
+
+            // Sauvegarder automatiquement les annotations avec debounce
+            if (this.fileId) {
+                this.scheduleAutoSave();
+            }
+
             this.isDrawing = false;
             this.lastPoint = null;
             this.drawingLogged = false; // Reset pour le prochain trait
@@ -6681,7 +6722,7 @@ class UnifiedPDFViewer {
         const engine = this.annotationEngines.get(pageNum);
         let annotationData = null;
 
-        if (engine) {
+        if (engine && typeof engine.export === 'function') {
             // Exporter les données vectorielles (strokes perfect-freehand)
             annotationData = engine.export();
         }
@@ -6812,40 +6853,36 @@ class UnifiedPDFViewer {
         // Effacer le canvas
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        // Redessiner les strokes vectoriels à la nouvelle résolution/zoom
-        if (state.vectorData && state.vectorData.paths && state.vectorData.paths.length > 0) {
+        // Restaurer simplement l'image depuis l'imageData
+        if (state.imageData) {
+            // Vérifier si les dimensions correspondent
+            if (state.imageData.width === ctx.canvas.width && state.imageData.height === ctx.canvas.height) {
+                // Dimensions identiques, restaurer directement
+                ctx.putImageData(state.imageData, 0, 0);
+            } else {
+                // Dimensions différentes (zoom changé), redimensionner
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = state.imageData.width;
+                tempCanvas.height = state.imageData.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(state.imageData, 0, 0);
+
+                // Redessiner en adaptant aux nouvelles dimensions
+                ctx.drawImage(tempCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            }
+
+            // Après restauration, mettre à jour SimplePenAnnotation
             const engine = this.annotationEngines.get(pageNum);
             if (engine) {
-                // Si le zoom a changé, transformer les coordonnées des points
-                if (Math.abs(scaleRatio - 1.0) > 0.01) {
-                    const transformedData = this.transformVectorData(state.vectorData, scaleRatio);
-                    engine.import(transformedData);
-                } else {
-                    // Pas de changement de zoom, importer directement
-                    engine.import(state.vectorData);
+                // Effacer les strokes de SimplePenAnnotation pour éviter qu'ils réapparaissent
+                if (typeof engine.clearStrokes === 'function') {
+                    engine.clearStrokes();
                 }
-
-                ctx.globalCompositeOperation = 'source-over';
-                engine.renderAllStrokes(ctx);
-            } else {
-                console.warn(`  ⚠️ Pas de moteur d'annotation pour la page ${pageNum}`);
+                // Sauvegarder le nouveau background (état restauré)
+                if (typeof engine.saveBackground === 'function') {
+                    engine.saveBackground();
+                }
             }
-        }
-
-        // PUIS restaurer les autres annotations (highlighter, shapes, texte)
-        // en mode 'destination-over' pour les dessiner SOUS les strokes vectoriels
-        if (state.imageData) {
-            // On ne peut pas utiliser putImageData avec compositing, donc on crée un canvas temporaire
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = ctx.canvas.width;
-            tempCanvas.height = ctx.canvas.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.putImageData(state.imageData, 0, 0);
-
-            // Dessiner l'imageData SOUS les strokes vectoriels (qui sont déjà sur ctx)
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.drawImage(tempCanvas, 0, 0);
-            ctx.globalCompositeOperation = 'source-over'; // Remettre par défaut
         }
     }
 
@@ -6881,6 +6918,11 @@ class UnifiedPDFViewer {
 
         // Nettoyer les états des outils actifs
         this.resetToolStates();
+
+        // Sauvegarder automatiquement après undo avec debounce
+        if (this.fileId) {
+            this.scheduleAutoSave();
+        }
     }
 
     /**
@@ -6901,14 +6943,17 @@ class UnifiedPDFViewer {
         const ctx = pageElement.annotationCtx;
         const currentImageData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
         const engine = this.annotationEngines.get(pageNum);
-        const currentVectorData = engine ? engine.export() : null;
+        const currentVectorData = (engine && typeof engine.export === 'function') ? engine.export() : null;
 
         if (!this.undoStack.has(pageNum)) {
             this.undoStack.set(pageNum, []);
         }
         this.undoStack.get(pageNum).push({
             imageData: currentImageData,
-            vectorData: currentVectorData
+            vectorData: currentVectorData,
+            canvasWidth: ctx.canvas.width,
+            canvasHeight: ctx.canvas.height,
+            scale: this.currentScale
         });
 
         // Restaurer l'état suivant
@@ -6919,6 +6964,11 @@ class UnifiedPDFViewer {
 
         // Nettoyer les états des outils actifs
         this.resetToolStates();
+
+        // Sauvegarder automatiquement après redo avec debounce
+        if (this.fileId) {
+            this.scheduleAutoSave();
+        }
     }
 
     /**
@@ -6963,24 +7013,32 @@ class UnifiedPDFViewer {
         const pageNum = this.currentPage;
         const undoHistory = this.undoStack.get(pageNum) || [];
         const redoHistory = this.redoStack.get(pageNum) || [];
-        
+
         const undoBtn = document.getElementById('btn-undo');
         const redoBtn = document.getElementById('btn-redo');
-        
+
+        console.log(`📝 UpdateUndoRedoButtons - Page ${pageNum}: undo=${undoHistory.length}, redo=${redoHistory.length}`);
+
         // Pour undo, on peut annuler s'il y a au moins 2 états (un état précédent + l'état actuel)
         const canUndo = undoHistory.length >= 2;
         const undoCount = Math.max(0, undoHistory.length - 1); // -1 car le dernier est l'état actuel
-        
+
         if (undoBtn) {
             undoBtn.disabled = !canUndo;
             undoBtn.style.opacity = canUndo ? '1' : '0.5';
             undoBtn.title = canUndo ? `Annuler (${undoCount} action${undoCount > 1 ? 's' : ''})` : 'Aucune action à annuler';
+            console.log(`  🔴 Undo button: disabled=${undoBtn.disabled}, canUndo=${canUndo}`);
+        } else {
+            console.log(`  ⚠️ Undo button not found in DOM`);
         }
-        
+
         if (redoBtn) {
             redoBtn.disabled = redoHistory.length === 0;
             redoBtn.style.opacity = redoHistory.length === 0 ? '0.5' : '1';
             redoBtn.title = redoHistory.length === 0 ? 'Aucune action à refaire' : `Refaire (${redoHistory.length} action${redoHistory.length > 1 ? 's' : ''})`;
+            console.log(`  🔵 Redo button: disabled=${redoBtn.disabled}`);
+        } else {
+            console.log(`  ⚠️ Redo button not found in DOM`);
         }
     }
 
