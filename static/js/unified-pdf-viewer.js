@@ -6703,17 +6703,36 @@ class UnifiedPDFViewer {
      */
     setupCursorTracking() {
         // Utiliser la délégation d'événements sur le conteneur principal
-        const pdfContainer = this.elements.pdfContainer;
+        const pdfContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
 
-        pdfContainer.addEventListener('pointerenter', (e) => {
+        if (!pdfContainer) {
+            console.warn('PDF container non trouvé pour le suivi du curseur, réessai dans 100ms');
+            // Réessayer après un court délai si l'élément n'est pas encore créé
+            setTimeout(() => {
+                const retryContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
+                if (retryContainer) {
+                    this.setupCursorTrackingOnElement(retryContainer);
+                }
+            }, 100);
+            return;
+        }
+
+        this.setupCursorTrackingOnElement(pdfContainer);
+    }
+
+    /**
+     * Configure les événements de suivi sur un élément spécifique
+     */
+    setupCursorTrackingOnElement(element) {
+        element.addEventListener('pointerenter', (e) => {
             this.updateCustomCursor(e);
         }, { passive: true });
 
-        pdfContainer.addEventListener('pointermove', (e) => {
+        element.addEventListener('pointermove', (e) => {
             this.updateCustomCursor(e);
         }, { passive: true });
 
-        pdfContainer.addEventListener('pointerleave', (e) => {
+        element.addEventListener('pointerleave', (e) => {
             this.hideCustomCursor();
         }, { passive: true });
     }
