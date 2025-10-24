@@ -1220,6 +1220,8 @@ class UnifiedPDFViewer {
         console.log('💾 Sauvegarde de l\'historique avant re-rendu...');
         const savedUndoStack = new Map();
         const savedRedoStack = new Map();
+        const savedVectorStrokes = new Map(); // NOUVEAU: sauvegarder les strokes vectoriels
+
         this.undoStack.forEach((stack, pageNum) => {
             if (stack && stack.length > 0) {
                 savedUndoStack.set(pageNum, stack.slice()); // Copier le tableau
@@ -1229,6 +1231,17 @@ class UnifiedPDFViewer {
         this.redoStack.forEach((stack, pageNum) => {
             if (stack && stack.length > 0) {
                 savedRedoStack.set(pageNum, stack.slice());
+            }
+        });
+
+        // NOUVEAU: Sauvegarder les strokes vectoriels de SimplePenAnnotation
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.exportStrokes === 'function') {
+                const vectorData = engine.exportStrokes();
+                if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                    savedVectorStrokes.set(pageNum, vectorData);
+                    console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés`);
+                }
             }
         });
 
@@ -1256,8 +1269,22 @@ class UnifiedPDFViewer {
         savedRedoStack.forEach((stack, pageNum) => {
             this.redoStack.set(pageNum, stack);
         });
-        
-        
+
+        // NOUVEAU: Restaurer les strokes vectoriels
+        console.log('🎨 Restauration des strokes vectoriels après re-rendu...');
+        savedVectorStrokes.forEach((vectorData, pageNum) => {
+            // Créer le moteur d'annotation s'il n'existe pas encore
+            if (!this.annotationEngines.has(pageNum)) {
+                this.initAnnotationEngine(pageNum);
+            }
+
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine && typeof engine.importStrokes === 'function') {
+                engine.importStrokes(vectorData);
+                console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels restaurés`);
+            }
+        });
+
         // Debug: Vérifier la hauteur totale du conteneur
         setTimeout(() => {
             const container = this.elements.pagesContainer;
@@ -7084,18 +7111,20 @@ class UnifiedPDFViewer {
      * (utilisé après un changement de zoom pour que les annotations restent nettes)
      */
     rerenderAllVectorAnnotations() {
+        console.log('🎨 Re-rendu des annotations vectorielles après zoom');
         const self = this;
+
         this.annotationEngines.forEach(function(engine, pageNum) {
             const pageElement = self.pageElements.get(pageNum);
-            if (pageElement?.annotationCtx) {
-                const ctx = pageElement.annotationCtx;
+            if (pageElement?.annotationCtx && engine) {
+                console.log(`  📄 Page ${pageNum}: redessiner les strokes vectoriels`);
 
-                // Effacer uniquement les strokes vectoriels (pas les autres annotations)
-                // Pour cela, on efface tout et on re-rend depuis l'historique
-                const undoHistory = self.undoStack.get(pageNum);
-                if (undoHistory && undoHistory.length > 0) {
-                    const latestState = undoHistory[undoHistory.length - 1];
-                    self.restoreCanvasState(pageNum, latestState);
+                // Redessiner les strokes vectoriels à la nouvelle résolution
+                // SimplePenAnnotation.redraw() va redessiner tous les strokes
+                // depuis this.strokes (qui sont déjà en mémoire)
+                if (typeof engine.redraw === 'function') {
+                    engine.redraw();
+                    console.log(`  ✅ Page ${pageNum}: strokes redessinés`);
                 }
             }
         });
