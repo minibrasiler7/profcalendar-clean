@@ -1364,7 +1364,7 @@ div.eraser-cursor:hover {
 
 /* === CURSEUR STYLO PERSONNALISÉ === */
 .custom-pen-cursor {
-    position: fixed;
+    position: absolute;
     border-radius: 50%;
     pointer-events: none;
     z-index: 10000;
@@ -1401,7 +1401,7 @@ div.eraser-cursor:hover {
 
 /* === CURSEUR GOMME PERSONNALISÉ (Style loupe/bulle) === */
 .custom-eraser-cursor {
-    position: fixed;
+    position: absolute;
     border-radius: 50%;
     pointer-events: none;
     z-index: 10000;
