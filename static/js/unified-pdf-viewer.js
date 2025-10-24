@@ -12864,8 +12864,12 @@ class UnifiedPDFViewer {
 
         this.annotationEngines.set(pageNum, engine);
 
-        // NOTE: Le background sera sauvegardé après redrawAllAnnotations()
-        // pour capturer les annotations chargées. Voir ligne ~1126
+        // CRITIQUE: Sauvegarder immédiatement le background actuel du canvas
+        // pour préserver les annotations existantes (ex: après avoir utilisé la gomme)
+        // Cela évite que les annotations effacées réapparaissent lors du premier redraw
+        if (typeof engine.saveBackground === 'function') {
+            engine.saveBackground();
+        }
     }
 
     /**
