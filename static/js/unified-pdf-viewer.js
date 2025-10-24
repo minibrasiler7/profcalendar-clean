@@ -6687,27 +6687,39 @@ class UnifiedPDFViewer {
      * Initialise les curseurs personnalisés pour stylet et gomme
      */
     initializeCustomCursors() {
+        const pdfContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
+
+        if (!pdfContainer) {
+            console.warn('PDF container non trouvé pour les curseurs');
+            return;
+        }
+
+        // S'assurer que le conteneur a position relative pour les curseurs absolute
+        if (getComputedStyle(pdfContainer).position === 'static') {
+            pdfContainer.style.position = 'relative';
+        }
+
         // Créer le curseur stylo
         if (!this.customPenCursor) {
             this.customPenCursor = document.createElement('div');
             this.customPenCursor.className = 'custom-pen-cursor';
             this.customPenCursor.style.color = this.currentColor;
-            // Taille basée sur l'épaisseur du stylo (minimum 4px pour visibilité)
+            // Taille basée sur l'épaisseur du stylo (en pixels écran constants)
             const penSize = Math.max(4, this.currentLineWidth * 2);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
-            document.body.appendChild(this.customPenCursor);
+            pdfContainer.appendChild(this.customPenCursor);
         }
 
         // Créer le curseur gomme (style loupe/bulle)
         if (!this.customEraserCursor) {
             this.customEraserCursor = document.createElement('div');
             this.customEraserCursor.className = 'custom-eraser-cursor';
-            // Taille basée sur l'épaisseur de la gomme (plus grande pour effet loupe)
+            // Taille basée sur l'épaisseur de la gomme (en pixels écran constants)
             const eraserSize = this.currentLineWidth * 12;
             this.customEraserCursor.style.width = `${eraserSize}px`;
             this.customEraserCursor.style.height = `${eraserSize}px`;
-            document.body.appendChild(this.customEraserCursor);
+            pdfContainer.appendChild(this.customEraserCursor);
         }
 
         // Ajouter les événements globaux pour suivre le curseur
@@ -6779,6 +6791,7 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'pen' && isPen) {
                 cursor = this.customPenCursor;
                 // Mettre à jour la couleur et la taille
+                // Taille constante en pixels écran (pas de multiplication par zoom)
                 cursor.style.color = this.currentColor;
                 const penSize = Math.max(4, this.currentLineWidth * 2);
                 cursor.style.width = `${penSize}px`;
@@ -6786,6 +6799,7 @@ class UnifiedPDFViewer {
             } else if (this.currentTool === 'eraser' && isPen) {
                 cursor = this.customEraserCursor;
                 // Mettre à jour la taille (effet loupe)
+                // Taille constante en pixels écran (pas de multiplication par zoom)
                 const eraserSize = this.currentLineWidth * 12;
                 cursor.style.width = `${eraserSize}px`;
                 cursor.style.height = `${eraserSize}px`;
@@ -6799,10 +6813,18 @@ class UnifiedPDFViewer {
 
                 const radius = cursorSize / 2;
 
-                // Positionner le curseur - décaler d'un rayon à gauche et un rayon vers le haut
-                // pour que le centre du curseur soit exactement sous la pointe du stylet
-                cursor.style.left = `${e.clientX - radius}px`;
-                cursor.style.top = `${e.clientY - radius}px`;
+                // Calculer les coordonnées relatives au pdfContainer
+                const pdfContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
+                if (pdfContainer) {
+                    const containerRect = pdfContainer.getBoundingClientRect();
+                    const relativeX = e.clientX - containerRect.left + pdfContainer.scrollLeft;
+                    const relativeY = e.clientY - containerRect.top + pdfContainer.scrollTop;
+
+                    // Positionner le curseur - décaler d'un rayon à gauche et un rayon vers le haut
+                    // pour que le centre du curseur soit exactement sous la pointe du stylet
+                    cursor.style.left = `${relativeX - radius}px`;
+                    cursor.style.top = `${relativeY - radius}px`;
+                }
 
                 // Toujours en mode hovering (jamais drawing car on cache quand on touche)
                 cursor.classList.add('hovering');
