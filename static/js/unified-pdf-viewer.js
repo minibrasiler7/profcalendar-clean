@@ -4697,8 +4697,20 @@ class UnifiedPDFViewer {
             // Pour la gomme, s'assurer de remettre le mode de composition normal
             if (this.currentTool === 'eraser' && pageElement?.annotationCtx) {
                 pageElement.annotationCtx.globalCompositeOperation = 'source-over';
+
+                // CRITIQUE: Vider les strokes de SimplePenAnnotation car on vient d'effacer
+                // Si on ne fait pas ça, les strokes effacés réapparaîtront au prochain redraw()
+                const engine = this.annotationEngines.get(pageNum);
+                if (engine && typeof engine.clearStrokes === 'function') {
+                    engine.clearStrokes();
+                }
+
+                // Sauvegarder le nouvel état du canvas comme background pour SimplePenAnnotation
+                if (engine && typeof engine.saveBackground === 'function') {
+                    engine.saveBackground();
+                }
             }
-            
+
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
             this.saveCanvasState(pageNum);
 
@@ -12864,8 +12876,12 @@ class UnifiedPDFViewer {
 
         this.annotationEngines.set(pageNum, engine);
 
-        // NOTE: Le background sera sauvegardé après redrawAllAnnotations()
-        // pour capturer les annotations chargées. Voir ligne ~1126
+        // CRITIQUE: Sauvegarder immédiatement le background actuel du canvas
+        // pour préserver les annotations existantes (ex: après avoir utilisé la gomme)
+        // Cela évite que les annotations effacées réapparaissent lors du premier redraw
+        if (typeof engine.saveBackground === 'function') {
+            engine.saveBackground();
+        }
     }
 
     /**
