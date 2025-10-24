@@ -323,6 +323,31 @@ class SimplePenAnnotation {
         Object.assign(this.options, newOptions);
     }
 
+    /**
+     * Exporte les strokes vectoriels pour sauvegarde
+     */
+    exportStrokes() {
+        return {
+            strokes: this.strokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }))
+        };
+    }
+
+    /**
+     * Importe des strokes vectoriels et les redessine
+     */
+    importStrokes(data) {
+        if (data && Array.isArray(data.strokes)) {
+            this.strokes = data.strokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }));
+            this.redraw();
+        }
+    }
+
     enable() {
         this.isEnabled = true;
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
