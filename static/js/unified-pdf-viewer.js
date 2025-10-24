@@ -1713,14 +1713,6 @@ class UnifiedPDFViewer {
 
         console.log(`🔍 Zoom changé vers ${value}x`);
 
-        // Mettre à jour la taille des curseurs personnalisés selon le nouveau zoom
-        if (this.customPenCursor) {
-            this.updatePenCursorSize(this.currentLineWidth);
-        }
-        if (this.customEraserCursor) {
-            this.updateEraserCursorSize(this.currentLineWidth);
-        }
-
         // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
         const self = this;
         setTimeout(function() {
@@ -6700,8 +6692,8 @@ class UnifiedPDFViewer {
             this.customPenCursor = document.createElement('div');
             this.customPenCursor.className = 'custom-pen-cursor';
             this.customPenCursor.style.color = this.currentColor;
-            // Taille basée sur l'épaisseur du stylo (ajustée au zoom)
-            const penSize = Math.max(4, this.currentLineWidth * 2) * this.currentScale;
+            // Taille basée sur l'épaisseur du stylo (en pixels écran constants)
+            const penSize = Math.max(4, this.currentLineWidth * 2);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
             document.body.appendChild(this.customPenCursor);
@@ -6711,8 +6703,8 @@ class UnifiedPDFViewer {
         if (!this.customEraserCursor) {
             this.customEraserCursor = document.createElement('div');
             this.customEraserCursor.className = 'custom-eraser-cursor';
-            // Taille basée sur l'épaisseur de la gomme (ajustée au zoom)
-            const eraserSize = this.currentLineWidth * 12 * this.currentScale;
+            // Taille basée sur l'épaisseur de la gomme (en pixels écran constants)
+            const eraserSize = this.currentLineWidth * 12;
             this.customEraserCursor.style.width = `${eraserSize}px`;
             this.customEraserCursor.style.height = `${eraserSize}px`;
             document.body.appendChild(this.customEraserCursor);
@@ -6786,24 +6778,26 @@ class UnifiedPDFViewer {
             let cursor = null;
             if (this.currentTool === 'pen' && isPen) {
                 cursor = this.customPenCursor;
-                // Mettre à jour la couleur et la taille (ajustée au zoom)
+                // Mettre à jour la couleur et la taille
+                // Taille constante en pixels écran (pas de multiplication par zoom)
                 cursor.style.color = this.currentColor;
-                const penSize = Math.max(4, this.currentLineWidth * 2) * this.currentScale;
+                const penSize = Math.max(4, this.currentLineWidth * 2);
                 cursor.style.width = `${penSize}px`;
                 cursor.style.height = `${penSize}px`;
             } else if (this.currentTool === 'eraser' && isPen) {
                 cursor = this.customEraserCursor;
-                // Mettre à jour la taille (effet loupe, ajustée au zoom)
-                const eraserSize = this.currentLineWidth * 12 * this.currentScale;
+                // Mettre à jour la taille (effet loupe)
+                // Taille constante en pixels écran (pas de multiplication par zoom)
+                const eraserSize = this.currentLineWidth * 12;
                 cursor.style.width = `${eraserSize}px`;
                 cursor.style.height = `${eraserSize}px`;
             }
 
             if (cursor) {
-                // Obtenir la taille du curseur pour le centrer correctement (avec zoom)
+                // Obtenir la taille du curseur pour le centrer correctement
                 const cursorSize = cursor === this.customPenCursor
-                    ? Math.max(4, this.currentLineWidth * 2) * this.currentScale
-                    : this.currentLineWidth * 12 * this.currentScale;
+                    ? Math.max(4, this.currentLineWidth * 2)
+                    : this.currentLineWidth * 12;
 
                 const radius = cursorSize / 2;
 
@@ -6850,7 +6844,7 @@ class UnifiedPDFViewer {
      */
     updatePenCursorSize(size) {
         if (this.customPenCursor) {
-            const penSize = Math.max(4, size * 2) * this.currentScale;
+            const penSize = Math.max(4, size * 2);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
         }
@@ -6861,7 +6855,7 @@ class UnifiedPDFViewer {
      */
     updateEraserCursorSize(size) {
         if (this.customEraserCursor) {
-            const eraserSize = size * 12 * this.currentScale;
+            const eraserSize = size * 12;
             this.customEraserCursor.style.width = `${eraserSize}px`;
             this.customEraserCursor.style.height = `${eraserSize}px`;
         }
