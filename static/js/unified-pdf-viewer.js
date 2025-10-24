@@ -7100,12 +7100,16 @@ class UnifiedPDFViewer {
                 // Dimensions identiques, restaurer directement
                 ctx.putImageData(state.imageData, 0, 0);
             } else {
-                // Dimensions différentes (zoom changé), redimensionner
+                // Dimensions différentes (zoom changé), redimensionner avec meilleure qualité
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = state.imageData.width;
                 tempCanvas.height = state.imageData.height;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.putImageData(state.imageData, 0, 0);
+
+                // Activer l'interpolation de haute qualité pour un meilleur rendu
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
 
                 // Redessiner en adaptant aux nouvelles dimensions
                 ctx.drawImage(tempCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
