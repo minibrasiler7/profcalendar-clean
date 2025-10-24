@@ -138,6 +138,11 @@ class UnifiedPDFViewer {
         // Nouveau moteur d'annotation avec perfect-freehand
         this.annotationEngines = new Map(); // Un moteur par page
 
+        // Curseurs personnalisés pour stylet et gomme
+        this.customPenCursor = null;
+        this.customEraserCursor = null;
+        this.cursorUpdateRAF = null; // RequestAnimationFrame pour le curseur
+
         // Variables pour l'outil rapporteur
         this.protractorState = 'initial'; // 'initial', 'drawing_first_line', 'waiting_validation', 'drawing_second_line'
         this.protractorCenterPoint = null;
@@ -1102,7 +1107,10 @@ class UnifiedPDFViewer {
 
             // Mettre à jour l'interface
             this.updatePageInfo();
-            
+
+            // Initialiser les curseurs personnalisés pour stylet et gomme
+            this.initializeCustomCursors();
+
             // Initialiser le rendu selon le mode
             // Vérifier s'il y a des modifications de pages
             const hasPageModifications = (this.deletedPages && this.deletedPages.size > 0) || 
@@ -6658,7 +6666,205 @@ class UnifiedPDFViewer {
             this.saveAnnotations();
         }, this.options.saveDelay);
     }
-    
+
+    // =====================================================
+    // GESTION DES CURSEURS PERSONNALISÉS
+    // =====================================================
+
+    /**
+     * Initialise les curseurs personnalisés pour stylet et gomme
+     */
+    initializeCustomCursors() {
+        // Créer le curseur stylo
+        if (!this.customPenCursor) {
+            this.customPenCursor = document.createElement('div');
+            this.customPenCursor.className = 'custom-pen-cursor';
+            this.customPenCursor.style.color = this.currentColor;
+            // Taille basée sur l'épaisseur du stylo (minimum 4px pour visibilité)
+            const penSize = Math.max(4, this.currentLineWidth * 2);
+            this.customPenCursor.style.width = `${penSize}px`;
+            this.customPenCursor.style.height = `${penSize}px`;
+            document.body.appendChild(this.customPenCursor);
+        }
+
+        // Créer le curseur gomme (style loupe/bulle)
+        if (!this.customEraserCursor) {
+            this.customEraserCursor = document.createElement('div');
+            this.customEraserCursor.className = 'custom-eraser-cursor';
+            // Taille basée sur l'épaisseur de la gomme (plus grande pour effet loupe)
+            const eraserSize = this.currentLineWidth * 12;
+            this.customEraserCursor.style.width = `${eraserSize}px`;
+            this.customEraserCursor.style.height = `${eraserSize}px`;
+            document.body.appendChild(this.customEraserCursor);
+        }
+
+        // Ajouter les événements globaux pour suivre le curseur
+        this.setupCursorTracking();
+    }
+
+    /**
+     * Configure le suivi du curseur sur tous les canvas d'annotation
+     */
+    setupCursorTracking() {
+        // Utiliser la délégation d'événements sur le conteneur principal
+        const pdfContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
+
+        if (!pdfContainer) {
+            console.warn('PDF container non trouvé pour le suivi du curseur, réessai dans 100ms');
+            // Réessayer après un court délai si l'élément n'est pas encore créé
+            setTimeout(() => {
+                const retryContainer = this.elements?.pdfContainer || this.container?.querySelector('.pdf-container');
+                if (retryContainer) {
+                    this.setupCursorTrackingOnElement(retryContainer);
+                }
+            }, 100);
+            return;
+        }
+
+        this.setupCursorTrackingOnElement(pdfContainer);
+    }
+
+    /**
+     * Configure les événements de suivi sur un élément spécifique
+     */
+    setupCursorTrackingOnElement(element) {
+        element.addEventListener('pointerenter', (e) => {
+            this.updateCustomCursor(e);
+        }, { passive: true });
+
+        element.addEventListener('pointermove', (e) => {
+            this.updateCustomCursor(e);
+        }, { passive: true });
+
+        element.addEventListener('pointerleave', (e) => {
+            this.hideCustomCursor();
+        }, { passive: true });
+    }
+
+    /**
+     * Met à jour la position et l'état du curseur personnalisé
+     */
+    updateCustomCursor(e) {
+        // Annuler la frame précédente si elle existe
+        if (this.cursorUpdateRAF) {
+            cancelAnimationFrame(this.cursorUpdateRAF);
+        }
+
+        // Utiliser requestAnimationFrame pour des performances optimales
+        this.cursorUpdateRAF = requestAnimationFrame(() => {
+            const isPen = e.pointerType === 'pen' || e.pointerType === 'mouse';
+            const isTouch = e.pointerType === 'touch';
+            const isTouching = e.buttons > 0; // Le stylet touche l'écran
+
+            // Ne pas afficher de curseur pour les doigts OU si le stylet touche l'écran
+            if (isTouch || isTouching) {
+                this.hideCustomCursor();
+                return;
+            }
+
+            // Déterminer quel curseur afficher (seulement en survol, pas en dessin)
+            let cursor = null;
+            if (this.currentTool === 'pen' && isPen) {
+                cursor = this.customPenCursor;
+                // Mettre à jour la couleur et la taille
+                cursor.style.color = this.currentColor;
+                const penSize = Math.max(4, this.currentLineWidth * 2);
+                cursor.style.width = `${penSize}px`;
+                cursor.style.height = `${penSize}px`;
+            } else if (this.currentTool === 'eraser' && isPen) {
+                cursor = this.customEraserCursor;
+                // Mettre à jour la taille (effet loupe)
+                const eraserSize = this.currentLineWidth * 12;
+                cursor.style.width = `${eraserSize}px`;
+                cursor.style.height = `${eraserSize}px`;
+            }
+
+            if (cursor) {
+                // Obtenir la taille du curseur pour le centrer correctement
+                const cursorSize = cursor === this.customPenCursor
+                    ? Math.max(4, this.currentLineWidth * 2)
+                    : this.currentLineWidth * 12;
+
+                const radius = cursorSize / 2;
+
+                // Positionner le curseur - décaler d'un rayon à gauche et un rayon vers le haut
+                // pour que le centre du curseur soit exactement sous la pointe du stylet
+                cursor.style.left = `${e.clientX - radius}px`;
+                cursor.style.top = `${e.clientY - radius}px`;
+
+                // Toujours en mode hovering (jamais drawing car on cache quand on touche)
+                cursor.classList.add('hovering');
+                cursor.classList.remove('drawing');
+
+                // Cacher les autres curseurs
+                if (cursor === this.customPenCursor) {
+                    this.customEraserCursor?.classList.remove('hovering', 'drawing');
+                } else if (cursor === this.customEraserCursor) {
+                    this.customPenCursor?.classList.remove('hovering', 'drawing');
+                }
+            } else {
+                this.hideCustomCursor();
+            }
+        });
+    }
+
+    /**
+     * Cache tous les curseurs personnalisés
+     */
+    hideCustomCursor() {
+        this.customPenCursor?.classList.remove('hovering', 'drawing');
+        this.customEraserCursor?.classList.remove('hovering', 'drawing');
+    }
+
+    /**
+     * Met à jour la couleur et la taille du curseur stylo
+     */
+    updatePenCursorColor(color) {
+        if (this.customPenCursor) {
+            this.customPenCursor.style.color = color;
+        }
+    }
+
+    /**
+     * Met à jour la taille du curseur stylo
+     */
+    updatePenCursorSize(size) {
+        if (this.customPenCursor) {
+            const penSize = Math.max(4, size * 2);
+            this.customPenCursor.style.width = `${penSize}px`;
+            this.customPenCursor.style.height = `${penSize}px`;
+        }
+    }
+
+    /**
+     * Met à jour la taille du curseur gomme
+     */
+    updateEraserCursorSize(size) {
+        if (this.customEraserCursor) {
+            const eraserSize = size * 12;
+            this.customEraserCursor.style.width = `${eraserSize}px`;
+            this.customEraserCursor.style.height = `${eraserSize}px`;
+        }
+    }
+
+    /**
+     * Nettoie les curseurs personnalisés
+     */
+    cleanupCustomCursors() {
+        if (this.customPenCursor) {
+            this.customPenCursor.remove();
+            this.customPenCursor = null;
+        }
+        if (this.customEraserCursor) {
+            this.customEraserCursor.remove();
+            this.customEraserCursor = null;
+        }
+        if (this.cursorUpdateRAF) {
+            cancelAnimationFrame(this.cursorUpdateRAF);
+            this.cursorUpdateRAF = null;
+        }
+    }
+
     // =====================================================
     // MÉTHODES GESTION HISTORIQUE (UNDO/REDO)
     // =====================================================
