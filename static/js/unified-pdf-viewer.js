@@ -1270,7 +1270,7 @@ class UnifiedPDFViewer {
             this.redoStack.set(pageNum, stack);
         });
 
-        // NOUVEAU: Restaurer les strokes vectoriels
+        // NOUVEAU: Restaurer les strokes vectoriels AVANT de restaurer l'historique
         console.log('🎨 Restauration des strokes vectoriels après re-rendu...');
         savedVectorStrokes.forEach((vectorData, pageNum) => {
             // Créer le moteur d'annotation s'il n'existe pas encore
@@ -1280,8 +1280,13 @@ class UnifiedPDFViewer {
 
             const engine = this.annotationEngines.get(pageNum);
             if (engine && typeof engine.importStrokes === 'function') {
+                console.log(`  🎯 AVANT importStrokes - Page ${pageNum}: ${vectorData.strokes.length} strokes`);
                 engine.importStrokes(vectorData);
-                console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels restaurés`);
+                console.log(`  ✅ APRÈS importStrokes - Page ${pageNum}: strokes importés`);
+
+                // DEBUG: Vérifier que les strokes sont bien là
+                const exported = engine.exportStrokes();
+                console.log(`  🔍 VÉRIFICATION - Page ${pageNum}: ${exported.strokes?.length || 0} strokes dans engine`);
             }
         });
 
