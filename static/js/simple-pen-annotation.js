@@ -225,8 +225,9 @@ class SimplePenAnnotation {
         this.currentPoints = [];
         this.redraw();
 
-        // Mettre à jour le background pour inclure le nouveau stroke
-        this.saveBackground();
+        // NE PAS sauvegarder le background car on travaille en mode vectoriel
+        // Les strokes se redessinent automatiquement à partir des données vectorielles
+        // this.saveBackground(); // DÉSACTIVÉ pour préserver la qualité vectorielle
     }
 
     saveBackground() {

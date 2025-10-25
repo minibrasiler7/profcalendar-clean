@@ -1130,14 +1130,10 @@ class UnifiedPDFViewer {
             if (this.currentMode.annotations && this.fileId && this.annotations && this.annotations.size > 0) {
                 await this.redrawAllAnnotations();
 
-                // IMPORTANT: Sauvegarder le background dans SimplePenAnnotation après le rechargement
-                // Sinon le premier trait va effacer toutes les annotations chargées
-                this.annotationEngines.forEach((engine, pageNum) => {
-                    if (engine && typeof engine.saveBackground === 'function') {
-                        engine.saveBackground();
-                        console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
-                    }
-                });
+                // IMPORTANT: NE PAS sauvegarder le background ici car il contient l'imageData pixelisée !
+                // Les strokes vectoriels se redessinent automatiquement, pas besoin de background
+                // Le background sera sauvegardé uniquement pour les annotations des autres outils (rectangle, flèche, etc.)
+                console.log('⚠️ Background NON sauvegardé pour préserver la qualité vectorielle');
 
                 // IMPORTANT: Réinitialiser l'historique undo avec l'état actuel après chargement des annotations
                 // Cela permet d'avoir un état initial correct pour pouvoir annuler
