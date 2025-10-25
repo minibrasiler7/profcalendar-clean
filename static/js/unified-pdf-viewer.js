@@ -1242,6 +1242,18 @@ class UnifiedPDFViewer {
             }
         });
 
+        // CRITIQUE: Détruire toutes les instances SimplePenAnnotation AVANT de détruire les canvas
+        // Sinon les event listeners restent attachés aux canvas détruits et bloquent les événements
+        console.log('🗑️ Destruction des anciens moteurs d\'annotation...');
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.destroy === 'function') {
+                engine.destroy();
+                console.log(`  ✓ Moteur page ${pageNum} détruit`);
+            }
+        });
+        this.annotationEngines.clear();
+        console.log('✅ Tous les moteurs d\'annotation détruits');
+
         // Vider le conteneur
         this.elements.pagesContainer.innerHTML = '';
         this.pageElements.clear();
