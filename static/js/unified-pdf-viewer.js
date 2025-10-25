@@ -1236,8 +1236,17 @@ class UnifiedPDFViewer {
             if (engine && typeof engine.exportStrokes === 'function') {
                 const vectorData = engine.exportStrokes();
                 if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
-                    savedVectorStrokes.set(pageNum, vectorData);
-                    console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés`);
+                    // IMPORTANT: Sauvegarder aussi les dimensions du canvas pour pouvoir rescaler les strokes
+                    const pageElement = this.pageElements.get(pageNum);
+                    const canvasWidth = pageElement?.annotationCanvas?.width || 0;
+                    const canvasHeight = pageElement?.annotationCanvas?.height || 0;
+
+                    savedVectorStrokes.set(pageNum, {
+                        strokes: vectorData.strokes,
+                        canvasWidth: canvasWidth,
+                        canvasHeight: canvasHeight
+                    });
+                    console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (canvas: ${canvasWidth}x${canvasHeight})`);
                 }
             }
         });
@@ -1281,7 +1290,7 @@ class UnifiedPDFViewer {
 
         // NOUVEAU: Restaurer les strokes vectoriels AVANT de restaurer l'historique
         console.log('🎨 Restauration des strokes vectoriels après re-rendu...');
-        savedVectorStrokes.forEach((vectorData, pageNum) => {
+        savedVectorStrokes.forEach((savedData, pageNum) => {
             // Créer le moteur d'annotation s'il n'existe pas encore
             if (!this.annotationEngines.has(pageNum)) {
                 this.initAnnotationEngine(pageNum);
@@ -1289,13 +1298,33 @@ class UnifiedPDFViewer {
 
             const engine = this.annotationEngines.get(pageNum);
             if (engine && typeof engine.importStrokes === 'function') {
-                console.log(`  🎯 AVANT importStrokes - Page ${pageNum}: ${vectorData.strokes.length} strokes`);
-                engine.importStrokes(vectorData);
-                console.log(`  ✅ APRÈS importStrokes - Page ${pageNum}: strokes importés`);
+                // IMPORTANT: Rescaler les strokes si les dimensions du canvas ont changé
+                const pageElement = this.pageElements.get(pageNum);
+                const newCanvasWidth = pageElement?.annotationCanvas?.width || 0;
+                const newCanvasHeight = pageElement?.annotationCanvas?.height || 0;
+                const oldCanvasWidth = savedData.canvasWidth || newCanvasWidth;
+                const oldCanvasHeight = savedData.canvasHeight || newCanvasHeight;
 
-                // DEBUG: Vérifier que les strokes sont bien là
-                const exported = engine.exportStrokes();
-                console.log(`  🔍 VÉRIFICATION - Page ${pageNum}: ${exported.strokes?.length || 0} strokes dans engine`);
+                const scaleX = oldCanvasWidth > 0 ? newCanvasWidth / oldCanvasWidth : 1;
+                const scaleY = oldCanvasHeight > 0 ? newCanvasHeight / oldCanvasHeight : 1;
+
+                // Si le scale a changé, rescaler les coordonnées des strokes
+                let strokesToImport = savedData.strokes;
+                if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+                    console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${oldCanvasWidth}x${oldCanvasHeight} → ${newCanvasWidth}x${newCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                    strokesToImport = savedData.strokes.map(stroke => ({
+                        points: stroke.points.map(point => [
+                            point[0] * scaleX,  // x
+                            point[1] * scaleY,  // y
+                            point[2]             // pressure (inchangé)
+                        ]),
+                        options: stroke.options
+                    }));
+                }
+
+                console.log(`  🎯 Importing ${strokesToImport.length} strokes - Page ${pageNum}`);
+                engine.importStrokes({ strokes: strokesToImport });
+                console.log(`  ✅ Strokes importés - Page ${pageNum}`);
             }
         });
 
