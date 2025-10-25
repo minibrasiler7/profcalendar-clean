@@ -1506,6 +1506,9 @@ class UnifiedPDFViewer {
         this.elements.zoomIn?.addEventListener('click', () => this.zoomIn());
         this.elements.zoomOut?.addEventListener('click', () => this.zoomOut());
 
+        // Pinch-to-zoom (geste 2 doigts sur iPad/tablette)
+        this.setupPinchToZoom();
+
         // Recherche
         this.elements.searchBtn?.addEventListener('click', () => this.search());
         this.elements.searchInput?.addEventListener('keydown', (e) => {
@@ -1781,8 +1784,8 @@ class UnifiedPDFViewer {
     fitToPage() {
         // Implémentation ajustement page
         const containerWidth = this.elements.container.clientWidth - 40;
-        const containerHeight = this.elements.container.clientHeight - 40;
-        
+        const containerHeight = this.elements.container.height - 40;
+
         if (this.pdfDoc && this.currentPage) {
             this.pdfDoc.getPage(this.currentPage).then(page => {
                 const viewport = page.getViewport({ scale: 1 });
@@ -1792,6 +1795,108 @@ class UnifiedPDFViewer {
                 this.setZoom(scale);
             });
         }
+    }
+
+    /**
+     * Configuration du pinch-to-zoom (geste 2 doigts)
+     */
+    setupPinchToZoom() {
+        const container = this.elements.pdfContainer;
+        if (!container) return;
+
+        let initialScale = 1;
+        let isPinching = false;
+        let pinchTimeout = null;
+
+        const self = this;
+
+        // Détecter le début du pinch
+        container.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                isPinching = true;
+                initialScale = self.currentScale;
+                console.log('🤏 Pinch détecté, scale initial:', initialScale);
+            }
+        }, { passive: true });
+
+        // Détecter le pinch en cours
+        container.addEventListener('touchmove', function(e) {
+            if (isPinching && e.touches.length === 2) {
+                // Calculer la distance entre les 2 doigts
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                // Sauvegarder pour utiliser dans touchend
+                self.lastPinchDistance = currentDistance;
+            }
+        }, { passive: true });
+
+        // Détecter la fin du pinch
+        container.addEventListener('touchend', function(e) {
+            if (isPinching && e.touches.length < 2) {
+                isPinching = false;
+
+                console.log('🤏 Pinch terminé, attente 500ms avant re-rendu...');
+
+                // Attendre 500ms après la fin du pinch pour laisser le navigateur finir le zoom CSS
+                clearTimeout(pinchTimeout);
+                pinchTimeout = setTimeout(function() {
+                    // Détecter le nouveau scale CSS appliqué par le navigateur
+                    const computedScale = self.detectCSSScale(container);
+
+                    if (computedScale && Math.abs(computedScale - self.currentScale) > 0.01) {
+                        console.log(`🔍 Nouveau scale CSS détecté: ${computedScale.toFixed(2)}x (ancien: ${self.currentScale.toFixed(2)}x)`);
+
+                        // Limiter le scale entre min et max
+                        const clampedScale = Math.max(
+                            self.options.minZoom,
+                            Math.min(self.options.maxZoom, computedScale)
+                        );
+
+                        // Mettre à jour et re-rendre
+                        self.currentScale = clampedScale;
+                        console.log(`🔍 Application du zoom: ${clampedScale.toFixed(2)}x`);
+
+                        self.renderAllPages().then(function() {
+                            console.log('✅ Pages re-rendues après pinch-to-zoom');
+                        }).catch(function(error) {
+                            console.error('❌ Erreur re-rendu après pinch:', error);
+                        });
+                    } else {
+                        console.log('⚠️ Pas de changement de scale significatif');
+                    }
+                }, 500);
+            }
+        }, { passive: true });
+    }
+
+    /**
+     * Détecter le scale CSS appliqué par le navigateur
+     */
+    detectCSSScale(element) {
+        // Méthode 1: Lire la transform CSS
+        const transform = window.getComputedStyle(element).transform;
+        if (transform && transform !== 'none') {
+            const matrix = transform.match(/matrix\(([^)]+)\)/);
+            if (matrix) {
+                const values = matrix[1].split(',').map(parseFloat);
+                // Le premier élément de la matrice est le scaleX
+                return values[0];
+            }
+        }
+
+        // Méthode 2: Comparer la taille visuelle vs taille réelle
+        const rect = element.getBoundingClientRect();
+        const actualWidth = element.offsetWidth;
+        if (actualWidth > 0) {
+            return rect.width / actualWidth;
+        }
+
+        return null;
     }
 
     // Recherche
