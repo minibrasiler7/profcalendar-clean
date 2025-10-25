@@ -1039,6 +1039,7 @@ class UnifiedPDFViewer {
         
         this.elements = {
             container: document.getElementById('pdf-container'),
+            pdfContainer: document.getElementById('pdf-content-area'), // Conteneur principal du PDF pour pinch-to-zoom
             pagesContainer: document.getElementById('pdf-pages-container'),
             loading: document.getElementById('pdf-loading'),
             toolbar: document.getElementById('pdf-toolbar'),
