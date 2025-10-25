@@ -385,16 +385,16 @@ class SimplePenAnnotation {
     enable() {
         this.isEnabled = true;
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        // Sauvegarder le background actuel pour préserver les autres annotations
-        this.saveBackground();
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // this.saveBackground();
     }
 
     disable() {
         this.isEnabled = false;
         this.isDrawing = false;
         this.canvas.style.touchAction = this.originalTouchAction || 'auto';
-        // Sauvegarder à nouveau pour capturer les nouveaux strokes au background
-        this.saveBackground();
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // this.saveBackground();
     }
 
     destroy() {

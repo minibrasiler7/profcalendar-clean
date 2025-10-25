@@ -3807,11 +3807,11 @@ class UnifiedPDFViewer {
                     if (this.fileId) {
                         this.scheduleAutoSave();
                     }
-                    // Sauvegarder le background pour SimplePenAnnotation
-                    const engine = this.annotationEngines.get(pageNum);
-                    if (engine && typeof engine.saveBackground === 'function') {
-                        engine.saveBackground();
-                    }
+                    // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                    // const engine = this.annotationEngines.get(pageNum);
+                    // if (engine && typeof engine.saveBackground === 'function') {
+                    //     engine.saveBackground();
+                    // }
                 }
                 return;
             }
@@ -4838,10 +4838,10 @@ class UnifiedPDFViewer {
                     engine.clearStrokes();
                 }
 
-                // Sauvegarder le nouvel état du canvas comme background pour SimplePenAnnotation
-                if (engine && typeof engine.saveBackground === 'function') {
-                    engine.saveBackground();
-                }
+                // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                // if (engine && typeof engine.saveBackground === 'function') {
+                //     engine.saveBackground();
+                // }
             }
 
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
@@ -7285,10 +7285,10 @@ class UnifiedPDFViewer {
                 if (typeof engine.clearStrokes === 'function') {
                     engine.clearStrokes();
                 }
-                // Sauvegarder le nouveau background (état restauré)
-                if (typeof engine.saveBackground === 'function') {
-                    engine.saveBackground();
-                }
+                // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                // if (typeof engine.saveBackground === 'function') {
+                //     engine.saveBackground();
+                // }
             }
         }
     }
@@ -7389,10 +7389,10 @@ class UnifiedPDFViewer {
         const engine = this.annotationEngines.get(pageNum);
         if (engine && typeof engine.clear === 'function') {
             engine.clear();
-            // Sauvegarder un nouveau background vide pour éviter que les annotations réapparaissent
-            if (typeof engine.saveBackground === 'function') {
-                engine.saveBackground();
-            }
+            // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+            // if (typeof engine.saveBackground === 'function') {
+            //     engine.saveBackground();
+            // }
         }
 
         // Sauvegarder l'état après effacement
@@ -13065,12 +13065,11 @@ class UnifiedPDFViewer {
 
         this.annotationEngines.set(pageNum, engine);
 
-        // CRITIQUE: Sauvegarder immédiatement le background actuel du canvas
-        // pour préserver les annotations existantes (ex: après avoir utilisé la gomme)
-        // Cela évite que les annotations effacées réapparaissent lors du premier redraw
-        if (typeof engine.saveBackground === 'function') {
-            engine.saveBackground();
-        }
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // Les strokes vectoriels sont stockés séparément et redessinés à la demande
+        // if (typeof engine.saveBackground === 'function') {
+        //     engine.saveBackground();
+        // }
     }
 
     /**
