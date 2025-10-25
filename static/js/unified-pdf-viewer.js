@@ -1802,7 +1802,11 @@ class UnifiedPDFViewer {
      */
     setupPinchToZoom() {
         const container = this.elements.pdfContainer;
-        if (!container) return;
+        if (!container) {
+            console.warn('⚠️ setupPinchToZoom: pdfContainer non trouvé');
+            return;
+        }
+        console.log('✅ setupPinchToZoom initialisé sur:', container);
 
         let initialScale = 1;
         let isPinching = false;
@@ -1812,6 +1816,7 @@ class UnifiedPDFViewer {
 
         // Détecter le début du pinch
         container.addEventListener('touchstart', function(e) {
+            console.log(`📱 touchstart sur pdfContainer: ${e.touches.length} doigt(s)`);
             if (e.touches.length === 2) {
                 isPinching = true;
                 initialScale = self.currentScale;
