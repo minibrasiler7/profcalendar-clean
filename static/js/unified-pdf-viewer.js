@@ -6696,13 +6696,30 @@ class UnifiedPDFViewer {
         // Utiliser l'ancien système simple basé sur les numéros de page
         for (const [pageNumStr, annotationData] of this.annotations) {
             const pageNum = parseInt(pageNumStr);
-            console.log(`  📄 Page ${pageNum}: hasImageData=${!!annotationData?.imageData}, width=${annotationData?.width}, height=${annotationData?.height}`);
+            console.log(`  📄 Page ${pageNum}: hasVectorStrokes=${!!annotationData?.vectorStrokes}, hasImageData=${!!annotationData?.imageData}`);
             const pageContainer = document.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
 
             if (pageContainer) {
                 const annotationCanvas = pageContainer.querySelector('.pdf-annotation-layer');
 
-                if (annotationCanvas && annotationData?.imageData) {
+                // PRIORITÉ 1: Charger les strokes vectoriels si disponibles (meilleure qualité)
+                if (annotationCanvas && annotationData?.vectorStrokes && annotationData.vectorStrokes.length > 0) {
+                    console.log(`  🎨 Chargement de ${annotationData.vectorStrokes.length} strokes vectoriels pour la page ${pageNum}`);
+
+                    // Créer le moteur d'annotation s'il n'existe pas encore
+                    if (!this.annotationEngines.has(pageNum)) {
+                        this.initAnnotationEngine(pageNum);
+                    }
+
+                    const engine = this.annotationEngines.get(pageNum);
+                    if (engine && typeof engine.importStrokes === 'function') {
+                        engine.importStrokes({ strokes: annotationData.vectorStrokes });
+                        console.log(`  ✅ Strokes vectoriels chargés et redessinés pour la page ${pageNum} (mode vectoriel pur)`);
+                    }
+                }
+                // PRIORITÉ 2: Fallback sur imageData uniquement si pas de vectorStrokes (ancien système)
+                else if (annotationCanvas && annotationData?.imageData) {
+                    console.log(`  ⚠️ Chargement imageData pixelisée pour la page ${pageNum} (pas de vectorStrokes disponibles)`);
                     // Créer une Promise pour le chargement de cette image
                     const loadPromise = new Promise((resolve, reject) => {
                         try {
@@ -6714,24 +6731,7 @@ class UnifiedPDFViewer {
                                 // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
                                 const dpr = window.devicePixelRatio || 1;
                                 ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-                                console.log(`  ✅ Image chargée et dessinée pour la page ${pageNum}`);
-
-                                // NOUVEAU: Charger les strokes vectoriels si disponibles
-                                if (annotationData.vectorStrokes && annotationData.vectorStrokes.length > 0) {
-                                    console.log(`  🎨 Chargement de ${annotationData.vectorStrokes.length} strokes vectoriels pour la page ${pageNum}`);
-
-                                    // Créer le moteur d'annotation s'il n'existe pas encore
-                                    if (!this.annotationEngines.has(pageNum)) {
-                                        this.initAnnotationEngine(pageNum);
-                                    }
-
-                                    const engine = this.annotationEngines.get(pageNum);
-                                    if (engine && typeof engine.importStrokes === 'function') {
-                                        engine.importStrokes({ strokes: annotationData.vectorStrokes });
-                                        console.log(`  ✅ Strokes vectoriels chargés et redessinés pour la page ${pageNum}`);
-                                    }
-                                }
-
+                                console.log(`  ✅ Image pixelisée chargée pour la page ${pageNum}`);
                                 resolve();
                             };
                             img.onerror = () => {
@@ -6794,20 +6794,32 @@ class UnifiedPDFViewer {
                     });
 
                     if (hasContent) {
-                        annotationsData.canvasData[pageNum] = {
-                            imageData: canvas.toDataURL('image/png'),
-                            width: canvas.width,
-                            height: canvas.height
-                        };
-
-                        // NOUVEAU: Sauvegarder les strokes vectoriels du stylo si disponibles
+                        // PRIORITÉ: Sauvegarder les strokes vectoriels du stylo si disponibles
                         const engine = this.annotationEngines.get(pageNum);
+                        let hasVectorStrokes = false;
+
                         if (engine && typeof engine.exportStrokes === 'function') {
                             const vectorData = engine.exportStrokes();
                             if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
-                                annotationsData.canvasData[pageNum].vectorStrokes = vectorData.strokes;
-                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés`);
+                                // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
+                                annotationsData.canvasData[pageNum] = {
+                                    vectorStrokes: vectorData.strokes,
+                                    width: canvas.width,
+                                    height: canvas.height
+                                };
+                                hasVectorStrokes = true;
+                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur)`);
                             }
+                        }
+
+                        // Fallback: Sauvegarder imageData UNIQUEMENT si pas de vectorStrokes (ancien système)
+                        if (!hasVectorStrokes) {
+                            annotationsData.canvasData[pageNum] = {
+                                imageData: canvas.toDataURL('image/png'),
+                                width: canvas.width,
+                                height: canvas.height
+                            };
+                            console.log(`  ⚠️ Page ${pageNum}: imageData sauvegardée (pas de vectorStrokes, ancien système)`);
                         }
 
                         pagesWithContent++;

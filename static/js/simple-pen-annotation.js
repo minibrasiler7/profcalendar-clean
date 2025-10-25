@@ -251,23 +251,19 @@ class SimplePenAnnotation {
     }
 
     redraw() {
-        console.log(`🎨 SimplePenAnnotation.redraw() - ${this.strokes.length} strokes à redessiner`);
-        console.log(`   Canvas: ${this.canvas.width}x${this.canvas.height}`);
-        console.log(`   Background: ${this.backgroundImageData ? 'OUI' : 'NON'}`);
+        // DÉSACTIVÉ: Logs trop verbeux qui ralentissent le navigateur
+        // console.log(`🎨 SimplePenAnnotation.redraw() - ${this.strokes.length} strokes à redessiner`);
 
         // IMPORTANT: Effacer le canvas et restaurer le background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Restaurer le background (annotations des autres outils)
         if (this.backgroundImageData) {
-            console.log(`   ⚠️ Restauration du background (peut contenir image pixelisée)`);
             this.ctx.putImageData(this.backgroundImageData, 0, 0);
         }
 
         // Redessiner tous les strokes sauvegardés de SimplePenAnnotation
-        console.log(`   ✏️ Redessin de ${this.strokes.length} strokes vectoriels`);
-        this.strokes.forEach((strokeData, index) => {
-            console.log(`      Stroke ${index + 1}: ${strokeData.points.length} points`);
+        this.strokes.forEach((strokeData) => {
             this.drawStroke(strokeData.points, strokeData.options);
         });
 
@@ -358,26 +354,19 @@ class SimplePenAnnotation {
      * Importe des strokes vectoriels et les redessine
      */
     importStrokes(data) {
-        console.log('📥 SimplePenAnnotation.importStrokes() appelé');
-        console.log(`   Data reçu: ${data ? 'OUI' : 'NON'}`);
-        console.log(`   Nombre de strokes: ${data?.strokes?.length || 0}`);
-
         if (data && Array.isArray(data.strokes)) {
             this.strokes = data.strokes.map(stroke => ({
                 points: stroke.points,
                 options: stroke.options
             }));
 
-            console.log(`   ✅ ${this.strokes.length} strokes importés dans this.strokes`);
+            console.log(`📥 Imported ${this.strokes.length} vector strokes`);
 
             // IMPORTANT: Vider le backgroundImageData car il peut contenir
             // une ancienne image à basse résolution (avant zoom)
             // On redessine uniquement les strokes vectoriels à la nouvelle résolution
-            const hadBackground = this.backgroundImageData !== null;
             this.backgroundImageData = null;
-            console.log(`   ${hadBackground ? '⚠️' : '✓'} Background ${hadBackground ? 'EFFACÉ' : 'déjà vide'}`);
 
-            console.log('   🎨 Appel de redraw()...');
             this.redraw();
         }
     }
