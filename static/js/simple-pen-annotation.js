@@ -77,6 +77,12 @@ class SimplePenAnnotation {
     }
 
     handleTouchStart(e) {
+        // IMPORTANT: Autoriser le pinch (2+ doigts) pour le zoom
+        if (e.touches.length >= 2) {
+            console.log('👆 Pinch détecté dans SimplePenAnnotation - autorisation du zoom');
+            return; // Ne pas bloquer le pinch
+        }
+
         // Bloquer touchstart si c'est un stylet (détecté par touchType stylus)
         const touch = e.touches[0];
         const isStylus = touch && touch.touchType === 'stylus';
@@ -90,6 +96,11 @@ class SimplePenAnnotation {
     }
 
     handleTouchMove(e) {
+        // IMPORTANT: Autoriser le pinch (2+ doigts) pour le zoom
+        if (e.touches.length >= 2) {
+            return; // Ne pas bloquer le pinch
+        }
+
         // Toujours bloquer touchmove si touchAction est none (stylet actif)
         if (this.canvas.style.touchAction === 'none' || this.isDrawing) {
             e.preventDefault();
