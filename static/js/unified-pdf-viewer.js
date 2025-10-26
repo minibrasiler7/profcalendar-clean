@@ -1328,6 +1328,13 @@ class UnifiedPDFViewer {
             }
         });
 
+        // CRITIQUE: Réactiver l'outil actuel pour remettre pointerEvents = 'auto'
+        // sur les nouveaux canvas d'annotation
+        if (this.currentTool) {
+            console.log(`🔄 Réactivation de l'outil: ${this.currentTool}`);
+            this.setCurrentTool(this.currentTool);
+        }
+
         // Debug: Vérifier la hauteur totale du conteneur
         setTimeout(() => {
             const container = this.elements.pagesContainer;
