@@ -1236,10 +1236,12 @@ class UnifiedPDFViewer {
             if (engine && typeof engine.exportStrokes === 'function') {
                 const vectorData = engine.exportStrokes();
                 if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
-                    // IMPORTANT: Sauvegarder aussi les dimensions du canvas pour pouvoir rescaler les strokes
+                    // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS) du canvas, pas physiques
+                    // Les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
                     const pageElement = this.pageElements.get(pageNum);
-                    const canvasWidth = pageElement?.annotationCanvas?.width || 0;
-                    const canvasHeight = pageElement?.annotationCanvas?.height || 0;
+                    const canvas = pageElement?.annotationCanvas;
+                    const canvasWidth = canvas ? parseInt(canvas.style.width) || canvas.width : 0;
+                    const canvasHeight = canvas ? parseInt(canvas.style.height) || canvas.height : 0;
 
                     savedVectorStrokes.set(pageNum, {
                         strokes: vectorData.strokes,
@@ -1298,10 +1300,12 @@ class UnifiedPDFViewer {
 
             const engine = this.annotationEngines.get(pageNum);
             if (engine && typeof engine.importStrokes === 'function') {
-                // IMPORTANT: Rescaler les strokes si les dimensions du canvas ont changé
+                // IMPORTANT: Rescaler les strokes en utilisant les dimensions LOGIQUES (CSS)
+                // car les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
                 const pageElement = this.pageElements.get(pageNum);
-                const newCanvasWidth = pageElement?.annotationCanvas?.width || 0;
-                const newCanvasHeight = pageElement?.annotationCanvas?.height || 0;
+                const newCanvas = pageElement?.annotationCanvas;
+                const newCanvasWidth = newCanvas ? parseInt(newCanvas.style.width) || newCanvas.width : 0;
+                const newCanvasHeight = newCanvas ? parseInt(newCanvas.style.height) || newCanvas.height : 0;
                 const oldCanvasWidth = savedData.canvasWidth || newCanvasWidth;
                 const oldCanvasHeight = savedData.canvasHeight || newCanvasHeight;
 
@@ -6749,9 +6753,10 @@ class UnifiedPDFViewer {
 
                     const engine = this.annotationEngines.get(pageNum);
                     if (engine && typeof engine.importStrokes === 'function') {
-                        // IMPORTANT: Rescaler les strokes si les dimensions du canvas ont changé
-                        const currentCanvasWidth = annotationCanvas.width;
-                        const currentCanvasHeight = annotationCanvas.height;
+                        // IMPORTANT: Rescaler les strokes en utilisant les dimensions LOGIQUES (CSS)
+                        // car les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
+                        const currentCanvasWidth = parseInt(annotationCanvas.style.width) || annotationCanvas.width;
+                        const currentCanvasHeight = parseInt(annotationCanvas.style.height) || annotationCanvas.height;
                         const savedCanvasWidth = annotationData.width || currentCanvasWidth;
                         const savedCanvasHeight = annotationData.height || currentCanvasHeight;
 
@@ -6861,10 +6866,11 @@ class UnifiedPDFViewer {
                             const vectorData = engine.exportStrokes();
                             if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
                                 // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
+                                // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS), pas physiques
                                 annotationsData.canvasData[pageNum] = {
                                     vectorStrokes: vectorData.strokes,
-                                    width: canvas.width,
-                                    height: canvas.height
+                                    width: parseInt(canvas.style.width) || canvas.width,
+                                    height: parseInt(canvas.style.height) || canvas.height
                                 };
                                 hasVectorStrokes = true;
                                 console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur)`);
@@ -6875,8 +6881,8 @@ class UnifiedPDFViewer {
                         if (!hasVectorStrokes) {
                             annotationsData.canvasData[pageNum] = {
                                 imageData: canvas.toDataURL('image/png'),
-                                width: canvas.width,
-                                height: canvas.height
+                                width: parseInt(canvas.style.width) || canvas.width,
+                                height: parseInt(canvas.style.height) || canvas.height
                             };
                             console.log(`  ⚠️ Page ${pageNum}: imageData sauvegardée (pas de vectorStrokes, ancien système)`);
                         }
