@@ -6749,7 +6749,30 @@ class UnifiedPDFViewer {
 
                     const engine = this.annotationEngines.get(pageNum);
                     if (engine && typeof engine.importStrokes === 'function') {
-                        engine.importStrokes({ strokes: annotationData.vectorStrokes });
+                        // IMPORTANT: Rescaler les strokes si les dimensions du canvas ont changé
+                        const currentCanvasWidth = annotationCanvas.width;
+                        const currentCanvasHeight = annotationCanvas.height;
+                        const savedCanvasWidth = annotationData.width || currentCanvasWidth;
+                        const savedCanvasHeight = annotationData.height || currentCanvasHeight;
+
+                        const scaleX = savedCanvasWidth > 0 ? currentCanvasWidth / savedCanvasWidth : 1;
+                        const scaleY = savedCanvasHeight > 0 ? currentCanvasHeight / savedCanvasHeight : 1;
+
+                        // Si le scale a changé, rescaler les coordonnées des strokes
+                        let strokesToImport = annotationData.vectorStrokes;
+                        if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+                            console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${savedCanvasWidth}x${savedCanvasHeight} → ${currentCanvasWidth}x${currentCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                            strokesToImport = annotationData.vectorStrokes.map(stroke => ({
+                                points: stroke.points.map(point => [
+                                    point[0] * scaleX,  // x
+                                    point[1] * scaleY,  // y
+                                    point[2]             // pressure (inchangé)
+                                ]),
+                                options: stroke.options
+                            }));
+                        }
+
+                        engine.importStrokes({ strokes: strokesToImport });
                         console.log(`  ✅ Strokes vectoriels chargés et redessinés pour la page ${pageNum} (mode vectoriel pur)`);
                     }
                 }
