@@ -2414,6 +2414,13 @@ class UnifiedPDFViewer {
      * Mettre à jour tous les moteurs d'annotation avec les paramètres actuels du panneau
      */
     updateAllAnnotationEngines() {
+        // IMPORTANT: Vérifier que les moteurs existent avant de les mettre à jour
+        // Cette méthode peut être appelée avant que le PDF ne soit chargé
+        if (!this.annotationEngines || this.annotationEngines.size === 0) {
+            console.log('📝 Aucun moteur d\'annotation à mettre à jour (pas encore créés)');
+            return;
+        }
+
         // Récupérer les paramètres actuels depuis les sliders
         const penSettings = this.getCurrentPenSettings();
 
