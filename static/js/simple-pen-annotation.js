@@ -25,12 +25,19 @@ class SimplePenAnnotation {
             opacity: options.opacity || 1.0
         };
 
+        // Callback pour notifier le parent quand un pinch-to-zoom est détecté
+        this.onPinchZoom = options.onPinchZoom || null;
+
         // État du dessin
         this.isDrawing = false;
         this.isEnabled = true;
         this.currentPoints = [];
         this.strokes = []; // Historique de tous les strokes
         this.pointerId = null;
+
+        // État du pinch-to-zoom
+        this.isPinching = false;
+        this.pinchTimeout = null;
 
         // IMPORTANT: Initialiser backgroundImageData mais NE PAS sauvegarder automatiquement
         // Le background sera sauvegardé manuellement après le chargement des annotations
@@ -60,6 +67,7 @@ class SimplePenAnnotation {
         this.handlePointerLeave = this.handlePointerLeave.bind(this);
         this.handleTouchStart = this.handleTouchStart.bind(this);
         this.handleTouchMove = this.handleTouchMove.bind(this);
+        this.handleTouchEnd = this.handleTouchEnd.bind(this);
 
         // Ajouter les event listeners
         // IMPORTANT: passive: false pour pouvoir appeler preventDefault()
@@ -74,12 +82,14 @@ class SimplePenAnnotation {
         // Safari génère parfois des événements touch même pour le stylet
         this.canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
         this.canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+        this.canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
     }
 
     handleTouchStart(e) {
         // IMPORTANT: Autoriser le pinch (2+ doigts) pour le zoom
         if (e.touches.length >= 2) {
             console.log('👆 Pinch détecté dans SimplePenAnnotation - autorisation du zoom');
+            this.isPinching = true;
             return; // Ne pas bloquer le pinch
         }
 
@@ -106,6 +116,23 @@ class SimplePenAnnotation {
             e.preventDefault();
             e.stopPropagation();
             return false;
+        }
+    }
+
+    handleTouchEnd(e) {
+        // Détecter la fin d'un pinch-to-zoom et notifier le parent
+        if (this.isPinching && e.touches.length < 2) {
+            console.log('🤏 Fin du pinch détectée dans SimplePenAnnotation');
+            this.isPinching = false;
+
+            // Attendre un peu que le zoom CSS soit appliqué, puis notifier
+            clearTimeout(this.pinchTimeout);
+            this.pinchTimeout = setTimeout(() => {
+                if (this.onPinchZoom && typeof this.onPinchZoom === 'function') {
+                    console.log('📢 Notification du parent pour re-rendu après pinch');
+                    this.onPinchZoom();
+                }
+            }, 500);
         }
     }
 
@@ -395,6 +422,7 @@ class SimplePenAnnotation {
         this.canvas.removeEventListener('pointerleave', this.handlePointerLeave);
         this.canvas.removeEventListener('touchstart', this.handleTouchStart);
         this.canvas.removeEventListener('touchmove', this.handleTouchMove);
+        this.canvas.removeEventListener('touchend', this.handleTouchEnd);
 
         // Restaurer les styles originaux
         this.canvas.style.touchAction = this.originalTouchAction;

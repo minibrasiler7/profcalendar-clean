@@ -13148,6 +13148,7 @@ class UnifiedPDFViewer {
             return;
         }
 
+        const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
             size: this.currentLineWidth,
             thinning: 0.5,
@@ -13155,7 +13156,16 @@ class UnifiedPDFViewer {
             streamline: 0.5,
             simulatePressure: true,
             color: this.currentColor,
-            opacity: 1.0
+            opacity: 1.0,
+            // Callback pour détecter pinch-to-zoom sur les canvas d'annotation
+            onPinchZoom: function() {
+                console.log('🔄 Pinch-to-zoom détecté, re-rendu des pages...');
+                self.renderAllPages().then(function() {
+                    console.log('✅ Pages re-rendues après pinch-to-zoom');
+                }).catch(function(error) {
+                    console.error('❌ Erreur re-rendu après pinch:', error);
+                });
+            }
         });
 
         this.annotationEngines.set(pageNum, engine);
