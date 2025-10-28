@@ -930,10 +930,6 @@ class UnifiedPDFViewer {
             <div class="stroke-options">
                 ${strokeWidths}
             </div>
-            <!-- Bouton pour ouvrir/fermer le panneau de contrôle avancé -->
-            <button class="btn-tool" id="btn-toggle-advanced-controls" title="Contrôles avancés du stylo">
-                <i class="fas fa-sliders-h"></i>
-            </button>
             ${this.options.enableStudentTracking !== false ? `
             <div class="student-tracking-section">
                 <button class="btn-tool" id="btn-student-tracking" title="Suivi élève">
@@ -1046,25 +1042,25 @@ class UnifiedPDFViewer {
                     <!-- Thinning (Sensibilité à la pression) -->
                     <div class="control-group">
                         <label for="pen-thinning">
-                            Sensibilité pression: <span id="pen-thinning-value">0.5</span>
+                            Sensibilité pression: <span id="pen-thinning-value">0.00</span>
                         </label>
-                        <input type="range" id="pen-thinning" min="0" max="1" step="0.05" value="0.5">
+                        <input type="range" id="pen-thinning" min="0" max="1" step="0.05" value="0.0">
                     </div>
 
                     <!-- Smoothing (Lissage) -->
                     <div class="control-group">
                         <label for="pen-smoothing">
-                            Lissage: <span id="pen-smoothing-value">0.5</span>
+                            Lissage: <span id="pen-smoothing-value">0.00</span>
                         </label>
-                        <input type="range" id="pen-smoothing" min="0" max="1" step="0.05" value="0.5">
+                        <input type="range" id="pen-smoothing" min="0" max="1" step="0.05" value="0.0">
                     </div>
 
                     <!-- Streamline (Stabilisation) -->
                     <div class="control-group">
                         <label for="pen-streamline">
-                            Stabilisation: <span id="pen-streamline-value">0.5</span>
+                            Stabilisation: <span id="pen-streamline-value">1.00</span>
                         </label>
-                        <input type="range" id="pen-streamline" min="0" max="1" step="0.05" value="0.5">
+                        <input type="range" id="pen-streamline" min="0" max="1" step="0.05" value="1.0">
                     </div>
 
                     <!-- Simulate Pressure (Simuler pression) -->
@@ -1385,22 +1381,18 @@ class UnifiedPDFViewer {
                 const scaleX = oldCanvasWidth > 0 ? newCanvasWidth / oldCanvasWidth : 1;
                 const scaleY = oldCanvasHeight > 0 ? newCanvasHeight / oldCanvasHeight : 1;
 
-                // Si le scale a changé, rescaler les coordonnées ET la taille des strokes
+                // Si le scale a changé, rescaler SEULEMENT les coordonnées (pas la taille)
+                // La taille est gérée par updateAllAnnotationEngines() selon le zoom actuel
                 let strokesToImport = savedData.strokes;
                 if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
-                    console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${oldCanvasWidth}x${oldCanvasHeight} → ${newCanvasWidth}x${newCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
-                    // Utiliser la moyenne des deux scales pour ajuster la taille du trait
-                    const avgScale = (scaleX + scaleY) / 2;
+                    console.log(`  🔄 Rescaling stroke coordinates - Page ${pageNum}: ${oldCanvasWidth}x${oldCanvasHeight} → ${newCanvasWidth}x${newCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
                     strokesToImport = savedData.strokes.map(stroke => ({
                         points: stroke.points.map(point => [
                             point[0] * scaleX,  // x
                             point[1] * scaleY,  // y
                             point[2]             // pressure (inchangé)
                         ]),
-                        options: {
-                            ...stroke.options,
-                            size: stroke.options.size * avgScale  // Ajuster la taille proportionnellement
-                        }
+                        options: stroke.options  // Garder les options originales (y compris size)
                     }));
                 }
 
@@ -2424,11 +2416,11 @@ class UnifiedPDFViewer {
         // Récupérer les paramètres actuels depuis les sliders
         const penSettings = this.getCurrentPenSettings();
 
-        // Ajuster la taille en fonction du zoom actuel
-        const adjustedSize = penSettings.size / this.currentScale;
+        // IMPORTANT: Ne PAS ajuster la taille par le scale
+        // Le canvas est zoomé via CSS, la taille visuelle sera automatiquement correcte
 
         const options = {
-            size: adjustedSize,
+            size: penSettings.size,
             thinning: penSettings.thinning,
             smoothing: penSettings.smoothing,
             streamline: penSettings.streamline,
@@ -2461,13 +2453,14 @@ class UnifiedPDFViewer {
 
     /**
      * Récupérer les paramètres actuels du stylo (depuis les sliders ou valeurs par défaut)
+     * Valeurs optimisées pour iPad Pro: smoothing=0, thinning=0, streamline=1, opacity=1
      */
     getCurrentPenSettings() {
         return {
             size: parseFloat(document.getElementById('pen-size')?.value || 4),
-            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.5),
-            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.5),
-            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 0.5),
+            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.0),
+            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.0),
+            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 1.0),
             simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
             opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
         };
@@ -2495,14 +2488,14 @@ class UnifiedPDFViewer {
     }
 
     /**
-     * Réinitialiser les paramètres du stylo aux valeurs par défaut
+     * Réinitialiser les paramètres du stylo aux valeurs par défaut optimisées
      */
     resetPenSettings() {
         const defaultSettings = {
             size: 4,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
+            thinning: 0.0,
+            smoothing: 0.0,
+            streamline: 1.0,
             simulatePressure: true,
             opacity: 1.0
         };
@@ -13534,12 +13527,13 @@ class UnifiedPDFViewer {
         // au lieu d'utiliser des valeurs codées en dur
         const penSettings = this.getCurrentPenSettings();
 
-        // Ajuster la taille en fonction du zoom actuel
-        const adjustedSize = penSettings.size / this.currentScale;
+        // IMPORTANT: Ne PAS ajuster la taille par le scale
+        // Le canvas est déjà zoomé via CSS, donc la taille visuelle sera correcte
+        // Utiliser directement la taille de base pour que les strokes restent cohérents
 
         const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
-            size: adjustedSize,
+            size: penSettings.size,
             thinning: penSettings.thinning,
             smoothing: penSettings.smoothing,
             streamline: penSettings.streamline,
@@ -13560,7 +13554,7 @@ class UnifiedPDFViewer {
         this.annotationEngines.set(pageNum, engine);
 
         console.log(`✅ Moteur d'annotation créé pour page ${pageNum} avec paramètres:`, {
-            size: adjustedSize.toFixed(2),
+            size: penSettings.size,
             thinning: penSettings.thinning,
             smoothing: penSettings.smoothing,
             streamline: penSettings.streamline,
