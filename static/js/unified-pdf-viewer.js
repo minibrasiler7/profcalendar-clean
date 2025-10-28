@@ -4073,18 +4073,24 @@ class UnifiedPDFViewer {
         // OPTIMISATION: Mise à jour instantanée du curseur
         this.updateToolCursor(tool);
 
-        // Gérer SimplePenAnnotation pour l'outil stylo
-        if (tool === 'pen') {
+        // Gérer SimplePenAnnotation pour TOUS les outils de dessin (pen, highlighter, eraser)
+        const drawingTools = ['pen', 'highlighter', 'eraser'];
+        if (drawingTools.includes(tool)) {
             // Activer SimplePenAnnotation pour toutes les pages
             this.pageElements.forEach((pageElement, pageNum) => {
                 if (!this.annotationEngines.has(pageNum)) {
                     this.initAnnotationEngine(pageNum);
-                } else {
-                    this.annotationEngines.get(pageNum).enable();
+                }
+                const engine = this.annotationEngines.get(pageNum);
+                if (engine) {
+                    engine.enable();
+                    // Configurer les options selon l'outil
+                    const toolOptions = this.getToolOptions(tool);
+                    engine.updateOptions(toolOptions);
                 }
             });
         } else {
-            // Désactiver SimplePenAnnotation quand on change d'outil
+            // Désactiver SimplePenAnnotation pour les autres outils
             this.annotationEngines.forEach(engine => {
                 engine.disable();
             });
@@ -4115,6 +4121,53 @@ class UnifiedPDFViewer {
         }
     }
     
+    /**
+     * Retourne les options SimplePenAnnotation pour chaque outil
+     */
+    getToolOptions(tool) {
+        // Ajuster la taille en fonction du zoom actuel pour que l'apparence reste constante
+        const adjustedSize = this.currentLineWidth / this.currentScale;
+
+        const baseOptions = {
+            size: adjustedSize,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+            simulatePressure: true,
+            color: this.currentColor
+        };
+
+        switch(tool) {
+            case 'pen':
+                return {
+                    ...baseOptions,
+                    opacity: 1.0
+                };
+
+            case 'highlighter':
+                return {
+                    ...baseOptions,
+                    size: adjustedSize * 3, // Surligneur plus épais
+                    opacity: 0.3,  // Semi-transparent
+                    thinning: 0.2  // Moins de variation d'épaisseur
+                };
+
+            case 'eraser':
+                // Note: La gomme nécessite un traitement spécial
+                // On ne peut pas vraiment "effacer" des strokes vectoriels individuels
+                // Pour l'instant, on retourne les mêmes options mais avec une couleur blanche
+                return {
+                    ...baseOptions,
+                    color: '#FFFFFF',
+                    opacity: 1.0,
+                    size: adjustedSize * 2 // Gomme plus large
+                };
+
+            default:
+                return baseOptions;
+        }
+    }
+
     /**
      * Debug function to inspect annotations state
      */
