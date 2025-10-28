@@ -1417,18 +1417,10 @@ class UnifiedPDFViewer {
             this.setCurrentTool(this.currentTool);
         }
 
-        // IMPORTANT: Ajuster la taille du trait pour tous les moteurs en fonction du zoom actuel
-        // Pour que les nouveaux traits dessinés aient la bonne épaisseur
-        this.annotationEngines.forEach((engine, pageNum) => {
-            if (engine && typeof engine.updateOptions === 'function') {
-                // La taille de base (4) divisée par le scale actuel pour compenser le zoom
-                const adjustedSize = this.currentLineWidth / this.currentScale;
-                engine.updateOptions({
-                    size: adjustedSize
-                });
-                console.log(`  📏 Taille du trait ajustée pour page ${pageNum}: ${adjustedSize.toFixed(2)} (baseSize=${this.currentLineWidth}, scale=${this.currentScale.toFixed(2)}x)`);
-            }
-        });
+        // IMPORTANT: Ajuster tous les paramètres du stylo pour tous les moteurs
+        // en utilisant les paramètres actuels du panneau de contrôle
+        console.log('📐 Ajustement des paramètres du stylo pour tous les moteurs après zoom...');
+        this.updateAllAnnotationEngines();
 
         // Debug: Vérifier la hauteur totale du conteneur
         setTimeout(() => {
@@ -2361,7 +2353,7 @@ class UnifiedPDFViewer {
         sizeSlider?.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             sizeValue.textContent = value.toFixed(1);
-            this.updateAllAnnotationEngines({ size: value / this.currentScale });
+            this.updateAllAnnotationEngines();
         });
 
         // Thinning slider
@@ -2370,7 +2362,7 @@ class UnifiedPDFViewer {
         thinningSlider?.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             thinningValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines({ thinning: value });
+            this.updateAllAnnotationEngines();
         });
 
         // Smoothing slider
@@ -2379,7 +2371,7 @@ class UnifiedPDFViewer {
         smoothingSlider?.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             smoothingValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines({ smoothing: value });
+            this.updateAllAnnotationEngines();
         });
 
         // Streamline slider
@@ -2388,13 +2380,13 @@ class UnifiedPDFViewer {
         streamlineSlider?.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             streamlineValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines({ streamline: value });
+            this.updateAllAnnotationEngines();
         });
 
         // Simulate pressure checkbox
         const simulatePressureCheckbox = document.getElementById('pen-simulate-pressure');
         simulatePressureCheckbox?.addEventListener('change', (e) => {
-            this.updateAllAnnotationEngines({ simulatePressure: e.target.checked });
+            this.updateAllAnnotationEngines();
         });
 
         // Opacity slider
@@ -2403,7 +2395,7 @@ class UnifiedPDFViewer {
         opacitySlider?.addEventListener('input', (e) => {
             const value = parseFloat(e.target.value);
             opacityValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines({ opacity: value });
+            this.updateAllAnnotationEngines();
         });
 
         // Reset button
@@ -2419,9 +2411,24 @@ class UnifiedPDFViewer {
     }
 
     /**
-     * Mettre à jour tous les moteurs d'annotation avec de nouvelles options
+     * Mettre à jour tous les moteurs d'annotation avec les paramètres actuels du panneau
      */
-    updateAllAnnotationEngines(options) {
+    updateAllAnnotationEngines() {
+        // Récupérer les paramètres actuels depuis les sliders
+        const penSettings = this.getCurrentPenSettings();
+
+        // Ajuster la taille en fonction du zoom actuel
+        const adjustedSize = penSettings.size / this.currentScale;
+
+        const options = {
+            size: adjustedSize,
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
+            opacity: penSettings.opacity
+        };
+
         this.annotationEngines.forEach((engine, pageNum) => {
             if (engine && typeof engine.updateOptions === 'function') {
                 engine.updateOptions(options);
@@ -2443,6 +2450,20 @@ class UnifiedPDFViewer {
         } catch (e) {
             console.warn('Impossible de charger les paramètres du stylo:', e);
         }
+    }
+
+    /**
+     * Récupérer les paramètres actuels du stylo (depuis les sliders ou valeurs par défaut)
+     */
+    getCurrentPenSettings() {
+        return {
+            size: parseFloat(document.getElementById('pen-size')?.value || 4),
+            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.5),
+            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.5),
+            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 0.5),
+            simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
+            opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
+        };
     }
 
     /**
@@ -2528,15 +2549,8 @@ class UnifiedPDFViewer {
             opacityValue.textContent = settings.opacity.toFixed(2);
         }
 
-        // Mettre à jour les moteurs d'annotation
-        this.updateAllAnnotationEngines({
-            size: settings.size / this.currentScale,
-            thinning: settings.thinning,
-            smoothing: settings.smoothing,
-            streamline: settings.streamline,
-            simulatePressure: settings.simulatePressure,
-            opacity: settings.opacity
-        });
+        // Mettre à jour les moteurs d'annotation avec les nouveaux paramètres
+        this.updateAllAnnotationEngines();
     }
 
     /**
@@ -13509,15 +13523,22 @@ class UnifiedPDFViewer {
             return;
         }
 
+        // IMPORTANT: Récupérer les paramètres actuels du panneau de contrôle
+        // au lieu d'utiliser des valeurs codées en dur
+        const penSettings = this.getCurrentPenSettings();
+
+        // Ajuster la taille en fonction du zoom actuel
+        const adjustedSize = penSettings.size / this.currentScale;
+
         const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
-            size: this.currentLineWidth,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
-            simulatePressure: true,
+            size: adjustedSize,
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
-            opacity: 1.0,
+            opacity: penSettings.opacity,
             // Callback pour détecter pinch-to-zoom sur les canvas d'annotation
             onPinchZoom: function() {
                 console.log('🔄 Pinch-to-zoom détecté, re-rendu des pages...');
@@ -13530,6 +13551,16 @@ class UnifiedPDFViewer {
         });
 
         this.annotationEngines.set(pageNum, engine);
+
+        console.log(`✅ Moteur d'annotation créé pour page ${pageNum} avec paramètres:`, {
+            size: adjustedSize.toFixed(2),
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
+            opacity: penSettings.opacity,
+            scale: this.currentScale.toFixed(2)
+        });
 
         // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
         // Les strokes vectoriels sont stockés séparément et redessinés à la demande
