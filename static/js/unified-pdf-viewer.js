@@ -1344,6 +1344,19 @@ class UnifiedPDFViewer {
             this.setCurrentTool(this.currentTool);
         }
 
+        // IMPORTANT: Ajuster la taille du trait pour tous les moteurs en fonction du zoom actuel
+        // Pour que les nouveaux traits dessinés aient la bonne épaisseur
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.updateOptions === 'function') {
+                // La taille de base (4) divisée par le scale actuel pour compenser le zoom
+                const adjustedSize = this.currentLineWidth / this.currentScale;
+                engine.updateOptions({
+                    size: adjustedSize
+                });
+                console.log(`  📏 Taille du trait ajustée pour page ${pageNum}: ${adjustedSize.toFixed(2)} (baseSize=${this.currentLineWidth}, scale=${this.currentScale.toFixed(2)}x)`);
+            }
+        });
+
         // Debug: Vérifier la hauteur totale du conteneur
         setTimeout(() => {
             const container = this.elements.pagesContainer;
