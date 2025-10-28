@@ -1312,17 +1312,22 @@ class UnifiedPDFViewer {
                 const scaleX = oldCanvasWidth > 0 ? newCanvasWidth / oldCanvasWidth : 1;
                 const scaleY = oldCanvasHeight > 0 ? newCanvasHeight / oldCanvasHeight : 1;
 
-                // Si le scale a changé, rescaler les coordonnées des strokes
+                // Si le scale a changé, rescaler les coordonnées ET la taille des strokes
                 let strokesToImport = savedData.strokes;
                 if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
                     console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${oldCanvasWidth}x${oldCanvasHeight} → ${newCanvasWidth}x${newCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                    // Utiliser la moyenne des deux scales pour ajuster la taille du trait
+                    const avgScale = (scaleX + scaleY) / 2;
                     strokesToImport = savedData.strokes.map(stroke => ({
                         points: stroke.points.map(point => [
                             point[0] * scaleX,  // x
                             point[1] * scaleY,  // y
                             point[2]             // pressure (inchangé)
                         ]),
-                        options: stroke.options
+                        options: {
+                            ...stroke.options,
+                            size: stroke.options.size * avgScale  // Ajuster la taille proportionnellement
+                        }
                     }));
                 }
 
@@ -6763,17 +6768,22 @@ class UnifiedPDFViewer {
                         const scaleX = savedCanvasWidth > 0 ? currentCanvasWidth / savedCanvasWidth : 1;
                         const scaleY = savedCanvasHeight > 0 ? currentCanvasHeight / savedCanvasHeight : 1;
 
-                        // Si le scale a changé, rescaler les coordonnées des strokes
+                        // Si le scale a changé, rescaler les coordonnées ET la taille des strokes
                         let strokesToImport = annotationData.vectorStrokes;
                         if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
                             console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${savedCanvasWidth}x${savedCanvasHeight} → ${currentCanvasWidth}x${currentCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                            // Utiliser la moyenne des deux scales pour ajuster la taille du trait
+                            const avgScale = (scaleX + scaleY) / 2;
                             strokesToImport = annotationData.vectorStrokes.map(stroke => ({
                                 points: stroke.points.map(point => [
                                     point[0] * scaleX,  // x
                                     point[1] * scaleY,  // y
                                     point[2]             // pressure (inchangé)
                                 ]),
-                                options: stroke.options
+                                options: {
+                                    ...stroke.options,
+                                    size: stroke.options.size * avgScale  // Ajuster la taille proportionnellement
+                                }
                             }));
                         }
 
