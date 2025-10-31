@@ -1321,16 +1321,15 @@ class UnifiedPDFViewer {
                     console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (canvas: ${canvasWidth}x${canvasHeight})`);
 
                     // NOUVEAU: Sauvegarder un snapshot visuel pour éviter le flash
-                    // On prend une image du canvas actuel qu'on affichera temporairement
+                    // Utiliser toDataURL pour créer une image PNG qu'on peut redimensionner
                     try {
-                        const ctx = canvas.getContext('2d');
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const dataURL = canvas.toDataURL('image/png');
                         savedCanvasSnapshots.set(pageNum, {
-                            imageData: imageData,
+                            dataURL: dataURL,
                             width: canvas.width,
                             height: canvas.height
                         });
-                        console.log(`  - Page ${pageNum}: Snapshot visuel sauvegardé (${canvas.width}x${canvas.height})`);
+                        console.log(`  - Page ${pageNum}: Snapshot PNG sauvegardé (${canvas.width}x${canvas.height})`);
                     } catch (e) {
                         console.warn(`  - Page ${pageNum}: Impossible de sauvegarder le snapshot:`, e);
                     }
@@ -1380,13 +1379,16 @@ class UnifiedPDFViewer {
         savedCanvasSnapshots.forEach((snapshot, pageNum) => {
             const pageElement = this.pageElements.get(pageNum);
             const newCanvas = pageElement?.annotationCanvas;
-            if (newCanvas && snapshot.imageData) {
+            if (newCanvas && snapshot.dataURL) {
                 try {
                     const ctx = newCanvas.getContext('2d');
-                    // Afficher temporairement l'ancienne image (elle sera remplacée par les vrais strokes vectoriels)
-                    // Cela évite le flash blanc pendant le recalcul
-                    ctx.putImageData(snapshot.imageData, 0, 0);
-                    console.log(`  - Page ${pageNum}: Snapshot temporaire affiché`);
+                    const img = new Image();
+                    img.onload = () => {
+                        // Dessiner l'image en la redimensionnant au nouveau canvas
+                        ctx.drawImage(img, 0, 0, newCanvas.width, newCanvas.height);
+                        console.log(`  - Page ${pageNum}: Snapshot PNG affiché (redimensionné à ${newCanvas.width}x${newCanvas.height})`);
+                    };
+                    img.src = snapshot.dataURL;
                 } catch (e) {
                     console.warn(`  - Page ${pageNum}: Impossible d'afficher le snapshot:`, e);
                 }
