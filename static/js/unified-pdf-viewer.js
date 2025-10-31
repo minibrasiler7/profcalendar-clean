@@ -1868,29 +1868,36 @@ class UnifiedPDFViewer {
             return;
         }
 
+        const oldScale = this.currentScale;
         this.currentScale = value;
 
-        console.log(`🔍 Zoom changé vers ${value}x`);
+        console.log(`🔍 Zoom changé de ${oldScale}x vers ${value}x`);
 
-        // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
-        const self = this;
-        setTimeout(function() {
-            self.renderAllPages().then(function() {
-                // Re-rendre les annotations vectorielles après le rendu des pages
-                self.rerenderAllVectorAnnotations();
-            }).catch(function(error) {
-                console.error('❌ Erreur re-rendu pages:', error);
-                // Fallback: render seulement la page courante
-                self.renderPage(self.currentPage);
-                self.rerenderAllVectorAnnotations();
-            });
+        // OPTIMISATION: Au lieu de tout re-rendre, on utilise simplement le CSS zoom
+        // Les strokes vectoriels s'adaptent automatiquement grâce au CSS
+        this.pageElements.forEach((pageElement, pageNum) => {
+            if (pageElement && pageElement.wrapper) {
+                // Appliquer le zoom CSS au wrapper de la page
+                const zoomRatio = value / oldScale;
+                const currentTransform = pageElement.wrapper.style.transform || '';
 
-            // APPEL DIRECT supplémentaire pour s'assurer que les vecteurs sont toujours re-rendus
-            // même si renderAllPages ne retourne pas de promesse correcte
-            setTimeout(function() {
-                self.rerenderAllVectorAnnotations();
-            }, 300);
-        }, 50);
+                // Si pas de transform, on applique le scale directement
+                if (!currentTransform || currentTransform === 'none' || currentTransform === '') {
+                    pageElement.wrapper.style.transform = `scale(${zoomRatio})`;
+                    pageElement.wrapper.style.transformOrigin = 'top left';
+                } else {
+                    // Sinon on multiplie le scale existant
+                    const scaleMatch = currentTransform.match(/scale\(([\d.]+)\)/);
+                    if (scaleMatch) {
+                        const currentScale = parseFloat(scaleMatch[1]);
+                        const newScale = currentScale * zoomRatio;
+                        pageElement.wrapper.style.transform = currentTransform.replace(/scale\([\d.]+\)/, `scale(${newScale})`);
+                    } else {
+                        pageElement.wrapper.style.transform = `${currentTransform} scale(${zoomRatio})`;
+                    }
+                }
+            }
+        });
 
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
@@ -13540,15 +13547,10 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // Callback pour détecter pinch-to-zoom sur les canvas d'annotation
-            onPinchZoom: function() {
-                console.log('🔄 Pinch-to-zoom détecté, re-rendu des pages...');
-                self.renderAllPages().then(function() {
-                    console.log('✅ Pages re-rendues après pinch-to-zoom');
-                }).catch(function(error) {
-                    console.error('❌ Erreur re-rendu après pinch:', error);
-                });
-            }
+            // DÉSACTIVÉ: Ne pas re-rendre lors du pinch-to-zoom
+            // Le CSS zoom gère l'affichage visuel, les strokes vectoriels s'adaptent automatiquement
+            // Le recalcul ne se fera que lors d'un changement d'échelle avec les boutons +/-
+            onPinchZoom: null
         });
 
         this.annotationEngines.set(pageNum, engine);
