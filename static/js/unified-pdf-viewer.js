@@ -1899,6 +1899,9 @@ class UnifiedPDFViewer {
             }
         });
 
+        // Mettre à jour les tailles des stylos pour compenser le zoom
+        this.updateAllAnnotationEngines();
+
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
         }
@@ -1997,15 +2000,13 @@ class UnifiedPDFViewer {
                             Math.min(self.options.maxZoom, computedScale)
                         );
 
-                        // Mettre à jour et re-rendre
+                        // DÉSACTIVÉ: Ne pas re-rendre, juste mettre à jour le scale
+                        // Le CSS transform gère déjà l'affichage visuel
+                        console.log(`🔍 Pinch-to-zoom: scale ${self.currentScale.toFixed(2)}x -> ${clampedScale.toFixed(2)}x`);
                         self.currentScale = clampedScale;
-                        console.log(`🔍 Application du zoom: ${clampedScale.toFixed(2)}x`);
 
-                        self.renderAllPages().then(function() {
-                            console.log('✅ Pages re-rendues après pinch-to-zoom');
-                        }).catch(function(error) {
-                            console.error('❌ Erreur re-rendu après pinch:', error);
-                        });
+                        // Mettre à jour les tailles des stylos pour compenser le zoom
+                        self.updateAllAnnotationEngines();
                     } else {
                         console.log('⚠️ Pas de changement de scale significatif');
                     }
@@ -2423,17 +2424,20 @@ class UnifiedPDFViewer {
         // Récupérer les paramètres actuels depuis les sliders
         const penSettings = this.getCurrentPenSettings();
 
-        // IMPORTANT: Ne PAS ajuster la taille par le scale
-        // Le canvas est zoomé via CSS, la taille visuelle sera automatiquement correcte
+        // IMPORTANT: Diviser la taille par le zoom actuel pour garder une taille visuelle constante
+        // Quand on zoom x2, le canvas est agrandi x2 via CSS, donc il faut diviser la taille par 2
+        const adjustedSize = penSettings.size / this.currentScale;
 
         const options = {
-            size: penSettings.size,
+            size: adjustedSize,
             thinning: penSettings.thinning,
             smoothing: penSettings.smoothing,
             streamline: penSettings.streamline,
             simulatePressure: penSettings.simulatePressure,
             opacity: penSettings.opacity
         };
+
+        console.log(`📏 Taille ajustée au zoom ${this.currentScale.toFixed(2)}x: ${penSettings.size} -> ${adjustedSize.toFixed(2)}`);
 
         this.annotationEngines.forEach((engine, pageNum) => {
             if (engine && typeof engine.updateOptions === 'function') {
@@ -13534,13 +13538,12 @@ class UnifiedPDFViewer {
         // au lieu d'utiliser des valeurs codées en dur
         const penSettings = this.getCurrentPenSettings();
 
-        // IMPORTANT: Ne PAS ajuster la taille par le scale
-        // Le canvas est déjà zoomé via CSS, donc la taille visuelle sera correcte
-        // Utiliser directement la taille de base pour que les strokes restent cohérents
+        // IMPORTANT: Ajuster la taille par le zoom actuel pour garder une taille visuelle constante
+        const adjustedSize = penSettings.size / this.currentScale;
 
         const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
-            size: penSettings.size,
+            size: adjustedSize,
             thinning: penSettings.thinning,
             smoothing: penSettings.smoothing,
             streamline: penSettings.streamline,
