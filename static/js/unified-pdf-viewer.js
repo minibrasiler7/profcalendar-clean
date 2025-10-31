@@ -1286,8 +1286,7 @@ class UnifiedPDFViewer {
         console.log('💾 Sauvegarde de l\'historique avant re-rendu...');
         const savedUndoStack = new Map();
         const savedRedoStack = new Map();
-        const savedVectorStrokes = new Map(); // Sauvegarder les strokes vectoriels
-        const savedCanvasSnapshots = new Map(); // NOUVEAU: Sauvegarder des snapshots visuels
+        const savedVectorStrokes = new Map(); // NOUVEAU: sauvegarder les strokes vectoriels
 
         this.undoStack.forEach((stack, pageNum) => {
             if (stack && stack.length > 0) {
@@ -1301,7 +1300,7 @@ class UnifiedPDFViewer {
             }
         });
 
-        // NOUVEAU: Sauvegarder les strokes vectoriels ET un snapshot visuel des canvas
+        // NOUVEAU: Sauvegarder les strokes vectoriels de SimplePenAnnotation
         this.annotationEngines.forEach((engine, pageNum) => {
             if (engine && typeof engine.exportStrokes === 'function') {
                 const vectorData = engine.exportStrokes();
@@ -1319,20 +1318,6 @@ class UnifiedPDFViewer {
                         canvasHeight: canvasHeight
                     });
                     console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (canvas: ${canvasWidth}x${canvasHeight})`);
-
-                    // NOUVEAU: Sauvegarder un snapshot visuel pour éviter le flash
-                    // Utiliser toDataURL pour créer une image PNG qu'on peut redimensionner
-                    try {
-                        const dataURL = canvas.toDataURL('image/png');
-                        savedCanvasSnapshots.set(pageNum, {
-                            dataURL: dataURL,
-                            width: canvas.width,
-                            height: canvas.height
-                        });
-                        console.log(`  - Page ${pageNum}: Snapshot PNG sauvegardé (${canvas.width}x${canvas.height})`);
-                    } catch (e) {
-                        console.warn(`  - Page ${pageNum}: Impossible de sauvegarder le snapshot:`, e);
-                    }
                 }
             }
         });
@@ -1374,28 +1359,7 @@ class UnifiedPDFViewer {
             this.redoStack.set(pageNum, stack);
         });
 
-        // NOUVEAU: Restaurer d'abord les snapshots visuels pour éviter le flash
-        console.log('🖼️ Restauration des snapshots visuels temporaires...');
-        savedCanvasSnapshots.forEach((snapshot, pageNum) => {
-            const pageElement = this.pageElements.get(pageNum);
-            const newCanvas = pageElement?.annotationCanvas;
-            if (newCanvas && snapshot.dataURL) {
-                try {
-                    const ctx = newCanvas.getContext('2d');
-                    const img = new Image();
-                    img.onload = () => {
-                        // Dessiner l'image en la redimensionnant au nouveau canvas
-                        ctx.drawImage(img, 0, 0, newCanvas.width, newCanvas.height);
-                        console.log(`  - Page ${pageNum}: Snapshot PNG affiché (redimensionné à ${newCanvas.width}x${newCanvas.height})`);
-                    };
-                    img.src = snapshot.dataURL;
-                } catch (e) {
-                    console.warn(`  - Page ${pageNum}: Impossible d'afficher le snapshot:`, e);
-                }
-            }
-        });
-
-        // NOUVEAU: Restaurer les strokes vectoriels (qui vont remplacer les snapshots)
+        // NOUVEAU: Restaurer les strokes vectoriels AVANT de restaurer l'historique
         console.log('🎨 Restauration des strokes vectoriels après re-rendu...');
         savedVectorStrokes.forEach((savedData, pageNum) => {
             // Créer le moteur d'annotation s'il n'existe pas encore
@@ -1434,7 +1398,7 @@ class UnifiedPDFViewer {
 
                 console.log(`  🎯 Importing ${strokesToImport.length} strokes - Page ${pageNum}`);
                 engine.importStrokes({ strokes: strokesToImport });
-                console.log(`  ✅ Strokes importés - Page ${pageNum} (snapshot remplacé par strokes vectoriels)`);
+                console.log(`  ✅ Strokes importés - Page ${pageNum}`);
             }
         });
 

@@ -363,18 +363,6 @@ class SimplePenAnnotation {
 
     updateOptions(newOptions) {
         Object.assign(this.options, newOptions);
-
-        // IMPORTANT: Mettre à jour aussi la taille de tous les strokes existants
-        // pour que le redraw utilise la nouvelle taille
-        if (newOptions.size !== undefined) {
-            this.strokes.forEach(stroke => {
-                stroke.options.size = newOptions.size;
-            });
-            console.log(`📏 Taille mise à jour pour ${this.strokes.length} strokes existants: ${newOptions.size}`);
-
-            // Redessiner immédiatement avec la nouvelle taille
-            this.redraw();
-        }
     }
 
     /**
