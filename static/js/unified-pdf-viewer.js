@@ -1637,6 +1637,15 @@ class UnifiedPDFViewer {
         // Pinch-to-zoom (geste 2 doigts sur iPad/tablette)
         this.setupPinchToZoom();
 
+        // Écouter les changements de zoom du viewport pour ajuster les tailles en temps réel
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                console.log(`📱 Viewport resize détecté, scale: ${window.visualViewport.scale.toFixed(2)}x`);
+                // Mettre à jour les tailles des stylos immédiatement
+                this.updateAllAnnotationEngines();
+            });
+        }
+
         // Recherche
         this.elements.searchBtn?.addEventListener('click', () => this.search());
         this.elements.searchInput?.addEventListener('keydown', (e) => {
@@ -1991,35 +2000,31 @@ class UnifiedPDFViewer {
                     // Détecter le nouveau scale CSS appliqué par le navigateur
                     const computedScale = self.detectCSSScale(container);
 
-                    if (computedScale && Math.abs(computedScale - self.currentScale) > 0.01) {
-                        console.log(`🔍 Nouveau scale CSS détecté: ${computedScale.toFixed(2)}x (ancien: ${self.currentScale.toFixed(2)}x)`);
+                    // Le visualViewport.scale représente le zoom total (viewport + notre zoom PDF)
+                    // On doit le combiner avec notre currentScale pour obtenir le zoom effectif
+                    console.log(`🔍 Viewport scale détecté: ${computedScale.toFixed(2)}x, currentScale: ${self.currentScale.toFixed(2)}x`);
 
-                        // Limiter le scale entre min et max
-                        const clampedScale = Math.max(
-                            self.options.minZoom,
-                            Math.min(self.options.maxZoom, computedScale)
-                        );
-
-                        // DÉSACTIVÉ: Ne pas re-rendre, juste mettre à jour le scale
-                        // Le CSS transform gère déjà l'affichage visuel
-                        console.log(`🔍 Pinch-to-zoom: scale ${self.currentScale.toFixed(2)}x -> ${clampedScale.toFixed(2)}x`);
-                        self.currentScale = clampedScale;
-
-                        // Mettre à jour les tailles des stylos pour compenser le zoom
-                        self.updateAllAnnotationEngines();
-                    } else {
-                        console.log('⚠️ Pas de changement de scale significatif');
-                    }
+                    // Mettre à jour les tailles des stylos pour compenser le zoom du viewport
+                    // La taille effective doit être divisée par (currentScale * viewportScale)
+                    self.updateAllAnnotationEngines();
                 }, 500);
             }
         }, { passive: true });
     }
 
     /**
-     * Détecter le scale CSS appliqué par le navigateur
+     * Détecter le scale appliqué par le pinch-to-zoom du navigateur
      */
     detectCSSScale(element) {
-        // Méthode 1: Lire la transform CSS
+        // IMPORTANT: Le pinch-to-zoom natif utilise window.visualViewport.scale
+        // et non pas CSS transform
+        if (window.visualViewport && window.visualViewport.scale) {
+            const viewportScale = window.visualViewport.scale;
+            console.log(`📱 visualViewport.scale détecté: ${viewportScale.toFixed(2)}x`);
+            return viewportScale;
+        }
+
+        // Fallback: Lire la transform CSS (pour les zooms appliqués par notre code)
         const transform = window.getComputedStyle(element).transform;
         if (transform && transform !== 'none') {
             const matrix = transform.match(/matrix\(([^)]+)\)/);
@@ -2030,7 +2035,7 @@ class UnifiedPDFViewer {
             }
         }
 
-        // Méthode 2: Comparer la taille visuelle vs taille réelle
+        // Méthode 3: Comparer la taille visuelle vs taille réelle
         const rect = element.getBoundingClientRect();
         const actualWidth = element.offsetWidth;
         if (actualWidth > 0) {
@@ -2424,9 +2429,12 @@ class UnifiedPDFViewer {
         // Récupérer les paramètres actuels depuis les sliders
         const penSettings = this.getCurrentPenSettings();
 
-        // IMPORTANT: Diviser la taille par le zoom actuel pour garder une taille visuelle constante
-        // Quand on zoom x2, le canvas est agrandi x2 via CSS, donc il faut diviser la taille par 2
-        const adjustedSize = penSettings.size / this.currentScale;
+        // IMPORTANT: Diviser la taille par le zoom TOTAL (currentScale * viewportScale)
+        // currentScale = notre zoom PDF (boutons +/-)
+        // viewportScale = pinch-to-zoom du navigateur
+        const viewportScale = (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
+        const totalScale = this.currentScale * viewportScale;
+        const adjustedSize = penSettings.size / totalScale;
 
         const options = {
             size: adjustedSize,
@@ -2437,7 +2445,7 @@ class UnifiedPDFViewer {
             opacity: penSettings.opacity
         };
 
-        console.log(`📏 Taille ajustée au zoom ${this.currentScale.toFixed(2)}x: ${penSettings.size} -> ${adjustedSize.toFixed(2)}`);
+        console.log(`📏 Taille ajustée - PDF zoom: ${this.currentScale.toFixed(2)}x, Viewport zoom: ${viewportScale.toFixed(2)}x, Total: ${totalScale.toFixed(2)}x -> Taille: ${penSettings.size} -> ${adjustedSize.toFixed(2)}`);
 
         this.annotationEngines.forEach((engine, pageNum) => {
             if (engine && typeof engine.updateOptions === 'function') {
@@ -13538,8 +13546,10 @@ class UnifiedPDFViewer {
         // au lieu d'utiliser des valeurs codées en dur
         const penSettings = this.getCurrentPenSettings();
 
-        // IMPORTANT: Ajuster la taille par le zoom actuel pour garder une taille visuelle constante
-        const adjustedSize = penSettings.size / this.currentScale;
+        // IMPORTANT: Ajuster la taille par le zoom TOTAL (currentScale * viewportScale)
+        const viewportScale = (window.visualViewport && window.visualViewport.scale) ? window.visualViewport.scale : 1;
+        const totalScale = this.currentScale * viewportScale;
+        const adjustedSize = penSettings.size / totalScale;
 
         const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
