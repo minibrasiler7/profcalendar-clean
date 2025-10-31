@@ -1552,34 +1552,26 @@ div.eraser-cursor:hover {
     pointer-events: none;
     z-index: 10000;
     display: none;
-    transition: opacity 0.15s ease-out;
     will-change: transform, opacity;
+    /* Curseur minimaliste : simple cercle plein sans ombre */
     background: currentColor;
-    box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0, 0, 0, 0.2);
-    opacity: 0.85;
+    opacity: 0.7;
+    /* Bordure fine pour plus de visibilité */
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .custom-pen-cursor.hovering {
     display: block;
-    opacity: 0.85;
+    opacity: 0.7;
 }
 
 .custom-pen-cursor.drawing {
     display: none !important; /* Cacher complètement pendant le dessin */
 }
 
-/* Effet de halo lumineux autour du point */
+/* Retirer le halo lumineux pour un style minimaliste */
 .custom-pen-cursor::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, currentColor 0%, transparent 70%);
-    border-radius: 50%;
-    opacity: 0.2;
+    content: none;
 }
 
 /* === CURSEUR GOMME PERSONNALISÉ (Style loupe/bulle) === */
