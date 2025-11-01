@@ -7310,8 +7310,10 @@ class UnifiedPDFViewer {
                         const engine = this.annotationEngines.get(pageNum);
                         let hasVectorStrokes = false;
 
-                        if (engine && typeof engine.exportStrokes === 'function') {
-                            const vectorData = engine.exportStrokes();
+                        if (engine && typeof engine.exportOriginalStrokes === 'function') {
+                            // IMPORTANT: Toujours sauvegarder les originalStrokes (résolution de base)
+                            // pour éviter d'écraser les strokes avec des versions scalées après pinch-to-zoom
+                            const vectorData = engine.exportOriginalStrokes();
                             if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
                                 // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
                                 // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS), pas physiques
@@ -7321,7 +7323,19 @@ class UnifiedPDFViewer {
                                     height: parseInt(canvas.style.height) || canvas.height
                                 };
                                 hasVectorStrokes = true;
-                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur)`);
+                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur, résolution de base)`);
+                            }
+                        } else if (engine && typeof engine.exportStrokes === 'function') {
+                            // Fallback pour les anciens moteurs sans exportOriginalStrokes
+                            const vectorData = engine.exportStrokes();
+                            if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                                annotationsData.canvasData[pageNum] = {
+                                    vectorStrokes: vectorData.strokes,
+                                    width: parseInt(canvas.style.width) || canvas.width,
+                                    height: parseInt(canvas.style.height) || canvas.height
+                                };
+                                hasVectorStrokes = true;
+                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (fallback)`);
                             }
                         }
 
