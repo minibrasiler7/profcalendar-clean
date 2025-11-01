@@ -2025,6 +2025,91 @@ class UnifiedPDFViewer {
         return null;
     }
 
+    /**
+     * Re-rendre le canvas d'annotations après un pinch-to-zoom
+     * pour recalculer les traits vectoriels à la nouvelle résolution
+     */
+    reRenderCanvasAfterPinch(pageNum) {
+        console.log(`🎨 Re-rendu du canvas page ${pageNum} après pinch-to-zoom`);
+
+        const pageElement = this.pageElements.get(pageNum);
+        if (!pageElement || !pageElement.annotationCanvas) {
+            console.warn(`⚠️ Canvas page ${pageNum} non trouvé`);
+            return;
+        }
+
+        const engine = this.annotationEngines.get(pageNum);
+        if (!engine) {
+            console.warn(`⚠️ Engine page ${pageNum} non trouvé`);
+            return;
+        }
+
+        // Détecter le scale actuel du viewport (zoom avec les doigts)
+        const viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
+        console.log(`📱 Viewport scale détecté: ${viewportScale.toFixed(2)}x`);
+
+        // Sauvegarder les strokes vectoriels ORIGINAUX (à la résolution de base)
+        // pour éviter l'accumulation d'erreurs lors de zooms successifs
+        const strokesData = engine.exportOriginalStrokes ? engine.exportOriginalStrokes() : engine.exportStrokes();
+
+        // Calculer les nouvelles dimensions du canvas en tenant compte du zoom viewport
+        const pdfCanvas = pageElement.pdfCanvas;
+        if (!pdfCanvas) {
+            console.warn(`⚠️ PDF Canvas page ${pageNum} non trouvé`);
+            return;
+        }
+
+        // IMPORTANT: Les strokes originaux sont à la résolution du PDF canvas de base
+        // On calcule le ratio par rapport à la résolution de base (pdfCanvas), pas l'ancienne résolution
+        const baseWidth = pdfCanvas.width;
+        const baseHeight = pdfCanvas.height;
+
+        // IMPORTANT: Augmenter la résolution du canvas pour compenser le zoom viewport
+        // Cela permet d'avoir des pixels à la résolution native de l'écran zoomé
+        const newWidth = baseWidth * viewportScale;
+        const newHeight = baseHeight * viewportScale;
+
+        console.log(`📏 Redimensionnement canvas ${pageNum}: base ${baseWidth}x${baseHeight} -> ${newWidth.toFixed(0)}x${newHeight.toFixed(0)} (viewport scale: ${viewportScale.toFixed(2)}x)`);
+
+        // Calculer le ratio de transformation par rapport à la résolution de BASE
+        const scaleRatioX = viewportScale;
+        const scaleRatioY = viewportScale;
+
+        console.log(`📊 Ratio de transformation: X=${scaleRatioX.toFixed(3)}, Y=${scaleRatioY.toFixed(3)}`);
+
+        // IMPORTANT: Utiliser requestAnimationFrame pour synchroniser avec le cycle de rendu
+        // Cela évite tout flash visuel en s'assurant que le re-rendu se fait au bon moment
+        requestAnimationFrame(() => {
+            // Redimensionner le canvas (internal resolution)
+            pageElement.annotationCanvas.width = newWidth;
+            pageElement.annotationCanvas.height = newHeight;
+
+            // IMPORTANT: Garder la même taille CSS pour que le canvas reste aligné avec le PDF
+            // La taille CSS ne change pas, seule la résolution interne augmente
+            pageElement.annotationCanvas.style.width = pdfCanvas.style.width;
+            pageElement.annotationCanvas.style.height = pdfCanvas.style.height;
+
+            // Transformer les points des strokes pour qu'ils correspondent à la nouvelle résolution
+            // en utilisant le ratio calculé (pas directement viewportScale)
+            if (strokesData && strokesData.strokes) {
+                const scaledStrokes = strokesData.strokes.map(stroke => ({
+                    points: stroke.points.map(point => [
+                        point[0] * scaleRatioX,
+                        point[1] * scaleRatioY,
+                        point[2] // pressure reste inchangée
+                    ]),
+                    options: stroke.options
+                }));
+
+                // Réimporter les strokes à la nouvelle échelle
+                // IMPORTANT: preserveOriginals = true pour ne pas écraser les strokes originaux
+                engine.importStrokes({ strokes: scaledStrokes }, true);
+
+                console.log(`✅ ${strokesData.strokes.length} strokes re-rendus à la résolution ${viewportScale.toFixed(2)}x`);
+            }
+        });
+    }
+
     // Recherche
     async search(query = null) {
         // Implémentation de recherche sera ajoutée
@@ -13536,10 +13621,11 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // DÉSACTIVÉ: Ne pas re-rendre lors du pinch-to-zoom
-            // Le CSS zoom gère l'affichage visuel, les strokes vectoriels s'adaptent automatiquement
-            // Le recalcul ne se fera que lors d'un changement d'échelle avec les boutons +/-
-            onPinchZoom: null
+            // IMPORTANT: Re-rendre le canvas après pinch-to-zoom pour des traits nets
+            onPinchZoom: function() {
+                console.log(`🔄 Callback onPinchZoom appelé pour page ${pageNum}`);
+                self.reRenderCanvasAfterPinch(pageNum);
+            }
         });
 
         this.annotationEngines.set(pageNum, engine);

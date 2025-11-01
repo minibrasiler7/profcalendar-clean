@@ -33,6 +33,7 @@ class SimplePenAnnotation {
         this.isEnabled = true;
         this.currentPoints = [];
         this.strokes = []; // Historique de tous les strokes
+        this.originalStrokes = []; // Copie des strokes à la résolution de base (pour re-scaling)
         this.pointerId = null;
 
         // État du pinch-to-zoom
@@ -254,10 +255,13 @@ class SimplePenAnnotation {
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
-            this.strokes.push({
+            const newStroke = {
                 points: this.currentPoints.slice(),
                 options: { ...this.options }
-            });
+            };
+            this.strokes.push(newStroke);
+            // IMPORTANT: Sauvegarder aussi dans originalStrokes pour le re-scaling
+            this.originalStrokes.push(JSON.parse(JSON.stringify(newStroke)));
         }
 
         this.currentPoints = [];
@@ -340,6 +344,7 @@ class SimplePenAnnotation {
     // Méthodes utilitaires
     clear() {
         this.strokes = [];
+        this.originalStrokes = [];
         this.currentPoints = [];
         // Effacer tout le canvas (y compris les annotations des autres outils)
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -349,12 +354,14 @@ class SimplePenAnnotation {
         // Effacer seulement les strokes de SimplePenAnnotation, pas le canvas
         // Utilisé après un undo/redo pour éviter que les strokes réapparaissent
         this.strokes = [];
+        this.originalStrokes = [];
         this.currentPoints = [];
     }
 
     undo() {
         if (this.strokes.length > 0) {
             this.strokes.pop();
+            this.originalStrokes.pop();
             this.redraw();
             return true;
         }
@@ -378,9 +385,22 @@ class SimplePenAnnotation {
     }
 
     /**
+     * Exporte les strokes originaux (à la résolution de base)
+     * Utilisé pour le re-scaling après pinch-to-zoom
+     */
+    exportOriginalStrokes() {
+        return {
+            strokes: this.originalStrokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }))
+        };
+    }
+
+    /**
      * Importe des strokes vectoriels et les redessine
      */
-    importStrokes(data) {
+    importStrokes(data, preserveOriginals = false) {
         if (data && Array.isArray(data.strokes)) {
             this.strokes = data.strokes.map(stroke => ({
                 points: stroke.points,
@@ -388,6 +408,12 @@ class SimplePenAnnotation {
             }));
 
             console.log(`📥 Imported ${this.strokes.length} vector strokes`);
+
+            // IMPORTANT: Ne pas écraser originalStrokes si on est en train de re-scaler
+            // (preserveOriginals = true lors du re-render après pinch-to-zoom)
+            if (!preserveOriginals) {
+                this.originalStrokes = JSON.parse(JSON.stringify(this.strokes));
+            }
 
             // IMPORTANT: Vider le backgroundImageData car il peut contenir
             // une ancienne image à basse résolution (avant zoom)
