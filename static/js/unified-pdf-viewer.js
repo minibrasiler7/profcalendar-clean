@@ -1868,39 +1868,14 @@ class UnifiedPDFViewer {
             return;
         }
 
-        const oldScale = this.currentScale;
         this.currentScale = value;
 
-        console.log(`🔍 Zoom changé de ${oldScale}x vers ${value}x`);
+        console.log(`🔍 Zoom changé vers ${value}x - re-rendu des pages...`);
 
-        // OPTIMISATION: Au lieu de tout re-rendre, on utilise simplement le CSS zoom
-        // Les strokes vectoriels s'adaptent automatiquement grâce au CSS
-        this.pageElements.forEach((pageElement, pageNum) => {
-            if (pageElement && pageElement.wrapper) {
-                // Appliquer le zoom CSS au wrapper de la page
-                const zoomRatio = value / oldScale;
-                const currentTransform = pageElement.wrapper.style.transform || '';
-
-                // Si pas de transform, on applique le scale directement
-                if (!currentTransform || currentTransform === 'none' || currentTransform === '') {
-                    pageElement.wrapper.style.transform = `scale(${zoomRatio})`;
-                    pageElement.wrapper.style.transformOrigin = 'top left';
-                } else {
-                    // Sinon on multiplie le scale existant
-                    const scaleMatch = currentTransform.match(/scale\(([\d.]+)\)/);
-                    if (scaleMatch) {
-                        const currentScale = parseFloat(scaleMatch[1]);
-                        const newScale = currentScale * zoomRatio;
-                        pageElement.wrapper.style.transform = currentTransform.replace(/scale\([\d.]+\)/, `scale(${newScale})`);
-                    } else {
-                        pageElement.wrapper.style.transform = `${currentTransform} scale(${zoomRatio})`;
-                    }
-                }
-            }
-        });
-
-        // Mettre à jour les tailles des stylos pour compenser le zoom
-        this.updateAllAnnotationEngines();
+        // Re-rendre toutes les pages avec le nouveau zoom
+        // Les canvas seront recréés à la nouvelle résolution (pas de CSS zoom)
+        // Les strokes vectoriels seront redessinés nets
+        this.renderAllPages();
 
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
@@ -1991,8 +1966,27 @@ class UnifiedPDFViewer {
                     // Détecter le nouveau scale CSS appliqué par le navigateur
                     const computedScale = self.detectCSSScale(container);
 
-                    // Ne rien faire - on garde le trait constant même après pinch-to-zoom
-                    console.log(`🔍 Pinch-to-zoom terminé, viewport scale: ${computedScale.toFixed(2)}x`);
+                    if (computedScale && Math.abs(computedScale - self.currentScale) > 0.01) {
+                        console.log(`🔍 Nouveau scale viewport détecté: ${computedScale.toFixed(2)}x (ancien: ${self.currentScale.toFixed(2)}x)`);
+
+                        // Limiter le scale entre min et max
+                        const clampedScale = Math.max(
+                            self.options.minZoom,
+                            Math.min(self.options.maxZoom, computedScale)
+                        );
+
+                        // Mettre à jour le scale et re-rendre APRÈS le pinch
+                        self.currentScale = clampedScale;
+                        console.log(`🔄 Re-rendu après pinch-to-zoom à ${clampedScale.toFixed(2)}x...`);
+
+                        self.renderAllPages().then(function() {
+                            console.log('✅ Pages re-rendues après pinch-to-zoom');
+                        }).catch(function(error) {
+                            console.error('❌ Erreur re-rendu après pinch:', error);
+                        });
+                    } else {
+                        console.log('⚠️ Pas de changement de scale significatif');
+                    }
                 }, 500);
             }
         }, { passive: true });
@@ -7337,8 +7331,8 @@ class UnifiedPDFViewer {
             this.customPenCursor = document.createElement('div');
             this.customPenCursor.className = 'custom-pen-cursor';
             this.customPenCursor.style.color = this.currentColor;
-            // Curseur minimaliste plus fin
-            const penSize = Math.max(2, this.currentLineWidth);
+            // Curseur à 75% de la taille du trait
+            const penSize = Math.max(2, this.currentLineWidth * 0.75);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
             pdfContainer.appendChild(this.customPenCursor);
@@ -7497,8 +7491,8 @@ class UnifiedPDFViewer {
      */
     updatePenCursorSize(size) {
         if (this.customPenCursor) {
-            // Curseur minimaliste plus fin
-            const penSize = Math.max(2, size);
+            // Curseur à 75% de la taille du trait
+            const penSize = Math.max(2, size * 0.75);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
         }
