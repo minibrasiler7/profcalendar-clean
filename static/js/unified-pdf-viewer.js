@@ -1958,35 +1958,19 @@ class UnifiedPDFViewer {
             if (isPinching && e.touches.length < 2) {
                 isPinching = false;
 
-                console.log('🤏 Pinch terminé, attente 500ms avant re-rendu...');
+                console.log('🤏 Pinch terminé (viewport zoom natif)');
+
+                // IMPORTANT: Ne PAS re-rendre toutes les pages ici !
+                // Le pinch-to-zoom est un zoom CSS/viewport du navigateur, pas un changement d'échelle PDF.
+                // Les canvas d'annotations individuels seront re-rendus via leur callback onPinchZoom.
+                // Re-rendre toutes les pages serait trop lourd et causerait un crash.
 
                 // Attendre 500ms après la fin du pinch pour laisser le navigateur finir le zoom CSS
                 clearTimeout(pinchTimeout);
                 pinchTimeout = setTimeout(function() {
-                    // Détecter le nouveau scale CSS appliqué par le navigateur
-                    const computedScale = self.detectCSSScale(container);
-
-                    if (computedScale && Math.abs(computedScale - self.currentScale) > 0.01) {
-                        console.log(`🔍 Nouveau scale viewport détecté: ${computedScale.toFixed(2)}x (ancien: ${self.currentScale.toFixed(2)}x)`);
-
-                        // Limiter le scale entre min et max
-                        const clampedScale = Math.max(
-                            self.options.minZoom,
-                            Math.min(self.options.maxZoom, computedScale)
-                        );
-
-                        // Mettre à jour le scale et re-rendre APRÈS le pinch
-                        self.currentScale = clampedScale;
-                        console.log(`🔄 Re-rendu après pinch-to-zoom à ${clampedScale.toFixed(2)}x...`);
-
-                        self.renderAllPages().then(function() {
-                            console.log('✅ Pages re-rendues après pinch-to-zoom');
-                        }).catch(function(error) {
-                            console.error('❌ Erreur re-rendu après pinch:', error);
-                        });
-                    } else {
-                        console.log('⚠️ Pas de changement de scale significatif');
-                    }
+                    const viewportScale = self.detectCSSScale(container);
+                    console.log(`📱 Viewport scale après pinch: ${viewportScale ? viewportScale.toFixed(2) : 'N/A'}x (échelle PDF inchangée: ${self.currentScale.toFixed(2)}x)`);
+                    // Les annotations individuelles se re-rendront automatiquement via onPinchZoom
                 }, 500);
             }
         }, { passive: true });
@@ -2045,15 +2029,23 @@ class UnifiedPDFViewer {
         }
 
         // Détecter le scale actuel du viewport (zoom avec les doigts)
-        const viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
+        let viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
         console.log(`📱 Viewport scale détecté: ${viewportScale.toFixed(2)}x`);
+
+        // IMPORTANT: Limiter le viewport scale pour éviter des canvas trop grands qui causent des crashs
+        // Un zoom viewport > 3x créerait des canvas de plus de 9x la résolution de base (car on a déjà devicePixelRatio=2)
+        const MAX_VIEWPORT_SCALE = 3.0;
+        if (viewportScale > MAX_VIEWPORT_SCALE) {
+            console.warn(`⚠️ Viewport scale ${viewportScale.toFixed(2)}x trop élevé, limité à ${MAX_VIEWPORT_SCALE}x`);
+            viewportScale = MAX_VIEWPORT_SCALE;
+        }
 
         // Sauvegarder les strokes vectoriels ORIGINAUX (à la résolution de base)
         // pour éviter l'accumulation d'erreurs lors de zooms successifs
         const strokesData = engine.exportOriginalStrokes ? engine.exportOriginalStrokes() : engine.exportStrokes();
 
         // Calculer les nouvelles dimensions du canvas en tenant compte du zoom viewport
-        const pdfCanvas = pageElement.pdfCanvas;
+        const pdfCanvas = pageElement.canvas; // Le canvas PDF est stocké sous 'canvas', pas 'pdfCanvas'
         if (!pdfCanvas) {
             console.warn(`⚠️ PDF Canvas page ${pageNum} non trouvé`);
             return;
