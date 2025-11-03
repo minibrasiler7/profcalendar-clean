@@ -13627,10 +13627,10 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // DÉSACTIVÉ: Le re-rendu après pinch-to-zoom cause des problèmes de scaling accumulé
-            // Les strokes vectoriels restent nets grâce au zoom CSS du navigateur
-            // Un vrai re-rendu ne sera fait que lors d'un changement d'échelle PDF (boutons +/-)
-            onPinchZoom: null
+            // Callback pour re-rendre les traits vectoriels après pinch-to-zoom
+            onPinchZoom: () => {
+                self.reRenderCanvasAfterPinch(pageNum);
+            }
         });
 
         this.annotationEngines.set(pageNum, engine);
