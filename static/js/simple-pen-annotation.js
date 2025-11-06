@@ -198,9 +198,10 @@ class SimplePenAnnotation {
         this.pointerId = e.pointerId;
 
         // Coordonnées relatives au canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Utiliser offsetX/offsetY qui sont plus précis que getBoundingClientRect
+        // surtout après un pinch-to-zoom
+        const x = e.offsetX;
+        const y = e.offsetY;
 
         // Initialiser avec le premier point
         this.currentPoints = [[x, y, e.pressure || 0.5]];
@@ -215,20 +216,16 @@ class SimplePenAnnotation {
         e.stopPropagation();
 
         // Coordonnées relatives au canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Utiliser offsetX/offsetY qui sont plus précis que getBoundingClientRect
+        const x = e.offsetX;
+        const y = e.offsetY;
 
         // Ajouter le point
         this.currentPoints.push([x, y, e.pressure || 0.5]);
 
-        // OPTIMISATION: Throttle redraws à ~60fps pour éviter la dégradation de performance
-        // Cela limite le nombre de redraws complets tout en collectant tous les points
-        const now = Date.now();
-        if (now - this.lastRedrawTime > this.redrawThrottle) {
-            this.redraw();
-            this.lastRedrawTime = now;
-        }
+        // OPTIMISATION: Dessiner immédiatement pour éviter les traits discontinus
+        // Le throttle causait des retards visibles, surtout sur canvas haute résolution
+        this.redraw();
     }
 
     handlePointerUp(e) {
