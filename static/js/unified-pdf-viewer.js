@@ -13681,9 +13681,10 @@ class UnifiedPDFViewer {
         const dpr = window.devicePixelRatio || 1;
 
         // IMPORTANT: Sur-résolution pour supporter le pinch-to-zoom sans pixelisation
-        // Sur iPad, avec dpr=2 et un zoom potentiel de 3x, on a besoin de 2*3=6x la résolution de base
-        // Pour éviter de consommer trop de mémoire, on limite à 4x le DPR (8x sur iPad Retina)
-        const SUPER_RESOLUTION_MULTIPLIER = 4;
+        // Sur iPad Retina (dpr=2), multiplier par 2 donne 4x la résolution de base
+        // Cela permet de zoomer jusqu'à 2x sans pixelisation tout en restant sous la limite
+        // de Safari (67M pixels max, soit ~8192x8192)
+        const SUPER_RESOLUTION_MULTIPLIER = 2;
         const effectiveDpr = dpr * SUPER_RESOLUTION_MULTIPLIER;
 
         if (this.options.debug) {
