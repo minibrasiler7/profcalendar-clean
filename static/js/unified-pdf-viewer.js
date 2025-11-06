@@ -2032,8 +2032,13 @@ class UnifiedPDFViewer {
         let viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
         console.log(`📱 Viewport scale détecté: ${viewportScale.toFixed(2)}x`);
 
+        // IMPORTANT: Ne rien faire si le viewport scale est ~1 (pas de zoom actif)
+        if (Math.abs(viewportScale - 1.0) < 0.05) {
+            console.log(`⏭️ Viewport scale ~1.0, pas de re-rendu nécessaire`);
+            return;
+        }
+
         // IMPORTANT: Limiter le viewport scale pour éviter des canvas trop grands qui causent des crashs
-        // Un zoom viewport > 3x créerait des canvas de plus de 9x la résolution de base (car on a déjà devicePixelRatio=2)
         const MAX_VIEWPORT_SCALE = 3.0;
         if (viewportScale > MAX_VIEWPORT_SCALE) {
             console.warn(`⚠️ Viewport scale ${viewportScale.toFixed(2)}x trop élevé, limité à ${MAX_VIEWPORT_SCALE}x`);
@@ -2041,64 +2046,61 @@ class UnifiedPDFViewer {
         }
 
         // Sauvegarder les strokes vectoriels ORIGINAUX (à la résolution de base)
-        // pour éviter l'accumulation d'erreurs lors de zooms successifs
         const strokesData = engine.exportOriginalStrokes ? engine.exportOriginalStrokes() : engine.exportStrokes();
-
-        // Calculer les nouvelles dimensions du canvas en tenant compte du zoom viewport
-        const pdfCanvas = pageElement.canvas; // Le canvas PDF est stocké sous 'canvas', pas 'pdfCanvas'
-        if (!pdfCanvas) {
-            console.warn(`⚠️ PDF Canvas page ${pageNum} non trouvé`);
+        if (!strokesData || !strokesData.strokes || strokesData.strokes.length === 0) {
+            console.log(`⏭️ Pas de strokes à re-rendre pour la page ${pageNum}`);
             return;
         }
 
-        // IMPORTANT: Les strokes originaux sont à la résolution du PDF canvas de base
-        // On calcule le ratio par rapport à la résolution de base (pdfCanvas), pas l'ancienne résolution
-        const baseWidth = pdfCanvas.width;
-        const baseHeight = pdfCanvas.height;
+        // Obtenir les dimensions CSS actuelles du canvas (en unités logiques)
+        const canvas = pageElement.annotationCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const cssWidth = rect.width;
+        const cssHeight = rect.height;
 
-        // IMPORTANT: Augmenter la résolution du canvas pour compenser le zoom viewport
-        // Cela permet d'avoir des pixels à la résolution native de l'écran zoomé
-        const newWidth = baseWidth * viewportScale;
-        const newHeight = baseHeight * viewportScale;
+        // Calculer la nouvelle résolution physique en tenant compte du viewport scale ET du devicePixelRatio
+        const dpr = window.devicePixelRatio || 1;
+        const newWidth = Math.round(cssWidth * dpr * viewportScale);
+        const newHeight = Math.round(cssHeight * dpr * viewportScale);
 
-        console.log(`📏 Redimensionnement canvas ${pageNum}: base ${baseWidth}x${baseHeight} -> ${newWidth.toFixed(0)}x${newHeight.toFixed(0)} (viewport scale: ${viewportScale.toFixed(2)}x)`);
-
-        // Calculer le ratio de transformation par rapport à la résolution de BASE
-        const scaleRatioX = viewportScale;
-        const scaleRatioY = viewportScale;
-
-        console.log(`📊 Ratio de transformation: X=${scaleRatioX.toFixed(3)}, Y=${scaleRatioY.toFixed(3)}`);
+        console.log(`📏 Augmentation résolution canvas ${pageNum}: ${canvas.width}x${canvas.height} -> ${newWidth}x${newHeight} (CSS: ${cssWidth.toFixed(0)}x${cssHeight.toFixed(0)}, DPR: ${dpr}, viewport: ${viewportScale.toFixed(2)}x)`);
 
         // IMPORTANT: Utiliser requestAnimationFrame pour synchroniser avec le cycle de rendu
-        // Cela évite tout flash visuel en s'assurant que le re-rendu se fait au bon moment
         requestAnimationFrame(() => {
-            // Redimensionner le canvas (internal resolution)
-            pageElement.annotationCanvas.width = newWidth;
-            pageElement.annotationCanvas.height = newHeight;
+            // Sauvegarder l'ancienne résolution pour calculer le ratio
+            const oldWidth = canvas.width;
+            const oldHeight = canvas.height;
 
-            // IMPORTANT: Garder la même taille CSS pour que le canvas reste aligné avec le PDF
-            // La taille CSS ne change pas, seule la résolution interne augmente
-            pageElement.annotationCanvas.style.width = pdfCanvas.style.width;
-            pageElement.annotationCanvas.style.height = pdfCanvas.style.height;
+            // Augmenter la résolution physique du canvas
+            canvas.width = newWidth;
+            canvas.height = newHeight;
 
-            // Transformer les points des strokes pour qu'ils correspondent à la nouvelle résolution
-            // en utilisant le ratio calculé (pas directement viewportScale)
-            if (strokesData && strokesData.strokes) {
-                const scaledStrokes = strokesData.strokes.map(stroke => ({
-                    points: stroke.points.map(point => [
-                        point[0] * scaleRatioX,
-                        point[1] * scaleRatioY,
-                        point[2] // pressure reste inchangée
-                    ]),
-                    options: stroke.options
-                }));
+            // IMPORTANT: Les dimensions CSS ne changent PAS - le canvas reste à la même taille visuelle
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
 
-                // Réimporter les strokes à la nouvelle échelle
-                // IMPORTANT: preserveOriginals = true pour ne pas écraser les strokes originaux
-                engine.importStrokes({ strokes: scaledStrokes }, true);
+            // Calculer le ratio de scaling pour les coordonnées des strokes
+            // Les strokes originaux sont en coordonnées de l'ancienne résolution
+            const scaleX = newWidth / oldWidth;
+            const scaleY = newHeight / oldHeight;
 
-                console.log(`✅ ${strokesData.strokes.length} strokes re-rendus à la résolution ${viewportScale.toFixed(2)}x`);
-            }
+            console.log(`📊 Scaling des strokes: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
+
+            // Transformer les coordonnées des strokes
+            const scaledStrokes = strokesData.strokes.map(stroke => ({
+                points: stroke.points.map(point => [
+                    point[0] * scaleX,
+                    point[1] * scaleY,
+                    point[2] // pressure reste inchangée
+                ]),
+                options: stroke.options
+            }));
+
+            // Réimporter les strokes avec les nouvelles coordonnées
+            // preserveOriginals = true pour ne pas écraser les strokes originaux
+            engine.importStrokes({ strokes: scaledStrokes }, true);
+
+            console.log(`✅ ${strokesData.strokes.length} strokes re-rendus à la résolution ${viewportScale.toFixed(2)}x`);
         });
     }
 
@@ -13627,10 +13629,9 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // Callback pour re-rendre les traits vectoriels après pinch-to-zoom
-            onPinchZoom: () => {
-                self.reRenderCanvasAfterPinch(pageNum);
-            }
+            // Pas besoin de callback pinch-to-zoom: le canvas est déjà en sur-résolution (8x sur iPad)
+            // ce qui permet de zoomer jusqu'à 4x sans pixelisation grâce au zoom CSS du navigateur
+            onPinchZoom: null
         });
 
         this.annotationEngines.set(pageNum, engine);
@@ -13678,28 +13679,34 @@ class UnifiedPDFViewer {
      */
     setupHighDPICanvas(canvas, width, height) {
         const dpr = window.devicePixelRatio || 1;
-        
+
+        // IMPORTANT: Sur-résolution pour supporter le pinch-to-zoom sans pixelisation
+        // Sur iPad, avec dpr=2 et un zoom potentiel de 3x, on a besoin de 2*3=6x la résolution de base
+        // Pour éviter de consommer trop de mémoire, on limite à 4x le DPR (8x sur iPad Retina)
+        const SUPER_RESOLUTION_MULTIPLIER = 4;
+        const effectiveDpr = dpr * SUPER_RESOLUTION_MULTIPLIER;
+
         if (this.options.debug) {
-            console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, size=${width}x${height}`);
+            console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, effectiveDpr=${effectiveDpr}, size=${width}x${height}`);
         }
 
-        // Définir la taille physique du canvas (pixels réels)
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        
+        // Définir la taille physique du canvas (pixels réels avec sur-résolution)
+        canvas.width = width * effectiveDpr;
+        canvas.height = height * effectiveDpr;
+
         // Définir la taille CSS (taille logique)
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
-        
-        // Mettre à l'échelle le contexte pour correspondre au DPR
+
+        // Mettre à l'échelle le contexte pour correspondre à l'effectiveDpr
         const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-        
+        ctx.scale(effectiveDpr, effectiveDpr);
+
         // Améliorer la qualité de rendu
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        
-        return { dpr, ctx };
+
+        return { dpr: effectiveDpr, ctx };
     }
 
     /**
