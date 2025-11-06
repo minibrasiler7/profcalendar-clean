@@ -2534,8 +2534,8 @@ class UnifiedPDFViewer {
         return {
             size: parseFloat(document.getElementById('pen-size')?.value || 4),
             thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.0),
-            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.6),
-            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 0.7),
+            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.0),
+            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 1.0),
             simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
             opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
         };
@@ -2569,8 +2569,8 @@ class UnifiedPDFViewer {
         const defaultSettings = {
             size: 4,
             thinning: 0.0,
-            smoothing: 0.6,
-            streamline: 0.7,
+            smoothing: 0.0,
+            streamline: 1.0,
             simulatePressure: true,
             opacity: 1.0
         };
@@ -13680,12 +13680,10 @@ class UnifiedPDFViewer {
     setupHighDPICanvas(canvas, width, height) {
         const dpr = window.devicePixelRatio || 1;
 
-        // IMPORTANT: Sur-résolution pour supporter le pinch-to-zoom sans pixelisation
-        // Sur iPad Retina (dpr=2), multiplier par 2 donne 4x la résolution de base
-        // Cela permet de zoomer jusqu'à 2x sans pixelisation tout en restant sous la limite
-        // de Safari (67M pixels max, soit ~8192x8192)
-        const SUPER_RESOLUTION_MULTIPLIER = 2;
-        const effectiveDpr = dpr * SUPER_RESOLUTION_MULTIPLIER;
+        // Utiliser la résolution native sans sur-résolution
+        // Cela évite les problèmes de coordonnées décalées après pinch-to-zoom
+        // et garantit que les coordonnées du stylo correspondent toujours aux pixels du canvas
+        const effectiveDpr = dpr;
 
         if (this.options.debug) {
             console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, effectiveDpr=${effectiveDpr}, size=${width}x${height}`);
