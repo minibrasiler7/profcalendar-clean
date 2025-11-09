@@ -1011,13 +1011,82 @@ class UnifiedPDFViewer {
                         <label>Pages :</label>
                         <label><input type="radio" name="page-range" value="all" checked> Toutes</label>
                         <label><input type="radio" name="page-range" value="current"> Page actuelle</label>
-                        <label><input type="radio" name="page-range" value="range"> Plage : 
+                        <label><input type="radio" name="page-range" value="range"> Plage :
                             <input type="text" id="page-range-input" placeholder="ex: 1-5, 8, 10-12">
                         </label>
                     </div>
                     <div class="dialog-actions">
                         <button class="btn-secondary" id="btn-export-cancel">Annuler</button>
                         <button class="btn-primary" id="btn-export-start">Exporter</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau de contrôle avancé du stylo (perfect-freehand) -->
+            <div class="advanced-pen-controls" id="advanced-pen-controls" style="display: none;">
+                <div class="controls-header">
+                    <h3>Réglages du stylo</h3>
+                    <button class="btn-close" id="btn-close-advanced-controls">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="controls-body">
+                    <!-- Size (Épaisseur) -->
+                    <div class="control-group">
+                        <label for="pen-size">
+                            Épaisseur: <span id="pen-size-value">4</span>px
+                        </label>
+                        <input type="range" id="pen-size" min="0.5" max="20" step="0.5" value="4">
+                    </div>
+
+                    <!-- Thinning (Sensibilité à la pression) -->
+                    <div class="control-group">
+                        <label for="pen-thinning">
+                            Sensibilité pression: <span id="pen-thinning-value">0.00</span>
+                        </label>
+                        <input type="range" id="pen-thinning" min="0" max="1" step="0.05" value="0.0">
+                    </div>
+
+                    <!-- Smoothing (Lissage) -->
+                    <div class="control-group">
+                        <label for="pen-smoothing">
+                            Lissage: <span id="pen-smoothing-value">0.00</span>
+                        </label>
+                        <input type="range" id="pen-smoothing" min="0" max="1" step="0.05" value="0.0">
+                    </div>
+
+                    <!-- Streamline (Stabilisation) -->
+                    <div class="control-group">
+                        <label for="pen-streamline">
+                            Stabilisation: <span id="pen-streamline-value">1.00</span>
+                        </label>
+                        <input type="range" id="pen-streamline" min="0" max="1" step="0.05" value="1.0">
+                    </div>
+
+                    <!-- Simulate Pressure (Simuler pression) -->
+                    <div class="control-group">
+                        <label for="pen-simulate-pressure">
+                            <input type="checkbox" id="pen-simulate-pressure" checked>
+                            Simuler la pression
+                        </label>
+                    </div>
+
+                    <!-- Opacity (Opacité) -->
+                    <div class="control-group">
+                        <label for="pen-opacity">
+                            Opacité: <span id="pen-opacity-value">1.0</span>
+                        </label>
+                        <input type="range" id="pen-opacity" min="0" max="1" step="0.05" value="1.0">
+                    </div>
+
+                    <!-- Boutons de reset et sauvegarde -->
+                    <div class="control-actions">
+                        <button class="btn-secondary" id="btn-reset-pen-settings">
+                            <i class="fas fa-undo"></i> Réinitialiser
+                        </button>
+                        <button class="btn-primary" id="btn-save-pen-settings">
+                            <i class="fas fa-save"></i> Sauvegarder
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1039,6 +1108,7 @@ class UnifiedPDFViewer {
         
         this.elements = {
             container: document.getElementById('pdf-container'),
+            pdfContainer: document.getElementById('pdf-content-area') || this.container.querySelector('.pdf-viewer-area') || this.container, // Conteneur principal du PDF pour pinch-to-zoom
             pagesContainer: document.getElementById('pdf-pages-container'),
             loading: document.getElementById('pdf-loading'),
             toolbar: document.getElementById('pdf-toolbar'),
@@ -1130,14 +1200,10 @@ class UnifiedPDFViewer {
             if (this.currentMode.annotations && this.fileId && this.annotations && this.annotations.size > 0) {
                 await this.redrawAllAnnotations();
 
-                // IMPORTANT: Sauvegarder le background dans SimplePenAnnotation après le rechargement
-                // Sinon le premier trait va effacer toutes les annotations chargées
-                this.annotationEngines.forEach((engine, pageNum) => {
-                    if (engine && typeof engine.saveBackground === 'function') {
-                        engine.saveBackground();
-                        console.log(`  💾 Background sauvegardé pour la page ${pageNum}`);
-                    }
-                });
+                // IMPORTANT: NE PAS sauvegarder le background ici car il contient l'imageData pixelisée !
+                // Les strokes vectoriels se redessinent automatiquement, pas besoin de background
+                // Le background sera sauvegardé uniquement pour les annotations des autres outils (rectangle, flèche, etc.)
+                console.log('⚠️ Background NON sauvegardé pour préserver la qualité vectorielle');
 
                 // IMPORTANT: Réinitialiser l'historique undo avec l'état actuel après chargement des annotations
                 // Cela permet d'avoir un état initial correct pour pouvoir annuler
@@ -1220,6 +1286,8 @@ class UnifiedPDFViewer {
         console.log('💾 Sauvegarde de l\'historique avant re-rendu...');
         const savedUndoStack = new Map();
         const savedRedoStack = new Map();
+        const savedVectorStrokes = new Map(); // NOUVEAU: sauvegarder les strokes vectoriels
+
         this.undoStack.forEach((stack, pageNum) => {
             if (stack && stack.length > 0) {
                 savedUndoStack.set(pageNum, stack.slice()); // Copier le tableau
@@ -1231,6 +1299,40 @@ class UnifiedPDFViewer {
                 savedRedoStack.set(pageNum, stack.slice());
             }
         });
+
+        // NOUVEAU: Sauvegarder les strokes vectoriels de SimplePenAnnotation
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.exportStrokes === 'function') {
+                const vectorData = engine.exportStrokes();
+                if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                    // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS) du canvas, pas physiques
+                    // Les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
+                    const pageElement = this.pageElements.get(pageNum);
+                    const canvas = pageElement?.annotationCanvas;
+                    const canvasWidth = canvas ? parseInt(canvas.style.width) || canvas.width : 0;
+                    const canvasHeight = canvas ? parseInt(canvas.style.height) || canvas.height : 0;
+
+                    savedVectorStrokes.set(pageNum, {
+                        strokes: vectorData.strokes,
+                        canvasWidth: canvasWidth,
+                        canvasHeight: canvasHeight
+                    });
+                    console.log(`  - Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (canvas: ${canvasWidth}x${canvasHeight})`);
+                }
+            }
+        });
+
+        // CRITIQUE: Détruire toutes les instances SimplePenAnnotation AVANT de détruire les canvas
+        // Sinon les event listeners restent attachés aux canvas détruits et bloquent les événements
+        console.log('🗑️ Destruction des anciens moteurs d\'annotation...');
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.destroy === 'function') {
+                engine.destroy();
+                console.log(`  ✓ Moteur page ${pageNum} détruit`);
+            }
+        });
+        this.annotationEngines.clear();
+        console.log('✅ Tous les moteurs d\'annotation détruits');
 
         // Vider le conteneur
         this.elements.pagesContainer.innerHTML = '';
@@ -1256,8 +1358,62 @@ class UnifiedPDFViewer {
         savedRedoStack.forEach((stack, pageNum) => {
             this.redoStack.set(pageNum, stack);
         });
-        
-        
+
+        // NOUVEAU: Restaurer les strokes vectoriels AVANT de restaurer l'historique
+        console.log('🎨 Restauration des strokes vectoriels après re-rendu...');
+        savedVectorStrokes.forEach((savedData, pageNum) => {
+            // Créer le moteur d'annotation s'il n'existe pas encore
+            if (!this.annotationEngines.has(pageNum)) {
+                this.initAnnotationEngine(pageNum);
+            }
+
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine && typeof engine.importStrokes === 'function') {
+                // IMPORTANT: Rescaler les strokes en utilisant les dimensions LOGIQUES (CSS)
+                // car les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
+                const pageElement = this.pageElements.get(pageNum);
+                const newCanvas = pageElement?.annotationCanvas;
+                const newCanvasWidth = newCanvas ? parseInt(newCanvas.style.width) || newCanvas.width : 0;
+                const newCanvasHeight = newCanvas ? parseInt(newCanvas.style.height) || newCanvas.height : 0;
+                const oldCanvasWidth = savedData.canvasWidth || newCanvasWidth;
+                const oldCanvasHeight = savedData.canvasHeight || newCanvasHeight;
+
+                const scaleX = oldCanvasWidth > 0 ? newCanvasWidth / oldCanvasWidth : 1;
+                const scaleY = oldCanvasHeight > 0 ? newCanvasHeight / oldCanvasHeight : 1;
+
+                // Si le scale a changé, rescaler SEULEMENT les coordonnées (pas la taille)
+                // La taille est gérée par updateAllAnnotationEngines() selon le zoom actuel
+                let strokesToImport = savedData.strokes;
+                if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+                    console.log(`  🔄 Rescaling stroke coordinates - Page ${pageNum}: ${oldCanvasWidth}x${oldCanvasHeight} → ${newCanvasWidth}x${newCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                    strokesToImport = savedData.strokes.map(stroke => ({
+                        points: stroke.points.map(point => [
+                            point[0] * scaleX,  // x
+                            point[1] * scaleY,  // y
+                            point[2]             // pressure (inchangé)
+                        ]),
+                        options: stroke.options  // Garder les options originales (y compris size)
+                    }));
+                }
+
+                console.log(`  🎯 Importing ${strokesToImport.length} strokes - Page ${pageNum}`);
+                engine.importStrokes({ strokes: strokesToImport });
+                console.log(`  ✅ Strokes importés - Page ${pageNum}`);
+            }
+        });
+
+        // CRITIQUE: Réactiver l'outil actuel pour remettre pointerEvents = 'auto'
+        // sur les nouveaux canvas d'annotation
+        if (this.currentTool) {
+            console.log(`🔄 Réactivation de l'outil: ${this.currentTool}`);
+            this.setCurrentTool(this.currentTool);
+        }
+
+        // IMPORTANT: Ajuster tous les paramètres du stylo pour tous les moteurs
+        // en utilisant les paramètres actuels du panneau de contrôle
+        console.log('📐 Ajustement des paramètres du stylo pour tous les moteurs après zoom...');
+        this.updateAllAnnotationEngines();
+
         // Debug: Vérifier la hauteur totale du conteneur
         setTimeout(() => {
             const container = this.elements.pagesContainer;
@@ -1477,6 +1633,9 @@ class UnifiedPDFViewer {
         this.elements.zoomSelect?.addEventListener('change', (e) => this.setZoom(e.target.value));
         this.elements.zoomIn?.addEventListener('click', () => this.zoomIn());
         this.elements.zoomOut?.addEventListener('click', () => this.zoomOut());
+
+        // Pinch-to-zoom (geste 2 doigts sur iPad/tablette)
+        this.setupPinchToZoom();
 
         // Recherche
         this.elements.searchBtn?.addEventListener('click', () => this.search());
@@ -1711,27 +1870,12 @@ class UnifiedPDFViewer {
 
         this.currentScale = value;
 
-        console.log(`🔍 Zoom changé vers ${value}x`);
+        console.log(`🔍 Zoom changé vers ${value}x - re-rendu des pages...`);
 
-        // Re-render toutes les pages avec le nouveau zoom (avec délai pour éviter les race conditions)
-        const self = this;
-        setTimeout(function() {
-            self.renderAllPages().then(function() {
-                // Re-rendre les annotations vectorielles après le rendu des pages
-                self.rerenderAllVectorAnnotations();
-            }).catch(function(error) {
-                console.error('❌ Erreur re-rendu pages:', error);
-                // Fallback: render seulement la page courante
-                self.renderPage(self.currentPage);
-                self.rerenderAllVectorAnnotations();
-            });
-
-            // APPEL DIRECT supplémentaire pour s'assurer que les vecteurs sont toujours re-rendus
-            // même si renderAllPages ne retourne pas de promesse correcte
-            setTimeout(function() {
-                self.rerenderAllVectorAnnotations();
-            }, 300);
-        }, 50);
+        // Re-rendre toutes les pages avec le nouveau zoom
+        // Les canvas seront recréés à la nouvelle résolution (pas de CSS zoom)
+        // Les strokes vectoriels seront redessinés nets
+        this.renderAllPages();
 
         if (this.elements.zoomSelect) {
             this.elements.zoomSelect.value = value.toString();
@@ -1753,8 +1897,8 @@ class UnifiedPDFViewer {
     fitToPage() {
         // Implémentation ajustement page
         const containerWidth = this.elements.container.clientWidth - 40;
-        const containerHeight = this.elements.container.clientHeight - 40;
-        
+        const containerHeight = this.elements.container.height - 40;
+
         if (this.pdfDoc && this.currentPage) {
             this.pdfDoc.getPage(this.currentPage).then(page => {
                 const viewport = page.getViewport({ scale: 1 });
@@ -1764,6 +1908,200 @@ class UnifiedPDFViewer {
                 this.setZoom(scale);
             });
         }
+    }
+
+    /**
+     * Configuration du pinch-to-zoom (geste 2 doigts)
+     */
+    setupPinchToZoom() {
+        const container = this.elements.pdfContainer;
+        if (!container) {
+            console.warn('⚠️ setupPinchToZoom: pdfContainer non trouvé');
+            return;
+        }
+        console.log('✅ setupPinchToZoom initialisé sur:', container);
+
+        let initialScale = 1;
+        let isPinching = false;
+        let pinchTimeout = null;
+
+        const self = this;
+
+        // Détecter le début du pinch
+        container.addEventListener('touchstart', function(e) {
+            console.log(`📱 touchstart sur pdfContainer: ${e.touches.length} doigt(s)`);
+            if (e.touches.length === 2) {
+                isPinching = true;
+                initialScale = self.currentScale;
+                console.log('🤏 Pinch détecté, scale initial:', initialScale);
+            }
+        }, { passive: true });
+
+        // Détecter le pinch en cours
+        container.addEventListener('touchmove', function(e) {
+            if (isPinching && e.touches.length === 2) {
+                // Calculer la distance entre les 2 doigts
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+
+                // Sauvegarder pour utiliser dans touchend
+                self.lastPinchDistance = currentDistance;
+            }
+        }, { passive: true });
+
+        // Détecter la fin du pinch
+        container.addEventListener('touchend', function(e) {
+            if (isPinching && e.touches.length < 2) {
+                isPinching = false;
+
+                console.log('🤏 Pinch terminé (viewport zoom natif)');
+
+                // IMPORTANT: Ne PAS re-rendre toutes les pages ici !
+                // Le pinch-to-zoom est un zoom CSS/viewport du navigateur, pas un changement d'échelle PDF.
+                // Les canvas d'annotations individuels seront re-rendus via leur callback onPinchZoom.
+                // Re-rendre toutes les pages serait trop lourd et causerait un crash.
+
+                // Attendre 500ms après la fin du pinch pour laisser le navigateur finir le zoom CSS
+                clearTimeout(pinchTimeout);
+                pinchTimeout = setTimeout(function() {
+                    const viewportScale = self.detectCSSScale(container);
+                    console.log(`📱 Viewport scale après pinch: ${viewportScale ? viewportScale.toFixed(2) : 'N/A'}x (échelle PDF inchangée: ${self.currentScale.toFixed(2)}x)`);
+                    // Les annotations individuelles se re-rendront automatiquement via onPinchZoom
+                }, 500);
+            }
+        }, { passive: true });
+    }
+
+    /**
+     * Détecter le scale appliqué par le pinch-to-zoom du navigateur
+     */
+    detectCSSScale(element) {
+        // IMPORTANT: Le pinch-to-zoom natif utilise window.visualViewport.scale
+        // et non pas CSS transform
+        if (window.visualViewport && window.visualViewport.scale) {
+            const viewportScale = window.visualViewport.scale;
+            console.log(`📱 visualViewport.scale détecté: ${viewportScale.toFixed(2)}x`);
+            return viewportScale;
+        }
+
+        // Fallback: Lire la transform CSS (pour les zooms appliqués par notre code)
+        const transform = window.getComputedStyle(element).transform;
+        if (transform && transform !== 'none') {
+            const matrix = transform.match(/matrix\(([^)]+)\)/);
+            if (matrix) {
+                const values = matrix[1].split(',').map(parseFloat);
+                // Le premier élément de la matrice est le scaleX
+                return values[0];
+            }
+        }
+
+        // Méthode 3: Comparer la taille visuelle vs taille réelle
+        const rect = element.getBoundingClientRect();
+        const actualWidth = element.offsetWidth;
+        if (actualWidth > 0) {
+            return rect.width / actualWidth;
+        }
+
+        return null;
+    }
+
+    /**
+     * Re-rendre le canvas d'annotations après un pinch-to-zoom
+     * pour recalculer les traits vectoriels à la nouvelle résolution
+     */
+    reRenderCanvasAfterPinch(pageNum) {
+        console.log(`🎨 Re-rendu du canvas page ${pageNum} après pinch-to-zoom`);
+
+        const pageElement = this.pageElements.get(pageNum);
+        if (!pageElement || !pageElement.annotationCanvas) {
+            console.warn(`⚠️ Canvas page ${pageNum} non trouvé`);
+            return;
+        }
+
+        const engine = this.annotationEngines.get(pageNum);
+        if (!engine) {
+            console.warn(`⚠️ Engine page ${pageNum} non trouvé`);
+            return;
+        }
+
+        // Détecter le scale actuel du viewport (zoom avec les doigts)
+        let viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
+        console.log(`📱 Viewport scale détecté: ${viewportScale.toFixed(2)}x`);
+
+        // IMPORTANT: Ne rien faire si le viewport scale est ~1 (pas de zoom actif)
+        if (Math.abs(viewportScale - 1.0) < 0.05) {
+            console.log(`⏭️ Viewport scale ~1.0, pas de re-rendu nécessaire`);
+            return;
+        }
+
+        // IMPORTANT: Limiter le viewport scale pour éviter des canvas trop grands qui causent des crashs
+        const MAX_VIEWPORT_SCALE = 3.0;
+        if (viewportScale > MAX_VIEWPORT_SCALE) {
+            console.warn(`⚠️ Viewport scale ${viewportScale.toFixed(2)}x trop élevé, limité à ${MAX_VIEWPORT_SCALE}x`);
+            viewportScale = MAX_VIEWPORT_SCALE;
+        }
+
+        // Sauvegarder les strokes vectoriels ORIGINAUX (à la résolution de base)
+        const strokesData = engine.exportOriginalStrokes ? engine.exportOriginalStrokes() : engine.exportStrokes();
+        if (!strokesData || !strokesData.strokes || strokesData.strokes.length === 0) {
+            console.log(`⏭️ Pas de strokes à re-rendre pour la page ${pageNum}`);
+            return;
+        }
+
+        // Obtenir les dimensions CSS actuelles du canvas (en unités logiques)
+        const canvas = pageElement.annotationCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const cssWidth = rect.width;
+        const cssHeight = rect.height;
+
+        // Calculer la nouvelle résolution physique en tenant compte du viewport scale ET du devicePixelRatio
+        const dpr = window.devicePixelRatio || 1;
+        const newWidth = Math.round(cssWidth * dpr * viewportScale);
+        const newHeight = Math.round(cssHeight * dpr * viewportScale);
+
+        console.log(`📏 Augmentation résolution canvas ${pageNum}: ${canvas.width}x${canvas.height} -> ${newWidth}x${newHeight} (CSS: ${cssWidth.toFixed(0)}x${cssHeight.toFixed(0)}, DPR: ${dpr}, viewport: ${viewportScale.toFixed(2)}x)`);
+
+        // IMPORTANT: Utiliser requestAnimationFrame pour synchroniser avec le cycle de rendu
+        requestAnimationFrame(() => {
+            // Sauvegarder l'ancienne résolution pour calculer le ratio
+            const oldWidth = canvas.width;
+            const oldHeight = canvas.height;
+
+            // Augmenter la résolution physique du canvas
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            // IMPORTANT: Les dimensions CSS ne changent PAS - le canvas reste à la même taille visuelle
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
+
+            // Calculer le ratio de scaling pour les coordonnées des strokes
+            // Les strokes originaux sont en coordonnées de l'ancienne résolution
+            const scaleX = newWidth / oldWidth;
+            const scaleY = newHeight / oldHeight;
+
+            console.log(`📊 Scaling des strokes: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
+
+            // Transformer les coordonnées des strokes
+            const scaledStrokes = strokesData.strokes.map(stroke => ({
+                points: stroke.points.map(point => [
+                    point[0] * scaleX,
+                    point[1] * scaleY,
+                    point[2] // pressure reste inchangée
+                ]),
+                options: stroke.options
+            }));
+
+            // Réimporter les strokes avec les nouvelles coordonnées
+            // preserveOriginals = true pour ne pas écraser les strokes originaux
+            engine.importStrokes({ strokes: scaledStrokes }, true);
+
+            console.log(`✅ ${strokesData.strokes.length} strokes re-rendus à la résolution ${viewportScale.toFixed(2)}x`);
+        });
     }
 
     // Recherche
@@ -2043,8 +2381,253 @@ class UnifiedPDFViewer {
 
         // Bouton suivi élève
         document.getElementById('btn-student-tracking')?.addEventListener('click', () => this.openStudentTracking());
+
+        // Contrôles avancés du stylo
+        this.initAdvancedPenControls();
     }
-    
+
+    /**
+     * Initialiser les contrôles avancés du stylo (perfect-freehand)
+     */
+    initAdvancedPenControls() {
+        const toggleBtn = document.getElementById('btn-toggle-advanced-controls');
+        const closeBtn = document.getElementById('btn-close-advanced-controls');
+        const panel = document.getElementById('advanced-pen-controls');
+        const resetBtn = document.getElementById('btn-reset-pen-settings');
+        const saveBtn = document.getElementById('btn-save-pen-settings');
+
+        if (!toggleBtn || !panel) return;
+
+        // Charger les paramètres sauvegardés depuis localStorage
+        this.loadPenSettings();
+
+        // Toggle panel visibility
+        toggleBtn.addEventListener('click', () => {
+            const isVisible = panel.style.display !== 'none';
+            panel.style.display = isVisible ? 'none' : 'block';
+        });
+
+        closeBtn?.addEventListener('click', () => {
+            panel.style.display = 'none';
+        });
+
+        // Size slider
+        const sizeSlider = document.getElementById('pen-size');
+        const sizeValue = document.getElementById('pen-size-value');
+        sizeSlider?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            sizeValue.textContent = value.toFixed(1);
+            this.updateAllAnnotationEngines();
+        });
+
+        // Thinning slider
+        const thinningSlider = document.getElementById('pen-thinning');
+        const thinningValue = document.getElementById('pen-thinning-value');
+        thinningSlider?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            thinningValue.textContent = value.toFixed(2);
+            this.updateAllAnnotationEngines();
+        });
+
+        // Smoothing slider
+        const smoothingSlider = document.getElementById('pen-smoothing');
+        const smoothingValue = document.getElementById('pen-smoothing-value');
+        smoothingSlider?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            smoothingValue.textContent = value.toFixed(2);
+            this.updateAllAnnotationEngines();
+        });
+
+        // Streamline slider
+        const streamlineSlider = document.getElementById('pen-streamline');
+        const streamlineValue = document.getElementById('pen-streamline-value');
+        streamlineSlider?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            streamlineValue.textContent = value.toFixed(2);
+            this.updateAllAnnotationEngines();
+        });
+
+        // Simulate pressure checkbox
+        const simulatePressureCheckbox = document.getElementById('pen-simulate-pressure');
+        simulatePressureCheckbox?.addEventListener('change', (e) => {
+            this.updateAllAnnotationEngines();
+        });
+
+        // Opacity slider
+        const opacitySlider = document.getElementById('pen-opacity');
+        const opacityValue = document.getElementById('pen-opacity-value');
+        opacitySlider?.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            opacityValue.textContent = value.toFixed(2);
+            this.updateAllAnnotationEngines();
+        });
+
+        // Reset button
+        resetBtn?.addEventListener('click', () => {
+            this.resetPenSettings();
+        });
+
+        // Save button
+        saveBtn?.addEventListener('click', () => {
+            this.savePenSettings();
+            alert('Paramètres sauvegardés !');
+        });
+    }
+
+    /**
+     * Mettre à jour tous les moteurs d'annotation avec les paramètres actuels du panneau
+     */
+    updateAllAnnotationEngines() {
+        // IMPORTANT: Vérifier que les moteurs existent avant de les mettre à jour
+        // Cette méthode peut être appelée avant que le PDF ne soit chargé
+        if (!this.annotationEngines || this.annotationEngines.size === 0) {
+            console.log('📝 Aucun moteur d\'annotation à mettre à jour (pas encore créés)');
+            return;
+        }
+
+        // Récupérer les paramètres actuels depuis les sliders
+        const penSettings = this.getCurrentPenSettings();
+
+        // IMPORTANT: Diviser la taille seulement par le zoom PDF (boutons +/-)
+        // Ne PAS prendre en compte le pinch-to-zoom du viewport pour garder un trait constant
+        const adjustedSize = penSettings.size / this.currentScale;
+
+        const options = {
+            size: adjustedSize,
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
+            opacity: penSettings.opacity
+        };
+
+        console.log(`📏 Taille ajustée au zoom PDF ${this.currentScale.toFixed(2)}x: ${penSettings.size} -> ${adjustedSize.toFixed(2)}`);
+
+        this.annotationEngines.forEach((engine, pageNum) => {
+            if (engine && typeof engine.updateOptions === 'function') {
+                engine.updateOptions(options);
+                console.log(`📝 Options mises à jour pour page ${pageNum}:`, options);
+            }
+        });
+    }
+
+    /**
+     * Charger les paramètres du stylo depuis localStorage
+     */
+    loadPenSettings() {
+        try {
+            const saved = localStorage.getItem('pen-settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                this.applyPenSettings(settings);
+            }
+        } catch (e) {
+            console.warn('Impossible de charger les paramètres du stylo:', e);
+        }
+    }
+
+    /**
+     * Récupérer les paramètres actuels du stylo (depuis les sliders ou valeurs par défaut)
+     * Valeurs optimisées pour iPad Pro: smoothing=0, thinning=0, streamline=1, opacity=1
+     */
+    getCurrentPenSettings() {
+        return {
+            size: parseFloat(document.getElementById('pen-size')?.value || 4),
+            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.0),
+            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.0),
+            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 1.0),
+            simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
+            opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
+        };
+    }
+
+    /**
+     * Sauvegarder les paramètres du stylo dans localStorage
+     */
+    savePenSettings() {
+        const settings = {
+            size: parseFloat(document.getElementById('pen-size')?.value || 4),
+            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.5),
+            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.5),
+            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 0.5),
+            simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
+            opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
+        };
+
+        try {
+            localStorage.setItem('pen-settings', JSON.stringify(settings));
+            console.log('✅ Paramètres du stylo sauvegardés:', settings);
+        } catch (e) {
+            console.error('Impossible de sauvegarder les paramètres:', e);
+        }
+    }
+
+    /**
+     * Réinitialiser les paramètres du stylo aux valeurs par défaut optimisées
+     */
+    resetPenSettings() {
+        const defaultSettings = {
+            size: 4,
+            thinning: 0.0,
+            smoothing: 0.0,
+            streamline: 1.0,
+            simulatePressure: true,
+            opacity: 1.0
+        };
+
+        this.applyPenSettings(defaultSettings);
+        console.log('♻️ Paramètres du stylo réinitialisés');
+    }
+
+    /**
+     * Appliquer les paramètres du stylo aux sliders et aux moteurs
+     */
+    applyPenSettings(settings) {
+        // Mettre à jour les sliders
+        const sizeSlider = document.getElementById('pen-size');
+        const sizeValue = document.getElementById('pen-size-value');
+        if (sizeSlider && sizeValue) {
+            sizeSlider.value = settings.size;
+            sizeValue.textContent = settings.size.toFixed(1);
+        }
+
+        const thinningSlider = document.getElementById('pen-thinning');
+        const thinningValue = document.getElementById('pen-thinning-value');
+        if (thinningSlider && thinningValue) {
+            thinningSlider.value = settings.thinning;
+            thinningValue.textContent = settings.thinning.toFixed(2);
+        }
+
+        const smoothingSlider = document.getElementById('pen-smoothing');
+        const smoothingValue = document.getElementById('pen-smoothing-value');
+        if (smoothingSlider && smoothingValue) {
+            smoothingSlider.value = settings.smoothing;
+            smoothingValue.textContent = settings.smoothing.toFixed(2);
+        }
+
+        const streamlineSlider = document.getElementById('pen-streamline');
+        const streamlineValue = document.getElementById('pen-streamline-value');
+        if (streamlineSlider && streamlineValue) {
+            streamlineSlider.value = settings.streamline;
+            streamlineValue.textContent = settings.streamline.toFixed(2);
+        }
+
+        const simulatePressureCheckbox = document.getElementById('pen-simulate-pressure');
+        if (simulatePressureCheckbox) {
+            simulatePressureCheckbox.checked = settings.simulatePressure;
+        }
+
+        const opacitySlider = document.getElementById('pen-opacity');
+        const opacityValue = document.getElementById('pen-opacity-value');
+        if (opacitySlider && opacityValue) {
+            opacitySlider.value = settings.opacity;
+            opacityValue.textContent = settings.opacity.toFixed(2);
+        }
+
+        // Mettre à jour les moteurs d'annotation avec les nouveaux paramètres
+        this.updateAllAnnotationEngines();
+    }
+
     /**
      * Initialiser les événements du bouton téléchargement
      */
@@ -3674,11 +4257,11 @@ class UnifiedPDFViewer {
                     if (this.fileId) {
                         this.scheduleAutoSave();
                     }
-                    // Sauvegarder le background pour SimplePenAnnotation
-                    const engine = this.annotationEngines.get(pageNum);
-                    if (engine && typeof engine.saveBackground === 'function') {
-                        engine.saveBackground();
-                    }
+                    // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                    // const engine = this.annotationEngines.get(pageNum);
+                    // if (engine && typeof engine.saveBackground === 'function') {
+                    //     engine.saveBackground();
+                    // }
                 }
                 return;
             }
@@ -3864,18 +4447,24 @@ class UnifiedPDFViewer {
         // OPTIMISATION: Mise à jour instantanée du curseur
         this.updateToolCursor(tool);
 
-        // Gérer SimplePenAnnotation pour l'outil stylo
-        if (tool === 'pen') {
+        // Gérer SimplePenAnnotation pour TOUS les outils de dessin (pen, highlighter, eraser)
+        const drawingTools = ['pen', 'highlighter', 'eraser'];
+        if (drawingTools.includes(tool)) {
             // Activer SimplePenAnnotation pour toutes les pages
             this.pageElements.forEach((pageElement, pageNum) => {
                 if (!this.annotationEngines.has(pageNum)) {
                     this.initAnnotationEngine(pageNum);
-                } else {
-                    this.annotationEngines.get(pageNum).enable();
+                }
+                const engine = this.annotationEngines.get(pageNum);
+                if (engine) {
+                    engine.enable();
+                    // Configurer les options selon l'outil
+                    const toolOptions = this.getToolOptions(tool);
+                    engine.updateOptions(toolOptions);
                 }
             });
         } else {
-            // Désactiver SimplePenAnnotation quand on change d'outil
+            // Désactiver SimplePenAnnotation pour les autres outils
             this.annotationEngines.forEach(engine => {
                 engine.disable();
             });
@@ -3906,6 +4495,53 @@ class UnifiedPDFViewer {
         }
     }
     
+    /**
+     * Retourne les options SimplePenAnnotation pour chaque outil
+     */
+    getToolOptions(tool) {
+        // Ajuster la taille en fonction du zoom actuel pour que l'apparence reste constante
+        const adjustedSize = this.currentLineWidth / this.currentScale;
+
+        const baseOptions = {
+            size: adjustedSize,
+            thinning: 0.5,
+            smoothing: 0.5,
+            streamline: 0.5,
+            simulatePressure: true,
+            color: this.currentColor
+        };
+
+        switch(tool) {
+            case 'pen':
+                return {
+                    ...baseOptions,
+                    opacity: 1.0
+                };
+
+            case 'highlighter':
+                return {
+                    ...baseOptions,
+                    size: adjustedSize * 3, // Surligneur plus épais
+                    opacity: 0.3,  // Semi-transparent
+                    thinning: 0.2  // Moins de variation d'épaisseur
+                };
+
+            case 'eraser':
+                // Note: La gomme nécessite un traitement spécial
+                // On ne peut pas vraiment "effacer" des strokes vectoriels individuels
+                // Pour l'instant, on retourne les mêmes options mais avec une couleur blanche
+                return {
+                    ...baseOptions,
+                    color: '#FFFFFF',
+                    opacity: 1.0,
+                    size: adjustedSize * 2 // Gomme plus large
+                };
+
+            default:
+                return baseOptions;
+        }
+    }
+
     /**
      * Debug function to inspect annotations state
      */
@@ -4705,10 +5341,10 @@ class UnifiedPDFViewer {
                     engine.clearStrokes();
                 }
 
-                // Sauvegarder le nouvel état du canvas comme background pour SimplePenAnnotation
-                if (engine && typeof engine.saveBackground === 'function') {
-                    engine.saveBackground();
-                }
+                // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                // if (engine && typeof engine.saveBackground === 'function') {
+                //     engine.saveBackground();
+                // }
             }
 
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
@@ -6545,13 +7181,59 @@ class UnifiedPDFViewer {
         // Utiliser l'ancien système simple basé sur les numéros de page
         for (const [pageNumStr, annotationData] of this.annotations) {
             const pageNum = parseInt(pageNumStr);
-            console.log(`  📄 Page ${pageNum}: hasImageData=${!!annotationData?.imageData}, width=${annotationData?.width}, height=${annotationData?.height}`);
+            console.log(`  📄 Page ${pageNum}: hasVectorStrokes=${!!annotationData?.vectorStrokes}, hasImageData=${!!annotationData?.imageData}`);
             const pageContainer = document.querySelector(`.pdf-page-container[data-page-number="${pageNum}"]`);
 
             if (pageContainer) {
                 const annotationCanvas = pageContainer.querySelector('.pdf-annotation-layer');
 
-                if (annotationCanvas && annotationData?.imageData) {
+                // PRIORITÉ 1: Charger les strokes vectoriels si disponibles (meilleure qualité)
+                if (annotationCanvas && annotationData?.vectorStrokes && annotationData.vectorStrokes.length > 0) {
+                    console.log(`  🎨 Chargement de ${annotationData.vectorStrokes.length} strokes vectoriels pour la page ${pageNum}`);
+
+                    // Créer le moteur d'annotation s'il n'existe pas encore
+                    if (!this.annotationEngines.has(pageNum)) {
+                        this.initAnnotationEngine(pageNum);
+                    }
+
+                    const engine = this.annotationEngines.get(pageNum);
+                    if (engine && typeof engine.importStrokes === 'function') {
+                        // IMPORTANT: Rescaler les strokes en utilisant les dimensions LOGIQUES (CSS)
+                        // car les strokes sont enregistrés en coordonnées logiques (de getBoundingClientRect)
+                        const currentCanvasWidth = parseInt(annotationCanvas.style.width) || annotationCanvas.width;
+                        const currentCanvasHeight = parseInt(annotationCanvas.style.height) || annotationCanvas.height;
+                        const savedCanvasWidth = annotationData.width || currentCanvasWidth;
+                        const savedCanvasHeight = annotationData.height || currentCanvasHeight;
+
+                        const scaleX = savedCanvasWidth > 0 ? currentCanvasWidth / savedCanvasWidth : 1;
+                        const scaleY = savedCanvasHeight > 0 ? currentCanvasHeight / savedCanvasHeight : 1;
+
+                        // Si le scale a changé, rescaler les coordonnées ET la taille des strokes
+                        let strokesToImport = annotationData.vectorStrokes;
+                        if (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01) {
+                            console.log(`  🔄 Rescaling strokes - Page ${pageNum}: ${savedCanvasWidth}x${savedCanvasHeight} → ${currentCanvasWidth}x${currentCanvasHeight} (scale: ${scaleX.toFixed(2)}x, ${scaleY.toFixed(2)}x)`);
+                            // Utiliser la moyenne des deux scales pour ajuster la taille du trait
+                            const avgScale = (scaleX + scaleY) / 2;
+                            strokesToImport = annotationData.vectorStrokes.map(stroke => ({
+                                points: stroke.points.map(point => [
+                                    point[0] * scaleX,  // x
+                                    point[1] * scaleY,  // y
+                                    point[2]             // pressure (inchangé)
+                                ]),
+                                options: {
+                                    ...stroke.options,
+                                    size: stroke.options.size * avgScale  // Ajuster la taille proportionnellement
+                                }
+                            }));
+                        }
+
+                        engine.importStrokes({ strokes: strokesToImport });
+                        console.log(`  ✅ Strokes vectoriels chargés et redessinés pour la page ${pageNum} (mode vectoriel pur)`);
+                    }
+                }
+                // PRIORITÉ 2: Fallback sur imageData uniquement si pas de vectorStrokes (ancien système)
+                else if (annotationCanvas && annotationData?.imageData) {
+                    console.log(`  ⚠️ Chargement imageData pixelisée pour la page ${pageNum} (pas de vectorStrokes disponibles)`);
                     // Créer une Promise pour le chargement de cette image
                     const loadPromise = new Promise((resolve, reject) => {
                         try {
@@ -6563,7 +7245,7 @@ class UnifiedPDFViewer {
                                 // FIX DPI: Compenser le scaling pour éviter annotations 4x plus grandes
                                 const dpr = window.devicePixelRatio || 1;
                                 ctx.drawImage(img, 0, 0, img.width / dpr, img.height / dpr);
-                                console.log(`  ✅ Image chargée et dessinée pour la page ${pageNum}`);
+                                console.log(`  ✅ Image pixelisée chargée pour la page ${pageNum}`);
                                 resolve();
                             };
                             img.onerror = () => {
@@ -6626,11 +7308,49 @@ class UnifiedPDFViewer {
                     });
 
                     if (hasContent) {
-                        annotationsData.canvasData[pageNum] = {
-                            imageData: canvas.toDataURL('image/png'),
-                            width: canvas.width,
-                            height: canvas.height
-                        };
+                        // PRIORITÉ: Sauvegarder les strokes vectoriels du stylo si disponibles
+                        const engine = this.annotationEngines.get(pageNum);
+                        let hasVectorStrokes = false;
+
+                        if (engine && typeof engine.exportOriginalStrokes === 'function') {
+                            // IMPORTANT: Toujours sauvegarder les originalStrokes (résolution de base)
+                            // pour éviter d'écraser les strokes avec des versions scalées après pinch-to-zoom
+                            const vectorData = engine.exportOriginalStrokes();
+                            if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                                // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
+                                // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS), pas physiques
+                                annotationsData.canvasData[pageNum] = {
+                                    vectorStrokes: vectorData.strokes,
+                                    width: parseInt(canvas.style.width) || canvas.width,
+                                    height: parseInt(canvas.style.height) || canvas.height
+                                };
+                                hasVectorStrokes = true;
+                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur, résolution de base)`);
+                            }
+                        } else if (engine && typeof engine.exportStrokes === 'function') {
+                            // Fallback pour les anciens moteurs sans exportOriginalStrokes
+                            const vectorData = engine.exportStrokes();
+                            if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                                annotationsData.canvasData[pageNum] = {
+                                    vectorStrokes: vectorData.strokes,
+                                    width: parseInt(canvas.style.width) || canvas.width,
+                                    height: parseInt(canvas.style.height) || canvas.height
+                                };
+                                hasVectorStrokes = true;
+                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (fallback)`);
+                            }
+                        }
+
+                        // Fallback: Sauvegarder imageData UNIQUEMENT si pas de vectorStrokes (ancien système)
+                        if (!hasVectorStrokes) {
+                            annotationsData.canvasData[pageNum] = {
+                                imageData: canvas.toDataURL('image/png'),
+                                width: parseInt(canvas.style.width) || canvas.width,
+                                height: parseInt(canvas.style.height) || canvas.height
+                            };
+                            console.log(`  ⚠️ Page ${pageNum}: imageData sauvegardée (pas de vectorStrokes, ancien système)`);
+                        }
+
                         pagesWithContent++;
                         console.log(`  ✏️ Page ${pageNum}: annotations trouvées (${canvas.width}x${canvas.height})`);
                     } else {
@@ -6704,8 +7424,8 @@ class UnifiedPDFViewer {
             this.customPenCursor = document.createElement('div');
             this.customPenCursor.className = 'custom-pen-cursor';
             this.customPenCursor.style.color = this.currentColor;
-            // Taille basée sur l'épaisseur du stylo (en pixels écran constants)
-            const penSize = Math.max(4, this.currentLineWidth * 2);
+            // Curseur à 75% de la taille du trait
+            const penSize = Math.max(2, this.currentLineWidth * 0.75);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
             pdfContainer.appendChild(this.customPenCursor);
@@ -6864,7 +7584,8 @@ class UnifiedPDFViewer {
      */
     updatePenCursorSize(size) {
         if (this.customPenCursor) {
-            const penSize = Math.max(4, size * 2);
+            // Curseur à 75% de la taille du trait
+            const penSize = Math.max(2, size * 0.75);
             this.customPenCursor.style.width = `${penSize}px`;
             this.customPenCursor.style.height = `${penSize}px`;
         }
@@ -7056,18 +7777,20 @@ class UnifiedPDFViewer {
      * (utilisé après un changement de zoom pour que les annotations restent nettes)
      */
     rerenderAllVectorAnnotations() {
+        console.log('🎨 Re-rendu des annotations vectorielles après zoom');
         const self = this;
+
         this.annotationEngines.forEach(function(engine, pageNum) {
             const pageElement = self.pageElements.get(pageNum);
-            if (pageElement?.annotationCtx) {
-                const ctx = pageElement.annotationCtx;
+            if (pageElement?.annotationCtx && engine) {
+                console.log(`  📄 Page ${pageNum}: redessiner les strokes vectoriels`);
 
-                // Effacer uniquement les strokes vectoriels (pas les autres annotations)
-                // Pour cela, on efface tout et on re-rend depuis l'historique
-                const undoHistory = self.undoStack.get(pageNum);
-                if (undoHistory && undoHistory.length > 0) {
-                    const latestState = undoHistory[undoHistory.length - 1];
-                    self.restoreCanvasState(pageNum, latestState);
+                // Redessiner les strokes vectoriels à la nouvelle résolution
+                // SimplePenAnnotation.redraw() va redessiner tous les strokes
+                // depuis this.strokes (qui sont déjà en mémoire)
+                if (typeof engine.redraw === 'function') {
+                    engine.redraw();
+                    console.log(`  ✅ Page ${pageNum}: strokes redessinés`);
                 }
             }
         });
@@ -7100,12 +7823,16 @@ class UnifiedPDFViewer {
                 // Dimensions identiques, restaurer directement
                 ctx.putImageData(state.imageData, 0, 0);
             } else {
-                // Dimensions différentes (zoom changé), redimensionner
+                // Dimensions différentes (zoom changé), redimensionner avec meilleure qualité
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = state.imageData.width;
                 tempCanvas.height = state.imageData.height;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.putImageData(state.imageData, 0, 0);
+
+                // Activer l'interpolation de haute qualité pour un meilleur rendu
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
 
                 // Redessiner en adaptant aux nouvelles dimensions
                 ctx.drawImage(tempCanvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -7118,10 +7845,10 @@ class UnifiedPDFViewer {
                 if (typeof engine.clearStrokes === 'function') {
                     engine.clearStrokes();
                 }
-                // Sauvegarder le nouveau background (état restauré)
-                if (typeof engine.saveBackground === 'function') {
-                    engine.saveBackground();
-                }
+                // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+                // if (typeof engine.saveBackground === 'function') {
+                //     engine.saveBackground();
+                // }
             }
         }
     }
@@ -7222,10 +7949,10 @@ class UnifiedPDFViewer {
         const engine = this.annotationEngines.get(pageNum);
         if (engine && typeof engine.clear === 'function') {
             engine.clear();
-            // Sauvegarder un nouveau background vide pour éviter que les annotations réapparaissent
-            if (typeof engine.saveBackground === 'function') {
-                engine.saveBackground();
-            }
+            // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+            // if (typeof engine.saveBackground === 'function') {
+            //     engine.saveBackground();
+            // }
         }
 
         // Sauvegarder l'état après effacement
@@ -12886,24 +13613,45 @@ class UnifiedPDFViewer {
             return;
         }
 
+        // IMPORTANT: Récupérer les paramètres actuels du panneau de contrôle
+        // au lieu d'utiliser des valeurs codées en dur
+        const penSettings = this.getCurrentPenSettings();
+
+        // IMPORTANT: Ajuster la taille seulement par le zoom PDF (pas le viewport)
+        const adjustedSize = penSettings.size / this.currentScale;
+
+        const self = this;
         const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
-            size: this.currentLineWidth,
-            thinning: 0.5,
-            smoothing: 0.5,
-            streamline: 0.5,
-            simulatePressure: true,
+            size: adjustedSize,
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
-            opacity: 1.0
+            opacity: penSettings.opacity,
+            // DÉSACTIVÉ: Re-rendu automatique trop lent (canvas devient énorme)
+            // L'utilisateur peut zoomer/dézoomer avec les doigts, les traits restent vectoriels
+            // et seront automatiquement redimensionnés au prochain chargement
+            onPinchZoom: null
         });
 
         this.annotationEngines.set(pageNum, engine);
 
-        // CRITIQUE: Sauvegarder immédiatement le background actuel du canvas
-        // pour préserver les annotations existantes (ex: après avoir utilisé la gomme)
-        // Cela évite que les annotations effacées réapparaissent lors du premier redraw
-        if (typeof engine.saveBackground === 'function') {
-            engine.saveBackground();
-        }
+        console.log(`✅ Moteur d'annotation créé pour page ${pageNum} avec paramètres:`, {
+            size: penSettings.size,
+            thinning: penSettings.thinning,
+            smoothing: penSettings.smoothing,
+            streamline: penSettings.streamline,
+            simulatePressure: penSettings.simulatePressure,
+            opacity: penSettings.opacity,
+            scale: this.currentScale.toFixed(2)
+        });
+
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // Les strokes vectoriels sont stockés séparément et redessinés à la demande
+        // if (typeof engine.saveBackground === 'function') {
+        //     engine.saveBackground();
+        // }
     }
 
     /**
@@ -12932,28 +13680,103 @@ class UnifiedPDFViewer {
      */
     setupHighDPICanvas(canvas, width, height) {
         const dpr = window.devicePixelRatio || 1;
-        
+
+        // Utiliser la résolution native sans sur-résolution
+        // Cela évite les problèmes de coordonnées décalées après pinch-to-zoom
+        // et garantit que les coordonnées du stylo correspondent toujours aux pixels du canvas
+        const effectiveDpr = dpr;
+
         if (this.options.debug) {
-            console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, size=${width}x${height}`);
+            console.log(`🔍 DPI Setup: devicePixelRatio=${dpr}, effectiveDpr=${effectiveDpr}, size=${width}x${height}`);
         }
 
-        // Définir la taille physique du canvas (pixels réels)
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        
+        // Définir la taille physique du canvas (pixels réels avec sur-résolution)
+        canvas.width = width * effectiveDpr;
+        canvas.height = height * effectiveDpr;
+
         // Définir la taille CSS (taille logique)
         canvas.style.width = width + 'px';
         canvas.style.height = height + 'px';
-        
-        // Mettre à l'échelle le contexte pour correspondre au DPR
+
+        // Mettre à l'échelle le contexte pour correspondre à l'effectiveDpr
         const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-        
+        ctx.scale(effectiveDpr, effectiveDpr);
+
         // Améliorer la qualité de rendu
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        
-        return { dpr, ctx };
+
+        return { dpr: effectiveDpr, ctx };
+    }
+
+    /**
+     * Re-rend la page actuelle après un pinch-to-zoom
+     * Ajuste la résolution du canvas au niveau de zoom actuel
+     * @param {number} pageNum - Numéro de la page à re-rendre
+     */
+    reRenderCurrentPageAfterPinch(pageNum) {
+        console.log(`🔄 Re-rendu après pinch-to-zoom pour page ${pageNum}`);
+
+        const pageElement = this.pageElements.get(pageNum);
+        const engine = this.annotationEngines.get(pageNum);
+
+        if (!pageElement?.annotationCanvas || !engine) {
+            console.warn(`⚠️ Canvas ou moteur non trouvé pour page ${pageNum}`);
+            return;
+        }
+
+        const canvas = pageElement.annotationCanvas;
+
+        // Détecter le niveau de zoom actuel du viewport
+        const viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
+        const dpr = window.devicePixelRatio || 1;
+
+        console.log(`📐 Zoom détecté: viewport=${viewportScale.toFixed(2)}x, dpr=${dpr}`);
+
+        // Calculer la résolution cible (résolution native × zoom)
+        const targetDpr = dpr * viewportScale;
+
+        // Obtenir les dimensions CSS actuelles (dimensions logiques, avant zoom viewport)
+        const rect = canvas.getBoundingClientRect();
+
+        // IMPORTANT: getBoundingClientRect retourne les dimensions APRÈS le zoom viewport
+        // Il faut diviser par viewportScale pour obtenir les dimensions CSS réelles
+        const cssWidth = rect.width / viewportScale;
+        const cssHeight = rect.height / viewportScale;
+
+        // Sauvegarder les strokes originaux avant de redimensionner
+        const originalStrokes = engine.exportOriginalStrokes();
+
+        console.log(`📊 Redimensionnement canvas: ${canvas.width}x${canvas.height} → ${Math.round(cssWidth * targetDpr)}x${Math.round(cssHeight * targetDpr)}`);
+
+        // Redimensionner le canvas à la nouvelle résolution
+        canvas.width = Math.round(cssWidth * targetDpr);
+        canvas.height = Math.round(cssHeight * targetDpr);
+
+        // Garder les dimensions CSS inchangées (dimensions logiques, pas affectées par viewport)
+        canvas.style.width = cssWidth + 'px';
+        canvas.style.height = cssHeight + 'px';
+
+        // Mettre à l'échelle le contexte
+        const ctx = canvas.getContext('2d');
+        ctx.scale(targetDpr, targetDpr);
+
+        // Améliorer la qualité de rendu
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Re-dessiner les strokes sans les re-scaler
+        // Les strokes originaux sont déjà dans l'espace CSS logique
+        // Le ctx.scale(targetDpr) les transformera automatiquement
+        if (originalStrokes && originalStrokes.strokes && originalStrokes.strokes.length > 0) {
+            console.log(`✏️ Re-dessin de ${originalStrokes.strokes.length} strokes à la nouvelle résolution`);
+
+            // IMPORTANT: Ne PAS scaler les points - ils sont déjà dans l'espace CSS
+            // Le ctx.scale(targetDpr) s'en charge automatiquement
+            engine.importStrokes(originalStrokes, true);
+        }
+
+        console.log(`✅ Re-rendu terminé pour page ${pageNum}`);
     }
 
     /**
