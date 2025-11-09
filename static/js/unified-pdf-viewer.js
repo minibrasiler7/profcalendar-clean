@@ -13629,9 +13629,8 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // Pas besoin de callback pinch-to-zoom: le canvas est déjà en sur-résolution (8x sur iPad)
-            // ce qui permet de zoomer jusqu'à 4x sans pixelisation grâce au zoom CSS du navigateur
-            onPinchZoom: null
+            // Callback pour re-rendre les traits après un pinch-to-zoom
+            onPinchZoom: () => self.reRenderCurrentPageAfterPinch(pageNum)
         });
 
         this.annotationEngines.set(pageNum, engine);
@@ -13706,6 +13705,86 @@ class UnifiedPDFViewer {
         ctx.imageSmoothingQuality = 'high';
 
         return { dpr: effectiveDpr, ctx };
+    }
+
+    /**
+     * Re-rend la page actuelle après un pinch-to-zoom
+     * Ajuste la résolution du canvas au niveau de zoom actuel
+     * @param {number} pageNum - Numéro de la page à re-rendre
+     */
+    reRenderCurrentPageAfterPinch(pageNum) {
+        console.log(`🔄 Re-rendu après pinch-to-zoom pour page ${pageNum}`);
+
+        const pageElement = this.pageElements.get(pageNum);
+        const engine = this.annotationEngines.get(pageNum);
+
+        if (!pageElement?.annotationCanvas || !engine) {
+            console.warn(`⚠️ Canvas ou moteur non trouvé pour page ${pageNum}`);
+            return;
+        }
+
+        const canvas = pageElement.annotationCanvas;
+
+        // Détecter le niveau de zoom actuel du viewport
+        const viewportScale = window.visualViewport ? window.visualViewport.scale : 1;
+        const dpr = window.devicePixelRatio || 1;
+
+        console.log(`📐 Zoom détecté: viewport=${viewportScale.toFixed(2)}x, dpr=${dpr}`);
+
+        // Calculer la résolution cible (résolution native × zoom)
+        const targetDpr = dpr * viewportScale;
+
+        // Obtenir les dimensions CSS actuelles
+        const rect = canvas.getBoundingClientRect();
+        const cssWidth = rect.width;
+        const cssHeight = rect.height;
+
+        // Sauvegarder les strokes originaux avant de redimensionner
+        const originalStrokes = engine.exportOriginalStrokes();
+
+        console.log(`📊 Redimensionnement canvas: ${canvas.width}x${canvas.height} → ${Math.round(cssWidth * targetDpr)}x${Math.round(cssHeight * targetDpr)}`);
+
+        // Redimensionner le canvas à la nouvelle résolution
+        canvas.width = Math.round(cssWidth * targetDpr);
+        canvas.height = Math.round(cssHeight * targetDpr);
+
+        // Garder les dimensions CSS inchangées
+        canvas.style.width = cssWidth + 'px';
+        canvas.style.height = cssHeight + 'px';
+
+        // Mettre à l'échelle le contexte
+        const ctx = canvas.getContext('2d');
+        ctx.scale(targetDpr, targetDpr);
+
+        // Améliorer la qualité de rendu
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // Re-scaler les strokes à la nouvelle résolution
+        if (originalStrokes && originalStrokes.strokes && originalStrokes.strokes.length > 0) {
+            console.log(`✏️ Re-scaling ${originalStrokes.strokes.length} strokes à la nouvelle résolution`);
+
+            // Calculer le ratio de scaling (nouvelle résolution / ancienne résolution)
+            // Les strokes originaux sont à la résolution de base (dpr × 1)
+            const scaleRatio = viewportScale;
+
+            // Créer des strokes mis à l'échelle
+            const scaledStrokes = {
+                strokes: originalStrokes.strokes.map(stroke => ({
+                    points: stroke.points.map(point => [
+                        point[0] * scaleRatio,
+                        point[1] * scaleRatio,
+                        point[2] // pression inchangée
+                    ]),
+                    options: stroke.options
+                }))
+            };
+
+            // Importer les strokes mis à l'échelle (preserveOriginals = true pour garder les originaux)
+            engine.importStrokes(scaledStrokes, true);
+        }
+
+        console.log(`✅ Re-rendu terminé pour page ${pageNum}`);
     }
 
     /**

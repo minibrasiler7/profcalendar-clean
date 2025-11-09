@@ -205,6 +205,10 @@ class SimplePenAnnotation {
 
         // Initialiser avec le premier point
         this.currentPoints = [[x, y, e.pressure || 0.5]];
+
+        // OPTIMISATION: Sauvegarder l'état du canvas avant de commencer le nouveau stroke
+        // Cela permet de dessiner seulement le stroke en cours sans redessiner tous les anciens
+        this.saveCanvasState();
     }
 
     handlePointerMove(e) {
@@ -223,9 +227,9 @@ class SimplePenAnnotation {
         // Ajouter le point
         this.currentPoints.push([x, y, e.pressure || 0.5]);
 
-        // OPTIMISATION: Dessiner immédiatement pour éviter les traits discontinus
-        // Le throttle causait des retards visibles, surtout sur canvas haute résolution
-        this.redraw();
+        // OPTIMISATION: Dessiner seulement le stroke en cours (pas tous les strokes précédents)
+        // Cela évite de recalculer 22-23 strokes à chaque mouvement
+        this.drawCurrentStrokeOnly();
     }
 
     handlePointerUp(e) {
@@ -336,6 +340,39 @@ class SimplePenAnnotation {
         this.ctx.fill();
 
         this.ctx.restore();
+    }
+
+    /**
+     * OPTIMISATION: Sauvegarde l'état actuel du canvas avant de commencer un nouveau stroke
+     * Permet de dessiner seulement le stroke en cours sans redessiner tous les anciens
+     */
+    saveCanvasState() {
+        try {
+            this.savedCanvasState = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        } catch (e) {
+            console.error('Erreur lors de la sauvegarde du canvas state:', e);
+            this.savedCanvasState = null;
+        }
+    }
+
+    /**
+     * OPTIMISATION: Dessine seulement le stroke en cours, sans redessiner tous les anciens
+     * Restaure l'état du canvas sauvegardé puis dessine uniquement le stroke actuel
+     */
+    drawCurrentStrokeOnly() {
+        if (!this.savedCanvasState) {
+            // Fallback: si pas de canvas sauvegardé, utiliser redraw complet
+            this.redraw();
+            return;
+        }
+
+        // Restaurer le canvas à l'état avant le début du stroke
+        this.ctx.putImageData(this.savedCanvasState, 0, 0);
+
+        // Dessiner seulement le stroke en cours
+        if (this.currentPoints.length > 0) {
+            this.drawStroke(this.currentPoints, this.options);
+        }
     }
 
     // Méthodes utilitaires
