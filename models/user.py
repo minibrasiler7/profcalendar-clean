@@ -46,10 +46,27 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
     
     def get_local_datetime(self):
-        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur"""
-        from datetime import timedelta
-        utc_now = datetime.utcnow()
-        return utc_now + timedelta(hours=self.timezone_offset or 0)
+        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur
+
+        IMPORTANT: Utilise pytz pour gérer correctement l'heure d'été (DST)
+        La Suisse passe de UTC+1 (hiver) à UTC+2 (été) automatiquement
+        """
+        try:
+            import pytz
+            # Utiliser le fuseau horaire Europe/Zurich qui gère automatiquement DST
+            swiss_tz = pytz.timezone('Europe/Zurich')
+            # Obtenir l'heure UTC actuelle (aware)
+            utc_now = datetime.now(pytz.UTC)
+            # Convertir en heure suisse (gère automatiquement UTC+1 ou UTC+2)
+            swiss_time = utc_now.astimezone(swiss_tz)
+            # Retourner datetime naive pour compatibilité avec le code existant
+            return swiss_time.replace(tzinfo=None)
+        except ImportError:
+            # Fallback si pytz n'est pas installé (ne devrait pas arriver)
+            from datetime import timedelta
+            utc_now = datetime.utcnow()
+            # Fallback basique avec offset (ne gère pas DST correctement)
+            return utc_now + timedelta(hours=self.timezone_offset or 1)
     
     def get_local_time(self):
         """Retourne l'heure actuelle ajustée selon le fuseau horaire de l'utilisateur"""
