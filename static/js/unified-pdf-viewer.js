@@ -13629,8 +13629,10 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // Callback pour re-rendre les traits après un pinch-to-zoom
-            onPinchZoom: () => self.reRenderCurrentPageAfterPinch(pageNum)
+            // DÉSACTIVÉ: Re-rendu automatique trop lent (canvas devient énorme)
+            // L'utilisateur peut zoomer/dézoomer avec les doigts, les traits restent vectoriels
+            // et seront automatiquement redimensionnés au prochain chargement
+            onPinchZoom: null
         });
 
         this.annotationEngines.set(pageNum, engine);
@@ -13734,10 +13736,13 @@ class UnifiedPDFViewer {
         // Calculer la résolution cible (résolution native × zoom)
         const targetDpr = dpr * viewportScale;
 
-        // Obtenir les dimensions CSS actuelles
+        // Obtenir les dimensions CSS actuelles (dimensions logiques, avant zoom viewport)
         const rect = canvas.getBoundingClientRect();
-        const cssWidth = rect.width;
-        const cssHeight = rect.height;
+
+        // IMPORTANT: getBoundingClientRect retourne les dimensions APRÈS le zoom viewport
+        // Il faut diviser par viewportScale pour obtenir les dimensions CSS réelles
+        const cssWidth = rect.width / viewportScale;
+        const cssHeight = rect.height / viewportScale;
 
         // Sauvegarder les strokes originaux avant de redimensionner
         const originalStrokes = engine.exportOriginalStrokes();
@@ -13748,7 +13753,7 @@ class UnifiedPDFViewer {
         canvas.width = Math.round(cssWidth * targetDpr);
         canvas.height = Math.round(cssHeight * targetDpr);
 
-        // Garder les dimensions CSS inchangées
+        // Garder les dimensions CSS inchangées (dimensions logiques, pas affectées par viewport)
         canvas.style.width = cssWidth + 'px';
         canvas.style.height = cssHeight + 'px';
 
@@ -13760,28 +13765,15 @@ class UnifiedPDFViewer {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        // Re-scaler les strokes à la nouvelle résolution
+        // Re-dessiner les strokes sans les re-scaler
+        // Les strokes originaux sont déjà dans l'espace CSS logique
+        // Le ctx.scale(targetDpr) les transformera automatiquement
         if (originalStrokes && originalStrokes.strokes && originalStrokes.strokes.length > 0) {
-            console.log(`✏️ Re-scaling ${originalStrokes.strokes.length} strokes à la nouvelle résolution`);
+            console.log(`✏️ Re-dessin de ${originalStrokes.strokes.length} strokes à la nouvelle résolution`);
 
-            // Calculer le ratio de scaling (nouvelle résolution / ancienne résolution)
-            // Les strokes originaux sont à la résolution de base (dpr × 1)
-            const scaleRatio = viewportScale;
-
-            // Créer des strokes mis à l'échelle
-            const scaledStrokes = {
-                strokes: originalStrokes.strokes.map(stroke => ({
-                    points: stroke.points.map(point => [
-                        point[0] * scaleRatio,
-                        point[1] * scaleRatio,
-                        point[2] // pression inchangée
-                    ]),
-                    options: stroke.options
-                }))
-            };
-
-            // Importer les strokes mis à l'échelle (preserveOriginals = true pour garder les originaux)
-            engine.importStrokes(scaledStrokes, true);
+            // IMPORTANT: Ne PAS scaler les points - ils sont déjà dans l'espace CSS
+            // Le ctx.scale(targetDpr) s'en charge automatiquement
+            engine.importStrokes(originalStrokes, true);
         }
 
         console.log(`✅ Re-rendu terminé pour page ${pageNum}`);
