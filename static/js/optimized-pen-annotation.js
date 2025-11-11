@@ -105,8 +105,6 @@ class OptimizedPenAnnotation {
 
         // Démarrer la boucle de rendu
         this.startRenderLoop();
-
-        console.log('✨ OptimizedPenAnnotation initialized with desynchronized canvas');
     }
 
     /**
@@ -138,7 +136,6 @@ class OptimizedPenAnnotation {
         this.lastTouchCount = e.touches.length;
 
         if (e.touches.length >= 2) {
-            console.log('👆 Pinch détecté - autorisation du zoom');
             this.isPinching = true;
 
             // Annuler le dessin en cours si on commence un pinch
@@ -164,14 +161,12 @@ class OptimizedPenAnnotation {
      */
     handleTouchEnd(e) {
         if (this.isPinching && e.touches.length < 2) {
-            console.log('🤏 Fin du pinch détectée');
             this.isPinching = false;
 
             // Attendre que le zoom CSS soit appliqué
             clearTimeout(this.pinchTimeout);
             this.pinchTimeout = setTimeout(() => {
                 if (this.onPinchZoom) {
-                    console.log('📢 Notification après pinch');
                     this.onPinchZoom();
                 }
             }, 500);
@@ -315,8 +310,6 @@ class OptimizedPenAnnotation {
 
             // Rendre le stroke final sur la base layer
             this.commitCurrentStroke();
-
-            console.log(`✅ Stroke complété avec ${this.currentStroke.points.length} points`);
         }
 
         this.currentStroke = null;
@@ -329,7 +322,6 @@ class OptimizedPenAnnotation {
     handlePointerCancel(e) {
         if (!this.isDrawing) return;
 
-        console.log('❌ Stroke annulé');
         this.cancelCurrentStroke();
     }
 
@@ -496,7 +488,6 @@ class OptimizedPenAnnotation {
         this.strokes.pop();
         this.redrawAll();
 
-        console.log(`↩️ Undo - ${this.strokes.length} strokes restants`);
         return true;
     }
 
@@ -509,8 +500,6 @@ class OptimizedPenAnnotation {
         this.currentStroke = null;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.needsRedraw = true;
-
-        console.log('🗑️ Tous les strokes effacés');
     }
 
     /**
@@ -541,7 +530,6 @@ class OptimizedPenAnnotation {
      */
     importStrokes(data, preserveOriginals = false) {
         if (!data || !Array.isArray(data.strokes)) {
-            console.error('Format de données invalide pour importStrokes');
             return;
         }
 
@@ -570,7 +558,6 @@ class OptimizedPenAnnotation {
                         timestamp: p.timestamp || 0
                     }));
                 } else {
-                    console.warn('Format de point inconnu, utilisation par défaut');
                     normalizedPoints = [];
                 }
             } else {
@@ -584,7 +571,6 @@ class OptimizedPenAnnotation {
             };
         });
 
-        console.log(`📥 ${this.strokes.length} strokes importés (preserveOriginals: ${preserveOriginals})`);
         this.redrawAll();
     }
 
@@ -601,7 +587,6 @@ class OptimizedPenAnnotation {
     enable() {
         this.isEnabled = true;
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        console.log('✅ Annotations activées');
     }
 
     /**
@@ -612,7 +597,6 @@ class OptimizedPenAnnotation {
         this.isDrawing = false;
         this.currentStroke = null;
         this.canvas.style.touchAction = this.originalTouchAction || 'auto';
-        console.log('❌ Annotations désactivées');
     }
 
     /**
@@ -623,7 +607,6 @@ class OptimizedPenAnnotation {
         const oldHeight = this.canvas.height;
 
         if (oldWidth === 0 || oldHeight === 0) {
-            console.warn('⚠️ Impossible de redimensionner depuis un canvas de taille 0');
             return;
         }
 
@@ -644,7 +627,6 @@ class OptimizedPenAnnotation {
             }
         }
 
-        console.log(`📏 Canvas redimensionné: ${width}x${height} (scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)})`);
         this.redrawAll();
     }
 
@@ -672,8 +654,6 @@ class OptimizedPenAnnotation {
         this.strokes = [];
         this.baseLayer = null;
         this.currentStroke = null;
-
-        console.log('🧹 OptimizedPenAnnotation destroyed');
     }
 }
 
