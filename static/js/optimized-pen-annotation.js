@@ -27,6 +27,12 @@ class OptimizedPenAnnotation {
             willReadFrequently: false  // On ne lit pas souvent le canvas
         });
 
+        // DEBUG: Vérifier la résolution du canvas
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth = canvas.offsetWidth;
+        const cssHeight = canvas.offsetHeight;
+        console.log(`🔍 CANVAS INIT: DPR=${dpr}, Canvas physique=${canvas.width}x${canvas.height}, CSS=${cssWidth}x${cssHeight}, Ratio=${(canvas.width/cssWidth).toFixed(2)}`);
+
         // Configuration
         this.options = {
             size: options.size || 2,
@@ -250,6 +256,13 @@ class OptimizedPenAnnotation {
         // OPTIMISATION: getCoalescedEvents() pour capturer tous les points
         // Sur iPad Pro avec Apple Pencil, cela donne jusqu'à 240Hz
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+
+        // DEBUG: Vérifier si on reçoit bien tous les événements
+        const now = performance.now();
+        const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+        if (lastPoint && (now - lastPoint.timestamp) > 50) {
+            console.warn(`⚠️ GAP détecté: ${(now - lastPoint.timestamp).toFixed(0)}ms entre événements, ${events.length} événements coalesced`);
+        }
 
         let pointsAdded = 0;
 
@@ -615,6 +628,12 @@ class OptimizedPenAnnotation {
             return;
         }
 
+        // DEBUG: Vérifier le redimensionnement
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth = this.canvas.offsetWidth;
+        const cssHeight = this.canvas.offsetHeight;
+        console.log(`📐 RESIZE: ${oldWidth}x${oldHeight} → ${width}x${height}, CSS=${cssWidth}x${cssHeight}, DPR=${dpr}, Ratio nouveau=${(width/cssWidth).toFixed(2)}`);
+
         // Redimensionner les canvas
         this.canvas.width = width;
         this.canvas.height = height;
@@ -624,6 +643,8 @@ class OptimizedPenAnnotation {
         // Recalculer les coordonnées des strokes
         const scaleX = width / oldWidth;
         const scaleY = height / oldHeight;
+
+        console.log(`📐 Scaling points: x${scaleX.toFixed(3)}, y${scaleY.toFixed(3)}`);
 
         for (const stroke of this.strokes) {
             for (const point of stroke.points) {
