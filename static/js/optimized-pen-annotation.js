@@ -163,9 +163,16 @@ class OptimizedPenAnnotation {
         if (this.isPinching && e.touches.length < 2) {
             this.isPinching = false;
 
+            // S'assurer qu'aucun dessin ne peut commencer immédiatement après un zoom
+            // Bloquer temporairement les interactions
+            this.isEnabled = false;
+
             // Attendre que le zoom CSS soit appliqué
             clearTimeout(this.pinchTimeout);
             this.pinchTimeout = setTimeout(() => {
+                // Réactiver les interactions après stabilisation
+                this.isEnabled = true;
+
                 if (this.onPinchZoom) {
                     this.onPinchZoom();
                 }
@@ -245,23 +252,13 @@ class OptimizedPenAnnotation {
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
 
         let pointsAdded = 0;
-        const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
 
         for (const event of events) {
             const x = event.offsetX;
             const y = event.offsetY;
 
-            // OPTIMISATION: Ignorer les points trop proches pour réduire les calculs
-            if (lastPoint) {
-                const dx = x - lastPoint.x;
-                const dy = y - lastPoint.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < this.options.minDistance) {
-                    continue;
-                }
-            }
-
+            // Toujours ajouter les points pour éviter les décrochages
+            // Ne plus filtrer par distance pour garantir un trait continu
             const point = {
                 x: x,
                 y: y,
@@ -428,6 +425,14 @@ class OptimizedPenAnnotation {
         ctx.globalAlpha = 1.0; // IMPORTANT: Opacité toujours à 100%
         ctx.lineWidth = options.size; // IMPORTANT: Épaisseur fixe, pas de variation
 
+        // Dessiner des cercles aux points pour garantir la continuité visuelle
+        for (let i = 0; i < points.length; i++) {
+            ctx.beginPath();
+            ctx.arc(points[i].x, points[i].y, options.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Dessiner les traits entre les points
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
 
