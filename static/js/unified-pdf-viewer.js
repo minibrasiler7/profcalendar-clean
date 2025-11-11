@@ -13601,9 +13601,9 @@ class UnifiedPDFViewer {
      * @param {number} pageNum - Numéro de la page
      */
     initAnnotationEngine(pageNum) {
-        // Vérifier que SimplePenAnnotation est disponible
-        if (typeof window.SimplePenAnnotation === 'undefined') {
-            console.error('SimplePenAnnotation non disponible');
+        // Vérifier que OptimizedPenAnnotation est disponible
+        if (typeof window.OptimizedPenAnnotation === 'undefined') {
+            console.error('OptimizedPenAnnotation non disponible');
             return;
         }
 
