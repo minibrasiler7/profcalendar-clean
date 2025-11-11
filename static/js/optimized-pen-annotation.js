@@ -114,12 +114,15 @@ class OptimizedPenAnnotation {
      * Détection du stylet à l'entrée sur le canvas
      */
     handlePointerEnter(e) {
+        console.log('🎯 PointerEnter détecté:', e.pointerType);
         if (e.pointerType === 'pen') {
             e.preventDefault();
             e.stopPropagation();
             this.canvas.style.touchAction = 'none';
+            console.log('🖊️ Stylet détecté - touchAction = none');
         } else if (e.pointerType === 'touch') {
             this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+            console.log('👆 Doigt détecté - touchAction = pan-x pan-y pinch-zoom');
         }
     }
 
@@ -185,17 +188,38 @@ class OptimizedPenAnnotation {
      * Début du dessin
      */
     handlePointerDown(e) {
-        if (!this.isEnabled || this.isPinching) return;
+        console.log('⬇️ PointerDown:', {
+            type: e.pointerType,
+            enabled: this.isEnabled,
+            pinching: this.isPinching,
+            x: e.offsetX,
+            y: e.offsetY
+        });
+
+        if (!this.isEnabled || this.isPinching) {
+            console.log('❌ Annotation désactivée ou pinch en cours');
+            return;
+        }
 
         const isStylus = e.pointerType === 'pen';
         const isMouse = e.pointerType === 'mouse';
         const isFinger = e.pointerType === 'touch';
 
+        console.log('🔍 Type de pointeur:', { isStylus, isMouse, isFinger });
+
         // Ignorer les doigts - laisser le scroll/zoom natif
-        if (isFinger) return;
+        if (isFinger) {
+            console.log('👆 Doigt ignoré - permettre scroll');
+            return;
+        }
 
         // Accepter seulement stylet ou souris
-        if (!isStylus && !isMouse) return;
+        if (!isStylus && !isMouse) {
+            console.log('❓ Type de pointeur inconnu - ignoré');
+            return;
+        }
+
+        console.log('✅ Stylet/souris accepté - début du dessin');
 
         // Bloquer le scroll pour le dessin
         this.canvas.style.touchAction = 'none';
