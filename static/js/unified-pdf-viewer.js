@@ -13621,18 +13621,22 @@ class UnifiedPDFViewer {
         const adjustedSize = penSettings.size / this.currentScale;
 
         const self = this;
-        const engine = new window.SimplePenAnnotation(pageElement.annotationCanvas, {
-            size: adjustedSize,
-            thinning: penSettings.thinning,
-            smoothing: penSettings.smoothing,
-            streamline: penSettings.streamline,
-            simulatePressure: penSettings.simulatePressure,
+        const engine = new window.OptimizedPenAnnotation(pageElement.annotationCanvas, {
+            size: penSettings.size,
             color: this.currentColor,
             opacity: penSettings.opacity,
-            // DÉSACTIVÉ: Re-rendu automatique trop lent (canvas devient énorme)
-            // L'utilisateur peut zoomer/dézoomer avec les doigts, les traits restent vectoriels
-            // et seront automatiquement redimensionnés au prochain chargement
-            onPinchZoom: null
+            smoothing: penSettings.smoothing,
+            minDistance: 1,
+            // Callback pour gérer le pinch-to-zoom
+            onPinchZoom: function() {
+                console.log('📢 Pinch-to-zoom détecté pour la page ' + pageNum);
+                // Optionnel: redimensionner le canvas si nécessaire
+            },
+            // Callback quand un stroke est complété
+            onStrokeComplete: function(stroke) {
+                // Auto-sauvegarde après chaque stroke
+                self.saveAnnotationsDebounced();
+            }
         });
 
         this.annotationEngines.set(pageNum, engine);

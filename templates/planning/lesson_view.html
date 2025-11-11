@@ -7837,19 +7837,14 @@ body .thumbnail-canvas {
 
 <!-- Simple Pen Annotation System - Chargé après perfect-freehand -->
 <script>
-    // Attendre que perfect-freehand soit chargé avant de charger le système d'annotation
+    // Charger le nouveau système d'annotation optimisé (ne nécessite plus perfect-freehand)
     function loadAnnotationEngine() {
-        if (window.perfectFreehandReady) {
-            const script = document.createElement('script');
-            script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
-            document.head.appendChild(script);
-        } else {
-            window.addEventListener('perfectFreehandLoaded', function() {
-                const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
-                document.head.appendChild(script);
-            }, { once: true });
-        }
+        const script = document.createElement('script');
+        script.src = "{{ url_for('static', filename='js/optimized-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
+        script.onload = function() {
+            console.log('✨ Système d\'annotation optimisé chargé avec succès');
+        };
+        document.head.appendChild(script);
     }
     loadAnnotationEngine();
 </script>
