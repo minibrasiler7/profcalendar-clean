@@ -13634,8 +13634,13 @@ class UnifiedPDFViewer {
             },
             // Callback quand un stroke est complété
             onStrokeComplete: function(stroke) {
-                // Auto-sauvegarde après chaque stroke
-                self.saveAnnotationsDebounced();
+                // Auto-sauvegarde après chaque stroke (avec debounce de 2s)
+                if (self.saveAnnotationTimeout) {
+                    clearTimeout(self.saveAnnotationTimeout);
+                }
+                self.saveAnnotationTimeout = setTimeout(() => {
+                    self.saveAnnotations();
+                }, 2000);
             }
         });
 
