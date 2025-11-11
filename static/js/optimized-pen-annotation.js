@@ -31,7 +31,6 @@ class OptimizedPenAnnotation {
         this.options = {
             size: options.size || 2,
             color: options.color || '#000000',
-            opacity: options.opacity || 1.0,
             smoothing: options.smoothing !== undefined ? options.smoothing : 0.5,
             minDistance: options.minDistance || 1, // Distance minimale entre points
             ...options
@@ -421,8 +420,8 @@ class OptimizedPenAnnotation {
     }
 
     /**
-     * CRITIQUE: Dessine un stroke avec interpolation Catmull-Rom
-     * Produit des courbes lisses sans les tremblements
+     * CRITIQUE: Dessine un stroke uniforme comme l'app Fichiers d'iPad
+     * Trait lisse, opaque, sans variation de pression
      */
     drawStroke(ctx, stroke) {
         if (!stroke || !stroke.points || stroke.points.length < 2) return;
@@ -434,73 +433,36 @@ class OptimizedPenAnnotation {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = options.color;
-        ctx.globalAlpha = options.opacity;
+        ctx.globalAlpha = 1.0; // IMPORTANT: Opacité toujours à 100%
+        ctx.lineWidth = options.size; // IMPORTANT: Épaisseur fixe, pas de variation
 
-        // Dessiner avec variation de pression
-        if (points.length === 2) {
-            // Ligne simple pour 2 points
-            const p0 = points[0];
-            const p1 = points[1];
-            const width = options.size * p0.pressure;
-
-            ctx.lineWidth = width;
-            ctx.beginPath();
-            ctx.moveTo(p0.x, p0.y);
-            ctx.lineTo(p1.x, p1.y);
-            ctx.stroke();
-        } else {
-            // Interpolation Catmull-Rom pour courbes lisses
-            this.drawSmoothCurve(ctx, points, options);
-        }
-
-        ctx.restore();
-    }
-
-    /**
-     * Dessine une courbe lisse avec interpolation Catmull-Rom
-     * Technique utilisée par de nombreuses apps de dessin professionnelles
-     */
-    drawSmoothCurve(ctx, points, options) {
-        if (points.length < 3) {
-            // Fallback pour moins de 3 points
-            ctx.lineWidth = options.size * points[0].pressure;
-            ctx.beginPath();
-            ctx.moveTo(points[0].x, points[0].y);
-            for (let i = 1; i < points.length; i++) {
-                ctx.lineTo(points[i].x, points[i].y);
-            }
-            ctx.stroke();
-            return;
-        }
-
-        // Dessiner des segments avec courbes quadratiques
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
 
-        for (let i = 1; i < points.length - 1; i++) {
-            const p0 = points[i - 1];
-            const p1 = points[i];
-            const p2 = points[i + 1];
+        if (points.length === 2) {
+            // Ligne simple pour 2 points
+            ctx.lineTo(points[1].x, points[1].y);
+        } else {
+            // Courbes quadratiques pour lissage (comme iOS)
+            for (let i = 1; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i + 1];
 
-            // Point de contrôle pour courbe quadratique
-            const cpx = p1.x;
-            const cpy = p1.y;
+                // Point de contrôle = point actuel
+                // Point d'arrivée = milieu entre actuel et suivant
+                const midX = (p1.x + p2.x) / 2;
+                const midY = (p1.y + p2.y) / 2;
 
-            // Point d'arrivée (milieu entre p1 et p2)
-            const endx = (p1.x + p2.x) / 2;
-            const endy = (p1.y + p2.y) / 2;
+                ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+            }
 
-            // Variation de l'épaisseur selon la pression
-            const width = options.size * p1.pressure;
-            ctx.lineWidth = width;
-
-            ctx.quadraticCurveTo(cpx, cpy, endx, endy);
+            // Dernier segment jusqu'au dernier point
+            const lastPoint = points[points.length - 1];
+            ctx.lineTo(lastPoint.x, lastPoint.y);
         }
 
-        // Dernier segment
-        const lastPoint = points[points.length - 1];
-        ctx.lineTo(lastPoint.x, lastPoint.y);
         ctx.stroke();
+        ctx.restore();
     }
 
     /**
