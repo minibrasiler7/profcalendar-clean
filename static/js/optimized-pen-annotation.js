@@ -90,11 +90,13 @@ class OptimizedPenAnnotation {
         // Sauvegarder les styles CSS originaux
         this.originalTouchAction = this.canvas.style.touchAction;
 
-        // IMPORTANT: Par défaut, permettre scroll/zoom avec les doigts
-        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // IMPORTANT: Désactiver complètement touchAction pour éviter les blocages iOS
+        // iOS bloque pointermove quand il détecte des gestures potentielles
+        this.canvas.style.touchAction = 'none';
         this.canvas.style.userSelect = 'none';
         this.canvas.style.webkitUserSelect = 'none';
         this.canvas.style.webkitTouchCallout = 'none';
+        this.canvas.style.msTouchAction = 'none';
 
         // Bind event handlers
         this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -130,19 +132,15 @@ class OptimizedPenAnnotation {
         if (e.pointerType === 'pen') {
             e.preventDefault();
             e.stopPropagation();
-            this.canvas.style.touchAction = 'none';
-        } else if (e.pointerType === 'touch') {
-            this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
         }
+        // Ne plus changer touchAction dynamiquement pour éviter les blocages iOS
     }
 
     /**
      * Réactivation du scroll quand le stylet quitte le canvas
      */
     handlePointerLeave(e) {
-        if (e.pointerType === 'pen' && !this.isDrawing) {
-            this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        }
+        // Ne plus changer touchAction dynamiquement pour éviter les blocages iOS
     }
 
     /**
@@ -214,8 +212,7 @@ class OptimizedPenAnnotation {
             return;
         }
 
-        // Bloquer le scroll pour le dessin
-        this.canvas.style.touchAction = 'none';
+        // touchAction est déjà à 'none' en permanence
         e.preventDefault();
         e.stopPropagation();
 
@@ -345,8 +342,7 @@ class OptimizedPenAnnotation {
 
         this.isDrawing = false;
 
-        // Réactiver le scroll/zoom
-        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // touchAction reste à 'none' en permanence
 
         // Sauvegarder le stroke complété
         if (this.currentStroke && this.currentStroke.points.length > 1) {
@@ -380,7 +376,7 @@ class OptimizedPenAnnotation {
     cancelCurrentStroke() {
         this.isDrawing = false;
         this.currentStroke = null;
-        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // touchAction reste à 'none' en permanence
         this.needsRedraw = true;
     }
 
