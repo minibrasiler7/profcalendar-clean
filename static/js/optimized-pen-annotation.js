@@ -32,11 +32,11 @@ class OptimizedPenAnnotation {
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
 
-        // DEBUG: Vérifier la résolution du canvas
-        const dpr = window.devicePixelRatio || 1;
-        const cssWidth = canvas.offsetWidth;
-        const cssHeight = canvas.offsetHeight;
-        console.log(`🔍 CANVAS INIT: DPR=${dpr}, Canvas physique=${canvas.width}x${canvas.height}, CSS=${cssWidth}x${cssHeight}, Ratio=${(canvas.width/cssWidth).toFixed(2)}`);
+        // Vérifier la résolution du canvas pour diagnostic si nécessaire
+        // const dpr = window.devicePixelRatio || 1;
+        // const cssWidth = canvas.offsetWidth;
+        // const cssHeight = canvas.offsetHeight;
+        // console.log(`🔍 CANVAS INIT: DPR=${dpr}, Canvas physique=${canvas.width}x${canvas.height}, CSS=${cssWidth}x${cssHeight}, Ratio=${(canvas.width/cssWidth).toFixed(2)}`);
 
         // Configuration
         this.options = {
@@ -258,35 +258,33 @@ class OptimizedPenAnnotation {
         // Sur iPad Pro avec Apple Pencil, cela donne jusqu'à 240Hz
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
 
-        // DEBUG: Vérifier si on reçoit bien tous les événements
+        // LIMITATION CONNUE: Safari iOS throttle les événements pointermove
+        // Il peut y avoir des gaps de 500-1000ms où aucun événement n'est reçu
+        // C'est une limitation du moteur de rendu Safari, pas un bug de notre code
+        // Interpoler les points si gap > 100ms et distance significative
         const now = performance.now();
         const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
         const timeSinceLastPoint = lastPoint ? (now - lastPoint.timestamp) : 0;
 
-        if (timeSinceLastPoint > 50) {
-            console.warn(`⚠️ GAP détecté: ${timeSinceLastPoint.toFixed(0)}ms entre événements, ${events.length} événements coalesced`);
+        if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2 && events.length > 0) {
+            const firstEvent = events[0];
+            const startX = lastPoint.x;
+            const startY = lastPoint.y;
+            const endX = firstEvent.offsetX;
+            const endY = firstEvent.offsetY;
 
-            // Si gap > 100ms, interpoler des points entre le dernier point et le premier nouvel événement
-            // Cela évite la ligne droite brutale en créant des points intermédiaires
-            if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2 && events.length > 0) {
-                const firstEvent = events[0];
-                const startX = lastPoint.x;
-                const startY = lastPoint.y;
-                const endX = firstEvent.offsetX;
-                const endY = firstEvent.offsetY;
+            // Calculer la distance pour déterminer combien de points interpoler
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-                // Calculer la distance pour déterminer combien de points interpoler
-                const dx = endX - startX;
-                const dy = endY - startY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                // Ajouter un point interpolé tous les 10px pour lisser la transition
+            // Ajouter un point interpolé tous les 10px pour lisser la transition
+            // Seulement si la distance est significative (> 5px)
+            if (distance > 5) {
                 const numPoints = Math.floor(distance / 10);
 
-                console.log(`🔄 Interpolation de ${numPoints} points pour combler le gap de ${distance.toFixed(0)}px`);
-
                 for (let i = 1; i <= numPoints; i++) {
-                    const t = i / (numPoints + 1); // Ratio d'interpolation
+                    const t = i / (numPoints + 1);
                     const interpX = startX + dx * t;
                     const interpY = startY + dy * t;
 
@@ -668,12 +666,6 @@ class OptimizedPenAnnotation {
             return;
         }
 
-        // DEBUG: Vérifier le redimensionnement
-        const dpr = window.devicePixelRatio || 1;
-        const cssWidth = this.canvas.offsetWidth;
-        const cssHeight = this.canvas.offsetHeight;
-        console.log(`📐 RESIZE: ${oldWidth}x${oldHeight} → ${width}x${height}, CSS=${cssWidth}x${cssHeight}, DPR=${dpr}, Ratio nouveau=${(width/cssWidth).toFixed(2)}`);
-
         // Redimensionner les canvas
         this.canvas.width = width;
         this.canvas.height = height;
@@ -683,8 +675,6 @@ class OptimizedPenAnnotation {
         // Recalculer les coordonnées des strokes
         const scaleX = width / oldWidth;
         const scaleY = height / oldHeight;
-
-        console.log(`📐 Scaling points: x${scaleX.toFixed(3)}, y${scaleY.toFixed(3)}`);
 
         for (const stroke of this.strokes) {
             for (const point of stroke.points) {
