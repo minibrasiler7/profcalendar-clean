@@ -24,8 +24,13 @@ class OptimizedPenAnnotation {
         // Permet au canvas de se mettre à jour sans attendre le vsync
         this.ctx = canvas.getContext('2d', {
             desynchronized: true,
-            willReadFrequently: false  // On ne lit pas souvent le canvas
+            willReadFrequently: false,  // On ne lit pas souvent le canvas
+            alpha: true
         });
+
+        // Activer l'antialiasing pour des traits lisses
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.imageSmoothingQuality = 'high';
 
         // DEBUG: Vérifier la résolution du canvas
         const dpr = window.devicePixelRatio || 1;
@@ -64,8 +69,13 @@ class OptimizedPenAnnotation {
         this.offscreenCanvas.height = canvas.height;
         this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
             desynchronized: true,
-            willReadFrequently: false
+            willReadFrequently: false,
+            alpha: true
         });
+
+        // Activer l'antialiasing pour l'offscreen canvas aussi
+        this.offscreenCtx.imageSmoothingEnabled = true;
+        this.offscreenCtx.imageSmoothingQuality = 'high';
 
         // Canvas de base avec tous les strokes complétés
         this.baseLayer = null; // ImageData sauvegardée des strokes complétés
@@ -260,8 +270,36 @@ class OptimizedPenAnnotation {
         // DEBUG: Vérifier si on reçoit bien tous les événements
         const now = performance.now();
         const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
-        if (lastPoint && (now - lastPoint.timestamp) > 50) {
-            console.warn(`⚠️ GAP détecté: ${(now - lastPoint.timestamp).toFixed(0)}ms entre événements, ${events.length} événements coalesced`);
+        const timeSinceLastPoint = lastPoint ? (now - lastPoint.timestamp) : 0;
+
+        if (timeSinceLastPoint > 50) {
+            console.warn(`⚠️ GAP détecté: ${timeSinceLastPoint.toFixed(0)}ms entre événements, ${events.length} événements coalesced`);
+
+            // Si gap > 100ms, c'est probablement un décrochage système
+            // Créer un nouveau stroke pour éviter la ligne de rattrapage
+            if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2) {
+                console.log('🔄 Création d\'un nouveau stroke pour éviter la ligne de rattrapage');
+
+                // Sauvegarder le stroke actuel
+                this.strokes.push(this.currentStroke);
+                if (this.onStrokeComplete) {
+                    this.onStrokeComplete(this.currentStroke);
+                }
+                this.commitCurrentStroke();
+
+                // Démarrer un nouveau stroke au premier point du gap
+                const firstEvent = events[0];
+                this.currentStroke = {
+                    points: [{
+                        x: firstEvent.offsetX,
+                        y: firstEvent.offsetY,
+                        pressure: firstEvent.pressure || 0.5,
+                        timestamp: performance.now()
+                    }],
+                    options: { ...this.options },
+                    timestamp: Date.now()
+                };
+            }
         }
 
         let pointsAdded = 0;
