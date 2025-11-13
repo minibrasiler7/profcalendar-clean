@@ -269,30 +269,37 @@ class OptimizedPenAnnotation {
         if (timeSinceLastPoint > 50) {
             console.warn(`⚠️ GAP détecté: ${timeSinceLastPoint.toFixed(0)}ms entre événements, ${events.length} événements coalesced`);
 
-            // Si gap > 100ms, c'est probablement un décrochage système
-            // Créer un nouveau stroke pour éviter la ligne de rattrapage
-            if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2) {
-                console.log('🔄 Création d\'un nouveau stroke pour éviter la ligne de rattrapage');
-
-                // Sauvegarder le stroke actuel
-                this.strokes.push(this.currentStroke);
-                if (this.onStrokeComplete) {
-                    this.onStrokeComplete(this.currentStroke);
-                }
-                this.commitCurrentStroke();
-
-                // Démarrer un nouveau stroke au premier point du gap
+            // Si gap > 100ms, interpoler des points entre le dernier point et le premier nouvel événement
+            // Cela évite la ligne droite brutale en créant des points intermédiaires
+            if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2 && events.length > 0) {
                 const firstEvent = events[0];
-                this.currentStroke = {
-                    points: [{
-                        x: firstEvent.offsetX,
-                        y: firstEvent.offsetY,
-                        pressure: firstEvent.pressure || 0.5,
-                        timestamp: performance.now()
-                    }],
-                    options: { ...this.options },
-                    timestamp: Date.now()
-                };
+                const startX = lastPoint.x;
+                const startY = lastPoint.y;
+                const endX = firstEvent.offsetX;
+                const endY = firstEvent.offsetY;
+
+                // Calculer la distance pour déterminer combien de points interpoler
+                const dx = endX - startX;
+                const dy = endY - startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Ajouter un point interpolé tous les 10px pour lisser la transition
+                const numPoints = Math.floor(distance / 10);
+
+                console.log(`🔄 Interpolation de ${numPoints} points pour combler le gap de ${distance.toFixed(0)}px`);
+
+                for (let i = 1; i <= numPoints; i++) {
+                    const t = i / (numPoints + 1); // Ratio d'interpolation
+                    const interpX = startX + dx * t;
+                    const interpY = startY + dy * t;
+
+                    this.currentStroke.points.push({
+                        x: interpX,
+                        y: interpY,
+                        pressure: 0.5,
+                        timestamp: lastPoint.timestamp + timeSinceLastPoint * t
+                    });
+                }
             }
         }
 
