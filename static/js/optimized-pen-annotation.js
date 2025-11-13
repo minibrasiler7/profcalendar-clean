@@ -179,20 +179,14 @@ class OptimizedPenAnnotation {
         if (this.isPinching && e.touches.length < 2) {
             this.isPinching = false;
 
-            // S'assurer qu'aucun dessin ne peut commencer immédiatement après un zoom
-            // Bloquer temporairement les interactions
-            this.isEnabled = false;
-
-            // Attendre que le zoom CSS soit appliqué
+            // Attendre que le zoom CSS soit appliqué SANS bloquer les interactions
+            // Réduire le timeout pour permettre au dessin de reprendre rapidement
             clearTimeout(this.pinchTimeout);
             this.pinchTimeout = setTimeout(() => {
-                // Réactiver les interactions après stabilisation
-                this.isEnabled = true;
-
                 if (this.onPinchZoom) {
                     this.onPinchZoom();
                 }
-            }, 500);
+            }, 100); // Réduit de 500ms à 100ms pour éviter les gaps
         }
 
         this.lastTouchCount = e.touches.length;
@@ -474,12 +468,17 @@ class OptimizedPenAnnotation {
         ctx.lineJoin = 'round';
         ctx.strokeStyle = options.color;
         ctx.globalAlpha = 1.0; // IMPORTANT: Opacité toujours à 100%
-        ctx.lineWidth = options.size; // IMPORTANT: Épaisseur fixe, pas de variation
+
+        // IMPORTANT: Multiplier la taille par DPR pour compenser la résolution Retina
+        // Le canvas physique est 2x plus grand, donc les traits doivent être 2x plus épais
+        const dpr = window.devicePixelRatio || 1;
+        const effectiveSize = options.size * dpr;
+        ctx.lineWidth = effectiveSize;
 
         // Dessiner des cercles aux points pour garantir la continuité visuelle
         for (let i = 0; i < points.length; i++) {
             ctx.beginPath();
-            ctx.arc(points[i].x, points[i].y, options.size / 2, 0, Math.PI * 2);
+            ctx.arc(points[i].x, points[i].y, effectiveSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
 
