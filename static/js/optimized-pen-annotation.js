@@ -87,16 +87,9 @@ class OptimizedPenAnnotation {
         // Interpolation des courbes
         this.tension = 0.5; // Tension pour Catmull-Rom (0 = linéaire, 0.5 = courbe douce)
 
-        // Sauvegarder les styles CSS originaux
-        this.originalTouchAction = this.canvas.style.touchAction;
-
-        // IMPORTANT: Désactiver complètement touchAction pour éviter les blocages iOS
-        // iOS bloque pointermove quand il détecte des gestures potentielles
-        this.canvas.style.touchAction = 'none';
-        this.canvas.style.userSelect = 'none';
-        this.canvas.style.webkitUserSelect = 'none';
-        this.canvas.style.webkitTouchCallout = 'none';
-        this.canvas.style.msTouchAction = 'none';
+        // IMPORTANT: touch-action: none est maintenant défini dans le CSS
+        // Cela DOIT être dans le CSS pour éviter les blocages iOS
+        // (Safari bloque pointermove si touch-action est changé dynamiquement)
 
         // Bind event handlers
         this.handlePointerDown = this.handlePointerDown.bind(this);
