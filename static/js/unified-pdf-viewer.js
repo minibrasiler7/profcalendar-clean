@@ -7342,6 +7342,13 @@ class UnifiedPDFViewer {
             let pagesChecked = 0;
             for (const [pageNum, pageElement] of this.pageElements) {
                 pagesChecked++;
+
+                // CRITIQUE: Yield to event loop every 3 pages to prevent blocking stylus events
+                // Safari/iOS drops pointermove events when main thread is blocked
+                if (pagesChecked % 3 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+
                 if (pageElement.annotationCtx) {
                     const canvas = pageElement.annotationCtx.canvas;
                     // Vérifier si le canvas contient des dessins (pas complètement vide)
