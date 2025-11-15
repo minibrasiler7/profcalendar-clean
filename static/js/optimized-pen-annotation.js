@@ -187,7 +187,17 @@ class OptimizedPenAnnotation {
      * Début du dessin
      */
     handlePointerDown(e) {
+        console.log(`🖊️ [OptimizedPen] POINTERDOWN START:`, {
+            isEnabled: this.isEnabled,
+            isPinching: this.isPinching,
+            pointerType: e.pointerType,
+            buttons: e.buttons,
+            pressure: e.pressure,
+            timestamp: performance.now()
+        });
+
         if (!this.isEnabled || this.isPinching) {
+            console.log(`⛔ [OptimizedPen] Dessin désactivé ou pinching, retour`);
             return;
         }
 
@@ -197,13 +207,17 @@ class OptimizedPenAnnotation {
 
         // Ignorer les doigts - laisser le scroll/zoom natif
         if (isFinger) {
+            console.log(`👆 [OptimizedPen] Doigt détecté, ignorer`);
             return;
         }
 
         // Accepter seulement stylet ou souris
         if (!isStylus && !isMouse) {
+            console.log(`❓ [OptimizedPen] Type de pointeur inconnu, ignorer`);
             return;
         }
+
+        console.log(`✅ [OptimizedPen] Démarrage du dessin avec ${e.pointerType}`);
 
         // touchAction est déjà à 'none' en permanence
         e.preventDefault();
@@ -241,8 +255,32 @@ class OptimizedPenAnnotation {
      * Mouvement pendant le dessin - CRITIQUE pour la performance
      */
     handlePointerMove(e) {
-        if (!this.isDrawing) return;
-        if (e.buttons !== 1) return;
+        if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
+        this._pointerMoveCounter++;
+        const shouldLog = this._pointerMoveCounter % 20 === 0;
+
+        if (!this.isDrawing) {
+            if (shouldLog) {
+                console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter} - NON DRAWING`);
+            }
+            return;
+        }
+        if (e.buttons !== 1) {
+            if (shouldLog) {
+                console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter} - buttons=${e.buttons}`);
+            }
+            return;
+        }
+
+        if (shouldLog) {
+            console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter}:`, {
+                isDrawing: this.isDrawing,
+                buttons: e.buttons,
+                pressure: e.pressure,
+                pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
+                timestamp: performance.now()
+            });
+        }
 
         e.preventDefault();
         e.stopPropagation();
@@ -258,6 +296,10 @@ class OptimizedPenAnnotation {
         const now = performance.now();
         const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
         const timeSinceLastPoint = lastPoint ? (now - lastPoint.timestamp) : 0;
+
+        if (shouldLog && timeSinceLastPoint > 50) {
+            console.log(`⏱️ [OptimizedPen] Gap de ${timeSinceLastPoint.toFixed(0)}ms depuis dernier point`);
+        }
 
         if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2 && events.length > 0) {
             const firstEvent = events[0];
@@ -319,7 +361,18 @@ class OptimizedPenAnnotation {
      * Fin du dessin
      */
     handlePointerUp(e) {
-        if (!this.isDrawing) return;
+        console.log(`🟢 [OptimizedPen] POINTERUP:`, {
+            isDrawing: this.isDrawing,
+            pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
+            totalMoves: this._pointerMoveCounter || 0,
+            timestamp: performance.now()
+        });
+        this._pointerMoveCounter = 0;
+
+        if (!this.isDrawing) {
+            console.log(`⚠️ [OptimizedPen] POINTERUP mais isDrawing=false`);
+            return;
+        }
 
         e.preventDefault();
         e.stopPropagation();
@@ -332,6 +385,7 @@ class OptimizedPenAnnotation {
         }
 
         this.isDrawing = false;
+        console.log(`✅ [OptimizedPen] Dessin terminé, stroke sauvegardé`);
 
         // touchAction reste à 'none' en permanence
 
