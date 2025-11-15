@@ -387,6 +387,10 @@ class OptimizedPenAnnotation {
         this.isDrawing = false;
         console.log(`✅ [OptimizedPen] Dessin terminé, stroke sauvegardé`);
 
+        // Reset render counter
+        this._renderCounter = 0;
+        this._lastRenderTime = null;
+
         // touchAction reste à 'none' en permanence
 
         // Sauvegarder le stroke complété
@@ -457,6 +461,28 @@ class OptimizedPenAnnotation {
      * - Composite le tout sur le canvas principal
      */
     render() {
+        // DEBUG: Logger les appels à render() avec throttling
+        if (!this._renderCounter) this._renderCounter = 0;
+        this._renderCounter++;
+
+        const now = performance.now();
+        if (this._lastRenderTime) {
+            const timeSinceLastRender = now - this._lastRenderTime;
+            if (this._renderCounter % 20 === 0) {
+                console.log(`🎨 [OptimizedPen] RENDER #${this._renderCounter}:`, {
+                    isDrawing: this.isDrawing,
+                    pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
+                    timeSinceLastRender: timeSinceLastRender.toFixed(1) + 'ms',
+                    timestamp: now.toFixed(0)
+                });
+            }
+            // Détecter les gaps > 100ms dans le rendu
+            if (timeSinceLastRender > 100) {
+                console.warn(`⚠️ [OptimizedPen] RENDER GAP de ${timeSinceLastRender.toFixed(0)}ms détecté!`);
+            }
+        }
+        this._lastRenderTime = now;
+
         // Effacer le canvas principal
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
