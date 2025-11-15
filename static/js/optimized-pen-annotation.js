@@ -458,11 +458,18 @@ class OptimizedPenAnnotation {
                 console.log(`✅ [OptimizedPen] needsRedraw activé, ${pointsAdded} points ajoutés`);
                 this._needsRedrawLogged = true;
 
-                // CRITIQUE: Forcer le premier render IMMÉDIATEMENT pour éviter le gap Safari iOS
-                // Safari bloque le premier render dans le loop, donc on le fait manuellement
-                console.log(`⚡ [OptimizedPen] FORCING first render to bypass Safari iOS throttle`);
-                this.render();
-                this.needsRedraw = false;
+                // CRITIQUE: Render ultra-minimal pour "warm up" le canvas
+                // Safari iOS bloque le canvas rendering, donc on fait un simple point
+                console.log(`⚡ [OptimizedPen] Quick initial render to warm up canvas`);
+                const firstPoint = this.currentStroke.points[0];
+                if (firstPoint) {
+                    this.ctx.fillStyle = this.currentStroke.options.color;
+                    const dpr = window.devicePixelRatio || 1;
+                    const size = this.currentStroke.options.size * dpr;
+                    this.ctx.beginPath();
+                    this.ctx.arc(firstPoint.x, firstPoint.y, size / 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
             }
         }
     }
