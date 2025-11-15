@@ -354,6 +354,12 @@ class OptimizedPenAnnotation {
 
         if (pointsAdded > 0) {
             this.needsRedraw = true;
+
+            // DEBUG: Log uniquement sur le premier needsRedraw
+            if (!this._needsRedrawLogged) {
+                console.log(`✅ [OptimizedPen] needsRedraw activé, ${pointsAdded} points ajoutés`);
+                this._needsRedrawLogged = true;
+            }
         }
     }
 
@@ -387,9 +393,10 @@ class OptimizedPenAnnotation {
         this.isDrawing = false;
         console.log(`✅ [OptimizedPen] Dessin terminé, stroke sauvegardé`);
 
-        // Reset render counter
+        // Reset render counter and flags
         this._renderCounter = 0;
         this._lastRenderTime = null;
+        this._needsRedrawLogged = false;
 
         // touchAction reste à 'none' en permanence
 
@@ -434,6 +441,8 @@ class OptimizedPenAnnotation {
      * Ne redessine que si nécessaire (dirty flag)
      */
     startRenderLoop() {
+        console.log(`🔄 [OptimizedPen] Démarrage de la boucle de rendu`);
+
         const loop = () => {
             if (this.needsRedraw) {
                 this.render();
