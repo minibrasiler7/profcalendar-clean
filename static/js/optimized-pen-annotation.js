@@ -634,23 +634,26 @@ class OptimizedPenAnnotation {
         if (points.length === 2) {
             // Ligne simple pour 2 points
             ctx.lineTo(points[1].x, points[1].y);
+        } else if (points.length === 3) {
+            // Pour 3 points, courbe quadratique simple
+            ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
         } else {
-            // Courbes quadratiques pour lissage (comme iOS)
+            // Catmull-Rom spline pour un lissage parfait (comme iOS Notes)
+            // Premier segment: courbe quadratique vers le milieu entre p0 et p1
+            const mid1X = (points[0].x + points[1].x) / 2;
+            const mid1Y = (points[0].y + points[1].y) / 2;
+            ctx.quadraticCurveTo(points[0].x, points[0].y, mid1X, mid1Y);
+
+            // Segments intermédiaires: courbe quadratique avec point de contrôle au point actuel
             for (let i = 1; i < points.length - 1; i++) {
-                const p1 = points[i];
-                const p2 = points[i + 1];
-
-                // Point de contrôle = point actuel
-                // Point d'arrivée = milieu entre actuel et suivant
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-
-                ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+                const midX = (points[i].x + points[i + 1].x) / 2;
+                const midY = (points[i].y + points[i + 1].y) / 2;
+                ctx.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
             }
 
-            // Dernier segment jusqu'au dernier point
-            const lastPoint = points[points.length - 1];
-            ctx.lineTo(lastPoint.x, lastPoint.y);
+            // Dernier segment: courbe quadratique jusqu'au dernier point
+            const lastIdx = points.length - 1;
+            ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
         }
 
         ctx.stroke();
