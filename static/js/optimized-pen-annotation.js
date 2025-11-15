@@ -388,6 +388,10 @@ class OptimizedPenAnnotation {
         // Sur iPad Pro avec Apple Pencil, cela donne jusqu'à 240Hz
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
 
+        if (shouldLog && events.length > 1) {
+            console.log(`📊 [OptimizedPen] getCoalescedEvents récupéré ${events.length} événements coalescés`);
+        }
+
         // LIMITATION CONNUE: Safari iOS throttle les événements pointermove
         // Il peut y avoir des gaps de 500-1000ms où aucun événement n'est reçu
         // C'est une limitation du moteur de rendu Safari, pas un bug de notre code
