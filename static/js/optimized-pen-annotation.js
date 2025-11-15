@@ -400,37 +400,9 @@ class OptimizedPenAnnotation {
             console.log(`⏱️ [OptimizedPen] Gap de ${timeSinceLastPoint.toFixed(0)}ms depuis dernier point`);
         }
 
-        if (timeSinceLastPoint > 100 && this.currentStroke.points.length > 2 && events.length > 0) {
-            const firstEvent = events[0];
-            const startX = lastPoint.x;
-            const startY = lastPoint.y;
-            const endX = firstEvent.offsetX;
-            const endY = firstEvent.offsetY;
-
-            // Calculer la distance pour déterminer combien de points interpoler
-            const dx = endX - startX;
-            const dy = endY - startY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Ajouter un point interpolé tous les 10px pour lisser la transition
-            // Seulement si la distance est significative (> 5px)
-            if (distance > 5) {
-                const numPoints = Math.floor(distance / 10);
-
-                for (let i = 1; i <= numPoints; i++) {
-                    const t = i / (numPoints + 1);
-                    const interpX = startX + dx * t;
-                    const interpY = startY + dy * t;
-
-                    this.currentStroke.points.push({
-                        x: interpX,
-                        y: interpY,
-                        pressure: 0.5,
-                        timestamp: lastPoint.timestamp + timeSinceLastPoint * t
-                    });
-                }
-            }
-        }
+        // SUPPRIMÉ: L'interpolation linéaire créait des lignes droites visibles dans les courbes
+        // Les courbes quadratiques dans drawStroke() gèrent naturellement les gaps
+        // sans créer d'artefacts visuels
 
         let pointsAdded = 0;
 
