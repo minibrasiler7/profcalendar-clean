@@ -4208,11 +4208,21 @@ class UnifiedPDFViewer {
         // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
+            // DEBUG: Log tous les pointerdown pour identifier les événements en chaîne
+            console.log(`🔴 [Page ${pageNum}] POINTERDOWN:`, {
+                tool: this.currentTool,
+                buttons: e.buttons,
+                pointerType: e.pointerType,
+                pressure: e.pressure,
+                timestamp: performance.now()
+            });
+
             // Pour l'outil pen, juste marquer isDrawing pour le pointerup
             if (this.currentTool === 'pen') {
                 // SimplePenAnnotation gère le dessin, mais on doit tracker isDrawing
                 if (e.buttons > 0) {  // Seulement si vraiment en contact
                     this.isDrawing = true;
+                    console.log(`✅ [Page ${pageNum}] Pen isDrawing = true`);
                 }
                 return;
             }
@@ -4229,6 +4239,22 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointermove', (e) => {
+            // DEBUG: Log pointermove uniquement si isDrawing pour éviter le spam
+            if (this.isDrawing || this.currentTool === 'pen') {
+                // Throttle les logs - log seulement 1 sur 10
+                if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
+                this._pointerMoveCounter++;
+                if (this._pointerMoveCounter % 10 === 0) {
+                    console.log(`🔵 [Page ${pageNum}] POINTERMOVE #${this._pointerMoveCounter}:`, {
+                        tool: this.currentTool,
+                        buttons: e.buttons,
+                        isDrawing: this.isDrawing,
+                        pressure: e.pressure,
+                        timestamp: performance.now()
+                    });
+                }
+            }
+
             // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
             if (this.currentTool === 'pen') return;
 
@@ -4245,11 +4271,23 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointerup', (e) => {
+            // DEBUG: Log tous les pointerup
+            console.log(`🟢 [Page ${pageNum}] POINTERUP:`, {
+                tool: this.currentTool,
+                buttons: e.buttons,
+                isDrawing: this.isDrawing,
+                pressure: e.pressure,
+                timestamp: performance.now()
+            });
+            // Reset counter
+            this._pointerMoveCounter = 0;
+
             // Pour le stylo, sauvegarder l'état après le trait
             if (this.currentTool === 'pen') {
                 // SimplePenAnnotation gère le dessin, mais on doit sauvegarder l'état
                 if (this.isDrawing) {
                     this.isDrawing = false;
+                    console.log(`✅ [Page ${pageNum}] Pen isDrawing = false, sauvegarde état...`);
                     // Sauvegarder l'état pour l'historique undo/redo
                     this.saveCanvasState(pageNum);
                     // Sauvegarder automatiquement sur le serveur avec debounce
@@ -4272,6 +4310,13 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointerleave', (e) => {
+            // DEBUG: Log pointerleave
+            console.log(`⚠️ [Page ${pageNum}] POINTERLEAVE:`, {
+                tool: this.currentTool,
+                isDrawing: this.isDrawing,
+                timestamp: performance.now()
+            });
+
             // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
             if (this.currentTool === 'pen') return;
 
