@@ -634,7 +634,7 @@ class OptimizedPenAnnotation {
         // Dessiner les traits entre les points avec courbes quadratiques
         // IMPORTANT: Détecter les grands sauts temporels et commencer un nouveau sous-chemin
         // pour éviter les lignes droites artificielles après les gaps Safari
-        const MAX_TIME_GAP = 80; // ms - au-delà, c'est probablement un gap Safari
+        const MAX_TIME_GAP = 45; // ms - au-delà, c'est probablement un gap Safari
 
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
