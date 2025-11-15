@@ -653,15 +653,9 @@ class OptimizedPenAnnotation {
         const dpr = window.devicePixelRatio || 1;
         const effectiveSize = options.size * dpr;
         ctx.lineWidth = effectiveSize;
+        ctx.fillStyle = options.color;
 
-        // Dessiner des cercles aux points pour garantir la continuité visuelle
-        for (let i = 0; i < points.length; i++) {
-            ctx.beginPath();
-            ctx.arc(points[i].x, points[i].y, effectiveSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Dessiner les traits entre les points
+        // Dessiner les traits entre les points avec courbes quadratiques
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
 
@@ -688,6 +682,19 @@ class OptimizedPenAnnotation {
         }
 
         ctx.stroke();
+
+        // IMPORTANT: Dessiner des cercles uniquement aux extrémités pour lineCap rond
+        // Ne PAS dessiner de cercles à tous les points intermédiaires (crée des "perles" visibles)
+        ctx.beginPath();
+        ctx.arc(points[0].x, points[0].y, effectiveSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (points.length > 1) {
+            ctx.beginPath();
+            ctx.arc(points[points.length - 1].x, points[points.length - 1].y, effectiveSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 
