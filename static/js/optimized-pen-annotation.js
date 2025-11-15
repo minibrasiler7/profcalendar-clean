@@ -329,6 +329,7 @@ class OptimizedPenAnnotation {
         }
 
         this.isDrawing = true;
+        this._isNewStroke = true; // Flag pour ignorer le gap warning au premier render
 
         // Initialiser un nouveau stroke
         this.currentStroke = {
@@ -576,9 +577,13 @@ class OptimizedPenAnnotation {
                 });
             }
             // Détecter les gaps > 100ms dans le rendu (seulement si on dessine)
-            // Note: au premier stroke, le gap est normal (pause entre les strokes)
-            if (this.isDrawing && timeSinceLastRender > 100 && timeSinceLastRender < 5000) {
+            // Note: Ignorer le premier render après pointerdown (gap normal entre strokes)
+            if (this.isDrawing && !this._isNewStroke && timeSinceLastRender > 100 && timeSinceLastRender < 5000) {
                 console.warn(`⚠️ [OptimizedPen] RENDER GAP de ${timeSinceLastRender.toFixed(0)}ms détecté pendant le dessin!`);
+            }
+            // Clear le flag après le premier render
+            if (this._isNewStroke) {
+                this._isNewStroke = false;
             }
         }
         this._lastRenderTime = now;
