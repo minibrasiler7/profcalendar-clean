@@ -39,7 +39,7 @@ class GlobalRenderManager {
      */
     register(instance) {
         this.instances.add(instance);
-        console.log(`🔄 [RenderManager] Instance enregistrée, total: ${this.instances.size}`);
+        // console.log(`🔄 [RenderManager] Instance enregistrée, total: ${this.instances.size}`);
 
         // Démarrer la boucle si pas encore démarrée
         if (!this.isRunning) {
@@ -52,7 +52,7 @@ class GlobalRenderManager {
      */
     unregister(instance) {
         this.instances.delete(instance);
-        console.log(`🔄 [RenderManager] Instance désenregistrée, total: ${this.instances.size}`);
+        // console.log(`🔄 [RenderManager] Instance désenregistrée, total: ${this.instances.size}`);
 
         // Arrêter la boucle si plus d'instances
         if (this.instances.size === 0 && this.isRunning) {
@@ -67,18 +67,18 @@ class GlobalRenderManager {
         if (this.isRunning) return;
 
         this.isRunning = true;
-        console.log(`✅ [RenderManager] Démarrage de la boucle de rendu globale`);
+        // console.log(`✅ [RenderManager] Démarrage de la boucle de rendu globale`);
 
         const loop = () => {
             this._renderCounter++;
             const now = performance.now();
 
-            // Log throttled toutes les 5 secondes
-            if (now - this._lastLogTime > 5000) {
-                const dirtyCount = Array.from(this.instances).filter(i => i.needsRedraw).length;
-                console.log(`🎨 [RenderManager] Loop #${this._renderCounter}, ${this.instances.size} instances, ${dirtyCount} dirty`);
-                this._lastLogTime = now;
-            }
+            // Log throttled toutes les 5 secondes (désactivé en production)
+            // if (now - this._lastLogTime > 5000) {
+            //     const dirtyCount = Array.from(this.instances).filter(i => i.needsRedraw).length;
+            //     console.log(`🎨 [RenderManager] Loop #${this._renderCounter}, ${this.instances.size} instances, ${dirtyCount} dirty`);
+            //     this._lastLogTime = now;
+            // }
 
             // Render toutes les instances qui ont needsRedraw = true
             for (const instance of this.instances) {
@@ -107,7 +107,7 @@ class GlobalRenderManager {
             this.animationFrameId = null;
         }
 
-        console.log(`🛑 [RenderManager] Boucle de rendu globale arrêtée`);
+        // console.log(`🛑 [RenderManager] Boucle de rendu globale arrêtée`);
     }
 }
 
@@ -575,9 +575,10 @@ class OptimizedPenAnnotation {
                     timestamp: now.toFixed(0)
                 });
             }
-            // Détecter les gaps > 100ms dans le rendu
-            if (timeSinceLastRender > 100) {
-                console.warn(`⚠️ [OptimizedPen] RENDER GAP de ${timeSinceLastRender.toFixed(0)}ms détecté!`);
+            // Détecter les gaps > 100ms dans le rendu (seulement si on dessine)
+            // Note: au premier stroke, le gap est normal (pause entre les strokes)
+            if (this.isDrawing && timeSinceLastRender > 100 && timeSinceLastRender < 5000) {
+                console.warn(`⚠️ [OptimizedPen] RENDER GAP de ${timeSinceLastRender.toFixed(0)}ms détecté pendant le dessin!`);
             }
         }
         this._lastRenderTime = now;

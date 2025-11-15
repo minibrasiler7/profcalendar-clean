@@ -2203,7 +2203,8 @@ class UnifiedPDFViewer {
             console.log('  💾 Sauvegarde des annotations avant fermeture...');
             console.log(`  📊 Pages chargées: ${this.pageElements.size}`);
             try {
-                await this.saveAnnotations();
+                // Utiliser sendBeacon pour une meilleure fiabilité lors de la fermeture
+                await this.saveAnnotations(true);
                 console.log('  ✅ Annotations sauvegardées après destroy()');
             } catch (error) {
                 console.error('  ❌ Erreur lors de la sauvegarde:', error);
@@ -7313,7 +7314,7 @@ class UnifiedPDFViewer {
         console.log('✅ Toutes les images d\'annotations ont été chargées et dessinées');
     }
     
-    async saveAnnotations() {
+    async saveAnnotations(useBeacon = false) {
         // Sauvegarder les annotations via l'API
         try {
             // Éviter les requêtes CORS lors des tests locaux
@@ -7414,6 +7415,19 @@ class UnifiedPDFViewer {
             };
 
             console.log(`  📤 Envoi au serveur: file_id=${this.fileId}, pages avec contenu=${Object.keys(annotationsData.canvasData).length}`);
+
+            // Utiliser sendBeacon pour les sauvegardes lors de la fermeture de la page
+            // (plus fiable que fetch qui peut être annulé lors de la navigation)
+            if (useBeacon && navigator.sendBeacon) {
+                const blob = new Blob([JSON.stringify(payloadToSave)], { type: 'application/json' });
+                const sent = navigator.sendBeacon(this.options.apiEndpoints.saveAnnotations, blob);
+                if (sent) {
+                    console.log('✅ Annotations envoyées via sendBeacon (fermeture de page)');
+                } else {
+                    console.warn('⚠️ sendBeacon a échoué, données peut-être trop volumineuses');
+                }
+                return;
+            }
 
             const response = await fetch(this.options.apiEndpoints.saveAnnotations, {
                 method: 'POST',
