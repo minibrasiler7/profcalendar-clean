@@ -12,9 +12,107 @@
  * - Canvas desynchronized pour réduire la latence
  * - Gestion vectorielle pure sans dégradation raster
  * - Détection intelligente stylet/doigt/pinch-zoom
+ * - Global RenderManager pour éviter les throttles Safari iOS
  */
 
 'use strict';
+
+/**
+ * GLOBAL RENDER MANAGER
+ *
+ * Safari iOS throttle sévèrement les multiples requestAnimationFrame loops.
+ * Avec 32 PDF pages = 32 loops séparés → premier render delayed de 500-3800ms
+ *
+ * Solution: UN SEUL loop global qui render tous les canvas "dirty"
+ */
+class GlobalRenderManager {
+    constructor() {
+        this.instances = new Set();
+        this.animationFrameId = null;
+        this.isRunning = false;
+        this._renderCounter = 0;
+        this._lastLogTime = 0;
+    }
+
+    /**
+     * Enregistre une instance OptimizedPenAnnotation
+     */
+    register(instance) {
+        this.instances.add(instance);
+        console.log(`🔄 [RenderManager] Instance enregistrée, total: ${this.instances.size}`);
+
+        // Démarrer la boucle si pas encore démarrée
+        if (!this.isRunning) {
+            this.start();
+        }
+    }
+
+    /**
+     * Désenregistre une instance
+     */
+    unregister(instance) {
+        this.instances.delete(instance);
+        console.log(`🔄 [RenderManager] Instance désenregistrée, total: ${this.instances.size}`);
+
+        // Arrêter la boucle si plus d'instances
+        if (this.instances.size === 0 && this.isRunning) {
+            this.stop();
+        }
+    }
+
+    /**
+     * Démarre la boucle de rendu globale
+     */
+    start() {
+        if (this.isRunning) return;
+
+        this.isRunning = true;
+        console.log(`✅ [RenderManager] Démarrage de la boucle de rendu globale`);
+
+        const loop = () => {
+            this._renderCounter++;
+            const now = performance.now();
+
+            // Log throttled toutes les 5 secondes
+            if (now - this._lastLogTime > 5000) {
+                const dirtyCount = Array.from(this.instances).filter(i => i.needsRedraw).length;
+                console.log(`🎨 [RenderManager] Loop #${this._renderCounter}, ${this.instances.size} instances, ${dirtyCount} dirty`);
+                this._lastLogTime = now;
+            }
+
+            // Render toutes les instances qui ont needsRedraw = true
+            for (const instance of this.instances) {
+                if (instance.needsRedraw) {
+                    instance.render();
+                    instance.needsRedraw = false;
+                }
+            }
+
+            this.animationFrameId = requestAnimationFrame(loop);
+        };
+
+        loop();
+    }
+
+    /**
+     * Arrête la boucle de rendu globale
+     */
+    stop() {
+        if (!this.isRunning) return;
+
+        this.isRunning = false;
+
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
+        console.log(`🛑 [RenderManager] Boucle de rendu globale arrêtée`);
+    }
+}
+
+// Instance singleton globale
+const globalRenderManager = new GlobalRenderManager();
 
 class OptimizedPenAnnotation {
     constructor(canvas, options = {}) {
@@ -114,8 +212,8 @@ class OptimizedPenAnnotation {
         this.canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
         this.canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
 
-        // Démarrer la boucle de rendu
-        this.startRenderLoop();
+        // Enregistrer auprès du gestionnaire de rendu global au lieu de démarrer une boucle individuelle
+        globalRenderManager.register(this);
     }
 
     /**
@@ -437,31 +535,10 @@ class OptimizedPenAnnotation {
     }
 
     /**
-     * OPTIMISATION: Boucle de rendu avec requestAnimationFrame
-     * Ne redessine que si nécessaire (dirty flag)
+     * SUPPRIMÉ: startRenderLoop() et stopRenderLoop()
+     * La gestion du rendu est maintenant assurée par le GlobalRenderManager
+     * Cela évite d'avoir 32 requestAnimationFrame loops qui saturent Safari iOS
      */
-    startRenderLoop() {
-        console.log(`🔄 [OptimizedPen] Démarrage de la boucle de rendu`);
-
-        const loop = () => {
-            if (this.needsRedraw) {
-                this.render();
-                this.needsRedraw = false;
-            }
-            this.animationFrameId = requestAnimationFrame(loop);
-        };
-        loop();
-    }
-
-    /**
-     * Arrête la boucle de rendu
-     */
-    stopRenderLoop() {
-        if (this.animationFrameId) {
-            cancelAnimationFrame(this.animationFrameId);
-            this.animationFrameId = null;
-        }
-    }
 
     /**
      * CRITIQUE: Rendu optimisé avec double buffering
@@ -772,8 +849,8 @@ class OptimizedPenAnnotation {
      * Nettoie et détruit l'instance
      */
     destroy() {
-        // Arrêter la boucle de rendu
-        this.stopRenderLoop();
+        // Désenregistrer du gestionnaire de rendu global
+        globalRenderManager.unregister(this);
 
         // Retirer les event listeners
         this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
