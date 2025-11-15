@@ -457,6 +457,12 @@ class OptimizedPenAnnotation {
             if (!this._needsRedrawLogged) {
                 console.log(`✅ [OptimizedPen] needsRedraw activé, ${pointsAdded} points ajoutés`);
                 this._needsRedrawLogged = true;
+
+                // CRITIQUE: Forcer le premier render IMMÉDIATEMENT pour éviter le gap Safari iOS
+                // Safari bloque le premier render dans le loop, donc on le fait manuellement
+                console.log(`⚡ [OptimizedPen] FORCING first render to bypass Safari iOS throttle`);
+                this.render();
+                this.needsRedraw = false;
             }
         }
     }
