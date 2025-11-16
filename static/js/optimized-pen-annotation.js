@@ -632,10 +632,7 @@ class OptimizedPenAnnotation {
         ctx.fillStyle = options.color;
 
         // Dessiner les traits entre les points avec courbes quadratiques
-        // IMPORTANT: Détecter les grands sauts temporels et commencer un nouveau sous-chemin
-        // pour éviter les lignes droites artificielles après les gaps Safari
-        const MAX_TIME_GAP = 45; // ms - au-delà, c'est probablement un gap Safari
-
+        // Utilise le lissage Catmull-Rom comme iOS Notes/Files
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
 
@@ -648,37 +645,22 @@ class OptimizedPenAnnotation {
         } else {
             // Catmull-Rom spline pour un lissage parfait (comme iOS Notes)
             // Premier segment: courbe quadratique vers le milieu entre p0 et p1
-            let mid1X = (points[0].x + points[1].x) / 2;
-            let mid1Y = (points[0].y + points[1].y) / 2;
+            const mid1X = (points[0].x + points[1].x) / 2;
+            const mid1Y = (points[0].y + points[1].y) / 2;
             ctx.quadraticCurveTo(points[0].x, points[0].y, mid1X, mid1Y);
 
             // Segments intermédiaires: courbe quadratique avec point de contrôle au point actuel
-            let lastGapIndex = -1;
             for (let i = 1; i < points.length - 1; i++) {
                 const p1 = points[i];
                 const p2 = points[i + 1];
-
-                // Détecter les gaps temporels significatifs
-                const timeGap = p2.timestamp - p1.timestamp;
-                if (timeGap > MAX_TIME_GAP) {
-                    // Gap détecté: terminer le chemin actuel et en commencer un nouveau
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(p2.x, p2.y);
-                    lastGapIndex = i; // Marquer où était le gap
-                    continue; // Sauter ce segment pour éviter la ligne droite
-                }
-
                 const midX = (p1.x + p2.x) / 2;
                 const midY = (p1.y + p2.y) / 2;
                 ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
             }
 
-            // Dernier segment: seulement si le dernier point n'est pas juste après un gap
+            // Dernier segment: courbe quadratique jusqu'au dernier point
             const lastIdx = points.length - 1;
-            if (lastGapIndex !== lastIdx - 1) {
-                ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
-            }
+            ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
         }
 
         ctx.stroke();
