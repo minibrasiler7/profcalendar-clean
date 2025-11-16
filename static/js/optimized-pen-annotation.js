@@ -663,7 +663,8 @@ class OptimizedPenAnnotation {
                     // Gap détecté: terminer le chemin actuel et en commencer un nouveau
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.moveTo(p1.x, p1.y);
+                    ctx.moveTo(p2.x, p2.y);
+                    continue; // Sauter ce segment pour éviter la ligne droite
                 }
 
                 const midX = (p1.x + p2.x) / 2;
