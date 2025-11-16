@@ -653,6 +653,7 @@ class OptimizedPenAnnotation {
             ctx.quadraticCurveTo(points[0].x, points[0].y, mid1X, mid1Y);
 
             // Segments intermédiaires: courbe quadratique avec point de contrôle au point actuel
+            let lastGapIndex = -1;
             for (let i = 1; i < points.length - 1; i++) {
                 const p1 = points[i];
                 const p2 = points[i + 1];
@@ -664,6 +665,7 @@ class OptimizedPenAnnotation {
                     ctx.stroke();
                     ctx.beginPath();
                     ctx.moveTo(p2.x, p2.y);
+                    lastGapIndex = i; // Marquer où était le gap
                     continue; // Sauter ce segment pour éviter la ligne droite
                 }
 
@@ -672,9 +674,11 @@ class OptimizedPenAnnotation {
                 ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
             }
 
-            // Dernier segment: courbe quadratique jusqu'au dernier point
+            // Dernier segment: seulement si le dernier point n'est pas juste après un gap
             const lastIdx = points.length - 1;
-            ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
+            if (lastGapIndex !== lastIdx - 1) {
+                ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
+            }
         }
 
         ctx.stroke();
