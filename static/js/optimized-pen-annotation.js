@@ -657,13 +657,14 @@ class OptimizedPenAnnotation {
                 // Détecter les grands sauts spatiaux (causés par les gaps de Safari lors de l'auto-save)
                 const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
 
-                // Si le saut est trop grand (>50px), c'est un gap Safari -> briser le chemin
-                if (dist > 50) {
+                // Si le saut est trop grand (>30px), c'est un gap Safari -> briser le chemin
+                if (dist > 30) {
                     // Terminer le chemin actuel
                     ctx.stroke();
                     // Commencer un nouveau chemin au point suivant
                     ctx.beginPath();
                     ctx.moveTo(p2.x, p2.y);
+                    console.log(`[DRAW] Path broken at gap: dist=${dist.toFixed(1)}px, points=${i}/${points.length}`);
                     continue;
                 }
 
