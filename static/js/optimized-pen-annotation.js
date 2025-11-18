@@ -39,7 +39,6 @@ class GlobalRenderManager {
      */
     register(instance) {
         this.instances.add(instance);
-        // console.log(`🔄 [RenderManager] Instance enregistrée, total: ${this.instances.size}`);
 
         // Démarrer la boucle si pas encore démarrée
         if (!this.isRunning) {
@@ -52,7 +51,6 @@ class GlobalRenderManager {
      */
     unregister(instance) {
         this.instances.delete(instance);
-        // console.log(`🔄 [RenderManager] Instance désenregistrée, total: ${this.instances.size}`);
 
         // Arrêter la boucle si plus d'instances
         if (this.instances.size === 0 && this.isRunning) {
@@ -67,18 +65,10 @@ class GlobalRenderManager {
         if (this.isRunning) return;
 
         this.isRunning = true;
-        // console.log(`✅ [RenderManager] Démarrage de la boucle de rendu globale`);
 
         const loop = () => {
             this._renderCounter++;
             const now = performance.now();
-
-            // Log throttled toutes les 5 secondes (désactivé en production)
-            // if (now - this._lastLogTime > 5000) {
-            //     const dirtyCount = Array.from(this.instances).filter(i => i.needsRedraw).length;
-            //     console.log(`🎨 [RenderManager] Loop #${this._renderCounter}, ${this.instances.size} instances, ${dirtyCount} dirty`);
-            //     this._lastLogTime = now;
-            // }
 
             // Render toutes les instances qui ont needsRedraw = true
             for (const instance of this.instances) {
@@ -106,8 +96,6 @@ class GlobalRenderManager {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-
-        // console.log(`🛑 [RenderManager] Boucle de rendu globale arrêtée`);
     }
 }
 
@@ -129,12 +117,6 @@ class OptimizedPenAnnotation {
         // Activer l'antialiasing pour des traits lisses
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
-
-        // Vérifier la résolution du canvas pour diagnostic si nécessaire
-        // const dpr = window.devicePixelRatio || 1;
-        // const cssWidth = canvas.offsetWidth;
-        // const cssHeight = canvas.offsetHeight;
-        // console.log(`🔍 CANVAS INIT: DPR=${dpr}, Canvas physique=${canvas.width}x${canvas.height}, CSS=${cssWidth}x${cssHeight}, Ratio=${(canvas.width/cssWidth).toFixed(2)}`);
 
         // Configuration
         this.options = {
@@ -285,17 +267,7 @@ class OptimizedPenAnnotation {
      * Début du dessin
      */
     handlePointerDown(e) {
-        console.log(`🖊️ [OptimizedPen] POINTERDOWN START:`, {
-            isEnabled: this.isEnabled,
-            isPinching: this.isPinching,
-            pointerType: e.pointerType,
-            buttons: e.buttons,
-            pressure: e.pressure,
-            timestamp: performance.now()
-        });
-
         if (!this.isEnabled || this.isPinching) {
-            console.log(`⛔ [OptimizedPen] Dessin désactivé ou pinching, retour`);
             return;
         }
 
@@ -305,17 +277,13 @@ class OptimizedPenAnnotation {
 
         // Ignorer les doigts - laisser le scroll/zoom natif
         if (isFinger) {
-            console.log(`👆 [OptimizedPen] Doigt détecté, ignorer`);
             return;
         }
 
         // Accepter seulement stylet ou souris
         if (!isStylus && !isMouse) {
-            console.log(`❓ [OptimizedPen] Type de pointeur inconnu, ignorer`);
             return;
         }
-
-        console.log(`✅ [OptimizedPen] Démarrage du dessin avec ${e.pointerType}`);
 
         // touchAction est déjà à 'none' en permanence
         e.preventDefault();
@@ -363,31 +331,11 @@ class OptimizedPenAnnotation {
      * Mouvement pendant le dessin - CRITIQUE pour la performance
      */
     handlePointerMove(e) {
-        if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
-        this._pointerMoveCounter++;
-        const shouldLog = this._pointerMoveCounter % 20 === 0;
-
         if (!this.isDrawing) {
-            if (shouldLog) {
-                console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter} - NON DRAWING`);
-            }
             return;
         }
         if (e.buttons !== 1) {
-            if (shouldLog) {
-                console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter} - buttons=${e.buttons}`);
-            }
             return;
-        }
-
-        if (shouldLog) {
-            console.log(`🔵 [OptimizedPen] POINTERMOVE #${this._pointerMoveCounter}:`, {
-                isDrawing: this.isDrawing,
-                buttons: e.buttons,
-                pressure: e.pressure,
-                pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
-                timestamp: performance.now()
-            });
         }
 
         e.preventDefault();
@@ -397,10 +345,6 @@ class OptimizedPenAnnotation {
         // Sur iPad Pro avec Apple Pencil, cela donne jusqu'à 240Hz
         const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
 
-        if (shouldLog && events.length > 1) {
-            console.log(`📊 [OptimizedPen] getCoalescedEvents récupéré ${events.length} événements coalescés`);
-        }
-
         // LIMITATION CONNUE: Safari iOS throttle les événements pointermove
         // Il peut y avoir des gaps de 500-1000ms où aucun événement n'est reçu
         // C'est une limitation du moteur de rendu Safari, pas un bug de notre code
@@ -408,10 +352,6 @@ class OptimizedPenAnnotation {
         const now = performance.now();
         const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
         const timeSinceLastPoint = lastPoint ? (now - lastPoint.timestamp) : 0;
-
-        if (shouldLog && timeSinceLastPoint > 50) {
-            console.log(`⏱️ [OptimizedPen] Gap de ${timeSinceLastPoint.toFixed(0)}ms depuis dernier point`);
-        }
 
         // SUPPRIMÉ: L'interpolation linéaire créait des lignes droites visibles dans les courbes
         // Les courbes quadratiques dans drawStroke() gèrent naturellement les gaps
@@ -439,14 +379,10 @@ class OptimizedPenAnnotation {
         if (pointsAdded > 0) {
             this.needsRedraw = true;
 
-            // DEBUG: Log uniquement sur le premier needsRedraw
+            // CRITIQUE: Render ultra-minimal pour "warm up" le canvas
+            // Safari iOS bloque le canvas rendering, donc on fait un simple point
             if (!this._needsRedrawLogged) {
-                console.log(`✅ [OptimizedPen] needsRedraw activé, ${pointsAdded} points ajoutés`);
                 this._needsRedrawLogged = true;
-
-                // CRITIQUE: Render ultra-minimal pour "warm up" le canvas
-                // Safari iOS bloque le canvas rendering, donc on fait un simple point
-                console.log(`⚡ [OptimizedPen] Quick initial render to warm up canvas`);
                 const firstPoint = this.currentStroke.points[0];
                 if (firstPoint) {
                     this.ctx.fillStyle = this.currentStroke.options.color;
@@ -464,16 +400,7 @@ class OptimizedPenAnnotation {
      * Fin du dessin
      */
     handlePointerUp(e) {
-        console.log(`🟢 [OptimizedPen] POINTERUP:`, {
-            isDrawing: this.isDrawing,
-            pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
-            totalMoves: this._pointerMoveCounter || 0,
-            timestamp: performance.now()
-        });
-        this._pointerMoveCounter = 0;
-
         if (!this.isDrawing) {
-            console.log(`⚠️ [OptimizedPen] POINTERUP mais isDrawing=false`);
             return;
         }
 
@@ -488,7 +415,6 @@ class OptimizedPenAnnotation {
         }
 
         this.isDrawing = false;
-        console.log(`✅ [OptimizedPen] Dessin terminé, stroke sauvegardé`);
 
         // Reset render counter and flags
         this._renderCounter = 0;
@@ -547,26 +473,11 @@ class OptimizedPenAnnotation {
      * - Composite le tout sur le canvas principal
      */
     render() {
-        // DEBUG: Logger les appels à render() avec throttling
         if (!this._renderCounter) this._renderCounter = 0;
         this._renderCounter++;
 
         const now = performance.now();
         if (this._lastRenderTime) {
-            const timeSinceLastRender = now - this._lastRenderTime;
-            if (this._renderCounter % 20 === 0) {
-                console.log(`🎨 [OptimizedPen] RENDER #${this._renderCounter}:`, {
-                    isDrawing: this.isDrawing,
-                    pointsCount: this.currentStroke ? this.currentStroke.points.length : 0,
-                    timeSinceLastRender: timeSinceLastRender.toFixed(1) + 'ms',
-                    timestamp: now.toFixed(0)
-                });
-            }
-            // Détecter les gaps > 100ms dans le rendu (seulement si on dessine)
-            // Note: Ignorer le premier render après pointerdown (gap normal entre strokes)
-            if (this.isDrawing && !this._isNewStroke && timeSinceLastRender > 100 && timeSinceLastRender < 5000) {
-                console.warn(`⚠️ [OptimizedPen] RENDER GAP de ${timeSinceLastRender.toFixed(0)}ms détecté pendant le dessin!`);
-            }
             // Clear le flag après le premier render
             if (this._isNewStroke) {
                 this._isNewStroke = false;
@@ -584,10 +495,7 @@ class OptimizedPenAnnotation {
         if (this.isDrawing && this.currentStroke && this.currentStroke.points.length > 1) {
             // Restaurer l'état du canvas avant ce stroke (sauvegardé dans handlePointerDown)
             if (this.canvasStateBeforeStroke) {
-                console.log('[OptimizedPen] RENDER: Restauration canvasStateBeforeStroke');
                 this.ctx.putImageData(this.canvasStateBeforeStroke, 0, 0);
-            } else {
-                console.warn('[OptimizedPen] RENDER: canvasStateBeforeStroke est NULL!');
             }
 
             // Dessiner le stroke en cours directement sur le canvas principal
@@ -668,7 +576,6 @@ class OptimizedPenAnnotation {
             }
         } else {
             // Fallback: dessin simple avec lineTo si perfect-freehand n'est pas disponible
-            console.warn('[OptimizedPen] perfect-freehand non disponible, utilisation fallback');
 
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
