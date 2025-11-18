@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Test Clean PDF Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        #viewer-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewer-container"></div>
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- Perfect Freehand -->
+    <script type="module">
+        import { getStroke } from 'https://cdn.skypack.dev/perfect-freehand@1.2.0';
+        window.getStroke = getStroke;
+        console.log('✅ perfect-freehand loaded');
+    </script>
+
+    <!-- Clean PDF Viewer -->
+    <script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}"></script>
+
+    <script>
+        // Attendre que perfect-freehand soit chargé
+        setTimeout(() => {
+            // Créer le viewer
+            const viewer = new CleanPDFViewer('viewer-container', {
+                fileId: 123, // ID fictif pour test
+                pdfUrl: '/static/test.pdf', // Remplacer par un vrai PDF
+                showSidebar: true,
+                enableAnnotations: true
+            });
+
+            // Exposer globalement pour debug
+            window.viewer = viewer;
+
+            console.log('✅ Clean PDF Viewer initialisé');
+        }, 500);
+    </script>
+</body>
+</html>
