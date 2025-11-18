@@ -4485,10 +4485,11 @@ class UnifiedPDFViewer {
         // OPTIMISATION: Mise à jour instantanée du curseur
         this.updateToolCursor(tool);
 
-        // Gérer SimplePenAnnotation pour TOUS les outils de dessin (pen, highlighter, eraser)
-        const drawingTools = ['pen', 'highlighter', 'eraser'];
+        // Gérer OptimizedPenAnnotation SEULEMENT pour pen et highlighter
+        // La gomme utilise le système classique avec destination-out
+        const drawingTools = ['pen', 'highlighter'];
         if (drawingTools.includes(tool)) {
-            // Activer SimplePenAnnotation pour toutes les pages
+            // Activer OptimizedPenAnnotation pour toutes les pages
             this.pageElements.forEach((pageElement, pageNum) => {
                 if (!this.annotationEngines.has(pageNum)) {
                     this.initAnnotationEngine(pageNum);
@@ -4502,7 +4503,7 @@ class UnifiedPDFViewer {
                 }
             });
         } else {
-            // Désactiver SimplePenAnnotation pour les autres outils
+            // Désactiver OptimizedPenAnnotation pour les autres outils (y compris eraser)
             this.annotationEngines.forEach(engine => {
                 engine.disable();
             });
