@@ -13700,13 +13700,24 @@ class UnifiedPDFViewer {
             },
             // Callback quand un stroke est complété
             onStrokeComplete: function(stroke) {
-                // Auto-sauvegarde après chaque stroke (avec debounce de 2s)
+                // Auto-sauvegarde après chaque stroke (avec debounce de 5s)
+                // IMPORTANT: Ne pas sauvegarder pendant qu'un dessin est en cours
                 if (self.saveAnnotationTimeout) {
                     clearTimeout(self.saveAnnotationTimeout);
                 }
                 self.saveAnnotationTimeout = setTimeout(() => {
-                    self.saveAnnotations();
-                }, 2000);
+                    // Vérifier qu'aucun dessin n'est en cours avant de sauvegarder
+                    if (!self.isDrawing) {
+                        self.saveAnnotations();
+                    } else {
+                        // Reporter la sauvegarde si un dessin est en cours
+                        self.saveAnnotationTimeout = setTimeout(() => {
+                            if (!self.isDrawing) {
+                                self.saveAnnotations();
+                            }
+                        }, 2000);
+                    }
+                }, 5000);
             }
         });
 
