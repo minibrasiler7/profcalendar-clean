@@ -4283,24 +4283,16 @@ class UnifiedPDFViewer {
             // Reset counter
             this._pointerMoveCounter = 0;
 
-            // Pour le stylo, sauvegarder l'état après le trait
+            // Pour le stylo, juste tracker l'état - OptimizedPenAnnotation gère tout
             if (this.currentTool === 'pen') {
-                // SimplePenAnnotation gère le dessin, mais on doit sauvegarder l'état
                 if (this.isDrawing) {
                     this.isDrawing = false;
-                    console.log(`✅ [Page ${pageNum}] Pen isDrawing = false, sauvegarde état...`);
-                    // Sauvegarder l'état pour l'historique undo/redo
-                    this.saveCanvasState(pageNum);
-                    // Sauvegarder automatiquement sur le serveur avec debounce
-                    // (attendre 3 secondes après la dernière annotation)
-                    if (this.fileId) {
-                        this.scheduleAutoSave();
-                    }
-                    // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
-                    // const engine = this.annotationEngines.get(pageNum);
-                    // if (engine && typeof engine.saveBackground === 'function') {
-                    //     engine.saveBackground();
-                    // }
+                    console.log(`✅ [Page ${pageNum}] Pen isDrawing = false`);
+                    // NOTE: Ne PAS appeler saveCanvasState() ici car:
+                    // 1. getImageData() bloque le thread principal pendant ~200-300ms sur Retina
+                    // 2. Cela cause les gaps Safari et les traits droits
+                    // 3. OptimizedPenAnnotation a son propre système vectoriel (pas besoin d'imageData)
+                    // 4. La sauvegarde auto se fait déjà via onStrokeComplete callback
                 }
                 return;
             }
@@ -7930,6 +7922,22 @@ class UnifiedPDFViewer {
      */
     undo() {
         const pageNum = this.currentPage;
+
+        // Pour le stylo, déléguer au moteur d'annotation
+        if (this.currentTool === 'pen') {
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine && typeof engine.undo === 'function') {
+                engine.undo();
+                this.updateUndoRedoButtons();
+                // Sauvegarder automatiquement après undo
+                if (this.fileId) {
+                    this.scheduleAutoSave();
+                }
+            }
+            return;
+        }
+
+        // Pour les autres outils, utiliser l'historique imageData
         const undoHistory = this.undoStack.get(pageNum);
 
         // Vérifier qu'il y a au moins 2 états (pour pouvoir revenir à un état précédent)
@@ -7969,6 +7977,22 @@ class UnifiedPDFViewer {
      */
     redo() {
         const pageNum = this.currentPage;
+
+        // Pour le stylo, déléguer au moteur d'annotation
+        if (this.currentTool === 'pen') {
+            const engine = this.annotationEngines.get(pageNum);
+            if (engine && typeof engine.redo === 'function') {
+                engine.redo();
+                this.updateUndoRedoButtons();
+                // Sauvegarder automatiquement après redo
+                if (this.fileId) {
+                    this.scheduleAutoSave();
+                }
+            }
+            return;
+        }
+
+        // Pour les autres outils, utiliser l'historique imageData
         const redoHistory = this.redoStack.get(pageNum);
 
         if (!redoHistory || redoHistory.length === 0) {
