@@ -5372,19 +5372,16 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'eraser' && pageElement?.annotationCtx) {
                 pageElement.annotationCtx.globalCompositeOperation = 'source-over';
 
-                // IMPORTANT: Après avoir utilisé la gomme, commit les strokes du stylo dans le bitmap
-                // pour que les effacements soient permanents. Sinon les strokes vectoriels se
-                // redessineraient par-dessus les zones effacées.
-                const engine = this.annotationEngines.get(pageNum);
-                if (engine && engine.strokes && engine.strokes.length > 0) {
-                    // Redessiner les strokes sur le canvas principal pour "fixer" l'état actuel
-                    engine.strokes.forEach(stroke => {
-                        engine.drawStroke(pageElement.annotationCtx, stroke);
-                    });
-                    // Vider les strokes vectoriels car ils sont maintenant dans le bitmap
-                    engine.strokes = [];
-                    engine.baseLayer = null;
-                }
+                // NOTE: La gomme ne fonctionne actuellement QUE pour les annotations bitmap
+                // (highlighter, shapes, texte). Pour effacer des traits de stylo, utilisez Undo.
+                //
+                // PROBLÈME: Les strokes du stylo sont vectoriels et se redessinent à chaque frame.
+                // Pour que la gomme fonctionne, il faudrait:
+                // 1. Détecter quels strokes intersectent la zone effacée (complexe)
+                // 2. Découper/retirer ces strokes du tableau engine.strokes
+                //
+                // Solution temporaire: Ne rien faire ici. La gomme efface le bitmap,
+                // et les strokes du stylo restent vectoriels (non affectés).
             }
 
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
