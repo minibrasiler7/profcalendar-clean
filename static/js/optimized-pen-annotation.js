@@ -331,6 +331,15 @@ class OptimizedPenAnnotation {
         this.isDrawing = true;
         this._isNewStroke = true; // Flag pour ignorer le gap warning au premier render
 
+        // IMPORTANT: Sauvegarder l'état du canvas avant de commencer le stroke
+        // pour pouvoir le restaurer à chaque frame pendant le dessin
+        try {
+            this.canvasStateBeforeStroke = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        } catch (e) {
+            console.error('[OptimizedPen] Erreur sauvegarde canvas:', e);
+            this.canvasStateBeforeStroke = null;
+        }
+
         // Initialiser un nouveau stroke
         this.currentStroke = {
             points: [],
@@ -485,6 +494,7 @@ class OptimizedPenAnnotation {
         this._renderCounter = 0;
         this._lastRenderTime = null;
         this._needsRedrawLogged = false;
+        this.canvasStateBeforeStroke = null; // Libérer la mémoire
 
         // touchAction reste à 'none' en permanence
 
@@ -564,22 +574,21 @@ class OptimizedPenAnnotation {
         }
         this._lastRenderTime = now;
 
-        // Effacer le canvas principal
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Restaurer la base layer (strokes complétés)
-        if (this.baseLayer) {
-            this.ctx.putImageData(this.baseLayer, 0, 0);
-        }
+        // IMPORTANT: Ne PAS effacer le canvas principal car il contient aussi
+        // les annotations des autres outils (highlighter, formes, texte).
+        //
+        // Stratégie: Sauvegarder le canvas avant le premier point, puis restaurer
+        // à chaque frame pour redessiner le stroke en cours sans perdre le reste.
 
         // Dessiner le stroke en cours si on est en train de dessiner
         if (this.isDrawing && this.currentStroke && this.currentStroke.points.length > 1) {
-            // Dessiner sur l'offscreen canvas
-            this.offscreenCtx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
-            this.drawStroke(this.offscreenCtx, this.currentStroke);
+            // Restaurer l'état du canvas avant ce stroke (sauvegardé dans handlePointerDown)
+            if (this.canvasStateBeforeStroke) {
+                this.ctx.putImageData(this.canvasStateBeforeStroke, 0, 0);
+            }
 
-            // Copier sur le canvas principal
-            this.ctx.drawImage(this.offscreenCanvas, 0, 0);
+            // Dessiner le stroke en cours directement sur le canvas principal
+            this.drawStroke(this.ctx, this.currentStroke);
         }
     }
 
