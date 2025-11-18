@@ -629,14 +629,15 @@ class OptimizedPenAnnotation {
         // Utiliser perfect-freehand si disponible
         if (typeof window.getStroke !== 'undefined') {
             // Convertir les points au format perfect-freehand [x, y, pressure]
-            const pfPoints = points.map(p => [p.x, p.y, p.pressure || 0.5]);
+            // IMPORTANT: Forcer une pression constante pour un trait uniforme
+            const pfPoints = points.map(p => [p.x, p.y, 0.5]);
 
             // Générer le stroke avec perfect-freehand
             const outlinePoints = window.getStroke(pfPoints, {
                 size: effectiveSize,
-                thinning: 0,      // Pas de variation d'épaisseur
-                smoothing: 0.5,   // Lissage modéré
-                streamline: 0.5,  // Streamline pour réduire les points
+                thinning: 0,      // Pas de variation d'épaisseur basée sur la vitesse
+                smoothing: 0.15,  // Lissage minimal pour éviter les variations
+                streamline: 0.3,  // Streamline minimal pour garder tous les points
                 simulatePressure: false,
                 last: !this.isDrawing  // true si le stroke est terminé
             });
