@@ -5355,35 +5355,18 @@ async function closeFileViewer() {
     try {
         console.log('🔄 Fermeture du viewer - début');
 
-        // IMPORTANT: Si unifiedPDFViewer existe, utiliser son système de fermeture
-        if (typeof unifiedPDFViewer !== 'undefined' && unifiedPDFViewer) {
-            console.log('  📦 Utilisation du lecteur PDF unifié pour la fermeture');
+        // IMPORTANT: Si cleanPDFViewer existe, utiliser son système de fermeture
+        if (typeof cleanPDFViewer !== 'undefined' && cleanPDFViewer) {
+            console.log('  📦 Utilisation du nouveau lecteur PDF Clean pour la fermeture');
 
-            const modal = document.getElementById('fileViewerModal');
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = '';
-            }
-
-            // CRITIQUE: Await destroy() pour sauvegarder les annotations
+            // Le viewer gère automatiquement la fermeture via son callback onClose
             try {
-                console.log('  🔧 Appel de unifiedPDFViewer.destroy()...');
-                console.log('  📊 Type de unifiedPDFViewer:', typeof unifiedPDFViewer);
-                console.log('  📊 Type de destroy:', typeof unifiedPDFViewer.destroy);
-                console.log('  📊 unifiedPDFViewer:', unifiedPDFViewer);
-
-                const destroyResult = await unifiedPDFViewer.destroy();
-                console.log('  ✅ destroy() terminé avec succès, résultat:', destroyResult);
+                await cleanPDFViewer.close();
+                console.log('  ✅ Lecteur PDF Clean fermé avec succès');
             } catch (error) {
-                console.error('  ❌ Erreur lors de destroy():', error);
-                console.error('  📊 Stack:', error.stack);
+                console.error('  ❌ Erreur lors de la fermeture:', error);
             }
 
-            console.log('  ✅ Lecteur PDF unifié nettoyé');
-
-            // IMPORTANT: Réinitialiser la variable pour permettre une nouvelle création
-            unifiedPDFViewer = null;
-            currentPDFUrl = null;
             return;
         }
 
@@ -7851,11 +7834,12 @@ body .thumbnail-canvas {
     loadAnnotationEngine();
 </script>
 
-<!-- Lecteur PDF Unifié -->
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<!-- Nouveau Lecteur PDF Clean -->
+<script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=2.0.0&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 <script>
-// Variables globales pour le lecteur PDF unifié
-let unifiedPDFViewer = null;
+// Variables globales pour le lecteur PDF
+let cleanPDFViewer = null;
 let currentPDFUrl = null;
 
 // Données des étudiants (définies globalement pour le PDF viewer)
@@ -7917,45 +7901,52 @@ function openFileWithUnifiedViewer(filePath, fileName) {
         console.warn('Erreur lors de la récupération du plan de classe:', error);
     }
     
-    // Créer l'instance du lecteur unifié s'il n'existe pas
-    if (!unifiedPDFViewer) {
+    // Afficher le container du viewer
+    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    if (viewerContainer) {
+        viewerContainer.style.display = 'block';
+    }
+
+    // Créer l'instance du nouveau lecteur clean s'il n'existe pas
+    if (!cleanPDFViewer) {
         try {
-            unifiedPDFViewer = new UnifiedPDFViewer('unified-pdf-viewer-container', {
-                mode: 'teacher',
-                enableKeyboardShortcuts: true,
-                enableTouchGestures: true,
-                autoSave: true,
-                saveDelay: 3000,
-                debug: true,
-                studentData: studentsData, // Utiliser les données globales des élèves
-                sanctionsData: sanctionsData,
-                seatingPlanHTML: seatingPlanHTML,
-                apiEndpoints: {
-                    saveAnnotations: '/file_manager/api/save-annotations',
-                    loadAnnotations: '/file_manager/api/load-annotations',
-                    search: '/api/search-pdf'
+            // Préparer l'URL du PDF
+            const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+            currentPDFUrl = pdfUrl;
+
+            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                fileId: filePath, // Utiliser filePath comme ID pour les annotations
+                pdfUrl: pdfUrl,
+                showSidebar: true,
+                enableAnnotations: true,
+                autoSaveInterval: 5000,
+                studentData: studentsData, // Données des élèves
+                onClose: () => {
+                    if (viewerContainer) {
+                        viewerContainer.style.display = 'none';
+                    }
+                    cleanPDFViewer = null;
+                    currentPDFUrl = null;
                 }
             });
-            console.log('✅ Lecteur PDF unifié créé avec données des élèves');
+
+            console.log('✅ Nouveau lecteur PDF Clean créé');
         } catch (error) {
             console.error('❌ Erreur lors de la création du lecteur:', error);
+            alert('Erreur lors de la création du lecteur PDF: ' + error.message);
             return;
         }
+    } else {
+        // Si le viewer existe déjà, charger le nouveau PDF
+        const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+        currentPDFUrl = pdfUrl;
+
+        cleanPDFViewer.loadPDF(pdfUrl)
+            .catch(error => {
+                console.error('❌ Erreur lors du chargement du PDF:', error);
+                alert('Erreur lors du chargement du PDF: ' + error.message);
+            });
     }
-    
-    // Charger le PDF en utilisant la même URL que l'ancien système
-    const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
-    currentPDFUrl = pdfUrl;
-    
-    // Passer filePath comme fileId pour permettre le chargement des annotations
-    unifiedPDFViewer.loadPDF(pdfUrl, filePath)
-        .then(() => {
-            console.log('✅ PDF chargé avec succès dans le lecteur unifié');
-        })
-        .catch(error => {
-            console.error('❌ Erreur lors du chargement du PDF:', error);
-            alert('Erreur lors du chargement du PDF: ' + error.message);
-        });
 }
 
 // closeFileViewer() est défini plus haut dans le fichier (ligne ~5354)
