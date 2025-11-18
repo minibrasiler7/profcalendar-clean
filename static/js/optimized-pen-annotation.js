@@ -584,7 +584,10 @@ class OptimizedPenAnnotation {
         if (this.isDrawing && this.currentStroke && this.currentStroke.points.length > 1) {
             // Restaurer l'état du canvas avant ce stroke (sauvegardé dans handlePointerDown)
             if (this.canvasStateBeforeStroke) {
+                console.log('[OptimizedPen] RENDER: Restauration canvasStateBeforeStroke');
                 this.ctx.putImageData(this.canvasStateBeforeStroke, 0, 0);
+            } else {
+                console.warn('[OptimizedPen] RENDER: canvasStateBeforeStroke est NULL!');
             }
 
             // Dessiner le stroke en cours directement sur le canvas principal
