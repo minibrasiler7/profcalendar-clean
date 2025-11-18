@@ -2229,6 +2229,12 @@ class UnifiedPDFViewer {
             if (this.autoSaveTimer) {
                 clearTimeout(this.autoSaveTimer);
             }
+
+            // CRITIQUE: Nettoyer complètement le container DOM pour permettre une réouverture propre
+            if (this.container) {
+                this.container.innerHTML = '';
+                this.container.style.display = 'none';
+            }
         } catch (error) {
             console.error('❌ Erreur lors du nettoyage final:', error);
         }
