@@ -7351,51 +7351,55 @@ class UnifiedPDFViewer {
 
                 if (pageElement.annotationCtx) {
                     const canvas = pageElement.annotationCtx.canvas;
-                    // Vérifier si le canvas contient des dessins (pas complètement vide)
-                    const imageData = pageElement.annotationCtx.getImageData(0, 0, canvas.width, canvas.height);
-                    // Vérifier si au moins un pixel n'est pas complètement transparent/blanc
-                    const hasContent = imageData.data.some((value, index) => {
-                        const channel = index % 4;
-                        // Vérifier tous les canaux de couleur (R, G, B) ou l'alpha
-                        return (channel < 3 && value !== 255) || (channel === 3 && value > 0);
-                    });
 
-                    if (hasContent) {
-                        // PRIORITÉ: Sauvegarder les strokes vectoriels du stylo si disponibles
-                        const engine = this.annotationEngines.get(pageNum);
-                        let hasVectorStrokes = false;
+                    // PRIORITÉ: Vérifier d'abord les strokes vectoriels (plus rapide que getImageData)
+                    const engine = this.annotationEngines.get(pageNum);
+                    let hasVectorStrokes = false;
+                    let hasContent = false;
 
-                        if (engine && typeof engine.exportOriginalStrokes === 'function') {
-                            // IMPORTANT: Toujours sauvegarder les originalStrokes (résolution de base)
-                            // pour éviter d'écraser les strokes avec des versions scalées après pinch-to-zoom
-                            const vectorData = engine.exportOriginalStrokes();
-                            if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
-                                // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
-                                // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS), pas physiques
-                                annotationsData.canvasData[pageNum] = {
-                                    vectorStrokes: vectorData.strokes,
-                                    width: parseInt(canvas.style.width) || canvas.width,
-                                    height: parseInt(canvas.style.height) || canvas.height
-                                };
-                                hasVectorStrokes = true;
-                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur, résolution de base)`);
-                            }
-                        } else if (engine && typeof engine.exportStrokes === 'function') {
-                            // Fallback pour les anciens moteurs sans exportOriginalStrokes
-                            const vectorData = engine.exportStrokes();
-                            if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
-                                annotationsData.canvasData[pageNum] = {
-                                    vectorStrokes: vectorData.strokes,
-                                    width: parseInt(canvas.style.width) || canvas.width,
-                                    height: parseInt(canvas.style.height) || canvas.height
-                                };
-                                hasVectorStrokes = true;
-                                console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (fallback)`);
-                            }
+                    if (engine && typeof engine.exportOriginalStrokes === 'function') {
+                        // IMPORTANT: Toujours sauvegarder les originalStrokes (résolution de base)
+                        // pour éviter d'écraser les strokes avec des versions scalées après pinch-to-zoom
+                        const vectorData = engine.exportOriginalStrokes();
+                        if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                            // Mode vectoriel pur: sauvegarder UNIQUEMENT les strokes (pas d'imageData)
+                            // IMPORTANT: Sauvegarder les dimensions LOGIQUES (CSS), pas physiques
+                            annotationsData.canvasData[pageNum] = {
+                                vectorStrokes: vectorData.strokes,
+                                width: parseInt(canvas.style.width) || canvas.width,
+                                height: parseInt(canvas.style.height) || canvas.height
+                            };
+                            hasVectorStrokes = true;
+                            hasContent = true;
+                            console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (mode vectoriel pur, résolution de base)`);
                         }
+                    } else if (engine && typeof engine.exportStrokes === 'function') {
+                        // Fallback pour les anciens moteurs sans exportOriginalStrokes
+                        const vectorData = engine.exportStrokes();
+                        if (vectorData && vectorData.strokes && vectorData.strokes.length > 0) {
+                            annotationsData.canvasData[pageNum] = {
+                                vectorStrokes: vectorData.strokes,
+                                width: parseInt(canvas.style.width) || canvas.width,
+                                height: parseInt(canvas.style.height) || canvas.height
+                            };
+                            hasVectorStrokes = true;
+                            hasContent = true;
+                            console.log(`  🎨 Page ${pageNum}: ${vectorData.strokes.length} strokes vectoriels sauvegardés (fallback)`);
+                        }
+                    }
 
-                        // Fallback: Sauvegarder imageData UNIQUEMENT si pas de vectorStrokes (ancien système)
-                        if (!hasVectorStrokes) {
+                    // Fallback: Vérifier le canvas avec getImageData UNIQUEMENT si pas de vectorStrokes
+                    if (!hasVectorStrokes) {
+                        // Vérifier si le canvas contient des dessins (pas complètement vide)
+                        const imageData = pageElement.annotationCtx.getImageData(0, 0, canvas.width, canvas.height);
+                        // Vérifier si au moins un pixel n'est pas complètement transparent/blanc
+                        hasContent = imageData.data.some((value, index) => {
+                            const channel = index % 4;
+                            // Vérifier tous les canaux de couleur (R, G, B) ou l'alpha
+                            return (channel < 3 && value !== 255) || (channel === 3 && value > 0);
+                        });
+
+                        if (hasContent) {
                             annotationsData.canvasData[pageNum] = {
                                 imageData: canvas.toDataURL('image/png'),
                                 width: parseInt(canvas.style.width) || canvas.width,
@@ -7403,7 +7407,9 @@ class UnifiedPDFViewer {
                             };
                             console.log(`  ⚠️ Page ${pageNum}: imageData sauvegardée (pas de vectorStrokes, ancien système)`);
                         }
+                    }
 
+                    if (hasContent) {
                         pagesWithContent++;
                         console.log(`  ✏️ Page ${pageNum}: annotations trouvées (${canvas.width}x${canvas.height})`);
                     } else {
