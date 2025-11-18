@@ -5372,17 +5372,19 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'eraser' && pageElement?.annotationCtx) {
                 pageElement.annotationCtx.globalCompositeOperation = 'source-over';
 
-                // CRITIQUE: Vider les strokes de SimplePenAnnotation car on vient d'effacer
-                // Si on ne fait pas ça, les strokes effacés réapparaîtront au prochain redraw()
+                // IMPORTANT: Après avoir utilisé la gomme, commit les strokes du stylo dans le bitmap
+                // pour que les effacements soient permanents. Sinon les strokes vectoriels se
+                // redessineraient par-dessus les zones effacées.
                 const engine = this.annotationEngines.get(pageNum);
-                if (engine && typeof engine.clearStrokes === 'function') {
-                    engine.clearStrokes();
+                if (engine && engine.strokes && engine.strokes.length > 0) {
+                    // Redessiner les strokes sur le canvas principal pour "fixer" l'état actuel
+                    engine.strokes.forEach(stroke => {
+                        engine.drawStroke(pageElement.annotationCtx, stroke);
+                    });
+                    // Vider les strokes vectoriels car ils sont maintenant dans le bitmap
+                    engine.strokes = [];
+                    engine.baseLayer = null;
                 }
-
-                // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
-                // if (engine && typeof engine.saveBackground === 'function') {
-                //     engine.saveBackground();
-                // }
             }
 
             // Sauvegarder l'état final pour tous les outils dans l'historique undo/redo
