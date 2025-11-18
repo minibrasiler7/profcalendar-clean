@@ -609,8 +609,8 @@ class OptimizedPenAnnotation {
     }
 
     /**
-     * CRITIQUE: Dessine un stroke uniforme comme l'app Fichiers d'iPad
-     * Trait lisse, opaque, sans variation de pression
+     * CRITIQUE: Dessine un stroke avec perfect-freehand
+     * Utilise le même algorithme que le site de référence
      */
     drawStroke(ctx, stroke) {
         if (!stroke || !stroke.points || stroke.points.length < 2) return;
@@ -619,77 +619,57 @@ class OptimizedPenAnnotation {
         const options = stroke.options;
 
         ctx.save();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = options.color;
+        ctx.fillStyle = options.color;
         ctx.globalAlpha = 1.0; // IMPORTANT: Opacité toujours à 100%
 
         // IMPORTANT: Multiplier la taille par DPR pour compenser la résolution Retina
-        // Le canvas physique est 2x plus grand, donc les traits doivent être 2x plus épais
         const dpr = window.devicePixelRatio || 1;
         const effectiveSize = options.size * dpr;
-        ctx.lineWidth = effectiveSize;
-        ctx.fillStyle = options.color;
 
-        // Dessiner les traits entre les points avec courbes quadratiques
-        // Utilise le lissage Catmull-Rom comme iOS Notes/Files
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
+        // Utiliser perfect-freehand si disponible
+        if (typeof window.getStroke !== 'undefined') {
+            // Convertir les points au format perfect-freehand [x, y, pressure]
+            const pfPoints = points.map(p => [p.x, p.y, p.pressure || 0.5]);
 
-        if (points.length === 2) {
-            // Ligne simple pour 2 points
-            ctx.lineTo(points[1].x, points[1].y);
-        } else if (points.length === 3) {
-            // Pour 3 points, courbe quadratique simple
-            ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
-        } else {
-            // Catmull-Rom spline pour un lissage parfait (comme iOS Notes)
-            // Premier segment: courbe quadratique vers le milieu entre p0 et p1
-            const mid1X = (points[0].x + points[1].x) / 2;
-            const mid1Y = (points[0].y + points[1].y) / 2;
-            ctx.quadraticCurveTo(points[0].x, points[0].y, mid1X, mid1Y);
+            // Générer le stroke avec perfect-freehand
+            const outlinePoints = window.getStroke(pfPoints, {
+                size: effectiveSize,
+                thinning: 0,      // Pas de variation d'épaisseur
+                smoothing: 0.5,   // Lissage modéré
+                streamline: 0.5,  // Streamline pour réduire les points
+                simulatePressure: false,
+                last: !this.isDrawing  // true si le stroke est terminé
+            });
 
-            // Segments intermédiaires: courbe quadratique avec point de contrôle au point actuel
-            for (let i = 1; i < points.length - 1; i++) {
-                const p1 = points[i];
-                const p2 = points[i + 1];
+            // Dessiner le polygone de contour
+            if (outlinePoints.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(outlinePoints[0][0], outlinePoints[0][1]);
 
-                // Détecter les grands sauts spatiaux (causés par les gaps de Safari lors de l'auto-save)
-                const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
-
-                // Si le saut est trop grand (>30px), c'est un gap Safari -> briser le chemin
-                if (dist > 30) {
-                    // Terminer le chemin actuel
-                    ctx.stroke();
-                    // Commencer un nouveau chemin au point suivant
-                    ctx.beginPath();
-                    ctx.moveTo(p2.x, p2.y);
-                    console.log(`[DRAW] Path broken at gap: dist=${dist.toFixed(1)}px, points=${i}/${points.length}`);
-                    continue;
+                for (let i = 1; i < outlinePoints.length; i++) {
+                    ctx.lineTo(outlinePoints[i][0], outlinePoints[i][1]);
                 }
 
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-                ctx.quadraticCurveTo(p1.x, p1.y, midX, midY);
+                ctx.closePath();
+                ctx.fill();
+            }
+        } else {
+            // Fallback: dessin simple avec lineTo si perfect-freehand n'est pas disponible
+            console.warn('[OptimizedPen] perfect-freehand non disponible, utilisation fallback');
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = options.color;
+            ctx.lineWidth = effectiveSize;
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
             }
 
-            // Dernier segment: courbe quadratique jusqu'au dernier point
-            const lastIdx = points.length - 1;
-            ctx.quadraticCurveTo(points[lastIdx].x, points[lastIdx].y, points[lastIdx].x, points[lastIdx].y);
-        }
-
-        ctx.stroke();
-
-        // IMPORTANT: Dessiner des cercles uniquement aux extrémités pour lineCap rond
-        // Ne PAS dessiner de cercles à tous les points intermédiaires (crée des "perles" visibles)
-        ctx.beginPath();
-        ctx.arc(points[0].x, points[0].y, effectiveSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (points.length > 1) {
-            ctx.beginPath();
-            ctx.arc(points[points.length - 1].x, points[points.length - 1].y, effectiveSize / 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.stroke();
         }
 
         ctx.restore();
