@@ -74,6 +74,9 @@ class CleanPDFViewer {
         // Éléments DOM
         this.elements = {};
 
+        // Outils d'annotation
+        this.annotationTools = null;
+
         // Initialiser
         this.init();
     }
@@ -84,6 +87,11 @@ class CleanPDFViewer {
     async init() {
         // Créer l'interface
         this.createUI();
+
+        // Initialiser les outils d'annotation
+        if (typeof AnnotationTools !== 'undefined') {
+            this.annotationTools = new AnnotationTools(this);
+        }
 
         // Charger le PDF si URL fournie
         if (this.options.pdfUrl) {
@@ -406,7 +414,7 @@ class CleanPDFViewer {
             }
 
             .pdf-pages-container {
-                max-width: 900px;
+                max-width: 95%;
                 margin: 0 auto;
             }
 
@@ -435,8 +443,8 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Permet le dessin avec stylet, scroll avec doigt */
-                touch-action: pan-x pan-y pinch-zoom;
+                /* Permet le dessin avec stylet ET le scroll/zoom avec doigt */
+                touch-action: none;
                 pointer-events: auto;
             }
 
@@ -911,26 +919,98 @@ class CleanPDFViewer {
      * Dessiner le preview d'un stroke
      */
     drawStrokePreview(canvas, stroke) {
-        // TODO: Utiliser perfect-freehand pour le rendu
         const ctx = canvas.getContext('2d');
 
-        // Pour l'instant, dessin simple
-        ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = stroke.size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.globalAlpha = stroke.opacity;
+        // Effacer le canvas avant de redessiner
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.beginPath();
-        if (stroke.points.length > 0) {
+        // Redessiner toutes les annotations existantes
+        const pageId = canvas.closest('.pdf-page-wrapper').dataset.pageId;
+        const pageAnnotations = this.annotations.get(pageId) || [];
+        for (const annotation of pageAnnotations) {
+            this.drawAnnotation(ctx, annotation);
+        }
+
+        // Dessiner le preview du stroke en cours
+        if (!stroke || !stroke.points || stroke.points.length === 0) return;
+
+        const options = {
+            color: stroke.color,
+            size: stroke.size,
+            opacity: stroke.opacity
+        };
+
+        // Dessiner selon l'outil
+        if (this.annotationTools) {
+            switch (stroke.tool) {
+                case 'pen':
+                case 'highlighter':
+                    this.annotationTools.drawWithPerfectFreehand(ctx, stroke.points, options);
+                    break;
+
+                case 'ruler':
+                    if (stroke.points.length >= 2) {
+                        const start = stroke.points[0];
+                        const end = stroke.points[stroke.points.length - 1];
+                        this.annotationTools.drawRuler(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'compass':
+                    if (stroke.points.length >= 2) {
+                        const center = stroke.points[0];
+                        const edge = stroke.points[stroke.points.length - 1];
+                        const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
+                        this.annotationTools.drawCompass(ctx, center, radius, options);
+                        this.annotationTools.drawCompassRadius(ctx, center, edge, radius);
+                    }
+                    break;
+
+                case 'arrow':
+                    if (stroke.points.length >= 2) {
+                        const start = stroke.points[0];
+                        const end = stroke.points[stroke.points.length - 1];
+                        this.annotationTools.drawArrow(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'rectangle':
+                    if (stroke.points.length >= 2) {
+                        const start = stroke.points[0];
+                        const end = stroke.points[stroke.points.length - 1];
+                        this.annotationTools.drawRectangle(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'disk':
+                    if (stroke.points.length >= 2) {
+                        const center = stroke.points[0];
+                        const edge = stroke.points[stroke.points.length - 1];
+                        const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
+                        this.annotationTools.drawDisk(ctx, center, radius, options);
+                    }
+                    break;
+
+                default:
+                    // Fallback: dessin simple
+                    this.annotationTools.drawSimple(ctx, stroke.points, options);
+            }
+        } else {
+            // Fallback si AnnotationTools n'est pas disponible
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.globalAlpha = stroke.opacity;
+
+            ctx.beginPath();
             ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
             for (let i = 1; i < stroke.points.length; i++) {
                 ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
             }
             ctx.stroke();
+            ctx.globalAlpha = 1.0;
         }
-
-        ctx.globalAlpha = 1.0;
     }
 
     /**
@@ -950,20 +1030,126 @@ class CleanPDFViewer {
      * Dessiner une annotation
      */
     drawAnnotation(ctx, annotation) {
-        // TODO: Rendu selon le type d'outil avec perfect-freehand
-        this.drawStrokePreview({getContext: () => ctx}, annotation);
+        if (!annotation || !annotation.points || annotation.points.length === 0) return;
+
+        const options = {
+            color: annotation.color,
+            size: annotation.size,
+            opacity: annotation.opacity
+        };
+
+        if (this.annotationTools) {
+            switch (annotation.tool) {
+                case 'pen':
+                case 'highlighter':
+                    this.annotationTools.drawWithPerfectFreehand(ctx, annotation.points, options);
+                    break;
+
+                case 'ruler':
+                    if (annotation.points.length >= 2) {
+                        const start = annotation.points[0];
+                        const end = annotation.points[annotation.points.length - 1];
+                        this.annotationTools.drawRuler(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'compass':
+                    if (annotation.points.length >= 2) {
+                        const center = annotation.points[0];
+                        const edge = annotation.points[annotation.points.length - 1];
+                        const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
+                        this.annotationTools.drawCompass(ctx, center, radius, options);
+                    }
+                    break;
+
+                case 'angle':
+                    if (annotation.points.length >= 3) {
+                        const center = annotation.points[0];
+                        const point1 = annotation.points[1];
+                        const point2 = annotation.points[annotation.points.length - 1];
+                        this.annotationTools.drawAngle(ctx, center, point1, point2, options);
+                    }
+                    break;
+
+                case 'arc':
+                    if (annotation.points.length >= 3) {
+                        const center = annotation.points[0];
+                        const start = annotation.points[1];
+                        const end = annotation.points[annotation.points.length - 1];
+                        const radius = Math.sqrt((start.x - center.x) ** 2 + (start.y - center.y) ** 2);
+                        const startAngle = Math.atan2(start.y - center.y, start.x - center.x);
+                        const endAngle = Math.atan2(end.y - center.y, end.x - center.x);
+                        this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, options);
+                    }
+                    break;
+
+                case 'arrow':
+                    if (annotation.points.length >= 2) {
+                        const start = annotation.points[0];
+                        const end = annotation.points[annotation.points.length - 1];
+                        this.annotationTools.drawArrow(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'rectangle':
+                    if (annotation.points.length >= 2) {
+                        const start = annotation.points[0];
+                        const end = annotation.points[annotation.points.length - 1];
+                        this.annotationTools.drawRectangle(ctx, start, end, options);
+                    }
+                    break;
+
+                case 'disk':
+                    if (annotation.points.length >= 2) {
+                        const center = annotation.points[0];
+                        const edge = annotation.points[annotation.points.length - 1];
+                        const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
+                        this.annotationTools.drawDisk(ctx, center, radius, options);
+                    }
+                    break;
+
+                case 'grid':
+                    if (annotation.canvasWidth && annotation.canvasHeight) {
+                        this.annotationTools.drawGrid(ctx, annotation.canvasWidth, annotation.canvasHeight);
+                    }
+                    break;
+
+                default:
+                    this.annotationTools.drawSimple(ctx, annotation.points, options);
+            }
+        } else {
+            // Fallback
+            ctx.strokeStyle = annotation.color;
+            ctx.lineWidth = annotation.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.globalAlpha = annotation.opacity;
+
+            ctx.beginPath();
+            ctx.moveTo(annotation.points[0].x, annotation.points[0].y);
+            for (let i = 1; i < annotation.points.length; i++) {
+                ctx.lineTo(annotation.points[i].x, annotation.points[i].y);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
     }
 
     /**
      * Ajouter une annotation à l'historique
      */
     addAnnotationToHistory(pageId, annotation) {
-        // Tronquer l'historique si on est au milieu
+        // Tronquer l'historique si on est au milieu (cela invalide le redo)
         if (this.historyIndex < this.annotationHistory.length - 1) {
             this.annotationHistory = this.annotationHistory.slice(0, this.historyIndex + 1);
+            // Reconstruire les annotations depuis l'historique pour être cohérent
+            this.rebuildAnnotationsFromHistory();
         }
 
-        // Ajouter
+        // Ajouter un ID unique à l'annotation pour la traçabilité
+        annotation.id = Date.now() + '_' + Math.random();
+
+        // Ajouter à l'historique
         this.annotationHistory.push({
             action: 'add',
             pageId: pageId,
@@ -982,25 +1168,35 @@ class CleanPDFViewer {
     }
 
     /**
+     * Reconstruire les annotations depuis l'historique
+     */
+    rebuildAnnotationsFromHistory() {
+        // Vider toutes les annotations
+        this.annotations.clear();
+
+        // Rejouer l'historique jusqu'à historyIndex
+        for (let i = 0; i <= this.historyIndex; i++) {
+            const entry = this.annotationHistory[i];
+            if (entry.action === 'add') {
+                if (!this.annotations.has(entry.pageId)) {
+                    this.annotations.set(entry.pageId, []);
+                }
+                this.annotations.get(entry.pageId).push({...entry.annotation});
+            }
+        }
+    }
+
+    /**
      * Undo
      */
     undo() {
         if (this.historyIndex < 0) return;
 
-        const entry = this.annotationHistory[this.historyIndex];
-
-        if (entry.action === 'add') {
-            // Retirer l'annotation
-            const pageAnnotations = this.annotations.get(entry.pageId);
-            if (pageAnnotations) {
-                const index = pageAnnotations.indexOf(entry.annotation);
-                if (index > -1) {
-                    pageAnnotations.splice(index, 1);
-                }
-            }
-        }
-
         this.historyIndex--;
+
+        // Reconstruire les annotations depuis l'historique
+        this.rebuildAnnotationsFromHistory();
+
         this.redrawAllPages();
         this.updateUndoRedoButtons();
         this.isDirty = true;
@@ -1013,15 +1209,9 @@ class CleanPDFViewer {
         if (this.historyIndex >= this.annotationHistory.length - 1) return;
 
         this.historyIndex++;
-        const entry = this.annotationHistory[this.historyIndex];
 
-        if (entry.action === 'add') {
-            // Rajouter l'annotation
-            if (!this.annotations.has(entry.pageId)) {
-                this.annotations.set(entry.pageId, []);
-            }
-            this.annotations.get(entry.pageId).push(entry.annotation);
-        }
+        // Reconstruire les annotations depuis l'historique
+        this.rebuildAnnotationsFromHistory();
 
         this.redrawAllPages();
         this.updateUndoRedoButtons();
@@ -1088,10 +1278,18 @@ class CleanPDFViewer {
     goToPage(pageId) {
         this.currentPage = pageId;
 
-        // Scroller vers la page
-        const wrapper = this.container.querySelector(`[data-page-id="${pageId}"]`);
+        // Scroller vers la page dans le viewer (pas dans la sidebar)
+        const wrapper = this.elements.pagesContainer.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
         if (wrapper) {
-            wrapper.scrollIntoView({behavior: 'smooth', block: 'start'});
+            // Scroller dans le conteneur pdf-viewer, pas juste le wrapper
+            const viewerRect = this.elements.viewer.getBoundingClientRect();
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const scrollTop = this.elements.viewer.scrollTop + (wrapperRect.top - viewerRect.top);
+
+            this.elements.viewer.scrollTo({
+                top: scrollTop,
+                behavior: 'smooth'
+            });
         }
 
         // Mettre à jour les miniatures
