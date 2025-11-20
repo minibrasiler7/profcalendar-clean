@@ -443,9 +443,8 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Permet le dessin avec stylet ET le scroll/zoom avec doigt */
-                touch-action: none;
-                pointer-events: auto;
+                /* Permet scroll/zoom avec doigt, le JS gère le stylet */
+                touch-action: pan-x pan-y pinch-zoom;
             }
 
             /* Loading */
@@ -676,7 +675,16 @@ class CleanPDFViewer {
      */
     async renderPDFPage(pdfCanvas, annotationCanvas, pageNum) {
         const page = await this.pdf.getPage(pageNum);
-        const viewport = page.getViewport({scale: this.scale});
+
+        // Calculer le scale pour occuper 95% de la largeur du viewer
+        const viewerWidth = this.elements.viewer.clientWidth;
+        const targetWidth = viewerWidth * 0.95;
+        const baseViewport = page.getViewport({scale: 1});
+        const calculatedScale = targetWidth / baseViewport.width;
+
+        // Utiliser le scale calculé ou le scale actuel (pour le zoom)
+        const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+        const viewport = page.getViewport({scale: scale});
 
         pdfCanvas.width = viewport.width;
         pdfCanvas.height = viewport.height;
@@ -798,11 +806,14 @@ class CleanPDFViewer {
      * Configurer les événements d'annotation sur un canvas
      */
     setupAnnotationEvents(canvas, pageId) {
+        // Normaliser pageId en nombre pour éviter les problèmes de type
+        const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
+
         // Pointer events pour détecter stylet vs doigt
-        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, pageId));
-        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, pageId));
-        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, pageId));
-        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, pageId));
+        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId));
+        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId));
+        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId));
+        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId));
     }
 
     /**
@@ -888,7 +899,7 @@ class CleanPDFViewer {
         this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
 
         // Redessiner le preview
-        this.drawStrokePreview(canvas, this.currentStroke);
+        this.drawStrokePreview(canvas, this.currentStroke, pageId);
     }
 
     /**
@@ -918,14 +929,13 @@ class CleanPDFViewer {
     /**
      * Dessiner le preview d'un stroke
      */
-    drawStrokePreview(canvas, stroke) {
+    drawStrokePreview(canvas, stroke, pageId) {
         const ctx = canvas.getContext('2d');
 
         // Effacer le canvas avant de redessiner
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Redessiner toutes les annotations existantes
-        const pageId = canvas.closest('.pdf-page-wrapper').dataset.pageId;
         const pageAnnotations = this.annotations.get(pageId) || [];
         for (const annotation of pageAnnotations) {
             this.drawAnnotation(ctx, annotation);
@@ -1174,14 +1184,17 @@ class CleanPDFViewer {
         // Vider toutes les annotations
         this.annotations.clear();
 
-        // Rejouer l'historique jusqu'à historyIndex
-        for (let i = 0; i <= this.historyIndex; i++) {
-            const entry = this.annotationHistory[i];
-            if (entry.action === 'add') {
-                if (!this.annotations.has(entry.pageId)) {
-                    this.annotations.set(entry.pageId, []);
+        // Rejouer l'historique jusqu'à historyIndex (inclus)
+        // Si historyIndex est -1, aucune annotation n'est affichée
+        if (this.historyIndex >= 0) {
+            for (let i = 0; i <= this.historyIndex; i++) {
+                const entry = this.annotationHistory[i];
+                if (entry.action === 'add') {
+                    if (!this.annotations.has(entry.pageId)) {
+                        this.annotations.set(entry.pageId, []);
+                    }
+                    this.annotations.get(entry.pageId).push({...entry.annotation});
                 }
-                this.annotations.get(entry.pageId).push({...entry.annotation});
             }
         }
     }
@@ -1190,6 +1203,7 @@ class CleanPDFViewer {
      * Undo
      */
     undo() {
+        // Vérifier qu'on peut encore annuler
         if (this.historyIndex < 0) return;
 
         this.historyIndex--;
@@ -1206,6 +1220,7 @@ class CleanPDFViewer {
      * Redo
      */
     redo() {
+        // Vérifier qu'on peut encore refaire
         if (this.historyIndex >= this.annotationHistory.length - 1) return;
 
         this.historyIndex++;
@@ -1222,7 +1237,9 @@ class CleanPDFViewer {
      * Mettre à jour les boutons undo/redo
      */
     updateUndoRedoButtons() {
+        // Désactiver undo si on est au début (index -1 ou pas d'historique)
         this.elements.btnUndo.disabled = this.historyIndex < 0;
+        // Désactiver redo si on est à la fin
         this.elements.btnRedo.disabled = this.historyIndex >= this.annotationHistory.length - 1;
     }
 
