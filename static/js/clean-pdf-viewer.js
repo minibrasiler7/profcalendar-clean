@@ -443,9 +443,18 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Permet scroll/zoom avec doigt, le JS gère le stylet */
-                touch-action: auto;
+                /* Le JS gère la distinction stylet/doigt */
                 pointer-events: auto;
+            }
+
+            /* Conteneur principal doit supporter le zoom */
+            .pdf-viewer {
+                touch-action: pan-x pan-y pinch-zoom;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .pdf-pages-container {
+                touch-action: pan-x pan-y pinch-zoom;
             }
 
             /* Loading */
@@ -810,11 +819,48 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
+        // IMPORTANT: Désactiver le touch-action sur le canvas pour permettre le pinch-zoom
+        // Le canvas doit laisser passer les événements touch au parent
+        canvas.style.touchAction = 'none'; // On gère manuellement
+
         // Pointer events pour détecter stylet vs doigt
-        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId));
-        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId));
-        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId));
-        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId));
+        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
+        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
+        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
+        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
+
+        // Pour le pinch-zoom avec les doigts, on doit gérer les touch events séparément
+        // et les laisser passer au conteneur parent
+        canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
+        canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: true });
+        canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
+    }
+
+    /**
+     * Gérer le début du touch (pour pinch-zoom)
+     */
+    handleTouchStart(e) {
+        // Si c'est un multi-touch (2 doigts ou plus), c'est un pinch-zoom
+        // On ne fait rien pour laisser le navigateur gérer
+        if (e.touches.length >= 2) {
+            this.isPinching = true;
+        }
+    }
+
+    /**
+     * Gérer le mouvement touch (pour pinch-zoom)
+     */
+    handleTouchMove(e) {
+        // Laisser passer pour le pinch-zoom
+    }
+
+    /**
+     * Gérer la fin du touch
+     */
+    handleTouchEnd(e) {
+        if (e.touches.length < 2) {
+            this.isPinching = false;
+        }
     }
 
     /**
@@ -968,7 +1014,7 @@ class CleanPDFViewer {
      * Effacer à un point donné
      */
     eraseAtPoint(canvas, pageId, x, y) {
-        const eraserSize = this.currentSize * 3;
+        const eraserSize = this.currentSize * 5; // Gomme assez grande
         const pageAnnotations = this.annotations.get(pageId) || [];
 
         // Filtrer les annotations qui sont touchées par la gomme
@@ -976,11 +1022,31 @@ class CleanPDFViewer {
         let hasErased = false;
 
         for (const annotation of pageAnnotations) {
-            if (this.annotationTools && this.annotationTools.intersectsEraser(annotation, {x, y}, eraserSize)) {
+            // Ne pas effacer la grille
+            if (annotation.tool === 'grid') {
+                newAnnotations.push(annotation);
+                continue;
+            }
+
+            // Vérifier si l'annotation est touchée par la gomme
+            const isTouched = this.isAnnotationTouchedByEraser(annotation, x, y, eraserSize);
+
+            if (isTouched) {
                 hasErased = true;
-                // Découper le stroke si nécessaire
-                const cutStrokes = this.annotationTools.cutStroke(annotation, {x, y}, eraserSize);
-                newAnnotations.push(...cutStrokes);
+                // Pour les formes simples (cercle, rectangle, ligne, etc.), on supprime entièrement
+                // Pour les strokes (pen, highlighter), on peut découper si le système le supporte
+                if (annotation.tool === 'pen' || annotation.tool === 'highlighter') {
+                    // Essayer de découper le stroke
+                    if (this.annotationTools && this.annotationTools.cutStroke) {
+                        const cutStrokes = this.annotationTools.cutStroke(annotation, {x, y}, eraserSize);
+                        if (cutStrokes && cutStrokes.length > 0) {
+                            newAnnotations.push(...cutStrokes);
+                        }
+                    }
+                    // Sinon, le stroke est supprimé complètement
+                }
+                // Pour les autres outils (formes), on supprime complètement l'annotation
+                // (ne pas l'ajouter à newAnnotations)
             } else {
                 newAnnotations.push(annotation);
             }
@@ -991,6 +1057,106 @@ class CleanPDFViewer {
             this.redrawAnnotations(canvas, pageId);
             this.isDirty = true;
         }
+    }
+
+    /**
+     * Vérifier si une annotation est touchée par la gomme
+     */
+    isAnnotationTouchedByEraser(annotation, x, y, eraserSize) {
+        const points = annotation.points || [];
+
+        // Pour les formes avec points
+        if (points.length > 0) {
+            // Vérifier chaque point
+            for (const point of points) {
+                const dist = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+                if (dist < eraserSize) {
+                    return true;
+                }
+            }
+
+            // Pour les lignes, vérifier aussi les segments entre les points
+            if (points.length >= 2) {
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    if (this.pointToSegmentDistance(x, y, p1.x, p1.y, p2.x, p2.y) < eraserSize) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Pour les cercles/disques
+        if (annotation.tool === 'circle' || annotation.tool === 'disk') {
+            if (annotation.center && annotation.radius) {
+                const distToCenter = Math.sqrt((annotation.center.x - x) ** 2 + (annotation.center.y - y) ** 2);
+                // Touché si on est sur le cercle (dans une marge autour du rayon)
+                if (Math.abs(distToCenter - annotation.radius) < eraserSize) {
+                    return true;
+                }
+                // Pour le disque, touché si on est à l'intérieur
+                if (annotation.tool === 'disk' && distToCenter < annotation.radius) {
+                    return true;
+                }
+            }
+        }
+
+        // Pour les rectangles
+        if (annotation.tool === 'rectangle') {
+            if (annotation.start && annotation.end) {
+                const minX = Math.min(annotation.start.x, annotation.end.x);
+                const maxX = Math.max(annotation.start.x, annotation.end.x);
+                const minY = Math.min(annotation.start.y, annotation.end.y);
+                const maxY = Math.max(annotation.start.y, annotation.end.y);
+
+                // Vérifier les 4 côtés du rectangle
+                if (this.pointToSegmentDistance(x, y, minX, minY, maxX, minY) < eraserSize ||
+                    this.pointToSegmentDistance(x, y, maxX, minY, maxX, maxY) < eraserSize ||
+                    this.pointToSegmentDistance(x, y, maxX, maxY, minX, maxY) < eraserSize ||
+                    this.pointToSegmentDistance(x, y, minX, maxY, minX, minY) < eraserSize) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Distance d'un point à un segment
+     */
+    pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+        const A = px - x1;
+        const B = py - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        let param = -1;
+
+        if (lenSq !== 0) {
+            param = dot / lenSq;
+        }
+
+        let xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        const dx = px - xx;
+        const dy = py - yy;
+
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     /**
@@ -1657,22 +1823,44 @@ class CleanPDFViewer {
      * Reconstruire les annotations depuis l'historique
      */
     rebuildAnnotationsFromHistory() {
+        console.log('[Rebuild] Début - historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
+
+        // Sauvegarder les grilles (elles ne sont pas dans l'historique)
+        const savedGrids = new Map();
+        for (const [pageId, annotations] of this.annotations) {
+            const grids = annotations.filter(a => a.tool === 'grid');
+            if (grids.length > 0) {
+                savedGrids.set(pageId, grids);
+            }
+        }
+
         // Vider toutes les annotations
         this.annotations.clear();
 
+        // Restaurer les grilles
+        for (const [pageId, grids] of savedGrids) {
+            this.annotations.set(pageId, [...grids]);
+        }
+
         // Rejouer l'historique jusqu'à historyIndex (inclus)
-        // Si historyIndex est -1, aucune annotation n'est affichée
+        // Si historyIndex est -1, aucune annotation n'est affichée (sauf les grilles)
         if (this.historyIndex >= 0) {
             for (let i = 0; i <= this.historyIndex; i++) {
                 const entry = this.annotationHistory[i];
                 if (entry.action === 'add') {
-                    if (!this.annotations.has(entry.pageId)) {
-                        this.annotations.set(entry.pageId, []);
+                    const pageId = entry.pageId;
+                    if (!this.annotations.has(pageId)) {
+                        this.annotations.set(pageId, []);
                     }
-                    this.annotations.get(entry.pageId).push({...entry.annotation});
+                    // Ne pas ajouter les grilles (déjà restaurées)
+                    if (entry.annotation.tool !== 'grid') {
+                        this.annotations.get(pageId).push({...entry.annotation});
+                    }
                 }
             }
         }
+
+        console.log('[Rebuild] Fin - annotations par page:', [...this.annotations.keys()]);
     }
 
     /**
@@ -1741,7 +1929,8 @@ class CleanPDFViewer {
     redrawAllPages() {
         const canvases = this.container.querySelectorAll('.annotation-canvas');
         canvases.forEach(canvas => {
-            const pageId = canvas.closest('.pdf-page-wrapper').dataset.pageId;
+            const pageIdStr = canvas.closest('.pdf-page-wrapper').dataset.pageId;
+            const pageId = parseInt(pageIdStr); // Normaliser en nombre
             this.redrawAnnotations(canvas, pageId);
         });
     }
@@ -2875,22 +3064,38 @@ class CleanPDFViewer {
      * Fermer le viewer
      */
     async close() {
+        console.log('[Close] Fermeture du viewer PDF...');
+
         // Sauvegarder avant de fermer
         if (this.isDirty) {
-            await this.saveAnnotations();
+            try {
+                await this.saveAnnotations();
+            } catch (e) {
+                console.error('[Close] Erreur sauvegarde:', e);
+            }
         }
 
         // Nettoyer
         this.stopAutoSave();
+
+        // Appeler le callback AVANT de nettoyer le DOM
+        // pour que le code appelant puisse réagir
+        if (this.options.onClose) {
+            console.log('[Close] Appel du callback onClose');
+            try {
+                this.options.onClose();
+            } catch (e) {
+                console.error('[Close] Erreur dans onClose:', e);
+            }
+        }
+
+        // Nettoyer le DOM après le callback
         this.container.innerHTML = '';
         this.container.style.display = 'none';
 
-        // Callback
-        if (this.options.onClose) {
-            this.options.onClose();
-        } else {
-            // Comportement par défaut : recharger la page lesson
-            // Cela restaure l'état normal de la page sans le viewer PDF
+        // Si pas de callback, recharger la page
+        if (!this.options.onClose) {
+            console.log('[Close] Pas de callback - rechargement de la page');
             window.location.reload();
         }
     }
