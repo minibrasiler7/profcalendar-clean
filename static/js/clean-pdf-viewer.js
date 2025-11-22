@@ -819,48 +819,17 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
-        // IMPORTANT: Désactiver le touch-action sur le canvas pour permettre le pinch-zoom
-        // Le canvas doit laisser passer les événements touch au parent
-        canvas.style.touchAction = 'none'; // On gère manuellement
+        // IMPORTANT: Permettre le scroll/zoom avec les doigts
+        // Le canvas NE DOIT PAS bloquer les événements touch
+        canvas.style.touchAction = 'auto';
+        canvas.style.pointerEvents = 'auto';
 
         // Pointer events pour détecter stylet vs doigt
+        // On utilise { passive: false } seulement pour pouvoir appeler preventDefault sur stylet
         canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
-
-        // Pour le pinch-zoom avec les doigts, on doit gérer les touch events séparément
-        // et les laisser passer au conteneur parent
-        canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
-        canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: true });
-        canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
-    }
-
-    /**
-     * Gérer le début du touch (pour pinch-zoom)
-     */
-    handleTouchStart(e) {
-        // Si c'est un multi-touch (2 doigts ou plus), c'est un pinch-zoom
-        // On ne fait rien pour laisser le navigateur gérer
-        if (e.touches.length >= 2) {
-            this.isPinching = true;
-        }
-    }
-
-    /**
-     * Gérer le mouvement touch (pour pinch-zoom)
-     */
-    handleTouchMove(e) {
-        // Laisser passer pour le pinch-zoom
-    }
-
-    /**
-     * Gérer la fin du touch
-     */
-    handleTouchEnd(e) {
-        if (e.touches.length < 2) {
-            this.isPinching = false;
-        }
     }
 
     /**
@@ -1087,17 +1056,35 @@ class CleanPDFViewer {
             }
         }
 
-        // Pour les cercles/disques
-        if (annotation.tool === 'circle' || annotation.tool === 'disk') {
-            if (annotation.center && annotation.radius) {
-                const distToCenter = Math.sqrt((annotation.center.x - x) ** 2 + (annotation.center.y - y) ** 2);
-                // Touché si on est sur le cercle (dans une marge autour du rayon)
-                if (Math.abs(distToCenter - annotation.radius) < eraserSize) {
-                    return true;
+        // Pour les cercles/disques - utiliser les points stockés pour calculer centre et rayon
+        if (annotation.tool === 'circle' || annotation.tool === 'disk' || annotation.tool === 'compass') {
+            let center, radius;
+
+            // Les cercles/disques stockent les points: premier = centre, dernier = bord
+            if (points.length >= 2) {
+                center = points[0];
+                const edge = points[points.length - 1];
+                radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
+            } else if (annotation.center && annotation.radius) {
+                center = annotation.center;
+                radius = annotation.radius;
+            }
+
+            if (center && radius) {
+                const distToCenter = Math.sqrt((center.x - x) ** 2 + (center.y - y) ** 2);
+
+                // Pour le cercle, touché si on est sur le contour (dans une marge autour du rayon)
+                if (annotation.tool === 'circle' || annotation.tool === 'compass') {
+                    if (Math.abs(distToCenter - radius) < eraserSize) {
+                        return true;
+                    }
                 }
-                // Pour le disque, touché si on est à l'intérieur
-                if (annotation.tool === 'disk' && distToCenter < annotation.radius) {
-                    return true;
+
+                // Pour le disque, touché si on est à l'intérieur OU sur le contour
+                if (annotation.tool === 'disk') {
+                    if (distToCenter <= radius + eraserSize) {
+                        return true;
+                    }
                 }
             }
         }
@@ -1115,6 +1102,51 @@ class CleanPDFViewer {
                     this.pointToSegmentDistance(x, y, maxX, minY, maxX, maxY) < eraserSize ||
                     this.pointToSegmentDistance(x, y, maxX, maxY, minX, maxY) < eraserSize ||
                     this.pointToSegmentDistance(x, y, minX, maxY, minX, minY) < eraserSize) {
+                    return true;
+                }
+            }
+        }
+
+        // Pour les arcs de cercle
+        if (annotation.tool === 'arc') {
+            if (points.length >= 3) {
+                const center = points[0];
+                const startPoint = points[1];
+                const endPoint = points[2];
+
+                const radius = Math.sqrt((startPoint.x - center.x) ** 2 + (startPoint.y - center.y) ** 2);
+                const startAngle = Math.atan2(startPoint.y - center.y, startPoint.x - center.x);
+                const endAngle = Math.atan2(endPoint.y - center.y, endPoint.x - center.x);
+
+                const distToCenter = Math.sqrt((center.x - x) ** 2 + (center.y - y) ** 2);
+
+                // Vérifier si on est sur l'arc (à la bonne distance du centre)
+                if (Math.abs(distToCenter - radius) < eraserSize) {
+                    // Vérifier si l'angle du point est dans l'arc
+                    const pointAngle = Math.atan2(y - center.y, x - center.x);
+
+                    // Normaliser les angles
+                    let start = startAngle;
+                    let end = endAngle;
+                    let point = pointAngle;
+
+                    // Vérifier si le point est dans l'arc (simplifié)
+                    // On considère que c'est touché si on est sur le cercle à la bonne distance
+                    return true;
+                }
+            }
+        }
+
+        // Pour les angles
+        if (annotation.tool === 'angle') {
+            if (points.length >= 3) {
+                const vertex = points[0];
+                const p1 = points[1];
+                const p2 = points[2];
+
+                // Vérifier les deux segments de l'angle
+                if (this.pointToSegmentDistance(x, y, vertex.x, vertex.y, p1.x, p1.y) < eraserSize ||
+                    this.pointToSegmentDistance(x, y, vertex.x, vertex.y, p2.x, p2.y) < eraserSize) {
                     return true;
                 }
             }
@@ -1941,12 +1973,28 @@ class CleanPDFViewer {
     clearCurrentPage() {
         if (!confirm('Effacer toutes les annotations de cette page ?')) return;
 
-        const pageAnnotations = this.annotations.get(this.currentPage);
-        if (pageAnnotations && pageAnnotations.length > 0) {
-            this.annotations.set(this.currentPage, []);
-            this.redrawAllPages();
-            this.isDirty = true;
+        const pageId = this.currentPage;
+
+        // Supprimer les annotations de cette page
+        this.annotations.set(pageId, []);
+
+        // Supprimer les entrées d'historique pour cette page
+        this.annotationHistory = this.annotationHistory.filter(entry => entry.pageId !== pageId);
+
+        // Réajuster historyIndex si nécessaire
+        this.historyIndex = this.annotationHistory.length - 1;
+
+        // Supprimer aussi l'état de la grille pour cette page
+        if (this.pageGrids) {
+            this.pageGrids.delete(pageId);
         }
+
+        // Redessiner
+        this.redrawAllPages();
+        this.updateUndoRedoButtons();
+        this.isDirty = true;
+
+        console.log('[Clear] Page', pageId, 'effacée. Historique restant:', this.annotationHistory.length);
     }
 
     /**
@@ -1971,9 +2019,36 @@ class CleanPDFViewer {
             // Revenir à l'outil précédent
             this.setTool('pen');
             return;
+        } else if (tool === 'grid') {
+            // Toggle la grille sur la page actuelle immédiatement
+            this.toggleGridOnCurrentPage();
+            // Revenir au stylo
+            this.setTool('pen');
+            return;
         } else {
             this.currentOpacity = 1.0;
         }
+    }
+
+    /**
+     * Toggle la grille sur la page actuelle
+     */
+    toggleGridOnCurrentPage() {
+        // Trouver le canvas de la page actuelle
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${this.currentPage}"]`);
+        if (!pageWrapper) {
+            console.error('[Grid] Page wrapper non trouvé pour page:', this.currentPage);
+            return;
+        }
+
+        const canvas = pageWrapper.querySelector('.annotation-canvas');
+        if (!canvas) {
+            console.error('[Grid] Canvas non trouvé pour page:', this.currentPage);
+            return;
+        }
+
+        console.log('[Grid] Toggle grille sur page:', this.currentPage);
+        this.toggleGridOnPage(canvas, this.currentPage);
     }
 
     /**
@@ -3075,11 +3150,30 @@ class CleanPDFViewer {
             }
         }
 
-        // Nettoyer
+        // Nettoyer les timers
         this.stopAutoSave();
 
-        // Appeler le callback AVANT de nettoyer le DOM
-        // pour que le code appelant puisse réagir
+        // Nettoyer le DOM
+        this.container.innerHTML = '';
+        this.container.style.display = 'none';
+
+        // Fermer aussi le modal parent s'il existe (fileViewerModal)
+        const fileViewerModal = document.getElementById('fileViewerModal');
+        if (fileViewerModal) {
+            fileViewerModal.classList.remove('show');
+            fileViewerModal.classList.remove('embedded');
+            fileViewerModal.style.display = 'none';
+            console.log('[Close] Modal fileViewerModal fermé');
+        }
+
+        // Réafficher le contenu principal de la page lesson
+        const lessonContainer = document.querySelector('.lesson-container');
+        if (lessonContainer) {
+            lessonContainer.style.display = '';
+            console.log('[Close] Lesson container réaffiché');
+        }
+
+        // Appeler le callback si fourni
         if (this.options.onClose) {
             console.log('[Close] Appel du callback onClose');
             try {
@@ -3087,16 +3181,6 @@ class CleanPDFViewer {
             } catch (e) {
                 console.error('[Close] Erreur dans onClose:', e);
             }
-        }
-
-        // Nettoyer le DOM après le callback
-        this.container.innerHTML = '';
-        this.container.style.display = 'none';
-
-        // Si pas de callback, recharger la page
-        if (!this.options.onClose) {
-            console.log('[Close] Pas de callback - rechargement de la page');
-            window.location.reload();
         }
     }
 }
