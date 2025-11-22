@@ -444,7 +444,8 @@ class CleanPDFViewer {
                 top: 0;
                 left: 0;
                 /* Permet scroll/zoom avec doigt, le JS gère le stylet */
-                touch-action: pan-x pan-y pinch-zoom;
+                touch-action: auto;
+                pointer-events: auto;
             }
 
             /* Loading */
@@ -822,14 +823,16 @@ class CleanPDFViewer {
     handlePointerDown(e, canvas, pageId) {
         this.lastPointerType = e.pointerType;
 
-        // Doigt = scroll/zoom, ignorer pour annotation
+        // Doigt = scroll/zoom, laisser passer l'événement pour le navigateur
         if (e.pointerType === 'touch') {
+            // Ne pas appeler preventDefault() - laisser le scroll/zoom natif fonctionner
             return;
         }
 
         // Stylet ou souris = annotation
         if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
             e.preventDefault();
+            e.stopPropagation();
             this.startAnnotation(e, canvas, pageId);
         }
     }
@@ -871,21 +874,161 @@ class CleanPDFViewer {
         this.isDrawing = true;
 
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
 
-        // Initialiser selon l'outil
+        // Gérer la gomme différemment
+        if (this.currentTool === 'eraser') {
+            this.currentStroke = {
+                tool: 'eraser',
+                color: '#ffffff',
+                size: this.currentSize * 3, // Gomme plus grande
+                opacity: 1.0,
+                points: [{x, y, pressure: e.pressure || 0.5}],
+                startTime: Date.now(),
+                pageId: pageId
+            };
+            // Commencer l'effacement immédiatement
+            this.eraseAtPoint(canvas, pageId, x, y);
+            return;
+        }
+
+        // Gérer l'outil angle avec validation en 2 étapes
+        if (this.currentTool === 'angle') {
+            if (!this.angleState) {
+                // Première étape : commencer le premier segment
+                this.angleState = {
+                    step: 1,
+                    startPoint: {x, y},
+                    firstSegmentEnd: null,
+                    validationTimer: null,
+                    lastMoveTime: Date.now(),
+                    pageId: pageId
+                };
+            }
+            this.currentStroke = {
+                tool: 'angle',
+                color: this.currentColor,
+                size: this.currentSize,
+                opacity: this.currentOpacity,
+                points: [{x, y, pressure: e.pressure || 0.5}],
+                startTime: Date.now(),
+                pageId: pageId
+            };
+            return;
+        }
+
+        // Gérer l'outil arc avec validation en 2 étapes
+        if (this.currentTool === 'arc') {
+            if (!this.arcState) {
+                // Première étape : commencer le premier segment
+                this.arcState = {
+                    step: 1,
+                    startPoint: {x, y},
+                    firstSegmentEnd: null,
+                    validationTimer: null,
+                    lastMoveTime: Date.now(),
+                    pageId: pageId
+                };
+            }
+            this.currentStroke = {
+                tool: 'arc',
+                color: this.currentColor,
+                size: this.currentSize,
+                opacity: this.currentOpacity,
+                points: [{x, y, pressure: e.pressure || 0.5}],
+                startTime: Date.now(),
+                pageId: pageId
+            };
+            return;
+        }
+
+        // Gérer l'outil grille (toggle)
+        if (this.currentTool === 'grid') {
+            this.toggleGridOnPage(canvas, pageId);
+            this.isDrawing = false;
+            return;
+        }
+
+        // Initialiser selon l'outil standard
         this.currentStroke = {
             tool: this.currentTool,
             color: this.currentColor,
             size: this.currentSize,
-            opacity: this.currentOpacity,
+            opacity: this.currentTool === 'highlighter' ? 0.5 : this.currentOpacity,
             points: [{x, y, pressure: e.pressure || 0.5}],
             startTime: Date.now(),
             pageId: pageId
         };
+    }
 
-        // TODO: Logique spécifique selon l'outil
+    /**
+     * Effacer à un point donné
+     */
+    eraseAtPoint(canvas, pageId, x, y) {
+        const eraserSize = this.currentSize * 3;
+        const pageAnnotations = this.annotations.get(pageId) || [];
+
+        // Filtrer les annotations qui sont touchées par la gomme
+        const newAnnotations = [];
+        let hasErased = false;
+
+        for (const annotation of pageAnnotations) {
+            if (this.annotationTools && this.annotationTools.intersectsEraser(annotation, {x, y}, eraserSize)) {
+                hasErased = true;
+                // Découper le stroke si nécessaire
+                const cutStrokes = this.annotationTools.cutStroke(annotation, {x, y}, eraserSize);
+                newAnnotations.push(...cutStrokes);
+            } else {
+                newAnnotations.push(annotation);
+            }
+        }
+
+        if (hasErased) {
+            this.annotations.set(pageId, newAnnotations);
+            this.redrawAnnotations(canvas, pageId);
+            this.isDirty = true;
+        }
+    }
+
+    /**
+     * Toggle grille sur une page
+     */
+    toggleGridOnPage(canvas, pageId) {
+        // Vérifier si la grille existe déjà
+        if (!this.pageGrids) {
+            this.pageGrids = new Map();
+        }
+
+        const hasGrid = this.pageGrids.get(pageId);
+
+        if (hasGrid) {
+            // Supprimer la grille
+            this.pageGrids.set(pageId, false);
+            // Supprimer l'annotation grille
+            const pageAnnotations = this.annotations.get(pageId) || [];
+            const filteredAnnotations = pageAnnotations.filter(a => a.tool !== 'grid');
+            this.annotations.set(pageId, filteredAnnotations);
+        } else {
+            // Ajouter la grille
+            this.pageGrids.set(pageId, true);
+            // Ajouter une annotation grille
+            const gridAnnotation = {
+                tool: 'grid',
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                id: Date.now() + '_grid'
+            };
+            if (!this.annotations.has(pageId)) {
+                this.annotations.set(pageId, []);
+            }
+            this.annotations.get(pageId).unshift(gridAnnotation); // Ajouter au début pour dessiner en premier
+        }
+
+        this.redrawAnnotations(canvas, pageId);
+        this.isDirty = true;
     }
 
     /**
@@ -893,8 +1036,66 @@ class CleanPDFViewer {
      */
     continueAnnotation(e, canvas, pageId) {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        // Gérer la gomme
+        if (this.currentTool === 'eraser') {
+            this.eraseAtPoint(canvas, pageId, x, y);
+            return;
+        }
+
+        // Gérer l'outil angle
+        if (this.currentTool === 'angle' && this.angleState) {
+            const now = Date.now();
+            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+            const distance = Math.sqrt((x - lastPoint.x) ** 2 + (y - lastPoint.y) ** 2);
+
+            // Marge de 5 pixels pour considérer qu'on ne bouge pas
+            if (distance > 5) {
+                this.angleState.lastMoveTime = now;
+                if (this.angleState.validationTimer) {
+                    clearTimeout(this.angleState.validationTimer);
+                    this.angleState.validationTimer = null;
+                }
+            } else if (!this.angleState.validationTimer && this.angleState.step === 1) {
+                // Commencer le timer de validation si immobile
+                this.angleState.validationTimer = setTimeout(() => {
+                    this.validateAngleFirstSegment(canvas, pageId);
+                }, 500);
+            }
+
+            this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
+            this.drawAnglePreview(canvas, pageId);
+            return;
+        }
+
+        // Gérer l'outil arc
+        if (this.currentTool === 'arc' && this.arcState) {
+            const now = Date.now();
+            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+            const distance = Math.sqrt((x - lastPoint.x) ** 2 + (y - lastPoint.y) ** 2);
+
+            // Marge de 5 pixels pour considérer qu'on ne bouge pas
+            if (distance > 5) {
+                this.arcState.lastMoveTime = now;
+                if (this.arcState.validationTimer) {
+                    clearTimeout(this.arcState.validationTimer);
+                    this.arcState.validationTimer = null;
+                }
+            } else if (!this.arcState.validationTimer && this.arcState.step === 1) {
+                // Commencer le timer de validation si immobile
+                this.arcState.validationTimer = setTimeout(() => {
+                    this.validateArcFirstSegment(canvas, pageId);
+                }, 500);
+            }
+
+            this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
+            this.drawArcPreview(canvas, pageId);
+            return;
+        }
 
         this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
 
@@ -903,13 +1104,288 @@ class CleanPDFViewer {
     }
 
     /**
+     * Valider le premier segment de l'outil angle
+     */
+    validateAngleFirstSegment(canvas, pageId) {
+        if (!this.angleState || this.angleState.step !== 1) return;
+
+        const points = this.currentStroke.points;
+        if (points.length < 2) return;
+
+        // Sauvegarder le premier segment
+        this.angleState.step = 2;
+        this.angleState.firstSegmentEnd = {...points[points.length - 1]};
+
+        // Feedback visuel (le segment devient validé)
+        this.drawAnglePreview(canvas, pageId);
+    }
+
+    /**
+     * Valider le premier segment de l'outil arc
+     */
+    validateArcFirstSegment(canvas, pageId) {
+        if (!this.arcState || this.arcState.step !== 1) return;
+
+        const points = this.currentStroke.points;
+        if (points.length < 2) return;
+
+        // Sauvegarder le premier segment
+        this.arcState.step = 2;
+        this.arcState.firstSegmentEnd = {...points[points.length - 1]};
+
+        // Feedback visuel
+        this.drawArcPreview(canvas, pageId);
+    }
+
+    /**
+     * Dessiner le preview de l'outil angle
+     */
+    drawAnglePreview(canvas, pageId) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Redessiner les annotations existantes
+        const pageAnnotations = this.annotations.get(pageId) || [];
+        for (const annotation of pageAnnotations) {
+            this.drawAnnotation(ctx, annotation);
+        }
+
+        if (!this.angleState || !this.currentStroke) return;
+
+        const points = this.currentStroke.points;
+        const startPoint = this.angleState.startPoint;
+        const currentPoint = points[points.length - 1];
+
+        ctx.save();
+        ctx.strokeStyle = this.currentColor;
+        ctx.lineWidth = this.currentSize;
+        ctx.lineCap = 'round';
+
+        if (this.angleState.step === 1) {
+            // Dessiner le premier segment en cours
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(currentPoint.x, currentPoint.y);
+            ctx.stroke();
+        } else if (this.angleState.step === 2) {
+            // Dessiner le premier segment validé
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(this.angleState.firstSegmentEnd.x, this.angleState.firstSegmentEnd.y);
+            ctx.stroke();
+
+            // Dessiner le deuxième segment en preview
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(currentPoint.x, currentPoint.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Calculer et afficher l'angle
+            const angle1 = Math.atan2(
+                this.angleState.firstSegmentEnd.y - startPoint.y,
+                this.angleState.firstSegmentEnd.x - startPoint.x
+            );
+            const angle2 = Math.atan2(
+                currentPoint.y - startPoint.y,
+                currentPoint.x - startPoint.x
+            );
+
+            let angleDiff = Math.abs(angle2 - angle1);
+            if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+            const angleDegrees = angleDiff * 180 / Math.PI;
+
+            // Dessiner l'arc de l'angle
+            const arcRadius = Math.min(50, Math.sqrt(
+                (this.angleState.firstSegmentEnd.x - startPoint.x) ** 2 +
+                (this.angleState.firstSegmentEnd.y - startPoint.y) ** 2
+            ) * 0.3);
+
+            ctx.beginPath();
+            ctx.arc(startPoint.x, startPoint.y, arcRadius,
+                Math.min(angle1, angle2), Math.max(angle1, angle2));
+            ctx.stroke();
+
+            // Afficher la mesure de l'angle
+            const labelAngle = (angle1 + angle2) / 2;
+            const labelX = startPoint.x + (arcRadius + 25) * Math.cos(labelAngle);
+            const labelY = startPoint.y + (arcRadius + 25) * Math.sin(labelAngle);
+
+            ctx.fillStyle = this.currentColor;
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${angleDegrees.toFixed(1)}°`, labelX, labelY);
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Dessiner le preview de l'outil arc
+     */
+    drawArcPreview(canvas, pageId) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Redessiner les annotations existantes
+        const pageAnnotations = this.annotations.get(pageId) || [];
+        for (const annotation of pageAnnotations) {
+            this.drawAnnotation(ctx, annotation);
+        }
+
+        if (!this.arcState || !this.currentStroke) return;
+
+        const points = this.currentStroke.points;
+        const startPoint = this.arcState.startPoint;
+        const currentPoint = points[points.length - 1];
+
+        ctx.save();
+        ctx.strokeStyle = this.currentColor;
+        ctx.lineWidth = this.currentSize;
+        ctx.lineCap = 'round';
+
+        if (this.arcState.step === 1) {
+            // Dessiner le premier segment en cours (rayon)
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(currentPoint.x, currentPoint.y);
+            ctx.stroke();
+
+            // Montrer le rayon
+            const radius = Math.sqrt(
+                (currentPoint.x - startPoint.x) ** 2 +
+                (currentPoint.y - startPoint.y) ** 2
+            );
+            ctx.fillStyle = this.currentColor;
+            ctx.font = '12px Arial';
+            ctx.fillText(`r=${radius.toFixed(0)}px`,
+                (startPoint.x + currentPoint.x) / 2,
+                (startPoint.y + currentPoint.y) / 2 - 10);
+        } else if (this.arcState.step === 2) {
+            // Calculer le rayon depuis le premier segment
+            const radius = Math.sqrt(
+                (this.arcState.firstSegmentEnd.x - startPoint.x) ** 2 +
+                (this.arcState.firstSegmentEnd.y - startPoint.y) ** 2
+            );
+
+            // Calculer les angles
+            const startAngle = Math.atan2(
+                this.arcState.firstSegmentEnd.y - startPoint.y,
+                this.arcState.firstSegmentEnd.x - startPoint.x
+            );
+            const endAngle = Math.atan2(
+                currentPoint.y - startPoint.y,
+                currentPoint.x - startPoint.x
+            );
+
+            // Dessiner l'arc
+            let angleDiff = endAngle - startAngle;
+            if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+            ctx.beginPath();
+            ctx.arc(startPoint.x, startPoint.y, radius, startAngle, endAngle, angleDiff < 0);
+            ctx.stroke();
+
+            // Dessiner les rayons en pointillé
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(this.arcState.firstSegmentEnd.x, this.arcState.firstSegmentEnd.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            const endOnArc = {
+                x: startPoint.x + radius * Math.cos(endAngle),
+                y: startPoint.y + radius * Math.sin(endAngle)
+            };
+            ctx.lineTo(endOnArc.x, endOnArc.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        ctx.restore();
+    }
+
+    /**
      * Terminer une annotation
      */
     endAnnotation(e, canvas, pageId) {
         this.isDrawing = false;
 
-        // Sauvegarder l'annotation
-        this.addAnnotationToHistory(pageId, this.currentStroke);
+        // Gérer la gomme - pas d'annotation à sauvegarder
+        if (this.currentTool === 'eraser') {
+            this.currentStroke = null;
+            return;
+        }
+
+        // Gérer la fin de l'outil angle
+        if (this.currentTool === 'angle' && this.angleState) {
+            if (this.angleState.validationTimer) {
+                clearTimeout(this.angleState.validationTimer);
+            }
+
+            // Si on est à l'étape 2, sauvegarder l'annotation
+            if (this.angleState.step === 2) {
+                const angleAnnotation = {
+                    tool: 'angle',
+                    color: this.currentColor,
+                    size: this.currentSize,
+                    opacity: this.currentOpacity,
+                    points: [
+                        this.angleState.startPoint,
+                        this.angleState.firstSegmentEnd,
+                        this.currentStroke.points[this.currentStroke.points.length - 1]
+                    ]
+                };
+                this.addAnnotationToHistory(pageId, angleAnnotation);
+            }
+
+            // Reset de l'état angle
+            this.angleState = null;
+            this.currentStroke = null;
+            this.redrawAnnotations(canvas, pageId);
+            this.isDirty = true;
+            return;
+        }
+
+        // Gérer la fin de l'outil arc
+        if (this.currentTool === 'arc' && this.arcState) {
+            if (this.arcState.validationTimer) {
+                clearTimeout(this.arcState.validationTimer);
+            }
+
+            // Si on est à l'étape 2, sauvegarder l'annotation
+            if (this.arcState.step === 2) {
+                const arcAnnotation = {
+                    tool: 'arc',
+                    color: this.currentColor,
+                    size: this.currentSize,
+                    opacity: this.currentOpacity,
+                    points: [
+                        this.arcState.startPoint,
+                        this.arcState.firstSegmentEnd,
+                        this.currentStroke.points[this.currentStroke.points.length - 1]
+                    ]
+                };
+                this.addAnnotationToHistory(pageId, arcAnnotation);
+            }
+
+            // Reset de l'état arc
+            this.arcState = null;
+            this.currentStroke = null;
+            this.redrawAnnotations(canvas, pageId);
+            this.isDirty = true;
+            return;
+        }
+
+        // Sauvegarder l'annotation standard
+        if (this.currentStroke && this.currentStroke.points && this.currentStroke.points.length > 1) {
+            this.addAnnotationToHistory(pageId, this.currentStroke);
+        }
 
         // Redessiner toutes les annotations
         this.redrawAnnotations(canvas, pageId);
@@ -1200,13 +1676,21 @@ class CleanPDFViewer {
     }
 
     /**
-     * Undo
+     * Undo - Annuler la dernière action
      */
     undo() {
-        // Vérifier qu'on peut encore annuler
-        if (this.historyIndex < 0) return;
+        console.log('[Undo] historyIndex avant:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
 
+        // Vérifier qu'on peut encore annuler
+        if (this.historyIndex < 0) {
+            console.log('[Undo] Impossible - déjà au début');
+            return;
+        }
+
+        // Décrémenter de 1 seulement
         this.historyIndex--;
+
+        console.log('[Undo] historyIndex après:', this.historyIndex);
 
         // Reconstruire les annotations depuis l'historique
         this.rebuildAnnotationsFromHistory();
@@ -1217,13 +1701,21 @@ class CleanPDFViewer {
     }
 
     /**
-     * Redo
+     * Redo - Rétablir la dernière action annulée
      */
     redo() {
-        // Vérifier qu'on peut encore refaire
-        if (this.historyIndex >= this.annotationHistory.length - 1) return;
+        console.log('[Redo] historyIndex avant:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
 
+        // Vérifier qu'on peut encore refaire
+        if (this.historyIndex >= this.annotationHistory.length - 1) {
+            console.log('[Redo] Impossible - déjà à la fin');
+            return;
+        }
+
+        // Incrémenter de 1 seulement
         this.historyIndex++;
+
+        console.log('[Redo] historyIndex après:', this.historyIndex);
 
         // Reconstruire les annotations depuis l'historique
         this.rebuildAnnotationsFromHistory();
@@ -1284,9 +1776,244 @@ class CleanPDFViewer {
             this.currentOpacity = 0.5;
             this.elements.colorPicker.value = '#FFFF00'; // Jaune fluo par défaut
             this.currentColor = '#FFFF00';
+        } else if (tool === 'student-tracking') {
+            // Ouvrir le modal de gestion de classe
+            this.openClassManagementModal();
+            // Revenir à l'outil précédent
+            this.setTool('pen');
+            return;
         } else {
             this.currentOpacity = 1.0;
         }
+    }
+
+    /**
+     * Ouvrir le modal de gestion de classe
+     */
+    openClassManagementModal() {
+        // Vérifier si le modal existe déjà
+        let modal = document.getElementById('class-management-modal');
+
+        if (!modal) {
+            // Créer le modal
+            modal = document.createElement('div');
+            modal.id = 'class-management-modal';
+            modal.className = 'class-management-modal';
+            modal.innerHTML = `
+                <div class="class-modal-overlay" onclick="window.cleanPDFViewer.closeClassManagementModal()"></div>
+                <div class="class-modal-content">
+                    <div class="class-modal-header">
+                        <h2><i class="fas fa-users"></i> Gestion de classe</h2>
+                        <button class="class-modal-close" onclick="window.cleanPDFViewer.closeClassManagementModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="class-modal-body" id="class-modal-body">
+                        <!-- Le contenu de .attendance-section sera copié ici -->
+                    </div>
+                </div>
+            `;
+
+            // Ajouter les styles du modal
+            this.injectClassManagementStyles();
+
+            document.body.appendChild(modal);
+        }
+
+        // Copier le contenu de .attendance-section dans le modal
+        const attendanceSection = document.querySelector('.attendance-section');
+        const modalBody = modal.querySelector('#class-modal-body');
+
+        if (attendanceSection && modalBody) {
+            modalBody.innerHTML = attendanceSection.innerHTML;
+        }
+
+        // Afficher le modal
+        modal.style.display = 'flex';
+
+        // Stocker la référence pour fermeture
+        window.cleanPDFViewer = this;
+    }
+
+    /**
+     * Fermer le modal de gestion de classe
+     */
+    closeClassManagementModal() {
+        const modal = document.getElementById('class-management-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    /**
+     * Injecter les styles du modal de gestion de classe
+     */
+    injectClassManagementStyles() {
+        const styleId = 'class-management-modal-styles';
+        if (document.getElementById(styleId)) return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            .class-management-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 10000;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .class-modal-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+            }
+
+            .class-modal-content {
+                position: relative;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                width: 90%;
+                max-width: 600px;
+                max-height: 80vh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .class-modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid #e0e0e0;
+                background: #f8f9fa;
+            }
+
+            .class-modal-header h2 {
+                margin: 0;
+                font-size: 1.25rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .class-modal-close {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: #666;
+                padding: 8px;
+                border-radius: 8px;
+                transition: all 0.2s;
+            }
+
+            .class-modal-close:hover {
+                background: #e0e0e0;
+                color: #333;
+            }
+
+            .class-modal-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+            }
+
+            /* Styles copiés pour le contenu du modal */
+            .class-modal-body .tracking-tabs {
+                display: flex;
+                border-bottom: 2px solid #e5e7eb;
+                margin-bottom: 1rem;
+            }
+
+            .class-modal-body .tracking-tab {
+                padding: 0.75rem 1.5rem;
+                background: none;
+                border: none;
+                border-bottom: 3px solid transparent;
+                cursor: pointer;
+                font-weight: 500;
+            }
+
+            .class-modal-body .tracking-tab.active {
+                color: #007aff;
+                border-bottom-color: #007aff;
+            }
+
+            .class-modal-body .attendance-stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .class-modal-body .stat-item {
+                text-align: center;
+                padding: 0.75rem;
+                border-radius: 8px;
+            }
+
+            .class-modal-body .stat-item.present {
+                background-color: #D1FAE5;
+                color: #065F46;
+            }
+
+            .class-modal-body .stat-item.absent {
+                background-color: #FEE2E2;
+                color: #991B1B;
+            }
+
+            .class-modal-body .stat-item.late {
+                background-color: #FEF3C7;
+                color: #92400E;
+            }
+
+            .class-modal-body .stat-value {
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+
+            .class-modal-body .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .class-modal-body .students-list {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .class-modal-body .student-attendance {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.75rem;
+                border-radius: 8px;
+                background-color: #f3f4f6;
+            }
+
+            .class-modal-body .student-attendance.present {
+                background-color: #D1FAE5;
+            }
+
+            .class-modal-body .student-attendance.absent {
+                background-color: #FEE2E2;
+            }
+
+            .class-modal-body .student-attendance.late {
+                background-color: #FEF3C7;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     /**
@@ -1408,8 +2135,665 @@ class CleanPDFViewer {
      * Afficher le menu télécharger/envoyer
      */
     showDownloadMenu() {
-        // TODO: Menu avec options
-        alert('Téléchargement - à implémenter');
+        // Vérifier si le menu existe déjà
+        let menu = document.getElementById('pdf-download-menu');
+
+        if (menu) {
+            menu.remove();
+        }
+
+        // Créer le menu
+        menu = document.createElement('div');
+        menu.id = 'pdf-download-menu';
+        menu.className = 'pdf-download-menu';
+        menu.innerHTML = `
+            <div class="download-menu-overlay" onclick="window.cleanPDFViewer.closeDownloadMenu()"></div>
+            <div class="download-menu-content">
+                <div class="download-menu-header">
+                    <h3><i class="fas fa-download"></i> Télécharger / Envoyer</h3>
+                    <button class="download-menu-close" onclick="window.cleanPDFViewer.closeDownloadMenu()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="download-menu-body">
+                    <button class="download-option" onclick="window.cleanPDFViewer.downloadPDF()">
+                        <i class="fas fa-file-download"></i>
+                        <span>Télécharger le PDF annoté</span>
+                    </button>
+                    <div class="download-separator"></div>
+                    <h4>Envoyer aux élèves</h4>
+                    <button class="download-option" onclick="window.cleanPDFViewer.sendToStudents('all')">
+                        <i class="fas fa-users"></i>
+                        <span>Tous les élèves</span>
+                    </button>
+                    <button class="download-option" onclick="window.cleanPDFViewer.sendToStudents('absent')">
+                        <i class="fas fa-user-times"></i>
+                        <span>Élèves absents uniquement</span>
+                    </button>
+                    <button class="download-option" onclick="window.cleanPDFViewer.openStudentSelectionPanel()">
+                        <i class="fas fa-user-check"></i>
+                        <span>Sélectionner des élèves...</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Ajouter les styles
+        this.injectDownloadMenuStyles();
+
+        document.body.appendChild(menu);
+        window.cleanPDFViewer = this;
+    }
+
+    /**
+     * Fermer le menu de téléchargement
+     */
+    closeDownloadMenu() {
+        const menu = document.getElementById('pdf-download-menu');
+        if (menu) {
+            menu.remove();
+        }
+    }
+
+    /**
+     * Télécharger le PDF avec annotations
+     */
+    async downloadPDF() {
+        this.closeDownloadMenu();
+        this.showLoading(true);
+
+        try {
+            const pdfBlob = await this.exportPDFWithAnnotations();
+
+            // Créer le lien de téléchargement
+            const url = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `document_annote_${Date.now()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Erreur lors du téléchargement:', error);
+            alert('Erreur lors du téléchargement du PDF');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    /**
+     * Envoyer le PDF aux élèves
+     */
+    async sendToStudents(mode) {
+        this.closeDownloadMenu();
+
+        // Récupérer la liste des élèves depuis la page
+        const students = this.getStudentsFromPage();
+
+        if (!students || students.length === 0) {
+            alert('Aucun élève trouvé dans la classe');
+            return;
+        }
+
+        let selectedStudents = [];
+
+        if (mode === 'all') {
+            selectedStudents = students;
+        } else if (mode === 'absent') {
+            selectedStudents = students.filter(s => s.status === 'absent');
+            if (selectedStudents.length === 0) {
+                alert('Aucun élève absent');
+                return;
+            }
+        }
+
+        if (selectedStudents.length === 0) {
+            alert('Aucun élève sélectionné');
+            return;
+        }
+
+        await this.performSendToStudents(selectedStudents);
+    }
+
+    /**
+     * Ouvrir le panneau de sélection des élèves
+     */
+    openStudentSelectionPanel() {
+        this.closeDownloadMenu();
+
+        const students = this.getStudentsFromPage();
+
+        if (!students || students.length === 0) {
+            alert('Aucun élève trouvé dans la classe');
+            return;
+        }
+
+        // Créer le panneau de sélection
+        let panel = document.getElementById('student-selection-panel');
+        if (panel) panel.remove();
+
+        panel = document.createElement('div');
+        panel.id = 'student-selection-panel';
+        panel.className = 'student-selection-panel';
+
+        const studentsHTML = students.map(s => `
+            <label class="student-select-item">
+                <input type="checkbox" value="${s.id}" data-name="${s.name}" ${s.status === 'absent' ? 'data-absent="true"' : ''}>
+                <span class="student-select-name">${s.name}</span>
+                ${s.status === 'absent' ? '<span class="student-absent-badge">Absent</span>' : ''}
+            </label>
+        `).join('');
+
+        panel.innerHTML = `
+            <div class="student-panel-overlay" onclick="window.cleanPDFViewer.closeStudentSelectionPanel()"></div>
+            <div class="student-panel-content">
+                <div class="student-panel-header">
+                    <h3><i class="fas fa-users"></i> Sélectionner les élèves</h3>
+                    <button class="student-panel-close" onclick="window.cleanPDFViewer.closeStudentSelectionPanel()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="student-panel-actions">
+                    <button onclick="window.cleanPDFViewer.selectAllStudentsInPanel()">Tout sélectionner</button>
+                    <button onclick="window.cleanPDFViewer.selectAbsentStudentsInPanel()">Absents uniquement</button>
+                    <button onclick="window.cleanPDFViewer.deselectAllStudentsInPanel()">Tout désélectionner</button>
+                </div>
+                <div class="student-panel-list">
+                    ${studentsHTML}
+                </div>
+                <div class="student-panel-footer">
+                    <span id="selected-count">0 élève(s) sélectionné(s)</span>
+                    <button class="btn-send" onclick="window.cleanPDFViewer.sendToSelectedStudents()">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.injectStudentSelectionStyles();
+        document.body.appendChild(panel);
+
+        // Ajouter les événements de comptage
+        panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => this.updateSelectedCount());
+        });
+    }
+
+    /**
+     * Fermer le panneau de sélection
+     */
+    closeStudentSelectionPanel() {
+        const panel = document.getElementById('student-selection-panel');
+        if (panel) panel.remove();
+    }
+
+    /**
+     * Sélectionner tous les élèves
+     */
+    selectAllStudentsInPanel() {
+        document.querySelectorAll('#student-selection-panel input[type="checkbox"]').forEach(cb => cb.checked = true);
+        this.updateSelectedCount();
+    }
+
+    /**
+     * Sélectionner les absents
+     */
+    selectAbsentStudentsInPanel() {
+        document.querySelectorAll('#student-selection-panel input[type="checkbox"]').forEach(cb => {
+            cb.checked = cb.dataset.absent === 'true';
+        });
+        this.updateSelectedCount();
+    }
+
+    /**
+     * Désélectionner tous
+     */
+    deselectAllStudentsInPanel() {
+        document.querySelectorAll('#student-selection-panel input[type="checkbox"]').forEach(cb => cb.checked = false);
+        this.updateSelectedCount();
+    }
+
+    /**
+     * Mettre à jour le compteur
+     */
+    updateSelectedCount() {
+        const count = document.querySelectorAll('#student-selection-panel input[type="checkbox"]:checked').length;
+        const countSpan = document.getElementById('selected-count');
+        if (countSpan) {
+            countSpan.textContent = `${count} élève(s) sélectionné(s)`;
+        }
+    }
+
+    /**
+     * Envoyer aux élèves sélectionnés
+     */
+    async sendToSelectedStudents() {
+        const checkboxes = document.querySelectorAll('#student-selection-panel input[type="checkbox"]:checked');
+        const selectedStudents = Array.from(checkboxes).map(cb => ({
+            id: cb.value,
+            name: cb.dataset.name
+        }));
+
+        if (selectedStudents.length === 0) {
+            alert('Veuillez sélectionner au moins un élève');
+            return;
+        }
+
+        this.closeStudentSelectionPanel();
+        await this.performSendToStudents(selectedStudents);
+    }
+
+    /**
+     * Récupérer les élèves depuis la page
+     */
+    getStudentsFromPage() {
+        const students = [];
+        const studentElements = document.querySelectorAll('.student-attendance');
+
+        studentElements.forEach(el => {
+            const nameEl = el.querySelector('.student-name');
+            const id = el.dataset.studentId || el.querySelector('[data-student-id]')?.dataset.studentId;
+
+            if (nameEl) {
+                let status = 'present';
+                if (el.classList.contains('absent')) status = 'absent';
+                else if (el.classList.contains('late')) status = 'late';
+
+                students.push({
+                    id: id || students.length + 1,
+                    name: nameEl.textContent.trim(),
+                    status: status
+                });
+            }
+        });
+
+        return students;
+    }
+
+    /**
+     * Effectuer l'envoi aux élèves
+     */
+    async performSendToStudents(selectedStudents) {
+        this.showLoading(true);
+
+        try {
+            // Générer le PDF avec annotations
+            const pdfBlob = await this.exportPDFWithAnnotations();
+
+            // Préparer les données
+            const formData = new FormData();
+            formData.append('pdf_file', pdfBlob, this.options.fileName || 'document_annote.pdf');
+            formData.append('action', 'send_to_students');
+            formData.append('send_mode', 'selected');
+            formData.append('selected_students', JSON.stringify(selectedStudents));
+
+            // Récupérer l'ID de classe depuis la page
+            const classId = this.getClassIdFromPage();
+            if (classId) {
+                formData.append('current_class_id', classId);
+            }
+
+            // Envoyer
+            const response = await fetch('/api/send-to-students', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Document envoyé avec succès à ${result.shares_created} élève(s)`);
+            } else {
+                alert('Erreur: ' + (result.message || 'Erreur inconnue'));
+            }
+
+        } catch (error) {
+            console.error('Erreur lors de l\'envoi:', error);
+            alert('Erreur lors de l\'envoi du document');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    /**
+     * Récupérer l'ID de classe depuis la page
+     */
+    getClassIdFromPage() {
+        // Essayer plusieurs méthodes
+        const classIdEl = document.querySelector('[data-class-id]');
+        if (classIdEl) return classIdEl.dataset.classId;
+
+        // Essayer de récupérer depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('class_id') || urlParams.get('classroom_id');
+    }
+
+    /**
+     * Exporter le PDF avec annotations
+     */
+    async exportPDFWithAnnotations() {
+        if (!this.pdf) {
+            throw new Error('Aucun PDF chargé');
+        }
+
+        // Utiliser PDF-lib pour créer le nouveau PDF
+        const { PDFDocument, rgb } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+
+        // Charger le PDF original
+        const pdfBytes = await fetch(this.options.pdfUrl).then(res => res.arrayBuffer());
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pages = pdfDoc.getPages();
+
+        // Pour chaque page, dessiner les annotations
+        for (let i = 0; i < pages.length; i++) {
+            const pageId = i + 1;
+            const pageAnnotations = this.annotations.get(pageId) || [];
+            const page = pages[i];
+            const { width, height } = page.getSize();
+
+            // Récupérer le canvas d'annotation pour cette page
+            const wrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (!wrapper) continue;
+
+            const annotationCanvas = wrapper.querySelector('.annotation-canvas');
+            if (!annotationCanvas) continue;
+
+            // Convertir le canvas en image
+            const canvasDataUrl = annotationCanvas.toDataURL('image/png');
+            const canvasImageBytes = await fetch(canvasDataUrl).then(res => res.arrayBuffer());
+            const canvasImage = await pdfDoc.embedPng(canvasImageBytes);
+
+            // Calculer le ratio
+            const canvasWidth = annotationCanvas.width;
+            const canvasHeight = annotationCanvas.height;
+            const scaleX = width / canvasWidth;
+            const scaleY = height / canvasHeight;
+
+            // Dessiner l'image des annotations sur la page
+            page.drawImage(canvasImage, {
+                x: 0,
+                y: 0,
+                width: width,
+                height: height,
+            });
+        }
+
+        // Sauvegarder le PDF
+        const modifiedPdfBytes = await pdfDoc.save();
+        return new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+    }
+
+    /**
+     * Injecter les styles du menu de téléchargement
+     */
+    injectDownloadMenuStyles() {
+        const styleId = 'pdf-download-menu-styles';
+        if (document.getElementById(styleId)) return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            .pdf-download-menu {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 10001;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .download-menu-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+            }
+
+            .download-menu-content {
+                position: relative;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                width: 90%;
+                max-width: 400px;
+                overflow: hidden;
+            }
+
+            .download-menu-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid #e0e0e0;
+                background: #f8f9fa;
+            }
+
+            .download-menu-header h3 {
+                margin: 0;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .download-menu-close {
+                background: none;
+                border: none;
+                font-size: 1.25rem;
+                cursor: pointer;
+                color: #666;
+                padding: 6px;
+                border-radius: 6px;
+            }
+
+            .download-menu-close:hover {
+                background: #e0e0e0;
+            }
+
+            .download-menu-body {
+                padding: 16px;
+            }
+
+            .download-menu-body h4 {
+                margin: 16px 0 8px 0;
+                font-size: 0.875rem;
+                color: #666;
+            }
+
+            .download-option {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                width: 100%;
+                padding: 12px 16px;
+                border: none;
+                background: #f8f9fa;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.95rem;
+                margin-bottom: 8px;
+                transition: all 0.2s;
+            }
+
+            .download-option:hover {
+                background: #e9ecef;
+            }
+
+            .download-option i {
+                width: 20px;
+                color: #007aff;
+            }
+
+            .download-separator {
+                height: 1px;
+                background: #e0e0e0;
+                margin: 16px 0;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /**
+     * Injecter les styles du panneau de sélection
+     */
+    injectStudentSelectionStyles() {
+        const styleId = 'student-selection-styles';
+        if (document.getElementById(styleId)) return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            .student-selection-panel {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 10002;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .student-panel-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+            }
+
+            .student-panel-content {
+                position: relative;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                width: 90%;
+                max-width: 500px;
+                max-height: 80vh;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .student-panel-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 20px;
+                border-bottom: 1px solid #e0e0e0;
+                background: #f8f9fa;
+            }
+
+            .student-panel-header h3 {
+                margin: 0;
+                font-size: 1.1rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .student-panel-close {
+                background: none;
+                border: none;
+                font-size: 1.25rem;
+                cursor: pointer;
+                color: #666;
+            }
+
+            .student-panel-actions {
+                display: flex;
+                gap: 8px;
+                padding: 12px 16px;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .student-panel-actions button {
+                padding: 6px 12px;
+                border: 1px solid #ddd;
+                background: white;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.8rem;
+            }
+
+            .student-panel-actions button:hover {
+                background: #f0f0f0;
+            }
+
+            .student-panel-list {
+                flex: 1;
+                overflow-y: auto;
+                padding: 16px;
+            }
+
+            .student-select-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                margin-bottom: 8px;
+                background: #f8f9fa;
+            }
+
+            .student-select-item:hover {
+                background: #e9ecef;
+            }
+
+            .student-select-item input {
+                width: 18px;
+                height: 18px;
+            }
+
+            .student-select-name {
+                flex: 1;
+            }
+
+            .student-absent-badge {
+                background: #FEE2E2;
+                color: #991B1B;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+            }
+
+            .student-panel-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px;
+                border-top: 1px solid #e0e0e0;
+                background: #f8f9fa;
+            }
+
+            .student-panel-footer .btn-send {
+                background: #007aff;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .student-panel-footer .btn-send:hover {
+                background: #0056b3;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     /**
@@ -1504,6 +2888,10 @@ class CleanPDFViewer {
         // Callback
         if (this.options.onClose) {
             this.options.onClose();
+        } else {
+            // Comportement par défaut : recharger la page lesson
+            // Cela restaure l'état normal de la page sans le viewer PDF
+            window.location.reload();
         }
     }
 }
