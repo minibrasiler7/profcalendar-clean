@@ -446,13 +446,20 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Le JS gère la distinction stylet/doigt */
-                pointer-events: auto;
-                /* Empêcher le scroll avec le stylet mais permettre avec les doigts */
-                touch-action: pan-x pan-y pinch-zoom;
+                /* CRITIQUE: Ne pas intercepter les événements par défaut */
+                /* Le JS activera pointer-events quand le stylet est détecté */
+                pointer-events: none;
+                /* Bloquer tous les touch-action sur le canvas */
+                touch-action: none;
             }
 
-            /* Conteneur principal doit supporter le zoom */
+            /* Quand le canvas est actif (stylet détecté) */
+            .annotation-canvas.stylus-active {
+                pointer-events: auto;
+                touch-action: none;
+            }
+
+            /* Conteneur principal doit supporter le zoom et scroll */
             .pdf-viewer {
                 touch-action: pan-x pan-y pinch-zoom;
                 -webkit-overflow-scrolling: touch;
@@ -461,11 +468,11 @@ class CleanPDFViewer {
 
             .pdf-pages-container {
                 touch-action: pan-x pan-y pinch-zoom;
+                overflow: visible;
             }
 
-            /* Empêcher le scroll du body quand on touche le viewer avec le stylet */
-            body.pdf-viewer-active {
-                overflow: hidden;
+            .pdf-page-wrapper {
+                touch-action: pan-x pan-y pinch-zoom;
             }
 
             /* Loading */
@@ -830,13 +837,26 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
-        // IMPORTANT: Permettre le scroll/zoom avec les doigts
-        // Le canvas NE DOIT PAS bloquer les événements touch
-        canvas.style.touchAction = 'auto';
-        canvas.style.pointerEvents = 'auto';
+        // Le canvas est en pointer-events: none par défaut (via CSS)
+        // On l'active seulement quand le stylet est détecté
 
-        // Pointer events pour détecter stylet vs doigt
-        // On utilise { passive: false } seulement pour pouvoir appeler preventDefault sur stylet
+        // Détecter quand le stylet approche (hover)
+        canvas.addEventListener('pointerenter', (e) => {
+            if (e.pointerType === 'pen') {
+                console.log('[Stylus] Détecté - activation du canvas');
+                canvas.classList.add('stylus-active');
+            }
+        }, { passive: true });
+
+        // Détecter quand le stylet part
+        canvas.addEventListener('pointerleave', (e) => {
+            if (e.pointerType === 'pen') {
+                console.log('[Stylus] Parti - désactivation du canvas');
+                canvas.classList.remove('stylus-active');
+            }
+        }, { passive: true });
+
+        // Pointer events pour les annotations
         canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
