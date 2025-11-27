@@ -446,17 +446,9 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* CRITIQUE: Ne pas intercepter les événements par défaut */
-                /* Le JS activera pointer-events quand le stylet est détecté */
-                pointer-events: none;
-                /* Bloquer tous les touch-action sur le canvas */
-                touch-action: none;
-            }
-
-            /* Quand le canvas est actif (stylet détecté) */
-            .annotation-canvas.stylus-active {
                 pointer-events: auto;
-                touch-action: none;
+                /* Permettre le pan et pinch-zoom pour les doigts, le JS bloquera le stylet */
+                touch-action: pan-x pan-y pinch-zoom;
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -837,26 +829,12 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
-        // Le canvas est en pointer-events: none par défaut (via CSS)
-        // On l'active seulement quand le stylet est détecté
+        // SOLUTION FINALE: touch-action défini dans le CSS (.annotation-canvas)
+        // - Canvas: touch-action: pan-x pan-y pinch-zoom (CSS ligne 451)
+        // - Doigts (pointerType === 'touch'): événements passent sans preventDefault()
+        // - Stylet (pointerType === 'pen'): événements bloqués avec preventDefault()
 
-        // Détecter quand le stylet approche (hover)
-        canvas.addEventListener('pointerenter', (e) => {
-            if (e.pointerType === 'pen') {
-                console.log('[Stylus] Détecté - activation du canvas');
-                canvas.classList.add('stylus-active');
-            }
-        }, { passive: true });
-
-        // Détecter quand le stylet part
-        canvas.addEventListener('pointerleave', (e) => {
-            if (e.pointerType === 'pen') {
-                console.log('[Stylus] Parti - désactivation du canvas');
-                canvas.classList.remove('stylus-active');
-            }
-        }, { passive: true });
-
-        // Pointer events pour les annotations
+        // Pointer events - on capte tout mais ne traite que le stylet/souris
         canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
@@ -869,14 +847,18 @@ class CleanPDFViewer {
     handlePointerDown(e, canvas, pageId) {
         this.lastPointerType = e.pointerType;
 
+        console.log(`[Pointer] pointerdown - type: ${e.pointerType}, pointerType === 'touch': ${e.pointerType === 'touch'}, pointerType === 'pen': ${e.pointerType === 'pen'}`);
+
         // Doigt = scroll/zoom, laisser passer l'événement pour le navigateur
         if (e.pointerType === 'touch') {
+            console.log('[Pointer] Doigt détecté - LAISSANT PASSER pour scroll/zoom');
             // Ne pas appeler preventDefault() - laisser le scroll/zoom natif fonctionner
             return;
         }
 
         // Stylet ou souris = annotation - BLOQUER TOUT SCROLL
         if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} détecté - BLOQUANT scroll et annotant`);
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
