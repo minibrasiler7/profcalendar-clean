@@ -447,8 +447,14 @@ class CleanPDFViewer {
                 top: 0;
                 left: 0;
                 pointer-events: auto;
-                /* Permettre le pan et pinch-zoom pour les doigts, le JS bloquera le stylet */
-                touch-action: pan-x pan-y pinch-zoom;
+                /* CRITIQUE: Bloquer TOUS les touch-action sur le canvas pour que JS gère tout */
+                touch-action: none;
+                /* Désactiver la sélection bleue sur iOS */
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -456,6 +462,12 @@ class CleanPDFViewer {
                 touch-action: pan-x pan-y pinch-zoom;
                 -webkit-overflow-scrolling: touch;
                 overflow: auto;
+                /* Désactiver la sélection sur tout le viewer */
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
             }
 
             .pdf-pages-container {
@@ -829,16 +841,25 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
-        // SOLUTION FINALE: touch-action défini dans le CSS (.annotation-canvas)
-        // - Canvas: touch-action: pan-x pan-y pinch-zoom (CSS ligne 451)
-        // - Doigts (pointerType === 'touch'): événements passent sans preventDefault()
-        // - Stylet (pointerType === 'pen'): événements bloqués avec preventDefault()
+        // NOUVELLE STRATÉGIE: Canvas avec touch-action: none pour bloquer tout
+        // On gère manuellement:
+        // - Stylet (pointerType === 'pen' OU touches.length === 1 avec petit radius) → annotation
+        // - Doigts (pointerType === 'touch' ET touches.length >= 1) → laisser passer au conteneur parent
 
-        // Pointer events - on capte tout mais ne traite que le stylet/souris
+        // État pour le scroll manuel
+        this.touchStartPos = null;
+        this.isTouchScrolling = false;
+
+        // Pointer events pour stylet et souris
         canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
+
+        // Touch events pour gérer le scroll/zoom des doigts manuellement
+        canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e, canvas, normalizedPageId), { passive: false });
+        canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e, canvas, normalizedPageId), { passive: false });
+        canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e, canvas, normalizedPageId), { passive: false });
     }
 
     /**
@@ -907,6 +928,63 @@ class CleanPDFViewer {
     handlePointerCancel(e, canvas, pageId) {
         if (!this.isDrawing) return;
         this.cancelAnnotation();
+    }
+
+    /**
+     * Gestion touchstart - Détecter stylet vs doigts
+     */
+    handleTouchStart(e, canvas, pageId) {
+        console.log(`[Touch] touchstart - touches: ${e.touches.length}, changedTouches: ${e.changedTouches.length}`);
+
+        // Si c'est un stylet (1 seul touch avec petit radius) OU Apple Pencil
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const radiusX = touch.radiusX || touch.webkitRadiusX || 0;
+            const radiusY = touch.radiusY || touch.webkitRadiusY || 0;
+
+            console.log(`[Touch] radiusX: ${radiusX}, radiusY: ${radiusY}, force: ${touch.force}`);
+
+            // Apple Pencil a typiquement un radius < 5 et peut avoir touchType === 'stylus'
+            const isStylus = (radiusX < 5 && radiusY < 5) || touch.touchType === 'stylus';
+
+            if (isStylus) {
+                console.log('[Touch] STYLET détecté - blocage et annotation');
+                e.preventDefault(); // Bloquer le scroll
+                // Le pointer event prendra le relais pour l'annotation
+                return;
+            }
+        }
+
+        // Multi-touch OU gros radius = doigts → permettre le scroll natif du CONTENEUR
+        console.log('[Touch] DOIGTS détectés - permettant scroll du conteneur');
+        // NE PAS appeler preventDefault() - laisser l'événement bubble au conteneur parent
+        // Le conteneur parent (pdf-viewer) a touch-action: pan-x pan-y pinch-zoom
+    }
+
+    /**
+     * Gestion touchmove
+     */
+    handleTouchMove(e, canvas, pageId) {
+        // Même logique que touchstart
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            const radiusX = touch.radiusX || touch.webkitRadiusX || 0;
+            const radiusY = touch.radiusY || touch.webkitRadiusY || 0;
+            const isStylus = (radiusX < 5 && radiusY < 5) || touch.touchType === 'stylus';
+
+            if (isStylus) {
+                e.preventDefault(); // Bloquer le scroll pour le stylet
+                return;
+            }
+        }
+        // Laisser passer pour les doigts
+    }
+
+    /**
+     * Gestion touchend
+     */
+    handleTouchEnd(e, canvas, pageId) {
+        // Juste laisser passer - le pointer event gérera la fin de l'annotation
     }
 
     /**
