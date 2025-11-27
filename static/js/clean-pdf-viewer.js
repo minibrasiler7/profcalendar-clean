@@ -88,6 +88,9 @@ class CleanPDFViewer {
         // Créer l'interface
         this.createUI();
 
+        // Ajouter classe au body pour bloquer le scroll global
+        document.body.classList.add('pdf-viewer-active');
+
         // Initialiser les outils d'annotation
         if (typeof AnnotationTools !== 'undefined') {
             this.annotationTools = new AnnotationTools(this);
@@ -445,16 +448,24 @@ class CleanPDFViewer {
                 left: 0;
                 /* Le JS gère la distinction stylet/doigt */
                 pointer-events: auto;
+                /* Empêcher le scroll avec le stylet mais permettre avec les doigts */
+                touch-action: pan-x pan-y pinch-zoom;
             }
 
             /* Conteneur principal doit supporter le zoom */
             .pdf-viewer {
                 touch-action: pan-x pan-y pinch-zoom;
                 -webkit-overflow-scrolling: touch;
+                overflow: auto;
             }
 
             .pdf-pages-container {
                 touch-action: pan-x pan-y pinch-zoom;
+            }
+
+            /* Empêcher le scroll du body quand on touche le viewer avec le stylet */
+            body.pdf-viewer-active {
+                overflow: hidden;
             }
 
             /* Loading */
@@ -844,10 +855,11 @@ class CleanPDFViewer {
             return;
         }
 
-        // Stylet ou souris = annotation
+        // Stylet ou souris = annotation - BLOQUER TOUT SCROLL
         if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
             e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
             this.startAnnotation(e, canvas, pageId);
         }
     }
@@ -856,21 +868,34 @@ class CleanPDFViewer {
      * Gestion pointermove
      */
     handlePointerMove(e, canvas, pageId) {
+        // Pour le stylet, TOUJOURS bloquer même si on ne dessine pas
+        // pour éviter le scroll pendant qu'on survole
+        if (e.pointerType === 'pen') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         if (!this.isDrawing) return;
         if (e.pointerType === 'touch') return;
 
-        e.preventDefault();
-        this.continueAnnotation(e, canvas, pageId);
+        if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+            this.continueAnnotation(e, canvas, pageId);
+        }
     }
 
     /**
      * Gestion pointerup
      */
     handlePointerUp(e, canvas, pageId) {
+        // Bloquer le stylet même au up
+        if (e.pointerType === 'pen') {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         if (!this.isDrawing) return;
         if (e.pointerType === 'touch') return;
 
-        e.preventDefault();
         this.endAnnotation(e, canvas, pageId);
     }
 
@@ -3152,6 +3177,9 @@ class CleanPDFViewer {
 
         // Nettoyer les timers
         this.stopAutoSave();
+
+        // Retirer la classe du body pour restaurer le scroll global
+        document.body.classList.remove('pdf-viewer-active');
 
         // Nettoyer le DOM
         this.container.innerHTML = '';
