@@ -446,17 +446,20 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Intercepter les événements pour détection stylet vs doigts */
-                pointer-events: auto;
-                /* PERMETTRE pan/pinch - le JS bloquera SEULEMENT le stylet via preventDefault() */
-                /* CRITIQUE: touch-action doit permettre le scroll pour que les doigts fonctionnent */
-                touch-action: pan-x pan-y pinch-zoom;
+                /* Par défaut: transparent aux événements (laisse passer au viewer) */
+                pointer-events: none;
+                touch-action: none;
                 /* Désactiver la sélection bleue sur iOS */
                 -webkit-user-select: none;
                 -moz-user-select: none;
                 -ms-user-select: none;
                 user-select: none;
                 -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Classe ajoutée dynamiquement quand stylet détecté */
+            .annotation-canvas.pen-active {
+                pointer-events: auto !important;
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -544,6 +547,28 @@ class CleanPDFViewer {
 
         // Scroll viewer pour détecter la page actuelle
         this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
+
+        // CRITIQUE: Détecter le stylet sur le viewer pour activer les canvas
+        // Utiliser pointerenter pour détecter AVANT que le pointeur ne touche le canvas
+        this.elements.viewer.addEventListener('pointerenter', (e) => {
+            if (e.pointerType === 'pen') {
+                console.log('[Viewer] Stylet détecté - activation de TOUS les canvas');
+                // Activer tous les canvas d'annotation
+                this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
+                    canvas.classList.add('pen-active');
+                });
+            }
+        }, true); // useCapture pour intercepter en phase capture
+
+        this.elements.viewer.addEventListener('pointerleave', (e) => {
+            if (e.pointerType === 'pen') {
+                console.log('[Viewer] Stylet parti - désactivation de TOUS les canvas');
+                // Désactiver tous les canvas
+                this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
+                    canvas.classList.remove('pen-active');
+                });
+            }
+        }, true);
     }
 
     /**
