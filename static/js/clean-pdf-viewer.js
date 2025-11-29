@@ -446,21 +446,17 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* Par défaut: ne PAS intercepter les événements (laisser passer au viewer pour scroll) */
-                pointer-events: none;
-                /* Le JS activera pointer-events: auto SEULEMENT pour le stylet */
-                touch-action: none;
+                /* Intercepter les événements pour détection stylet vs doigts */
+                pointer-events: auto;
+                /* PERMETTRE pan/pinch - le JS bloquera SEULEMENT le stylet via preventDefault() */
+                /* CRITIQUE: touch-action doit permettre le scroll pour que les doigts fonctionnent */
+                touch-action: pan-x pan-y pinch-zoom;
                 /* Désactiver la sélection bleue sur iOS */
                 -webkit-user-select: none;
                 -moz-user-select: none;
                 -ms-user-select: none;
                 user-select: none;
                 -webkit-tap-highlight-color: transparent;
-            }
-
-            /* Classe activée par JS quand stylet détecté */
-            .annotation-canvas.stylus-active {
-                pointer-events: auto !important;
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -847,25 +843,19 @@ class CleanPDFViewer {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
 
-        // NOUVELLE STRATÉGIE: Canvas avec touch-action: none pour bloquer tout
-        // On gère manuellement:
-        // - Stylet (pointerType === 'pen' OU touches.length === 1 avec petit radius) → annotation
-        // - Doigts (pointerType === 'touch' ET touches.length >= 1) → laisser passer au conteneur parent
+        // STRATÉGIE FINALE: Utiliser SEULEMENT les pointer events
+        // - Canvas avec pointer-events: none par défaut (laisse passer au viewer)
+        // - Quand pointerType === 'pen' détecté → activer canvas temporairement
+        // - Quand pointerType === 'touch' → canvas transparent, viewer scroll/zoom
+        //
+        // PAS de touch listeners car ils interceptent TOUS les touch events
+        // même sans preventDefault(), empêchant le viewer de scroller
 
-        // État pour le scroll manuel
-        this.touchStartPos = null;
-        this.isTouchScrolling = false;
-
-        // Pointer events pour stylet et souris
+        // Pointer events UNIQUEMENT - gèrent stylet, souris ET doigts
         canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
         canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
-
-        // Touch events pour gérer le scroll/zoom des doigts manuellement
-        canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e, canvas, normalizedPageId), { passive: false });
     }
 
     /**
@@ -874,21 +864,21 @@ class CleanPDFViewer {
     handlePointerDown(e, canvas, pageId) {
         this.lastPointerType = e.pointerType;
 
-        console.log(`[Pointer] pointerdown - type: ${e.pointerType}, pointerType === 'touch': ${e.pointerType === 'touch'}, pointerType === 'pen': ${e.pointerType === 'pen'}`);
+        console.log(`[Pointer] pointerdown - type: ${e.pointerType}`);
 
-        // Doigt = scroll/zoom, laisser passer l'événement pour le navigateur
+        // Doigt = scroll/zoom, NE PAS bloquer et laisser bubble au viewer
         if (e.pointerType === 'touch') {
-            console.log('[Pointer] Doigt détecté - LAISSANT PASSER pour scroll/zoom');
-            // Ne pas appeler preventDefault() - laisser le scroll/zoom natif fonctionner
+            console.log('[Pointer] Doigt - laissant passer au viewer pour scroll');
+            // CRITIQUE: NE PAS appeler preventDefault() ni stopPropagation()
+            // L'événement doit bubble au parent (.pdf-viewer) qui a touch-action: pan-x pan-y pinch-zoom
             return;
         }
 
-        // Stylet ou souris = annotation - BLOQUER TOUT SCROLL
+        // Stylet ou souris = annotation - BLOQUER scroll
         if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} détecté - BLOQUANT scroll et annotant`);
+            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} - bloquant et annotant`);
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
             this.startAnnotation(e, canvas, pageId);
         }
     }
