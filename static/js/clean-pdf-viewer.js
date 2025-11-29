@@ -423,7 +423,7 @@ class CleanPDFViewer {
             .pdf-viewer {
                 flex: 1;
                 min-height: 0;
-                overflow: visible; /* Pas de scroll ici, le body scroll à la place */
+                overflow: visible !important; /* Pas de scroll ici, le body scroll à la place */
                 padding: 16px;
                 position: relative;
             }
