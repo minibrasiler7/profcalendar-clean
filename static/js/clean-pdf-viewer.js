@@ -329,7 +329,8 @@ class CleanPDFViewer {
             .pdf-main {
                 display: flex;
                 flex: 1;
-                overflow: hidden;
+                /* CRITIQUE: NE PAS mettre overflow: hidden car cela bloque le scroll du viewer */
+                overflow: visible;
             }
 
             /* Sidebar (1/5) */
