@@ -97,6 +97,14 @@ class CleanPDFViewer {
         document.body.style.overflow = 'auto';
         console.log('[PDF Viewer] Body overflow forcé à auto (était:', this.originalBodyOverflow || 'non défini', ')');
 
+        // SOLUTION RADICALE: Forcer TOUS les styles nécessaires en JavaScript
+        // Safari/iOS ne respecte pas toujours le CSS, donc on force inline
+        this.elements.viewer.style.overflow = 'auto';
+        this.elements.viewer.style.webkitOverflowScrolling = 'touch';
+        this.elements.viewer.style.touchAction = 'pan-x pan-y pinch-zoom';
+        this.elements.viewer.style.position = 'relative'; // Important pour que overflow fonctionne
+        console.log('[PDF Viewer] Styles inline forcés sur .pdf-viewer pour garantir le scroll');
+
         // Initialiser les outils d'annotation
         if (typeof AnnotationTools !== 'undefined') {
             this.annotationTools = new AnnotationTools(this);
