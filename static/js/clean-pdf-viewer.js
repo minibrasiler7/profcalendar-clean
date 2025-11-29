@@ -91,19 +91,13 @@ class CleanPDFViewer {
         // Ajouter classe au body pour bloquer le scroll global
         document.body.classList.add('pdf-viewer-active');
 
-        // CRITIQUE: Forcer overflow: auto sur le body pour permettre le scroll du viewer
-        // La classe pdf-viewer-active ou le CSS global met overflow: hidden qui bloque tout
+        // NOUVELLE ARCHITECTURE: Le viewer est en position fixed, le BODY scroll
+        // Forcer le body à pouvoir scroller (retirer overflow: hidden)
         this.originalBodyOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'auto';
-        console.log('[PDF Viewer] Body overflow forcé à auto (était:', this.originalBodyOverflow || 'non défini', ')');
-
-        // SOLUTION RADICALE: Forcer TOUS les styles nécessaires en JavaScript
-        // Safari/iOS ne respecte pas toujours le CSS, donc on force inline
-        this.elements.viewer.style.overflow = 'auto';
-        this.elements.viewer.style.webkitOverflowScrolling = 'touch';
-        this.elements.viewer.style.touchAction = 'pan-x pan-y pinch-zoom';
-        this.elements.viewer.style.position = 'relative'; // Important pour que overflow fonctionne
-        console.log('[PDF Viewer] Styles inline forcés sur .pdf-viewer pour garantir le scroll');
+        document.body.style.overflow = 'visible';
+        document.body.style.touchAction = 'pan-x pan-y pinch-zoom';
+        document.documentElement.style.overflow = 'visible'; // html aussi
+        console.log('[PDF Viewer] Body/HTML overflow forcé à visible pour scroll natif');
 
         // Initialiser les outils d'annotation
         if (typeof AnnotationTools !== 'undefined') {
@@ -261,12 +255,16 @@ class CleanPDFViewer {
         style.id = styleId;
         style.textContent = `
             .clean-pdf-viewer {
+                position: fixed;
+                top: 0;
+                left: 0;
                 width: 100%;
                 height: 100vh;
                 display: flex;
                 flex-direction: column;
                 background: #f5f5f5;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                z-index: 9999;
             }
 
             /* Toolbar */
@@ -424,12 +422,10 @@ class CleanPDFViewer {
             /* Viewer (4/5) */
             .pdf-viewer {
                 flex: 1;
-                min-height: 0; /* CRITIQUE: permet au flex child de scroller */
-                overflow: auto;
+                min-height: 0;
+                overflow: visible; /* Pas de scroll ici, le body scroll à la place */
                 padding: 16px;
-                /* Scroll tactile smooth */
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
+                position: relative;
             }
 
             .pdf-pages-container {
