@@ -569,6 +569,18 @@ class CleanPDFViewer {
                 });
             }
         }, true);
+
+        // DEBUG: Vérifier si les événements touch arrivent au viewer
+        this.elements.viewer.addEventListener('touchstart', (e) => {
+            console.log(`[Viewer] touchstart - touches: ${e.touches.length}`);
+            console.log(`[Viewer] Viewer scrollable? scrollHeight: ${this.elements.viewer.scrollHeight}, clientHeight: ${this.elements.viewer.clientHeight}`);
+            console.log(`[Viewer] Overflow: ${window.getComputedStyle(this.elements.viewer).overflow}`);
+            console.log(`[Viewer] touch-action: ${window.getComputedStyle(this.elements.viewer).touchAction}`);
+        }, { passive: true });
+
+        this.elements.viewer.addEventListener('touchmove', (e) => {
+            console.log(`[Viewer] touchmove - touches: ${e.touches.length}`);
+        }, { passive: true });
     }
 
     /**
