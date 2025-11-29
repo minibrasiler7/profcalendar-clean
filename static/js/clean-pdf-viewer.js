@@ -576,10 +576,16 @@ class CleanPDFViewer {
             console.log(`[Viewer] Viewer scrollable? scrollHeight: ${this.elements.viewer.scrollHeight}, clientHeight: ${this.elements.viewer.clientHeight}`);
             console.log(`[Viewer] Overflow: ${window.getComputedStyle(this.elements.viewer).overflow}`);
             console.log(`[Viewer] touch-action: ${window.getComputedStyle(this.elements.viewer).touchAction}`);
+
+            // Debug parents
+            console.log(`[Container] .clean-pdf-viewer overflow: ${window.getComputedStyle(this.container).overflow}`);
+            console.log(`[Container] .clean-pdf-viewer touch-action: ${window.getComputedStyle(this.container).touchAction}`);
+            console.log(`[Body] overflow: ${window.getComputedStyle(document.body).overflow}`);
+            console.log(`[Body] touch-action: ${window.getComputedStyle(document.body).touchAction}`);
         }, { passive: true });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            console.log(`[Viewer] touchmove - touches: ${e.touches.length}`);
+            console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}`);
         }, { passive: true });
     }
 
