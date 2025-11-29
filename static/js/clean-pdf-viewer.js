@@ -446,8 +446,9 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                pointer-events: auto;
-                /* CRITIQUE: Bloquer TOUS les touch-action sur le canvas pour que JS gère tout */
+                /* Par défaut: ne PAS intercepter les événements (laisser passer au viewer pour scroll) */
+                pointer-events: none;
+                /* Le JS activera pointer-events: auto SEULEMENT pour le stylet */
                 touch-action: none;
                 /* Désactiver la sélection bleue sur iOS */
                 -webkit-user-select: none;
@@ -455,6 +456,11 @@ class CleanPDFViewer {
                 -ms-user-select: none;
                 user-select: none;
                 -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Classe activée par JS quand stylet détecté */
+            .annotation-canvas.stylus-active {
+                pointer-events: auto !important;
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -948,17 +954,19 @@ class CleanPDFViewer {
             const isStylus = (radiusX < 5 && radiusY < 5) || touch.touchType === 'stylus';
 
             if (isStylus) {
-                console.log('[Touch] STYLET détecté - blocage et annotation');
+                console.log('[Touch] STYLET détecté - activation du canvas et blocage scroll');
+                // Activer le canvas pour intercepter les pointer events du stylet
+                canvas.classList.add('stylus-active');
                 e.preventDefault(); // Bloquer le scroll
                 // Le pointer event prendra le relais pour l'annotation
                 return;
             }
         }
 
-        // Multi-touch OU gros radius = doigts → permettre le scroll natif du CONTENEUR
-        console.log('[Touch] DOIGTS détectés - permettant scroll du conteneur');
-        // NE PAS appeler preventDefault() - laisser l'événement bubble au conteneur parent
-        // Le conteneur parent (pdf-viewer) a touch-action: pan-x pan-y pinch-zoom
+        // Multi-touch OU gros radius = doigts → canvas reste désactivé
+        console.log('[Touch] DOIGTS détectés - canvas désactivé, scroll du viewer actif');
+        // Le canvas a pointer-events: none, donc les événements passent au viewer
+        // NE PAS appeler preventDefault() - laisser le scroll natif
     }
 
     /**
@@ -974,17 +982,22 @@ class CleanPDFViewer {
 
             if (isStylus) {
                 e.preventDefault(); // Bloquer le scroll pour le stylet
+                canvas.classList.add('stylus-active'); // Maintenir le canvas actif
                 return;
             }
         }
-        // Laisser passer pour les doigts
+        // Laisser passer pour les doigts (canvas reste avec pointer-events: none)
     }
 
     /**
      * Gestion touchend
      */
     handleTouchEnd(e, canvas, pageId) {
-        // Juste laisser passer - le pointer event gérera la fin de l'annotation
+        // Désactiver le canvas quand plus de touch (permet aux doigts de scroller après)
+        if (e.touches.length === 0) {
+            console.log('[Touch] touchend - désactivation du canvas');
+            canvas.classList.remove('stylus-active');
+        }
     }
 
     /**
