@@ -424,6 +424,7 @@ class CleanPDFViewer {
             /* Viewer (4/5) */
             .pdf-viewer {
                 flex: 1;
+                min-height: 0; /* CRITIQUE: permet au flex child de scroller */
                 overflow: auto;
                 padding: 16px;
                 /* Scroll tactile smooth */
