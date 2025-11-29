@@ -91,6 +91,12 @@ class CleanPDFViewer {
         // Ajouter classe au body pour bloquer le scroll global
         document.body.classList.add('pdf-viewer-active');
 
+        // CRITIQUE: Forcer overflow: auto sur le body pour permettre le scroll du viewer
+        // La classe pdf-viewer-active ou le CSS global met overflow: hidden qui bloque tout
+        this.originalBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'auto';
+        console.log('[PDF Viewer] Body overflow forcé à auto (était:', this.originalBodyOverflow || 'non défini', ')');
+
         // Initialiser les outils d'annotation
         if (typeof AnnotationTools !== 'undefined') {
             this.annotationTools = new AnnotationTools(this);
@@ -3325,6 +3331,12 @@ class CleanPDFViewer {
 
         // Retirer la classe du body pour restaurer le scroll global
         document.body.classList.remove('pdf-viewer-active');
+
+        // Restaurer l'overflow original du body
+        if (this.originalBodyOverflow !== undefined) {
+            document.body.style.overflow = this.originalBodyOverflow;
+            console.log('[PDF Viewer] Body overflow restauré à:', this.originalBodyOverflow || 'vide');
+        }
 
         // Nettoyer le DOM
         this.container.innerHTML = '';
