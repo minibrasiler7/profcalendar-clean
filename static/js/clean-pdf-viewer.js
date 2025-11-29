@@ -889,7 +889,15 @@ class CleanPDFViewer {
     handlePointerDown(e, canvas, pageId) {
         this.lastPointerType = e.pointerType;
 
-        console.log(`[Pointer] pointerdown - type: ${e.pointerType}`);
+        // CRITIQUE: Vérifier si le canvas est actif (pen-active)
+        // Si pointer-events: none, le listener est quand même appelé mais on doit ignorer
+        if (!canvas.classList.contains('pen-active')) {
+            console.log(`[Pointer] Canvas inactif - IGNORANT événement (type: ${e.pointerType})`);
+            // Ne rien faire - laisser l'événement passer au viewer
+            return;
+        }
+
+        console.log(`[Pointer] Canvas actif - pointerdown type: ${e.pointerType}`);
 
         // Doigt = scroll/zoom, NE PAS bloquer et laisser bubble au viewer
         if (e.pointerType === 'touch') {
@@ -912,6 +920,11 @@ class CleanPDFViewer {
      * Gestion pointermove
      */
     handlePointerMove(e, canvas, pageId) {
+        // CRITIQUE: Ignorer si canvas inactif
+        if (!canvas.classList.contains('pen-active')) {
+            return;
+        }
+
         // Pour le stylet, TOUJOURS bloquer même si on ne dessine pas
         // pour éviter le scroll pendant qu'on survole
         if (e.pointerType === 'pen') {
@@ -931,6 +944,11 @@ class CleanPDFViewer {
      * Gestion pointerup
      */
     handlePointerUp(e, canvas, pageId) {
+        // CRITIQUE: Ignorer si canvas inactif
+        if (!canvas.classList.contains('pen-active')) {
+            return;
+        }
+
         // Bloquer le stylet même au up
         if (e.pointerType === 'pen') {
             e.preventDefault();
