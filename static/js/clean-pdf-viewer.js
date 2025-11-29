@@ -592,8 +592,30 @@ class CleanPDFViewer {
         }, { passive: true });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}`);
+            console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
         }, { passive: true });
+
+        // TEST CRITIQUE: Vérifier si le viewer PEUT scroller programmatiquement
+        setTimeout(() => {
+            console.log('═══ DIAGNOSTIC SCROLL ═══');
+            const beforeScroll = this.elements.viewer.scrollTop;
+            this.elements.viewer.scrollTop = 100;
+            const afterScroll = this.elements.viewer.scrollTop;
+
+            if (afterScroll !== 100) {
+                console.error('❌ SCROLL BLOQUÉ - Le viewer ne peut PAS scroller!');
+                console.log('Analyse de la hiérarchie CSS:');
+
+                let el = this.elements.viewer;
+                for (let i = 0; i < 5 && el; i++) {
+                    const s = window.getComputedStyle(el);
+                    console.log(`${i}. ${el.className || el.tagName}: overflow=${s.overflow}, position=${s.position}, height=${s.height}, maxHeight=${s.maxHeight}`);
+                    el = el.parentElement;
+                }
+            } else {
+                console.log('✅ Scroll programmatique OK - Le problème est ailleurs');
+            }
+        }, 2000);
     }
 
     /**
