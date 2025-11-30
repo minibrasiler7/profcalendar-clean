@@ -423,7 +423,8 @@ class CleanPDFViewer {
             .pdf-viewer {
                 flex: 1;
                 min-height: 0;
-                overflow: visible !important; /* Pas de scroll ici, le body scroll à la place */
+                overflow: auto !important; /* Zone de scroll pour les doigts */
+                -webkit-overflow-scrolling: touch; /* Scroll fluide iOS */
                 padding: 16px;
                 position: relative;
             }
@@ -472,6 +473,7 @@ class CleanPDFViewer {
             /* Classe ajoutée dynamiquement quand stylet détecté */
             .annotation-canvas.pen-active {
                 pointer-events: auto !important;
+                touch-action: none !important; /* Bloquer scroll quand stylet actif */
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -928,11 +930,13 @@ class CleanPDFViewer {
         // PAS de touch listeners car ils interceptent TOUS les touch events
         // même sans preventDefault(), empêchant le viewer de scroller
 
-        // Pointer events UNIQUEMENT - gèrent stylet, souris ET doigts
-        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
+        // Pointer events en mode PASSIF pour permettre le scroll tactile
+        // Les événements touch passeront au viewer sans bloquer
+        // Seul le stylet (pointerType==='pen') sera géré via la classe pen-active
+        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: true });
+        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: true });
+        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: true });
+        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: true });
     }
 
     /**
@@ -959,11 +963,11 @@ class CleanPDFViewer {
             return;
         }
 
-        // Stylet ou souris = annotation - BLOQUER scroll
+        // Stylet ou souris = annotation
+        // Le scroll est bloqué via CSS touch-action: none sur .pen-active
         if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} - bloquant et annotant`);
-            e.preventDefault();
-            e.stopPropagation();
+            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} - annotation (scroll bloqué via CSS)`);
+            // NE PAS appeler preventDefault() en mode passive: true
             this.startAnnotation(e, canvas, pageId);
         }
     }
@@ -977,12 +981,8 @@ class CleanPDFViewer {
             return;
         }
 
-        // Pour le stylet, TOUJOURS bloquer même si on ne dessine pas
-        // pour éviter le scroll pendant qu'on survole
-        if (e.pointerType === 'pen') {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        // Pour le stylet, le scroll est bloqué via CSS touch-action: none
+        // Pas besoin de preventDefault() en mode passive
 
         if (!this.isDrawing) return;
         if (e.pointerType === 'touch') return;
