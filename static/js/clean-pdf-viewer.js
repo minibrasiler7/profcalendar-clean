@@ -474,10 +474,10 @@ class CleanPDFViewer {
 
             /* Classe ajoutée dynamiquement quand stylet détecté */
             .annotation-canvas.pen-active {
-                pointer-events: auto !important; /* Activer pour le stylet */
-                /* NE PAS mettre touch-action: none ici car cela bloquerait le scroll des doigts */
-                /* Le scroll du stylet est bloqué via preventDefault() dans handlePointerDown */
-                z-index: 10; /* Monter au-dessus pour capturer les événements */
+                /* GARDER pointer-events: none PERMANENT */
+                /* Les événements sont capturés au niveau du viewer, pas du canvas */
+                /* Cela évite que le canvas avec passive:false bloque le scroll des doigts */
+                z-index: 10; /* Monter au-dessus pour l'affichage */
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -566,25 +566,72 @@ class CleanPDFViewer {
         // Scroll viewer pour détecter la page actuelle
         this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
 
-        // CRITIQUE: Détecter le PREMIER contact avec le stylet pour activer les canvas
-        // Une fois activés, ils restent actifs (ne pas les désactiver au pointerleave)
-        // Cela permet de:
-        // 1. Garder les annotations visibles quand le stylet décolle
-        // 2. Permettre au stylet de fonctionner après un zoom
-        this.penDetected = false; // Flag pour savoir si le stylet a déjà été détecté
+        // NOUVELLE APPROCHE: Capturer les événements stylet au niveau du VIEWER
+        // Les canvas gardent pointer-events: none en PERMANENCE
+        // Cela évite que le canvas bloque le scroll des doigts avec ses listeners passive:false
+        this.penDetected = false;
 
-        this.elements.viewer.addEventListener('pointerenter', (e) => {
+        // Gestionnaires au niveau viewer avec passive: false pour pouvoir bloquer le stylet
+        this.elements.viewer.addEventListener('pointerdown', (e) => {
+            console.log(`[Viewer NEW] pointerdown type: ${e.pointerType}`);
+            this.lastPointerType = e.pointerType;
+
+            // Activer visuellement les canvas au premier contact stylet
             if (e.pointerType === 'pen' && !this.penDetected) {
-                console.log('[Viewer] PREMIER contact stylet - activation PERMANENTE des canvas');
+                console.log('[Viewer NEW] PREMIER contact stylet - activation visuelle des canvas');
                 this.penDetected = true;
                 this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
                     canvas.classList.add('pen-active');
                 });
             }
-        }, true); // useCapture pour intercepter en phase capture
 
-        // NE PLUS désactiver les canvas quand le stylet part
-        // Les annotations restent visibles et le stylet peut revenir annoter
+            // Stylet = annotation, bloquer scroll et démarrer annotation
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                console.log(`[Viewer NEW] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} détecté - bloquant scroll`);
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Trouver le canvas correspondant à la position du pointeur
+                const canvas = this.getCanvasAtPoint(e.clientX, e.clientY);
+                if (canvas) {
+                    const pageId = canvas.dataset.pageId;
+                    this.startAnnotation(e, canvas, pageId);
+                }
+            } else if (e.pointerType === 'touch') {
+                console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
+                // NE RIEN FAIRE - laisser le scroll natif fonctionner
+            }
+        }, { passive: false });
+
+        this.elements.viewer.addEventListener('pointermove', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (this.isDrawing && this.currentCanvas) {
+                    this.continueAnnotation(e, this.currentCanvas, this.currentPageId);
+                }
+            }
+        }, { passive: false });
+
+        this.elements.viewer.addEventListener('pointerup', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (this.isDrawing && this.currentCanvas) {
+                    this.endAnnotation(e, this.currentCanvas, this.currentPageId);
+                }
+            }
+        }, { passive: false });
+
+        this.elements.viewer.addEventListener('pointercancel', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                if (this.isDrawing && this.currentCanvas) {
+                    this.endAnnotation(e, this.currentCanvas, this.currentPageId);
+                }
+            }
+        }, { passive: false });
 
         // DEBUG: Vérifier si les événements touch arrivent au viewer
         this.elements.viewer.addEventListener('touchstart', (e) => {
@@ -928,106 +975,14 @@ class CleanPDFViewer {
         // - Canvas avec pointer-events: none par défaut (laisse passer au viewer)
         // - Quand pointerType === 'pen' détecté → activer canvas temporairement
         // - Quand pointerType === 'touch' → canvas transparent, viewer scroll/zoom
-        //
-        // PAS de touch listeners car ils interceptent TOUS les touch events
-        // même sans preventDefault(), empêchant le viewer de scroller
-
-        // Pointer events avec passive: false pour bloquer le scroll avec le stylet
-        // Le canvas est masqué (visibility: hidden) par défaut donc ne bloque pas le scroll
-        // Quand le stylet est détecté, le canvas devient visible et peut utiliser preventDefault()
-        canvas.addEventListener('pointerdown', (e) => this.handlePointerDown(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointermove', (e) => this.handlePointerMove(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointerup', (e) => this.handlePointerUp(e, canvas, normalizedPageId), { passive: false });
-        canvas.addEventListener('pointercancel', (e) => this.handlePointerCancel(e, canvas, normalizedPageId), { passive: false });
+        // PLUS BESOIN de listeners sur le canvas !
+        // Les événements sont capturés au niveau du VIEWER
+        // Le canvas garde pointer-events: none en PERMANENCE
+        // Cela évite que le canvas bloque le scroll des doigts
     }
 
     /**
-     * Gestion pointerdown
-     */
-    handlePointerDown(e, canvas, pageId) {
-        this.lastPointerType = e.pointerType;
-
-        // CRITIQUE: Vérifier si le canvas est actif (pen-active)
-        // Si pointer-events: none, le listener est quand même appelé mais on doit ignorer
-        if (!canvas.classList.contains('pen-active')) {
-            console.log(`[Pointer] Canvas inactif - IGNORANT événement (type: ${e.pointerType})`);
-            // Ne rien faire - laisser l'événement passer au viewer
-            return;
-        }
-
-        console.log(`[Pointer] Canvas actif - pointerdown type: ${e.pointerType}`);
-
-        // Doigt = scroll/zoom, NE PAS bloquer et laisser bubble au viewer
-        if (e.pointerType === 'touch') {
-            console.log('[Pointer] Doigt - laissant passer au viewer pour scroll');
-            // CRITIQUE: NE PAS appeler preventDefault() ni stopPropagation()
-            // L'événement doit bubble au parent (.pdf-viewer) qui a touch-action: pan-x pan-y pinch-zoom
-            return;
-        }
-
-        // Stylet ou souris = annotation, bloquer le scroll
-        if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-            console.log(`[Pointer] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} - bloquant scroll et annotant`);
-            e.preventDefault();
-            e.stopPropagation();
-            this.startAnnotation(e, canvas, pageId);
-        }
-    }
-
-    /**
-     * Gestion pointermove
-     */
-    handlePointerMove(e, canvas, pageId) {
-        // CRITIQUE: Ignorer si canvas inactif
-        if (!canvas.classList.contains('pen-active')) {
-            return;
-        }
-
-        // Pour le stylet, bloquer le scroll même pendant le survol
-        if (e.pointerType === 'pen') {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        if (!this.isDrawing) return;
-        if (e.pointerType === 'touch') return;
-
-        if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
-            this.continueAnnotation(e, canvas, pageId);
-        }
-    }
-
-    /**
-     * Gestion pointerup
-     */
-    handlePointerUp(e, canvas, pageId) {
-        // CRITIQUE: Ignorer si canvas inactif
-        if (!canvas.classList.contains('pen-active')) {
-            return;
-        }
-
-        // Bloquer le stylet même au up
-        if (e.pointerType === 'pen') {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        if (!this.isDrawing) return;
-        if (e.pointerType === 'touch') return;
-
-        this.endAnnotation(e, canvas, pageId);
-    }
-
-    /**
-     * Gestion pointercancel
-     */
-    handlePointerCancel(e, canvas, pageId) {
-        if (!this.isDrawing) return;
-        this.cancelAnnotation();
-    }
-
-    /**
-     * Gestion touchstart - Détecter stylet vs doigts
+     * OBSOLETE: Gestion touch - plus nécessaire car on utilise les pointer events au niveau viewer
      */
     handleTouchStart(e, canvas, pageId) {
         console.log(`[Touch] touchstart - touches: ${e.touches.length}, changedTouches: ${e.changedTouches.length}`);
@@ -1091,10 +1046,28 @@ class CleanPDFViewer {
     }
 
     /**
+     * Trouver le canvas à une position donnée
+     */
+    getCanvasAtPoint(clientX, clientY) {
+        // Parcourir tous les canvas pour trouver celui sous le pointeur
+        const allCanvas = this.container.querySelectorAll('.annotation-canvas');
+        for (const canvas of allCanvas) {
+            const rect = canvas.getBoundingClientRect();
+            if (clientX >= rect.left && clientX <= rect.right &&
+                clientY >= rect.top && clientY <= rect.bottom) {
+                return canvas;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Démarrer une annotation
      */
     startAnnotation(e, canvas, pageId) {
         this.isDrawing = true;
+        this.currentCanvas = canvas;
+        this.currentPageId = pageId;
 
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -1721,6 +1694,8 @@ class CleanPDFViewer {
      */
     endAnnotation(e, canvas, pageId) {
         this.isDrawing = false;
+        this.currentCanvas = null;
+        this.currentPageId = null;
 
         // Gérer la gomme - pas d'annotation à sauvegarder
         if (this.currentTool === 'eraser') {
