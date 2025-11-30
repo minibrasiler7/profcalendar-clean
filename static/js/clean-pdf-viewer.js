@@ -459,23 +459,24 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
-                /* MASQUER complètement par défaut pour permettre le scroll tactile */
-                /* Sur iOS, même avec pointer-events: none, les canvas bloquent le scroll */
-                visibility: hidden !important;
-                pointer-events: none;
+                /* Toujours VISIBLE pour voir les annotations */
+                /* Mais transparent aux événements par défaut */
+                pointer-events: none !important;
                 /* Désactiver la sélection bleue sur iOS */
                 -webkit-user-select: none;
                 -moz-user-select: none;
                 -ms-user-select: none;
                 user-select: none;
                 -webkit-tap-highlight-color: transparent;
+                /* Z-index bas pour laisser passer les touches */
+                z-index: 1;
             }
 
             /* Classe ajoutée dynamiquement quand stylet détecté */
             .annotation-canvas.pen-active {
-                visibility: visible !important; /* Montrer le canvas pour le stylet */
-                pointer-events: auto !important;
+                pointer-events: auto !important; /* Activer pour le stylet */
                 touch-action: none !important; /* Bloquer scroll quand stylet actif */
+                z-index: 10; /* Monter au-dessus pour capturer les événements */
             }
 
             /* Conteneur principal doit supporter le zoom et scroll */
@@ -564,27 +565,25 @@ class CleanPDFViewer {
         // Scroll viewer pour détecter la page actuelle
         this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
 
-        // CRITIQUE: Détecter le stylet sur le viewer pour activer les canvas
-        // Utiliser pointerenter pour détecter AVANT que le pointeur ne touche le canvas
+        // CRITIQUE: Détecter le PREMIER contact avec le stylet pour activer les canvas
+        // Une fois activés, ils restent actifs (ne pas les désactiver au pointerleave)
+        // Cela permet de:
+        // 1. Garder les annotations visibles quand le stylet décolle
+        // 2. Permettre au stylet de fonctionner après un zoom
+        this.penDetected = false; // Flag pour savoir si le stylet a déjà été détecté
+
         this.elements.viewer.addEventListener('pointerenter', (e) => {
-            if (e.pointerType === 'pen') {
-                console.log('[Viewer] Stylet détecté - activation de TOUS les canvas');
-                // Activer tous les canvas d'annotation
+            if (e.pointerType === 'pen' && !this.penDetected) {
+                console.log('[Viewer] PREMIER contact stylet - activation PERMANENTE des canvas');
+                this.penDetected = true;
                 this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
                     canvas.classList.add('pen-active');
                 });
             }
         }, true); // useCapture pour intercepter en phase capture
 
-        this.elements.viewer.addEventListener('pointerleave', (e) => {
-            if (e.pointerType === 'pen') {
-                console.log('[Viewer] Stylet parti - désactivation de TOUS les canvas');
-                // Désactiver tous les canvas
-                this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
-                    canvas.classList.remove('pen-active');
-                });
-            }
-        }, true);
+        // NE PLUS désactiver les canvas quand le stylet part
+        // Les annotations restent visibles et le stylet peut revenir annoter
 
         // DEBUG: Vérifier si les événements touch arrivent au viewer
         this.elements.viewer.addEventListener('touchstart', (e) => {
