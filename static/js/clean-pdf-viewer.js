@@ -475,7 +475,8 @@ class CleanPDFViewer {
             /* Classe ajoutée dynamiquement quand stylet détecté */
             .annotation-canvas.pen-active {
                 pointer-events: auto !important; /* Activer pour le stylet */
-                touch-action: none !important; /* Bloquer scroll quand stylet actif */
+                /* NE PAS mettre touch-action: none ici car cela bloquerait le scroll des doigts */
+                /* Le scroll du stylet est bloqué via preventDefault() dans handlePointerDown */
                 z-index: 10; /* Monter au-dessus pour capturer les événements */
             }
 
