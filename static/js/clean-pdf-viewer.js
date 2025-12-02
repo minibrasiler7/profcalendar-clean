@@ -571,7 +571,30 @@ class CleanPDFViewer {
         // Cela évite que le canvas bloque le scroll des doigts avec ses listeners passive:false
         this.penDetected = false;
 
-        // Gestionnaires au niveau viewer avec passive: false pour pouvoir bloquer le stylet
+        // Variable pour traquer si on est en mode annotation (stylet actif)
+        this.isAnnotating = false;
+
+        // IMPORTANT: Sur iOS, il faut bloquer touchstart pour empêcher le scroll du stylet
+        // On ne peut pas utiliser seulement preventDefault() dans pointerdown
+        this.elements.viewer.addEventListener('touchstart', (e) => {
+            console.log(`[Viewer NEW] touchstart - touches: ${e.touches.length}`);
+
+            // Si on est en train d'annoter (stylet détecté via pointer events)
+            // OU si c'est un seul touch (potentiellement un stylet)
+            if (this.isAnnotating) {
+                console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours)');
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        this.elements.viewer.addEventListener('touchmove', (e) => {
+            if (this.isAnnotating) {
+                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours)');
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Gestionnaires pointer events au niveau viewer
         this.elements.viewer.addEventListener('pointerdown', (e) => {
             console.log(`[Viewer NEW] pointerdown type: ${e.pointerType}`);
             this.lastPointerType = e.pointerType;
@@ -588,6 +611,7 @@ class CleanPDFViewer {
             // Stylet = annotation, bloquer scroll et démarrer annotation
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 console.log(`[Viewer NEW] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} détecté - bloquant scroll`);
+                this.isAnnotating = true;
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -596,9 +620,12 @@ class CleanPDFViewer {
                 if (canvas) {
                     const pageId = canvas.dataset.pageId;
                     this.startAnnotation(e, canvas, pageId);
+                } else {
+                    console.log('[Viewer NEW] ERREUR: Aucun canvas trouvé à cette position');
                 }
             } else if (e.pointerType === 'touch') {
                 console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
+                this.isAnnotating = false;
                 // NE RIEN FAIRE - laisser le scroll natif fonctionner
             }
         }, { passive: false });
@@ -616,6 +643,8 @@ class CleanPDFViewer {
 
         this.elements.viewer.addEventListener('pointerup', (e) => {
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                console.log('[Viewer NEW] pointerup - fin annotation');
+                this.isAnnotating = false;
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -627,6 +656,8 @@ class CleanPDFViewer {
 
         this.elements.viewer.addEventListener('pointercancel', (e) => {
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                console.log('[Viewer NEW] pointercancel - annulation annotation');
+                this.isAnnotating = false;
                 if (this.isDrawing && this.currentCanvas) {
                     this.endAnnotation(e, this.currentCanvas, this.currentPageId);
                 }
