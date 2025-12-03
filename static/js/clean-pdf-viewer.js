@@ -1919,6 +1919,8 @@ class CleanPDFViewer {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const pageAnnotations = this.annotations.get(pageId) || [];
+        console.log(`[Redraw] Page ${pageId} - ${pageAnnotations.length} annotations à dessiner`);
+
         for (const annotation of pageAnnotations) {
             this.drawAnnotation(ctx, annotation);
         }
@@ -2096,6 +2098,7 @@ class CleanPDFViewer {
 
         // Rejouer l'historique jusqu'à historyIndex (inclus)
         // Si historyIndex est -1, aucune annotation n'est affichée (sauf les grilles)
+        let totalRebuilt = 0;
         if (this.historyIndex >= 0) {
             for (let i = 0; i <= this.historyIndex; i++) {
                 const entry = this.annotationHistory[i];
@@ -2107,12 +2110,13 @@ class CleanPDFViewer {
                     // Ne pas ajouter les grilles (déjà restaurées)
                     if (entry.annotation.tool !== 'grid') {
                         this.annotations.get(pageId).push({...entry.annotation});
+                        totalRebuilt++;
                     }
                 }
             }
         }
 
-        console.log('[Rebuild] Fin - annotations par page:', [...this.annotations.keys()]);
+        console.log('[Rebuild] Fin - annotations par page:', [...this.annotations.keys()], 'Total reconstruites:', totalRebuilt);
     }
 
     /**
