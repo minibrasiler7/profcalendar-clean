@@ -162,7 +162,16 @@ class SimplePenAnnotation {
     }
 
     handlePointerDown(e) {
+        console.log(`🖊️ [SimplePen] POINTERDOWN START:`, {
+            isEnabled: this.isEnabled,
+            pointerType: e.pointerType,
+            buttons: e.buttons,
+            pressure: e.pressure,
+            timestamp: performance.now()
+        });
+
         if (!this.isEnabled) {
+            console.log(`⛔ [SimplePen] Dessin désactivé, retour`);
             return;
         }
 
@@ -172,16 +181,20 @@ class SimplePenAnnotation {
 
         if (isFinger) {
             // Doigt détecté - ne rien faire, laisser le scroll/zoom natif
+            console.log(`👆 [SimplePen] Doigt détecté, ignorer`);
             return;
         }
 
         if (!isStylus && !isMouse) {
             // Type de pointeur inconnu - ignorer
+            console.log(`❓ [SimplePen] Type de pointeur inconnu, ignorer`);
             return;
         }
 
-        // Stylet ou souris - bloquer le scroll et dessiner
-        this.canvas.style.touchAction = 'none';
+        // CRITIQUE: NE JAMAIS changer touchAction dynamiquement
+        // Cela cause des blocages Safari iOS qui throttle les pointermove
+        // touchAction doit être défini en CSS avant le début de la séquence tactile
+        // this.canvas.style.touchAction = 'none'; // SUPPRIMÉ
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
@@ -190,8 +203,9 @@ class SimplePenAnnotation {
         // CRITIQUE: Capturer le pointeur pour recevoir tous les événements
         try {
             this.canvas.setPointerCapture(e.pointerId);
+            console.log(`🎯 [SimplePen] Pointer capturé: ${e.pointerId}`);
         } catch (err) {
-            // Silently fail
+            console.warn(`⚠️ [SimplePen] Échec capture pointer:`, err);
         }
 
         this.isDrawing = true;
@@ -205,6 +219,7 @@ class SimplePenAnnotation {
 
         // Initialiser avec le premier point
         this.currentPoints = [[x, y, e.pressure || 0.5]];
+        console.log(`✅ [SimplePen] isDrawing=true, premier point ajouté (${x.toFixed(1)}, ${y.toFixed(1)})`);
 
         // OPTIMISATION: Sauvegarder l'état du canvas avant de commencer le nouveau stroke
         // Cela permet de dessiner seulement le stroke en cours sans redessiner tous les anciens
@@ -212,8 +227,29 @@ class SimplePenAnnotation {
     }
 
     handlePointerMove(e) {
-        if (!this.isDrawing) return;
-        if (e.buttons !== 1) return; // Seulement si le bouton est enfoncé
+        // Throttle logs - log seulement 1 sur 20
+        if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
+        this._pointerMoveCounter++;
+        const shouldLog = this._pointerMoveCounter % 20 === 0;
+
+        if (shouldLog) {
+            console.log(`🔵 [SimplePen] POINTERMOVE #${this._pointerMoveCounter}:`, {
+                isDrawing: this.isDrawing,
+                buttons: e.buttons,
+                pressure: e.pressure,
+                pointsCount: this.currentPoints ? this.currentPoints.length : 0,
+                timestamp: performance.now()
+            });
+        }
+
+        if (!this.isDrawing) {
+            if (shouldLog) console.log(`⚠️ [SimplePen] POINTERMOVE ignoré: isDrawing=false`);
+            return;
+        }
+        if (e.buttons !== 1) {
+            if (shouldLog) console.log(`⚠️ [SimplePen] POINTERMOVE ignoré: buttons=${e.buttons}`);
+            return;
+        }
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
@@ -233,7 +269,17 @@ class SimplePenAnnotation {
     }
 
     handlePointerUp(e) {
+        console.log(`🟢 [SimplePen] POINTERUP:`, {
+            isDrawing: this.isDrawing,
+            pointsCount: this.currentPoints ? this.currentPoints.length : 0,
+            totalMoves: this._pointerMoveCounter || 0,
+            timestamp: performance.now()
+        });
+        // Reset counter
+        this._pointerMoveCounter = 0;
+
         if (!this.isDrawing) {
+            console.log(`⚠️ [SimplePen] POINTERUP ignoré: isDrawing=false`);
             return;
         }
 
@@ -244,15 +290,18 @@ class SimplePenAnnotation {
         // Libérer la capture du pointeur
         try {
             this.canvas.releasePointerCapture(e.pointerId);
+            console.log(`🎯 [SimplePen] Pointer libéré: ${e.pointerId}`);
         } catch (err) {
-            // Silently fail
+            console.warn(`⚠️ [SimplePen] Échec libération pointer:`, err);
         }
 
         this.isDrawing = false;
         this.pointerId = null;
 
-        // Réactiver le scroll/zoom après le dessin
-        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // CRITIQUE: NE JAMAIS changer touchAction dynamiquement
+        // Cela cause des blocages Safari iOS qui throttle les pointermove
+        // touchAction doit rester 'none' défini en CSS
+        // this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom'; // SUPPRIMÉ
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
@@ -261,6 +310,7 @@ class SimplePenAnnotation {
                 options: { ...this.options }
             };
             this.strokes.push(newStroke);
+            console.log(`✅ [SimplePen] Stroke sauvegardé: ${this.currentPoints.length} points, total ${this.strokes.length} strokes`);
             // IMPORTANT: Sauvegarder aussi dans originalStrokes pour le re-scaling
             this.originalStrokes.push(JSON.parse(JSON.stringify(newStroke)));
         }

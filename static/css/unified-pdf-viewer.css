@@ -569,14 +569,14 @@
 /* === CONTENEUR PDF === */
 .pdf-container {
     flex: 1;
-    overflow: auto;
+    overflow: visible; /* CHANGÉ: Pas de scroll ici, le body scroll à la place */
     background: var(--bg-secondary);
     position: relative;
     display: block; /* Changer de flex à block pour éviter les problèmes d'alignement */
     padding: var(--spacing-md);
     height: 0; /* Force le calcul de la hauteur par flexbox */
     max-height: none !important; /* Supprimer toute limite de hauteur */
-    
+
     /* Support tactile amélioré pour iPad et appareils mobiles */
     -webkit-overflow-scrolling: touch; /* Scroll fluide sur iOS */
     touch-action: pan-x pan-y pinch-zoom; /* Permettre scroll ET zoom tactile */
@@ -1037,9 +1037,9 @@
 @media (hover: none) and (pointer: coarse) {
     /* CSS spécifique aux appareils tactiles comme iPad */
     .pdf-container {
-        /* Améliorer le scroll tactile */
+        /* CHANGÉ: Pas de scroll ici non plus sur tactile, le body scroll */
         -webkit-overflow-scrolling: touch !important;
-        overflow: auto;
+        overflow: visible !important;
         scroll-snap-type: y proximity; /* Snap optionnel vers les pages */
     }
     
@@ -1083,10 +1083,9 @@
 /* Optimisations spécifiques pour iPad */
 @supports (-webkit-touch-callout: none) {
     .pdf-container {
-        /* Forcer le scroll momentum sur iOS */
+        /* CHANGÉ: Pas de scroll sur iOS non plus, le body scroll */
         -webkit-overflow-scrolling: touch !important;
-        overflow-y: scroll;
-        overflow-x: hidden;
+        overflow: visible !important;
     }
     
     /* Permettre zoom et scroll complets sur iOS */
