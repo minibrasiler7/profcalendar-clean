@@ -2037,8 +2037,11 @@ class CleanPDFViewer {
      * Ajouter une annotation à l'historique
      */
     addAnnotationToHistory(pageId, annotation) {
+        console.log('[History] ADD AVANT - historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length, 'tool:', annotation.tool);
+
         // Tronquer l'historique si on est au milieu (cela invalide le redo)
         if (this.historyIndex < this.annotationHistory.length - 1) {
+            console.log('[History] Troncature - suppression de', this.annotationHistory.length - this.historyIndex - 1, 'entrées');
             this.annotationHistory = this.annotationHistory.slice(0, this.historyIndex + 1);
             // Reconstruire les annotations depuis l'historique pour être cohérent
             this.rebuildAnnotationsFromHistory();
@@ -2054,7 +2057,10 @@ class CleanPDFViewer {
             annotation: {...annotation}
         });
 
-        this.historyIndex++;
+        // CORRECTION: Utiliser la longueur de l'historique après le push
+        this.historyIndex = this.annotationHistory.length - 1;
+
+        console.log('[History] ADD APRÈS - historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length);
 
         // Mettre à jour les annotations de la page
         if (!this.annotations.has(pageId)) {
@@ -2163,10 +2169,15 @@ class CleanPDFViewer {
      * Mettre à jour les boutons undo/redo
      */
     updateUndoRedoButtons() {
-        // Désactiver undo si on est au début (index -1 ou pas d'historique)
-        this.elements.btnUndo.disabled = this.historyIndex < 0;
+        // Désactiver undo si on est au début (index < 0 signifie aucune annotation affichée)
+        const canUndo = this.historyIndex >= 0;
         // Désactiver redo si on est à la fin
-        this.elements.btnRedo.disabled = this.historyIndex >= this.annotationHistory.length - 1;
+        const canRedo = this.historyIndex < this.annotationHistory.length - 1;
+
+        this.elements.btnUndo.disabled = !canUndo;
+        this.elements.btnRedo.disabled = !canRedo;
+
+        console.log('[Buttons] Undo:', canUndo ? 'ENABLED' : 'DISABLED', '| Redo:', canRedo ? 'ENABLED' : 'DISABLED', '| Index:', this.historyIndex, '| Total:', this.annotationHistory.length);
     }
 
     /**
