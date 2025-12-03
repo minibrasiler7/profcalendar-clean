@@ -116,6 +116,9 @@ class CleanPDFViewer {
 
         // Démarrer l'auto-save
         this.startAutoSave();
+
+        // Sauvegarder avant la fermeture du navigateur
+        this.setupBeforeUnload();
     }
 
     /**
@@ -3296,16 +3299,72 @@ class CleanPDFViewer {
      * Charger les annotations
      */
     async loadAnnotations() {
-        if (!this.options.fileId) return;
+        if (!this.options.fileId) {
+            console.log('[Load] Pas de fileId, chargement ignoré');
+            return;
+        }
 
         try {
+            console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
             const response = await fetch(`/get_annotations/${this.options.fileId}`);
+
             if (response.ok) {
                 const data = await response.json();
-                // TODO: Charger les annotations
+                console.log('[Load] Données reçues:', data);
+
+                if (data.success && data.annotations) {
+                    // Charger les annotations par page
+                    const annotationsData = data.annotations;
+
+                    // Vider les annotations actuelles
+                    this.annotations.clear();
+                    this.annotationHistory = [];
+                    this.historyIndex = -1;
+
+                    // Reconstruire les annotations et l'historique
+                    for (const [pageIdStr, pageAnnotations] of Object.entries(annotationsData)) {
+                        const pageId = parseInt(pageIdStr);
+
+                        if (!this.annotations.has(pageId)) {
+                            this.annotations.set(pageId, []);
+                        }
+
+                        // Ajouter chaque annotation à la page ET à l'historique
+                        for (const annotation of pageAnnotations) {
+                            // Ajouter à la Map des annotations
+                            this.annotations.get(pageId).push(annotation);
+
+                            // Ajouter à l'historique pour le undo/redo
+                            this.annotationHistory.push({
+                                action: 'add',
+                                pageId: pageId,
+                                annotation: {...annotation}
+                            });
+                        }
+                    }
+
+                    // Mettre à jour historyIndex pour pointer sur la dernière annotation
+                    this.historyIndex = this.annotationHistory.length - 1;
+
+                    console.log('[Load] Annotations chargées:', this.annotationHistory.length, 'annotations dans l\'historique');
+                    console.log('[Load] Pages avec annotations:', [...this.annotations.keys()]);
+
+                    // Redessiner toutes les pages
+                    this.redrawAllPages();
+                    this.updateUndoRedoButtons();
+
+                    // Marquer comme non modifié puisqu'on vient de charger
+                    this.isDirty = false;
+                } else {
+                    console.log('[Load] Aucune annotation à charger');
+                }
+            } else if (response.status === 404) {
+                console.log('[Load] Aucune annotation sauvegardée pour ce fichier');
+            } else {
+                console.error('[Load] Erreur HTTP:', response.status);
             }
         } catch (error) {
-            console.error('Erreur chargement annotations:', error);
+            console.error('[Load] Erreur chargement annotations:', error);
         }
     }
 
@@ -3313,14 +3372,28 @@ class CleanPDFViewer {
      * Sauvegarder les annotations
      */
     async saveAnnotations() {
-        if (!this.isDirty || !this.options.fileId) return;
+        if (!this.options.fileId) {
+            console.log('[Save] Pas de fileId, sauvegarde ignorée');
+            return;
+        }
+
+        if (!this.isDirty) {
+            console.log('[Save] Pas de modifications, sauvegarde ignorée');
+            return;
+        }
 
         try {
             // Préparer les données
             const annotationsData = {};
             this.annotations.forEach((annotations, pageId) => {
-                annotationsData[pageId] = annotations;
+                // Filtrer les grilles qui ne doivent pas être sauvegardées
+                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+                if (annotationsToSave.length > 0) {
+                    annotationsData[pageId] = annotationsToSave;
+                }
             });
+
+            console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations');
 
             const response = await fetch('/save_annotations', {
                 method: 'POST',
@@ -3332,10 +3405,14 @@ class CleanPDFViewer {
             });
 
             if (response.ok) {
+                const result = await response.json();
+                console.log('[Save] Sauvegarde réussie:', result);
                 this.isDirty = false;
+            } else {
+                console.error('[Save] Erreur HTTP:', response.status);
             }
         } catch (error) {
-            console.error('Erreur sauvegarde:', error);
+            console.error('[Save] Erreur sauvegarde:', error);
         }
     }
 
@@ -3361,6 +3438,58 @@ class CleanPDFViewer {
     }
 
     /**
+     * Configurer la sauvegarde avant fermeture du navigateur
+     */
+    setupBeforeUnload() {
+        this.beforeUnloadHandler = (e) => {
+            if (this.isDirty) {
+                console.log('[BeforeUnload] Sauvegarde avant fermeture...');
+                // Sauvegarder de manière synchrone avec sendBeacon si possible
+                const annotationsData = {};
+                this.annotations.forEach((annotations, pageId) => {
+                    const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+                    if (annotationsToSave.length > 0) {
+                        annotationsData[pageId] = annotationsToSave;
+                    }
+                });
+
+                const data = JSON.stringify({
+                    file_id: this.options.fileId,
+                    annotations: annotationsData
+                });
+
+                // Utiliser sendBeacon pour envoyer de manière fiable avant fermeture
+                if (navigator.sendBeacon) {
+                    const blob = new Blob([data], { type: 'application/json' });
+                    navigator.sendBeacon('/save_annotations', blob);
+                } else {
+                    // Fallback : requête synchrone (déprécié mais nécessaire)
+                    try {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/save_annotations', false); // false = synchrone
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.send(data);
+                    } catch (error) {
+                        console.error('[BeforeUnload] Erreur sauvegarde:', error);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
+    }
+
+    /**
+     * Nettoyer le listener beforeunload
+     */
+    cleanupBeforeUnload() {
+        if (this.beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+            this.beforeUnloadHandler = null;
+        }
+    }
+
+    /**
      * Afficher/masquer le loading
      */
     showLoading(show) {
@@ -3382,8 +3511,9 @@ class CleanPDFViewer {
             }
         }
 
-        // Nettoyer les timers
+        // Nettoyer les timers et listeners
         this.stopAutoSave();
+        this.cleanupBeforeUnload();
 
         // Retirer la classe du body pour restaurer le scroll global
         document.body.classList.remove('pdf-viewer-active');
