@@ -618,7 +618,10 @@ class CleanPDFViewer {
                 // Trouver le canvas correspondant à la position du pointeur
                 const canvas = this.getCanvasAtPoint(e.clientX, e.clientY);
                 if (canvas) {
-                    const pageId = canvas.dataset.pageId;
+                    // Récupérer le pageId depuis le wrapper parent
+                    const wrapper = canvas.closest('.pdf-page-wrapper');
+                    const pageId = wrapper ? parseInt(wrapper.dataset.pageId) : undefined;
+                    console.log(`[Viewer NEW] Canvas trouvé pour pageId: ${pageId}`);
                     this.startAnnotation(e, canvas, pageId);
                 } else {
                     console.log('[Viewer NEW] ERREUR: Aucun canvas trouvé à cette position');
