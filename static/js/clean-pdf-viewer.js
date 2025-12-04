@@ -3306,7 +3306,7 @@ class CleanPDFViewer {
 
         try {
             console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
-            const response = await fetch(`/get_annotations/${this.options.fileId}`);
+            const response = await fetch(`/api/load-annotations/${this.options.fileId}`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -3395,7 +3395,7 @@ class CleanPDFViewer {
 
             console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations');
 
-            const response = await fetch('/save_annotations', {
+            const response = await fetch('/api/save-annotations', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -3461,12 +3461,12 @@ class CleanPDFViewer {
                 // Utiliser sendBeacon pour envoyer de manière fiable avant fermeture
                 if (navigator.sendBeacon) {
                     const blob = new Blob([data], { type: 'application/json' });
-                    navigator.sendBeacon('/save_annotations', blob);
+                    navigator.sendBeacon('/api/save-annotations', blob);
                 } else {
                     // Fallback : requête synchrone (déprécié mais nécessaire)
                     try {
                         const xhr = new XMLHttpRequest();
-                        xhr.open('POST', '/save_annotations', false); // false = synchrone
+                        xhr.open('POST', '/api/save-annotations', false); // false = synchrone
                         xhr.setRequestHeader('Content-Type', 'application/json');
                         xhr.send(data);
                     } catch (error) {
