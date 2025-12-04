@@ -3374,7 +3374,7 @@ class CleanPDFViewer {
     }
 
     /**
-     * Sauvegarder les annotations
+     * Sauvegarder les annotations (version asynchrone)
      */
     async saveAnnotations() {
         if (!this.options.fileId) {
@@ -3422,6 +3422,49 @@ class CleanPDFViewer {
     }
 
     /**
+     * Sauvegarder les annotations de manière SYNCHRONE
+     * Utilisé pour beforeunload/pagehide/visibilitychange
+     */
+    saveAnnotationsSync() {
+        if (!this.options.fileId || !this.isDirty) {
+            return;
+        }
+
+        try {
+            // Préparer les données
+            const annotationsData = {};
+            this.annotations.forEach((annotations, pageId) => {
+                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+                if (annotationsToSave.length > 0) {
+                    annotationsData[pageId] = annotationsToSave;
+                }
+            });
+
+            console.log('[SaveSync] Sauvegarde synchrone de', Object.keys(annotationsData).length, 'pages');
+
+            const data = JSON.stringify({
+                file_id: this.options.fileId,
+                annotations: annotationsData
+            });
+
+            // XMLHttpRequest synchrone (déprécié mais nécessaire pour beforeunload)
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/file_manager/api/save-annotations', false); // false = synchrone
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(data);
+
+            if (xhr.status === 200) {
+                console.log('[SaveSync] Sauvegarde synchrone réussie');
+                this.isDirty = false;
+            } else {
+                console.error('[SaveSync] Erreur HTTP:', xhr.status);
+            }
+        } catch (error) {
+            console.error('[SaveSync] Erreur:', error);
+        }
+    }
+
+    /**
      * Démarrer l'auto-save
      */
     startAutoSave() {
@@ -3450,8 +3493,8 @@ class CleanPDFViewer {
         this.visibilityHandler = () => {
             if (document.visibilityState === 'hidden' && this.isDirty) {
                 console.log('[Visibility] Sauvegarde avant masquage de la page...');
-                // Sauvegarder immédiatement de manière synchrone
-                this.saveAnnotations();
+                // Sauvegarder de manière SYNCHRONE
+                this.saveAnnotationsSync();
             }
         };
 
@@ -3459,8 +3502,8 @@ class CleanPDFViewer {
         this.beforeUnloadHandler = (e) => {
             if (this.isDirty) {
                 console.log('[BeforeUnload] Sauvegarde avant fermeture...');
-                // Sauvegarder immédiatement
-                this.saveAnnotations();
+                // Sauvegarder de manière SYNCHRONE
+                this.saveAnnotationsSync();
             }
         };
 
@@ -3468,7 +3511,8 @@ class CleanPDFViewer {
         this.pagehideHandler = (e) => {
             if (this.isDirty) {
                 console.log('[PageHide] Sauvegarde avant fermeture page...');
-                this.saveAnnotations();
+                // Sauvegarder de manière SYNCHRONE
+                this.saveAnnotationsSync();
             }
         };
 
