@@ -1462,6 +1462,28 @@ class CleanPDFViewer {
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
 
+        // Validation: rejeter les points hors du canvas
+        if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) {
+            console.warn('[Annotation] Point hors canvas ignoré:', {x, y, width: canvas.width, height: canvas.height});
+            return;
+        }
+
+        // Validation: rejeter les sauts anormaux (> 200px)
+        if (this.currentStroke && this.currentStroke.points.length > 0) {
+            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+            const distance = Math.sqrt((x - lastPoint.x) ** 2 + (y - lastPoint.y) ** 2);
+
+            // Seuil de 200px pour détecter un saut anormal
+            if (distance > 200) {
+                console.warn('[Annotation] Saut anormal détecté et ignoré:', {
+                    distance: distance.toFixed(1),
+                    from: lastPoint,
+                    to: {x, y}
+                });
+                return;
+            }
+        }
+
         // Gérer la gomme
         if (this.currentTool === 'eraser') {
             this.eraseAtPoint(canvas, pageId, x, y);
