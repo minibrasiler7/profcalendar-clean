@@ -177,9 +177,26 @@ class CleanPDFViewer {
                     </div>
 
                     <div class="toolbar-center">
-                        <input type="color" id="color-picker" value="#000000" title="Couleur">
-                        <input type="range" id="size-slider" min="1" max="20" value="2" title="Taille">
-                        <span id="size-value">2</span>
+                        <div class="color-selector">
+                            <button class="btn-color active" data-color="#000000" style="background-color: #000000;" title="Noir"></button>
+                            <button class="btn-color" data-color="#FF0000" style="background-color: #FF0000;" title="Rouge"></button>
+                            <button class="btn-color" data-color="#00FF00" style="background-color: #00FF00;" title="Vert"></button>
+                            <button class="btn-color" data-color="#0000FF" style="background-color: #0000FF;" title="Bleu"></button>
+                            <div class="custom-color-wrapper">
+                                <button class="btn-color btn-color-custom" id="btn-custom-color" title="Couleur personnalisée">
+                                    <i class="fas fa-palette"></i>
+                                </button>
+                                <input type="color" id="color-picker" value="#FF00FF" style="display: none;">
+                            </div>
+                        </div>
+                        <div class="separator"></div>
+                        <div class="size-selector">
+                            <button class="btn-size active" data-size="2" title="2px">2</button>
+                            <button class="btn-size" data-size="4" title="4px">4</button>
+                            <button class="btn-size" data-size="6" title="6px">6</button>
+                            <button class="btn-size" data-size="8" title="8px">8</button>
+                            <button class="btn-size" data-size="10" title="10px">10</button>
+                        </div>
                     </div>
 
                     <div class="toolbar-right">
@@ -235,8 +252,6 @@ class CleanPDFViewer {
             thumbnailsContainer: this.container.querySelector('#thumbnails-container'),
             pagesContainer: this.container.querySelector('#pdf-pages-container'),
             colorPicker: this.container.querySelector('#color-picker'),
-            sizeSlider: this.container.querySelector('#size-slider'),
-            sizeValue: this.container.querySelector('#size-value'),
             btnUndo: this.container.querySelector('#btn-undo'),
             btnRedo: this.container.querySelector('#btn-redo'),
             btnClearPage: this.container.querySelector('#btn-clear-page'),
@@ -327,22 +342,87 @@ class CleanPDFViewer {
                 margin: 0 4px;
             }
 
-            #color-picker {
-                width: 40px;
-                height: 40px;
+            /* Color selector */
+            .color-selector {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .btn-color {
+                width: 32px;
+                height: 32px;
                 border: 2px solid #e0e0e0;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
+                transition: all 0.2s;
+                padding: 0;
+                position: relative;
             }
 
-            #size-slider {
-                width: 100px;
+            .btn-color:hover {
+                transform: scale(1.1);
+                border-color: #999;
             }
 
-            #size-value {
-                min-width: 30px;
-                text-align: center;
-                font-weight: 500;
+            .btn-color.active {
+                border-color: #007aff;
+                border-width: 3px;
+                box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+            }
+
+            .btn-color-custom {
+                background: linear-gradient(135deg,
+                    #FF0000 0%, #FF7F00 14%, #FFFF00 28%,
+                    #00FF00 42%, #0000FF 57%, #4B0082 71%,
+                    #9400D3 85%, #FF0000 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+            }
+
+            .custom-color-wrapper {
+                position: relative;
+            }
+
+            #color-picker {
+                position: absolute;
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            /* Size selector */
+            .size-selector {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+            }
+
+            .btn-size {
+                width: 36px;
+                height: 32px;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                background: white;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-weight: 600;
+                font-size: 13px;
+                color: #333;
+            }
+
+            .btn-size:hover {
+                background: #f0f0f0;
+                border-color: #999;
+            }
+
+            .btn-size.active {
+                background: #007aff;
+                color: white;
+                border-color: #007aff;
             }
 
             /* Main area */
@@ -554,14 +634,47 @@ class CleanPDFViewer {
             });
         });
 
-        // Couleur et taille
-        this.elements.colorPicker.addEventListener('change', (e) => {
-            this.currentColor = e.target.value;
+        // Boutons de couleur
+        this.container.querySelectorAll('.btn-color').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+
+                // Retirer la classe active de tous les boutons
+                this.container.querySelectorAll('.btn-color').forEach(b => b.classList.remove('active'));
+
+                // Activer le bouton cliqué
+                btn.classList.add('active');
+
+                // Si c'est le bouton custom, ouvrir le color picker
+                if (btn.id === 'btn-custom-color') {
+                    this.elements.colorPicker.click();
+                } else {
+                    // Sinon, utiliser la couleur du bouton
+                    this.currentColor = btn.dataset.color;
+                }
+            });
         });
 
-        this.elements.sizeSlider.addEventListener('input', (e) => {
-            this.currentSize = parseInt(e.target.value);
-            this.elements.sizeValue.textContent = this.currentSize;
+        // Color picker (couleur personnalisée)
+        this.elements.colorPicker.addEventListener('change', (e) => {
+            this.currentColor = e.target.value;
+            // Mettre à jour la couleur du bouton custom
+            const btnCustom = this.container.querySelector('#btn-custom-color');
+            btnCustom.style.background = e.target.value;
+        });
+
+        // Boutons de taille
+        this.container.querySelectorAll('.btn-size').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Retirer la classe active de tous les boutons
+                this.container.querySelectorAll('.btn-size').forEach(b => b.classList.remove('active'));
+
+                // Activer le bouton cliqué
+                btn.classList.add('active');
+
+                // Définir la taille
+                this.currentSize = parseInt(btn.dataset.size);
+            });
         });
 
         // Actions
