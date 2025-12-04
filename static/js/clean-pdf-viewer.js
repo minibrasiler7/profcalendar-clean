@@ -106,12 +106,17 @@ class CleanPDFViewer {
 
         // Charger le PDF si URL fournie
         if (this.options.pdfUrl) {
+            console.log('[Init] Chargement du PDF:', this.options.pdfUrl);
             await this.loadPDF(this.options.pdfUrl);
         }
 
         // Charger les annotations sauvegardées
+        console.log('[Init] Vérification fileId:', this.options.fileId);
         if (this.options.fileId) {
+            console.log('[Init] Appel de loadAnnotations()...');
             await this.loadAnnotations();
+        } else {
+            console.log('[Init] Pas de fileId, annotations non chargées');
         }
 
         // Démarrer l'auto-save
@@ -3441,51 +3446,52 @@ class CleanPDFViewer {
      * Configurer la sauvegarde avant fermeture du navigateur
      */
     setupBeforeUnload() {
-        this.beforeUnloadHandler = (e) => {
-            if (this.isDirty) {
-                console.log('[BeforeUnload] Sauvegarde avant fermeture...');
-                // Sauvegarder de manière synchrone avec sendBeacon si possible
-                const annotationsData = {};
-                this.annotations.forEach((annotations, pageId) => {
-                    const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
-                    if (annotationsToSave.length > 0) {
-                        annotationsData[pageId] = annotationsToSave;
-                    }
-                });
-
-                const data = JSON.stringify({
-                    file_id: this.options.fileId,
-                    annotations: annotationsData
-                });
-
-                // Utiliser sendBeacon pour envoyer de manière fiable avant fermeture
-                if (navigator.sendBeacon) {
-                    const blob = new Blob([data], { type: 'application/json' });
-                    navigator.sendBeacon('/file_manager/api/save-annotations', blob);
-                } else {
-                    // Fallback : requête synchrone (déprécié mais nécessaire)
-                    try {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('POST', '/file_manager/api/save-annotations', false); // false = synchrone
-                        xhr.setRequestHeader('Content-Type', 'application/json');
-                        xhr.send(data);
-                    } catch (error) {
-                        console.error('[BeforeUnload] Erreur sauvegarde:', error);
-                    }
-                }
+        // Utiliser visibilitychange pour sauvegarder avant que la page soit cachée
+        this.visibilityHandler = () => {
+            if (document.visibilityState === 'hidden' && this.isDirty) {
+                console.log('[Visibility] Sauvegarde avant masquage de la page...');
+                // Sauvegarder immédiatement de manière synchrone
+                this.saveAnnotations();
             }
         };
 
+        // Listener pour beforeunload (fermeture de fenêtre)
+        this.beforeUnloadHandler = (e) => {
+            if (this.isDirty) {
+                console.log('[BeforeUnload] Sauvegarde avant fermeture...');
+                // Sauvegarder immédiatement
+                this.saveAnnotations();
+            }
+        };
+
+        // Listener pour pagehide (iOS Safari)
+        this.pagehideHandler = (e) => {
+            if (this.isDirty) {
+                console.log('[PageHide] Sauvegarde avant fermeture page...');
+                this.saveAnnotations();
+            }
+        };
+
+        document.addEventListener('visibilitychange', this.visibilityHandler);
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
+        window.addEventListener('pagehide', this.pagehideHandler);
     }
 
     /**
-     * Nettoyer le listener beforeunload
+     * Nettoyer les listeners de fermeture
      */
     cleanupBeforeUnload() {
+        if (this.visibilityHandler) {
+            document.removeEventListener('visibilitychange', this.visibilityHandler);
+            this.visibilityHandler = null;
+        }
         if (this.beforeUnloadHandler) {
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             this.beforeUnloadHandler = null;
+        }
+        if (this.pagehideHandler) {
+            window.removeEventListener('pagehide', this.pagehideHandler);
+            this.pagehideHandler = null;
         }
     }
 
