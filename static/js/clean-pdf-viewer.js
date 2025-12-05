@@ -33,7 +33,7 @@ class CleanPDFViewer {
             pdfUrl: options.pdfUrl || null,
             showSidebar: options.showSidebar !== false,
             enableAnnotations: options.enableAnnotations !== false,
-            autoSaveInterval: options.autoSaveInterval || 5000, // 5 secondes
+            autoSaveInterval: options.autoSaveInterval || 2000, // 2 secondes
             ...options
         };
 
@@ -383,8 +383,13 @@ class CleanPDFViewer {
                 position: absolute;
                 top: 0;
                 left: 0;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
                 pointer-events: none;
+                background: #FF00FF;
                 border: 2px solid #e0e0e0;
+                transition: all 0.2s;
             }
 
             .custom-color-wrapper {
@@ -393,46 +398,20 @@ class CleanPDFViewer {
                 height: 32px;
             }
 
-            #color-picker {
-                width: 32px;
-                height: 32px;
-                border: none;
-                border-radius: 50%;
-                cursor: pointer;
-                padding: 0;
-                -webkit-appearance: none;
-                -moz-appearance: none;
-                appearance: none;
-            }
-
-            #color-picker::-webkit-color-swatch-wrapper {
-                padding: 0;
-                border-radius: 50%;
-            }
-
-            #color-picker::-webkit-color-swatch {
-                border: 2px solid #e0e0e0;
-                border-radius: 50%;
-            }
-
-            #color-picker::-moz-color-swatch {
-                border: 2px solid #e0e0e0;
-                border-radius: 50%;
-            }
-
-            #color-picker.active {
-                border: 3px solid #007aff;
+            .custom-color-wrapper.active .btn-color-custom {
+                border-color: #007aff;
+                border-width: 3px;
                 box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
             }
 
-            #color-picker.active::-webkit-color-swatch {
-                border-color: #007aff;
-                border-width: 3px;
-            }
-
-            #color-picker.active::-moz-color-swatch {
-                border-color: #007aff;
-                border-width: 3px;
+            #color-picker {
+                width: 32px;
+                height: 32px;
+                opacity: 0;
+                cursor: pointer;
+                position: absolute;
+                top: 0;
+                left: 0;
             }
 
             /* Size selector */
@@ -692,7 +671,7 @@ class CleanPDFViewer {
 
                 // Retirer la classe active de tous les boutons de couleur
                 this.container.querySelectorAll('.btn-color').forEach(b => b.classList.remove('active'));
-                this.elements.colorPicker.classList.remove('active');
+                this.container.querySelector('.custom-color-wrapper').classList.remove('active');
 
                 // Activer le bouton cliqué
                 btn.classList.add('active');
@@ -705,13 +684,20 @@ class CleanPDFViewer {
         // Color picker (couleur personnalisée)
         this.elements.colorPicker.addEventListener('change', (e) => {
             this.currentColor = e.target.value;
+
+            // Mettre à jour la couleur du bouton custom
+            const btnCustom = this.container.querySelector('#btn-custom-color');
+            btnCustom.style.background = e.target.value;
+
+            console.log('[ColorPicker] Couleur changée:', e.target.value);
         });
 
         this.elements.colorPicker.addEventListener('click', () => {
             // Retirer active des autres boutons
             this.container.querySelectorAll('.btn-color').forEach(b => b.classList.remove('active'));
-            // Activer le color picker
-            this.elements.colorPicker.classList.add('active');
+
+            // Activer le wrapper du color picker
+            this.container.querySelector('.custom-color-wrapper').classList.add('active');
         });
 
         // Boutons de taille
@@ -3615,7 +3601,15 @@ class CleanPDFViewer {
      * Utilisé pour beforeunload/pagehide/visibilitychange
      */
     saveAnnotationsSync() {
-        if (!this.options.fileId || !this.isDirty) {
+        console.log('[SaveSync] Appel saveAnnotationsSync - fileId:', this.options.fileId, 'isDirty:', this.isDirty);
+
+        if (!this.options.fileId) {
+            console.warn('[SaveSync] Pas de fileId, abandon');
+            return;
+        }
+
+        if (!this.isDirty) {
+            console.log('[SaveSync] Pas de modifications, abandon');
             return;
         }
 
@@ -3629,7 +3623,10 @@ class CleanPDFViewer {
                 }
             });
 
-            console.log('[SaveSync] Sauvegarde synchrone de', Object.keys(annotationsData).length, 'pages');
+            const pageCount = Object.keys(annotationsData).length;
+            const totalAnnotations = Object.values(annotationsData).reduce((sum, arr) => sum + arr.length, 0);
+
+            console.log('[SaveSync] Sauvegarde synchrone de', pageCount, 'pages,', totalAnnotations, 'annotations');
 
             const data = JSON.stringify({
                 file_id: this.options.fileId,
@@ -3643,13 +3640,13 @@ class CleanPDFViewer {
             xhr.send(data);
 
             if (xhr.status === 200) {
-                console.log('[SaveSync] Sauvegarde synchrone réussie');
+                console.log('[SaveSync] ✅ Sauvegarde synchrone réussie');
                 this.isDirty = false;
             } else {
-                console.error('[SaveSync] Erreur HTTP:', xhr.status);
+                console.error('[SaveSync] ❌ Erreur HTTP:', xhr.status, xhr.responseText);
             }
         } catch (error) {
-            console.error('[SaveSync] Erreur:', error);
+            console.error('[SaveSync] ❌ Exception:', error);
         }
     }
 
@@ -3657,8 +3654,10 @@ class CleanPDFViewer {
      * Démarrer l'auto-save
      */
     startAutoSave() {
+        console.log('[AutoSave] Démarrage auto-save toutes les', this.options.autoSaveInterval, 'ms');
         this.autoSaveTimer = setInterval(() => {
             if (this.isDirty) {
+                console.log('[AutoSave] Sauvegarde automatique déclenchée');
                 this.saveAnnotations();
             }
         }, this.options.autoSaveInterval);
