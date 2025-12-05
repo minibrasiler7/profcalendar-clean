@@ -183,19 +183,27 @@ class CleanPDFViewer {
                             <button class="btn-color" data-color="#00FF00" style="background-color: #00FF00;" title="Vert"></button>
                             <button class="btn-color" data-color="#0000FF" style="background-color: #0000FF;" title="Bleu"></button>
                             <div class="custom-color-wrapper">
-                                <button class="btn-color btn-color-custom" id="btn-custom-color" title="Couleur personnalisée">
-                                    <i class="fas fa-palette"></i>
-                                </button>
-                                <input type="color" id="color-picker" value="#FF00FF" style="display: none;">
+                                <input type="color" id="color-picker" value="#FF00FF">
+                                <button class="btn-color btn-color-custom" id="btn-custom-color" title="Couleur personnalisée"></button>
                             </div>
                         </div>
                         <div class="separator"></div>
                         <div class="size-selector">
-                            <button class="btn-size active" data-size="2" title="2px">2</button>
-                            <button class="btn-size" data-size="4" title="4px">4</button>
-                            <button class="btn-size" data-size="6" title="6px">6</button>
-                            <button class="btn-size" data-size="8" title="8px">8</button>
-                            <button class="btn-size" data-size="10" title="10px">10</button>
+                            <button class="btn-size active" data-size="2" title="2px">
+                                <span class="size-preview" style="height: 2px;"></span>
+                            </button>
+                            <button class="btn-size" data-size="4" title="4px">
+                                <span class="size-preview" style="height: 4px;"></span>
+                            </button>
+                            <button class="btn-size" data-size="6" title="6px">
+                                <span class="size-preview" style="height: 6px;"></span>
+                            </button>
+                            <button class="btn-size" data-size="8" title="8px">
+                                <span class="size-preview" style="height: 8px;"></span>
+                            </button>
+                            <button class="btn-size" data-size="10" title="10px">
+                                <span class="size-preview" style="height: 10px;"></span>
+                            </button>
                         </div>
                     </div>
 
@@ -353,7 +361,7 @@ class CleanPDFViewer {
                 width: 32px;
                 height: 32px;
                 border: 2px solid #e0e0e0;
-                border-radius: 6px;
+                border-radius: 50%;
                 cursor: pointer;
                 transition: all 0.2s;
                 padding: 0;
@@ -372,26 +380,59 @@ class CleanPDFViewer {
             }
 
             .btn-color-custom {
-                background: linear-gradient(135deg,
-                    #FF0000 0%, #FF7F00 14%, #FFFF00 28%,
-                    #00FF00 42%, #0000FF 57%, #4B0082 71%,
-                    #9400D3 85%, #FF0000 100%);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 16px;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
+                border: 2px solid #e0e0e0;
             }
 
             .custom-color-wrapper {
                 position: relative;
+                width: 32px;
+                height: 32px;
             }
 
             #color-picker {
-                position: absolute;
-                opacity: 0;
-                width: 0;
-                height: 0;
+                width: 32px;
+                height: 32px;
+                border: none;
+                border-radius: 50%;
+                cursor: pointer;
+                padding: 0;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+            }
+
+            #color-picker::-webkit-color-swatch-wrapper {
+                padding: 0;
+                border-radius: 50%;
+            }
+
+            #color-picker::-webkit-color-swatch {
+                border: 2px solid #e0e0e0;
+                border-radius: 50%;
+            }
+
+            #color-picker::-moz-color-swatch {
+                border: 2px solid #e0e0e0;
+                border-radius: 50%;
+            }
+
+            #color-picker.active {
+                border: 3px solid #007aff;
+                box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+            }
+
+            #color-picker.active::-webkit-color-swatch {
+                border-color: #007aff;
+                border-width: 3px;
+            }
+
+            #color-picker.active::-moz-color-swatch {
+                border-color: #007aff;
+                border-width: 3px;
             }
 
             /* Size selector */
@@ -409,9 +450,10 @@ class CleanPDFViewer {
                 background: white;
                 cursor: pointer;
                 transition: all 0.2s;
-                font-weight: 600;
-                font-size: 13px;
-                color: #333;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px;
             }
 
             .btn-size:hover {
@@ -421,8 +463,17 @@ class CleanPDFViewer {
 
             .btn-size.active {
                 background: #007aff;
-                color: white;
                 border-color: #007aff;
+            }
+
+            .size-preview {
+                width: 100%;
+                background: #333;
+                border-radius: 2px;
+            }
+
+            .btn-size.active .size-preview {
+                background: white;
             }
 
             /* Main area */
@@ -634,33 +685,33 @@ class CleanPDFViewer {
             });
         });
 
-        // Boutons de couleur
-        this.container.querySelectorAll('.btn-color').forEach(btn => {
+        // Boutons de couleur (fixes)
+        this.container.querySelectorAll('.btn-color[data-color]').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
 
-                // Retirer la classe active de tous les boutons
+                // Retirer la classe active de tous les boutons de couleur
                 this.container.querySelectorAll('.btn-color').forEach(b => b.classList.remove('active'));
+                this.elements.colorPicker.classList.remove('active');
 
                 // Activer le bouton cliqué
                 btn.classList.add('active');
 
-                // Si c'est le bouton custom, ouvrir le color picker
-                if (btn.id === 'btn-custom-color') {
-                    this.elements.colorPicker.click();
-                } else {
-                    // Sinon, utiliser la couleur du bouton
-                    this.currentColor = btn.dataset.color;
-                }
+                // Utiliser la couleur du bouton
+                this.currentColor = btn.dataset.color;
             });
         });
 
         // Color picker (couleur personnalisée)
         this.elements.colorPicker.addEventListener('change', (e) => {
             this.currentColor = e.target.value;
-            // Mettre à jour la couleur du bouton custom
-            const btnCustom = this.container.querySelector('#btn-custom-color');
-            btnCustom.style.background = e.target.value;
+        });
+
+        this.elements.colorPicker.addEventListener('click', () => {
+            // Retirer active des autres boutons
+            this.container.querySelectorAll('.btn-color').forEach(b => b.classList.remove('active'));
+            // Activer le color picker
+            this.elements.colorPicker.classList.add('active');
         });
 
         // Boutons de taille
