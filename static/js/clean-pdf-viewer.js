@@ -2223,8 +2223,13 @@ class CleanPDFViewer {
                     break;
 
                 case 'grid':
+                    console.log('[Draw] Grid case - canvasWidth:', annotation.canvasWidth, 'canvasHeight:', annotation.canvasHeight);
                     if (annotation.canvasWidth && annotation.canvasHeight) {
+                        console.log('[Draw] Calling drawGrid');
                         this.annotationTools.drawGrid(ctx, annotation.canvasWidth, annotation.canvasHeight);
+                        console.log('[Draw] drawGrid completed');
+                    } else {
+                        console.warn('[Draw] Grid missing dimensions');
                     }
                     break;
 
