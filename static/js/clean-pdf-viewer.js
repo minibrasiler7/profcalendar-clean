@@ -3540,9 +3540,12 @@ class CleanPDFViewer {
                     console.log('[Load] Annotations chargées:', this.annotationHistory.length, 'annotations dans l\'historique');
                     console.log('[Load] Pages avec annotations:', [...this.annotations.keys()]);
 
-                    // Redessiner toutes les pages
-                    this.redrawAllPages();
-                    this.updateUndoRedoButtons();
+                    // Attendre un instant pour que les canvas soient prêts, puis redessiner
+                    setTimeout(() => {
+                        console.log('[Load] Redessinage après chargement...');
+                        this.redrawAllPages();
+                        this.updateUndoRedoButtons();
+                    }, 100);
 
                     // Marquer comme non modifié puisqu'on vient de charger
                     this.isDirty = false;
