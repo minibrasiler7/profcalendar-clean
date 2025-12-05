@@ -380,7 +380,7 @@ class AnnotationTools {
     }
 
     /**
-     * Dessiner une grille 1cm × 1cm avec 30% d'opacité
+     * Dessiner une grille 1cm × 1cm avec 50% d'opacité
      */
     drawGrid(ctx, width, height) {
         // 1cm réel = 37.8 pixels à 96 DPI
@@ -389,7 +389,7 @@ class AnnotationTools {
         ctx.save();
         ctx.strokeStyle = '#666666';
         ctx.lineWidth = 0.5;
-        ctx.globalAlpha = 0.3; // 30% d'opacité
+        ctx.globalAlpha = 0.5; // 50% d'opacité
 
         // Lignes verticales
         for (let x = 0; x <= width; x += gridSize) {

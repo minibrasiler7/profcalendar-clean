@@ -1337,6 +1337,8 @@ class CleanPDFViewer {
         if (this.currentTool === 'grid') {
             this.toggleGridOnPage(canvas, pageId);
             this.isDrawing = false;
+            // Revenir automatiquement au stylo après toggle
+            this.setTool('pen');
             return;
         }
 
@@ -2450,11 +2452,9 @@ class CleanPDFViewer {
             this.setTool('pen');
             return;
         } else if (tool === 'grid') {
-            // Toggle la grille sur la page actuelle immédiatement
-            this.toggleGridOnCurrentPage();
-            // Revenir au stylo
-            this.setTool('pen');
-            return;
+            // L'utilisateur doit taper sur la page pour toggle la grille
+            // (géré dans startAnnotation)
+            this.currentOpacity = 1.0;
         } else {
             this.currentOpacity = 1.0;
         }
