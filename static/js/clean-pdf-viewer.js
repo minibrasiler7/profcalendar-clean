@@ -1335,9 +1335,11 @@ class CleanPDFViewer {
 
         // Gérer l'outil grille (toggle)
         if (this.currentTool === 'grid') {
+            console.log('[Grid] Outil grille actif, toggle sur page:', pageId);
             this.toggleGridOnPage(canvas, pageId);
             this.isDrawing = false;
             // Revenir automatiquement au stylo après toggle
+            console.log('[Grid] Retour automatique au stylo');
             this.setTool('pen');
             return;
         }
@@ -1570,22 +1572,29 @@ class CleanPDFViewer {
      * Toggle grille sur une page
      */
     toggleGridOnPage(canvas, pageId) {
+        console.log('[Grid] toggleGridOnPage appelé - pageId:', pageId, 'canvas:', canvas.width, 'x', canvas.height);
+
         // Vérifier si la grille existe déjà
         if (!this.pageGrids) {
             this.pageGrids = new Map();
+            console.log('[Grid] Initialisation de pageGrids Map');
         }
 
         const hasGrid = this.pageGrids.get(pageId);
+        console.log('[Grid] hasGrid actuel:', hasGrid);
 
         if (hasGrid) {
             // Supprimer la grille
+            console.log('[Grid] Suppression de la grille');
             this.pageGrids.set(pageId, false);
             // Supprimer l'annotation grille
             const pageAnnotations = this.annotations.get(pageId) || [];
             const filteredAnnotations = pageAnnotations.filter(a => a.tool !== 'grid');
             this.annotations.set(pageId, filteredAnnotations);
+            console.log('[Grid] Grille supprimée, annotations restantes:', filteredAnnotations.length);
         } else {
             // Ajouter la grille
+            console.log('[Grid] Ajout de la grille');
             this.pageGrids.set(pageId, true);
             // Ajouter une annotation grille
             const gridAnnotation = {
@@ -1598,8 +1607,10 @@ class CleanPDFViewer {
                 this.annotations.set(pageId, []);
             }
             this.annotations.get(pageId).unshift(gridAnnotation); // Ajouter au début pour dessiner en premier
+            console.log('[Grid] Grille ajoutée, total annotations:', this.annotations.get(pageId).length);
         }
 
+        console.log('[Grid] Appel redrawAnnotations');
         this.redrawAnnotations(canvas, pageId);
         this.isDirty = true;
     }
@@ -2433,6 +2444,7 @@ class CleanPDFViewer {
      * Changer d'outil
      */
     setTool(tool) {
+        console.log('[Tool] setTool appelé avec:', tool);
         this.currentTool = tool;
 
         // Mettre à jour l'UI
