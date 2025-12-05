@@ -1846,16 +1846,34 @@ class CleanPDFViewer {
             ctx.lineTo(currentPoint.x, currentPoint.y);
             ctx.stroke();
 
-            // Montrer le rayon
+            // Montrer le rayon en centimètres
             const radius = Math.sqrt(
                 (currentPoint.x - startPoint.x) ** 2 +
                 (currentPoint.y - startPoint.y) ** 2
             );
+            const radiusCm = radius / 37.8; // 1 cm = 37.8 pixels à 96 DPI
+
+            const midX = (startPoint.x + currentPoint.x) / 2;
+            const midY = (startPoint.y + currentPoint.y) / 2;
+
+            // Fond blanc pour le texte
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 14px Arial';
+            const text = `r = ${radiusCm.toFixed(1)} cm`;
+            const metrics = ctx.measureText(text);
+            const padding = 4;
+            ctx.fillRect(
+                midX - metrics.width / 2 - padding,
+                midY - 17,
+                metrics.width + padding * 2,
+                20
+            );
+
+            // Texte du rayon
             ctx.fillStyle = this.currentColor;
-            ctx.font = '12px Arial';
-            ctx.fillText(`r=${radius.toFixed(0)}px`,
-                (startPoint.x + currentPoint.x) / 2,
-                (startPoint.y + currentPoint.y) / 2 - 10);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, midX, midY - 7);
         } else if (this.arcState.step === 2) {
             // Calculer le rayon depuis le premier segment
             const radius = Math.sqrt(

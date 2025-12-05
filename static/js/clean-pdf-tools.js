@@ -94,6 +94,53 @@ class AnnotationTools {
             streamline: 0, // Pas de lissage pour une ligne droite
             smoothing: 0
         });
+
+        // Calculer la distance en pixels
+        const distancePixels = Math.sqrt(
+            (end.x - start.x) ** 2 + (end.y - start.y) ** 2
+        );
+
+        // Convertir en centimètres (1 cm = 37.8 pixels à 96 DPI)
+        const distanceCm = distancePixels / 37.8;
+
+        // Afficher la mesure au milieu du segment
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
+
+        // Angle du segment pour orienter le texte
+        const angle = Math.atan2(end.y - start.y, end.x - start.x);
+
+        ctx.save();
+        ctx.translate(midX, midY);
+
+        // Rotation du texte pour qu'il soit parallèle au segment
+        let textAngle = angle;
+        // Si l'angle est trop penché, inverser pour que le texte soit lisible
+        if (textAngle > Math.PI / 2 || textAngle < -Math.PI / 2) {
+            textAngle += Math.PI;
+        }
+        ctx.rotate(textAngle);
+
+        // Fond blanc pour le texte
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = 'bold 14px Arial';
+        const text = `${distanceCm.toFixed(1)} cm`;
+        const metrics = ctx.measureText(text);
+        const padding = 4;
+        ctx.fillRect(
+            -metrics.width / 2 - padding,
+            -14 - padding,
+            metrics.width + padding * 2,
+            18 + padding * 2
+        );
+
+        // Texte de la mesure
+        ctx.fillStyle = options.color || '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 0, -7);
+
+        ctx.restore();
     }
 
     /**
@@ -146,15 +193,31 @@ class AnnotationTools {
         );
         ctx.stroke();
 
-        // Label du rayon
+        // Label du rayon en centimètres
         const midX = (center.x + currentPoint.x) / 2;
         const midY = (center.y + currentPoint.y) / 2;
 
-        ctx.fillStyle = '#007aff';
+        // Convertir le rayon en centimètres (1 cm = 37.8 pixels à 96 DPI)
+        const radiusCm = radius / 37.8;
+
+        // Fond blanc pour le texte
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.font = 'bold 14px Arial';
+        const text = `r = ${radiusCm.toFixed(1)} cm`;
+        const metrics = ctx.measureText(text);
+        const padding = 4;
+        ctx.fillRect(
+            midX - metrics.width / 2 - padding,
+            midY - 17,
+            metrics.width + padding * 2,
+            20
+        );
+
+        // Texte du rayon
+        ctx.fillStyle = '#007aff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${radius.toFixed(1)}px`, midX, midY - 10);
+        ctx.fillText(text, midX, midY - 7);
 
         ctx.restore();
     }
