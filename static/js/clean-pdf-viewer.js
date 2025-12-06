@@ -1006,8 +1006,10 @@ class CleanPDFViewer {
     async renderThumbnails() {
         this.elements.thumbnailsContainer.innerHTML = '';
 
-        for (const pageId of this.pageOrder) {
-            const thumbnailItem = await this.createThumbnail(pageId);
+        for (let i = 0; i < this.pageOrder.length; i++) {
+            const pageId = this.pageOrder[i];
+            const pageNumber = i + 1; // Numéro séquentiel (1, 2, 3, ...)
+            const thumbnailItem = await this.createThumbnail(pageId, pageNumber);
             this.elements.thumbnailsContainer.appendChild(thumbnailItem);
         }
     }
@@ -1015,7 +1017,7 @@ class CleanPDFViewer {
     /**
      * Créer une miniature
      */
-    async createThumbnail(pageId) {
+    async createThumbnail(pageId, pageNumber) {
         const div = document.createElement('div');
         div.className = 'thumbnail-wrapper';
 
@@ -1028,7 +1030,7 @@ class CleanPDFViewer {
 
         const numberLabel = document.createElement('div');
         numberLabel.className = 'thumbnail-number';
-        numberLabel.textContent = pageId;
+        numberLabel.textContent = pageNumber; // Afficher le numéro séquentiel
 
         thumb.appendChild(canvas);
         thumb.appendChild(numberLabel);
@@ -1110,11 +1112,11 @@ class CleanPDFViewer {
         // Rendre la page
         const pageData = this.pages.get(pageId);
         if (pageData && pageData.type === 'pdf') {
-            await this.renderPDFPage(pdfCanvas, annotationCanvas, pageData.pageNum);
+            await this.renderPDFPage(pdfCanvas, annotationCanvas, pageData.pageNum, pageId);
         } else if (pageData && pageData.type === 'blank') {
-            this.renderBlankPage(pdfCanvas, annotationCanvas);
+            await this.renderBlankPage(pdfCanvas, annotationCanvas, pageId);
         } else if (pageData && pageData.type === 'graph') {
-            this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data);
+            await this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
         }
 
         // Configurer les événements d'annotation
@@ -1126,7 +1128,7 @@ class CleanPDFViewer {
     /**
      * Rendre une page PDF sur canvas
      */
-    async renderPDFPage(pdfCanvas, annotationCanvas, pageNum) {
+    async renderPDFPage(pdfCanvas, annotationCanvas, pageNum, pageId) {
         const page = await this.pdf.getPage(pageNum);
 
         // Calculer le scale pour occuper 95% de la largeur du viewer
@@ -1150,17 +1152,37 @@ class CleanPDFViewer {
             viewport: viewport
         }).promise;
 
-        // Redessiner les annotations existantes
-        this.redrawAnnotations(annotationCanvas, pageNum);
+        // Redessiner les annotations existantes en utilisant pageId
+        this.redrawAnnotations(annotationCanvas, pageId);
     }
 
     /**
      * Rendre une page vierge
      */
-    renderBlankPage(pdfCanvas, annotationCanvas) {
-        // Page A4 : 210mm × 297mm à 96 DPI = 794 × 1123 pixels
-        const width = 794;
-        const height = 1123;
+    async renderBlankPage(pdfCanvas, annotationCanvas, pageId) {
+        // Adapter la taille à celle des pages PDF (même logique que renderPDFPage)
+        // Utiliser une page de référence si disponible, sinon taille A4
+        let width, height;
+
+        if (this.pdf && this.pdf.numPages > 0) {
+            // Utiliser les dimensions de la première page PDF comme référence
+            const referencePage = await this.pdf.getPage(1);
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const baseViewport = referencePage.getViewport({scale: 1});
+            const calculatedScale = targetWidth / baseViewport.width;
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const viewport = referencePage.getViewport({scale: scale});
+            width = viewport.width;
+            height = viewport.height;
+        } else {
+            // Fallback: Page A4 à 96 DPI
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const a4Ratio = 297 / 210; // ratio hauteur/largeur A4
+            width = targetWidth;
+            height = width * a4Ratio;
+        }
 
         pdfCanvas.width = width;
         pdfCanvas.height = height;
@@ -1170,14 +1192,39 @@ class CleanPDFViewer {
         const ctx = pdfCanvas.getContext('2d');
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, width, height);
+
+        // Redessiner les annotations existantes si pageId est fourni
+        if (pageId) {
+            this.redrawAnnotations(annotationCanvas, pageId);
+        }
     }
 
     /**
      * Rendre une page graphique
      */
-    renderGraphPage(pdfCanvas, annotationCanvas, graphData = {}) {
-        const width = 794;
-        const height = 1123;
+    async renderGraphPage(pdfCanvas, annotationCanvas, graphData = {}, pageId) {
+        // Adapter la taille à celle des pages PDF (même logique que renderBlankPage)
+        let width, height;
+
+        if (this.pdf && this.pdf.numPages > 0) {
+            // Utiliser les dimensions de la première page PDF comme référence
+            const referencePage = await this.pdf.getPage(1);
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const baseViewport = referencePage.getViewport({scale: 1});
+            const calculatedScale = targetWidth / baseViewport.width;
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const viewport = referencePage.getViewport({scale: scale});
+            width = viewport.width;
+            height = viewport.height;
+        } else {
+            // Fallback: Page A4 à 96 DPI
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const a4Ratio = 297 / 210; // ratio hauteur/largeur A4
+            width = targetWidth;
+            height = width * a4Ratio;
+        }
 
         pdfCanvas.width = width;
         pdfCanvas.height = height;
@@ -1197,6 +1244,11 @@ class CleanPDFViewer {
         const yMax = graphData.yMax || 15;
 
         this.drawGraphAxes(ctx, width, height, xMin, xMax, yMin, yMax);
+
+        // Redessiner les annotations existantes si pageId est fourni
+        if (pageId) {
+            this.redrawAnnotations(annotationCanvas, pageId);
+        }
     }
 
     /**
@@ -3693,6 +3745,31 @@ class CleanPDFViewer {
                 console.log('[Load] Données reçues:', data);
 
                 if (data.success && data.annotations) {
+                    // Charger les pages custom si présentes
+                    if (data.custom_pages && data.custom_pages.length > 0) {
+                        console.log('[Load] Chargement de', data.custom_pages.length, 'pages custom');
+
+                        // Trier les pages custom par position
+                        const customPagesSorted = data.custom_pages.sort((a, b) => a.position - b.position);
+
+                        // Reconstruire l'ordre des pages
+                        for (const customPage of customPagesSorted) {
+                            this.pages.set(customPage.pageId, {
+                                type: customPage.type,
+                                data: customPage.data || {}
+                            });
+
+                            // Insérer dans pageOrder à la bonne position
+                            if (customPage.position < this.pageOrder.length) {
+                                this.pageOrder.splice(customPage.position, 0, customPage.pageId);
+                            } else {
+                                this.pageOrder.push(customPage.pageId);
+                            }
+                        }
+
+                        console.log('[Load] Pages custom chargées, nouvel ordre:', this.pageOrder);
+                    }
+
                     // Charger les annotations par page
                     const annotationsData = data.annotations;
 
@@ -3703,7 +3780,8 @@ class CleanPDFViewer {
 
                     // Reconstruire les annotations et l'historique
                     for (const [pageIdStr, pageAnnotations] of Object.entries(annotationsData)) {
-                        const pageId = parseInt(pageIdStr);
+                        // pageId peut être un nombre ou une string (pour les pages custom)
+                        const pageId = pageIdStr.includes('_') ? pageIdStr : parseInt(pageIdStr);
 
                         if (!this.annotations.has(pageId)) {
                             this.annotations.set(pageId, []);
@@ -3728,6 +3806,10 @@ class CleanPDFViewer {
 
                     console.log('[Load] Annotations chargées:', this.annotationHistory.length, 'annotations dans l\'historique');
                     console.log('[Load] Pages avec annotations:', [...this.annotations.keys()]);
+
+                    // Re-rendre les thumbnails et pages
+                    await this.renderThumbnails();
+                    await this.renderPages();
 
                     // Attendre un instant pour que les canvas soient prêts, puis redessiner
                     setTimeout(() => {
@@ -3766,7 +3848,7 @@ class CleanPDFViewer {
         }
 
         try {
-            // Préparer les données
+            // Préparer les données d'annotations
             const annotationsData = {};
             this.annotations.forEach((annotations, pageId) => {
                 // Filtrer les grilles qui ne doivent pas être sauvegardées
@@ -3776,14 +3858,29 @@ class CleanPDFViewer {
                 }
             });
 
-            console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations');
+            // Préparer les pages custom (vierges et graphiques)
+            const customPages = [];
+            this.pages.forEach((pageData, pageId) => {
+                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                    const pageIndex = this.pageOrder.indexOf(pageId);
+                    customPages.push({
+                        pageId: pageId,
+                        type: pageData.type,
+                        data: pageData.data || {},
+                        position: pageIndex // Position dans l'ordre des pages
+                    });
+                }
+            });
+
+            console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations et', customPages.length, 'pages custom');
 
             const response = await fetch('/file_manager/api/save-annotations', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     file_id: this.options.fileId,
-                    annotations: annotationsData
+                    annotations: annotationsData,
+                    custom_pages: customPages
                 })
             });
 
@@ -3817,7 +3914,7 @@ class CleanPDFViewer {
         }
 
         try {
-            // Préparer les données
+            // Préparer les données d'annotations
             const annotationsData = {};
             this.annotations.forEach((annotations, pageId) => {
                 const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
@@ -3826,14 +3923,29 @@ class CleanPDFViewer {
                 }
             });
 
+            // Préparer les pages custom (vierges et graphiques)
+            const customPages = [];
+            this.pages.forEach((pageData, pageId) => {
+                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                    const pageIndex = this.pageOrder.indexOf(pageId);
+                    customPages.push({
+                        pageId: pageId,
+                        type: pageData.type,
+                        data: pageData.data || {},
+                        position: pageIndex
+                    });
+                }
+            });
+
             const pageCount = Object.keys(annotationsData).length;
             const totalAnnotations = Object.values(annotationsData).reduce((sum, arr) => sum + arr.length, 0);
 
-            console.log('[SaveSync] Sauvegarde synchrone de', pageCount, 'pages,', totalAnnotations, 'annotations');
+            console.log('[SaveSync] Sauvegarde synchrone de', pageCount, 'pages,', totalAnnotations, 'annotations et', customPages.length, 'pages custom');
 
             const data = JSON.stringify({
                 file_id: this.options.fileId,
-                annotations: annotationsData
+                annotations: annotationsData,
+                custom_pages: customPages
             });
 
             // XMLHttpRequest synchrone (déprécié mais nécessaire pour beforeunload)
