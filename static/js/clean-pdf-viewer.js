@@ -67,6 +67,12 @@ class CleanPDFViewer {
         // Détection stylet/doigt
         this.lastPointerType = null;
 
+        // Curseur Apple Pencil Pro
+        this.pencilCursor = null;
+        this.cursorVisible = false;
+        this.lastHoverX = 0;
+        this.lastHoverY = 0;
+
         // Sauvegarde automatique
         this.autoSaveTimer = null;
         this.isDirty = false;
@@ -241,6 +247,8 @@ class CleanPDFViewer {
                         <div class="pdf-pages-container" id="pdf-pages-container">
                             <!-- Les pages seront rendues ici -->
                         </div>
+                        <!-- Curseur Apple Pencil Pro -->
+                        <div class="pencil-cursor" id="pencil-cursor" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -265,8 +273,12 @@ class CleanPDFViewer {
             btnClearPage: this.container.querySelector('#btn-clear-page'),
             btnDownload: this.container.querySelector('#btn-download'),
             btnClose: this.container.querySelector('#btn-close'),
-            loading: this.container.querySelector('#pdf-loading')
+            loading: this.container.querySelector('#pdf-loading'),
+            pencilCursor: this.container.querySelector('#pencil-cursor')
         };
+
+        // Initialiser le curseur
+        this.pencilCursor = this.elements.pencilCursor;
 
         // Ajouter les styles CSS
         this.injectStyles();
@@ -648,6 +660,68 @@ class CleanPDFViewer {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
+
+            /* Curseur Apple Pencil Pro */
+            .pencil-cursor {
+                position: fixed;
+                pointer-events: none;
+                z-index: 10000;
+                transition: opacity 0.15s ease;
+            }
+
+            /* Curseur stylo - simple point */
+            .pencil-cursor.pen-cursor {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--cursor-color, #000);
+                border: 2px solid rgba(255, 255, 255, 0.8);
+                box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+                transform: translate(-50%, -50%);
+            }
+
+            /* Curseur gomme - effet liquid glass */
+            .pencil-cursor.eraser-cursor {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(135deg,
+                    rgba(255, 255, 255, 0.4) 0%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    rgba(255, 255, 255, 0.2) 100%);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                box-shadow:
+                    0 8px 32px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+                transform: translate(-50%, -50%);
+            }
+
+            /* Animation liquid pour la gomme */
+            .pencil-cursor.eraser-cursor::before {
+                content: '';
+                position: absolute;
+                inset: 4px;
+                border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%,
+                    rgba(255, 255, 255, 0.8) 0%,
+                    rgba(255, 255, 255, 0.2) 50%,
+                    transparent 100%);
+                animation: liquid-shimmer 2s ease-in-out infinite;
+            }
+
+            @keyframes liquid-shimmer {
+                0%, 100% {
+                    opacity: 0.6;
+                    transform: scale(1);
+                }
+                50% {
+                    opacity: 1;
+                    transform: scale(1.1);
+                }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -757,6 +831,11 @@ class CleanPDFViewer {
             console.log(`[Viewer NEW] pointerdown type: ${e.pointerType}`);
             this.lastPointerType = e.pointerType;
 
+            // Masquer le curseur lors du contact
+            if (e.pointerType === 'pen') {
+                this.updatePencilCursor(0, 0, false);
+            }
+
             // Activer visuellement les canvas au premier contact stylet
             if (e.pointerType === 'pen' && !this.penDetected) {
                 console.log('[Viewer NEW] PREMIER contact stylet - activation visuelle des canvas');
@@ -792,6 +871,11 @@ class CleanPDFViewer {
         }, { passive: false });
 
         this.elements.viewer.addEventListener('pointermove', (e) => {
+            // Afficher le curseur pour l'Apple Pencil Pro (hover)
+            if (e.pointerType === 'pen') {
+                this.updatePencilCursor(e.clientX, e.clientY, true);
+            }
+
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -812,6 +896,11 @@ class CleanPDFViewer {
                 if (this.isDrawing && this.currentCanvas) {
                     this.endAnnotation(e, this.currentCanvas, this.currentPageId);
                 }
+
+                // Réafficher le curseur après le contact
+                if (e.pointerType === 'pen') {
+                    this.updatePencilCursor(e.clientX, e.clientY, true);
+                }
             }
         }, { passive: false });
 
@@ -824,6 +913,13 @@ class CleanPDFViewer {
                 }
             }
         }, { passive: false });
+
+        // Masquer le curseur quand le stylet sort du viewer
+        this.elements.viewer.addEventListener('pointerleave', (e) => {
+            if (e.pointerType === 'pen') {
+                this.updatePencilCursor(0, 0, false);
+            }
+        });
 
         // DEBUG: Vérifier si les événements touch arrivent au viewer
         this.elements.viewer.addEventListener('touchstart', (e) => {
@@ -2445,6 +2541,35 @@ class CleanPDFViewer {
         this.isDirty = true;
 
         console.log('[Clear] Page', pageId, 'effacée. Historique restant:', this.annotationHistory.length);
+    }
+
+    /**
+     * Mettre à jour le curseur Apple Pencil Pro
+     */
+    updatePencilCursor(x, y, visible) {
+        if (!this.pencilCursor) return;
+
+        if (visible) {
+            // Positionner le curseur
+            this.pencilCursor.style.left = `${x}px`;
+            this.pencilCursor.style.top = `${y}px`;
+            this.pencilCursor.style.display = 'block';
+
+            // Appliquer le style selon l'outil actuel
+            if (this.currentTool === 'eraser') {
+                this.pencilCursor.className = 'pencil-cursor eraser-cursor';
+            } else {
+                this.pencilCursor.className = 'pencil-cursor pen-cursor';
+                // Appliquer la couleur actuelle pour le stylo
+                this.pencilCursor.style.setProperty('--cursor-color', this.currentColor);
+            }
+
+            this.cursorVisible = true;
+        } else {
+            // Masquer le curseur
+            this.pencilCursor.style.display = 'none';
+            this.cursorVisible = false;
+        }
     }
 
     /**
