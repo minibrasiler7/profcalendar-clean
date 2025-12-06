@@ -860,7 +860,9 @@ class CleanPDFViewer {
                 if (canvas) {
                     // Récupérer le pageId depuis le wrapper parent
                     const wrapper = canvas.closest('.pdf-page-wrapper');
-                    const pageId = wrapper ? parseInt(wrapper.dataset.pageId) : undefined;
+                    // NE PAS utiliser parseInt car les pageId custom sont des strings (ex: "1_1765040967410")
+                    const pageIdStr = wrapper ? wrapper.dataset.pageId : undefined;
+                    const pageId = pageIdStr && pageIdStr.includes('_') ? pageIdStr : parseInt(pageIdStr);
                     console.log(`[Viewer NEW] Canvas trouvé pour pageId: ${pageId}`);
                     this.startAnnotation(e, canvas, pageId);
                 } else {
@@ -2577,7 +2579,8 @@ class CleanPDFViewer {
         const canvases = this.container.querySelectorAll('.annotation-canvas');
         canvases.forEach(canvas => {
             const pageIdStr = canvas.closest('.pdf-page-wrapper').dataset.pageId;
-            const pageId = parseInt(pageIdStr); // Normaliser en nombre
+            // NE PAS utiliser parseInt car les pageId custom sont des strings (ex: "1_1765040967410")
+            const pageId = pageIdStr.includes('_') ? pageIdStr : parseInt(pageIdStr);
             this.redrawAnnotations(canvas, pageId);
         });
     }
