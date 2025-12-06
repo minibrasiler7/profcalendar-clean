@@ -2144,7 +2144,9 @@ class CleanPDFViewer {
      * Dessiner une annotation
      */
     drawAnnotation(ctx, annotation) {
-        if (!annotation || !annotation.points || annotation.points.length === 0) return;
+        // La grille n'a pas de points, donc on ne vérifie pas pour elle
+        if (!annotation) return;
+        if (annotation.tool !== 'grid' && (!annotation.points || annotation.points.length === 0)) return;
 
         const options = {
             color: annotation.color,
