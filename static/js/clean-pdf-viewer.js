@@ -1408,6 +1408,7 @@ class CleanPDFViewer {
      * Démarrer une annotation
      */
     startAnnotation(e, canvas, pageId) {
+        console.log('[StartAnnotation] pageId:', pageId, 'type:', typeof pageId);
         this.isDrawing = true;
         this.currentCanvas = canvas;
         this.currentPageId = pageId;
@@ -2296,7 +2297,8 @@ class CleanPDFViewer {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const pageAnnotations = this.annotations.get(pageId) || [];
-        console.log(`[Redraw] Page ${pageId} - ${pageAnnotations.length} annotations à dessiner`);
+        console.log(`[Redraw] Page ${pageId} (type: ${typeof pageId}) - ${pageAnnotations.length} annotations à dessiner`);
+        console.log('[Redraw] Toutes les clés dans annotations:', [...this.annotations.keys()]);
 
         for (const annotation of pageAnnotations) {
             this.drawAnnotation(ctx, annotation);
@@ -2423,7 +2425,7 @@ class CleanPDFViewer {
      * Ajouter une annotation à l'historique
      */
     addAnnotationToHistory(pageId, annotation) {
-        console.log('[History] ADD AVANT - historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length, 'tool:', annotation.tool);
+        console.log('[History] ADD AVANT - pageId:', pageId, 'type:', typeof pageId, 'historyIndex:', this.historyIndex, 'historyLength:', this.annotationHistory.length, 'tool:', annotation.tool);
 
         // Tronquer l'historique si on est au milieu (cela invalide le redo)
         if (this.historyIndex < this.annotationHistory.length - 1) {
