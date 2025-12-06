@@ -669,21 +669,18 @@ class CleanPDFViewer {
                 transition: opacity 0.15s ease;
             }
 
-            /* Curseur stylo - simple point */
+            /* Curseur stylo - simple point (taille dynamique définie par JS) */
             .pencil-cursor.pen-cursor {
-                width: 8px;
-                height: 8px;
                 border-radius: 50%;
                 background: var(--cursor-color, #000);
                 border: 2px solid rgba(255, 255, 255, 0.8);
                 box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
                 transform: translate(-50%, -50%);
+                transition: width 0.1s ease, height 0.1s ease;
             }
 
-            /* Curseur gomme - effet liquid glass */
+            /* Curseur gomme - effet liquid glass (taille dynamique définie par JS) */
             .pencil-cursor.eraser-cursor {
-                width: 40px;
-                height: 40px;
                 border-radius: 50%;
                 background: linear-gradient(135deg,
                     rgba(255, 255, 255, 0.4) 0%,
@@ -697,6 +694,7 @@ class CleanPDFViewer {
                     inset 0 1px 0 rgba(255, 255, 255, 0.9),
                     inset 0 -1px 0 rgba(0, 0, 0, 0.1);
                 transform: translate(-50%, -50%);
+                transition: width 0.15s ease, height 0.15s ease;
             }
 
             /* Animation liquid pour la gomme */
@@ -785,6 +783,11 @@ class CleanPDFViewer {
 
                 // Définir la taille
                 this.currentSize = parseInt(btn.dataset.size);
+
+                // Mettre à jour le curseur si visible
+                if (this.cursorVisible) {
+                    this.updatePencilCursor(this.lastHoverX, this.lastHoverY, true);
+                }
             });
         });
 
@@ -2550,16 +2553,31 @@ class CleanPDFViewer {
         if (!this.pencilCursor) return;
 
         if (visible) {
+            // Sauvegarder la position pour les futures mises à jour
+            this.lastHoverX = x;
+            this.lastHoverY = y;
+
             // Positionner le curseur
             this.pencilCursor.style.left = `${x}px`;
             this.pencilCursor.style.top = `${y}px`;
             this.pencilCursor.style.display = 'block';
 
+            // Calculer la taille du curseur en fonction de la taille du trait
+            // Ajouter un peu de marge pour la visibilité (bordure + ombre)
+            const cursorSize = this.currentSize + 4; // +4px pour la bordure (2px de chaque côté)
+
             // Appliquer le style selon l'outil actuel
             if (this.currentTool === 'eraser') {
                 this.pencilCursor.className = 'pencil-cursor eraser-cursor';
+                // La gomme a une taille fixe plus grande (zone d'effacement)
+                const eraserSize = Math.max(30, this.currentSize * 4);
+                this.pencilCursor.style.width = `${eraserSize}px`;
+                this.pencilCursor.style.height = `${eraserSize}px`;
             } else {
                 this.pencilCursor.className = 'pencil-cursor pen-cursor';
+                // Adapter la taille du curseur au trait
+                this.pencilCursor.style.width = `${cursorSize}px`;
+                this.pencilCursor.style.height = `${cursorSize}px`;
                 // Appliquer la couleur actuelle pour le stylo
                 this.pencilCursor.style.setProperty('--cursor-color', this.currentColor);
             }
