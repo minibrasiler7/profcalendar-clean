@@ -2630,7 +2630,18 @@ class CleanPDFViewer {
             // (géré dans startAnnotation)
             this.currentOpacity = 1.0;
         } else {
+            // Retour à l'opacité normale et couleur noire pour les autres outils
             this.currentOpacity = 1.0;
+            // Si la couleur actuelle est jaune (surligneur), revenir au noir
+            if (this.currentColor === '#FFFF00' || this.currentColor === '#ffff00') {
+                this.currentColor = '#000000';
+                this.elements.colorPicker.value = '#000000';
+                // Mettre à jour les boutons de couleur
+                this.container.querySelectorAll('.btn-color').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.color === '#000000');
+                });
+                this.container.querySelector('.custom-color-wrapper').classList.remove('active');
+            }
         }
     }
 
