@@ -1724,8 +1724,9 @@ class CleanPDFViewer {
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
 
-        // Validation: rejeter les points hors du canvas
-        if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) {
+        // Validation: rejeter les points hors du canvas (mais être tolérant pour la gomme)
+        const margin = this.currentTool === 'eraser' ? 50 : 0; // Marge de tolérance pour la gomme
+        if (x < -margin || y < -margin || x > canvas.width + margin || y > canvas.height + margin) {
             console.warn('[Annotation] Point hors canvas ignoré:', {x, y, width: canvas.width, height: canvas.height});
             return;
         }
@@ -1748,6 +1749,10 @@ class CleanPDFViewer {
 
         // Gérer la gomme
         if (this.currentTool === 'eraser') {
+            // Ajouter le point au stroke pour tracer le chemin de la gomme
+            if (this.currentStroke && this.currentStroke.points) {
+                this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
+            }
             this.eraseAtPoint(canvas, pageId, x, y);
             return;
         }
@@ -2041,8 +2046,15 @@ class CleanPDFViewer {
         this.currentCanvas = null;
         this.currentPageId = null;
 
-        // Gérer la gomme - pas d'annotation à sauvegarder
+        // Gérer la gomme - sauvegarder l'état final dans l'historique
         if (this.currentTool === 'eraser') {
+            // Sauvegarder l'état complet de la page dans l'historique
+            // Cela permet de garder la cohérence pour undo/redo
+            const pageAnnotations = this.annotations.get(pageId) || [];
+            if (pageAnnotations.length >= 0) {
+                // Créer un snapshot de l'état actuel
+                this.saveToHistory();
+            }
             this.currentStroke = null;
             return;
         }
