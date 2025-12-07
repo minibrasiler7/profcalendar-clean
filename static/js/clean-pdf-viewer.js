@@ -2595,7 +2595,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.angleState.validationTimer = setTimeout(() => {
                     this.validateAngleFirstSegment(canvas, pageId);
-                }, 500);
+                }, 1000); // 1 seconde pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
@@ -2620,7 +2620,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.arcState.validationTimer = setTimeout(() => {
                     this.validateArcFirstSegment(canvas, pageId);
-                }, 500);
+                }, 1000); // 1 seconde pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
