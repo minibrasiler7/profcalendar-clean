@@ -1517,7 +1517,8 @@ def lesson_view():
 
     # Récupérer les sanctions (coches) si classroom disponible
     if lesson_classroom:
-        from models.sanction_template import SanctionTemplate, ClassroomSanctionImport, StudentSanctionCount
+        from models.sanctions import SanctionTemplate, ClassroomSanctionImport
+        from models.student_sanctions import StudentSanctionCount
 
         # Vérifier si mode centralisé
         class_master = ClassMaster.query.filter_by(classroom_id=lesson_classroom.id).first()
@@ -1546,7 +1547,7 @@ def lesson_view():
                         student_id=student.id,
                         template_id=sanction.id
                     ).first()
-                    sanctions_data[student.id][sanction.id] = count.count if count else 0
+                    sanctions_data[student.id][sanction.id] = count.check_count if count else 0
 
     # Récupérer le plan de classe si disponible
     if lesson_classroom:
