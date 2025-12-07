@@ -1040,6 +1040,12 @@ class CleanPDFViewer {
         // Clic sur miniature = navigation
         thumb.addEventListener('click', () => this.goToPage(pageId));
 
+        // Clic droit sur miniature = menu contextuel
+        thumb.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showPageContextMenu(e, pageId, pageNumber);
+        });
+
         // Rendre la miniature
         const pageData = this.pages.get(pageId);
         if (pageData && pageData.type === 'pdf') {
@@ -3065,6 +3071,146 @@ class CleanPDFViewer {
         this.goToPage(newPageId);
 
         this.isDirty = true;
+    }
+
+    /**
+     * Afficher le menu contextuel pour une page
+     */
+    showPageContextMenu(event, pageId, pageNumber) {
+        // Supprimer tout menu existant
+        const existingMenu = document.getElementById('page-context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        const menu = document.createElement('div');
+        menu.id = 'page-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            top: ${event.clientY}px;
+            left: ${event.clientX}px;
+            background: white;
+            padding: 8px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 180px;
+        `;
+
+        menu.innerHTML = `
+            <div class="context-menu-item" style="padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-trash" style="color: #dc3545; width: 16px;"></i>
+                <span>Supprimer la page ${pageNumber}</span>
+            </div>
+        `;
+
+        document.body.appendChild(menu);
+
+        // Ajouter l'événement au hover
+        const menuItem = menu.querySelector('.context-menu-item');
+        menuItem.addEventListener('mouseenter', () => {
+            menuItem.style.backgroundColor = '#f5f5f5';
+        });
+        menuItem.addEventListener('mouseleave', () => {
+            menuItem.style.backgroundColor = 'transparent';
+        });
+
+        // Gérer le clic sur "Supprimer"
+        menuItem.addEventListener('click', () => {
+            menu.remove();
+            this.deletePage(pageId, pageNumber);
+        });
+
+        // Fermer si clic à côté
+        setTimeout(() => {
+            const closeHandler = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeHandler);
+                }
+            };
+            document.addEventListener('click', closeHandler);
+        }, 100);
+    }
+
+    /**
+     * Supprimer une page
+     */
+    async deletePage(pageId, pageNumber) {
+        // Demander confirmation
+        if (!confirm(`Voulez-vous vraiment supprimer la page ${pageNumber} ?\n\nCette action supprimera également toutes les annotations de cette page et ne peut pas être annulée.`)) {
+            return;
+        }
+
+        const pageData = this.pages.get(pageId);
+
+        // Si c'est une page PDF, il faut recalculer les pageNum de toutes les pages suivantes
+        if (pageData && pageData.type === 'pdf') {
+            const deletedPageNum = pageData.pageNum;
+
+            // Supprimer la page de pageOrder
+            const index = this.pageOrder.indexOf(pageId);
+            this.pageOrder.splice(index, 1);
+
+            // Supprimer de pages
+            this.pages.delete(pageId);
+
+            // Supprimer les annotations de cette page
+            this.annotations.delete(pageId);
+
+            // Recalculer les pageNum des pages PDF suivantes et mettre à jour leurs annotations
+            const annotationsToUpdate = new Map();
+
+            for (let i = 0; i < this.pageOrder.length; i++) {
+                const currentPageId = this.pageOrder[i];
+                const currentPageData = this.pages.get(currentPageId);
+
+                // Si c'est une page PDF avec un pageNum supérieur à celui supprimé
+                if (currentPageData && currentPageData.type === 'pdf' && currentPageData.pageNum > deletedPageNum) {
+                    // Ancien pageNum
+                    const oldPageNum = currentPageData.pageNum;
+                    // Nouveau pageNum (décrémenté de 1)
+                    const newPageNum = oldPageNum - 1;
+
+                    // Mettre à jour le pageNum dans pages
+                    currentPageData.pageNum = newPageNum;
+
+                    // Si l'ancien pageNum avait des annotations, les déplacer
+                    if (this.annotations.has(oldPageNum)) {
+                        annotationsToUpdate.set(newPageNum, this.annotations.get(oldPageNum));
+                        this.annotations.delete(oldPageNum);
+                    }
+                }
+            }
+
+            // Appliquer les annotations mises à jour
+            annotationsToUpdate.forEach((annotations, newPageNum) => {
+                this.annotations.set(newPageNum, annotations);
+            });
+
+        } else {
+            // Pour les pages custom (blank, graph), juste supprimer
+            const index = this.pageOrder.indexOf(pageId);
+            this.pageOrder.splice(index, 1);
+            this.pages.delete(pageId);
+            this.annotations.delete(pageId);
+        }
+
+        // Nettoyer l'historique des annotations de cette page
+        this.annotationHistory = this.annotationHistory.filter(item => item.pageId !== pageId);
+
+        // Re-rendre tout
+        await this.renderThumbnails();
+        await this.renderPages();
+
+        // Naviguer vers la première page si on était sur la page supprimée
+        if (this.currentPage === pageId) {
+            this.goToPage(this.pageOrder[0]);
+        }
+
+        this.isDirty = true;
+
+        console.log(`[DeletePage] Page ${pageNumber} (ID: ${pageId}) supprimée avec succès`);
     }
 
     /**
