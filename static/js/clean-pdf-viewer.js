@@ -3544,10 +3544,11 @@ class CleanPDFViewer {
      * Attacher les gestionnaires d'événements pour le suivi des élèves dans le modal
      */
     attachAttendanceEventHandlers(container) {
-        // Récupérer les données de la leçon depuis les variables globales
-        const classroomId = window.classroomId;
-        const lessonDate = window.lessonDate;
-        const periodNumber = window.periodNumber;
+        // Récupérer les données de la leçon depuis le DOM ou les variables globales
+        // Les variables sont définies dans lesson_view.html avec const, pas window
+        const classroomId = this.getLessonData('classroomId');
+        const lessonDate = this.getLessonData('lessonDate');
+        const periodNumber = this.getLessonData('periodNumber');
 
         // Gestionnaire pour toggle présent/absent
         container.querySelectorAll('.student-info').forEach(studentInfo => {
@@ -3763,6 +3764,28 @@ class CleanPDFViewer {
         setTimeout(() => {
             element.style.transform = 'scale(1)';
         }, 200);
+    }
+
+    /**
+     * Récupérer les données de la leçon depuis les data attributes
+     */
+    getLessonData(key) {
+        const attendanceSection = document.querySelector('.attendance-section');
+        if (!attendanceSection) {
+            console.error('Section attendance introuvable');
+            return null;
+        }
+
+        // Convertir camelCase en kebab-case pour les data attributes
+        const dataKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        const value = attendanceSection.dataset[key] || attendanceSection.getAttribute(`data-${dataKey}`);
+
+        // Convertir en nombre si c'est un ID ou period number
+        if (key === 'classroomId' || key === 'periodNumber') {
+            return value ? parseInt(value) : null;
+        }
+
+        return value;
     }
 
     /**
