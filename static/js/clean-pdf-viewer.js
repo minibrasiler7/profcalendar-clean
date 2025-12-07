@@ -3746,7 +3746,42 @@ class CleanPDFViewer {
      * Mettre à jour la page actuelle depuis le scroll
      */
     updateCurrentPageFromScroll() {
-        // TODO: Détecter quelle page est la plus visible
+        const viewerRect = this.elements.viewer.getBoundingClientRect();
+        const viewerCenter = viewerRect.top + viewerRect.height / 2;
+
+        let closestPage = null;
+        let closestDistance = Infinity;
+
+        // Parcourir toutes les pages pour trouver la plus proche du centre
+        this.elements.pagesContainer.querySelectorAll('.pdf-page-wrapper').forEach(wrapper => {
+            const pageRect = wrapper.getBoundingClientRect();
+            const pageCenter = pageRect.top + pageRect.height / 2;
+            const distance = Math.abs(pageCenter - viewerCenter);
+
+            // Vérifier aussi que la page est au moins partiellement visible
+            const isVisible = pageRect.bottom > viewerRect.top && pageRect.top < viewerRect.bottom;
+
+            if (isVisible && distance < closestDistance) {
+                closestDistance = distance;
+                closestPage = wrapper.dataset.pageId;
+            }
+        });
+
+        // Mettre à jour la page courante si elle a changé
+        if (closestPage && closestPage !== this.currentPage) {
+            const oldPage = this.currentPage;
+            this.currentPage = closestPage;
+
+            // Normaliser le pageId pour la comparaison (string ou number)
+            const normalizedClosestPage = closestPage.includes && closestPage.includes('_') ? closestPage : parseInt(closestPage);
+
+            this.currentPage = normalizedClosestPage;
+
+            // Mettre à jour la sélection dans la barre latérale
+            this.updateThumbnailsActive();
+
+            console.log(`[Scroll] Page courante changée: ${oldPage} → ${this.currentPage}`);
+        }
     }
 
     /**
