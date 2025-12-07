@@ -1552,10 +1552,21 @@ def lesson_view():
     # Récupérer le plan de classe si disponible
     if lesson_classroom:
         from models.seating_plan import SeatingPlan
-        seating_plan = SeatingPlan.query.filter_by(
+        seating_plan_obj = SeatingPlan.query.filter_by(
             classroom_id=lesson_classroom.id,
             is_active=True
         ).first()
+
+        # Convertir en dictionnaire pour la sérialisation JSON
+        if seating_plan_obj:
+            import json
+            seating_plan = {
+                'id': seating_plan_obj.id,
+                'name': seating_plan_obj.name,
+                'plan_data': json.loads(seating_plan_obj.plan_data) if isinstance(seating_plan_obj.plan_data, str) else seating_plan_obj.plan_data
+            }
+        else:
+            seating_plan = None
 
     # Importer la fonction de rendu des checkboxes
     from utils.jinja_filters import render_planning_with_checkboxes
