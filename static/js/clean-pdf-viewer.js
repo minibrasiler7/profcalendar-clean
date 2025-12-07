@@ -720,6 +720,308 @@ class CleanPDFViewer {
                     transform: scale(1.1);
                 }
             }
+
+            /* Bouton de configuration du graphique */
+            .graph-config-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: white;
+                border: 2px solid #4F46E5;
+                color: #4F46E5;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .graph-config-btn:hover {
+                background: #4F46E5;
+                color: white;
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+            }
+
+            .graph-config-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Panneau de configuration du graphique */
+            .graph-config-panel {
+                position: fixed;
+                top: 0;
+                right: -450px;
+                width: 450px;
+                height: 100vh;
+                background: white;
+                box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+                z-index: 10001;
+                display: flex;
+                flex-direction: column;
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .graph-config-panel.open {
+                right: 0;
+            }
+
+            .graph-config-header {
+                padding: 24px;
+                background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .graph-config-header h3 {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 600;
+            }
+
+            .graph-config-close {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+
+            .graph-config-close:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .graph-config-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 24px;
+            }
+
+            .graph-config-section {
+                margin-bottom: 32px;
+            }
+
+            .graph-config-section h4 {
+                margin: 0 0 16px 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1F2937;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .graph-config-section h4 i {
+                color: #4F46E5;
+            }
+
+            .graph-input-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+
+            .graph-input-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .graph-input-wrapper label {
+                font-size: 13px;
+                font-weight: 500;
+                color: #6B7280;
+            }
+
+            .graph-input-wrapper input {
+                padding: 10px 12px;
+                border: 2px solid #E5E7EB;
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+
+            .graph-input-wrapper input:focus {
+                outline: none;
+                border-color: #4F46E5;
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            }
+
+            .graph-checkbox-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px;
+                background: #F9FAFB;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .graph-checkbox-wrapper:hover {
+                background: #F3F4F6;
+            }
+
+            .graph-checkbox-wrapper input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+                cursor: pointer;
+                accent-color: #4F46E5;
+            }
+
+            .graph-checkbox-wrapper label {
+                font-size: 14px;
+                color: #374151;
+                cursor: pointer;
+                flex: 1;
+            }
+
+            /* Liste des fonctions */
+            .graph-functions-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .graph-function-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px;
+                background: #F9FAFB;
+                border: 2px solid #E5E7EB;
+                border-radius: 10px;
+                transition: all 0.2s;
+            }
+
+            .graph-function-item:hover {
+                border-color: #4F46E5;
+                background: white;
+                box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
+            }
+
+            .graph-function-color {
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            .graph-function-color:hover {
+                transform: scale(1.1);
+            }
+
+            .graph-function-input {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid #D1D5DB;
+                border-radius: 6px;
+                font-size: 14px;
+                font-family: 'Courier New', monospace;
+            }
+
+            .graph-function-input:focus {
+                outline: none;
+                border-color: #4F46E5;
+            }
+
+            .graph-function-input.error {
+                border-color: #EF4444;
+                background: #FEF2F2;
+            }
+
+            .graph-function-delete {
+                width: 32px;
+                height: 32px;
+                border: none;
+                background: #FEE2E2;
+                color: #DC2626;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
+
+            .graph-function-delete:hover {
+                background: #DC2626;
+                color: white;
+            }
+
+            .graph-add-function-btn {
+                width: 100%;
+                padding: 12px;
+                background: #4F46E5;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s;
+            }
+
+            .graph-add-function-btn:hover {
+                background: #4338CA;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            }
+
+            .graph-add-function-btn:active {
+                transform: translateY(0);
+            }
+
+            .graph-config-footer {
+                padding: 20px 24px;
+                border-top: 1px solid #E5E7EB;
+                background: #F9FAFB;
+            }
+
+            .graph-apply-btn {
+                width: 100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .graph-apply-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            }
+
+            .graph-apply-btn:active {
+                transform: translateY(0);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -1199,6 +1501,14 @@ class CleanPDFViewer {
             await this.renderBlankPage(pdfCanvas, annotationCanvas, pageId);
         } else if (pageData && pageData.type === 'graph') {
             await this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+
+            // Ajouter un bouton de configuration pour les pages graphiques
+            const configBtn = document.createElement('button');
+            configBtn.className = 'graph-config-btn';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configurer le graphique';
+            configBtn.addEventListener('click', () => this.openGraphConfigPanel(pageId));
+            container.appendChild(configBtn);
         }
 
         // Configurer les événements d'annotation
@@ -1319,13 +1629,30 @@ class CleanPDFViewer {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, width, height);
 
-        // Dessiner les axes
-        const xMin = graphData.xMin || -15;
-        const xMax = graphData.xMax || 15;
-        const yMin = graphData.yMin || -15;
-        const yMax = graphData.yMax || 15;
+        // Paramètres du graphique
+        const xMin = graphData.xMin ?? -10;
+        const xMax = graphData.xMax ?? 10;
+        const yMin = graphData.yMin ?? -10;
+        const yMax = graphData.yMax ?? 10;
+        const showGrid = graphData.showGrid ?? true;
+        const gridSpacing = graphData.gridSpacing ?? 1;
 
+        // Dessiner la grille si activée
+        if (showGrid) {
+            this.drawGraphGrid(ctx, width, height, xMin, xMax, yMin, yMax, gridSpacing);
+        }
+
+        // Dessiner les axes
         this.drawGraphAxes(ctx, width, height, xMin, xMax, yMin, yMax);
+
+        // Dessiner les fonctions
+        if (graphData.functions && graphData.functions.length > 0) {
+            graphData.functions.forEach(func => {
+                if (func.expression && func.expression.trim()) {
+                    this.drawFunction(ctx, width, height, xMin, xMax, yMin, yMax, func.expression, func.color);
+                }
+            });
+        }
 
         // Redessiner les annotations existantes si pageId est fourni
         if (pageId) {
@@ -1387,6 +1714,344 @@ class CleanPDFViewer {
             ctx.lineTo(zeroX + 5, py);
             ctx.stroke();
         }
+    }
+
+    /**
+     * Dessiner la grille d'un graphique
+     */
+    drawGraphGrid(ctx, width, height, xMin, xMax, yMin, yMax, spacing) {
+        const margin = 50;
+        const graphWidth = width - 2 * margin;
+        const graphHeight = height - 2 * margin;
+
+        ctx.strokeStyle = '#E5E7EB';
+        ctx.lineWidth = 1;
+
+        // Lignes verticales
+        for (let x = Math.ceil(xMin / spacing) * spacing; x <= xMax; x += spacing) {
+            const px = margin + graphWidth * ((x - xMin) / (xMax - xMin));
+            ctx.beginPath();
+            ctx.moveTo(px, margin);
+            ctx.lineTo(px, height - margin);
+            ctx.stroke();
+        }
+
+        // Lignes horizontales
+        for (let y = Math.ceil(yMin / spacing) * spacing; y <= yMax; y += spacing) {
+            const py = margin + graphHeight * ((yMax - y) / (yMax - yMin));
+            ctx.beginPath();
+            ctx.moveTo(margin, py);
+            ctx.lineTo(width - margin, py);
+            ctx.stroke();
+        }
+    }
+
+    /**
+     * Dessiner une fonction mathématique
+     */
+    drawFunction(ctx, width, height, xMin, xMax, yMin, yMax, expression, color) {
+        const margin = 50;
+        const graphWidth = width - 2 * margin;
+        const graphHeight = height - 2 * margin;
+
+        // Nombre de points pour dessiner la courbe
+        const numPoints = Math.max(500, graphWidth * 2);
+        const step = (xMax - xMin) / numPoints;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        let firstPoint = true;
+
+        for (let i = 0; i <= numPoints; i++) {
+            const x = xMin + i * step;
+            let y;
+
+            try {
+                y = this.evaluateMathExpression(expression, x);
+
+                // Vérifier si y est un nombre valide
+                if (isNaN(y) || !isFinite(y)) continue;
+
+                // Vérifier si y est dans les limites
+                if (y < yMin - (yMax - yMin) || y > yMax + (yMax - yMin)) continue;
+
+                // Convertir en coordonnées canvas
+                const px = margin + graphWidth * ((x - xMin) / (xMax - xMin));
+                const py = margin + graphHeight * ((yMax - y) / (yMax - yMin));
+
+                if (firstPoint) {
+                    ctx.moveTo(px, py);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            } catch (e) {
+                // Ignorer les erreurs d'évaluation
+                continue;
+            }
+        }
+
+        ctx.stroke();
+    }
+
+    /**
+     * Évaluer une expression mathématique avec une valeur x
+     */
+    evaluateMathExpression(expression, xValue) {
+        // Remplacer x par la valeur
+        let expr = expression.replace(/x/g, `(${xValue})`);
+
+        // Remplacer les fonctions mathématiques
+        expr = expr.replace(/sin/g, 'Math.sin');
+        expr = expr.replace(/cos/g, 'Math.cos');
+        expr = expr.replace(/tan/g, 'Math.tan');
+        expr = expr.replace(/sqrt/g, 'Math.sqrt');
+        expr = expr.replace(/abs/g, 'Math.abs');
+        expr = expr.replace(/exp/g, 'Math.exp');
+        expr = expr.replace(/log/g, 'Math.log');
+        expr = expr.replace(/pow/g, 'Math.pow');
+
+        // Remplacer ^ par **  (puissance)
+        expr = expr.replace(/\^/g, '**');
+
+        // Évaluer l'expression
+        try {
+            return eval(expr);
+        } catch (e) {
+            throw new Error('Invalid expression');
+        }
+    }
+
+    /**
+     * Ouvrir le panneau de configuration du graphique
+     */
+    openGraphConfigPanel(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'graph') return;
+
+        // Initialiser les données par défaut si nécessaire
+        if (!pageData.data) {
+            pageData.data = {};
+        }
+        const data = pageData.data;
+        data.xMin = data.xMin ?? -10;
+        data.xMax = data.xMax ?? 10;
+        data.yMin = data.yMin ?? -10;
+        data.yMax = data.yMax ?? 10;
+        data.showGrid = data.showGrid ?? true;
+        data.gridSpacing = data.gridSpacing ?? 1;
+        data.functions = data.functions || [];
+
+        // Supprimer le panneau existant s'il y en a un
+        const existingPanel = document.getElementById('graph-config-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+        }
+
+        // Créer le panneau
+        const panel = document.createElement('div');
+        panel.id = 'graph-config-panel';
+        panel.className = 'graph-config-panel';
+
+        panel.innerHTML = `
+            <div class="graph-config-header">
+                <h3><i class="fas fa-chart-line"></i> Configuration du Graphique</h3>
+                <button class="graph-config-close"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="graph-config-body">
+                <!-- Axes -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-arrows-alt"></i> Intervalles des Axes</h4>
+                    <div class="graph-input-group">
+                        <div class="graph-input-wrapper">
+                            <label>X Min</label>
+                            <input type="number" id="graph-xmin" value="${data.xMin}" step="1">
+                        </div>
+                        <div class="graph-input-wrapper">
+                            <label>X Max</label>
+                            <input type="number" id="graph-xmax" value="${data.xMax}" step="1">
+                        </div>
+                    </div>
+                    <div class="graph-input-group">
+                        <div class="graph-input-wrapper">
+                            <label>Y Min</label>
+                            <input type="number" id="graph-ymin" value="${data.yMin}" step="1">
+                        </div>
+                        <div class="graph-input-wrapper">
+                            <label>Y Max</label>
+                            <input type="number" id="graph-ymax" value="${data.yMax}" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grille -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-th"></i> Grille</h4>
+                    <div class="graph-checkbox-wrapper">
+                        <input type="checkbox" id="graph-show-grid" ${data.showGrid ? 'checked' : ''}>
+                        <label for="graph-show-grid">Afficher la grille</label>
+                    </div>
+                    <div class="graph-input-wrapper" style="margin-top: 12px;">
+                        <label>Espacement de la grille</label>
+                        <input type="number" id="graph-grid-spacing" value="${data.gridSpacing}" step="0.5" min="0.1">
+                    </div>
+                </div>
+
+                <!-- Fonctions -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-function"></i> Fonctions</h4>
+                    <div class="graph-functions-list" id="graph-functions-list"></div>
+                    <button class="graph-add-function-btn" id="graph-add-function">
+                        <i class="fas fa-plus"></i> Ajouter une fonction
+                    </button>
+                    <div style="margin-top: 12px; padding: 12px; background: #FEF3C7; border-radius: 8px; font-size: 13px; color: #92400E;">
+                        <strong>Syntaxe :</strong> Utilisez <code>x</code> comme variable. Ex: <code>x^2</code>, <code>sin(x)</code>, <code>2*x + 3</code>
+                        <br><strong>Fonctions disponibles :</strong> sin, cos, tan, sqrt, abs, exp, log, pow
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-config-footer">
+                <button class="graph-apply-btn" id="graph-apply">
+                    <i class="fas fa-check"></i> Appliquer les modifications
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Animer l'ouverture
+        setTimeout(() => panel.classList.add('open'), 10);
+
+        // Charger les fonctions existantes
+        this.renderGraphFunctionsList(data.functions);
+
+        // Event listeners
+        panel.querySelector('.graph-config-close').addEventListener('click', () => {
+            panel.classList.remove('open');
+            setTimeout(() => panel.remove(), 300);
+        });
+
+        panel.querySelector('#graph-add-function').addEventListener('click', () => {
+            const newFunc = {
+                expression: '',
+                color: this.getRandomColor()
+            };
+            data.functions.push(newFunc);
+            this.renderGraphFunctionsList(data.functions);
+        });
+
+        panel.querySelector('#graph-apply').addEventListener('click', () => {
+            // Récupérer les valeurs
+            data.xMin = parseFloat(panel.querySelector('#graph-xmin').value);
+            data.xMax = parseFloat(panel.querySelector('#graph-xmax').value);
+            data.yMin = parseFloat(panel.querySelector('#graph-ymin').value);
+            data.yMax = parseFloat(panel.querySelector('#graph-ymax').value);
+            data.showGrid = panel.querySelector('#graph-show-grid').checked;
+            data.gridSpacing = parseFloat(panel.querySelector('#graph-grid-spacing').value);
+
+            // Valider
+            if (data.xMin >= data.xMax || data.yMin >= data.yMax) {
+                alert('Les intervalles ne sont pas valides. Min doit être < Max.');
+                return;
+            }
+
+            // Fermer le panneau
+            panel.classList.remove('open');
+            setTimeout(() => panel.remove(), 300);
+
+            // Re-rendre la page
+            this.renderPages();
+
+            this.isDirty = true;
+        });
+    }
+
+    /**
+     * Rendre la liste des fonctions dans le panneau
+     */
+    renderGraphFunctionsList(functions) {
+        const list = document.getElementById('graph-functions-list');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        functions.forEach((func, index) => {
+            const item = document.createElement('div');
+            item.className = 'graph-function-item';
+            item.innerHTML = `
+                <input type="color" class="graph-function-color" value="${func.color}" data-index="${index}">
+                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="Ex: x^2 + 2*x - 1" data-index="${index}">
+                <button class="graph-function-delete" data-index="${index}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            list.appendChild(item);
+        });
+
+        // Event listeners pour les couleurs
+        list.querySelectorAll('.graph-function-color').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                functions[index].color = e.target.value;
+            });
+        });
+
+        // Event listeners pour les expressions
+        list.querySelectorAll('.graph-function-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                functions[index].expression = e.target.value;
+
+                // Validation basique
+                if (e.target.value && !this.validateMathExpression(e.target.value)) {
+                    e.target.classList.add('error');
+                } else {
+                    e.target.classList.remove('error');
+                }
+            });
+        });
+
+        // Event listeners pour la suppression
+        list.querySelectorAll('.graph-function-delete').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = parseInt(e.target.closest('.graph-function-delete').dataset.index);
+                functions.splice(index, 1);
+                this.renderGraphFunctionsList(functions);
+            });
+        });
+    }
+
+    /**
+     * Validation basique d'expression mathématique
+     */
+    validateMathExpression(expr) {
+        // Vérifier les caractères autorisés
+        const allowedPattern = /^[x0-9+\-*\/().,\s^sincotaqrtbsexplgpw]+$/i;
+        if (!allowedPattern.test(expr)) return false;
+
+        // Vérifier les parenthèses équilibrées
+        let openCount = 0;
+        for (let char of expr) {
+            if (char === '(') openCount++;
+            if (char === ')') openCount--;
+            if (openCount < 0) return false;
+        }
+        return openCount === 0;
+    }
+
+    /**
+     * Générer une couleur aléatoire pour une fonction
+     */
+    getRandomColor() {
+        const colors = [
+            '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
+            '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
 
     /**
