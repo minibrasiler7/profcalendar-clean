@@ -1515,6 +1515,59 @@ def lesson_view():
     seating_plan = None
     current_group = None
 
+    # Récupérer les sanctions (coches) si classroom disponible
+    if lesson_classroom:
+        from models.sanctions import SanctionTemplate, ClassroomSanctionImport
+        from models.student_sanctions import StudentSanctionCount
+
+        # Vérifier si mode centralisé
+        class_master = ClassMaster.query.filter_by(classroom_id=lesson_classroom.id).first()
+
+        if class_master:
+            # Mode centralisé : récupérer les sanctions du maître de classe
+            imported_sanctions = SanctionTemplate.query.filter_by(
+                user_id=class_master.master_teacher_id,
+                is_active=True
+            ).order_by(SanctionTemplate.name).all()
+        else:
+            # Mode normal : récupérer les sanctions importées pour cette classe
+            imported_sanctions = db.session.query(SanctionTemplate).join(ClassroomSanctionImport).filter(
+                ClassroomSanctionImport.classroom_id == lesson_classroom.id,
+                ClassroomSanctionImport.is_active == True,
+                SanctionTemplate.user_id == current_user.id,
+                SanctionTemplate.is_active == True
+            ).distinct().order_by(SanctionTemplate.name).all()
+
+        # Créer le tableau des coches pour chaque élève/sanction
+        if imported_sanctions and students:
+            for student in students:
+                sanctions_data[student.id] = {}
+                for sanction in imported_sanctions:
+                    count = StudentSanctionCount.query.filter_by(
+                        student_id=student.id,
+                        template_id=sanction.id
+                    ).first()
+                    sanctions_data[student.id][sanction.id] = count.check_count if count else 0
+
+    # Récupérer le plan de classe si disponible
+    if lesson_classroom:
+        from models.seating_plan import SeatingPlan
+        seating_plan_obj = SeatingPlan.query.filter_by(
+            classroom_id=lesson_classroom.id,
+            is_active=True
+        ).first()
+
+        # Convertir en dictionnaire pour la sérialisation JSON
+        if seating_plan_obj:
+            import json
+            seating_plan = {
+                'id': seating_plan_obj.id,
+                'name': seating_plan_obj.name,
+                'plan_data': json.loads(seating_plan_obj.plan_data) if isinstance(seating_plan_obj.plan_data, str) else seating_plan_obj.plan_data
+            }
+        else:
+            seating_plan = None
+
     # Importer la fonction de rendu des checkboxes
     from utils.jinja_filters import render_planning_with_checkboxes
 

@@ -100,6 +100,7 @@ class CleanPDFViewer {
         // NOUVELLE ARCHITECTURE: Le viewer est en position fixed, le BODY scroll
         // Forcer le body à pouvoir scroller (retirer overflow: hidden)
         this.originalBodyOverflow = document.body.style.overflow;
+        this.originalHtmlOverflow = document.documentElement.style.overflow;
         document.body.style.overflow = 'visible';
         document.body.style.touchAction = 'pan-x pan-y pinch-zoom';
         document.documentElement.style.overflow = 'visible'; // html aussi
@@ -720,6 +721,308 @@ class CleanPDFViewer {
                     transform: scale(1.1);
                 }
             }
+
+            /* Bouton de configuration du graphique */
+            .graph-config-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: white;
+                border: 2px solid #4F46E5;
+                color: #4F46E5;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .graph-config-btn:hover {
+                background: #4F46E5;
+                color: white;
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+            }
+
+            .graph-config-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Panneau de configuration du graphique */
+            .graph-config-panel {
+                position: fixed;
+                top: 0;
+                right: -450px;
+                width: 450px;
+                height: 100vh;
+                background: white;
+                box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+                z-index: 10001;
+                display: flex;
+                flex-direction: column;
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .graph-config-panel.open {
+                right: 0;
+            }
+
+            .graph-config-header {
+                padding: 24px;
+                background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .graph-config-header h3 {
+                margin: 0;
+                font-size: 20px;
+                font-weight: 600;
+            }
+
+            .graph-config-close {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+
+            .graph-config-close:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .graph-config-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 24px;
+            }
+
+            .graph-config-section {
+                margin-bottom: 32px;
+            }
+
+            .graph-config-section h4 {
+                margin: 0 0 16px 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1F2937;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .graph-config-section h4 i {
+                color: #4F46E5;
+            }
+
+            .graph-input-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+
+            .graph-input-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .graph-input-wrapper label {
+                font-size: 13px;
+                font-weight: 500;
+                color: #6B7280;
+            }
+
+            .graph-input-wrapper input {
+                padding: 10px 12px;
+                border: 2px solid #E5E7EB;
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.2s;
+            }
+
+            .graph-input-wrapper input:focus {
+                outline: none;
+                border-color: #4F46E5;
+                box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            }
+
+            .graph-checkbox-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 12px;
+                background: #F9FAFB;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .graph-checkbox-wrapper:hover {
+                background: #F3F4F6;
+            }
+
+            .graph-checkbox-wrapper input[type="checkbox"] {
+                width: 20px;
+                height: 20px;
+                cursor: pointer;
+                accent-color: #4F46E5;
+            }
+
+            .graph-checkbox-wrapper label {
+                font-size: 14px;
+                color: #374151;
+                cursor: pointer;
+                flex: 1;
+            }
+
+            /* Liste des fonctions */
+            .graph-functions-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .graph-function-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px;
+                background: #F9FAFB;
+                border: 2px solid #E5E7EB;
+                border-radius: 10px;
+                transition: all 0.2s;
+            }
+
+            .graph-function-item:hover {
+                border-color: #4F46E5;
+                background: white;
+                box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
+            }
+
+            .graph-function-color {
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                border: none;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            .graph-function-color:hover {
+                transform: scale(1.1);
+            }
+
+            .graph-function-input {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid #D1D5DB;
+                border-radius: 6px;
+                font-size: 14px;
+                font-family: 'Courier New', monospace;
+            }
+
+            .graph-function-input:focus {
+                outline: none;
+                border-color: #4F46E5;
+            }
+
+            .graph-function-input.error {
+                border-color: #EF4444;
+                background: #FEF2F2;
+            }
+
+            .graph-function-delete {
+                width: 32px;
+                height: 32px;
+                border: none;
+                background: #FEE2E2;
+                color: #DC2626;
+                border-radius: 6px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s;
+            }
+
+            .graph-function-delete:hover {
+                background: #DC2626;
+                color: white;
+            }
+
+            .graph-add-function-btn {
+                width: 100%;
+                padding: 12px;
+                background: #4F46E5;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                transition: all 0.2s;
+            }
+
+            .graph-add-function-btn:hover {
+                background: #4338CA;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            }
+
+            .graph-add-function-btn:active {
+                transform: translateY(0);
+            }
+
+            .graph-config-footer {
+                padding: 20px 24px;
+                border-top: 1px solid #E5E7EB;
+                background: #F9FAFB;
+            }
+
+            .graph-apply-btn {
+                width: 100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .graph-apply-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            }
+
+            .graph-apply-btn:active {
+                transform: translateY(0);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -1041,6 +1344,13 @@ class CleanPDFViewer {
         // Long press sur miniature avec stylet = menu contextuel
         let longPressTimer = null;
         let longPressTriggered = false;
+        let longPressStartX = 0;
+        let longPressStartY = 0;
+        const MOVE_TOLERANCE = 10; // pixels de tolérance pour le mouvement
+
+        // Désactiver la sélection utilisateur sur les miniatures
+        thumb.style.userSelect = 'none';
+        thumb.style.webkitUserSelect = 'none';
 
         // Clic sur miniature = navigation (sauf si long press a été déclenché)
         thumb.addEventListener('click', (e) => {
@@ -1059,13 +1369,20 @@ class CleanPDFViewer {
         thumb.addEventListener('pointerdown', (e) => {
             // Seulement pour le stylet
             if (e.pointerType === 'pen') {
+                console.log('[LongPress] pointerdown - stylet détecté');
+                e.preventDefault(); // Empêcher la sélection native
                 longPressTriggered = false;
+                longPressStartX = e.clientX;
+                longPressStartY = e.clientY;
+
                 // Sauvegarder la position du pointeur
                 const savedEvent = {
                     clientX: e.clientX,
                     clientY: e.clientY
                 };
+
                 longPressTimer = setTimeout(() => {
+                    console.log('[LongPress] Timer déclenché - affichage menu');
                     longPressTriggered = true;
                     // Vibration haptique si disponible
                     if (navigator.vibrate) {
@@ -1078,6 +1395,7 @@ class CleanPDFViewer {
 
         thumb.addEventListener('pointerup', (e) => {
             if (longPressTimer) {
+                console.log('[LongPress] pointerup - annulation timer');
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
             }
@@ -1086,13 +1404,20 @@ class CleanPDFViewer {
         thumb.addEventListener('pointermove', (e) => {
             // Si le stylet bouge trop, annuler le long press
             if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+                const deltaX = Math.abs(e.clientX - longPressStartX);
+                const deltaY = Math.abs(e.clientY - longPressStartY);
+
+                if (deltaX > MOVE_TOLERANCE || deltaY > MOVE_TOLERANCE) {
+                    console.log(`[LongPress] pointermove - mouvement trop grand (${deltaX}, ${deltaY}) - annulation`);
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
             }
         });
 
         thumb.addEventListener('pointercancel', (e) => {
             if (longPressTimer) {
+                console.log('[LongPress] pointercancel - annulation timer');
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
             }
@@ -1177,6 +1502,14 @@ class CleanPDFViewer {
             await this.renderBlankPage(pdfCanvas, annotationCanvas, pageId);
         } else if (pageData && pageData.type === 'graph') {
             await this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+
+            // Ajouter un bouton de configuration pour les pages graphiques
+            const configBtn = document.createElement('button');
+            configBtn.className = 'graph-config-btn';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configurer le graphique';
+            configBtn.addEventListener('click', () => this.openGraphConfigPanel(pageId));
+            container.appendChild(configBtn);
         }
 
         // Configurer les événements d'annotation
@@ -1297,13 +1630,30 @@ class CleanPDFViewer {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, width, height);
 
-        // Dessiner les axes
-        const xMin = graphData.xMin || -15;
-        const xMax = graphData.xMax || 15;
-        const yMin = graphData.yMin || -15;
-        const yMax = graphData.yMax || 15;
+        // Paramètres du graphique
+        const xMin = graphData.xMin ?? -10;
+        const xMax = graphData.xMax ?? 10;
+        const yMin = graphData.yMin ?? -10;
+        const yMax = graphData.yMax ?? 10;
+        const showGrid = graphData.showGrid ?? true;
+        const gridSpacing = graphData.gridSpacing ?? 1;
 
+        // Dessiner la grille si activée
+        if (showGrid) {
+            this.drawGraphGrid(ctx, width, height, xMin, xMax, yMin, yMax, gridSpacing);
+        }
+
+        // Dessiner les axes
         this.drawGraphAxes(ctx, width, height, xMin, xMax, yMin, yMax);
+
+        // Dessiner les fonctions
+        if (graphData.functions && graphData.functions.length > 0) {
+            graphData.functions.forEach(func => {
+                if (func.expression && func.expression.trim()) {
+                    this.drawFunction(ctx, width, height, xMin, xMax, yMin, yMax, func.expression, func.color);
+                }
+            });
+        }
 
         // Redessiner les annotations existantes si pageId est fourni
         if (pageId) {
@@ -1365,6 +1715,365 @@ class CleanPDFViewer {
             ctx.lineTo(zeroX + 5, py);
             ctx.stroke();
         }
+    }
+
+    /**
+     * Dessiner la grille d'un graphique
+     */
+    drawGraphGrid(ctx, width, height, xMin, xMax, yMin, yMax, spacing) {
+        const margin = 50;
+        const graphWidth = width - 2 * margin;
+        const graphHeight = height - 2 * margin;
+
+        ctx.strokeStyle = '#E5E7EB';
+        ctx.lineWidth = 1;
+
+        // Lignes verticales
+        for (let x = Math.ceil(xMin / spacing) * spacing; x <= xMax; x += spacing) {
+            const px = margin + graphWidth * ((x - xMin) / (xMax - xMin));
+            ctx.beginPath();
+            ctx.moveTo(px, margin);
+            ctx.lineTo(px, height - margin);
+            ctx.stroke();
+        }
+
+        // Lignes horizontales
+        for (let y = Math.ceil(yMin / spacing) * spacing; y <= yMax; y += spacing) {
+            const py = margin + graphHeight * ((yMax - y) / (yMax - yMin));
+            ctx.beginPath();
+            ctx.moveTo(margin, py);
+            ctx.lineTo(width - margin, py);
+            ctx.stroke();
+        }
+    }
+
+    /**
+     * Dessiner une fonction mathématique
+     */
+    drawFunction(ctx, width, height, xMin, xMax, yMin, yMax, expression, color) {
+        const margin = 50;
+        const graphWidth = width - 2 * margin;
+        const graphHeight = height - 2 * margin;
+
+        // Nombre de points pour dessiner la courbe
+        const numPoints = Math.max(500, graphWidth * 2);
+        const step = (xMax - xMin) / numPoints;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        let firstPoint = true;
+
+        for (let i = 0; i <= numPoints; i++) {
+            const x = xMin + i * step;
+            let y;
+
+            try {
+                y = this.evaluateMathExpression(expression, x);
+
+                // Vérifier si y est un nombre valide
+                if (isNaN(y) || !isFinite(y)) continue;
+
+                // Vérifier si y est dans les limites
+                if (y < yMin - (yMax - yMin) || y > yMax + (yMax - yMin)) continue;
+
+                // Convertir en coordonnées canvas
+                const px = margin + graphWidth * ((x - xMin) / (xMax - xMin));
+                const py = margin + graphHeight * ((yMax - y) / (yMax - yMin));
+
+                if (firstPoint) {
+                    ctx.moveTo(px, py);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            } catch (e) {
+                // Ignorer les erreurs d'évaluation
+                continue;
+            }
+        }
+
+        ctx.stroke();
+    }
+
+    /**
+     * Évaluer une expression mathématique avec une valeur x
+     */
+    evaluateMathExpression(expression, xValue) {
+        // Remplacer x par la valeur
+        let expr = expression.replace(/x/g, `(${xValue})`);
+
+        // Remplacer les fonctions mathématiques
+        expr = expr.replace(/sin/g, 'Math.sin');
+        expr = expr.replace(/cos/g, 'Math.cos');
+        expr = expr.replace(/tan/g, 'Math.tan');
+        expr = expr.replace(/sqrt/g, 'Math.sqrt');
+        expr = expr.replace(/abs/g, 'Math.abs');
+        expr = expr.replace(/exp/g, 'Math.exp');
+        expr = expr.replace(/log/g, 'Math.log');
+        expr = expr.replace(/pow/g, 'Math.pow');
+
+        // Remplacer ^ par **  (puissance)
+        expr = expr.replace(/\^/g, '**');
+
+        // Évaluer l'expression
+        try {
+            return eval(expr);
+        } catch (e) {
+            throw new Error('Invalid expression');
+        }
+    }
+
+    /**
+     * Ouvrir le panneau de configuration du graphique
+     */
+    openGraphConfigPanel(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'graph') return;
+
+        // Initialiser les données par défaut si nécessaire
+        if (!pageData.data) {
+            pageData.data = {};
+        }
+        const data = pageData.data;
+        data.xMin = data.xMin ?? -10;
+        data.xMax = data.xMax ?? 10;
+        data.yMin = data.yMin ?? -10;
+        data.yMax = data.yMax ?? 10;
+        data.showGrid = data.showGrid ?? true;
+        data.gridSpacing = data.gridSpacing ?? 1;
+        data.functions = data.functions || [];
+
+        // Supprimer le panneau existant s'il y en a un
+        const existingPanel = document.getElementById('graph-config-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+        }
+
+        // Créer le panneau
+        const panel = document.createElement('div');
+        panel.id = 'graph-config-panel';
+        panel.className = 'graph-config-panel';
+
+        panel.innerHTML = `
+            <div class="graph-config-header">
+                <h3><i class="fas fa-chart-line"></i> Configuration du Graphique</h3>
+                <button class="graph-config-close"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="graph-config-body">
+                <!-- Axes -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-arrows-alt"></i> Intervalles des Axes</h4>
+                    <div class="graph-input-group">
+                        <div class="graph-input-wrapper">
+                            <label>X Min</label>
+                            <input type="number" id="graph-xmin" value="${data.xMin}" step="1">
+                        </div>
+                        <div class="graph-input-wrapper">
+                            <label>X Max</label>
+                            <input type="number" id="graph-xmax" value="${data.xMax}" step="1">
+                        </div>
+                    </div>
+                    <div class="graph-input-group">
+                        <div class="graph-input-wrapper">
+                            <label>Y Min</label>
+                            <input type="number" id="graph-ymin" value="${data.yMin}" step="1">
+                        </div>
+                        <div class="graph-input-wrapper">
+                            <label>Y Max</label>
+                            <input type="number" id="graph-ymax" value="${data.yMax}" step="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grille -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-th"></i> Grille</h4>
+                    <div class="graph-checkbox-wrapper">
+                        <input type="checkbox" id="graph-show-grid" ${data.showGrid ? 'checked' : ''}>
+                        <label for="graph-show-grid">Afficher la grille</label>
+                    </div>
+                    <div class="graph-input-wrapper" style="margin-top: 12px;">
+                        <label>Espacement de la grille</label>
+                        <input type="number" id="graph-grid-spacing" value="${data.gridSpacing}" step="0.5" min="0.1">
+                    </div>
+                </div>
+
+                <!-- Fonctions -->
+                <div class="graph-config-section">
+                    <h4><i class="fas fa-function"></i> Fonctions</h4>
+                    <div class="graph-functions-list" id="graph-functions-list"></div>
+                    <button class="graph-add-function-btn" id="graph-add-function">
+                        <i class="fas fa-plus"></i> Ajouter une fonction
+                    </button>
+                    <div style="margin-top: 12px; padding: 12px; background: #FEF3C7; border-radius: 8px; font-size: 13px; color: #92400E;">
+                        <strong>Syntaxe :</strong> Utilisez <code>x</code> comme variable. Ex: <code>x^2</code>, <code>sin(x)</code>, <code>2*x + 3</code>
+                        <br><strong>Fonctions disponibles :</strong> sin, cos, tan, sqrt, abs, exp, log, pow
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-config-footer">
+                <button class="graph-apply-btn" id="graph-apply">
+                    <i class="fas fa-check"></i> Appliquer les modifications
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Animer l'ouverture
+        setTimeout(() => panel.classList.add('open'), 10);
+
+        // Charger les fonctions existantes
+        this.renderGraphFunctionsList(data.functions);
+
+        // Event listeners
+        panel.querySelector('.graph-config-close').addEventListener('click', () => {
+            panel.classList.remove('open');
+            setTimeout(() => panel.remove(), 300);
+        });
+
+        panel.querySelector('#graph-add-function').addEventListener('click', () => {
+            const newFunc = {
+                expression: '',
+                color: this.getRandomColor()
+            };
+            data.functions.push(newFunc);
+            this.renderGraphFunctionsList(data.functions);
+        });
+
+        panel.querySelector('#graph-apply').addEventListener('click', () => {
+            // Récupérer les valeurs
+            data.xMin = parseFloat(panel.querySelector('#graph-xmin').value);
+            data.xMax = parseFloat(panel.querySelector('#graph-xmax').value);
+            data.yMin = parseFloat(panel.querySelector('#graph-ymin').value);
+            data.yMax = parseFloat(panel.querySelector('#graph-ymax').value);
+            data.showGrid = panel.querySelector('#graph-show-grid').checked;
+            data.gridSpacing = parseFloat(panel.querySelector('#graph-grid-spacing').value);
+
+            // Valider
+            if (data.xMin >= data.xMax || data.yMin >= data.yMax) {
+                alert('Les intervalles ne sont pas valides. Min doit être < Max.');
+                return;
+            }
+
+            // Fermer le panneau
+            panel.classList.remove('open');
+            setTimeout(() => panel.remove(), 300);
+
+            // Re-rendre seulement la page graphique actuelle
+            this.rerenderGraphPage(pageId);
+
+            this.isDirty = true;
+        });
+    }
+
+    /**
+     * Re-rendre une page graphique spécifique
+     */
+    async rerenderGraphPage(pageId) {
+        // Trouver le wrapper de la page
+        const wrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!wrapper) return;
+
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'graph') return;
+
+        // Trouver les canvas
+        const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+        const annotationCanvas = wrapper.querySelector('.annotation-canvas');
+
+        if (!pdfCanvas || !annotationCanvas) return;
+
+        // Re-rendre le graphique
+        await this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+    }
+
+    /**
+     * Rendre la liste des fonctions dans le panneau
+     */
+    renderGraphFunctionsList(functions) {
+        const list = document.getElementById('graph-functions-list');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        functions.forEach((func, index) => {
+            const item = document.createElement('div');
+            item.className = 'graph-function-item';
+            item.innerHTML = `
+                <input type="color" class="graph-function-color" value="${func.color}" data-index="${index}">
+                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="Ex: x^2 + 2*x - 1" data-index="${index}" autocapitalize="off" autocorrect="off" spellcheck="false">
+                <button class="graph-function-delete" data-index="${index}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            list.appendChild(item);
+        });
+
+        // Event listeners pour les couleurs
+        list.querySelectorAll('.graph-function-color').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                functions[index].color = e.target.value;
+            });
+        });
+
+        // Event listeners pour les expressions
+        list.querySelectorAll('.graph-function-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                functions[index].expression = e.target.value;
+
+                // Validation basique
+                if (e.target.value && !this.validateMathExpression(e.target.value)) {
+                    e.target.classList.add('error');
+                } else {
+                    e.target.classList.remove('error');
+                }
+            });
+        });
+
+        // Event listeners pour la suppression
+        list.querySelectorAll('.graph-function-delete').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const index = parseInt(e.target.closest('.graph-function-delete').dataset.index);
+                functions.splice(index, 1);
+                this.renderGraphFunctionsList(functions);
+            });
+        });
+    }
+
+    /**
+     * Validation basique d'expression mathématique
+     */
+    validateMathExpression(expr) {
+        // Vérifier les caractères autorisés
+        const allowedPattern = /^[x0-9+\-*\/().,\s^sincotaqrtbsexplgpw]+$/i;
+        if (!allowedPattern.test(expr)) return false;
+
+        // Vérifier les parenthèses équilibrées
+        let openCount = 0;
+        for (let char of expr) {
+            if (char === '(') openCount++;
+            if (char === ')') openCount--;
+            if (openCount < 0) return false;
+        }
+        return openCount === 0;
+    }
+
+    /**
+     * Générer une couleur aléatoire pour une fonction
+     */
+    getRandomColor() {
+        const colors = [
+            '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
+            '#6366F1', '#8B5CF6', '#EC4899', '#14B8A6'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
 
     /**
@@ -1887,7 +2596,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.angleState.validationTimer = setTimeout(() => {
                     this.validateAngleFirstSegment(canvas, pageId);
-                }, 500);
+                }, 1000); // 1 seconde pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
@@ -1912,7 +2621,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.arcState.validationTimer = setTimeout(() => {
                     this.validateArcFirstSegment(canvas, pageId);
-                }, 500);
+                }, 1000); // 1 seconde pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
@@ -2820,6 +3529,15 @@ class CleanPDFViewer {
 
         if (attendanceSection && modalBody) {
             modalBody.innerHTML = attendanceSection.innerHTML;
+
+            // Réattacher les événements pour les interactions
+            this.attachAttendanceEventHandlers(modalBody);
+
+            // Réattacher les événements pour les onglets de suivi
+            this.attachTrackingTabHandlers(modalBody);
+
+            // Réattacher les événements pour les sanctions
+            this.attachSanctionEventHandlers(modalBody);
         }
 
         // Afficher le modal
@@ -2827,6 +3545,536 @@ class CleanPDFViewer {
 
         // Stocker la référence pour fermeture
         window.cleanPDFViewer = this;
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour les onglets de suivi
+     */
+    attachTrackingTabHandlers(container) {
+        const tabs = container.querySelectorAll('.tracking-tab');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // Récupérer le nom de l'onglet depuis l'attribut onclick
+                const onclickAttr = tab.getAttribute('onclick');
+                const tabName = onclickAttr ? onclickAttr.match(/showTrackingTab\('([^']+)'\)/)?.[1] : null;
+
+                if (!tabName) return;
+
+                // Désactiver tous les onglets dans le modal
+                container.querySelectorAll('.tracking-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+
+                // Masquer tous les contenus dans le modal
+                container.querySelectorAll('.tracking-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Activer l'onglet cliqué
+                tab.classList.add('active');
+
+                // Afficher le contenu correspondant
+                const contentId = tabName + '-content';
+                const content = container.querySelector(`#${contentId}`);
+                if (content) {
+                    content.classList.add('active');
+                }
+
+                // Si c'est l'onglet plan de classe, charger le plan
+                if (tabName === 'seating-plan') {
+                    setTimeout(() => {
+                        // Vérifier si le plan n'est pas déjà chargé
+                        const workspace = container.querySelector('#seating-workspace');
+                        if (workspace && workspace.children.length === 0) {
+                            // Le plan n'est pas encore chargé
+                            this.loadSeatingPlanInModal(container);
+                        } else if (workspace) {
+                            // Le plan est déjà chargé
+                            // Ne rien faire - le plan garde son échelle d'origine
+                            console.log('[Modal] Plan de classe déjà chargé, conservation de l\'échelle');
+                        }
+                    }, 100);
+                }
+            });
+        });
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour les sanctions dans le modal
+     */
+    attachSanctionEventHandlers(container) {
+        // Trouver tous les boutons de sanctions
+        const decreaseButtons = container.querySelectorAll('.count-btn.decrease');
+        const increaseButtons = container.querySelectorAll('.count-btn.increase');
+
+        decreaseButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const onclickAttr = btn.getAttribute('onclick');
+                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
+                if (match) {
+                    const studentId = parseInt(match[1]);
+                    const sanctionId = parseInt(match[2]);
+                    await this.updateSanctionCount(studentId, sanctionId, -1, container);
+                }
+            });
+        });
+
+        increaseButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const onclickAttr = btn.getAttribute('onclick');
+                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
+                if (match) {
+                    const studentId = parseInt(match[1]);
+                    const sanctionId = parseInt(match[2]);
+                    await this.updateSanctionCount(studentId, sanctionId, 1, container);
+                }
+            });
+        });
+    }
+
+    /**
+     * Mettre à jour le compteur de sanctions
+     */
+    async updateSanctionCount(studentId, sanctionId, delta, container) {
+        const countElement = container.querySelector(`[data-student="${studentId}"][data-sanction="${sanctionId}"]`);
+        if (!countElement) return;
+
+        const currentCount = parseInt(countElement.textContent);
+        const newCount = Math.max(0, currentCount + delta);
+
+        try {
+            const response = await fetch('/planning/update-sanction-count', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    template_id: sanctionId,
+                    count: newCount
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                countElement.textContent = result.new_count;
+
+                // Mettre à jour les classes CSS selon le nombre
+                countElement.className = 'count-display';
+                countElement.setAttribute('data-student', studentId);
+                countElement.setAttribute('data-sanction', sanctionId);
+
+                if (result.new_count >= 6) {
+                    countElement.classList.add('danger');
+                } else if (result.new_count >= 3) {
+                    countElement.classList.add('warning');
+                }
+
+                // Animation de mise à jour
+                countElement.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    countElement.style.transform = 'scale(1)';
+                }, 200);
+
+                // Mettre à jour aussi dans la page principale si elle existe
+                const mainElement = document.querySelector(`.attendance-section [data-student="${studentId}"][data-sanction="${sanctionId}"]`);
+                if (mainElement) {
+                    mainElement.textContent = result.new_count;
+                    mainElement.className = 'count-display';
+                    mainElement.setAttribute('data-student', studentId);
+                    mainElement.setAttribute('data-sanction', sanctionId);
+                    if (result.new_count >= 6) {
+                        mainElement.classList.add('danger');
+                    } else if (result.new_count >= 3) {
+                        mainElement.classList.add('warning');
+                    }
+                }
+            } else {
+                alert(result.message || 'Erreur lors de la mise à jour');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    /**
+     * Charger le plan de classe dans le modal
+     */
+    loadSeatingPlanInModal(container) {
+        const workspace = container.querySelector('#seating-workspace');
+        const viewer = container.querySelector('#seating-plan-viewer');
+
+        if (!workspace || !viewer) {
+            console.error('[Modal] Workspace ou viewer de plan de classe non trouvé');
+            return;
+        }
+
+        // Appeler la fonction globale loadSeatingPlan si elle existe
+        // mais en modifiant temporairement getElementById pour chercher dans le modal
+        const originalGetElementById = document.getElementById;
+        document.getElementById = function(id) {
+            // Chercher d'abord dans le modal
+            const element = container.querySelector(`#${id}`);
+            if (element) return element;
+            // Sinon chercher dans le document
+            return originalGetElementById.call(document, id);
+        };
+
+        try {
+            if (typeof loadSeatingPlan === 'function') {
+                loadSeatingPlan();
+                // Ajuster l'échelle avec notre propre fonction pour le modal
+                setTimeout(() => {
+                    this.adjustSeatingScaleInModal(container);
+                }, 150);
+            }
+        } finally {
+            // Restaurer la fonction originale
+            document.getElementById = originalGetElementById;
+        }
+    }
+
+    /**
+     * Ajuster l'échelle du plan de classe dans le modal (version spécifique modal)
+     */
+    adjustSeatingScaleInModal(container) {
+        const workspace = container.querySelector('#seating-workspace');
+        const viewer = container.querySelector('#seating-plan-viewer');
+
+        if (!workspace || !viewer) {
+            console.log('[Modal] Workspace ou viewer non trouvé pour ajustement échelle');
+            return;
+        }
+
+        // Attendre que le viewer ait une taille
+        if (viewer.offsetWidth === 0) {
+            setTimeout(() => this.adjustSeatingScaleInModal(container), 100);
+            return;
+        }
+
+        const elements = workspace.querySelectorAll('.seating-element');
+        if (elements.length === 0) {
+            console.log('[Modal] Aucun élément de plan trouvé');
+            return;
+        }
+
+        // Calculer les limites du contenu
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        elements.forEach(element => {
+            const x = parseFloat(element.style.left) || 0;
+            const y = parseFloat(element.style.top) || 0;
+            const width = element.offsetWidth;
+            const height = element.offsetHeight;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
+        });
+
+        // Ajouter une marge
+        const margin = 40;
+        minX -= margin;
+        minY -= margin;
+        maxX += margin;
+        maxY += margin;
+
+        // Calculer les dimensions du contenu
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        // Obtenir les dimensions du viewer
+        const viewerWidth = viewer.offsetWidth;
+        const viewerHeight = viewer.offsetHeight || 400;
+
+        // Calculer l'échelle pour adapter le contenu
+        const scaleX = viewerWidth / contentWidth;
+        const scaleY = viewerHeight / contentHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // Ne pas agrandir au-delà de 100%
+
+        // Centrer le contenu
+        const scaledWidth = contentWidth * scale;
+        const scaledHeight = contentHeight * scale;
+        const translateX = (viewerWidth - scaledWidth) / 2 - minX * scale;
+        const translateY = (viewerHeight - scaledHeight) / 2 - minY * scale;
+
+        // Appliquer la transformation
+        workspace.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        workspace.style.transformOrigin = '0 0';
+
+        console.log(`[Modal] Plan ajusté: échelle ${scale.toFixed(2)}, translation (${translateX.toFixed(0)}, ${translateY.toFixed(0)})`);
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour le suivi des élèves dans le modal
+     */
+    attachAttendanceEventHandlers(container) {
+        // Récupérer les données de la leçon depuis le DOM ou les variables globales
+        // Les variables sont définies dans lesson_view.html avec const, pas window
+        const classroomId = this.getLessonData('classroomId');
+        const lessonDate = this.getLessonData('lessonDate');
+        const periodNumber = this.getLessonData('periodNumber');
+
+        console.log('[PDF Viewer] Données récupérées:', { classroomId, lessonDate, periodNumber });
+
+        // Gestionnaire pour toggle présent/absent
+        container.querySelectorAll('.student-info').forEach(studentInfo => {
+            const studentElement = studentInfo.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            studentInfo.onclick = async (e) => {
+                e.preventDefault();
+                await this.toggleAttendanceStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        // Gestionnaire pour le bouton retard
+        container.querySelectorAll('.btn-late').forEach(btn => {
+            const studentElement = btn.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        // Gestionnaire pour Enter sur les champs de minutes
+        container.querySelectorAll('.late-minutes').forEach(input => {
+            input.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const studentElement = input.closest('.student-attendance');
+                    const studentId = parseInt(studentElement.dataset.studentId);
+                    await this.setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+                }
+            });
+        });
+    }
+
+    /**
+     * Basculer entre présent/absent
+     */
+    async toggleAttendanceStatus(studentId, studentElement, classroomId, lessonDate, periodNumber) {
+        const currentStatus = studentElement.dataset.status;
+        let newStatus;
+
+        // Cycle: present -> absent -> present (ignorer late dans le cycle)
+        if (currentStatus === 'present' || currentStatus === 'late') {
+            newStatus = 'absent';
+        } else {
+            newStatus = 'present';
+        }
+
+        // Réinitialiser le champ de retard
+        const lateInput = studentElement.querySelector('.late-minutes');
+        if (lateInput) lateInput.value = '';
+
+        await this.updateAttendanceStatus(studentId, newStatus, null, studentElement, classroomId, lessonDate, periodNumber);
+    }
+
+    /**
+     * Marquer un élève en retard (toggle)
+     */
+    async setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber) {
+        const lateInput = studentElement.querySelector('.late-minutes');
+
+        // Vérifier le statut actuel de l'élève
+        const isCurrentlyLate = studentElement.classList.contains('late');
+
+        if (isCurrentlyLate) {
+            // Si déjà en retard, remettre présent
+            await this.updateAttendanceStatus(studentId, 'present', null, studentElement, classroomId, lessonDate, periodNumber);
+        } else {
+            // Sinon, marquer en retard
+            const minutes = lateInput ? lateInput.value : '';
+
+            if (!minutes || minutes <= 0) {
+                alert('Veuillez entrer le nombre de minutes de retard');
+                if (lateInput) lateInput.focus();
+                return;
+            }
+
+            await this.updateAttendanceStatus(studentId, 'late', parseInt(minutes), studentElement, classroomId, lessonDate, periodNumber);
+        }
+    }
+
+    /**
+     * Envoyer la mise à jour au serveur et mettre à jour l'interface
+     */
+    async updateAttendanceStatus(studentId, status, lateMinutes, studentElement, classroomId, lessonDate, periodNumber) {
+        console.log('[PDF Viewer] Envoi de la mise à jour:', {
+            student_id: studentId,
+            classroom_id: classroomId,
+            date: lessonDate,
+            period_number: periodNumber,
+            status: status,
+            late_minutes: lateMinutes
+        });
+
+        try {
+            const response = await fetch('/planning/update-attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    classroom_id: classroomId,
+                    date: lessonDate,
+                    period_number: periodNumber,
+                    status: status,
+                    late_minutes: lateMinutes
+                })
+            });
+
+            console.log('[PDF Viewer] Réponse HTTP:', response.status, response.statusText);
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Mettre à jour l'interface dans le modal
+                const lateInput = studentElement.querySelector('.late-minutes');
+
+                // Retirer toutes les classes de statut
+                studentElement.classList.remove('present', 'absent', 'late');
+
+                // Ajouter la nouvelle classe
+                studentElement.classList.add(status);
+                studentElement.dataset.status = status;
+
+                // Si ce n'est pas un retard, vider le champ
+                if (status !== 'late' && lateInput) {
+                    lateInput.value = '';
+                } else if (status === 'late' && lateInput) {
+                    lateInput.value = lateMinutes;
+                }
+
+                // Mettre à jour l'apparence du bouton retard
+                this.updateAttendanceButton(studentElement);
+
+                // Mettre à jour les statistiques dans le modal
+                this.updateAttendanceStats();
+
+                // Afficher une animation visuelle
+                this.showQuickNotification(studentElement, status);
+
+                // Mettre à jour aussi l'élément dans la page principale si elle existe
+                const mainElement = document.querySelector(`.attendance-section .student-attendance[data-student-id="${studentId}"]`);
+                if (mainElement) {
+                    mainElement.classList.remove('present', 'absent', 'late');
+                    mainElement.classList.add(status);
+                    mainElement.dataset.status = status;
+
+                    const mainLateInput = mainElement.querySelector('.late-minutes');
+                    if (status !== 'late' && mainLateInput) {
+                        mainLateInput.value = '';
+                    } else if (status === 'late' && mainLateInput) {
+                        mainLateInput.value = lateMinutes;
+                    }
+
+                    // Mettre à jour les stats dans la page principale
+                    if (typeof updateStats === 'function') {
+                        updateStats();
+                    }
+                }
+
+            } else {
+                alert('Erreur lors de la mise à jour de la présence');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    /**
+     * Mettre à jour l'apparence du bouton retard selon le statut
+     */
+    updateAttendanceButton(studentElement) {
+        const lateButton = studentElement.querySelector('.btn-late');
+        if (!lateButton) return;
+
+        if (studentElement.classList.contains('late')) {
+            // Élève en retard - bouton pour remettre présent
+            lateButton.title = 'Remettre présent';
+            lateButton.innerHTML = '<i class="fas fa-undo"></i>';
+        } else {
+            // Élève présent ou absent - bouton pour marquer en retard
+            lateButton.title = 'Marquer en retard';
+            lateButton.innerHTML = '<i class="fas fa-clock"></i>';
+        }
+    }
+
+    /**
+     * Mettre à jour les statistiques d'attendance dans le modal
+     */
+    updateAttendanceStats() {
+        const modal = document.getElementById('class-management-modal');
+        if (!modal) return;
+
+        let present = 0;
+        let absent = 0;
+        let late = 0;
+
+        modal.querySelectorAll('.student-attendance').forEach(student => {
+            const status = student.dataset.status;
+            if (status === 'present') present++;
+            else if (status === 'absent') absent++;
+            else if (status === 'late') late++;
+        });
+
+        const presentCount = modal.querySelector('#presentCount');
+        const absentCount = modal.querySelector('#absentCount');
+        const lateCount = modal.querySelector('#lateCount');
+
+        if (presentCount) presentCount.textContent = present;
+        if (absentCount) absentCount.textContent = absent;
+        if (lateCount) lateCount.textContent = late;
+    }
+
+    /**
+     * Afficher une notification visuelle rapide
+     */
+    showQuickNotification(element, status) {
+        element.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 200);
+    }
+
+    /**
+     * Récupérer les données de la leçon depuis les data attributes
+     */
+    getLessonData(key) {
+        const attendanceSection = document.querySelector('.attendance-section');
+        if (!attendanceSection) {
+            console.error('Section attendance introuvable');
+            return null;
+        }
+
+        // Convertir camelCase en kebab-case pour les data attributes
+        const dataKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        const value = attendanceSection.dataset[key] || attendanceSection.getAttribute(`data-${dataKey}`);
+
+        // Convertir en nombre si c'est un ID ou period number
+        if (key === 'classroomId' || key === 'periodNumber') {
+            return value ? parseInt(value) : null;
+        }
+
+        return value;
     }
 
     /**
@@ -3038,7 +4286,42 @@ class CleanPDFViewer {
      * Mettre à jour la page actuelle depuis le scroll
      */
     updateCurrentPageFromScroll() {
-        // TODO: Détecter quelle page est la plus visible
+        const viewerRect = this.elements.viewer.getBoundingClientRect();
+        const viewerCenter = viewerRect.top + viewerRect.height / 2;
+
+        let closestPage = null;
+        let closestDistance = Infinity;
+
+        // Parcourir toutes les pages pour trouver la plus proche du centre
+        this.elements.pagesContainer.querySelectorAll('.pdf-page-wrapper').forEach(wrapper => {
+            const pageRect = wrapper.getBoundingClientRect();
+            const pageCenter = pageRect.top + pageRect.height / 2;
+            const distance = Math.abs(pageCenter - viewerCenter);
+
+            // Vérifier aussi que la page est au moins partiellement visible
+            const isVisible = pageRect.bottom > viewerRect.top && pageRect.top < viewerRect.bottom;
+
+            if (isVisible && distance < closestDistance) {
+                closestDistance = distance;
+                closestPage = wrapper.dataset.pageId;
+            }
+        });
+
+        // Mettre à jour la page courante si elle a changé
+        if (closestPage && closestPage !== this.currentPage) {
+            const oldPage = this.currentPage;
+            this.currentPage = closestPage;
+
+            // Normaliser le pageId pour la comparaison (string ou number)
+            const normalizedClosestPage = closestPage.includes && closestPage.includes('_') ? closestPage : parseInt(closestPage);
+
+            this.currentPage = normalizedClosestPage;
+
+            // Mettre à jour la sélection dans la barre latérale
+            this.updateThumbnailsActive();
+
+            console.log(`[Scroll] Page courante changée: ${oldPage} → ${this.currentPage}`);
+        }
     }
 
     /**
@@ -4274,11 +5557,30 @@ class CleanPDFViewer {
         // Retirer la classe du body pour restaurer le scroll global
         document.body.classList.remove('pdf-viewer-active');
 
-        // Restaurer l'overflow original du body
+        // Restaurer l'overflow original du body et html
+        // Forcer la restauration même si originalBodyOverflow est vide
         if (this.originalBodyOverflow !== undefined) {
             document.body.style.overflow = this.originalBodyOverflow;
             console.log('[PDF Viewer] Body overflow restauré à:', this.originalBodyOverflow || 'vide');
+        } else {
+            // Si pas de valeur sauvegardée, supprimer le style inline pour revenir au CSS
+            document.body.style.overflow = '';
+            console.log('[PDF Viewer] Body overflow supprimé (pas de valeur sauvegardée)');
         }
+
+        if (this.originalHtmlOverflow !== undefined) {
+            document.documentElement.style.overflow = this.originalHtmlOverflow;
+            console.log('[PDF Viewer] HTML overflow restauré à:', this.originalHtmlOverflow || 'vide');
+        } else {
+            document.documentElement.style.overflow = '';
+            console.log('[PDF Viewer] HTML overflow supprimé (pas de valeur sauvegardée)');
+        }
+
+        // Restaurer le touchAction aussi
+        document.body.style.touchAction = '';
+
+        // Forcer un re-flow pour s'assurer que les styles sont appliqués
+        document.body.offsetHeight;
 
         // Nettoyer le DOM
         this.container.innerHTML = '';
@@ -4299,6 +5601,28 @@ class CleanPDFViewer {
             lessonContainer.style.display = '';
             console.log('[Close] Lesson container réaffiché');
         }
+
+        // IMPORTANT: Vérification finale pour s'assurer que le scroll fonctionne
+        // Certaines pages peuvent avoir un overflow:hidden qui persiste
+        setTimeout(() => {
+            // Vérifier si le body a toujours overflow:hidden
+            const bodyOverflow = window.getComputedStyle(document.body).overflow;
+            const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
+
+            console.log('[Close] Vérification finale - body overflow:', bodyOverflow, ', html overflow:', htmlOverflow);
+
+            if (bodyOverflow === 'hidden') {
+                console.warn('[Close] Body overflow encore hidden, forçage à auto');
+                document.body.style.overflow = 'auto';
+            }
+            if (htmlOverflow === 'hidden') {
+                console.warn('[Close] HTML overflow encore hidden, forçage à auto');
+                document.documentElement.style.overflow = 'auto';
+            }
+
+            // Forcer un dernier reflow
+            document.body.offsetHeight;
+        }, 100);
 
         // Appeler le callback si fourni
         if (this.options.onClose) {
