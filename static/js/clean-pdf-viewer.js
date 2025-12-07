@@ -5678,36 +5678,55 @@ class CleanPDFViewer {
             // Pour un triangle 45-45-90, les deux côtés égaux = hypotenuse / √2
             const side = hypotenuse / Math.sqrt(2);
 
-            // Créer l'overlay SVG
+            // Créer l'overlay SVG avec des dimensions généreuses pour éviter la coupure
+            const svgSize = Math.max(hypotenuse, side) * 2; // Taille suffisante pour toute rotation
             setSquare = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             setSquare.classList.add('set-square-overlay');
-            setSquare.setAttribute('width', hypotenuse + 100); // +100 pour les marges des annotations
-            setSquare.setAttribute('height', side + 100);
-            setSquare.style.position = 'absolute';
+            setSquare.setAttribute('width', svgSize);
+            setSquare.setAttribute('height', svgSize);
+            setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
             setSquare.style.pointerEvents = 'auto';
             setSquare.style.zIndex = '10000';
-            setSquare.style.opacity = '0.5';
+            setSquare.style.touchAction = 'none'; // Bloquer le scroll natif sur l'équerre
 
             // Positionner au centre du viewer
             const viewer = this.elements.viewer;
             const viewerRect = viewer.getBoundingClientRect();
-            const centerX = viewerRect.width / 2 - hypotenuse / 2;
-            const centerY = viewerRect.height / 2 - side / 2;
+            const centerX = viewerRect.left + viewerRect.width / 2 - svgSize / 2;
+            const centerY = viewerRect.top + viewerRect.height / 2 - svgSize / 2;
             setSquare.style.left = centerX + 'px';
-            setSquare.style.top = centerY + viewer.scrollTop + 'px';
+            setSquare.style.top = centerY + 'px';
 
             // Créer le groupe principal qui sera transformé
             const mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             mainGroup.setAttribute('id', 'set-square-main-group');
-            mainGroup.setAttribute('transform', 'translate(50, 50)'); // Décalage pour les marges
 
-            // Dessiner le triangle 45-45-90
+            // Centrer le triangle dans le SVG
+            const offsetX = svgSize / 2 - side / 2;
+            const offsetY = svgSize / 2 - side / 2;
+            mainGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+
+            // Dessiner le fond du triangle (plastique transparent bleuté)
             const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             triangle.setAttribute('points', `0,${side} ${side},${side} ${side},0`);
-            triangle.setAttribute('fill', 'rgba(200, 200, 200, 0.3)');
-            triangle.setAttribute('stroke', '#333');
-            triangle.setAttribute('stroke-width', '2');
+            triangle.setAttribute('fill', 'rgba(135, 206, 250, 0.25)'); // Bleu clair transparent
+            triangle.setAttribute('stroke', '#1e3a8a');
+            triangle.setAttribute('stroke-width', '3');
             mainGroup.appendChild(triangle);
+
+            // Ajouter un trou au centre (comme une vraie équerre)
+            const holeSize = side * 0.3;
+            const holeCenterX = side * 0.6;
+            const holeCenterY = side * 0.6;
+            const hole = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            hole.setAttribute('cx', holeCenterX);
+            hole.setAttribute('cy', holeCenterY);
+            hole.setAttribute('r', holeSize / 2);
+            hole.setAttribute('fill', 'white');
+            hole.setAttribute('opacity', '0.8');
+            hole.setAttribute('stroke', '#1e3a8a');
+            hole.setAttribute('stroke-width', '2');
+            mainGroup.appendChild(hole);
 
             // Ajouter les graduations du rapporteur tous les 5°
             // Le rapporteur est sur l'hypothénuse (angle de 45° de chaque côté)
@@ -5752,15 +5771,25 @@ class CleanPDFViewer {
 
             setSquare.appendChild(mainGroup);
 
-            // Ajouter au viewer
-            this.elements.viewer.appendChild(setSquare);
+            // Ajouter au body (pas au viewer) pour position fixed
+            document.body.appendChild(setSquare);
+
+            // Calculer le centre de gravité du triangle 45-45-90
+            // Pour un triangle rectangle, le centroïde est à 1/3 de chaque côté depuis l'angle droit
+            const centroidX = side / 3;
+            const centroidY = side / 3;
 
             // Initialiser les variables de transformation
             this.setSquareTransform = {
                 x: 0,
                 y: 0,
                 rotation: 0,
-                scale: 1
+                scale: 1,
+                centroidX: centroidX,
+                centroidY: centroidY,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                side: side
             };
 
             // Ajouter les gestionnaires de gestes tactiles
@@ -5891,15 +5920,24 @@ class CleanPDFViewer {
         let initialDistance = 0;
         let initialRotation = 0;
         let initialAngle = 0;
+        let initialSvgX = 0;
+        let initialSvgY = 0;
 
         const updateTransform = () => {
-            const transform = `translate(${this.setSquareTransform.x + 50}, ${this.setSquareTransform.y + 50}) rotate(${this.setSquareTransform.rotation}) scale(${this.setSquareTransform.scale})`;
+            // Rotation autour du centre de gravité du triangle
+            const cx = this.setSquareTransform.centroidX;
+            const cy = this.setSquareTransform.centroidY;
+            const offsetX = this.setSquareTransform.offsetX;
+            const offsetY = this.setSquareTransform.offsetY;
+
+            const transform = `translate(${offsetX + this.setSquareTransform.x}, ${offsetY + this.setSquareTransform.y}) rotate(${this.setSquareTransform.rotation}, ${cx}, ${cy}) scale(${this.setSquareTransform.scale})`;
             mainGroup.setAttribute('transform', transform);
         };
 
         svgElement.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
             e.preventDefault();
+
             pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
             svgElement.setPointerCapture(e.pointerId);
 
@@ -5911,6 +5949,10 @@ class CleanPDFViewer {
                 initialDistance = Math.sqrt(dx * dx + dy * dy);
                 initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
                 initialRotation = this.setSquareTransform.rotation;
+            } else {
+                // Un doigt - préparer la translation
+                initialSvgX = parseFloat(svgElement.style.left) || 0;
+                initialSvgY = parseFloat(svgElement.style.top) || 0;
             }
         });
 
@@ -5920,18 +5962,21 @@ class CleanPDFViewer {
             e.stopPropagation();
             e.preventDefault();
 
+            const oldPointer = pointers.get(e.pointerId);
             pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
 
             if (pointers.size === 1) {
-                // Un doigt - translation
-                const pointer = pointers.get(e.pointerId);
-                const prevPointer = {x: e.clientX - e.movementX, y: e.clientY - e.movementY};
+                // Un doigt - translation du SVG entier
+                const dx = e.clientX - oldPointer.x;
+                const dy = e.clientY - oldPointer.y;
 
-                this.setSquareTransform.x += e.movementX;
-                this.setSquareTransform.y += e.movementY;
-                updateTransform();
+                const currentLeft = parseFloat(svgElement.style.left) || 0;
+                const currentTop = parseFloat(svgElement.style.top) || 0;
+
+                svgElement.style.left = (currentLeft + dx) + 'px';
+                svgElement.style.top = (currentTop + dy) + 'px';
             } else if (pointers.size === 2) {
-                // Deux doigts - rotation
+                // Deux doigts - rotation autour du centroïde
                 const pts = Array.from(pointers.values());
                 const dx = pts[1].x - pts[0].x;
                 const dy = pts[1].y - pts[0].y;
@@ -5945,6 +5990,13 @@ class CleanPDFViewer {
         svgElement.addEventListener('pointerup', (e) => {
             pointers.delete(e.pointerId);
             svgElement.releasePointerCapture(e.pointerId);
+
+            // Si on passe de 2 doigts à 1, réinitialiser pour la translation
+            if (pointers.size === 1) {
+                const remaining = Array.from(pointers.values())[0];
+                initialSvgX = parseFloat(svgElement.style.left) || 0;
+                initialSvgY = parseFloat(svgElement.style.top) || 0;
+            }
         });
 
         svgElement.addEventListener('pointercancel', (e) => {
