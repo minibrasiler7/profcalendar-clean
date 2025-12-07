@@ -178,7 +178,7 @@ class CleanPDFViewer {
                             <i class="fas fa-border-all"></i>
                         </button>
                         <button class="btn-tool" data-tool="set-square" title="Équerre">
-                            <i class="fas fa-drafting-compass"></i>
+                            <i class="fas fa-ruler-combined"></i>
                         </button>
                         <div class="separator"></div>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
@@ -5667,13 +5667,13 @@ class CleanPDFViewer {
         if (!setSquare) {
             // Calculer les dimensions de l'équerre
             // L'hypothénuse doit faire 2/3 de la largeur du PDF
-            const pdfPage = this.container.querySelector('.pdf-page');
-            if (!pdfPage) {
-                console.error('[SetSquare] Page PDF non trouvée');
+            const pdfCanvas = this.container.querySelector('.pdf-canvas');
+            if (!pdfCanvas) {
+                console.error('[SetSquare] Canvas PDF non trouvé');
                 return;
             }
 
-            const pdfWidth = pdfPage.offsetWidth;
+            const pdfWidth = pdfCanvas.offsetWidth;
             const hypotenuse = (pdfWidth * 2) / 3;
             // Pour un triangle 45-45-90, les deux côtés égaux = hypotenuse / √2
             const side = hypotenuse / Math.sqrt(2);
@@ -5805,10 +5805,10 @@ class CleanPDFViewer {
         const canvasY = (clientY - canvasRect.top) * scaleY;
 
         // Obtenir les 3 bords du triangle (en coordonnées écran)
-        const pdfPage = this.container.querySelector('.pdf-page');
-        if (!pdfPage) return null;
+        const pdfCanvas = this.container.querySelector('.pdf-canvas');
+        if (!pdfCanvas) return null;
 
-        const pdfWidth = pdfPage.offsetWidth;
+        const pdfWidth = pdfCanvas.offsetWidth;
         const hypotenuse = (pdfWidth * 2) / 3;
         const side = hypotenuse / Math.sqrt(2);
 
