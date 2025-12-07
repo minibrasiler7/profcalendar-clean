@@ -3586,7 +3586,17 @@ class CleanPDFViewer {
                 // Si c'est l'onglet plan de classe, charger le plan
                 if (tabName === 'seating-plan') {
                     setTimeout(() => {
-                        this.loadSeatingPlanInModal(container);
+                        // Vérifier si le plan n'est pas déjà chargé
+                        const workspace = container.querySelector('#seating-workspace');
+                        if (workspace && workspace.children.length === 0) {
+                            // Le plan n'est pas encore chargé
+                            this.loadSeatingPlanInModal(container);
+                        } else {
+                            // Le plan est déjà chargé, juste ajuster l'échelle
+                            if (typeof adjustSeatingScale === 'function') {
+                                adjustSeatingScale();
+                            }
+                        }
                     }, 100);
                 }
             });
@@ -5522,6 +5532,28 @@ class CleanPDFViewer {
             lessonContainer.style.display = '';
             console.log('[Close] Lesson container réaffiché');
         }
+
+        // IMPORTANT: Vérification finale pour s'assurer que le scroll fonctionne
+        // Certaines pages peuvent avoir un overflow:hidden qui persiste
+        setTimeout(() => {
+            // Vérifier si le body a toujours overflow:hidden
+            const bodyOverflow = window.getComputedStyle(document.body).overflow;
+            const htmlOverflow = window.getComputedStyle(document.documentElement).overflow;
+
+            console.log('[Close] Vérification finale - body overflow:', bodyOverflow, ', html overflow:', htmlOverflow);
+
+            if (bodyOverflow === 'hidden') {
+                console.warn('[Close] Body overflow encore hidden, forçage à auto');
+                document.body.style.overflow = 'auto';
+            }
+            if (htmlOverflow === 'hidden') {
+                console.warn('[Close] HTML overflow encore hidden, forçage à auto');
+                document.documentElement.style.overflow = 'auto';
+            }
+
+            // Forcer un dernier reflow
+            document.body.offsetHeight;
+        }, 100);
 
         // Appeler le callback si fourni
         if (this.options.onClose) {
