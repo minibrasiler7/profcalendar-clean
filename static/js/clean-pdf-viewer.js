@@ -1963,11 +1963,32 @@ class CleanPDFViewer {
             panel.classList.remove('open');
             setTimeout(() => panel.remove(), 300);
 
-            // Re-rendre la page
-            this.renderPages();
+            // Re-rendre seulement la page graphique actuelle
+            this.rerenderGraphPage(pageId);
 
             this.isDirty = true;
         });
+    }
+
+    /**
+     * Re-rendre une page graphique spécifique
+     */
+    async rerenderGraphPage(pageId) {
+        // Trouver le wrapper de la page
+        const wrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!wrapper) return;
+
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'graph') return;
+
+        // Trouver les canvas
+        const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+        const annotationCanvas = wrapper.querySelector('.annotation-canvas');
+
+        if (!pdfCanvas || !annotationCanvas) return;
+
+        // Re-rendre le graphique
+        await this.renderGraphPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
     }
 
     /**
@@ -1984,7 +2005,7 @@ class CleanPDFViewer {
             item.className = 'graph-function-item';
             item.innerHTML = `
                 <input type="color" class="graph-function-color" value="${func.color}" data-index="${index}">
-                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="Ex: x^2 + 2*x - 1" data-index="${index}">
+                <input type="text" class="graph-function-input" value="${func.expression}" placeholder="Ex: x^2 + 2*x - 1" data-index="${index}" autocapitalize="off" autocorrect="off" spellcheck="false">
                 <button class="graph-function-delete" data-index="${index}">
                     <i class="fas fa-trash"></i>
                 </button>
