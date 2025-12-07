@@ -3593,15 +3593,8 @@ class CleanPDFViewer {
                             this.loadSeatingPlanInModal(container);
                         } else if (workspace) {
                             // Le plan est déjà chargé
-                            // IMPORTANT: Réinitialiser le transform avant de recalculer
-                            workspace.style.transform = 'none';
-
-                            // Attendre un frame pour que le reset soit appliqué
-                            requestAnimationFrame(() => {
-                                if (typeof adjustSeatingScale === 'function') {
-                                    adjustSeatingScale();
-                                }
-                            });
+                            // Ne rien faire - le plan garde son échelle d'origine
+                            console.log('[Modal] Plan de classe déjà chargé, conservation de l\'échelle');
                         }
                     }, 100);
                 }
@@ -3740,17 +3733,87 @@ class CleanPDFViewer {
         try {
             if (typeof loadSeatingPlan === 'function') {
                 loadSeatingPlan();
-                // Ajuster l'échelle
+                // Ajuster l'échelle avec notre propre fonction pour le modal
                 setTimeout(() => {
-                    if (typeof adjustSeatingScale === 'function') {
-                        adjustSeatingScale();
-                    }
+                    this.adjustSeatingScaleInModal(container);
                 }, 150);
             }
         } finally {
             // Restaurer la fonction originale
             document.getElementById = originalGetElementById;
         }
+    }
+
+    /**
+     * Ajuster l'échelle du plan de classe dans le modal (version spécifique modal)
+     */
+    adjustSeatingScaleInModal(container) {
+        const workspace = container.querySelector('#seating-workspace');
+        const viewer = container.querySelector('#seating-plan-viewer');
+
+        if (!workspace || !viewer) {
+            console.log('[Modal] Workspace ou viewer non trouvé pour ajustement échelle');
+            return;
+        }
+
+        // Attendre que le viewer ait une taille
+        if (viewer.offsetWidth === 0) {
+            setTimeout(() => this.adjustSeatingScaleInModal(container), 100);
+            return;
+        }
+
+        const elements = workspace.querySelectorAll('.seating-element');
+        if (elements.length === 0) {
+            console.log('[Modal] Aucun élément de plan trouvé');
+            return;
+        }
+
+        // Calculer les limites du contenu
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        elements.forEach(element => {
+            const x = parseFloat(element.style.left) || 0;
+            const y = parseFloat(element.style.top) || 0;
+            const width = element.offsetWidth;
+            const height = element.offsetHeight;
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + width);
+            maxY = Math.max(maxY, y + height);
+        });
+
+        // Ajouter une marge
+        const margin = 40;
+        minX -= margin;
+        minY -= margin;
+        maxX += margin;
+        maxY += margin;
+
+        // Calculer les dimensions du contenu
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        // Obtenir les dimensions du viewer
+        const viewerWidth = viewer.offsetWidth;
+        const viewerHeight = viewer.offsetHeight || 400;
+
+        // Calculer l'échelle pour adapter le contenu
+        const scaleX = viewerWidth / contentWidth;
+        const scaleY = viewerHeight / contentHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // Ne pas agrandir au-delà de 100%
+
+        // Centrer le contenu
+        const scaledWidth = contentWidth * scale;
+        const scaledHeight = contentHeight * scale;
+        const translateX = (viewerWidth - scaledWidth) / 2 - minX * scale;
+        const translateY = (viewerHeight - scaledHeight) / 2 - minY * scale;
+
+        // Appliquer la transformation
+        workspace.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        workspace.style.transformOrigin = '0 0';
+
+        console.log(`[Modal] Plan ajusté: échelle ${scale.toFixed(2)}, translation (${translateX.toFixed(0)}, ${translateY.toFixed(0)})`);
     }
 
     /**
