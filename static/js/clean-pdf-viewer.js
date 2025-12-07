@@ -3550,6 +3550,8 @@ class CleanPDFViewer {
         const lessonDate = this.getLessonData('lessonDate');
         const periodNumber = this.getLessonData('periodNumber');
 
+        console.log('[PDF Viewer] Données récupérées:', { classroomId, lessonDate, periodNumber });
+
         // Gestionnaire pour toggle présent/absent
         container.querySelectorAll('.student-info').forEach(studentInfo => {
             const studentElement = studentInfo.closest('.student-attendance');
@@ -3636,6 +3638,15 @@ class CleanPDFViewer {
      * Envoyer la mise à jour au serveur et mettre à jour l'interface
      */
     async updateAttendanceStatus(studentId, status, lateMinutes, studentElement, classroomId, lessonDate, periodNumber) {
+        console.log('[PDF Viewer] Envoi de la mise à jour:', {
+            student_id: studentId,
+            classroom_id: classroomId,
+            date: lessonDate,
+            period_number: periodNumber,
+            status: status,
+            late_minutes: lateMinutes
+        });
+
         try {
             const response = await fetch('/planning/update_attendance', {
                 method: 'POST',
@@ -3652,6 +3663,8 @@ class CleanPDFViewer {
                     late_minutes: lateMinutes
                 })
             });
+
+            console.log('[PDF Viewer] Réponse HTTP:', response.status, response.statusText);
 
             const result = await response.json();
 
