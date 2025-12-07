@@ -100,6 +100,7 @@ class CleanPDFViewer {
         // NOUVELLE ARCHITECTURE: Le viewer est en position fixed, le BODY scroll
         // Forcer le body à pouvoir scroller (retirer overflow: hidden)
         this.originalBodyOverflow = document.body.style.overflow;
+        this.originalHtmlOverflow = document.documentElement.style.overflow;
         document.body.style.overflow = 'visible';
         document.body.style.touchAction = 'pan-x pan-y pinch-zoom';
         document.documentElement.style.overflow = 'visible'; // html aussi
@@ -3531,6 +3532,9 @@ class CleanPDFViewer {
 
             // Réattacher les événements pour les interactions
             this.attachAttendanceEventHandlers(modalBody);
+
+            // Réattacher les événements pour les onglets de suivi
+            this.attachTrackingTabHandlers(modalBody);
         }
 
         // Afficher le modal
@@ -3538,6 +3542,61 @@ class CleanPDFViewer {
 
         // Stocker la référence pour fermeture
         window.cleanPDFViewer = this;
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour les onglets de suivi
+     */
+    attachTrackingTabHandlers(container) {
+        const tabs = container.querySelectorAll('.tracking-tab');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // Récupérer le nom de l'onglet depuis l'attribut onclick
+                const onclickAttr = tab.getAttribute('onclick');
+                const tabName = onclickAttr ? onclickAttr.match(/showTrackingTab\('([^']+)'\)/)?.[1] : null;
+
+                if (!tabName) return;
+
+                // Désactiver tous les onglets dans le modal
+                container.querySelectorAll('.tracking-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+
+                // Masquer tous les contenus dans le modal
+                container.querySelectorAll('.tracking-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Activer l'onglet cliqué
+                tab.classList.add('active');
+
+                // Afficher le contenu correspondant
+                const contentId = tabName + '-content';
+                const content = container.querySelector(`#${contentId}`);
+                if (content) {
+                    content.classList.add('active');
+                }
+
+                // Si c'est l'onglet plan de classe, charger le plan
+                if (tabName === 'seating-plan') {
+                    setTimeout(() => {
+                        // Essayer d'appeler loadSeatingPlan si elle existe
+                        if (typeof loadSeatingPlan === 'function') {
+                            loadSeatingPlan();
+                        }
+                        // Ajuster l'échelle
+                        setTimeout(() => {
+                            if (typeof adjustSeatingScale === 'function') {
+                                adjustSeatingScale();
+                            }
+                        }, 150);
+                    }, 100);
+                }
+            });
+        });
     }
 
     /**
@@ -5281,11 +5340,17 @@ class CleanPDFViewer {
         // Retirer la classe du body pour restaurer le scroll global
         document.body.classList.remove('pdf-viewer-active');
 
-        // Restaurer l'overflow original du body
+        // Restaurer l'overflow original du body et html
         if (this.originalBodyOverflow !== undefined) {
             document.body.style.overflow = this.originalBodyOverflow;
             console.log('[PDF Viewer] Body overflow restauré à:', this.originalBodyOverflow || 'vide');
         }
+        if (this.originalHtmlOverflow !== undefined) {
+            document.documentElement.style.overflow = this.originalHtmlOverflow;
+            console.log('[PDF Viewer] HTML overflow restauré à:', this.originalHtmlOverflow || 'vide');
+        }
+        // Restaurer le touchAction aussi
+        document.body.style.touchAction = '';
 
         // Nettoyer le DOM
         this.container.innerHTML = '';
