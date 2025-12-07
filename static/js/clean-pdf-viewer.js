@@ -3535,6 +3535,9 @@ class CleanPDFViewer {
 
             // Réattacher les événements pour les onglets de suivi
             this.attachTrackingTabHandlers(modalBody);
+
+            // Réattacher les événements pour les sanctions
+            this.attachSanctionEventHandlers(modalBody);
         }
 
         // Afficher le modal
@@ -3583,20 +3586,155 @@ class CleanPDFViewer {
                 // Si c'est l'onglet plan de classe, charger le plan
                 if (tabName === 'seating-plan') {
                     setTimeout(() => {
-                        // Essayer d'appeler loadSeatingPlan si elle existe
-                        if (typeof loadSeatingPlan === 'function') {
-                            loadSeatingPlan();
-                        }
-                        // Ajuster l'échelle
-                        setTimeout(() => {
-                            if (typeof adjustSeatingScale === 'function') {
-                                adjustSeatingScale();
-                            }
-                        }, 150);
+                        this.loadSeatingPlanInModal(container);
                     }, 100);
                 }
             });
         });
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour les sanctions dans le modal
+     */
+    attachSanctionEventHandlers(container) {
+        // Trouver tous les boutons de sanctions
+        const decreaseButtons = container.querySelectorAll('.count-btn.decrease');
+        const increaseButtons = container.querySelectorAll('.count-btn.increase');
+
+        decreaseButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const onclickAttr = btn.getAttribute('onclick');
+                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
+                if (match) {
+                    const studentId = parseInt(match[1]);
+                    const sanctionId = parseInt(match[2]);
+                    await this.updateSanctionCount(studentId, sanctionId, -1, container);
+                }
+            });
+        });
+
+        increaseButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const onclickAttr = btn.getAttribute('onclick');
+                const match = onclickAttr?.match(/updateSanctionCount\((\d+),\s*(\d+),\s*(-?\d+)\)/);
+                if (match) {
+                    const studentId = parseInt(match[1]);
+                    const sanctionId = parseInt(match[2]);
+                    await this.updateSanctionCount(studentId, sanctionId, 1, container);
+                }
+            });
+        });
+    }
+
+    /**
+     * Mettre à jour le compteur de sanctions
+     */
+    async updateSanctionCount(studentId, sanctionId, delta, container) {
+        const countElement = container.querySelector(`[data-student="${studentId}"][data-sanction="${sanctionId}"]`);
+        if (!countElement) return;
+
+        const currentCount = parseInt(countElement.textContent);
+        const newCount = Math.max(0, currentCount + delta);
+
+        try {
+            const response = await fetch('/planning/update-sanction-count', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    template_id: sanctionId,
+                    count: newCount
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                countElement.textContent = result.new_count;
+
+                // Mettre à jour les classes CSS selon le nombre
+                countElement.className = 'count-display';
+                countElement.setAttribute('data-student', studentId);
+                countElement.setAttribute('data-sanction', sanctionId);
+
+                if (result.new_count >= 6) {
+                    countElement.classList.add('danger');
+                } else if (result.new_count >= 3) {
+                    countElement.classList.add('warning');
+                }
+
+                // Animation de mise à jour
+                countElement.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    countElement.style.transform = 'scale(1)';
+                }, 200);
+
+                // Mettre à jour aussi dans la page principale si elle existe
+                const mainElement = document.querySelector(`.attendance-section [data-student="${studentId}"][data-sanction="${sanctionId}"]`);
+                if (mainElement) {
+                    mainElement.textContent = result.new_count;
+                    mainElement.className = 'count-display';
+                    mainElement.setAttribute('data-student', studentId);
+                    mainElement.setAttribute('data-sanction', sanctionId);
+                    if (result.new_count >= 6) {
+                        mainElement.classList.add('danger');
+                    } else if (result.new_count >= 3) {
+                        mainElement.classList.add('warning');
+                    }
+                }
+            } else {
+                alert(result.message || 'Erreur lors de la mise à jour');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    /**
+     * Charger le plan de classe dans le modal
+     */
+    loadSeatingPlanInModal(container) {
+        const workspace = container.querySelector('#seating-workspace');
+        const viewer = container.querySelector('#seating-plan-viewer');
+
+        if (!workspace || !viewer) {
+            console.error('[Modal] Workspace ou viewer de plan de classe non trouvé');
+            return;
+        }
+
+        // Appeler la fonction globale loadSeatingPlan si elle existe
+        // mais en modifiant temporairement getElementById pour chercher dans le modal
+        const originalGetElementById = document.getElementById;
+        document.getElementById = function(id) {
+            // Chercher d'abord dans le modal
+            const element = container.querySelector(`#${id}`);
+            if (element) return element;
+            // Sinon chercher dans le document
+            return originalGetElementById.call(document, id);
+        };
+
+        try {
+            if (typeof loadSeatingPlan === 'function') {
+                loadSeatingPlan();
+                // Ajuster l'échelle
+                setTimeout(() => {
+                    if (typeof adjustSeatingScale === 'function') {
+                        adjustSeatingScale();
+                    }
+                }, 150);
+            }
+        } finally {
+            // Restaurer la fonction originale
+            document.getElementById = originalGetElementById;
+        }
     }
 
     /**
@@ -5341,16 +5479,29 @@ class CleanPDFViewer {
         document.body.classList.remove('pdf-viewer-active');
 
         // Restaurer l'overflow original du body et html
+        // Forcer la restauration même si originalBodyOverflow est vide
         if (this.originalBodyOverflow !== undefined) {
             document.body.style.overflow = this.originalBodyOverflow;
             console.log('[PDF Viewer] Body overflow restauré à:', this.originalBodyOverflow || 'vide');
+        } else {
+            // Si pas de valeur sauvegardée, supprimer le style inline pour revenir au CSS
+            document.body.style.overflow = '';
+            console.log('[PDF Viewer] Body overflow supprimé (pas de valeur sauvegardée)');
         }
+
         if (this.originalHtmlOverflow !== undefined) {
             document.documentElement.style.overflow = this.originalHtmlOverflow;
             console.log('[PDF Viewer] HTML overflow restauré à:', this.originalHtmlOverflow || 'vide');
+        } else {
+            document.documentElement.style.overflow = '';
+            console.log('[PDF Viewer] HTML overflow supprimé (pas de valeur sauvegardée)');
         }
+
         // Restaurer le touchAction aussi
         document.body.style.touchAction = '';
+
+        // Forcer un re-flow pour s'assurer que les styles sont appliqués
+        document.body.offsetHeight;
 
         // Nettoyer le DOM
         this.container.innerHTML = '';
