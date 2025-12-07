@@ -1041,6 +1041,13 @@ class CleanPDFViewer {
         // Long press sur miniature avec stylet = menu contextuel
         let longPressTimer = null;
         let longPressTriggered = false;
+        let longPressStartX = 0;
+        let longPressStartY = 0;
+        const MOVE_TOLERANCE = 10; // pixels de tolérance pour le mouvement
+
+        // Désactiver la sélection utilisateur sur les miniatures
+        thumb.style.userSelect = 'none';
+        thumb.style.webkitUserSelect = 'none';
 
         // Clic sur miniature = navigation (sauf si long press a été déclenché)
         thumb.addEventListener('click', (e) => {
@@ -1059,13 +1066,20 @@ class CleanPDFViewer {
         thumb.addEventListener('pointerdown', (e) => {
             // Seulement pour le stylet
             if (e.pointerType === 'pen') {
+                console.log('[LongPress] pointerdown - stylet détecté');
+                e.preventDefault(); // Empêcher la sélection native
                 longPressTriggered = false;
+                longPressStartX = e.clientX;
+                longPressStartY = e.clientY;
+
                 // Sauvegarder la position du pointeur
                 const savedEvent = {
                     clientX: e.clientX,
                     clientY: e.clientY
                 };
+
                 longPressTimer = setTimeout(() => {
+                    console.log('[LongPress] Timer déclenché - affichage menu');
                     longPressTriggered = true;
                     // Vibration haptique si disponible
                     if (navigator.vibrate) {
@@ -1078,6 +1092,7 @@ class CleanPDFViewer {
 
         thumb.addEventListener('pointerup', (e) => {
             if (longPressTimer) {
+                console.log('[LongPress] pointerup - annulation timer');
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
             }
@@ -1086,13 +1101,20 @@ class CleanPDFViewer {
         thumb.addEventListener('pointermove', (e) => {
             // Si le stylet bouge trop, annuler le long press
             if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+                const deltaX = Math.abs(e.clientX - longPressStartX);
+                const deltaY = Math.abs(e.clientY - longPressStartY);
+
+                if (deltaX > MOVE_TOLERANCE || deltaY > MOVE_TOLERANCE) {
+                    console.log(`[LongPress] pointermove - mouvement trop grand (${deltaX}, ${deltaY}) - annulation`);
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
             }
         });
 
         thumb.addEventListener('pointercancel', (e) => {
             if (longPressTimer) {
+                console.log('[LongPress] pointercancel - annulation timer');
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
             }
