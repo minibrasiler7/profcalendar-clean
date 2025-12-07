@@ -3591,11 +3591,17 @@ class CleanPDFViewer {
                         if (workspace && workspace.children.length === 0) {
                             // Le plan n'est pas encore chargé
                             this.loadSeatingPlanInModal(container);
-                        } else {
-                            // Le plan est déjà chargé, juste ajuster l'échelle
-                            if (typeof adjustSeatingScale === 'function') {
-                                adjustSeatingScale();
-                            }
+                        } else if (workspace) {
+                            // Le plan est déjà chargé
+                            // IMPORTANT: Réinitialiser le transform avant de recalculer
+                            workspace.style.transform = 'none';
+
+                            // Attendre un frame pour que le reset soit appliqué
+                            requestAnimationFrame(() => {
+                                if (typeof adjustSeatingScale === 'function') {
+                                    adjustSeatingScale();
+                                }
+                            });
                         }
                     }, 100);
                 }
