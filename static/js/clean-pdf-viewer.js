@@ -877,7 +877,8 @@ class CleanPDFViewer {
 
         this.elements.viewer.addEventListener('pointermove', (e) => {
             // Afficher le curseur pour l'Apple Pencil Pro (hover)
-            if (e.pointerType === 'pen') {
+            // SEULEMENT si on n'est pas en train de dessiner
+            if (e.pointerType === 'pen' && !this.isDrawing) {
                 this.updatePencilCursor(e.clientX, e.clientY, true);
             }
 
@@ -1037,13 +1038,64 @@ class CleanPDFViewer {
         thumb.appendChild(canvas);
         thumb.appendChild(numberLabel);
 
-        // Clic sur miniature = navigation
-        thumb.addEventListener('click', () => this.goToPage(pageId));
+        // Long press sur miniature avec stylet = menu contextuel
+        let longPressTimer = null;
+        let longPressTriggered = false;
+
+        // Clic sur miniature = navigation (sauf si long press a été déclenché)
+        thumb.addEventListener('click', (e) => {
+            if (!longPressTriggered) {
+                this.goToPage(pageId);
+            }
+            longPressTriggered = false; // Reset pour le prochain clic
+        });
 
         // Clic droit sur miniature = menu contextuel
         thumb.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             this.showPageContextMenu(e, pageId, pageNumber);
+        });
+
+        thumb.addEventListener('pointerdown', (e) => {
+            // Seulement pour le stylet
+            if (e.pointerType === 'pen') {
+                longPressTriggered = false;
+                // Sauvegarder la position du pointeur
+                const savedEvent = {
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                };
+                longPressTimer = setTimeout(() => {
+                    longPressTriggered = true;
+                    // Vibration haptique si disponible
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                    this.showPageContextMenu(savedEvent, pageId, pageNumber);
+                }, 500); // 500ms pour le long press
+            }
+        });
+
+        thumb.addEventListener('pointerup', (e) => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+
+        thumb.addEventListener('pointermove', (e) => {
+            // Si le stylet bouge trop, annuler le long press
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+
+        thumb.addEventListener('pointercancel', (e) => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
         });
 
         // Rendre la miniature
