@@ -3648,7 +3648,7 @@ class CleanPDFViewer {
         });
 
         try {
-            const response = await fetch('/planning/update_attendance', {
+            const response = await fetch('/planning/update-attendance', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
