@@ -177,6 +177,9 @@ class CleanPDFViewer {
                         <button class="btn-tool" data-tool="grid" title="Grille">
                             <i class="fas fa-border-all"></i>
                         </button>
+                        <button class="btn-tool" data-tool="set-square" title="Équerre">
+                            <i class="fas fa-drafting-compass"></i>
+                        </button>
                         <div class="separator"></div>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
                             <i class="fas fa-users"></i>
@@ -2629,7 +2632,18 @@ class CleanPDFViewer {
             return;
         }
 
-        this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
+        // Appliquer l'aimantation à l'équerre si active
+        let finalX = x;
+        let finalY = y;
+        if (this.currentTool === 'pen' || this.currentTool === 'ruler') {
+            const snapped = this.snapToSetSquare(e.clientX, e.clientY, canvas);
+            if (snapped) {
+                finalX = snapped.x;
+                finalY = snapped.y;
+            }
+        }
+
+        this.currentStroke.points.push({x: finalX, y: finalY, pressure: e.pressure || 0.5});
 
         // Redessiner le preview
         this.drawStrokePreview(canvas, this.currentStroke, pageId);
@@ -3449,6 +3463,10 @@ class CleanPDFViewer {
             // Revenir à l'outil précédent
             this.setTool('pen');
             return;
+        } else if (tool === 'set-square') {
+            // Afficher l'équerre
+            this.showSetSquare();
+            this.currentOpacity = 1.0;
         } else if (tool === 'grid') {
             // L'utilisateur doit taper sur la page pour toggle la grille
             // (géré dans startAnnotation)
@@ -3466,6 +3484,8 @@ class CleanPDFViewer {
                 });
                 this.container.querySelector('.custom-color-wrapper').classList.remove('active');
             }
+            // Masquer l'équerre si on change d'outil
+            this.hideSetSquare();
         }
     }
 
@@ -5633,6 +5653,303 @@ class CleanPDFViewer {
                 console.error('[Close] Erreur dans onClose:', e);
             }
         }
+    }
+
+    /**
+     * Afficher l'équerre (set square)
+     */
+    showSetSquare() {
+        console.log('[SetSquare] Affichage de l\'équerre');
+
+        // Vérifier si l'équerre existe déjà
+        let setSquare = this.container.querySelector('.set-square-overlay');
+
+        if (!setSquare) {
+            // Calculer les dimensions de l'équerre
+            // L'hypothénuse doit faire 2/3 de la largeur du PDF
+            const pdfPage = this.container.querySelector('.pdf-page');
+            if (!pdfPage) {
+                console.error('[SetSquare] Page PDF non trouvée');
+                return;
+            }
+
+            const pdfWidth = pdfPage.offsetWidth;
+            const hypotenuse = (pdfWidth * 2) / 3;
+            // Pour un triangle 45-45-90, les deux côtés égaux = hypotenuse / √2
+            const side = hypotenuse / Math.sqrt(2);
+
+            // Créer l'overlay SVG
+            setSquare = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            setSquare.classList.add('set-square-overlay');
+            setSquare.setAttribute('width', hypotenuse + 100); // +100 pour les marges des annotations
+            setSquare.setAttribute('height', side + 100);
+            setSquare.style.position = 'absolute';
+            setSquare.style.pointerEvents = 'auto';
+            setSquare.style.zIndex = '10000';
+            setSquare.style.opacity = '0.5';
+
+            // Positionner au centre du viewer
+            const viewer = this.elements.viewer;
+            const viewerRect = viewer.getBoundingClientRect();
+            const centerX = viewerRect.width / 2 - hypotenuse / 2;
+            const centerY = viewerRect.height / 2 - side / 2;
+            setSquare.style.left = centerX + 'px';
+            setSquare.style.top = centerY + viewer.scrollTop + 'px';
+
+            // Créer le groupe principal qui sera transformé
+            const mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            mainGroup.setAttribute('id', 'set-square-main-group');
+            mainGroup.setAttribute('transform', 'translate(50, 50)'); // Décalage pour les marges
+
+            // Dessiner le triangle 45-45-90
+            const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            triangle.setAttribute('points', `0,${side} ${side},${side} ${side},0`);
+            triangle.setAttribute('fill', 'rgba(200, 200, 200, 0.3)');
+            triangle.setAttribute('stroke', '#333');
+            triangle.setAttribute('stroke-width', '2');
+            mainGroup.appendChild(triangle);
+
+            // Ajouter les graduations du rapporteur tous les 5°
+            // Le rapporteur est sur l'hypothénuse (angle de 45° de chaque côté)
+            for (let angle = 0; angle <= 90; angle += 5) {
+                const rad = (angle * Math.PI) / 180;
+                const innerRadius = side * 0.85;
+                const outerRadius = side * 0.95;
+
+                // Point de départ de la ligne (depuis le coin à 90°)
+                const x1 = side - innerRadius * Math.cos(rad);
+                const y1 = side - innerRadius * Math.sin(rad);
+                const x2 = side - outerRadius * Math.cos(rad);
+                const y2 = side - outerRadius * Math.sin(rad);
+
+                const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                tick.setAttribute('x1', x1);
+                tick.setAttribute('y1', y1);
+                tick.setAttribute('x2', x2);
+                tick.setAttribute('y2', y2);
+                tick.setAttribute('stroke', '#333');
+                tick.setAttribute('stroke-width', angle % 10 === 0 ? '2' : '1');
+                mainGroup.appendChild(tick);
+
+                // Ajouter les nombres tous les 10°
+                if (angle % 10 === 0) {
+                    const textRadius = side * 0.75;
+                    const textX = side - textRadius * Math.cos(rad);
+                    const textY = side - textRadius * Math.sin(rad);
+
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', textX);
+                    text.setAttribute('y', textY);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('fill', '#333');
+                    text.setAttribute('font-size', '12');
+                    text.setAttribute('font-weight', 'bold');
+                    text.textContent = angle + '°';
+                    mainGroup.appendChild(text);
+                }
+            }
+
+            setSquare.appendChild(mainGroup);
+
+            // Ajouter au viewer
+            this.elements.viewer.appendChild(setSquare);
+
+            // Initialiser les variables de transformation
+            this.setSquareTransform = {
+                x: 0,
+                y: 0,
+                rotation: 0,
+                scale: 1
+            };
+
+            // Ajouter les gestionnaires de gestes tactiles
+            this.attachSetSquareGestures(setSquare, mainGroup);
+        } else {
+            // Si l'équerre existe déjà, simplement l'afficher
+            setSquare.style.display = 'block';
+        }
+    }
+
+    /**
+     * Masquer l'équerre
+     */
+    hideSetSquare() {
+        const setSquare = this.container.querySelector('.set-square-overlay');
+        if (setSquare) {
+            setSquare.style.display = 'none';
+            console.log('[SetSquare] Équerre masquée');
+        }
+    }
+
+    /**
+     * Calculer l'aimantation au bord de l'équerre
+     * @param {number} clientX - Position X du pointeur en coordonnées client
+     * @param {number} clientY - Position Y du pointeur en coordonnées client
+     * @param {HTMLCanvasElement} canvas - Canvas de dessin
+     * @returns {Object|null} - Nouvelles coordonnées {x, y} dans le canvas si aimantation, null sinon
+     */
+    snapToSetSquare(clientX, clientY, canvas) {
+        const setSquare = this.container.querySelector('.set-square-overlay');
+        if (!setSquare || setSquare.style.display === 'none') {
+            return null;
+        }
+
+        const SNAP_THRESHOLD = 20; // Distance en pixels pour l'aimantation
+
+        // Obtenir les coordonnées dans le référentiel du canvas
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / canvasRect.width;
+        const scaleY = canvas.height / canvasRect.height;
+        const canvasX = (clientX - canvasRect.left) * scaleX;
+        const canvasY = (clientY - canvasRect.top) * scaleY;
+
+        // Obtenir les 3 bords du triangle (en coordonnées écran)
+        const pdfPage = this.container.querySelector('.pdf-page');
+        if (!pdfPage) return null;
+
+        const pdfWidth = pdfPage.offsetWidth;
+        const hypotenuse = (pdfWidth * 2) / 3;
+        const side = hypotenuse / Math.sqrt(2);
+
+        // Position et transformation de l'équerre
+        const svgRect = setSquare.getBoundingClientRect();
+        const mainGroup = setSquare.querySelector('#set-square-main-group');
+        if (!mainGroup) return null;
+
+        // Extraire la transformation du groupe
+        const transform = this.setSquareTransform || {x: 0, y: 0, rotation: 0, scale: 1};
+        const rotation = (transform.rotation * Math.PI) / 180;
+
+        // Les 3 sommets du triangle dans le référentiel local (avant transformation)
+        const localVertices = [
+            {x: 0, y: side},           // Sommet inférieur gauche
+            {x: side, y: side},        // Sommet inférieur droit (angle droit)
+            {x: side, y: 0}            // Sommet supérieur droit
+        ];
+
+        // Transformer les sommets selon la rotation et translation
+        const transformedVertices = localVertices.map(v => {
+            // Rotation autour de l'origine
+            const rotatedX = v.x * Math.cos(rotation) - v.y * Math.sin(rotation);
+            const rotatedY = v.x * Math.sin(rotation) + v.y * Math.cos(rotation);
+            // Translation
+            return {
+                x: svgRect.left + rotatedX + transform.x + 50, // +50 pour le translate du groupe
+                y: svgRect.top + rotatedY + transform.y + 50
+            };
+        });
+
+        // Les 3 bords du triangle
+        const edges = [
+            [transformedVertices[0], transformedVertices[1]], // Bord horizontal (base)
+            [transformedVertices[1], transformedVertices[2]], // Bord vertical (côté droit)
+            [transformedVertices[2], transformedVertices[0]]  // Hypothénuse
+        ];
+
+        // Vérifier la distance à chaque bord
+        let closestPoint = null;
+        let minDistance = SNAP_THRESHOLD;
+
+        for (const [p1, p2] of edges) {
+            // Calculer la distance du point au segment
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const lengthSq = dx * dx + dy * dy;
+
+            if (lengthSq === 0) continue; // Points identiques
+
+            // Paramètre t du point le plus proche sur le segment
+            let t = ((clientX - p1.x) * dx + (clientY - p1.y) * dy) / lengthSq;
+            t = Math.max(0, Math.min(1, t)); // Clamper à [0, 1]
+
+            // Point le plus proche sur le segment
+            const nearestX = p1.x + t * dx;
+            const nearestY = p1.y + t * dy;
+
+            // Distance au point
+            const distance = Math.sqrt((clientX - nearestX) ** 2 + (clientY - nearestY) ** 2);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                // Convertir en coordonnées canvas
+                closestPoint = {
+                    x: (nearestX - canvasRect.left) * scaleX,
+                    y: (nearestY - canvasRect.top) * scaleY
+                };
+            }
+        }
+
+        return closestPoint;
+    }
+
+    /**
+     * Attacher les gestionnaires de gestes pour l'équerre
+     */
+    attachSetSquareGestures(svgElement, mainGroup) {
+        let pointers = new Map(); // Stocker les pointeurs actifs
+        let initialDistance = 0;
+        let initialRotation = 0;
+        let initialAngle = 0;
+
+        const updateTransform = () => {
+            const transform = `translate(${this.setSquareTransform.x + 50}, ${this.setSquareTransform.y + 50}) rotate(${this.setSquareTransform.rotation}) scale(${this.setSquareTransform.scale})`;
+            mainGroup.setAttribute('transform', transform);
+        };
+
+        svgElement.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+            svgElement.setPointerCapture(e.pointerId);
+
+            if (pointers.size === 2) {
+                // Deux doigts - préparer la rotation
+                const pts = Array.from(pointers.values());
+                const dx = pts[1].x - pts[0].x;
+                const dy = pts[1].y - pts[0].y;
+                initialDistance = Math.sqrt(dx * dx + dy * dy);
+                initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                initialRotation = this.setSquareTransform.rotation;
+            }
+        });
+
+        svgElement.addEventListener('pointermove', (e) => {
+            if (!pointers.has(e.pointerId)) return;
+
+            e.stopPropagation();
+            e.preventDefault();
+
+            pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+            if (pointers.size === 1) {
+                // Un doigt - translation
+                const pointer = pointers.get(e.pointerId);
+                const prevPointer = {x: e.clientX - e.movementX, y: e.clientY - e.movementY};
+
+                this.setSquareTransform.x += e.movementX;
+                this.setSquareTransform.y += e.movementY;
+                updateTransform();
+            } else if (pointers.size === 2) {
+                // Deux doigts - rotation
+                const pts = Array.from(pointers.values());
+                const dx = pts[1].x - pts[0].x;
+                const dy = pts[1].y - pts[0].y;
+                const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                this.setSquareTransform.rotation = initialRotation + (currentAngle - initialAngle);
+                updateTransform();
+            }
+        });
+
+        svgElement.addEventListener('pointerup', (e) => {
+            pointers.delete(e.pointerId);
+            svgElement.releasePointerCapture(e.pointerId);
+        });
+
+        svgElement.addEventListener('pointercancel', (e) => {
+            pointers.delete(e.pointerId);
+        });
     }
 }
 
