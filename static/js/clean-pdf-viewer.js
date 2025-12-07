@@ -3528,6 +3528,9 @@ class CleanPDFViewer {
 
         if (attendanceSection && modalBody) {
             modalBody.innerHTML = attendanceSection.innerHTML;
+
+            // Réattacher les événements pour les interactions
+            this.attachAttendanceEventHandlers(modalBody);
         }
 
         // Afficher le modal
@@ -3535,6 +3538,231 @@ class CleanPDFViewer {
 
         // Stocker la référence pour fermeture
         window.cleanPDFViewer = this;
+    }
+
+    /**
+     * Attacher les gestionnaires d'événements pour le suivi des élèves dans le modal
+     */
+    attachAttendanceEventHandlers(container) {
+        // Récupérer les données de la leçon depuis les variables globales
+        const classroomId = window.classroomId;
+        const lessonDate = window.lessonDate;
+        const periodNumber = window.periodNumber;
+
+        // Gestionnaire pour toggle présent/absent
+        container.querySelectorAll('.student-info').forEach(studentInfo => {
+            const studentElement = studentInfo.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            studentInfo.onclick = async (e) => {
+                e.preventDefault();
+                await this.toggleAttendanceStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        // Gestionnaire pour le bouton retard
+        container.querySelectorAll('.btn-late').forEach(btn => {
+            const studentElement = btn.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        // Gestionnaire pour Enter sur les champs de minutes
+        container.querySelectorAll('.late-minutes').forEach(input => {
+            input.addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const studentElement = input.closest('.student-attendance');
+                    const studentId = parseInt(studentElement.dataset.studentId);
+                    await this.setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+                }
+            });
+        });
+    }
+
+    /**
+     * Basculer entre présent/absent
+     */
+    async toggleAttendanceStatus(studentId, studentElement, classroomId, lessonDate, periodNumber) {
+        const currentStatus = studentElement.dataset.status;
+        let newStatus;
+
+        // Cycle: present -> absent -> present (ignorer late dans le cycle)
+        if (currentStatus === 'present' || currentStatus === 'late') {
+            newStatus = 'absent';
+        } else {
+            newStatus = 'present';
+        }
+
+        // Réinitialiser le champ de retard
+        const lateInput = studentElement.querySelector('.late-minutes');
+        if (lateInput) lateInput.value = '';
+
+        await this.updateAttendanceStatus(studentId, newStatus, null, studentElement, classroomId, lessonDate, periodNumber);
+    }
+
+    /**
+     * Marquer un élève en retard (toggle)
+     */
+    async setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber) {
+        const lateInput = studentElement.querySelector('.late-minutes');
+
+        // Vérifier le statut actuel de l'élève
+        const isCurrentlyLate = studentElement.classList.contains('late');
+
+        if (isCurrentlyLate) {
+            // Si déjà en retard, remettre présent
+            await this.updateAttendanceStatus(studentId, 'present', null, studentElement, classroomId, lessonDate, periodNumber);
+        } else {
+            // Sinon, marquer en retard
+            const minutes = lateInput ? lateInput.value : '';
+
+            if (!minutes || minutes <= 0) {
+                alert('Veuillez entrer le nombre de minutes de retard');
+                if (lateInput) lateInput.focus();
+                return;
+            }
+
+            await this.updateAttendanceStatus(studentId, 'late', parseInt(minutes), studentElement, classroomId, lessonDate, periodNumber);
+        }
+    }
+
+    /**
+     * Envoyer la mise à jour au serveur et mettre à jour l'interface
+     */
+    async updateAttendanceStatus(studentId, status, lateMinutes, studentElement, classroomId, lessonDate, periodNumber) {
+        try {
+            const response = await fetch('/planning/update_attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    classroom_id: classroomId,
+                    date: lessonDate,
+                    period_number: periodNumber,
+                    status: status,
+                    late_minutes: lateMinutes
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Mettre à jour l'interface dans le modal
+                const lateInput = studentElement.querySelector('.late-minutes');
+
+                // Retirer toutes les classes de statut
+                studentElement.classList.remove('present', 'absent', 'late');
+
+                // Ajouter la nouvelle classe
+                studentElement.classList.add(status);
+                studentElement.dataset.status = status;
+
+                // Si ce n'est pas un retard, vider le champ
+                if (status !== 'late' && lateInput) {
+                    lateInput.value = '';
+                } else if (status === 'late' && lateInput) {
+                    lateInput.value = lateMinutes;
+                }
+
+                // Mettre à jour l'apparence du bouton retard
+                this.updateAttendanceButton(studentElement);
+
+                // Mettre à jour les statistiques dans le modal
+                this.updateAttendanceStats();
+
+                // Afficher une animation visuelle
+                this.showQuickNotification(studentElement, status);
+
+                // Mettre à jour aussi l'élément dans la page principale si elle existe
+                const mainElement = document.querySelector(`.attendance-section .student-attendance[data-student-id="${studentId}"]`);
+                if (mainElement) {
+                    mainElement.classList.remove('present', 'absent', 'late');
+                    mainElement.classList.add(status);
+                    mainElement.dataset.status = status;
+
+                    const mainLateInput = mainElement.querySelector('.late-minutes');
+                    if (status !== 'late' && mainLateInput) {
+                        mainLateInput.value = '';
+                    } else if (status === 'late' && mainLateInput) {
+                        mainLateInput.value = lateMinutes;
+                    }
+
+                    // Mettre à jour les stats dans la page principale
+                    if (typeof updateStats === 'function') {
+                        updateStats();
+                    }
+                }
+
+            } else {
+                alert('Erreur lors de la mise à jour de la présence');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    /**
+     * Mettre à jour l'apparence du bouton retard selon le statut
+     */
+    updateAttendanceButton(studentElement) {
+        const lateButton = studentElement.querySelector('.btn-late');
+        if (!lateButton) return;
+
+        if (studentElement.classList.contains('late')) {
+            // Élève en retard - bouton pour remettre présent
+            lateButton.title = 'Remettre présent';
+            lateButton.innerHTML = '<i class="fas fa-undo"></i>';
+        } else {
+            // Élève présent ou absent - bouton pour marquer en retard
+            lateButton.title = 'Marquer en retard';
+            lateButton.innerHTML = '<i class="fas fa-clock"></i>';
+        }
+    }
+
+    /**
+     * Mettre à jour les statistiques d'attendance dans le modal
+     */
+    updateAttendanceStats() {
+        const modal = document.getElementById('class-management-modal');
+        if (!modal) return;
+
+        let present = 0;
+        let absent = 0;
+        let late = 0;
+
+        modal.querySelectorAll('.student-attendance').forEach(student => {
+            const status = student.dataset.status;
+            if (status === 'present') present++;
+            else if (status === 'absent') absent++;
+            else if (status === 'late') late++;
+        });
+
+        const presentCount = modal.querySelector('#presentCount');
+        const absentCount = modal.querySelector('#absentCount');
+        const lateCount = modal.querySelector('#lateCount');
+
+        if (presentCount) presentCount.textContent = present;
+        if (absentCount) absentCount.textContent = absent;
+        if (lateCount) lateCount.textContent = late;
+    }
+
+    /**
+     * Afficher une notification visuelle rapide
+     */
+    showQuickNotification(element, status) {
+        element.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 200);
     }
 
     /**
