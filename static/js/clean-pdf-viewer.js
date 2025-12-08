@@ -3445,11 +3445,32 @@ class CleanPDFViewer {
      */
     setTool(tool) {
         console.log('[Tool] setTool appelé avec:', tool);
+
+        // Cas spécial : l'équerre est un toggle qui ne change pas l'outil actif
+        if (tool === 'set-square') {
+            const setSquare = document.querySelector('.set-square-overlay');
+            const btn = this.container.querySelector('.btn-tool[data-tool="set-square"]');
+
+            if (setSquare && setSquare.style.display !== 'none') {
+                // Équerre déjà affichée, la masquer
+                this.hideSetSquare();
+                if (btn) btn.classList.remove('active');
+            } else {
+                // Afficher l'équerre
+                this.showSetSquare();
+                if (btn) btn.classList.add('active');
+            }
+            return; // Ne pas changer l'outil actif
+        }
+
+        // Pour tous les autres outils
         this.currentTool = tool;
 
-        // Mettre à jour l'UI
+        // Mettre à jour l'UI (sauf pour set-square qui garde son état)
         this.container.querySelectorAll('.btn-tool').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tool === tool);
+            if (btn.dataset.tool !== 'set-square') {
+                btn.classList.toggle('active', btn.dataset.tool === tool);
+            }
         });
 
         // Adapter les paramètres selon l'outil
@@ -3463,19 +3484,6 @@ class CleanPDFViewer {
             // Revenir à l'outil précédent
             this.setTool('pen');
             return;
-        } else if (tool === 'set-square') {
-            // Toggle l'équerre si on clique à nouveau
-            const setSquare = document.querySelector('.set-square-overlay');
-            if (setSquare && setSquare.style.display !== 'none') {
-                // Équerre déjà affichée, la masquer et revenir au stylo
-                this.hideSetSquare();
-                this.setTool('pen');
-                return;
-            } else {
-                // Afficher l'équerre
-                this.showSetSquare();
-                this.currentOpacity = 1.0;
-            }
         } else if (tool === 'grid') {
             // L'utilisateur doit taper sur la page pour toggle la grille
             // (géré dans startAnnotation)
@@ -3493,8 +3501,6 @@ class CleanPDFViewer {
                 });
                 this.container.querySelector('.custom-color-wrapper').classList.remove('active');
             }
-            // Masquer l'équerre si on change d'outil
-            this.hideSetSquare();
         }
     }
 
