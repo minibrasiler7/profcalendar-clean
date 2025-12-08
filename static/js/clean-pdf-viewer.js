@@ -5725,8 +5725,8 @@ class CleanPDFViewer {
             setSquare.setAttribute('width', svgSize);
             setSquare.setAttribute('height', svgSize);
             setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
-            setSquare.style.pointerEvents = 'none'; // Le SVG lui-même ne capte rien
-            setSquare.style.zIndex = '10000'; // AU-DESSUS du canvas pour être visible
+            setSquare.style.pointerEvents = 'none'; // Le SVG ne capte aucun événement
+            setSquare.style.zIndex = '1'; // EN DESSOUS du canvas (canvas z-index: 2) pour ne JAMAIS bloquer le stylet
 
             // Positionner au centre du viewer
             const viewer = this.elements.viewer;
@@ -6038,20 +6038,51 @@ class CleanPDFViewer {
 
             // Ignorer le stylet - le stylet ne doit JAMAIS être capturé
             if (e.pointerType === 'pen') {
-                console.log('[SetSquare] Stylet détecté - laisser passer');
                 return;
             }
 
-            // Pour les doigts, vérifier si on est sur le triangle
+            // Pour les doigts, vérifier si on est sur le triangle géométriquement
             if (e.pointerType === 'touch') {
-                // Activer temporairement pointer-events pour détecter
-                triangleElement.style.pointerEvents = 'auto';
-                const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-                triangleElement.style.pointerEvents = 'none';
+                // Fonction pour vérifier si un point est dans le triangle
+                const isPointInTriangle = (px, py) => {
+                    // Récupérer les coordonnées transformées du triangle
+                    const screenCTM = triangleElement.getScreenCTM();
+                    if (!screenCTM) return false;
 
-                // Si on a touché le triangle
-                if (elementAtPoint === triangleElement || elementAtPoint?.id === 'set-square-triangle') {
-                    console.log('[SetSquare] Touch sur triangle - activer manipulation');
+                    const side = this.setSquareTransform.side;
+                    const vertices = [
+                        {x: 0, y: side},
+                        {x: side, y: side},
+                        {x: side, y: 0}
+                    ];
+
+                    // Transformer en coordonnées écran
+                    const screenVertices = vertices.map(v => {
+                        const point = svgElement.createSVGPoint();
+                        point.x = v.x;
+                        point.y = v.y;
+                        const transformed = point.matrixTransform(screenCTM);
+                        return {x: transformed.x, y: transformed.y};
+                    });
+
+                    // Test point-in-triangle
+                    const sign = (p1, p2, p3) => {
+                        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+                    };
+
+                    const d1 = sign({x: px, y: py}, screenVertices[0], screenVertices[1]);
+                    const d2 = sign({x: px, y: py}, screenVertices[1], screenVertices[2]);
+                    const d3 = sign({x: px, y: py}, screenVertices[2], screenVertices[0]);
+
+                    const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+                    const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+                    return !(hasNeg && hasPos);
+                };
+
+                // Vérifier si le touch est dans le triangle
+                if (isPointInTriangle(e.clientX, e.clientY)) {
+                    console.log('[SetSquare] Touch dans triangle - activer manipulation');
                     e.stopPropagation();
                     e.preventDefault();
 
