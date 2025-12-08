@@ -5808,15 +5808,31 @@ class CleanPDFViewer {
             document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false });
         }
 
-        // Créer un nouveau handler qui bloque TOUS les touches quand équerre active
-        // Les touches ne doivent RIEN faire - ni scroll, ni zoom, ni bouger l'équerre
-        // Seuls les événements pointer sur le triangle permettent de manipuler l'équerre
+        // Créer un nouveau handler qui bloque les touches sur le viewer SAUF boutons et équerre
         this.globalTouchBlockHandler = (e) => {
             // Vérifier si l'équerre est toujours active
             if (this.setSquareActive) {
-                console.log('[SetSquare Global] ✋ Blocage TOTAL touch - équerre active');
+                const target = e.target;
+
+                // NE PAS bloquer les touches sur:
+                // - Les boutons de la toolbar
+                // - L'équerre elle-même (gérée par les listeners pointer)
+                if (target && (
+                    target.closest('.toolbar') ||
+                    target.closest('.btn-tool') ||
+                    target.closest('button') ||
+                    target.tagName === 'BUTTON' ||
+                    target.classList.contains('btn-tool') ||
+                    target.closest('.set-square-overlay')
+                )) {
+                    console.log('[SetSquare Global] ✓ Touch autorisé sur:', target.className || target.tagName);
+                    return; // Laisser passer
+                }
+
+                // Bloquer tout le reste (scroll/zoom sur le viewer)
+                console.log('[SetSquare Global] ✋ Blocage touch sur viewer');
                 e.preventDefault();
-                e.stopPropagation();
+                // NE PAS stopPropagation - laisser les événements se propager pour les autres handlers
             }
         };
 
