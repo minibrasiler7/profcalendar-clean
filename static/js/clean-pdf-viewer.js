@@ -5700,9 +5700,8 @@ class CleanPDFViewer {
             setSquare.setAttribute('width', svgSize);
             setSquare.setAttribute('height', svgSize);
             setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
-            setSquare.style.pointerEvents = 'auto';
+            setSquare.style.pointerEvents = 'none'; // Par défaut, laisser passer les événements
             setSquare.style.zIndex = '10000';
-            setSquare.style.touchAction = 'none'; // Bloquer le scroll natif sur l'équerre
 
             // Positionner au centre du viewer
             const viewer = this.elements.viewer;
@@ -5727,6 +5726,8 @@ class CleanPDFViewer {
             triangle.setAttribute('fill', 'rgba(128, 128, 128, 0.5)'); // Gris semi-transparent
             triangle.setAttribute('stroke', 'rgba(64, 64, 64, 0.8)');
             triangle.setAttribute('stroke-width', '2');
+            triangle.style.pointerEvents = 'auto'; // Seulement le triangle capte les événements touch
+            triangle.style.touchAction = 'none'; // Bloquer le scroll sur le triangle
             mainGroup.appendChild(triangle);
 
             setSquare.appendChild(mainGroup);
@@ -5753,8 +5754,8 @@ class CleanPDFViewer {
                 side: side
             };
 
-            // Ajouter les gestionnaires de gestes tactiles
-            this.attachSetSquareGestures(setSquare, mainGroup);
+            // Ajouter les gestionnaires de gestes tactiles au triangle
+            this.attachSetSquareGestures(setSquare, mainGroup, triangle);
         } else {
             // Si l'équerre existe déjà, simplement l'afficher
             setSquare.style.display = 'block';
@@ -5876,7 +5877,7 @@ class CleanPDFViewer {
     /**
      * Attacher les gestionnaires de gestes pour l'équerre
      */
-    attachSetSquareGestures(svgElement, mainGroup) {
+    attachSetSquareGestures(svgElement, mainGroup, triangleElement) {
         let pointers = new Map(); // Stocker les pointeurs actifs (seulement touch, pas pen)
         let initialDistance = 0;
         let initialRotation = 0;
@@ -5893,7 +5894,8 @@ class CleanPDFViewer {
             mainGroup.setAttribute('transform', transform);
         };
 
-        svgElement.addEventListener('pointerdown', (e) => {
+        // Attacher les événements au triangle seulement
+        triangleElement.addEventListener('pointerdown', (e) => {
             // Ignorer le stylet - le stylet sert uniquement à dessiner
             if (e.pointerType === 'pen') {
                 console.log('[SetSquare] Stylet ignoré - laisser passer pour dessiner');
@@ -5906,7 +5908,7 @@ class CleanPDFViewer {
                 e.preventDefault();
 
                 pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
-                svgElement.setPointerCapture(e.pointerId);
+                triangleElement.setPointerCapture(e.pointerId);
 
                 if (pointers.size === 2) {
                     // Deux doigts - préparer la rotation
@@ -5921,7 +5923,7 @@ class CleanPDFViewer {
             }
         });
 
-        svgElement.addEventListener('pointermove', (e) => {
+        triangleElement.addEventListener('pointermove', (e) => {
             // Ignorer le stylet
             if (e.pointerType === 'pen') {
                 return;
@@ -5958,16 +5960,16 @@ class CleanPDFViewer {
             }
         });
 
-        svgElement.addEventListener('pointerup', (e) => {
+        triangleElement.addEventListener('pointerup', (e) => {
             if (e.pointerType === 'pen') return;
 
             pointers.delete(e.pointerId);
-            if (svgElement.hasPointerCapture(e.pointerId)) {
-                svgElement.releasePointerCapture(e.pointerId);
+            if (triangleElement.hasPointerCapture(e.pointerId)) {
+                triangleElement.releasePointerCapture(e.pointerId);
             }
         });
 
-        svgElement.addEventListener('pointercancel', (e) => {
+        triangleElement.addEventListener('pointercancel', (e) => {
             if (e.pointerType === 'pen') return;
             pointers.delete(e.pointerId);
         });
