@@ -5856,12 +5856,30 @@ class CleanPDFViewer {
         // Marquer l'équerre comme inactive
         this.setSquareActive = false;
 
-        // Retirer les gestionnaires globaux de blocage
+        // Retirer les gestionnaires globaux de blocage touch
         if (this.globalTouchBlockHandler) {
             document.removeEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
             document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
             this.globalTouchBlockHandler = null;
             console.log('[SetSquare] Gestionnaires globaux de blocage retirés');
+        }
+
+        // Retirer les gestionnaires pointer de l'équerre
+        if (this.setSquarePointerDownHandler) {
+            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler, { capture: true });
+            this.setSquarePointerDownHandler = null;
+        }
+        if (this.setSquarePointerMoveHandler) {
+            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler, { capture: true });
+            this.setSquarePointerMoveHandler = null;
+        }
+        if (this.setSquarePointerUpHandler) {
+            document.removeEventListener('pointerup', this.setSquarePointerUpHandler, { capture: true });
+            this.setSquarePointerUpHandler = null;
+        }
+        if (this.setSquarePointerCancelHandler) {
+            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler, { capture: true });
+            this.setSquarePointerCancelHandler = null;
         }
 
         console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
@@ -6014,9 +6032,13 @@ class CleanPDFViewer {
 
         // Écouter au niveau du document pour détecter les touches sur le triangle
         // Le triangle a pointer-events: none donc on doit activer dynamiquement
-        document.addEventListener('pointerdown', (e) => {
+        const handlePointerDown = (e) => {
+            // IMPORTANT: Ne traiter QUE si l'équerre est active
+            if (!this.setSquareActive) return;
+
             // Ignorer le stylet - le stylet ne doit JAMAIS être capturé
             if (e.pointerType === 'pen') {
+                console.log('[SetSquare] Stylet détecté - laisser passer');
                 return;
             }
 
@@ -6047,9 +6069,12 @@ class CleanPDFViewer {
                     }
                 }
             }
-        }, { capture: true });
+        };
+        document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+        this.setSquarePointerDownHandler = handlePointerDown;
 
-        document.addEventListener('pointermove', (e) => {
+        const handlePointerMove = (e) => {
+            if (!this.setSquareActive) return;
             if (e.pointerType === 'pen') return;
             if (!pointers.has(e.pointerId)) return;
 
@@ -6080,21 +6105,29 @@ class CleanPDFViewer {
                 console.log('[SetSquare] Rotation:', this.setSquareTransform.rotation);
                 updateTransform();
             }
-        }, { capture: true });
+        };
+        document.addEventListener('pointermove', handlePointerMove, { capture: true });
+        this.setSquarePointerMoveHandler = handlePointerMove;
 
-        document.addEventListener('pointerup', (e) => {
+        const handlePointerUp = (e) => {
+            if (!this.setSquareActive) return;
             if (e.pointerType === 'pen') return;
             if (pointers.has(e.pointerId)) {
                 pointers.delete(e.pointerId);
             }
-        }, { capture: true });
+        };
+        document.addEventListener('pointerup', handlePointerUp, { capture: true });
+        this.setSquarePointerUpHandler = handlePointerUp;
 
-        document.addEventListener('pointercancel', (e) => {
+        const handlePointerCancel = (e) => {
+            if (!this.setSquareActive) return;
             if (e.pointerType === 'pen') return;
             if (pointers.has(e.pointerId)) {
                 pointers.delete(e.pointerId);
             }
-        }, { capture: true });
+        };
+        document.addEventListener('pointercancel', handlePointerCancel, { capture: true });
+        this.setSquarePointerCancelHandler = handlePointerCancel;
     }
 }
 
