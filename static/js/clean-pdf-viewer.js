@@ -83,6 +83,9 @@ class CleanPDFViewer {
         // Outils d'annotation
         this.annotationTools = null;
 
+        // État de l'équerre
+        this.setSquareActive = false;
+
         // Initialiser
         this.init();
     }
@@ -1175,9 +1178,17 @@ class CleanPDFViewer {
                     console.log('[Viewer NEW] ERREUR: Aucun canvas trouvé à cette position');
                 }
             } else if (e.pointerType === 'touch') {
-                console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
-                this.isAnnotating = false;
-                // NE RIEN FAIRE - laisser le scroll natif fonctionner
+                // Si l'équerre est active, bloquer le scroll/zoom des doigts
+                if (this.setSquareActive) {
+                    console.log('[Viewer NEW] Touch détecté - BLOQUÉ car équerre active');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.isAnnotating = false;
+                } else {
+                    console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
+                    this.isAnnotating = false;
+                    // NE RIEN FAIRE - laisser le scroll natif fonctionner
+                }
             }
         }, { passive: false });
 
@@ -2635,11 +2646,12 @@ class CleanPDFViewer {
         // Appliquer l'aimantation à l'équerre si active
         let finalX = x;
         let finalY = y;
-        if (this.currentTool === 'pen' || this.currentTool === 'ruler') {
+        if (this.setSquareActive && (this.currentTool === 'pen' || this.currentTool === 'ruler')) {
             const snapped = this.snapToSetSquare(e.clientX, e.clientY, canvas);
             if (snapped) {
                 finalX = snapped.x;
                 finalY = snapped.y;
+                console.log('[Snap] Point aimanté de', x.toFixed(1), y.toFixed(1), 'à', finalX.toFixed(1), finalY.toFixed(1));
             }
         }
 
@@ -5576,6 +5588,9 @@ class CleanPDFViewer {
     async close() {
         console.log('[Close] Fermeture du viewer PDF...');
 
+        // Masquer l'équerre si elle est affichée
+        this.hideSetSquare();
+
         // Sauvegarder avant de fermer
         if (this.isDirty) {
             try {
@@ -5760,6 +5775,10 @@ class CleanPDFViewer {
             // Si l'équerre existe déjà, simplement l'afficher
             setSquare.style.display = 'block';
         }
+
+        // Marquer l'équerre comme active
+        this.setSquareActive = true;
+        console.log('[SetSquare] Équerre activée - scroll/zoom doigts bloqués');
     }
 
     /**
@@ -5771,6 +5790,10 @@ class CleanPDFViewer {
             setSquare.style.display = 'none';
             console.log('[SetSquare] Équerre masquée');
         }
+
+        // Marquer l'équerre comme inactive
+        this.setSquareActive = false;
+        console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
     }
 
     /**
