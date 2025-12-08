@@ -5725,8 +5725,8 @@ class CleanPDFViewer {
             setSquare.setAttribute('width', svgSize);
             setSquare.setAttribute('height', svgSize);
             setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
-            setSquare.style.pointerEvents = 'none'; // Laisser passer tous les événements par défaut
-            setSquare.style.zIndex = '1'; // SOUS le canvas (canvas a z-index 2) pour ne pas bloquer le stylet
+            setSquare.style.pointerEvents = 'none'; // Le SVG lui-même ne capte rien
+            setSquare.style.zIndex = '10000'; // AU-DESSUS du canvas pour être visible
 
             // Positionner au centre du viewer
             const viewer = this.elements.viewer;
@@ -5752,8 +5752,10 @@ class CleanPDFViewer {
             triangle.setAttribute('fill', 'rgba(128, 128, 128, 0.5)'); // Gris semi-transparent
             triangle.setAttribute('stroke', 'rgba(64, 64, 64, 0.8)');
             triangle.setAttribute('stroke-width', '2');
-            triangle.style.pointerEvents = 'auto'; // Seulement le triangle capte les événements touch
-            triangle.style.touchAction = 'none'; // Bloquer le scroll sur le triangle
+            // ASTUCE: pointer-events none pour laisser passer le stylet
+            // On activera pointer-events dynamiquement seulement pour les touches
+            triangle.style.pointerEvents = 'none';
+            triangle.style.touchAction = 'none';
             mainGroup.appendChild(triangle);
 
             setSquare.appendChild(mainGroup);
@@ -5994,41 +5996,45 @@ class CleanPDFViewer {
             mainGroup.setAttribute('transform', transform);
         };
 
-        // Attacher les événements au triangle seulement
-        triangleElement.addEventListener('pointerdown', (e) => {
-            // Ignorer le stylet - le stylet sert uniquement à dessiner
+        // Écouter au niveau du document pour détecter les touches sur le triangle
+        // Le triangle a pointer-events: none donc on doit activer dynamiquement
+        document.addEventListener('pointerdown', (e) => {
+            // Ignorer le stylet - le stylet ne doit JAMAIS être capturé
             if (e.pointerType === 'pen') {
-                console.log('[SetSquare] Stylet ignoré - laisser passer pour dessiner');
                 return;
             }
 
-            // Seulement les doigts peuvent manipuler l'équerre
+            // Pour les doigts, vérifier si on est sur le triangle
             if (e.pointerType === 'touch') {
-                e.stopPropagation();
-                e.preventDefault();
+                // Activer temporairement pointer-events pour détecter
+                triangleElement.style.pointerEvents = 'auto';
+                const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+                triangleElement.style.pointerEvents = 'none';
 
-                pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
-                triangleElement.setPointerCapture(e.pointerId);
+                // Si on a touché le triangle
+                if (elementAtPoint === triangleElement || elementAtPoint?.id === 'set-square-triangle') {
+                    console.log('[SetSquare] Touch sur triangle - activer manipulation');
+                    e.stopPropagation();
+                    e.preventDefault();
 
-                if (pointers.size === 2) {
-                    // Deux doigts - préparer la rotation
-                    const pts = Array.from(pointers.values());
-                    const dx = pts[1].x - pts[0].x;
-                    const dy = pts[1].y - pts[0].y;
-                    initialDistance = Math.sqrt(dx * dx + dy * dy);
-                    initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-                    initialRotation = this.setSquareTransform.rotation;
-                    console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
+                    pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+                    if (pointers.size === 2) {
+                        // Deux doigts - préparer la rotation
+                        const pts = Array.from(pointers.values());
+                        const dx = pts[1].x - pts[0].x;
+                        const dy = pts[1].y - pts[0].y;
+                        initialDistance = Math.sqrt(dx * dx + dy * dy);
+                        initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                        initialRotation = this.setSquareTransform.rotation;
+                        console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
+                    }
                 }
             }
-        });
+        }, { capture: true });
 
-        triangleElement.addEventListener('pointermove', (e) => {
-            // Ignorer le stylet
-            if (e.pointerType === 'pen') {
-                return;
-            }
-
+        document.addEventListener('pointermove', (e) => {
+            if (e.pointerType === 'pen') return;
             if (!pointers.has(e.pointerId)) return;
 
             e.stopPropagation();
@@ -6058,21 +6064,21 @@ class CleanPDFViewer {
                 console.log('[SetSquare] Rotation:', this.setSquareTransform.rotation);
                 updateTransform();
             }
-        });
+        }, { capture: true });
 
-        triangleElement.addEventListener('pointerup', (e) => {
+        document.addEventListener('pointerup', (e) => {
             if (e.pointerType === 'pen') return;
-
-            pointers.delete(e.pointerId);
-            if (triangleElement.hasPointerCapture(e.pointerId)) {
-                triangleElement.releasePointerCapture(e.pointerId);
+            if (pointers.has(e.pointerId)) {
+                pointers.delete(e.pointerId);
             }
-        });
+        }, { capture: true });
 
-        triangleElement.addEventListener('pointercancel', (e) => {
+        document.addEventListener('pointercancel', (e) => {
             if (e.pointerType === 'pen') return;
-            pointers.delete(e.pointerId);
-        });
+            if (pointers.has(e.pointerId)) {
+                pointers.delete(e.pointerId);
+            }
+        }, { capture: true });
     }
 }
 
