@@ -1124,16 +1124,16 @@ class CleanPDFViewer {
             console.log(`[Viewer NEW] touchstart - touches: ${e.touches.length}`);
 
             // Si on est en train d'annoter (stylet détecté via pointer events)
-            // OU si c'est un seul touch (potentiellement un stylet)
-            if (this.isAnnotating) {
-                console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours)');
+            // OU si l'équerre est active (bloquer scroll/zoom des doigts)
+            if (this.isAnnotating || this.setSquareActive) {
+                console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours ou équerre active)');
                 e.preventDefault();
             }
         }, { passive: false });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            if (this.isAnnotating) {
-                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours)');
+            if (this.isAnnotating || this.setSquareActive) {
+                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
                 e.preventDefault();
             }
         }, { passive: false });
@@ -2199,8 +2199,18 @@ class CleanPDFViewer {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        let x = (e.clientX - rect.left) * scaleX;
+        let y = (e.clientY - rect.top) * scaleY;
+
+        // Appliquer l'aimantation à l'équerre dès le début du trait
+        if (this.setSquareActive && (this.currentTool === 'pen' || this.currentTool === 'ruler')) {
+            const snapped = this.snapToSetSquare(e.clientX, e.clientY, canvas);
+            if (snapped) {
+                x = snapped.x;
+                y = snapped.y;
+                console.log('[Snap Start] Point de départ aimanté à', x.toFixed(1), y.toFixed(1));
+            }
+        }
 
         // Gérer la gomme différemment
         if (this.currentTool === 'eraser') {
