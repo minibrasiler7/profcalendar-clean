@@ -5747,6 +5747,7 @@ class CleanPDFViewer {
 
             // Dessiner le triangle simple gris semi-transparent
             const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            triangle.setAttribute('id', 'set-square-triangle');
             triangle.setAttribute('points', `0,${side} ${side},${side} ${side},0`);
             triangle.setAttribute('fill', 'rgba(128, 128, 128, 0.5)'); // Gris semi-transparent
             triangle.setAttribute('stroke', 'rgba(64, 64, 64, 0.8)');
@@ -5789,6 +5790,39 @@ class CleanPDFViewer {
         // Marquer l'équerre comme active
         this.setSquareActive = true;
         console.log('[SetSquare] Équerre activée - scroll/zoom doigts bloqués');
+
+        // Ajouter un gestionnaire global pour bloquer TOUS les touches quand équerre active
+        // Ceci complète les gestionnaires sur le viewer pour capturer les touches qui passent ailleurs
+        this.blockScrollWhenSetSquareActive();
+    }
+
+    /**
+     * Bloquer le scroll/zoom global quand l'équerre est active
+     */
+    blockScrollWhenSetSquareActive() {
+        // Si un handler existe déjà, le retirer d'abord
+        if (this.globalTouchBlockHandler) {
+            document.removeEventListener('touchstart', this.globalTouchBlockHandler, { passive: false });
+            document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false });
+        }
+
+        // Créer un nouveau handler qui bloque TOUS les touches quand équerre active
+        // Les touches ne doivent RIEN faire - ni scroll, ni zoom, ni bouger l'équerre
+        // Seuls les événements pointer sur le triangle permettent de manipuler l'équerre
+        this.globalTouchBlockHandler = (e) => {
+            // Vérifier si l'équerre est toujours active
+            if (this.setSquareActive) {
+                console.log('[SetSquare Global] ✋ Blocage TOTAL touch - équerre active');
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+
+        // Attacher au document pour capturer TOUS les événements touch
+        document.addEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
+        document.addEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
+
+        console.log('[SetSquare] Gestionnaires globaux de blocage attachés');
     }
 
     /**
@@ -5803,6 +5837,15 @@ class CleanPDFViewer {
 
         // Marquer l'équerre comme inactive
         this.setSquareActive = false;
+
+        // Retirer les gestionnaires globaux de blocage
+        if (this.globalTouchBlockHandler) {
+            document.removeEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
+            document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
+            this.globalTouchBlockHandler = null;
+            console.log('[SetSquare] Gestionnaires globaux de blocage retirés');
+        }
+
         console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
     }
 
@@ -5816,95 +5859,119 @@ class CleanPDFViewer {
     snapToSetSquare(clientX, clientY, canvas) {
         const setSquare = document.querySelector('.set-square-overlay');
         if (!setSquare || setSquare.style.display === 'none') {
+            console.log('[Snap DEBUG] Équerre introuvable ou masquée');
             return null;
         }
 
         const SNAP_THRESHOLD = 20; // Distance en pixels pour l'aimantation
+        console.log(`[Snap DEBUG] Vérification snap pour point (${clientX.toFixed(1)}, ${clientY.toFixed(1)})`);
 
-        // Obtenir les coordonnées dans le référentiel du canvas
-        const canvasRect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / canvasRect.width;
-        const scaleY = canvas.height / canvasRect.height;
-        const canvasX = (clientX - canvasRect.left) * scaleX;
-        const canvasY = (clientY - canvasRect.top) * scaleY;
+        // Obtenir le triangle SVG et ses coordonnées transformées
+        const triangleElement = setSquare.querySelector('#set-square-triangle');
+        if (!triangleElement) {
+            console.log('[Snap DEBUG] Triangle introuvable');
+            return null;
+        }
 
-        // Obtenir les 3 bords du triangle (en coordonnées écran)
-        const pdfCanvas = this.container.querySelector('.pdf-canvas');
-        if (!pdfCanvas) return null;
+        // Utiliser getBBox pour obtenir les dimensions du triangle dans son système de coordonnées local
+        const bbox = triangleElement.getBBox();
+        console.log('[Snap DEBUG] Triangle bbox:', bbox);
 
-        const pdfWidth = pdfCanvas.offsetWidth;
-        const hypotenuse = (pdfWidth * 2) / 3;
-        const side = hypotenuse / Math.sqrt(2);
+        // Récupérer la matrice de transformation complète (incluant tous les transforms SVG)
+        const svgElement = setSquare.querySelector('svg');
+        const screenCTM = triangleElement.getScreenCTM();
 
-        // Position et transformation de l'équerre
-        const svgRect = setSquare.getBoundingClientRect();
-        const mainGroup = setSquare.querySelector('#set-square-main-group');
-        if (!mainGroup) return null;
+        if (!screenCTM) {
+            console.log('[Snap DEBUG] Impossible d\'obtenir la matrice de transformation');
+            return null;
+        }
 
-        // Extraire la transformation du groupe
-        const transform = this.setSquareTransform || {x: 0, y: 0, rotation: 0, scale: 1};
-        const rotation = (transform.rotation * Math.PI) / 180;
+        console.log('[Snap DEBUG] Matrice de transformation:', {
+            a: screenCTM.a, b: screenCTM.b, c: screenCTM.c,
+            d: screenCTM.d, e: screenCTM.e, f: screenCTM.f
+        });
 
-        // Les 3 sommets du triangle dans le référentiel local (avant transformation)
+        // Les 3 sommets du triangle dans le système de coordonnées local SVG
+        // Le triangle a 3 points: (0, side), (side, side), (side, 0)
+        const side = this.setSquareTransform.side;
         const localVertices = [
             {x: 0, y: side},           // Sommet inférieur gauche
             {x: side, y: side},        // Sommet inférieur droit (angle droit)
             {x: side, y: 0}            // Sommet supérieur droit
         ];
 
-        // Transformer les sommets selon la rotation et translation
-        const transformedVertices = localVertices.map(v => {
-            // Rotation autour de l'origine
-            const rotatedX = v.x * Math.cos(rotation) - v.y * Math.sin(rotation);
-            const rotatedY = v.x * Math.sin(rotation) + v.y * Math.cos(rotation);
-            // Translation
-            return {
-                x: svgRect.left + rotatedX + transform.x + 50, // +50 pour le translate du groupe
-                y: svgRect.top + rotatedY + transform.y + 50
-            };
+        // Transformer les sommets en coordonnées écran en utilisant la matrice CTM
+        const screenVertices = localVertices.map(v => {
+            const point = svgElement.createSVGPoint();
+            point.x = v.x;
+            point.y = v.y;
+            const transformed = point.matrixTransform(screenCTM);
+            return {x: transformed.x, y: transformed.y};
         });
+
+        console.log('[Snap DEBUG] Sommets transformés:', screenVertices);
 
         // Les 3 bords du triangle
         const edges = [
-            [transformedVertices[0], transformedVertices[1]], // Bord horizontal (base)
-            [transformedVertices[1], transformedVertices[2]], // Bord vertical (côté droit)
-            [transformedVertices[2], transformedVertices[0]]  // Hypothénuse
+            {name: 'base', p1: screenVertices[0], p2: screenVertices[1]},      // Bord horizontal (base)
+            {name: 'vertical', p1: screenVertices[1], p2: screenVertices[2]},  // Bord vertical (côté droit)
+            {name: 'hypoténuse', p1: screenVertices[2], p2: screenVertices[0]} // Hypothénuse
         ];
 
         // Vérifier la distance à chaque bord
         let closestPoint = null;
         let minDistance = SNAP_THRESHOLD;
+        let closestEdge = null;
 
-        for (const [p1, p2] of edges) {
+        for (const edge of edges) {
+            const {p1, p2, name} = edge;
+
             // Calculer la distance du point au segment
             const dx = p2.x - p1.x;
             const dy = p2.y - p1.y;
             const lengthSq = dx * dx + dy * dy;
 
-            if (lengthSq === 0) continue; // Points identiques
+            if (lengthSq === 0) {
+                console.log(`[Snap DEBUG] Bord ${name} - points identiques, ignoré`);
+                continue;
+            }
 
             // Paramètre t du point le plus proche sur le segment
             let t = ((clientX - p1.x) * dx + (clientY - p1.y) * dy) / lengthSq;
             t = Math.max(0, Math.min(1, t)); // Clamper à [0, 1]
 
-            // Point le plus proche sur le segment
+            // Point le plus proche sur le segment (en coordonnées écran)
             const nearestX = p1.x + t * dx;
             const nearestY = p1.y + t * dy;
 
             // Distance au point
             const distance = Math.sqrt((clientX - nearestX) ** 2 + (clientY - nearestY) ** 2);
 
+            console.log(`[Snap DEBUG] Bord ${name}: distance=${distance.toFixed(1)}px, t=${t.toFixed(2)}, nearest=(${nearestX.toFixed(1)}, ${nearestY.toFixed(1)})`);
+
             if (distance < minDistance) {
                 minDistance = distance;
-                // Convertir en coordonnées canvas
-                closestPoint = {
-                    x: (nearestX - canvasRect.left) * scaleX,
-                    y: (nearestY - canvasRect.top) * scaleY
-                };
+                closestPoint = {x: nearestX, y: nearestY}; // Garder en coordonnées écran pour l'instant
+                closestEdge = name;
             }
         }
 
-        return closestPoint;
+        if (closestPoint) {
+            // Convertir en coordonnées canvas
+            const canvasRect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / canvasRect.width;
+            const scaleY = canvas.height / canvasRect.height;
+
+            const canvasX = (closestPoint.x - canvasRect.left) * scaleX;
+            const canvasY = (closestPoint.y - canvasRect.top) * scaleY;
+
+            console.log(`[Snap DEBUG] ✓ SNAP sur ${closestEdge} à ${minDistance.toFixed(1)}px - écran(${closestPoint.x.toFixed(1)}, ${closestPoint.y.toFixed(1)}) -> canvas(${canvasX.toFixed(1)}, ${canvasY.toFixed(1)})`);
+
+            return {x: canvasX, y: canvasY};
+        }
+
+        console.log('[Snap DEBUG] ✗ Aucun bord dans la zone de snap');
+        return null;
     }
 
     /**
