@@ -2700,6 +2700,7 @@ class CleanPDFViewer {
         // Sauvegarder le premier segment
         this.arcState.step = 2;
         this.arcState.firstSegmentEnd = {...points[points.length - 1]};
+        this.arcState.visitedAngles = []; // Pour stocker tous les angles parcourus
 
         // Feedback visuel
         this.drawArcPreview(canvas, pageId);
@@ -2861,19 +2862,47 @@ class CleanPDFViewer {
                 this.arcState.firstSegmentEnd.y - startPoint.y,
                 this.arcState.firstSegmentEnd.x - startPoint.x
             );
-            const endAngle = Math.atan2(
+            const currentAngle = Math.atan2(
                 currentPoint.y - startPoint.y,
                 currentPoint.x - startPoint.x
             );
 
-            // Dessiner l'arc
-            let angleDiff = endAngle - startAngle;
+            // Ajouter l'angle actuel à la liste des angles visités
+            if (!this.arcState.visitedAngles) {
+                this.arcState.visitedAngles = [];
+            }
+            this.arcState.visitedAngles.push(currentAngle);
+
+            // Appliquer l'opacité de 50%
+            ctx.globalAlpha = 0.5;
+
+            // Dessiner tous les arcs cumulatifs entre les angles consécutifs visités
+            if (this.arcState.visitedAngles.length > 1) {
+                for (let i = 0; i < this.arcState.visitedAngles.length - 1; i++) {
+                    const angle1 = this.arcState.visitedAngles[i];
+                    const angle2 = this.arcState.visitedAngles[i + 1];
+
+                    let angleDiff = angle2 - angle1;
+                    if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    ctx.beginPath();
+                    ctx.arc(startPoint.x, startPoint.y, radius, angle1, angle2, angleDiff < 0);
+                    ctx.stroke();
+                }
+            }
+
+            // Dessiner aussi l'arc du start au premier angle visité
+            let angleDiff = this.arcState.visitedAngles[0] - startAngle;
             if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
             if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 
             ctx.beginPath();
-            ctx.arc(startPoint.x, startPoint.y, radius, startAngle, endAngle, angleDiff < 0);
+            ctx.arc(startPoint.x, startPoint.y, radius, startAngle, this.arcState.visitedAngles[0], angleDiff < 0);
             ctx.stroke();
+
+            // Réinitialiser l'opacité
+            ctx.globalAlpha = 1.0;
 
             // Dessiner les rayons en pointillé
             ctx.setLineDash([5, 5]);
@@ -2959,12 +2988,13 @@ class CleanPDFViewer {
                     tool: 'arc',
                     color: this.currentColor,
                     size: this.currentSize,
-                    opacity: this.currentOpacity,
+                    opacity: 0.5, // Arc toujours à 50% d'opacité
                     points: [
                         this.arcState.startPoint,
                         this.arcState.firstSegmentEnd,
                         this.currentStroke.points[this.currentStroke.points.length - 1]
-                    ]
+                    ],
+                    visitedAngles: this.arcState.visitedAngles || [] // Sauvegarder tous les angles parcourus
                 };
                 this.addAnnotationToHistory(pageId, arcAnnotation);
             }
@@ -3165,7 +3195,9 @@ class CleanPDFViewer {
                         const radius = Math.sqrt((start.x - center.x) ** 2 + (start.y - center.y) ** 2);
                         const startAngle = Math.atan2(start.y - center.y, start.x - center.x);
                         const endAngle = Math.atan2(end.y - center.y, end.x - center.x);
-                        this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, options);
+                        // Passer les angles visités si disponibles
+                        const arcOptions = {...options, visitedAngles: annotation.visitedAngles};
+                        this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, arcOptions);
                     }
                     break;
 
@@ -3429,9 +3461,20 @@ class CleanPDFViewer {
             this.lastHoverX = x;
             this.lastHoverY = y;
 
-            // Positionner le curseur
-            this.pencilCursor.style.left = `${x}px`;
-            this.pencilCursor.style.top = `${y}px`;
+            // Obtenir le zoom du viewport (pinch zoom sur iPad)
+            const visualViewport = window.visualViewport;
+            let adjustedX = x;
+            let adjustedY = y;
+
+            if (visualViewport) {
+                // Compenser le zoom et l'offset du viewport
+                adjustedX = (x - visualViewport.offsetLeft) / visualViewport.scale;
+                adjustedY = (y - visualViewport.offsetTop) / visualViewport.scale;
+            }
+
+            // Positionner le curseur avec les coordonnées ajustées
+            this.pencilCursor.style.left = `${adjustedX}px`;
+            this.pencilCursor.style.top = `${adjustedY}px`;
             this.pencilCursor.style.display = 'block';
 
             // Calculer la taille du curseur en fonction de la taille du trait
