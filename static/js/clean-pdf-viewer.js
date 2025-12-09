@@ -1545,8 +1545,14 @@ class CleanPDFViewer {
 
                 // Calculer la position absolue en tenant compte de l'offset du zoom
                 // offsetLeft/offsetTop indiquent où est le viewport par rapport à la page
-                const bottomPx = vp.height * (desiredBottomVh / 100) + vp.offsetTop;
-                const rightPx = desiredRightPx - vp.offsetLeft;
+                // Pour bottom: on utilise la position absolue dans la page
+                const bottomPx = vp.offsetTop + vp.height * (desiredBottomVh / 100);
+
+                // Pour right: on doit calculer depuis le bord droit de la page
+                // pageWidth - (offsetLeft + vpWidth) = distance du bord droit du viewport au bord droit de la page
+                // On ajoute la marge désirée
+                const pageWidth = vp.width * scale;
+                const rightPx = (pageWidth - (vp.offsetLeft + vp.width)) + desiredRightPx;
 
                 // Appliquer la position et le scale inverse pour compenser le zoom
                 this.elements.miniToolbar.style.bottom = `${bottomPx}px`;
