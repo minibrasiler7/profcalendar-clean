@@ -94,6 +94,15 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2024-12-09-16:30 - INIT STARTED');
+
+        // IMPORTANT: Forcer la réinitialisation des états d'interaction
+        this.isAnnotating = false;
+        this.isDrawing = false;
+        this.setSquareActive = false;
+
+        console.log('[Init] États réinitialisés - isAnnotating:', this.isAnnotating, 'isDrawing:', this.isDrawing, 'setSquareActive:', this.setSquareActive);
+
         // Créer l'interface
         this.createUI();
 
