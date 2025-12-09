@@ -1232,6 +1232,33 @@ class CleanPDFViewer {
             });
         }
 
+        // Méthode 3: Tester avec contextmenu (squeeze peut déclencher le menu contextuel)
+        document.addEventListener('contextmenu', (e) => {
+            console.log('[Apple Pencil Debug] contextmenu déclenché - type:', e.type);
+
+            // Vérifier si c'est près d'un événement pen récent
+            const timeSinceLastPen = Date.now() - this.lastPencilInteraction;
+            if (timeSinceLastPen < 300) { // Dans les 300ms après un événement pen
+                console.log('[Apple Pencil Pro] ✅ SQUEEZE détecté via contextmenu !');
+                this.handlePencilDoubleTap();
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { capture: true });
+
+        // Méthode 4: Écouter les événements avec modificateurs (iOS peut mapper le squeeze à un modificateur)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Alt' || e.key === 'Control' || e.key === 'Meta') {
+                console.log('[Apple Pencil Debug] Touche modificateur:', e.key);
+                const timeSinceLastPen = Date.now() - this.lastPencilInteraction;
+                if (timeSinceLastPen < 200) {
+                    console.log('[Apple Pencil Pro] ✅ SQUEEZE possible détecté via modificateur !');
+                    this.handlePencilDoubleTap();
+                }
+            }
+        });
+
         // Gestionnaires pointer events au niveau viewer
         this.elements.viewer.addEventListener('pointerdown', (e) => {
             console.log(`[Viewer NEW] pointerdown type: ${e.pointerType}`);
