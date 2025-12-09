@@ -5914,7 +5914,6 @@ class CleanPDFViewer {
         console.log('[Snap DEBUG] Triangle bbox:', bbox);
 
         // Récupérer la matrice de transformation complète (incluant tous les transforms SVG)
-        const svgElement = setSquare.querySelector('svg');
         const screenCTM = triangleElement.getScreenCTM();
 
         if (!screenCTM) {
@@ -5938,7 +5937,7 @@ class CleanPDFViewer {
 
         // Transformer les sommets en coordonnées écran en utilisant la matrice CTM
         const screenVertices = localVertices.map(v => {
-            const point = svgElement.createSVGPoint();
+            const point = setSquare.createSVGPoint();
             point.x = v.x;
             point.y = v.y;
             const transformed = point.matrixTransform(screenCTM);
