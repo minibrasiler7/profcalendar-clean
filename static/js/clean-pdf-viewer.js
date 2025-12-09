@@ -1539,14 +1539,14 @@ class CleanPDFViewer {
                 // pour qu'elle reste toujours à la même taille visuelle et position
                 const vp = window.visualViewport;
 
-                // Calculer la position en coordonnées viewport (compensée pour le zoom)
-                // Position désirée: 50% de la hauteur du viewport, 20px du bord droit
+                // Position désirée dans le viewport visible (en pixels du viewport)
                 const desiredBottomVh = 50; // 50% de la hauteur du viewport
-                const desiredRightPx = 20;
+                const desiredRightPx = 20; // Marge depuis le bord droit du viewport
 
-                // Convertir en pixels réels du viewport
-                const bottomPx = vp.height * (desiredBottomVh / 100);
-                const rightPx = desiredRightPx;
+                // Calculer la position absolue en tenant compte de l'offset du zoom
+                // offsetLeft/offsetTop indiquent où est le viewport par rapport à la page
+                const bottomPx = vp.height * (desiredBottomVh / 100) + vp.offsetTop;
+                const rightPx = desiredRightPx - vp.offsetLeft;
 
                 // Appliquer la position et le scale inverse pour compenser le zoom
                 this.elements.miniToolbar.style.bottom = `${bottomPx}px`;
@@ -1554,7 +1554,8 @@ class CleanPDFViewer {
                 this.elements.miniToolbar.style.transform = `scale(${1 / scale})`;
                 this.elements.miniToolbar.style.transformOrigin = 'bottom right';
 
-                console.log('[Zoom Detection] Position: bottom=' + bottomPx + 'px, right=' + rightPx + 'px, scale=' + (1/scale));
+                console.log('[Zoom Detection] VP offset:', vp.offsetLeft, vp.offsetTop,
+                           'Position: bottom=' + bottomPx + 'px, right=' + rightPx + 'px, scale=' + (1/scale));
             } else {
                 // Masquer la mini-toolbar
                 console.log('[Zoom Detection] Masquage de la mini-toolbar');
