@@ -1517,27 +1517,46 @@ class CleanPDFViewer {
             return;
         }
 
+        console.log('[Zoom Detection] Configuration du détecteur de zoom');
+        console.log('[Zoom Detection] miniToolbar element:', this.elements.miniToolbar);
+
+        if (!this.elements.miniToolbar) {
+            console.error('[Zoom Detection] ERREUR: miniToolbar non trouvé!');
+            return;
+        }
+
         const checkZoom = () => {
             const scale = window.visualViewport.scale || 1;
             const isZoomed = scale > 1.05; // Tolérance de 5%
 
+            console.log('[Zoom Detection] Scale:', scale, 'isZoomed:', isZoomed);
+
             if (isZoomed) {
                 // Afficher la mini-toolbar
+                console.log('[Zoom Detection] Affichage de la mini-toolbar');
                 this.elements.miniToolbar.classList.add('visible');
                 // Optionnellement, cacher la toolbar principale
                 // this.elements.toolbar.style.opacity = '0.3';
             } else {
                 // Masquer la mini-toolbar
+                console.log('[Zoom Detection] Masquage de la mini-toolbar');
                 this.elements.miniToolbar.classList.remove('visible');
                 // this.elements.toolbar.style.opacity = '1';
             }
         };
 
         // Écouter les événements de resize et scroll du visualViewport
-        window.visualViewport.addEventListener('resize', checkZoom);
-        window.visualViewport.addEventListener('scroll', checkZoom);
+        window.visualViewport.addEventListener('resize', () => {
+            console.log('[Zoom Detection] Event: resize');
+            checkZoom();
+        });
+        window.visualViewport.addEventListener('scroll', () => {
+            console.log('[Zoom Detection] Event: scroll');
+            checkZoom();
+        });
 
         // Vérification initiale
+        console.log('[Zoom Detection] Vérification initiale...');
         checkZoom();
     }
 
