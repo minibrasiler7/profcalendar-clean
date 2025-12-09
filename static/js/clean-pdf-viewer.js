@@ -6033,21 +6033,32 @@ class CleanPDFViewer {
         // Écouter au niveau du document pour détecter les touches sur le triangle
         // Le triangle a pointer-events: none donc on doit activer dynamiquement
         const handlePointerDown = (e) => {
+            console.log(`[SetSquare DEBUG] pointerdown - type: ${e.pointerType}, setSquareActive: ${this.setSquareActive}, target: ${e.target?.tagName}`);
+
             // IMPORTANT: Ne traiter QUE si l'équerre est active
-            if (!this.setSquareActive) return;
+            if (!this.setSquareActive) {
+                console.log('[SetSquare DEBUG] Équerre non active, ignorer');
+                return;
+            }
 
             // Ignorer le stylet - le stylet ne doit JAMAIS être capturé
             if (e.pointerType === 'pen') {
+                console.log('[SetSquare DEBUG] Stylet détecté - LAISSER PASSER (return)');
                 return;
             }
 
             // Pour les doigts, vérifier si on est sur le triangle géométriquement
             if (e.pointerType === 'touch') {
+                console.log('[SetSquare DEBUG] Touch détecté - vérification si dans triangle...');
+
                 // Fonction pour vérifier si un point est dans le triangle
                 const isPointInTriangle = (px, py) => {
                     // Récupérer les coordonnées transformées du triangle
                     const screenCTM = triangleElement.getScreenCTM();
-                    if (!screenCTM) return false;
+                    if (!screenCTM) {
+                        console.log('[SetSquare DEBUG] getScreenCTM retourne null!');
+                        return false;
+                    }
 
                     const side = this.setSquareTransform.side;
                     const vertices = [
@@ -6065,6 +6076,9 @@ class CleanPDFViewer {
                         return {x: transformed.x, y: transformed.y};
                     });
 
+                    console.log('[SetSquare DEBUG] Sommets triangle écran:', screenVertices);
+                    console.log('[SetSquare DEBUG] Point touch:', px, py);
+
                     // Test point-in-triangle
                     const sign = (p1, p2, p3) => {
                         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -6074,19 +6088,25 @@ class CleanPDFViewer {
                     const d2 = sign({x: px, y: py}, screenVertices[1], screenVertices[2]);
                     const d3 = sign({x: px, y: py}, screenVertices[2], screenVertices[0]);
 
+                    console.log('[SetSquare DEBUG] d1:', d1, 'd2:', d2, 'd3:', d3);
+
                     const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
                     const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+                    const inside = !(hasNeg && hasPos);
 
-                    return !(hasNeg && hasPos);
+                    console.log('[SetSquare DEBUG] Point dans triangle?', inside);
+                    return inside;
                 };
 
                 // Vérifier si le touch est dans le triangle
-                if (isPointInTriangle(e.clientX, e.clientY)) {
-                    console.log('[SetSquare] Touch dans triangle - activer manipulation');
+                const inside = isPointInTriangle(e.clientX, e.clientY);
+                if (inside) {
+                    console.log('[SetSquare] ✅ Touch DANS triangle - activer manipulation');
                     e.stopPropagation();
                     e.preventDefault();
 
                     pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+                    console.log('[SetSquare DEBUG] Pointers actifs:', pointers.size);
 
                     if (pointers.size === 2) {
                         // Deux doigts - préparer la rotation
@@ -6098,6 +6118,8 @@ class CleanPDFViewer {
                         initialRotation = this.setSquareTransform.rotation;
                         console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
                     }
+                } else {
+                    console.log('[SetSquare] ❌ Touch HORS triangle - ignorer');
                 }
             }
         };
