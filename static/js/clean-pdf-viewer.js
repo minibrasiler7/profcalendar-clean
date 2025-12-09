@@ -6046,79 +6046,25 @@ class CleanPDFViewer {
                 return;
             }
 
-            // Pour les doigts, vérifier si on est sur le triangle géométriquement
+            // Pour les doigts, accepter tous les touches sur l'équerre
             if (e.pointerType === 'touch') {
-                console.log('[SetSquare DEBUG] Touch détecté - vérification si dans triangle...');
+                console.log('[SetSquare DEBUG] Touch détecté - activation manipulation');
 
-                // Fonction pour vérifier si un point est dans le triangle
-                const isPointInTriangle = (px, py) => {
-                    // Récupérer les coordonnées transformées du triangle
-                    const screenCTM = triangleElement.getScreenCTM();
-                    if (!screenCTM) {
-                        console.log('[SetSquare DEBUG] getScreenCTM retourne null!');
-                        return false;
-                    }
+                e.stopPropagation();
+                e.preventDefault();
 
-                    const side = this.setSquareTransform.side;
-                    const vertices = [
-                        {x: 0, y: side},
-                        {x: side, y: side},
-                        {x: side, y: 0}
-                    ];
+                pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+                console.log('[SetSquare DEBUG] Pointers actifs:', pointers.size);
 
-                    // Transformer en coordonnées écran
-                    const screenVertices = vertices.map(v => {
-                        const point = setSquare.createSVGPoint();
-                        point.x = v.x;
-                        point.y = v.y;
-                        const transformed = point.matrixTransform(screenCTM);
-                        return {x: transformed.x, y: transformed.y};
-                    });
-
-                    console.log('[SetSquare DEBUG] Sommets triangle écran:', screenVertices);
-                    console.log('[SetSquare DEBUG] Point touch:', px, py);
-
-                    // Test point-in-triangle
-                    const sign = (p1, p2, p3) => {
-                        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-                    };
-
-                    const d1 = sign({x: px, y: py}, screenVertices[0], screenVertices[1]);
-                    const d2 = sign({x: px, y: py}, screenVertices[1], screenVertices[2]);
-                    const d3 = sign({x: px, y: py}, screenVertices[2], screenVertices[0]);
-
-                    console.log('[SetSquare DEBUG] d1:', d1, 'd2:', d2, 'd3:', d3);
-
-                    const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-                    const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-                    const inside = !(hasNeg && hasPos);
-
-                    console.log('[SetSquare DEBUG] Point dans triangle?', inside);
-                    return inside;
-                };
-
-                // Vérifier si le touch est dans le triangle
-                const inside = isPointInTriangle(e.clientX, e.clientY);
-                if (inside) {
-                    console.log('[SetSquare] ✅ Touch DANS triangle - activer manipulation');
-                    e.stopPropagation();
-                    e.preventDefault();
-
-                    pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
-                    console.log('[SetSquare DEBUG] Pointers actifs:', pointers.size);
-
-                    if (pointers.size === 2) {
-                        // Deux doigts - préparer la rotation
-                        const pts = Array.from(pointers.values());
-                        const dx = pts[1].x - pts[0].x;
-                        const dy = pts[1].y - pts[0].y;
-                        initialDistance = Math.sqrt(dx * dx + dy * dy);
-                        initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-                        initialRotation = this.setSquareTransform.rotation;
-                        console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
-                    }
-                } else {
-                    console.log('[SetSquare] ❌ Touch HORS triangle - ignorer');
+                if (pointers.size === 2) {
+                    // Deux doigts - préparer la rotation
+                    const pts = Array.from(pointers.values());
+                    const dx = pts[1].x - pts[0].x;
+                    const dy = pts[1].y - pts[0].y;
+                    initialDistance = Math.sqrt(dx * dx + dy * dy);
+                    initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    initialRotation = this.setSquareTransform.rotation;
+                    console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
                 }
             }
         };
