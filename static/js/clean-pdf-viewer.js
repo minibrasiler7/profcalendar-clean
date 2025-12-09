@@ -3100,9 +3100,20 @@ class CleanPDFViewer {
             } else if (!this.penLineDetection.validationTimer && !this.penLineDetection.shouldCreateStraightLine) {
                 // Immobile, démarrer le timer de 2 secondes
                 this.penLineDetection.validationTimer = setTimeout(() => {
-                    console.log('[Pen Line Detection] 2 secondes d\'immobilité détectées, ligne droite activée');
+                    console.log('[Pen Line Detection] 2 secondes d\'immobilité détectées, création de la ligne droite');
                     this.penLineDetection.shouldCreateStraightLine = true;
                     this.penLineDetection.validationTimer = null;
+
+                    // Créer immédiatement la ligne droite
+                    if (this.currentStroke && this.currentStroke.points.length > 1) {
+                        const firstPoint = this.currentStroke.points[0];
+                        const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+                        this.currentStroke.points = [firstPoint, lastPoint];
+                        this.currentStroke.tool = 'pen-line'; // Nouveau type pour ligne sans mesure
+
+                        // Redessiner immédiatement avec la ligne droite
+                        this.drawStrokePreview(canvas, this.currentStroke, pageId);
+                    }
                 }, 2000); // 2 secondes
             }
         }
@@ -3459,15 +3470,13 @@ class CleanPDFViewer {
                 clearTimeout(this.penLineDetection.validationTimer);
             }
 
-            // Si la ligne droite a été activée, créer un segment droit
-            if (this.penLineDetection.shouldCreateStraightLine && this.currentStroke && this.currentStroke.points.length > 1) {
-                console.log('[Pen Line Detection] Création d\'un segment droit');
-                // Remplacer tous les points par juste le premier et le dernier
-                const firstPoint = this.currentStroke.points[0];
-                const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
-                this.currentStroke.points = [firstPoint, lastPoint];
-                // Changer l'outil en ruler pour utiliser le dessin de ligne droite
-                this.currentStroke.tool = 'ruler';
+            // La ligne droite a déjà été créée dans continueAnnotation si activée
+            // Pas besoin de la recréer ici, juste s'assurer que tool = 'pen-line' si nécessaire
+            if (this.penLineDetection.shouldCreateStraightLine && this.currentStroke) {
+                // S'assurer que le tool est bien 'pen-line' (déjà fait normalement)
+                if (this.currentStroke.tool !== 'pen-line') {
+                    this.currentStroke.tool = 'pen-line';
+                }
             }
 
             // Reset de la détection
@@ -3524,6 +3533,25 @@ class CleanPDFViewer {
                 case 'pen':
                 case 'highlighter':
                     this.annotationTools.drawWithPerfectFreehand(ctx, stroke.points, options);
+                    break;
+
+                case 'pen-line':
+                    // Ligne droite sans mesure (créée par détection automatique)
+                    if (stroke.points.length >= 2) {
+                        const start = stroke.points[0];
+                        const end = stroke.points[stroke.points.length - 1];
+                        // Dessiner juste une ligne droite simple, sans la mesure
+                        ctx.save();
+                        ctx.strokeStyle = options.color || '#000000';
+                        ctx.lineWidth = options.size || 2;
+                        ctx.globalAlpha = options.opacity || 1.0;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(start.x, start.y);
+                        ctx.lineTo(end.x, end.y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                     break;
 
                 case 'ruler':
@@ -3626,6 +3654,25 @@ class CleanPDFViewer {
                 case 'pen':
                 case 'highlighter':
                     this.annotationTools.drawWithPerfectFreehand(ctx, annotation.points, options);
+                    break;
+
+                case 'pen-line':
+                    // Ligne droite sans mesure (créée par détection automatique)
+                    if (annotation.points.length >= 2) {
+                        const start = annotation.points[0];
+                        const end = annotation.points[annotation.points.length - 1];
+                        // Dessiner juste une ligne droite simple, sans la mesure
+                        ctx.save();
+                        ctx.strokeStyle = options.color || '#000000';
+                        ctx.lineWidth = options.size || 2;
+                        ctx.globalAlpha = options.opacity || 1.0;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(start.x, start.y);
+                        ctx.lineTo(end.x, end.y);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                     break;
 
                 case 'ruler':
