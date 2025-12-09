@@ -1178,12 +1178,12 @@ class CleanPDFViewer {
                     console.log('[Viewer NEW] ERREUR: Aucun canvas trouvé à cette position');
                 }
             } else if (e.pointerType === 'touch') {
-                // Si l'équerre est active, bloquer le scroll/zoom des doigts
+                // Si l'équerre est active, NE PAS bloquer la propagation
+                // Les gestionnaires de l'équerre au niveau document ont besoin de recevoir ces événements
                 if (this.setSquareActive) {
-                    console.log('[Viewer NEW] Touch détecté - BLOQUÉ car équerre active');
-                    e.preventDefault();
-                    e.stopPropagation();
+                    console.log('[Viewer NEW] Touch détecté - laissant passer pour équerre');
                     this.isAnnotating = false;
+                    // NE PAS e.preventDefault() ni e.stopPropagation()
                 } else {
                     console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
                     this.isAnnotating = false;
