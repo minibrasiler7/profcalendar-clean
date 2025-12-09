@@ -1259,7 +1259,10 @@ class CleanPDFViewer {
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
             if (this.isAnnotating || this.setSquareActive) {
-                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
+                // Log seulement occasionnellement pour éviter de surcharger la console
+                if (Math.random() < 0.01) {
+                    console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
+                }
                 e.preventDefault();
             }
         }, { passive: false });
@@ -1467,7 +1470,10 @@ class CleanPDFViewer {
         }, { passive: true });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
+            // Log seulement occasionnellement pour éviter de surcharger la console
+            if (Math.random() < 0.01) {
+                console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
+            }
         }, { passive: true });
 
         // TEST CRITIQUE: Vérifier si le viewer PEUT scroller programmatiquement
@@ -1531,6 +1537,11 @@ class CleanPDFViewer {
      */
     async loadPDF(url) {
         console.log('[loadPDF] Début du chargement:', url);
+
+        // Réinitialiser l'état d'annotation pour éviter que le viewer reste bloqué
+        this.isAnnotating = false;
+        this.isDrawing = false;
+
         this.showLoading(true);
 
         try {
@@ -6045,6 +6056,13 @@ class CleanPDFViewer {
      */
     showLoading(show) {
         this.elements.loading.style.display = show ? 'flex' : 'none';
+
+        // Si on affiche le loading, réinitialiser les états d'interaction
+        // pour éviter que le viewer reste bloqué
+        if (show) {
+            this.isAnnotating = false;
+            this.isDrawing = false;
+        }
     }
 
     /**
