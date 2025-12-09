@@ -94,6 +94,15 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2024-12-09-16:30 - INIT STARTED');
+
+        // IMPORTANT: Forcer la réinitialisation des états d'interaction
+        this.isAnnotating = false;
+        this.isDrawing = false;
+        this.setSquareActive = false;
+
+        console.log('[Init] États réinitialisés - isAnnotating:', this.isAnnotating, 'isDrawing:', this.isDrawing, 'setSquareActive:', this.setSquareActive);
+
         // Créer l'interface
         this.createUI();
 
@@ -259,6 +268,26 @@ class CleanPDFViewer {
                     </div>
                 </div>
 
+                <!-- Mini-toolbar flottante pour le zoom -->
+                <div class="pdf-mini-toolbar" id="pdf-mini-toolbar">
+                    <button class="btn-tool" data-mini-tool="pen" title="Stylo">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="highlighter" title="Surligneur">
+                        <i class="fas fa-highlighter"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="eraser" title="Gomme">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <div class="separator" style="width: 100%; height: 1px;"></div>
+                    <button class="btn-tool" data-mini-tool="undo" title="Annuler">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="redo" title="Rétablir">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+
                 <!-- Loading overlay -->
                 <div class="pdf-loading" id="pdf-loading" style="display: none;">
                     <div class="spinner"></div>
@@ -270,6 +299,7 @@ class CleanPDFViewer {
         // Stocker les références
         this.elements = {
             toolbar: this.container.querySelector('.pdf-toolbar'),
+            miniToolbar: this.container.querySelector('#pdf-mini-toolbar'),
             sidebar: this.container.querySelector('.pdf-sidebar'),
             viewer: this.container.querySelector('.pdf-viewer'),
             thumbnailsContainer: this.container.querySelector('#thumbnails-container'),
@@ -319,14 +349,25 @@ class CleanPDFViewer {
 
             /* Toolbar */
             .pdf-toolbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 padding: 12px 16px;
-                background: white;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 border-bottom: 1px solid #e0e0e0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 gap: 16px;
+                z-index: 999999;
+                /* Force un nouveau contexte de rendu pour ignorer le zoom natif */
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                will-change: transform;
             }
 
             .toolbar-left,
@@ -334,22 +375,68 @@ class CleanPDFViewer {
             .toolbar-right {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 4px;
+            }
+
+            @media (min-height: 850px) {
+                .toolbar-left, .toolbar-center, .toolbar-right {
+                    gap: 6px;
+                }
+            }
+
+            @media (min-height: 1100px) {
+                .toolbar-left, .toolbar-center, .toolbar-right {
+                    gap: 8px;
+                }
             }
 
             .btn-tool,
             .btn-action {
-                width: 40px;
-                height: 40px;
+                width: 32px;
+                height: 32px;
                 border: none;
                 background: transparent;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
                 color: #333;
+                font-size: 14px;
+            }
+
+            /* Media queries pour adapter la taille selon la hauteur */
+            @media (min-height: 750px) {
+                .btn-tool, .btn-action {
+                    width: 36px;
+                    height: 36px;
+                    font-size: 15px;
+                }
+            }
+
+            @media (min-height: 850px) {
+                .btn-tool, .btn-action {
+                    width: 38px;
+                    height: 38px;
+                    font-size: 16px;
+                }
+            }
+
+            @media (min-height: 950px) {
+                .btn-tool, .btn-action {
+                    width: 40px;
+                    height: 40px;
+                    font-size: 17px;
+                }
+            }
+
+            @media (min-height: 1100px) {
+                .btn-tool, .btn-action {
+                    width: 42px;
+                    height: 42px;
+                    font-size: 18px;
+                }
             }
 
             .btn-tool:hover,
@@ -367,6 +454,35 @@ class CleanPDFViewer {
                 height: 24px;
                 background: #e0e0e0;
                 margin: 0 4px;
+            }
+
+            /* Mini-toolbar flottante visible pendant le zoom */
+            .pdf-mini-toolbar {
+                position: fixed;
+                /* bottom et right seront définis dynamiquement par JavaScript */
+                display: none;
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-radius: 16px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+                z-index: 9999999;
+                /* transform et transformOrigin seront définis par JavaScript */
+                touch-action: none;
+                pointer-events: auto;
+            }
+
+            .pdf-mini-toolbar.visible {
+                display: flex;
+            }
+
+            .pdf-mini-toolbar .btn-tool {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
             }
 
             /* Color selector */
@@ -563,6 +679,7 @@ class CleanPDFViewer {
                 overflow: auto !important; /* Zone de scroll pour les doigts */
                 -webkit-overflow-scrolling: touch; /* Scroll fluide iOS */
                 padding: 16px;
+                padding-top: 80px; /* Espace pour la toolbar fixe */
                 position: relative;
             }
 
@@ -670,7 +787,7 @@ class CleanPDFViewer {
 
             /* Curseur Apple Pencil Pro */
             .pencil-cursor {
-                position: fixed;
+                position: absolute;
                 pointer-events: none;
                 z-index: 10000;
                 transition: opacity 0.15s ease;
@@ -1107,6 +1224,23 @@ class CleanPDFViewer {
         this.elements.btnDownload.addEventListener('click', () => this.showDownloadMenu());
         this.elements.btnClose.addEventListener('click', () => this.close());
 
+        // Mini-toolbar event handlers
+        this.elements.miniToolbar.querySelectorAll('[data-mini-tool]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tool = e.currentTarget.dataset.miniTool;
+                if (tool === 'undo') {
+                    this.undo();
+                } else if (tool === 'redo') {
+                    this.redo();
+                } else {
+                    this.setTool(tool);
+                }
+            });
+        });
+
+        // Détection du zoom natif pour afficher/masquer la mini-toolbar
+        this.setupZoomDetection();
+
         // Scroll viewer pour détecter la page actuelle
         this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
 
@@ -1133,10 +1267,88 @@ class CleanPDFViewer {
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
             if (this.isAnnotating || this.setSquareActive) {
-                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
+                // Log seulement occasionnellement pour éviter de surcharger la console
+                if (Math.random() < 0.01) {
+                    console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
+                }
                 e.preventDefault();
             }
         }, { passive: false });
+
+        // Gestionnaire Apple Pencil Pro squeeze (pincement)
+        // Sur Apple Pencil Pro avec iOS 17.5+, le squeeze est détecté via plusieurs méthodes
+        this.lastPencilInteraction = 0;
+        this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
+
+        // Méthode 1: Événement pointerdown avec button spécial
+        document.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'pen') {
+                const now = Date.now();
+                const timeSinceLastInteraction = now - this.lastPencilInteraction;
+
+                // Logger TOUS les événements pen pour debugging
+                console.log('[Apple Pencil Debug] pointerdown - button:', e.button, 'buttons:', e.buttons, 'pressure:', e.pressure, 'tiltX:', e.tiltX, 'tiltY:', e.tiltY);
+
+                // Apple Pencil Pro squeeze: peut être détecté via plusieurs valeurs
+                // button === 5 (eraser button sur certains modèles)
+                // button === -1 (squeeze sur certains iOS)
+                // button === 2 (bouton droit)
+                // button === 32 (autre valeur squeeze)
+                // buttons & 32 (bit 5 pour eraser/squeeze)
+                const isSqueezeOrTap =
+                    e.button === 5 ||  // Eraser button
+                    e.button === -1 || // Squeeze gesture
+                    e.button === 2 ||  // Right click / squeeze
+                    e.button === 32 || // Squeeze value
+                    (e.buttons & 32) !== 0; // Bit 5 set
+
+                if (isSqueezeOrTap) {
+                    console.log('[Apple Pencil Pro] ✅ SQUEEZE DÉTECTÉ ! button:', e.button, 'buttons:', e.buttons);
+                    this.handlePencilDoubleTap();
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                this.lastPencilInteraction = now;
+            }
+        }, { capture: true, passive: false });
+
+        // Méthode 2: Écouter l'événement 'pencilsqueeze' (si disponible sur iOS)
+        if ('onpencilsqueeze' in document) {
+            document.addEventListener('pencilsqueeze', (e) => {
+                console.log('[Apple Pencil Pro] Événement pencilsqueeze natif détecté');
+                this.handlePencilDoubleTap();
+                e.preventDefault();
+            });
+        }
+
+        // Méthode 3: Tester avec contextmenu (squeeze peut déclencher le menu contextuel)
+        document.addEventListener('contextmenu', (e) => {
+            console.log('[Apple Pencil Debug] contextmenu déclenché - type:', e.type);
+
+            // Vérifier si c'est près d'un événement pen récent
+            const timeSinceLastPen = Date.now() - this.lastPencilInteraction;
+            if (timeSinceLastPen < 300) { // Dans les 300ms après un événement pen
+                console.log('[Apple Pencil Pro] ✅ SQUEEZE détecté via contextmenu !');
+                this.handlePencilDoubleTap();
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { capture: true });
+
+        // Méthode 4: Écouter les événements avec modificateurs (iOS peut mapper le squeeze à un modificateur)
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Alt' || e.key === 'Control' || e.key === 'Meta') {
+                console.log('[Apple Pencil Debug] Touche modificateur:', e.key);
+                const timeSinceLastPen = Date.now() - this.lastPencilInteraction;
+                if (timeSinceLastPen < 200) {
+                    console.log('[Apple Pencil Pro] ✅ SQUEEZE possible détecté via modificateur !');
+                    this.handlePencilDoubleTap();
+                }
+            }
+        });
 
         // Gestionnaires pointer events au niveau viewer
         this.elements.viewer.addEventListener('pointerdown', (e) => {
@@ -1196,7 +1408,11 @@ class CleanPDFViewer {
             // Afficher le curseur pour l'Apple Pencil Pro (hover)
             // SEULEMENT si on n'est pas en train de dessiner
             if (e.pointerType === 'pen' && !this.isDrawing) {
-                this.updatePencilCursor(e.clientX, e.clientY, true);
+                // Calculer les coordonnées relatives au viewer
+                const viewerRect = this.elements.viewer.getBoundingClientRect();
+                const relativeX = e.clientX - viewerRect.left + this.elements.viewer.scrollLeft;
+                const relativeY = e.clientY - viewerRect.top + this.elements.viewer.scrollTop;
+                this.updatePencilCursor(relativeX, relativeY, true);
             }
 
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
@@ -1222,7 +1438,10 @@ class CleanPDFViewer {
 
                 // Réafficher le curseur après le contact
                 if (e.pointerType === 'pen') {
-                    this.updatePencilCursor(e.clientX, e.clientY, true);
+                    const viewerRect = this.elements.viewer.getBoundingClientRect();
+                    const relativeX = e.clientX - viewerRect.left + this.elements.viewer.scrollLeft;
+                    const relativeY = e.clientY - viewerRect.top + this.elements.viewer.scrollTop;
+                    this.updatePencilCursor(relativeX, relativeY, true);
                 }
             }
         }, { passive: false });
@@ -1259,7 +1478,10 @@ class CleanPDFViewer {
         }, { passive: true });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
+            // Log seulement occasionnellement pour éviter de surcharger la console
+            if (Math.random() < 0.01) {
+                console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
+            }
         }, { passive: true });
 
         // TEST CRITIQUE: Vérifier si le viewer PEUT scroller programmatiquement
@@ -1286,37 +1508,133 @@ class CleanPDFViewer {
     }
 
     /**
+     * Configurer la détection du zoom natif Safari
+     */
+    setupZoomDetection() {
+        if (!window.visualViewport) {
+            console.log('[Zoom Detection] visualViewport non supporté');
+            return;
+        }
+
+        console.log('[Zoom Detection] Configuration du détecteur de zoom');
+        console.log('[Zoom Detection] miniToolbar element:', this.elements.miniToolbar);
+
+        if (!this.elements.miniToolbar) {
+            console.error('[Zoom Detection] ERREUR: miniToolbar non trouvé!');
+            return;
+        }
+
+        const checkZoom = () => {
+            const scale = window.visualViewport.scale || 1;
+            const isZoomed = scale > 1.05; // Tolérance de 5%
+
+            console.log('[Zoom Detection] Scale:', scale, 'isZoomed:', isZoomed);
+
+            if (isZoomed) {
+                // Afficher la mini-toolbar
+                console.log('[Zoom Detection] Affichage de la mini-toolbar');
+                this.elements.miniToolbar.classList.add('visible');
+
+                // Adapter la taille et la position en fonction du zoom
+                // pour qu'elle reste toujours à la même taille visuelle et position
+                const vp = window.visualViewport;
+
+                // Position désirée dans le viewport visible (en pixels du viewport)
+                const desiredBottomVh = 50; // 50% de la hauteur du viewport
+                const desiredRightPx = 20; // Marge depuis le bord droit du viewport
+
+                // Calculer la position absolue en tenant compte de l'offset du zoom
+                // offsetLeft/offsetTop indiquent où est le viewport par rapport à la page
+                // Pour bottom: on utilise la position absolue dans la page
+                const bottomPx = vp.offsetTop + vp.height * (desiredBottomVh / 100);
+
+                // Pour right: on doit calculer depuis le bord droit de la page
+                // pageWidth - (offsetLeft + vpWidth) = distance du bord droit du viewport au bord droit de la page
+                // On ajoute la marge désirée
+                const pageWidth = vp.width * scale;
+                const rightPx = (pageWidth - (vp.offsetLeft + vp.width)) + desiredRightPx;
+
+                // Appliquer la position et le scale inverse pour compenser le zoom
+                this.elements.miniToolbar.style.bottom = `${bottomPx}px`;
+                this.elements.miniToolbar.style.right = `${rightPx}px`;
+                this.elements.miniToolbar.style.transform = `scale(${1 / scale})`;
+                this.elements.miniToolbar.style.transformOrigin = 'bottom right';
+
+                console.log('[Zoom Detection] VP offset:', vp.offsetLeft, vp.offsetTop,
+                           'Position: bottom=' + bottomPx + 'px, right=' + rightPx + 'px, scale=' + (1/scale));
+            } else {
+                // Masquer la mini-toolbar
+                console.log('[Zoom Detection] Masquage de la mini-toolbar');
+                this.elements.miniToolbar.classList.remove('visible');
+                // Réinitialiser les transformations
+                this.elements.miniToolbar.style.transform = '';
+            }
+        };
+
+        // Écouter les événements de resize et scroll du visualViewport
+        window.visualViewport.addEventListener('resize', () => {
+            console.log('[Zoom Detection] Event: resize');
+            checkZoom();
+        });
+        window.visualViewport.addEventListener('scroll', () => {
+            console.log('[Zoom Detection] Event: scroll');
+            checkZoom();
+        });
+
+        // Vérification initiale
+        console.log('[Zoom Detection] Vérification initiale...');
+        checkZoom();
+    }
+
+    /**
      * Charger un PDF
      */
     async loadPDF(url) {
+        console.log('[loadPDF] Début du chargement:', url);
+
+        // Réinitialiser l'état d'annotation pour éviter que le viewer reste bloqué
+        this.isAnnotating = false;
+        this.isDrawing = false;
+
         this.showLoading(true);
 
         try {
             // Charger avec PDF.js
+            console.log('[loadPDF] Création de la tâche de chargement...');
             const loadingTask = pdfjsLib.getDocument(url);
+            console.log('[loadPDF] En attente du PDF...');
             this.pdf = await loadingTask.promise;
+            console.log('[loadPDF] PDF chargé, nombre de pages:', this.pdf.numPages);
             this.totalPages = this.pdf.numPages;
 
             // Initialiser l'ordre des pages
             this.pageOrder = Array.from({length: this.totalPages}, (_, i) => i + 1);
+            console.log('[loadPDF] Ordre des pages initialisé');
 
             // Initialiser les pages
             for (let i = 1; i <= this.totalPages; i++) {
                 this.pages.set(i, {type: 'pdf', pageNum: i});
             }
+            console.log('[loadPDF] Pages initialisées');
 
             // Rendre les miniatures et les pages
+            console.log('[loadPDF] Début du rendu des miniatures...');
             await this.renderThumbnails();
+            console.log('[loadPDF] Miniatures rendues, début du rendu des pages...');
             await this.renderPages();
+            console.log('[loadPDF] Pages rendues');
 
             // Aller à la première page
             this.goToPage(1);
+            console.log('[loadPDF] Navigation vers la page 1 terminée');
 
         } catch (error) {
-            console.error('Erreur chargement PDF:', error);
-            alert('Erreur lors du chargement du PDF');
+            console.error('[loadPDF] Erreur chargement PDF:', error);
+            alert('Erreur lors du chargement du PDF: ' + error.message);
         } finally {
+            console.log('[loadPDF] Masquage du loading...');
             this.showLoading(false);
+            console.log('[loadPDF] Chargement terminé');
         }
     }
 
@@ -1561,6 +1879,9 @@ class CleanPDFViewer {
 
         // Redessiner les annotations existantes en utilisant pageId
         this.redrawAnnotations(annotationCanvas, pageId);
+
+        // Extraire et afficher les liens
+        await this.renderPageLinks(page, viewport, pdfCanvas.parentElement, pageId);
     }
 
     /**
@@ -2093,6 +2414,93 @@ class CleanPDFViewer {
     /**
      * Configurer les événements d'annotation sur un canvas
      */
+    /**
+     * Extraire et afficher les liens d'une page PDF
+     */
+    async renderPageLinks(page, viewport, container, pageId) {
+        try {
+            // Supprimer les anciens liens s'ils existent
+            const oldLinks = container.querySelectorAll('.pdf-link-button, .pdf-link-overlay');
+            oldLinks.forEach(link => link.remove());
+
+            // Obtenir les annotations (liens) de la page
+            const annotations = await page.getAnnotations();
+
+            // Filtrer uniquement les liens web
+            const links = annotations.filter(annotation =>
+                annotation.subtype === 'Link' && annotation.url
+            );
+
+            if (links.length === 0) return;
+
+            // Grouper les liens par URL (pour éviter les doublons sur plusieurs lignes)
+            const linksByUrl = new Map();
+            for (const link of links) {
+                if (!linksByUrl.has(link.url)) {
+                    linksByUrl.set(link.url, []);
+                }
+                linksByUrl.get(link.url).push(link);
+            }
+
+            // Créer un bouton pour chaque URL unique
+            for (const [url, linkRects] of linksByUrl) {
+                // Trouver le rectangle moyen (centre de tous les rectangles)
+                let totalX = 0, totalY = 0, count = 0;
+                for (const link of linkRects) {
+                    const rect = link.rect;
+                    const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(rect);
+                    totalX += (x1 + x2) / 2;
+                    totalY += (y1 + y2) / 2;
+                    count++;
+                }
+                const centerX = totalX / count;
+                const centerY = totalY / count;
+
+                // Créer le bouton rond
+                const linkButton = document.createElement('a');
+                linkButton.className = 'pdf-link-button';
+                linkButton.href = url;
+                linkButton.target = '_blank';
+                linkButton.rel = 'noopener noreferrer';
+                linkButton.textContent = 'Aller à la page !';
+
+                // Positionner le bouton au centre
+                linkButton.style.position = 'absolute';
+                linkButton.style.left = `${centerX}px`;
+                linkButton.style.top = `${centerY}px`;
+                linkButton.style.transform = 'translate(-50%, -50%)';
+                linkButton.style.padding = '8px 16px';
+                linkButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                linkButton.style.color = 'white';
+                linkButton.style.borderRadius = '20px';
+                linkButton.style.fontSize = '14px';
+                linkButton.style.fontWeight = 'bold';
+                linkButton.style.textDecoration = 'none';
+                linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                linkButton.style.cursor = 'pointer';
+                linkButton.style.zIndex = '5';
+                linkButton.style.transition = 'all 0.3s ease';
+                linkButton.style.border = 'none';
+                linkButton.style.whiteSpace = 'nowrap';
+
+                // Effet hover
+                linkButton.addEventListener('mouseenter', () => {
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.05)';
+                    linkButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.6)';
+                });
+
+                linkButton.addEventListener('mouseleave', () => {
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1)';
+                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                });
+
+                container.appendChild(linkButton);
+            }
+        } catch (error) {
+            console.error('[Links] Erreur lors de l\'extraction des liens:', error);
+        }
+    }
+
     setupAnnotationEvents(canvas, pageId) {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
@@ -2645,7 +3053,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.arcState.validationTimer = setTimeout(() => {
                     this.validateArcFirstSegment(canvas, pageId);
-                }, 1000); // 1 seconde pour validation
+                }, 1500); // 1.5 secondes pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
@@ -2700,6 +3108,7 @@ class CleanPDFViewer {
         // Sauvegarder le premier segment
         this.arcState.step = 2;
         this.arcState.firstSegmentEnd = {...points[points.length - 1]};
+        this.arcState.visitedAngles = []; // Pour stocker tous les angles parcourus
 
         // Feedback visuel
         this.drawArcPreview(canvas, pageId);
@@ -2787,6 +3196,8 @@ class CleanPDFViewer {
             ctx.fillText(`${angleDegrees.toFixed(1)}°`, labelX, labelY);
         }
 
+        // Réinitialiser setLineDash AVANT restore pour ne pas polluer les autres dessins
+        ctx.setLineDash([]);
         ctx.restore();
     }
 
@@ -2861,19 +3272,47 @@ class CleanPDFViewer {
                 this.arcState.firstSegmentEnd.y - startPoint.y,
                 this.arcState.firstSegmentEnd.x - startPoint.x
             );
-            const endAngle = Math.atan2(
+            const currentAngle = Math.atan2(
                 currentPoint.y - startPoint.y,
                 currentPoint.x - startPoint.x
             );
 
-            // Dessiner l'arc
-            let angleDiff = endAngle - startAngle;
+            // Ajouter l'angle actuel à la liste des angles visités
+            if (!this.arcState.visitedAngles) {
+                this.arcState.visitedAngles = [];
+            }
+            this.arcState.visitedAngles.push(currentAngle);
+
+            // Appliquer l'opacité de 25%
+            ctx.globalAlpha = 0.25;
+
+            // Dessiner tous les arcs cumulatifs entre les angles consécutifs visités
+            if (this.arcState.visitedAngles.length > 1) {
+                for (let i = 0; i < this.arcState.visitedAngles.length - 1; i++) {
+                    const angle1 = this.arcState.visitedAngles[i];
+                    const angle2 = this.arcState.visitedAngles[i + 1];
+
+                    let angleDiff = angle2 - angle1;
+                    if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                    if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                    ctx.beginPath();
+                    ctx.arc(startPoint.x, startPoint.y, radius, angle1, angle2, angleDiff < 0);
+                    ctx.stroke();
+                }
+            }
+
+            // Dessiner aussi l'arc du start au premier angle visité
+            let angleDiff = this.arcState.visitedAngles[0] - startAngle;
             if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
             if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 
             ctx.beginPath();
-            ctx.arc(startPoint.x, startPoint.y, radius, startAngle, endAngle, angleDiff < 0);
+            ctx.arc(startPoint.x, startPoint.y, radius, startAngle, this.arcState.visitedAngles[0], angleDiff < 0);
             ctx.stroke();
+
+            // Réinitialiser l'opacité
+            ctx.globalAlpha = 1.0;
 
             // Dessiner les rayons en pointillé
             ctx.setLineDash([5, 5]);
@@ -2885,14 +3324,15 @@ class CleanPDFViewer {
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
             const endOnArc = {
-                x: startPoint.x + radius * Math.cos(endAngle),
-                y: startPoint.y + radius * Math.sin(endAngle)
+                x: startPoint.x + radius * Math.cos(currentAngle),
+                y: startPoint.y + radius * Math.sin(currentAngle)
             };
             ctx.lineTo(endOnArc.x, endOnArc.y);
             ctx.stroke();
-            ctx.setLineDash([]);
         }
 
+        // Réinitialiser setLineDash AVANT restore pour ne pas polluer les autres dessins
+        ctx.setLineDash([]);
         ctx.restore();
     }
 
@@ -2959,12 +3399,13 @@ class CleanPDFViewer {
                     tool: 'arc',
                     color: this.currentColor,
                     size: this.currentSize,
-                    opacity: this.currentOpacity,
+                    opacity: 0.25, // Arc toujours à 25% d'opacité
                     points: [
                         this.arcState.startPoint,
                         this.arcState.firstSegmentEnd,
                         this.currentStroke.points[this.currentStroke.points.length - 1]
-                    ]
+                    ],
+                    visitedAngles: this.arcState.visitedAngles || [] // Sauvegarder tous les angles parcourus
                 };
                 this.addAnnotationToHistory(pageId, arcAnnotation);
             }
@@ -3165,7 +3606,9 @@ class CleanPDFViewer {
                         const radius = Math.sqrt((start.x - center.x) ** 2 + (start.y - center.y) ** 2);
                         const startAngle = Math.atan2(start.y - center.y, start.x - center.x);
                         const endAngle = Math.atan2(end.y - center.y, end.x - center.x);
-                        this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, options);
+                        // Passer les angles visités si disponibles
+                        const arcOptions = {...options, visitedAngles: annotation.visitedAngles};
+                        this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, arcOptions);
                     }
                     break;
 
@@ -3429,7 +3872,9 @@ class CleanPDFViewer {
             this.lastHoverX = x;
             this.lastHoverY = y;
 
-            // Positionner le curseur
+            // Positionner le curseur exactement aux coordonnées de l'événement
+            // Utiliser les mêmes coordonnées clientX/clientY sans transformation
+            // Le curseur est en position:fixed donc en coordonnées viewport
             this.pencilCursor.style.left = `${x}px`;
             this.pencilCursor.style.top = `${y}px`;
             this.pencilCursor.style.display = 'block';
@@ -3465,6 +3910,74 @@ class CleanPDFViewer {
     /**
      * Changer d'outil
      */
+    /**
+     * Gérer le double-tap de l'Apple Pencil
+     * Action intelligente : basculer entre stylo et gomme
+     */
+    handlePencilDoubleTap() {
+        console.log('[Apple Pencil] Outil actuel:', this.currentTool);
+
+        if (this.currentTool === 'eraser') {
+            // Si on est en mode gomme, revenir à l'outil précédent
+            console.log('[Apple Pencil] Gomme → ', this.previousTool);
+            this.setTool(this.previousTool);
+        } else {
+            // Sinon, mémoriser l'outil actuel et passer à la gomme
+            console.log('[Apple Pencil]', this.currentTool, '→ Gomme');
+            this.previousTool = this.currentTool;
+            this.setTool('eraser');
+        }
+
+        // Feedback visuel : afficher brièvement une notification
+        this.showToolSwitchNotification();
+    }
+
+    /**
+     * Afficher une notification visuelle de changement d'outil
+     */
+    showToolSwitchNotification() {
+        // Créer ou réutiliser l'élément de notification
+        let notification = document.getElementById('pencil-tap-notification');
+
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'pencil-tap-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 10001;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            `;
+            document.body.appendChild(notification);
+        }
+
+        // Mettre à jour le contenu
+        const toolName = this.currentTool === 'eraser' ? 'Gomme' :
+                        this.currentTool === 'pen' ? 'Stylo' :
+                        this.currentTool === 'highlighter' ? 'Surligneur' :
+                        this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
+
+        notification.textContent = toolName;
+
+        // Animer l'apparition
+        notification.style.opacity = '1';
+
+        // Masquer après 800ms
+        setTimeout(() => {
+            notification.style.opacity = '0';
+        }, 800);
+    }
+
     setTool(tool) {
         console.log('[Tool] setTool appelé avec:', tool);
 
@@ -3488,11 +4001,16 @@ class CleanPDFViewer {
         // Pour tous les autres outils
         this.currentTool = tool;
 
-        // Mettre à jour l'UI (sauf pour set-square qui garde son état)
-        this.container.querySelectorAll('.btn-tool').forEach(btn => {
+        // Mettre à jour l'UI dans la toolbar principale (sauf pour set-square qui garde son état)
+        this.container.querySelectorAll('.btn-tool[data-tool]').forEach(btn => {
             if (btn.dataset.tool !== 'set-square') {
                 btn.classList.toggle('active', btn.dataset.tool === tool);
             }
+        });
+
+        // Mettre à jour l'UI dans la mini-toolbar
+        this.elements.miniToolbar.querySelectorAll('.btn-tool[data-mini-tool]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.miniTool === tool);
         });
 
         // Adapter les paramètres selon l'outil
@@ -5281,7 +5799,9 @@ class CleanPDFViewer {
 
         try {
             console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
+            console.log('[Load] Envoi de la requête fetch...');
             const response = await fetch(`/file_manager/api/load-annotations/${this.options.fileId}`);
+            console.log('[Load] Réponse reçue, status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
@@ -5590,6 +6110,13 @@ class CleanPDFViewer {
      */
     showLoading(show) {
         this.elements.loading.style.display = show ? 'flex' : 'none';
+
+        // Si on affiche le loading, réinitialiser les états d'interaction
+        // pour éviter que le viewer reste bloqué
+        if (show) {
+            this.isAnnotating = false;
+            this.isDrawing = false;
+        }
     }
 
     /**

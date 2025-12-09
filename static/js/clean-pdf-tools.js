@@ -291,19 +291,45 @@ class AnnotationTools {
      * Dessiner un arc de cercle
      */
     drawArc(ctx, center, radius, startAngle, endAngle, options = {}) {
-        // Normaliser les angles
-        let angleDiff = endAngle - startAngle;
-        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
         ctx.save();
         ctx.strokeStyle = options.color || '#000000';
         ctx.lineWidth = options.size || 2;
         ctx.globalAlpha = options.opacity || 1.0;
 
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, radius, startAngle, endAngle, angleDiff < 0);
-        ctx.stroke();
+        // Si on a des angles visités (tracé cumulatif), les dessiner
+        if (options.visitedAngles && options.visitedAngles.length > 0) {
+            // Dessiner l'arc du startAngle au premier angle visité
+            let angleDiff = options.visitedAngles[0] - startAngle;
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, startAngle, options.visitedAngles[0], angleDiff < 0);
+            ctx.stroke();
+
+            // Dessiner tous les arcs entre angles visités consécutifs
+            for (let i = 0; i < options.visitedAngles.length - 1; i++) {
+                const angle1 = options.visitedAngles[i];
+                const angle2 = options.visitedAngles[i + 1];
+
+                let angleDiff = angle2 - angle1;
+                while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+                while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, radius, angle1, angle2, angleDiff < 0);
+                ctx.stroke();
+            }
+        } else {
+            // Mode classique : dessiner un seul arc
+            let angleDiff = endAngle - startAngle;
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, startAngle, endAngle, angleDiff < 0);
+            ctx.stroke();
+        }
 
         ctx.restore();
     }
