@@ -6068,7 +6068,7 @@ class CleanPDFViewer {
 
                     // Transformer en coordonnées écran
                     const screenVertices = vertices.map(v => {
-                        const point = svgElement.createSVGPoint();
+                        const point = setSquare.createSVGPoint();
                         point.x = v.x;
                         point.y = v.y;
                         const transformed = point.matrixTransform(screenCTM);
