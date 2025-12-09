@@ -459,8 +459,7 @@ class CleanPDFViewer {
             /* Mini-toolbar flottante visible pendant le zoom */
             .pdf-mini-toolbar {
                 position: fixed;
-                bottom: 20px;
-                right: 20px;
+                /* bottom et right seront définis dynamiquement par JavaScript */
                 display: none;
                 flex-direction: column;
                 gap: 8px;
@@ -471,9 +470,9 @@ class CleanPDFViewer {
                 border-radius: 16px;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.2);
                 z-index: 9999999;
-                transform: translateZ(0);
-                -webkit-transform: translateZ(0);
+                /* transform et transformOrigin seront définis par JavaScript */
                 touch-action: none;
+                pointer-events: auto;
             }
 
             .pdf-mini-toolbar.visible {
@@ -1535,13 +1534,33 @@ class CleanPDFViewer {
                 // Afficher la mini-toolbar
                 console.log('[Zoom Detection] Affichage de la mini-toolbar');
                 this.elements.miniToolbar.classList.add('visible');
-                // Optionnellement, cacher la toolbar principale
-                // this.elements.toolbar.style.opacity = '0.3';
+
+                // Adapter la taille et la position en fonction du zoom
+                // pour qu'elle reste toujours à la même taille visuelle et position
+                const vp = window.visualViewport;
+
+                // Calculer la position en coordonnées viewport (compensée pour le zoom)
+                // Position désirée: 50% de la hauteur du viewport, 20px du bord droit
+                const desiredBottomVh = 50; // 50% de la hauteur du viewport
+                const desiredRightPx = 20;
+
+                // Convertir en pixels réels du viewport
+                const bottomPx = vp.height * (desiredBottomVh / 100);
+                const rightPx = desiredRightPx;
+
+                // Appliquer la position et le scale inverse pour compenser le zoom
+                this.elements.miniToolbar.style.bottom = `${bottomPx}px`;
+                this.elements.miniToolbar.style.right = `${rightPx}px`;
+                this.elements.miniToolbar.style.transform = `scale(${1 / scale})`;
+                this.elements.miniToolbar.style.transformOrigin = 'bottom right';
+
+                console.log('[Zoom Detection] Position: bottom=' + bottomPx + 'px, right=' + rightPx + 'px, scale=' + (1/scale));
             } else {
                 // Masquer la mini-toolbar
                 console.log('[Zoom Detection] Masquage de la mini-toolbar');
                 this.elements.miniToolbar.classList.remove('visible');
-                // this.elements.toolbar.style.opacity = '1';
+                // Réinitialiser les transformations
+                this.elements.miniToolbar.style.transform = '';
             }
         };
 
