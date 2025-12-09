@@ -259,6 +259,26 @@ class CleanPDFViewer {
                     </div>
                 </div>
 
+                <!-- Mini-toolbar flottante pour le zoom -->
+                <div class="pdf-mini-toolbar" id="pdf-mini-toolbar">
+                    <button class="btn-tool" data-mini-tool="pen" title="Stylo">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="highlighter" title="Surligneur">
+                        <i class="fas fa-highlighter"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="eraser" title="Gomme">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <div class="separator" style="width: 100%; height: 1px;"></div>
+                    <button class="btn-tool" data-mini-tool="undo" title="Annuler">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn-tool" data-mini-tool="redo" title="Rétablir">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+
                 <!-- Loading overlay -->
                 <div class="pdf-loading" id="pdf-loading" style="display: none;">
                     <div class="spinner"></div>
@@ -270,6 +290,7 @@ class CleanPDFViewer {
         // Stocker les références
         this.elements = {
             toolbar: this.container.querySelector('.pdf-toolbar'),
+            miniToolbar: this.container.querySelector('#pdf-mini-toolbar'),
             sidebar: this.container.querySelector('.pdf-sidebar'),
             viewer: this.container.querySelector('.pdf-viewer'),
             thumbnailsContainer: this.container.querySelector('#thumbnails-container'),
@@ -424,6 +445,36 @@ class CleanPDFViewer {
                 height: 24px;
                 background: #e0e0e0;
                 margin: 0 4px;
+            }
+
+            /* Mini-toolbar flottante visible pendant le zoom */
+            .pdf-mini-toolbar {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                display: none;
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-radius: 16px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+                z-index: 9999999;
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                touch-action: none;
+            }
+
+            .pdf-mini-toolbar.visible {
+                display: flex;
+            }
+
+            .pdf-mini-toolbar .btn-tool {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
             }
 
             /* Color selector */
@@ -1165,6 +1216,23 @@ class CleanPDFViewer {
         this.elements.btnDownload.addEventListener('click', () => this.showDownloadMenu());
         this.elements.btnClose.addEventListener('click', () => this.close());
 
+        // Mini-toolbar event handlers
+        this.elements.miniToolbar.querySelectorAll('[data-mini-tool]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tool = e.currentTarget.dataset.miniTool;
+                if (tool === 'undo') {
+                    this.undo();
+                } else if (tool === 'redo') {
+                    this.redo();
+                } else {
+                    this.setTool(tool);
+                }
+            });
+        });
+
+        // Détection du zoom natif pour afficher/masquer la mini-toolbar
+        this.setupZoomDetection();
+
         // Scroll viewer pour détecter la page actuelle
         this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
 
@@ -1423,6 +1491,39 @@ class CleanPDFViewer {
                 console.log('✅ Scroll programmatique OK - Le problème est ailleurs');
             }
         }, 2000);
+    }
+
+    /**
+     * Configurer la détection du zoom natif Safari
+     */
+    setupZoomDetection() {
+        if (!window.visualViewport) {
+            console.log('[Zoom Detection] visualViewport non supporté');
+            return;
+        }
+
+        const checkZoom = () => {
+            const scale = window.visualViewport.scale || 1;
+            const isZoomed = scale > 1.05; // Tolérance de 5%
+
+            if (isZoomed) {
+                // Afficher la mini-toolbar
+                this.elements.miniToolbar.classList.add('visible');
+                // Optionnellement, cacher la toolbar principale
+                // this.elements.toolbar.style.opacity = '0.3';
+            } else {
+                // Masquer la mini-toolbar
+                this.elements.miniToolbar.classList.remove('visible');
+                // this.elements.toolbar.style.opacity = '1';
+            }
+        };
+
+        // Écouter les événements de resize et scroll du visualViewport
+        window.visualViewport.addEventListener('resize', checkZoom);
+        window.visualViewport.addEventListener('scroll', checkZoom);
+
+        // Vérification initiale
+        checkZoom();
     }
 
     /**
@@ -3823,11 +3924,16 @@ class CleanPDFViewer {
         // Pour tous les autres outils
         this.currentTool = tool;
 
-        // Mettre à jour l'UI (sauf pour set-square qui garde son état)
-        this.container.querySelectorAll('.btn-tool').forEach(btn => {
+        // Mettre à jour l'UI dans la toolbar principale (sauf pour set-square qui garde son état)
+        this.container.querySelectorAll('.btn-tool[data-tool]').forEach(btn => {
             if (btn.dataset.tool !== 'set-square') {
                 btn.classList.toggle('active', btn.dataset.tool === tool);
             }
+        });
+
+        // Mettre à jour l'UI dans la mini-toolbar
+        this.elements.miniToolbar.querySelectorAll('.btn-tool[data-mini-tool]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.miniTool === tool);
         });
 
         // Adapter les paramètres selon l'outil
