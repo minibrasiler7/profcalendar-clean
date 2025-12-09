@@ -716,7 +716,7 @@ class CleanPDFViewer {
 
             /* Curseur Apple Pencil Pro */
             .pencil-cursor {
-                position: fixed;
+                position: absolute;
                 pointer-events: none;
                 z-index: 10000;
                 transition: opacity 0.15s ease;
@@ -1195,24 +1195,33 @@ class CleanPDFViewer {
                 const now = Date.now();
                 const timeSinceLastInteraction = now - this.lastPencilInteraction;
 
-                // Apple Pencil Pro squeeze: button === 5 (eraser button) ou button === -1
-                // Ou buttons & 32 (bit 5 pour eraser)
+                // Logger TOUS les événements pen pour debugging
+                console.log('[Apple Pencil Debug] pointerdown - button:', e.button, 'buttons:', e.buttons, 'pressure:', e.pressure, 'tiltX:', e.tiltX, 'tiltY:', e.tiltY);
+
+                // Apple Pencil Pro squeeze: peut être détecté via plusieurs valeurs
+                // button === 5 (eraser button sur certains modèles)
+                // button === -1 (squeeze sur certains iOS)
+                // button === 2 (bouton droit)
+                // button === 32 (autre valeur squeeze)
+                // buttons & 32 (bit 5 pour eraser/squeeze)
                 const isSqueezeOrTap =
-                    e.button === 5 ||  // Eraser button (squeeze sur certains iPads)
-                    e.button === -1 || // Geste personnalisé
-                    (e.buttons & 32) || // Bit 5 = eraser button
-                    e.button === 2;    // Right button (peut être mappé au squeeze)
+                    e.button === 5 ||  // Eraser button
+                    e.button === -1 || // Squeeze gesture
+                    e.button === 2 ||  // Right click / squeeze
+                    e.button === 32 || // Squeeze value
+                    (e.buttons & 32) !== 0; // Bit 5 set
 
                 if (isSqueezeOrTap) {
-                    console.log('[Apple Pencil Pro] Squeeze/Tap détecté ! button:', e.button, 'buttons:', e.buttons);
+                    console.log('[Apple Pencil Pro] ✅ SQUEEZE DÉTECTÉ ! button:', e.button, 'buttons:', e.buttons);
                     this.handlePencilDoubleTap();
                     e.preventDefault();
                     e.stopPropagation();
+                    return false;
                 }
 
                 this.lastPencilInteraction = now;
             }
-        }, { capture: true });
+        }, { capture: true, passive: false });
 
         // Méthode 2: Écouter l'événement 'pencilsqueeze' (si disponible sur iOS)
         if ('onpencilsqueeze' in document) {
@@ -1281,7 +1290,11 @@ class CleanPDFViewer {
             // Afficher le curseur pour l'Apple Pencil Pro (hover)
             // SEULEMENT si on n'est pas en train de dessiner
             if (e.pointerType === 'pen' && !this.isDrawing) {
-                this.updatePencilCursor(e.clientX, e.clientY, true);
+                // Calculer les coordonnées relatives au viewer
+                const viewerRect = this.elements.viewer.getBoundingClientRect();
+                const relativeX = e.clientX - viewerRect.left + this.elements.viewer.scrollLeft;
+                const relativeY = e.clientY - viewerRect.top + this.elements.viewer.scrollTop;
+                this.updatePencilCursor(relativeX, relativeY, true);
             }
 
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
@@ -1307,7 +1320,10 @@ class CleanPDFViewer {
 
                 // Réafficher le curseur après le contact
                 if (e.pointerType === 'pen') {
-                    this.updatePencilCursor(e.clientX, e.clientY, true);
+                    const viewerRect = this.elements.viewer.getBoundingClientRect();
+                    const relativeX = e.clientX - viewerRect.left + this.elements.viewer.scrollLeft;
+                    const relativeY = e.clientY - viewerRect.top + this.elements.viewer.scrollTop;
+                    this.updatePencilCursor(relativeX, relativeY, true);
                 }
             }
         }, { passive: false });
@@ -3637,7 +3653,8 @@ class CleanPDFViewer {
             this.lastHoverY = y;
 
             // Positionner le curseur exactement aux coordonnées de l'événement
-            // Sans compensation, pour qu'il soit exactement là où le trait sera dessiné
+            // Utiliser les mêmes coordonnées clientX/clientY sans transformation
+            // Le curseur est en position:fixed donc en coordonnées viewport
             this.pencilCursor.style.left = `${x}px`;
             this.pencilCursor.style.top = `${y}px`;
             this.pencilCursor.style.display = 'block';
