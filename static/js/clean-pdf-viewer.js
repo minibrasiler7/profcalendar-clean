@@ -5866,19 +5866,19 @@ class CleanPDFViewer {
 
         // Retirer les gestionnaires pointer de l'équerre
         if (this.setSquarePointerDownHandler) {
-            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler, { capture: true });
+            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler);
             this.setSquarePointerDownHandler = null;
         }
         if (this.setSquarePointerMoveHandler) {
-            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler, { capture: true });
+            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler);
             this.setSquarePointerMoveHandler = null;
         }
         if (this.setSquarePointerUpHandler) {
-            document.removeEventListener('pointerup', this.setSquarePointerUpHandler, { capture: true });
+            document.removeEventListener('pointerup', this.setSquarePointerUpHandler);
             this.setSquarePointerUpHandler = null;
         }
         if (this.setSquarePointerCancelHandler) {
-            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler, { capture: true });
+            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler);
             this.setSquarePointerCancelHandler = null;
         }
 
@@ -6101,7 +6101,8 @@ class CleanPDFViewer {
                 }
             }
         };
-        document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+        // NE PAS utiliser capture: true - sinon on intercepte le stylet avant le viewer
+        document.addEventListener('pointerdown', handlePointerDown);
         this.setSquarePointerDownHandler = handlePointerDown;
 
         const handlePointerMove = (e) => {
@@ -6137,7 +6138,7 @@ class CleanPDFViewer {
                 updateTransform();
             }
         };
-        document.addEventListener('pointermove', handlePointerMove, { capture: true });
+        document.addEventListener('pointermove', handlePointerMove);
         this.setSquarePointerMoveHandler = handlePointerMove;
 
         const handlePointerUp = (e) => {
@@ -6147,7 +6148,7 @@ class CleanPDFViewer {
                 pointers.delete(e.pointerId);
             }
         };
-        document.addEventListener('pointerup', handlePointerUp, { capture: true });
+        document.addEventListener('pointerup', handlePointerUp);
         this.setSquarePointerUpHandler = handlePointerUp;
 
         const handlePointerCancel = (e) => {
@@ -6157,7 +6158,7 @@ class CleanPDFViewer {
                 pointers.delete(e.pointerId);
             }
         };
-        document.addEventListener('pointercancel', handlePointerCancel, { capture: true });
+        document.addEventListener('pointercancel', handlePointerCancel);
         this.setSquarePointerCancelHandler = handlePointerCancel;
     }
 }
