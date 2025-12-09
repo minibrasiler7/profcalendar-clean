@@ -1530,34 +1530,46 @@ class CleanPDFViewer {
      * Charger un PDF
      */
     async loadPDF(url) {
+        console.log('[loadPDF] Début du chargement:', url);
         this.showLoading(true);
 
         try {
             // Charger avec PDF.js
+            console.log('[loadPDF] Création de la tâche de chargement...');
             const loadingTask = pdfjsLib.getDocument(url);
+            console.log('[loadPDF] En attente du PDF...');
             this.pdf = await loadingTask.promise;
+            console.log('[loadPDF] PDF chargé, nombre de pages:', this.pdf.numPages);
             this.totalPages = this.pdf.numPages;
 
             // Initialiser l'ordre des pages
             this.pageOrder = Array.from({length: this.totalPages}, (_, i) => i + 1);
+            console.log('[loadPDF] Ordre des pages initialisé');
 
             // Initialiser les pages
             for (let i = 1; i <= this.totalPages; i++) {
                 this.pages.set(i, {type: 'pdf', pageNum: i});
             }
+            console.log('[loadPDF] Pages initialisées');
 
             // Rendre les miniatures et les pages
+            console.log('[loadPDF] Début du rendu des miniatures...');
             await this.renderThumbnails();
+            console.log('[loadPDF] Miniatures rendues, début du rendu des pages...');
             await this.renderPages();
+            console.log('[loadPDF] Pages rendues');
 
             // Aller à la première page
             this.goToPage(1);
+            console.log('[loadPDF] Navigation vers la page 1 terminée');
 
         } catch (error) {
-            console.error('Erreur chargement PDF:', error);
-            alert('Erreur lors du chargement du PDF');
+            console.error('[loadPDF] Erreur chargement PDF:', error);
+            alert('Erreur lors du chargement du PDF: ' + error.message);
         } finally {
+            console.log('[loadPDF] Masquage du loading...');
             this.showLoading(false);
+            console.log('[loadPDF] Chargement terminé');
         }
     }
 
@@ -5722,7 +5734,9 @@ class CleanPDFViewer {
 
         try {
             console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
+            console.log('[Load] Envoi de la requête fetch...');
             const response = await fetch(`/file_manager/api/load-annotations/${this.options.fileId}`);
+            console.log('[Load] Réponse reçue, status:', response.status);
 
             if (response.ok) {
                 const data = await response.json();
