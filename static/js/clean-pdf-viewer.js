@@ -2707,6 +2707,15 @@ class CleanPDFViewer {
             startTime: Date.now(),
             pageId: pageId
         };
+
+        // Pour l'outil pen, initialiser la détection de ligne droite
+        if (this.currentTool === 'pen') {
+            this.penLineDetection = {
+                lastMoveTime: Date.now(),
+                validationTimer: null,
+                shouldCreateStraightLine: false
+            };
+        }
     }
 
     /**
@@ -3073,6 +3082,31 @@ class CleanPDFViewer {
             }
         }
 
+        // Détecter ligne droite pour l'outil pen
+        if (this.currentTool === 'pen' && this.penLineDetection && this.currentStroke.points.length > 0) {
+            const now = Date.now();
+            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+            const distance = Math.sqrt((finalX - lastPoint.x) ** 2 + (finalY - lastPoint.y) ** 2);
+
+            // Marge de 3 pixels pour considérer qu'on ne bouge pas
+            if (distance > 3) {
+                // On bouge, réinitialiser le timer
+                this.penLineDetection.lastMoveTime = now;
+                if (this.penLineDetection.validationTimer) {
+                    clearTimeout(this.penLineDetection.validationTimer);
+                    this.penLineDetection.validationTimer = null;
+                }
+                this.penLineDetection.shouldCreateStraightLine = false;
+            } else if (!this.penLineDetection.validationTimer && !this.penLineDetection.shouldCreateStraightLine) {
+                // Immobile, démarrer le timer de 2 secondes
+                this.penLineDetection.validationTimer = setTimeout(() => {
+                    console.log('[Pen Line Detection] 2 secondes d\'immobilité détectées, ligne droite activée');
+                    this.penLineDetection.shouldCreateStraightLine = true;
+                    this.penLineDetection.validationTimer = null;
+                }, 2000); // 2 secondes
+            }
+        }
+
         this.currentStroke.points.push({x: finalX, y: finalY, pressure: e.pressure || 0.5});
 
         // Redessiner le preview
@@ -3416,6 +3450,28 @@ class CleanPDFViewer {
             this.redrawAnnotations(canvas, pageId);
             this.isDirty = true;
             return;
+        }
+
+        // Gérer la ligne droite pour l'outil pen
+        if (this.currentTool === 'pen' && this.penLineDetection) {
+            // Nettoyer le timer si présent
+            if (this.penLineDetection.validationTimer) {
+                clearTimeout(this.penLineDetection.validationTimer);
+            }
+
+            // Si la ligne droite a été activée, créer un segment droit
+            if (this.penLineDetection.shouldCreateStraightLine && this.currentStroke && this.currentStroke.points.length > 1) {
+                console.log('[Pen Line Detection] Création d\'un segment droit');
+                // Remplacer tous les points par juste le premier et le dernier
+                const firstPoint = this.currentStroke.points[0];
+                const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+                this.currentStroke.points = [firstPoint, lastPoint];
+                // Changer l'outil en ruler pour utiliser le dessin de ligne droite
+                this.currentStroke.tool = 'ruler';
+            }
+
+            // Reset de la détection
+            this.penLineDetection = null;
         }
 
         // Sauvegarder l'annotation standard

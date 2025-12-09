@@ -152,9 +152,17 @@ class AnnotationTools {
         ctx.lineWidth = options.size || 2;
         ctx.globalAlpha = options.opacity || 1.0;
 
+        // Dessiner le cercle
         ctx.beginPath();
         ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
         ctx.stroke();
+
+        // Dessiner un point au centre
+        ctx.fillStyle = options.color || '#000000';
+        const centerPointRadius = Math.max(2, options.size || 2);
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, centerPointRadius, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }
