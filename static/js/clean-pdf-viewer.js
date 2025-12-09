@@ -5725,8 +5725,8 @@ class CleanPDFViewer {
             setSquare.setAttribute('width', svgSize);
             setSquare.setAttribute('height', svgSize);
             setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
-            setSquare.style.pointerEvents = 'none'; // Le SVG ne capte aucun événement
-            setSquare.style.zIndex = '1'; // EN DESSOUS du canvas (canvas z-index: 2) pour ne JAMAIS bloquer le stylet
+            setSquare.style.pointerEvents = 'none'; // Le SVG ne capte aucun événement - CRUCIAL pour le stylet
+            setSquare.style.zIndex = '10000'; // AU-DESSUS de tout pour être visible
 
             // Positionner au centre du viewer
             const viewer = this.elements.viewer;
