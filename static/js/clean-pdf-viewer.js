@@ -83,6 +83,9 @@ class CleanPDFViewer {
         // Outils d'annotation
         this.annotationTools = null;
 
+        // État de l'équerre
+        this.setSquareActive = false;
+
         // Initialiser
         this.init();
     }
@@ -176,6 +179,9 @@ class CleanPDFViewer {
                         </button>
                         <button class="btn-tool" data-tool="grid" title="Grille">
                             <i class="fas fa-border-all"></i>
+                        </button>
+                        <button class="btn-tool" data-tool="set-square" title="Équerre">
+                            <i class="fas fa-ruler-combined"></i>
                         </button>
                         <div class="separator"></div>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
@@ -1118,16 +1124,16 @@ class CleanPDFViewer {
             console.log(`[Viewer NEW] touchstart - touches: ${e.touches.length}`);
 
             // Si on est en train d'annoter (stylet détecté via pointer events)
-            // OU si c'est un seul touch (potentiellement un stylet)
-            if (this.isAnnotating) {
-                console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours)');
+            // OU si l'équerre est active (bloquer scroll/zoom des doigts)
+            if (this.isAnnotating || this.setSquareActive) {
+                console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours ou équerre active)');
                 e.preventDefault();
             }
         }, { passive: false });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            if (this.isAnnotating) {
-                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours)');
+            if (this.isAnnotating || this.setSquareActive) {
+                console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
                 e.preventDefault();
             }
         }, { passive: false });
@@ -1172,9 +1178,17 @@ class CleanPDFViewer {
                     console.log('[Viewer NEW] ERREUR: Aucun canvas trouvé à cette position');
                 }
             } else if (e.pointerType === 'touch') {
-                console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
-                this.isAnnotating = false;
-                // NE RIEN FAIRE - laisser le scroll natif fonctionner
+                // Si l'équerre est active, NE PAS bloquer la propagation
+                // Les gestionnaires de l'équerre au niveau document ont besoin de recevoir ces événements
+                if (this.setSquareActive) {
+                    console.log('[Viewer NEW] Touch détecté - laissant passer pour équerre');
+                    this.isAnnotating = false;
+                    // NE PAS e.preventDefault() ni e.stopPropagation()
+                } else {
+                    console.log('[Viewer NEW] Touch détecté - LAISSANT PASSER pour scroll/zoom');
+                    this.isAnnotating = false;
+                    // NE RIEN FAIRE - laisser le scroll natif fonctionner
+                }
             }
         }, { passive: false });
 
@@ -2185,8 +2199,18 @@ class CleanPDFViewer {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        let x = (e.clientX - rect.left) * scaleX;
+        let y = (e.clientY - rect.top) * scaleY;
+
+        // Appliquer l'aimantation à l'équerre dès le début du trait
+        if (this.setSquareActive && (this.currentTool === 'pen' || this.currentTool === 'ruler')) {
+            const snapped = this.snapToSetSquare(e.clientX, e.clientY, canvas);
+            if (snapped) {
+                x = snapped.x;
+                y = snapped.y;
+                console.log('[Snap Start] Point de départ aimanté à', x.toFixed(1), y.toFixed(1));
+            }
+        }
 
         // Gérer la gomme différemment
         if (this.currentTool === 'eraser') {
@@ -2629,7 +2653,19 @@ class CleanPDFViewer {
             return;
         }
 
-        this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
+        // Appliquer l'aimantation à l'équerre si active
+        let finalX = x;
+        let finalY = y;
+        if (this.setSquareActive && (this.currentTool === 'pen' || this.currentTool === 'ruler')) {
+            const snapped = this.snapToSetSquare(e.clientX, e.clientY, canvas);
+            if (snapped) {
+                finalX = snapped.x;
+                finalY = snapped.y;
+                console.log('[Snap] Point aimanté de', x.toFixed(1), y.toFixed(1), 'à', finalX.toFixed(1), finalY.toFixed(1));
+            }
+        }
+
+        this.currentStroke.points.push({x: finalX, y: finalY, pressure: e.pressure || 0.5});
 
         // Redessiner le preview
         this.drawStrokePreview(canvas, this.currentStroke, pageId);
@@ -3431,11 +3467,32 @@ class CleanPDFViewer {
      */
     setTool(tool) {
         console.log('[Tool] setTool appelé avec:', tool);
+
+        // Cas spécial : l'équerre est un toggle qui ne change pas l'outil actif
+        if (tool === 'set-square') {
+            const setSquare = document.querySelector('.set-square-overlay');
+            const btn = this.container.querySelector('.btn-tool[data-tool="set-square"]');
+
+            if (setSquare && setSquare.style.display !== 'none') {
+                // Équerre déjà affichée, la masquer
+                this.hideSetSquare();
+                if (btn) btn.classList.remove('active');
+            } else {
+                // Afficher l'équerre
+                this.showSetSquare();
+                if (btn) btn.classList.add('active');
+            }
+            return; // Ne pas changer l'outil actif
+        }
+
+        // Pour tous les autres outils
         this.currentTool = tool;
 
-        // Mettre à jour l'UI
+        // Mettre à jour l'UI (sauf pour set-square qui garde son état)
         this.container.querySelectorAll('.btn-tool').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tool === tool);
+            if (btn.dataset.tool !== 'set-square') {
+                btn.classList.toggle('active', btn.dataset.tool === tool);
+            }
         });
 
         // Adapter les paramètres selon l'outil
@@ -5541,6 +5598,9 @@ class CleanPDFViewer {
     async close() {
         console.log('[Close] Fermeture du viewer PDF...');
 
+        // Masquer l'équerre si elle est affichée
+        this.hideSetSquare();
+
         // Sauvegarder avant de fermer
         if (this.isDirty) {
             try {
@@ -5633,6 +5693,440 @@ class CleanPDFViewer {
                 console.error('[Close] Erreur dans onClose:', e);
             }
         }
+    }
+
+    /**
+     * Afficher l'équerre (set square)
+     */
+    showSetSquare() {
+        console.log('[SetSquare] Affichage de l\'équerre');
+
+        // Vérifier si l'équerre existe déjà (chercher dans le body car position fixed)
+        let setSquare = document.querySelector('.set-square-overlay');
+
+        if (!setSquare) {
+            // Calculer les dimensions de l'équerre
+            // L'hypothénuse doit faire 2/3 de la largeur du PDF
+            const pdfCanvas = this.container.querySelector('.pdf-canvas');
+            if (!pdfCanvas) {
+                console.error('[SetSquare] Canvas PDF non trouvé');
+                return;
+            }
+
+            const pdfWidth = pdfCanvas.offsetWidth;
+            const hypotenuse = (pdfWidth * 2) / 3;
+            // Pour un triangle 45-45-90, les deux côtés égaux = hypotenuse / √2
+            const side = hypotenuse / Math.sqrt(2);
+
+            // Créer l'overlay SVG avec des dimensions généreuses pour éviter la coupure
+            const svgSize = Math.max(hypotenuse, side) * 2; // Taille suffisante pour toute rotation
+            setSquare = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            setSquare.classList.add('set-square-overlay');
+            setSquare.setAttribute('width', svgSize);
+            setSquare.setAttribute('height', svgSize);
+            setSquare.style.position = 'fixed'; // Fixed pour éviter les problèmes de scroll
+            setSquare.style.pointerEvents = 'none'; // Le SVG ne capte aucun événement - CRUCIAL pour le stylet
+            setSquare.style.zIndex = '10000'; // AU-DESSUS de tout pour être visible
+
+            // Positionner au centre du viewer
+            const viewer = this.elements.viewer;
+            const viewerRect = viewer.getBoundingClientRect();
+            const centerX = viewerRect.left + viewerRect.width / 2 - svgSize / 2;
+            const centerY = viewerRect.top + viewerRect.height / 2 - svgSize / 2;
+            setSquare.style.left = centerX + 'px';
+            setSquare.style.top = centerY + 'px';
+
+            // Créer le groupe principal qui sera transformé
+            const mainGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            mainGroup.setAttribute('id', 'set-square-main-group');
+
+            // Centrer le triangle dans le SVG
+            const offsetX = svgSize / 2 - side / 2;
+            const offsetY = svgSize / 2 - side / 2;
+            mainGroup.setAttribute('transform', `translate(${offsetX}, ${offsetY})`);
+
+            // Dessiner le triangle simple gris semi-transparent
+            const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            triangle.setAttribute('id', 'set-square-triangle');
+            triangle.setAttribute('points', `0,${side} ${side},${side} ${side},0`);
+            triangle.setAttribute('fill', 'rgba(128, 128, 128, 0.5)'); // Gris semi-transparent
+            triangle.setAttribute('stroke', 'rgba(64, 64, 64, 0.8)');
+            triangle.setAttribute('stroke-width', '2');
+            // ASTUCE: pointer-events none pour laisser passer le stylet
+            // On activera pointer-events dynamiquement seulement pour les touches
+            triangle.style.pointerEvents = 'none';
+            triangle.style.touchAction = 'none';
+            mainGroup.appendChild(triangle);
+
+            setSquare.appendChild(mainGroup);
+
+            // Ajouter au body (pas au viewer) pour position fixed
+            document.body.appendChild(setSquare);
+
+            // Calculer le centre de gravité du triangle 45-45-90
+            // Pour un triangle avec sommets (0,side), (side,side), (side,0):
+            // centroïde = ((x1+x2+x3)/3, (y1+y2+y3)/3) = ((0+side+side)/3, (side+side+0)/3)
+            const centroidX = (0 + side + side) / 3; // = 2*side/3
+            const centroidY = (side + side + 0) / 3; // = 2*side/3
+
+            // Initialiser les variables de transformation
+            this.setSquareTransform = {
+                x: 0,
+                y: 0,
+                rotation: 0,
+                scale: 1,
+                centroidX: centroidX,
+                centroidY: centroidY,
+                offsetX: offsetX,
+                offsetY: offsetY,
+                side: side
+            };
+
+            // Ajouter les gestionnaires de gestes tactiles au triangle
+            this.attachSetSquareGestures(setSquare, mainGroup, triangle);
+        } else {
+            // Si l'équerre existe déjà, simplement l'afficher
+            setSquare.style.display = 'block';
+        }
+
+        // Marquer l'équerre comme active
+        this.setSquareActive = true;
+        console.log('[SetSquare] Équerre activée - scroll/zoom doigts bloqués');
+
+        // Ajouter un gestionnaire global pour bloquer TOUS les touches quand équerre active
+        // Ceci complète les gestionnaires sur le viewer pour capturer les touches qui passent ailleurs
+        this.blockScrollWhenSetSquareActive();
+    }
+
+    /**
+     * Bloquer le scroll/zoom global quand l'équerre est active
+     */
+    blockScrollWhenSetSquareActive() {
+        // Si un handler existe déjà, le retirer d'abord
+        if (this.globalTouchBlockHandler) {
+            document.removeEventListener('touchstart', this.globalTouchBlockHandler, { passive: false });
+            document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false });
+        }
+
+        // Créer un nouveau handler qui bloque les touches sur le viewer SAUF boutons et équerre
+        this.globalTouchBlockHandler = (e) => {
+            // Vérifier si l'équerre est toujours active
+            if (this.setSquareActive) {
+                const target = e.target;
+
+                // NE PAS bloquer les touches sur:
+                // - Les boutons de la toolbar
+                // - L'équerre elle-même (gérée par les listeners pointer)
+                if (target && (
+                    target.closest('.toolbar') ||
+                    target.closest('.btn-tool') ||
+                    target.closest('button') ||
+                    target.tagName === 'BUTTON' ||
+                    target.classList.contains('btn-tool') ||
+                    target.closest('.set-square-overlay')
+                )) {
+                    console.log('[SetSquare Global] ✓ Touch autorisé sur:', target.className || target.tagName);
+                    return; // Laisser passer
+                }
+
+                // Bloquer tout le reste (scroll/zoom sur le viewer)
+                console.log('[SetSquare Global] ✋ Blocage touch sur viewer');
+                e.preventDefault();
+                // NE PAS stopPropagation - laisser les événements se propager pour les autres handlers
+            }
+        };
+
+        // Attacher au document pour capturer TOUS les événements touch
+        document.addEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
+        document.addEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
+
+        console.log('[SetSquare] Gestionnaires globaux de blocage attachés');
+    }
+
+    /**
+     * Masquer l'équerre
+     */
+    hideSetSquare() {
+        const setSquare = document.querySelector('.set-square-overlay');
+        if (setSquare) {
+            setSquare.style.display = 'none';
+            console.log('[SetSquare] Équerre masquée');
+        }
+
+        // Marquer l'équerre comme inactive
+        this.setSquareActive = false;
+
+        // Retirer les gestionnaires globaux de blocage touch
+        if (this.globalTouchBlockHandler) {
+            document.removeEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
+            document.removeEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
+            this.globalTouchBlockHandler = null;
+            console.log('[SetSquare] Gestionnaires globaux de blocage retirés');
+        }
+
+        // Retirer les gestionnaires pointer de l'équerre
+        if (this.setSquarePointerDownHandler) {
+            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler);
+            this.setSquarePointerDownHandler = null;
+        }
+        if (this.setSquarePointerMoveHandler) {
+            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler);
+            this.setSquarePointerMoveHandler = null;
+        }
+        if (this.setSquarePointerUpHandler) {
+            document.removeEventListener('pointerup', this.setSquarePointerUpHandler);
+            this.setSquarePointerUpHandler = null;
+        }
+        if (this.setSquarePointerCancelHandler) {
+            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler);
+            this.setSquarePointerCancelHandler = null;
+        }
+
+        console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
+    }
+
+    /**
+     * Calculer l'aimantation au bord de l'équerre
+     * @param {number} clientX - Position X du pointeur en coordonnées client
+     * @param {number} clientY - Position Y du pointeur en coordonnées client
+     * @param {HTMLCanvasElement} canvas - Canvas de dessin
+     * @returns {Object|null} - Nouvelles coordonnées {x, y} dans le canvas si aimantation, null sinon
+     */
+    snapToSetSquare(clientX, clientY, canvas) {
+        const setSquare = document.querySelector('.set-square-overlay');
+        if (!setSquare || setSquare.style.display === 'none') {
+            console.log('[Snap DEBUG] Équerre introuvable ou masquée');
+            return null;
+        }
+
+        const SNAP_THRESHOLD = 20; // Distance en pixels pour l'aimantation
+        console.log(`[Snap DEBUG] Vérification snap pour point (${clientX.toFixed(1)}, ${clientY.toFixed(1)})`);
+
+        // Obtenir le triangle SVG et ses coordonnées transformées
+        const triangleElement = setSquare.querySelector('#set-square-triangle');
+        if (!triangleElement) {
+            console.log('[Snap DEBUG] Triangle introuvable');
+            return null;
+        }
+
+        // Utiliser getBBox pour obtenir les dimensions du triangle dans son système de coordonnées local
+        const bbox = triangleElement.getBBox();
+        console.log('[Snap DEBUG] Triangle bbox:', bbox);
+
+        // Récupérer la matrice de transformation complète (incluant tous les transforms SVG)
+        const screenCTM = triangleElement.getScreenCTM();
+
+        if (!screenCTM) {
+            console.log('[Snap DEBUG] Impossible d\'obtenir la matrice de transformation');
+            return null;
+        }
+
+        console.log('[Snap DEBUG] Matrice de transformation:', {
+            a: screenCTM.a, b: screenCTM.b, c: screenCTM.c,
+            d: screenCTM.d, e: screenCTM.e, f: screenCTM.f
+        });
+
+        // Les 3 sommets du triangle dans le système de coordonnées local SVG
+        // Le triangle a 3 points: (0, side), (side, side), (side, 0)
+        const side = this.setSquareTransform.side;
+        const localVertices = [
+            {x: 0, y: side},           // Sommet inférieur gauche
+            {x: side, y: side},        // Sommet inférieur droit (angle droit)
+            {x: side, y: 0}            // Sommet supérieur droit
+        ];
+
+        // Transformer les sommets en coordonnées écran en utilisant la matrice CTM
+        const screenVertices = localVertices.map(v => {
+            const point = setSquare.createSVGPoint();
+            point.x = v.x;
+            point.y = v.y;
+            const transformed = point.matrixTransform(screenCTM);
+            return {x: transformed.x, y: transformed.y};
+        });
+
+        console.log('[Snap DEBUG] Sommets transformés:', screenVertices);
+
+        // Les 3 bords du triangle
+        const edges = [
+            {name: 'base', p1: screenVertices[0], p2: screenVertices[1]},      // Bord horizontal (base)
+            {name: 'vertical', p1: screenVertices[1], p2: screenVertices[2]},  // Bord vertical (côté droit)
+            {name: 'hypoténuse', p1: screenVertices[2], p2: screenVertices[0]} // Hypothénuse
+        ];
+
+        // Vérifier la distance à chaque bord
+        let closestPoint = null;
+        let minDistance = SNAP_THRESHOLD;
+        let closestEdge = null;
+
+        for (const edge of edges) {
+            const {p1, p2, name} = edge;
+
+            // Calculer la distance du point au segment
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const lengthSq = dx * dx + dy * dy;
+
+            if (lengthSq === 0) {
+                console.log(`[Snap DEBUG] Bord ${name} - points identiques, ignoré`);
+                continue;
+            }
+
+            // Paramètre t du point le plus proche sur le segment
+            let t = ((clientX - p1.x) * dx + (clientY - p1.y) * dy) / lengthSq;
+            t = Math.max(0, Math.min(1, t)); // Clamper à [0, 1]
+
+            // Point le plus proche sur le segment (en coordonnées écran)
+            const nearestX = p1.x + t * dx;
+            const nearestY = p1.y + t * dy;
+
+            // Distance au point
+            const distance = Math.sqrt((clientX - nearestX) ** 2 + (clientY - nearestY) ** 2);
+
+            console.log(`[Snap DEBUG] Bord ${name}: distance=${distance.toFixed(1)}px, t=${t.toFixed(2)}, nearest=(${nearestX.toFixed(1)}, ${nearestY.toFixed(1)})`);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = {x: nearestX, y: nearestY}; // Garder en coordonnées écran pour l'instant
+                closestEdge = name;
+            }
+        }
+
+        if (closestPoint) {
+            // Convertir en coordonnées canvas
+            const canvasRect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / canvasRect.width;
+            const scaleY = canvas.height / canvasRect.height;
+
+            const canvasX = (closestPoint.x - canvasRect.left) * scaleX;
+            const canvasY = (closestPoint.y - canvasRect.top) * scaleY;
+
+            console.log(`[Snap DEBUG] ✓ SNAP sur ${closestEdge} à ${minDistance.toFixed(1)}px - écran(${closestPoint.x.toFixed(1)}, ${closestPoint.y.toFixed(1)}) -> canvas(${canvasX.toFixed(1)}, ${canvasY.toFixed(1)})`);
+
+            return {x: canvasX, y: canvasY};
+        }
+
+        console.log('[Snap DEBUG] ✗ Aucun bord dans la zone de snap');
+        return null;
+    }
+
+    /**
+     * Attacher les gestionnaires de gestes pour l'équerre
+     */
+    attachSetSquareGestures(svgElement, mainGroup, triangleElement) {
+        let pointers = new Map(); // Stocker les pointeurs actifs (seulement touch, pas pen)
+        let initialDistance = 0;
+        let initialRotation = 0;
+        let initialAngle = 0;
+
+        const updateTransform = () => {
+            // Rotation autour du centre de gravité du triangle
+            const cx = this.setSquareTransform.centroidX;
+            const cy = this.setSquareTransform.centroidY;
+            const offsetX = this.setSquareTransform.offsetX;
+            const offsetY = this.setSquareTransform.offsetY;
+
+            const transform = `translate(${offsetX}, ${offsetY}) rotate(${this.setSquareTransform.rotation}, ${cx}, ${cy}) scale(${this.setSquareTransform.scale})`;
+            mainGroup.setAttribute('transform', transform);
+        };
+
+        // Écouter au niveau du document pour détecter les touches sur le triangle
+        // Le triangle a pointer-events: none donc on doit activer dynamiquement
+        const handlePointerDown = (e) => {
+            console.log(`[SetSquare DEBUG] pointerdown - type: ${e.pointerType}, setSquareActive: ${this.setSquareActive}, target: ${e.target?.tagName}`);
+
+            // IMPORTANT: Ne traiter QUE si l'équerre est active
+            if (!this.setSquareActive) {
+                console.log('[SetSquare DEBUG] Équerre non active, ignorer');
+                return;
+            }
+
+            // Ignorer le stylet - le stylet ne doit JAMAIS être capturé
+            if (e.pointerType === 'pen') {
+                console.log('[SetSquare DEBUG] Stylet détecté - LAISSER PASSER (return)');
+                return;
+            }
+
+            // Pour les doigts, accepter tous les touches sur l'équerre
+            if (e.pointerType === 'touch') {
+                console.log('[SetSquare DEBUG] Touch détecté - activation manipulation');
+
+                e.stopPropagation();
+                e.preventDefault();
+
+                pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+                console.log('[SetSquare DEBUG] Pointers actifs:', pointers.size);
+
+                if (pointers.size === 2) {
+                    // Deux doigts - préparer la rotation
+                    const pts = Array.from(pointers.values());
+                    const dx = pts[1].x - pts[0].x;
+                    const dy = pts[1].y - pts[0].y;
+                    initialDistance = Math.sqrt(dx * dx + dy * dy);
+                    initialAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    initialRotation = this.setSquareTransform.rotation;
+                    console.log('[SetSquare] Rotation initialisée, angle:', initialAngle);
+                }
+            }
+        };
+        // NE PAS utiliser capture: true - sinon on intercepte le stylet avant le viewer
+        document.addEventListener('pointerdown', handlePointerDown);
+        this.setSquarePointerDownHandler = handlePointerDown;
+
+        const handlePointerMove = (e) => {
+            if (!this.setSquareActive) return;
+            if (e.pointerType === 'pen') return;
+            if (!pointers.has(e.pointerId)) return;
+
+            e.stopPropagation();
+            e.preventDefault();
+
+            const oldPointer = pointers.get(e.pointerId);
+            pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+            if (pointers.size === 1) {
+                // Un doigt - translation du SVG entier
+                const dx = e.clientX - oldPointer.x;
+                const dy = e.clientY - oldPointer.y;
+
+                const currentLeft = parseFloat(svgElement.style.left) || 0;
+                const currentTop = parseFloat(svgElement.style.top) || 0;
+
+                svgElement.style.left = (currentLeft + dx) + 'px';
+                svgElement.style.top = (currentTop + dy) + 'px';
+            } else if (pointers.size === 2) {
+                // Deux doigts - rotation autour du centroïde
+                const pts = Array.from(pointers.values());
+                const dx = pts[1].x - pts[0].x;
+                const dy = pts[1].y - pts[0].y;
+                const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                this.setSquareTransform.rotation = initialRotation + (currentAngle - initialAngle);
+                console.log('[SetSquare] Rotation:', this.setSquareTransform.rotation);
+                updateTransform();
+            }
+        };
+        document.addEventListener('pointermove', handlePointerMove);
+        this.setSquarePointerMoveHandler = handlePointerMove;
+
+        const handlePointerUp = (e) => {
+            if (!this.setSquareActive) return;
+            if (e.pointerType === 'pen') return;
+            if (pointers.has(e.pointerId)) {
+                pointers.delete(e.pointerId);
+            }
+        };
+        document.addEventListener('pointerup', handlePointerUp);
+        this.setSquarePointerUpHandler = handlePointerUp;
+
+        const handlePointerCancel = (e) => {
+            if (!this.setSquareActive) return;
+            if (e.pointerType === 'pen') return;
+            if (pointers.has(e.pointerId)) {
+                pointers.delete(e.pointerId);
+            }
+        };
+        document.addEventListener('pointercancel', handlePointerCancel);
+        this.setSquarePointerCancelHandler = handlePointerCancel;
     }
 }
 
