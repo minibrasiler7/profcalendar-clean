@@ -334,26 +334,68 @@ class CleanPDFViewer {
             .toolbar-right {
                 display: flex;
                 align-items: center;
-                /* Gap adaptatif : plus petit sur petits écrans */
-                gap: clamp(4px, calc(4px + (8 - 4) * ((100vh - 700px) / (1000 - 700))), 8px);
+                gap: 4px;
+            }
+
+            @media (min-height: 850px) {
+                .toolbar-left, .toolbar-center, .toolbar-right {
+                    gap: 6px;
+                }
+            }
+
+            @media (min-height: 1100px) {
+                .toolbar-left, .toolbar-center, .toolbar-right {
+                    gap: 8px;
+                }
             }
 
             .btn-tool,
             .btn-action {
-                /* Taille adaptative basée sur la hauteur du viewport */
-                /* Pour une hauteur < 700px: 32px, pour > 1000px: 44px, entre les deux: interpolation */
-                width: clamp(32px, calc(32px + (44 - 32) * ((100vh - 700px) / (1000 - 700))), 44px);
-                height: clamp(32px, calc(32px + (44 - 32) * ((100vh - 700px) / (1000 - 700))), 44px);
+                width: 32px;
+                height: 32px;
                 border: none;
                 background: transparent;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 transition: all 0.2s;
                 color: #333;
-                font-size: clamp(14px, calc(14px + (18 - 14) * ((100vh - 700px) / (1000 - 700))), 18px);
+                font-size: 14px;
+            }
+
+            /* Media queries pour adapter la taille selon la hauteur */
+            @media (min-height: 750px) {
+                .btn-tool, .btn-action {
+                    width: 36px;
+                    height: 36px;
+                    font-size: 15px;
+                }
+            }
+
+            @media (min-height: 850px) {
+                .btn-tool, .btn-action {
+                    width: 38px;
+                    height: 38px;
+                    font-size: 16px;
+                }
+            }
+
+            @media (min-height: 950px) {
+                .btn-tool, .btn-action {
+                    width: 40px;
+                    height: 40px;
+                    font-size: 17px;
+                }
+            }
+
+            @media (min-height: 1100px) {
+                .btn-tool, .btn-action {
+                    width: 42px;
+                    height: 42px;
+                    font-size: 18px;
+                }
             }
 
             .btn-tool:hover,
@@ -1142,28 +1184,44 @@ class CleanPDFViewer {
             }
         }, { passive: false });
 
-        // Gestionnaire Apple Pencil double-tap
-        // Sur iOS 17.5+, le double-tap sur Apple Pencil génère un événement pointerdown avec button === -1
-        this.lastPencilTap = 0;
+        // Gestionnaire Apple Pencil Pro squeeze (pincement)
+        // Sur Apple Pencil Pro avec iOS 17.5+, le squeeze est détecté via plusieurs méthodes
+        this.lastPencilInteraction = 0;
         this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
 
+        // Méthode 1: Événement pointerdown avec button spécial
         document.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'pen') {
-                // Détecter le double-tap : deux taps rapprochés (< 500ms)
                 const now = Date.now();
-                const timeSinceLastTap = now - this.lastPencilTap;
+                const timeSinceLastInteraction = now - this.lastPencilInteraction;
 
-                // Vérifier si c'est un double-tap (iOS peut aussi utiliser button === -1)
-                if ((timeSinceLastTap < 500 && timeSinceLastTap > 50) || e.button === -1) {
-                    console.log('[Apple Pencil] Double-tap détecté !');
+                // Apple Pencil Pro squeeze: button === 5 (eraser button) ou button === -1
+                // Ou buttons & 32 (bit 5 pour eraser)
+                const isSqueezeOrTap =
+                    e.button === 5 ||  // Eraser button (squeeze sur certains iPads)
+                    e.button === -1 || // Geste personnalisé
+                    (e.buttons & 32) || // Bit 5 = eraser button
+                    e.button === 2;    // Right button (peut être mappé au squeeze)
+
+                if (isSqueezeOrTap) {
+                    console.log('[Apple Pencil Pro] Squeeze/Tap détecté ! button:', e.button, 'buttons:', e.buttons);
                     this.handlePencilDoubleTap();
                     e.preventDefault();
                     e.stopPropagation();
                 }
 
-                this.lastPencilTap = now;
+                this.lastPencilInteraction = now;
             }
         }, { capture: true });
+
+        // Méthode 2: Écouter l'événement 'pencilsqueeze' (si disponible sur iOS)
+        if ('onpencilsqueeze' in document) {
+            document.addEventListener('pencilsqueeze', (e) => {
+                console.log('[Apple Pencil Pro] Événement pencilsqueeze natif détecté');
+                this.handlePencilDoubleTap();
+                e.preventDefault();
+            });
+        }
 
         // Gestionnaires pointer events au niveau viewer
         this.elements.viewer.addEventListener('pointerdown', (e) => {
@@ -2129,7 +2187,7 @@ class CleanPDFViewer {
     async renderPageLinks(page, viewport, container, pageId) {
         try {
             // Supprimer les anciens liens s'ils existent
-            const oldLinks = container.querySelectorAll('.pdf-link-overlay');
+            const oldLinks = container.querySelectorAll('.pdf-link-button, .pdf-link-overlay');
             oldLinks.forEach(link => link.remove());
 
             // Obtenir les annotations (liens) de la page
@@ -2142,55 +2200,68 @@ class CleanPDFViewer {
 
             if (links.length === 0) return;
 
-            // Créer un overlay pour chaque lien
+            // Grouper les liens par URL (pour éviter les doublons sur plusieurs lignes)
+            const linksByUrl = new Map();
             for (const link of links) {
-                const linkElement = document.createElement('a');
-                linkElement.className = 'pdf-link-overlay';
-                linkElement.href = link.url;
-                linkElement.target = '_blank';
-                linkElement.rel = 'noopener noreferrer';
+                if (!linksByUrl.has(link.url)) {
+                    linksByUrl.set(link.url, []);
+                }
+                linksByUrl.get(link.url).push(link);
+            }
 
-                // Convertir les coordonnées PDF en coordonnées canvas
-                const rect = link.rect;
-                const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(rect);
+            // Créer un bouton pour chaque URL unique
+            for (const [url, linkRects] of linksByUrl) {
+                // Trouver le rectangle moyen (centre de tous les rectangles)
+                let totalX = 0, totalY = 0, count = 0;
+                for (const link of linkRects) {
+                    const rect = link.rect;
+                    const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(rect);
+                    totalX += (x1 + x2) / 2;
+                    totalY += (y1 + y2) / 2;
+                    count++;
+                }
+                const centerX = totalX / count;
+                const centerY = totalY / count;
 
-                // Positionner l'overlay (y inversé car PDF coord system)
-                linkElement.style.position = 'absolute';
-                linkElement.style.left = `${Math.min(x1, x2)}px`;
-                linkElement.style.top = `${Math.min(y1, y2)}px`;
-                linkElement.style.width = `${Math.abs(x2 - x1)}px`;
-                linkElement.style.height = `${Math.abs(y2 - y1)}px`;
+                // Créer le bouton rond
+                const linkButton = document.createElement('a');
+                linkButton.className = 'pdf-link-button';
+                linkButton.href = url;
+                linkButton.target = '_blank';
+                linkButton.rel = 'noopener noreferrer';
+                linkButton.textContent = 'Aller à la page !';
 
-                // Style visuel pour indiquer que c'est cliquable
-                linkElement.style.border = '2px solid rgba(0, 123, 255, 0.5)';
-                linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-                linkElement.style.cursor = 'pointer';
-                linkElement.style.zIndex = '5';
-                linkElement.style.borderRadius = '3px';
-                linkElement.style.transition = 'all 0.2s ease';
-
-                // Afficher l'icône de lien
-                linkElement.innerHTML = `<i class="fas fa-external-link-alt" style="
-                    position: absolute;
-                    top: 2px;
-                    right: 2px;
-                    font-size: 12px;
-                    color: rgba(0, 123, 255, 0.8);
-                    pointer-events: none;
-                "></i>`;
+                // Positionner le bouton au centre
+                linkButton.style.position = 'absolute';
+                linkButton.style.left = `${centerX}px`;
+                linkButton.style.top = `${centerY}px`;
+                linkButton.style.transform = 'translate(-50%, -50%)';
+                linkButton.style.padding = '8px 16px';
+                linkButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                linkButton.style.color = 'white';
+                linkButton.style.borderRadius = '20px';
+                linkButton.style.fontSize = '14px';
+                linkButton.style.fontWeight = 'bold';
+                linkButton.style.textDecoration = 'none';
+                linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                linkButton.style.cursor = 'pointer';
+                linkButton.style.zIndex = '5';
+                linkButton.style.transition = 'all 0.3s ease';
+                linkButton.style.border = 'none';
+                linkButton.style.whiteSpace = 'nowrap';
 
                 // Effet hover
-                linkElement.addEventListener('mouseenter', () => {
-                    linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
-                    linkElement.style.borderColor = 'rgba(0, 123, 255, 0.8)';
+                linkButton.addEventListener('mouseenter', () => {
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.05)';
+                    linkButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.6)';
                 });
 
-                linkElement.addEventListener('mouseleave', () => {
-                    linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
-                    linkElement.style.borderColor = 'rgba(0, 123, 255, 0.5)';
+                linkButton.addEventListener('mouseleave', () => {
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1)';
+                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
                 });
 
-                container.appendChild(linkElement);
+                container.appendChild(linkButton);
             }
         } catch (error) {
             console.error('[Links] Erreur lors de l\'extraction des liens:', error);
@@ -2749,7 +2820,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.arcState.validationTimer = setTimeout(() => {
                     this.validateArcFirstSegment(canvas, pageId);
-                }, 1000); // 1 seconde pour validation
+                }, 1500); // 1.5 secondes pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
@@ -2977,8 +3048,8 @@ class CleanPDFViewer {
             }
             this.arcState.visitedAngles.push(currentAngle);
 
-            // Appliquer l'opacité de 50%
-            ctx.globalAlpha = 0.5;
+            // Appliquer l'opacité de 25%
+            ctx.globalAlpha = 0.25;
 
             // Dessiner tous les arcs cumulatifs entre les angles consécutifs visités
             if (this.arcState.visitedAngles.length > 1) {
@@ -3092,7 +3163,7 @@ class CleanPDFViewer {
                     tool: 'arc',
                     color: this.currentColor,
                     size: this.currentSize,
-                    opacity: 0.5, // Arc toujours à 50% d'opacité
+                    opacity: 0.25, // Arc toujours à 25% d'opacité
                     points: [
                         this.arcState.startPoint,
                         this.arcState.firstSegmentEnd,
@@ -3565,20 +3636,10 @@ class CleanPDFViewer {
             this.lastHoverX = x;
             this.lastHoverY = y;
 
-            // Obtenir le zoom du viewport (pinch zoom sur iPad)
-            const visualViewport = window.visualViewport;
-            let adjustedX = x;
-            let adjustedY = y;
-
-            if (visualViewport) {
-                // Compenser le zoom et l'offset du viewport
-                adjustedX = (x - visualViewport.offsetLeft) / visualViewport.scale;
-                adjustedY = (y - visualViewport.offsetTop) / visualViewport.scale;
-            }
-
-            // Positionner le curseur avec les coordonnées ajustées
-            this.pencilCursor.style.left = `${adjustedX}px`;
-            this.pencilCursor.style.top = `${adjustedY}px`;
+            // Positionner le curseur exactement aux coordonnées de l'événement
+            // Sans compensation, pour qu'il soit exactement là où le trait sera dessiné
+            this.pencilCursor.style.left = `${x}px`;
+            this.pencilCursor.style.top = `${y}px`;
             this.pencilCursor.style.display = 'block';
 
             // Calculer la taille du curseur en fonction de la taille du trait
