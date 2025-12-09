@@ -333,7 +333,11 @@ class CleanPDFViewer {
                 border-bottom: 1px solid #e0e0e0;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 gap: 16px;
-                z-index: 1000;
+                z-index: 999999;
+                /* Force un nouveau contexte de rendu pour ignorer le zoom natif */
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                will-change: transform;
             }
 
             .toolbar-left,
@@ -3014,6 +3018,8 @@ class CleanPDFViewer {
             ctx.fillText(`${angleDegrees.toFixed(1)}°`, labelX, labelY);
         }
 
+        // Réinitialiser setLineDash AVANT restore pour ne pas polluer les autres dessins
+        ctx.setLineDash([]);
         ctx.restore();
     }
 
@@ -3140,14 +3146,15 @@ class CleanPDFViewer {
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
             const endOnArc = {
-                x: startPoint.x + radius * Math.cos(endAngle),
-                y: startPoint.y + radius * Math.sin(endAngle)
+                x: startPoint.x + radius * Math.cos(currentAngle),
+                y: startPoint.y + radius * Math.sin(currentAngle)
             };
             ctx.lineTo(endOnArc.x, endOnArc.y);
             ctx.stroke();
-            ctx.setLineDash([]);
         }
 
+        // Réinitialiser setLineDash AVANT restore pour ne pas polluer les autres dessins
+        ctx.setLineDash([]);
         ctx.restore();
     }
 
