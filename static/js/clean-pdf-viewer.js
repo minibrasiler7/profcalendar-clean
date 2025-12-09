@@ -319,14 +319,21 @@ class CleanPDFViewer {
 
             /* Toolbar */
             .pdf-toolbar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 padding: 12px 16px;
-                background: white;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
                 border-bottom: 1px solid #e0e0e0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 gap: 16px;
+                z-index: 1000;
             }
 
             .toolbar-left,
@@ -609,6 +616,7 @@ class CleanPDFViewer {
                 overflow: auto !important; /* Zone de scroll pour les doigts */
                 -webkit-overflow-scrolling: touch; /* Scroll fluide iOS */
                 padding: 16px;
+                padding-top: 80px; /* Espace pour la toolbar fixe */
                 position: relative;
             }
 
