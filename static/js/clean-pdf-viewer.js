@@ -334,13 +334,16 @@ class CleanPDFViewer {
             .toolbar-right {
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                /* Gap adaptatif : plus petit sur petits écrans */
+                gap: clamp(4px, calc(4px + (8 - 4) * ((100vh - 700px) / (1000 - 700))), 8px);
             }
 
             .btn-tool,
             .btn-action {
-                width: 40px;
-                height: 40px;
+                /* Taille adaptative basée sur la hauteur du viewport */
+                /* Pour une hauteur < 700px: 32px, pour > 1000px: 44px, entre les deux: interpolation */
+                width: clamp(32px, calc(32px + (44 - 32) * ((100vh - 700px) / (1000 - 700))), 44px);
+                height: clamp(32px, calc(32px + (44 - 32) * ((100vh - 700px) / (1000 - 700))), 44px);
                 border: none;
                 background: transparent;
                 border-radius: 8px;
@@ -350,6 +353,7 @@ class CleanPDFViewer {
                 justify-content: center;
                 transition: all 0.2s;
                 color: #333;
+                font-size: clamp(14px, calc(14px + (18 - 14) * ((100vh - 700px) / (1000 - 700))), 18px);
             }
 
             .btn-tool:hover,
@@ -1138,6 +1142,29 @@ class CleanPDFViewer {
             }
         }, { passive: false });
 
+        // Gestionnaire Apple Pencil double-tap
+        // Sur iOS 17.5+, le double-tap sur Apple Pencil génère un événement pointerdown avec button === -1
+        this.lastPencilTap = 0;
+        this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
+
+        document.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'pen') {
+                // Détecter le double-tap : deux taps rapprochés (< 500ms)
+                const now = Date.now();
+                const timeSinceLastTap = now - this.lastPencilTap;
+
+                // Vérifier si c'est un double-tap (iOS peut aussi utiliser button === -1)
+                if ((timeSinceLastTap < 500 && timeSinceLastTap > 50) || e.button === -1) {
+                    console.log('[Apple Pencil] Double-tap détecté !');
+                    this.handlePencilDoubleTap();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
+                this.lastPencilTap = now;
+            }
+        }, { capture: true });
+
         // Gestionnaires pointer events au niveau viewer
         this.elements.viewer.addEventListener('pointerdown', (e) => {
             console.log(`[Viewer NEW] pointerdown type: ${e.pointerType}`);
@@ -1561,6 +1588,9 @@ class CleanPDFViewer {
 
         // Redessiner les annotations existantes en utilisant pageId
         this.redrawAnnotations(annotationCanvas, pageId);
+
+        // Extraire et afficher les liens
+        await this.renderPageLinks(page, viewport, pdfCanvas.parentElement, pageId);
     }
 
     /**
@@ -2093,6 +2123,80 @@ class CleanPDFViewer {
     /**
      * Configurer les événements d'annotation sur un canvas
      */
+    /**
+     * Extraire et afficher les liens d'une page PDF
+     */
+    async renderPageLinks(page, viewport, container, pageId) {
+        try {
+            // Supprimer les anciens liens s'ils existent
+            const oldLinks = container.querySelectorAll('.pdf-link-overlay');
+            oldLinks.forEach(link => link.remove());
+
+            // Obtenir les annotations (liens) de la page
+            const annotations = await page.getAnnotations();
+
+            // Filtrer uniquement les liens web
+            const links = annotations.filter(annotation =>
+                annotation.subtype === 'Link' && annotation.url
+            );
+
+            if (links.length === 0) return;
+
+            // Créer un overlay pour chaque lien
+            for (const link of links) {
+                const linkElement = document.createElement('a');
+                linkElement.className = 'pdf-link-overlay';
+                linkElement.href = link.url;
+                linkElement.target = '_blank';
+                linkElement.rel = 'noopener noreferrer';
+
+                // Convertir les coordonnées PDF en coordonnées canvas
+                const rect = link.rect;
+                const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(rect);
+
+                // Positionner l'overlay (y inversé car PDF coord system)
+                linkElement.style.position = 'absolute';
+                linkElement.style.left = `${Math.min(x1, x2)}px`;
+                linkElement.style.top = `${Math.min(y1, y2)}px`;
+                linkElement.style.width = `${Math.abs(x2 - x1)}px`;
+                linkElement.style.height = `${Math.abs(y2 - y1)}px`;
+
+                // Style visuel pour indiquer que c'est cliquable
+                linkElement.style.border = '2px solid rgba(0, 123, 255, 0.5)';
+                linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                linkElement.style.cursor = 'pointer';
+                linkElement.style.zIndex = '5';
+                linkElement.style.borderRadius = '3px';
+                linkElement.style.transition = 'all 0.2s ease';
+
+                // Afficher l'icône de lien
+                linkElement.innerHTML = `<i class="fas fa-external-link-alt" style="
+                    position: absolute;
+                    top: 2px;
+                    right: 2px;
+                    font-size: 12px;
+                    color: rgba(0, 123, 255, 0.8);
+                    pointer-events: none;
+                "></i>`;
+
+                // Effet hover
+                linkElement.addEventListener('mouseenter', () => {
+                    linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+                    linkElement.style.borderColor = 'rgba(0, 123, 255, 0.8)';
+                });
+
+                linkElement.addEventListener('mouseleave', () => {
+                    linkElement.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                    linkElement.style.borderColor = 'rgba(0, 123, 255, 0.5)';
+                });
+
+                container.appendChild(linkElement);
+            }
+        } catch (error) {
+            console.error('[Links] Erreur lors de l\'extraction des liens:', error);
+        }
+    }
+
     setupAnnotationEvents(canvas, pageId) {
         // Normaliser pageId en nombre pour éviter les problèmes de type
         const normalizedPageId = typeof pageId === 'string' ? parseInt(pageId) : pageId;
@@ -3508,6 +3612,74 @@ class CleanPDFViewer {
     /**
      * Changer d'outil
      */
+    /**
+     * Gérer le double-tap de l'Apple Pencil
+     * Action intelligente : basculer entre stylo et gomme
+     */
+    handlePencilDoubleTap() {
+        console.log('[Apple Pencil] Outil actuel:', this.currentTool);
+
+        if (this.currentTool === 'eraser') {
+            // Si on est en mode gomme, revenir à l'outil précédent
+            console.log('[Apple Pencil] Gomme → ', this.previousTool);
+            this.setTool(this.previousTool);
+        } else {
+            // Sinon, mémoriser l'outil actuel et passer à la gomme
+            console.log('[Apple Pencil]', this.currentTool, '→ Gomme');
+            this.previousTool = this.currentTool;
+            this.setTool('eraser');
+        }
+
+        // Feedback visuel : afficher brièvement une notification
+        this.showToolSwitchNotification();
+    }
+
+    /**
+     * Afficher une notification visuelle de changement d'outil
+     */
+    showToolSwitchNotification() {
+        // Créer ou réutiliser l'élément de notification
+        let notification = document.getElementById('pencil-tap-notification');
+
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'pencil-tap-notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 10001;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            `;
+            document.body.appendChild(notification);
+        }
+
+        // Mettre à jour le contenu
+        const toolName = this.currentTool === 'eraser' ? 'Gomme' :
+                        this.currentTool === 'pen' ? 'Stylo' :
+                        this.currentTool === 'highlighter' ? 'Surligneur' :
+                        this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
+
+        notification.textContent = toolName;
+
+        // Animer l'apparition
+        notification.style.opacity = '1';
+
+        // Masquer après 800ms
+        setTimeout(() => {
+            notification.style.opacity = '0';
+        }, 800);
+    }
+
     setTool(tool) {
         console.log('[Tool] setTool appelé avec:', tool);
 
