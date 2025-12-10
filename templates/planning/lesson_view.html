@@ -38,6 +38,20 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 </script>
 <style>
+/* Empêcher le scroll automatique vers les inputs lors du focus */
+html {
+    scroll-behavior: auto;
+}
+
+body {
+    overflow-anchor: none;
+}
+
+/* Empêcher les inputs de provoquer un scroll */
+input, textarea, select {
+    scroll-margin: 0;
+}
+
 .lesson-container {
     max-width: 1400px;
     margin: 0 auto;
@@ -1820,7 +1834,6 @@ async function setLateStatus(studentId) {
 
         if (!minutes || minutes <= 0) {
             alert('Veuillez entrer le nombre de minutes de retard');
-            lateInput.focus();
             return;
         }
 
@@ -1909,9 +1922,32 @@ function showQuickNotification(element, status) {
 
 // Permettre d'entrer le retard avec Enter
 document.addEventListener('DOMContentLoaded', function() {
+    // Empêcher le scroll automatique lors du focus sur les inputs
+    const preventScrollOnFocus = (e) => {
+        if (e.target.matches('input, textarea, select')) {
+            const scrollY = window.scrollY;
+            const scrollX = window.scrollX;
+
+            // Sauvegarder la position actuelle
+            setTimeout(() => {
+                window.scrollTo(scrollX, scrollY);
+            }, 0);
+        }
+    };
+
+    document.addEventListener('focus', preventScrollOnFocus, true);
+
+    // Redéfinir la méthode focus pour tous les inputs avec preventScroll
+    document.querySelectorAll('input, textarea, select').forEach(element => {
+        const originalFocus = element.focus;
+        element.focus = function(options) {
+            originalFocus.call(this, { ...options, preventScroll: true });
+        };
+    });
+
     // Initialiser les contrôles de disposition
     initLayoutControls();
-    
+
     // Initialiser les statistiques
     updateStats();
 
