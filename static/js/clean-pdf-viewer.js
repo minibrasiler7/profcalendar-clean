@@ -3048,11 +3048,22 @@ class CleanPDFViewer {
         // Gérer l'outil arc
         if (this.currentTool === 'arc' && this.arcState) {
             const now = Date.now();
-            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
-            const distance = Math.sqrt((x - lastPoint.x) ** 2 + (y - lastPoint.y) ** 2);
+
+            // Initialiser le point de référence si nécessaire
+            if (!this.arcState.referencePoint) {
+                this.arcState.referencePoint = {
+                    x: this.currentStroke.points[this.currentStroke.points.length - 1].x,
+                    y: this.currentStroke.points[this.currentStroke.points.length - 1].y
+                };
+            }
+
+            const refPoint = this.arcState.referencePoint;
+            const distance = Math.sqrt((x - refPoint.x) ** 2 + (y - refPoint.y) ** 2);
 
             // Marge de 5 pixels pour considérer qu'on ne bouge pas
             if (distance > 5) {
+                // On bouge, mettre à jour le point de référence
+                this.arcState.referencePoint = {x, y};
                 this.arcState.lastMoveTime = now;
                 if (this.arcState.validationTimer) {
                     clearTimeout(this.arcState.validationTimer);
