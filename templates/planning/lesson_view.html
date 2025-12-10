@@ -1197,8 +1197,8 @@ if (typeof pdfjsLib !== 'undefined') {
 
                         <div class="late-controls">
                             <button class="late-btn decrease"
-                                    onclick="adjustLateMinutes({{ student.id }}, -5)"
-                                    title="Diminuer de 5 minutes">
+                                    onclick="adjustLateMinutes({{ student.id }}, -1)"
+                                    title="Diminuer de 1 minute">
                                 <i class="fas fa-minus"></i>
                             </button>
                             <input type="number"
@@ -1210,8 +1210,8 @@ if (typeof pdfjsLib !== 'undefined') {
                                    placeholder="min"
                                    onchange="setLateStatus({{ student.id }})">
                             <button class="late-btn increase"
-                                    onclick="adjustLateMinutes({{ student.id }}, 5)"
-                                    title="Augmenter de 5 minutes">
+                                    onclick="adjustLateMinutes({{ student.id }}, 1)"
+                                    title="Augmenter de 1 minute">
                                 <i class="fas fa-plus"></i>
                             </button>
                             <button class="btn-late"
@@ -1787,7 +1787,7 @@ async function toggleAttendance(studentId) {
 }
 
 // Fonction pour ajuster les minutes de retard avec les boutons +/-
-function adjustLateMinutes(studentId, delta) {
+async function adjustLateMinutes(studentId, delta) {
     const lateInput = document.getElementById(`late-${studentId}`);
     const currentValue = parseInt(lateInput.value) || 0;
     const newValue = Math.max(0, Math.min(120, currentValue + delta));
@@ -1796,7 +1796,10 @@ function adjustLateMinutes(studentId, delta) {
 
     // Si la valeur est > 0, marquer automatiquement en retard
     if (newValue > 0) {
-        setLateStatus(studentId);
+        await updateAttendance(studentId, 'late', newValue);
+    } else {
+        // Si on descend à 0, remettre présent
+        await updateAttendance(studentId, 'present', null);
     }
 }
 
