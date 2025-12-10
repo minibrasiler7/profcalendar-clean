@@ -520,6 +520,31 @@ if (typeof pdfjsLib !== 'undefined') {
     border-color: var(--warning-color);
 }
 
+.late-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #D1D5DB;
+    background-color: white;
+    color: var(--gray-color);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.late-btn:hover {
+    background-color: #F3F4F6;
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.late-btn:active {
+    transform: scale(0.95);
+}
+
 .btn-late {
     width: 32px;
     height: 32px;
@@ -1171,13 +1196,24 @@ if (typeof pdfjsLib !== 'undefined') {
                         </div>
 
                         <div class="late-controls">
+                            <button class="late-btn decrease"
+                                    onclick="adjustLateMinutes({{ student.id }}, -5)"
+                                    title="Diminuer de 5 minutes">
+                                <i class="fas fa-minus"></i>
+                            </button>
                             <input type="number"
                                    class="late-minutes"
                                    id="late-{{ student.id }}"
                                    value="{{ late_minutes if status == 'late' else '' }}"
                                    min="1"
                                    max="120"
-                                   placeholder="min">
+                                   placeholder="min"
+                                   onchange="setLateStatus({{ student.id }})">
+                            <button class="late-btn increase"
+                                    onclick="adjustLateMinutes({{ student.id }}, 5)"
+                                    title="Augmenter de 5 minutes">
+                                <i class="fas fa-plus"></i>
+                            </button>
                             <button class="btn-late"
                                     onclick="setLateStatus({{ student.id }})"
                                     title="Marquer en retard">
@@ -1750,14 +1786,28 @@ async function toggleAttendance(studentId) {
     await updateAttendance(studentId, newStatus, null);
 }
 
+// Fonction pour ajuster les minutes de retard avec les boutons +/-
+function adjustLateMinutes(studentId, delta) {
+    const lateInput = document.getElementById(`late-${studentId}`);
+    const currentValue = parseInt(lateInput.value) || 0;
+    const newValue = Math.max(0, Math.min(120, currentValue + delta));
+
+    lateInput.value = newValue > 0 ? newValue : '';
+
+    // Si la valeur est > 0, marquer automatiquement en retard
+    if (newValue > 0) {
+        setLateStatus(studentId);
+    }
+}
+
 // Fonction pour marquer un élève en retard (toggle)
 async function setLateStatus(studentId) {
     const studentElement = document.getElementById(`student-${studentId}`);
     const lateInput = document.getElementById(`late-${studentId}`);
-    
+
     // Vérifier le statut actuel de l'élève
     const isCurrentlyLate = studentElement.classList.contains('late');
-    
+
     if (isCurrentlyLate) {
         // Si déjà en retard, remettre présent
         await updateAttendance(studentId, 'present', null);
