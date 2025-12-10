@@ -3062,7 +3062,7 @@ class CleanPDFViewer {
                 // Commencer le timer de validation si immobile
                 this.arcState.validationTimer = setTimeout(() => {
                     this.validateArcFirstSegment(canvas, pageId);
-                }, 1500); // 1.5 secondes pour validation
+                }, 2500); // 2.5 secondes pour validation
             }
 
             this.currentStroke.points.push({x, y, pressure: e.pressure || 0.5});
