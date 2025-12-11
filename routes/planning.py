@@ -6886,11 +6886,13 @@ def delete_mixed_group_student():
 @teacher_required
 def create_lesson_memo():
     """Créer un nouveau mémo de classe"""
-    print("=" * 80)
-    print("DEBUG create_lesson_memo - DEBUT")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("=" * 80)
+    logger.error("DEBUG create_lesson_memo - DEBUT")
     try:
         data = request.get_json()
-        print(f"DEBUG - Raw data: {data}")
+        logger.error(f"DEBUG - Raw data: {data}")
 
         classroom_id = data.get('classroom_id')
         mixed_group_id = data.get('mixed_group_id')
@@ -6900,13 +6902,13 @@ def create_lesson_memo():
         date_type_param = data.get('date_type')
         target_date_str = data.get('target_date')
 
-        print(f"DEBUG - Parsed values:")
-        print(f"  classroom_id: {classroom_id}")
-        print(f"  mixed_group_id: {mixed_group_id}")
-        print(f"  source_date_str: {source_date_str}")
-        print(f"  source_period: {source_period}")
-        print(f"  content: {content}")
-        print(f"  date_type_param: {date_type_param}")
+        logger.error(f"DEBUG - Parsed values:")
+        logger.error(f"  classroom_id: {classroom_id}")
+        logger.error(f"  mixed_group_id: {mixed_group_id}")
+        logger.error(f"  source_date_str: {source_date_str}")
+        logger.error(f"  source_period: {source_period}")
+        logger.error(f"  content: {content}")
+        logger.error(f"  date_type_param: {date_type_param}")
 
         if not content:
             print("DEBUG - ERROR: Content is empty!")
