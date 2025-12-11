@@ -6886,8 +6886,12 @@ def delete_mixed_group_student():
 @teacher_required
 def create_lesson_memo():
     """Créer un nouveau mémo de classe"""
+    print("=" * 80)
+    print("DEBUG create_lesson_memo - DEBUT")
     try:
         data = request.get_json()
+        print(f"DEBUG - Raw data: {data}")
+
         classroom_id = data.get('classroom_id')
         mixed_group_id = data.get('mixed_group_id')
         source_date_str = data.get('source_date')
@@ -6896,10 +6900,20 @@ def create_lesson_memo():
         date_type_param = data.get('date_type')
         target_date_str = data.get('target_date')
 
+        print(f"DEBUG - Parsed values:")
+        print(f"  classroom_id: {classroom_id}")
+        print(f"  mixed_group_id: {mixed_group_id}")
+        print(f"  source_date_str: {source_date_str}")
+        print(f"  source_period: {source_period}")
+        print(f"  content: {content}")
+        print(f"  date_type_param: {date_type_param}")
+
         if not content:
+            print("DEBUG - ERROR: Content is empty!")
             return jsonify({'success': False, 'error': 'Contenu requis'}), 400
 
         source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        print(f"DEBUG - source_date parsed: {source_date}")
         
         # Calculer la date cible selon le type
         target_date = None
@@ -6977,7 +6991,9 @@ def create_lesson_memo():
         
     except Exception as e:
         db.session.rollback()
-        print(f"Erreur lors de la création du mémo: {str(e)}")
+        print(f"DEBUG - EXCEPTION in create_lesson_memo: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -6986,17 +7002,29 @@ def create_lesson_memo():
 @teacher_required
 def create_student_remark():
     """Créer une nouvelle remarque élève"""
+    print("=" * 80)
+    print("DEBUG create_student_remark - DEBUT")
     try:
         data = request.get_json()
+        print(f"DEBUG - Raw data: {data}")
+
         student_id = data.get('student_id')
         source_date_str = data.get('source_date')
         source_period = data.get('source_period')
         content = data.get('content')
 
+        print(f"DEBUG - Parsed values:")
+        print(f"  student_id: {student_id}")
+        print(f"  source_date_str: {source_date_str}")
+        print(f"  source_period: {source_period}")
+        print(f"  content: {content}")
+
         if not student_id or not content:
+            print("DEBUG - ERROR: student_id or content is missing!")
             return jsonify({'success': False, 'error': 'Données manquantes'}), 400
 
         source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        print(f"DEBUG - source_date parsed: {source_date}")
         
         # Créer la remarque
         remark = StudentRemark(
@@ -7018,12 +7046,17 @@ def create_student_remark():
         db.session.add(info_entry)
         
         db.session.commit()
-        
+
+        print(f"DEBUG - Remark created with ID: {remark.id}")
+        print("=" * 80)
         return jsonify({'success': True, 'remark_id': remark.id})
-        
+
     except Exception as e:
         db.session.rollback()
-        print(f"Erreur lors de la création de la remarque: {str(e)}")
+        print(f"DEBUG - EXCEPTION in create_student_remark: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 80)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
