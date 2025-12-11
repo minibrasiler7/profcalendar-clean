@@ -41,15 +41,45 @@ if (typeof pdfjsLib !== 'undefined') {
 /* Empêcher le scroll automatique vers les inputs lors du focus */
 html {
     scroll-behavior: auto;
+    /* Fixer la hauteur sur iOS pour éviter le redimensionnement avec le clavier */
+    height: 100%;
+    position: fixed;
+    width: 100%;
 }
 
 body {
     overflow-anchor: none;
+    /* Permettre le scroll dans le body au lieu du html */
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+    /* Propriété iOS pour empêcher le zoom sur les inputs */
+    -webkit-text-size-adjust: 100%;
 }
 
 /* Empêcher les inputs de provoquer un scroll */
 input, textarea, select {
     scroll-margin: 0;
+    scroll-margin-top: 0;
+    scroll-margin-bottom: 0;
+}
+
+/* Désactiver le comportement de scroll sur iOS spécifiquement */
+@supports (-webkit-touch-callout: none) {
+    body {
+        position: fixed;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+    }
+
+    .lesson-container {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        height: 100vh;
+    }
 }
 
 .lesson-container {
@@ -1922,20 +1952,69 @@ function showQuickNotification(element, status) {
 
 // Permettre d'entrer le retard avec Enter
 document.addEventListener('DOMContentLoaded', function() {
+    // Détecter si on est sur iOS/iPad
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Variable pour stocker la position de scroll avant l'apparition du clavier
+    let savedScrollPosition = 0;
+    let savedScrollContainer = null;
+
     // Empêcher le scroll automatique lors du focus sur les inputs
     const preventScrollOnFocus = (e) => {
         if (e.target.matches('input, textarea, select')) {
-            const scrollY = window.scrollY;
-            const scrollX = window.scrollX;
+            // Sauvegarder la position de scroll actuelle
+            if (isIOS) {
+                savedScrollContainer = document.querySelector('.lesson-container') || window;
+                savedScrollPosition = savedScrollContainer === window ?
+                    window.scrollY : savedScrollContainer.scrollTop;
+            } else {
+                const scrollY = window.scrollY;
+                const scrollX = window.scrollX;
+                setTimeout(() => {
+                    window.scrollTo(scrollX, scrollY);
+                }, 0);
+            }
+        }
+    };
 
-            // Sauvegarder la position actuelle
+    // Sur iOS, restaurer la position après que le clavier soit apparu
+    const restoreScrollOnBlur = (e) => {
+        if (isIOS && e.target.matches('input, textarea, select')) {
             setTimeout(() => {
-                window.scrollTo(scrollX, scrollY);
-            }, 0);
+                if (savedScrollContainer) {
+                    if (savedScrollContainer === window) {
+                        window.scrollTo(0, savedScrollPosition);
+                    } else {
+                        savedScrollContainer.scrollTop = savedScrollPosition;
+                    }
+                }
+            }, 100);
         }
     };
 
     document.addEventListener('focus', preventScrollOnFocus, true);
+    document.addEventListener('blur', restoreScrollOnBlur, true);
+
+    // Empêcher le resize du viewport de provoquer un scroll sur iOS
+    if (isIOS) {
+        let lastHeight = window.innerHeight;
+        window.addEventListener('resize', () => {
+            const currentHeight = window.innerHeight;
+            // Le clavier apparaît (viewport réduit)
+            if (currentHeight < lastHeight) {
+                // Ne rien faire, garder la position
+                if (savedScrollContainer) {
+                    if (savedScrollContainer === window) {
+                        window.scrollTo(0, savedScrollPosition);
+                    } else {
+                        savedScrollContainer.scrollTop = savedScrollPosition;
+                    }
+                }
+            }
+            lastHeight = currentHeight;
+        });
+    }
 
     // Redéfinir la méthode focus pour tous les inputs avec preventScroll
     document.querySelectorAll('input, textarea, select').forEach(element => {
