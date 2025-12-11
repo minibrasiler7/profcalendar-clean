@@ -258,7 +258,7 @@ class LessonMemosManager {
             const data = await response.json();
 
             if (data.success) {
-                this.cancelMemoCreation();
+                cancelMemoCreation(); // Appel de la fonction globale
                 this.loadExistingMemosAndRemarks();
                 this.showNotification('Mémo créé avec succès', 'success');
             } else {
@@ -306,7 +306,7 @@ class LessonMemosManager {
                 }
             }
 
-            this.cancelRemarkCreation();
+            cancelRemarkCreation(); // Appel de la fonction globale
             this.loadExistingMemosAndRemarks();
             this.showNotification(`Remarque(s) ajoutée(s) pour ${this.selectedStudents.length} élève(s)`, 'success');
         } catch (error) {
