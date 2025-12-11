@@ -927,6 +927,26 @@ def calendar_view():
                 'type': 'custom'
             }
 
+    # Récupérer les mémos pour cette semaine
+    from models.lesson_memo import LessonMemo
+    week_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date >= week_dates[0],
+        LessonMemo.target_date <= week_dates[4],
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).all()
+
+    # Organiser les mémos par date
+    memos_by_date = {}
+    for memo in week_memos:
+        date_str = memo.target_date.strftime('%Y-%m-%d')
+        if date_str not in memos_by_date:
+            memos_by_date[date_str] = []
+        memos_by_date[date_str].append(memo)
+
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
                          current_week=current_week,
@@ -942,7 +962,8 @@ def calendar_view():
                          selected_classroom_id=selected_classroom_id,
                          days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
                          today=date_type.today(),
-                         merged_info=merged_info)  # Passer les infos de fusion par jour
+                         merged_info=merged_info,  # Passer les infos de fusion par jour
+                         memos_by_date=memos_by_date)  # Ajouter les mémos
 
 def calculate_periods(user):
     """Calcule les périodes en fonction de la configuration de l'utilisateur"""

@@ -843,6 +843,28 @@ if (typeof pdfjsLib !== 'undefined') {
     font-weight: 500;
 }
 
+/* Badge pour les mémos */
+.memo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background-color: rgba(245, 158, 11, 0.9);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    margin-top: 0.25rem;
+    color: white;
+    font-weight: 600;
+}
+
+.memo-badge i {
+    font-size: 0.75rem;
+}
+
+.memo-count {
+    font-size: 0.7rem;
+}
+
 /* Pour la vue annuelle */
 .annual-planning-checklist {
     display: flex;
@@ -1340,6 +1362,13 @@ if (typeof pdfjsLib !== 'undefined') {
                                                     <i class="fas fa-times-circle checklist-icon none-checked"></i>
                                                 {% endif %}
                                                 <span class="checklist-count">{{ planning.checklist_summary.checked }}/{{ planning.checklist_summary.total }}</span>
+                                            </div>
+                                            {% endif %}
+                                            {% set date_str = date.strftime('%Y-%m-%d') %}
+                                            {% if date_str in memos_by_date %}
+                                            <div class="memo-badge" title="{{ memos_by_date[date_str]|length }} mémo(s)">
+                                                <i class="fas fa-sticky-note"></i>
+                                                <span class="memo-count">{{ memos_by_date[date_str]|length }}</span>
                                             </div>
                                             {% endif %}
                                         </div>
