@@ -1455,7 +1455,15 @@ let isEditingPlanning = false;
 let isSplitViewActive = false;
 
 // Liste des élèves pour l'autocomplétion
-const lessonStudents = {{ students | tojson if students else '[]' }};
+const lessonStudents = [
+    {% for student in students %}
+    {
+        id: {{ student.id }},
+        first_name: {{ student.first_name | tojson }},
+        last_name: {{ student.last_name | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
 
 // Variables pour le système de sanctions
 let initialSanctionCounts = {};
