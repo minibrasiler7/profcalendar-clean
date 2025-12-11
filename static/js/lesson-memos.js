@@ -1,23 +1,16 @@
 /**
- * Système de gestion des mémos de classe et remarques élèves
- * Permet de créer des mémos avec % et des remarques avec +
+ * Système de gestion des mémos de classe et remarques élèves - Version 2.0
+ * Workflow avec boutons et formulaires déroulants
  */
 
 class LessonMemosManager {
     constructor() {
-        this.memosInput = null;
-        this.autocompleteDiv = null;
         this.memosListContainer = null;
-        this.currentMode = null; // 'memo' ou 'remark'
-        this.selectedIndex = -1;
-        this.filteredStudents = [];
-        this.currentMemoData = null; // Pour le mode mémo (choix de date)
-
+        this.selectedStudents = []; // Pour la sélection multiple d'élèves
         this.init();
     }
 
     init() {
-        // Attendre que le DOM soit prêt
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setup());
         } else {
@@ -26,140 +19,56 @@ class LessonMemosManager {
     }
 
     setup() {
-        this.memosInput = document.getElementById('memosInput');
-        this.autocompleteDiv = document.getElementById('memoAutocomplete');
         this.memosListContainer = document.getElementById('memosListContainer');
 
-        if (!this.memosInput) return;
-
-        // Événements sur le textarea
-        this.memosInput.addEventListener('input', (e) => this.handleInput(e));
-        this.memosInput.addEventListener('keydown', (e) => this.handleKeydown(e));
-        this.memosInput.addEventListener('blur', () => {
-            // Petit délai pour permettre les clics sur l'autocomplétion
-            setTimeout(() => this.hideAutocomplete(), 200);
-        });
+        // Setup autocomplete pour les remarques
+        const remarkInput = document.getElementById('remarkStudentInput');
+        if (remarkInput) {
+            remarkInput.addEventListener('input', (e) => this.handleRemarkStudentInput(e));
+            remarkInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                }
+            });
+        }
 
         // Charger les mémos/remarques existants
         this.loadExistingMemosAndRemarks();
     }
 
-    handleInput(e) {
-        const value = e.target.value;
-        const cursorPos = e.target.selectionStart;
+    handleRemarkStudentInput(e) {
+        const value = e.target.value.trim();
 
-        // Chercher % ou + avant le curseur
-        const textBeforeCursor = value.substring(0, cursorPos);
-        const lastPercent = textBeforeCursor.lastIndexOf('%');
-        const lastPlus = textBeforeCursor.lastIndexOf('+');
-
-        // Vérifier si on est en mode mémo (%)
-        if (lastPercent > lastPlus && lastPercent >= 0) {
-            const searchText = textBeforeCursor.substring(lastPercent + 1);
-            // Ne pas chercher de texte après %, juste afficher les options de date
-            if (!searchText.includes('\n')) {
-                this.showMemoOptions(searchText);
-                return;
-            }
-        }
-
-        // Vérifier si on est en mode remarque (+)
-        if (lastPlus > lastPercent && lastPlus >= 0) {
-            const searchText = textBeforeCursor.substring(lastPlus + 1);
-            if (!searchText.includes('\n')) {
-                this.showStudentAutocomplete(searchText);
-                return;
-            }
-        }
-
-        this.hideAutocomplete();
-    }
-
-    handleKeydown(e) {
-        if (!this.autocompleteDiv || this.autocompleteDiv.style.display === 'none') {
-            // Enter pour valider le contenu
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.submitCurrentInput();
-            }
+        if (value.length < 2) {
+            this.hideStudentAutocomplete();
             return;
         }
-
-        // Navigation dans l'autocomplétion
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            this.selectedIndex = Math.min(this.selectedIndex + 1, this.getSelectableItemsCount() - 1);
-            this.updateSelectedItem();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-            this.updateSelectedItem();
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            this.selectCurrentItem();
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            this.hideAutocomplete();
-        }
-    }
-
-    showMemoOptions(searchText) {
-        this.currentMode = 'memo';
-        this.selectedIndex = 0;
-
-        // Options de date pour le mémo
-        const options = [
-            { label: 'Cours suivant', value: 'next_lesson' },
-            { label: 'Semaine prochaine', value: 'next_week' },
-            { label: 'Date personnalisée', value: 'custom' }
-        ];
-
-        let html = '<div class="memo-autocomplete-item header">📅 Choisir une date de rappel</div>';
-        options.forEach((option, index) => {
-            html += `
-                <div class="memo-autocomplete-item ${index === 0 ? 'selected' : ''}"
-                     data-index="${index}"
-                     data-value="${option.value}">
-                    ${option.label}
-                </div>
-            `;
-        });
-
-        this.autocompleteDiv.innerHTML = html;
-        this.positionAutocomplete();
-        this.autocompleteDiv.style.display = 'block';
-
-        // Ajouter les événements de clic
-        this.autocompleteDiv.querySelectorAll('.memo-autocomplete-item:not(.header)').forEach(item => {
-            item.addEventListener('click', () => {
-                this.selectedIndex = parseInt(item.dataset.index);
-                this.selectCurrentItem();
-            });
-        });
-    }
-
-    showStudentAutocomplete(searchText) {
-        this.currentMode = 'remark';
-        this.selectedIndex = 0;
 
         // Filtrer les élèves
-        const search = searchText.toLowerCase().trim();
-        this.filteredStudents = lessonStudents.filter(student => {
+        const search = value.toLowerCase();
+        const filteredStudents = lessonStudents.filter(student => {
             const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
-            return fullName.includes(search);
+            // Ne pas afficher les élèves déjà sélectionnés
+            const alreadySelected = this.selectedStudents.some(s => s.id === student.id);
+            return !alreadySelected && fullName.includes(search);
         });
 
-        if (this.filteredStudents.length === 0) {
-            this.hideAutocomplete();
+        if (filteredStudents.length === 0) {
+            this.hideStudentAutocomplete();
             return;
         }
 
-        let html = '<div class="memo-autocomplete-item header">👤 Sélectionner un élève</div>';
-        this.filteredStudents.forEach((student, index) => {
+        this.showStudentAutocomplete(filteredStudents);
+    }
+
+    showStudentAutocomplete(students) {
+        const autocompleteDiv = document.getElementById('remarkStudentAutocomplete');
+
+        let html = '';
+        students.forEach(student => {
             const initials = student.first_name[0] + (student.last_name ? student.last_name[0] : '');
             html += `
-                <div class="memo-autocomplete-item ${index === 0 ? 'selected' : ''}"
-                     data-index="${index}">
+                <div class="memo-autocomplete-item" data-student-id="${student.id}">
                     <div class="memo-autocomplete-student">
                         <div class="memo-autocomplete-avatar">${initials}</div>
                         <div class="memo-autocomplete-name">${student.first_name} ${student.last_name}</div>
@@ -168,168 +77,73 @@ class LessonMemosManager {
             `;
         });
 
-        this.autocompleteDiv.innerHTML = html;
-        this.positionAutocomplete();
-        this.autocompleteDiv.style.display = 'block';
+        autocompleteDiv.innerHTML = html;
+        autocompleteDiv.style.display = 'block';
 
         // Ajouter les événements de clic
-        this.autocompleteDiv.querySelectorAll('.memo-autocomplete-item:not(.header)').forEach(item => {
+        autocompleteDiv.querySelectorAll('.memo-autocomplete-item').forEach(item => {
             item.addEventListener('click', () => {
-                this.selectedIndex = parseInt(item.dataset.index);
-                this.selectCurrentItem();
+                const studentId = parseInt(item.dataset.studentId);
+                const student = lessonStudents.find(s => s.id === studentId);
+                if (student) {
+                    this.addSelectedStudent(student);
+                }
             });
         });
     }
 
-    getSelectableItemsCount() {
-        const items = this.autocompleteDiv.querySelectorAll('.memo-autocomplete-item:not(.header)');
-        return items.length;
+    hideStudentAutocomplete() {
+        const autocompleteDiv = document.getElementById('remarkStudentAutocomplete');
+        if (autocompleteDiv) {
+            autocompleteDiv.style.display = 'none';
+        }
     }
 
-    updateSelectedItem() {
-        const items = this.autocompleteDiv.querySelectorAll('.memo-autocomplete-item:not(.header)');
-        items.forEach((item, index) => {
-            if (index === this.selectedIndex) {
-                item.classList.add('selected');
-                item.scrollIntoView({ block: 'nearest' });
-            } else {
-                item.classList.remove('selected');
-            }
+    addSelectedStudent(student) {
+        // Ajouter à la liste
+        this.selectedStudents.push(student);
+
+        // Vider le champ de recherche
+        const remarkInput = document.getElementById('remarkStudentInput');
+        remarkInput.value = '';
+
+        // Cacher l'autocomplete
+        this.hideStudentAutocomplete();
+
+        // Afficher la liste des élèves sélectionnés
+        this.updateSelectedStudentsList();
+    }
+
+    updateSelectedStudentsList() {
+        const selectedStudentsDiv = document.getElementById('selectedStudentsDiv');
+        const selectedStudentsList = document.getElementById('selectedStudentsList');
+
+        if (this.selectedStudents.length === 0) {
+            selectedStudentsDiv.style.display = 'none';
+            return;
+        }
+
+        selectedStudentsDiv.style.display = 'block';
+
+        let html = '<div class="selected-students-tags">';
+        this.selectedStudents.forEach(student => {
+            html += `
+                <span class="student-tag">
+                    ${student.first_name} ${student.last_name}
+                    <button type="button" class="remove-student" onclick="lessonMemosManager.removeSelectedStudent(${student.id})" title="Retirer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>
+            `;
         });
+        html += '</div>';
+
+        selectedStudentsList.innerHTML = html;
     }
 
-    async selectCurrentItem() {
-        if (this.currentMode === 'memo') {
-            const items = this.autocompleteDiv.querySelectorAll('.memo-autocomplete-item:not(.header)');
-            if (this.selectedIndex >= 0 && this.selectedIndex < items.length) {
-                const selectedItem = items[this.selectedIndex];
-                const dateType = selectedItem.dataset.value;
-                await this.createMemo(dateType);
-            }
-        } else if (this.currentMode === 'remark') {
-            if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredStudents.length) {
-                const student = this.filteredStudents[this.selectedIndex];
-                await this.createRemark(student);
-            }
-        }
-
-        this.hideAutocomplete();
-    }
-
-    positionAutocomplete() {
-        const rect = this.memosInput.getBoundingClientRect();
-        this.autocompleteDiv.style.top = (rect.bottom + window.scrollY) + 'px';
-        this.autocompleteDiv.style.left = rect.left + 'px';
-    }
-
-    hideAutocomplete() {
-        if (this.autocompleteDiv) {
-            this.autocompleteDiv.style.display = 'none';
-        }
-        this.selectedIndex = -1;
-    }
-
-    async submitCurrentInput() {
-        // Cette fonction est appelée quand on appuie sur Enter sans autocomplétion
-        // Pour l'instant on ne fait rien, car on doit passer par l'autocomplétion
-    }
-
-    async createMemo(dateType) {
-        const value = this.memosInput.value;
-        const percentIndex = value.lastIndexOf('%');
-        const content = value.substring(percentIndex + 1).trim();
-
-        if (!content) {
-            alert('Veuillez entrer le contenu du mémo');
-            return;
-        }
-
-        // Demander la date selon le type
-        let targetDate = null;
-        let targetPeriod = null;
-
-        if (dateType === 'custom') {
-            const dateStr = prompt('Entrez la date du rappel (YYYY-MM-DD):');
-            if (!dateStr) return;
-            targetDate = dateStr;
-        }
-        // Pour next_lesson et next_week, on laisse le backend calculer
-
-        try {
-            const response = await fetch('/planning/create_lesson_memo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    classroom_id: classroomId,
-                    mixed_group_id: mixedGroupId,
-                    source_date: lessonDate,
-                    source_period: periodNumber,
-                    target_date: targetDate,
-                    date_type: dateType,
-                    content: content
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Vider le champ
-                this.memosInput.value = '';
-                // Recharger la liste
-                this.loadExistingMemosAndRemarks();
-                // Afficher une notification
-                this.showNotification('Mémo créé avec succès', 'success');
-            } else {
-                alert(data.error || 'Erreur lors de la création du mémo');
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
-        }
-    }
-
-    async createRemark(student) {
-        const value = this.memosInput.value;
-        const plusIndex = value.lastIndexOf('+');
-        const content = value.substring(plusIndex + 1 + student.first_name.length + student.last_name.length + 1).trim();
-
-        if (!content) {
-            alert('Veuillez entrer le contenu de la remarque');
-            return;
-        }
-
-        try {
-            const response = await fetch('/planning/create_student_remark', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    student_id: student.id,
-                    source_date: lessonDate,
-                    source_period: periodNumber,
-                    content: content
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Vider le champ
-                this.memosInput.value = '';
-                // Recharger la liste
-                this.loadExistingMemosAndRemarks();
-                // Afficher une notification
-                this.showNotification(`Remarque ajoutée pour ${student.first_name} ${student.last_name}`, 'success');
-            } else {
-                alert(data.error || 'Erreur lors de la création de la remarque');
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
-        }
+    removeSelectedStudent(studentId) {
+        this.selectedStudents = this.selectedStudents.filter(s => s.id !== studentId);
+        this.updateSelectedStudentsList();
     }
 
     async loadExistingMemosAndRemarks() {
@@ -398,6 +212,107 @@ class LessonMemosManager {
         });
 
         this.memosListContainer.innerHTML = html;
+    }
+
+    async submitMemo() {
+        const dateType = document.getElementById('memoDateType').value;
+        const content = document.getElementById('memoContent').value.trim();
+
+        if (!dateType) {
+            alert('Veuillez choisir une date de rappel');
+            return;
+        }
+
+        if (!content) {
+            alert('Veuillez entrer le contenu du mémo');
+            return;
+        }
+
+        let targetDate = null;
+
+        if (dateType === 'custom') {
+            targetDate = document.getElementById('memoCustomDate').value;
+            if (!targetDate) {
+                alert('Veuillez sélectionner une date');
+                return;
+            }
+        }
+
+        try {
+            const response = await fetch('/planning/create_lesson_memo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    classroom_id: classroomId,
+                    mixed_group_id: mixedGroupId,
+                    source_date: lessonDate,
+                    source_period: periodNumber,
+                    target_date: targetDate,
+                    date_type: dateType,
+                    content: content
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.cancelMemoCreation();
+                this.loadExistingMemosAndRemarks();
+                this.showNotification('Mémo créé avec succès', 'success');
+            } else {
+                alert(data.error || 'Erreur lors de la création du mémo');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    async submitRemark() {
+        const content = document.getElementById('remarkContent').value.trim();
+
+        if (this.selectedStudents.length === 0) {
+            alert('Veuillez sélectionner au moins un élève');
+            return;
+        }
+
+        if (!content) {
+            alert('Veuillez entrer le contenu de la remarque');
+            return;
+        }
+
+        try {
+            // Créer une remarque pour chaque élève sélectionné
+            for (const student of this.selectedStudents) {
+                const response = await fetch('/planning/create_student_remark', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        student_id: student.id,
+                        source_date: lessonDate,
+                        source_period: periodNumber,
+                        content: content
+                    })
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    alert(`Erreur pour ${student.first_name} ${student.last_name}: ${data.error}`);
+                    return;
+                }
+            }
+
+            this.cancelRemarkCreation();
+            this.loadExistingMemosAndRemarks();
+            this.showNotification(`Remarque(s) ajoutée(s) pour ${this.selectedStudents.length} élève(s)`, 'success');
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
     }
 
     async editMemo(id) {
@@ -489,13 +404,102 @@ class LessonMemosManager {
     }
 
     showNotification(message, type = 'success') {
-        // Réutiliser le système de notification existant si disponible
         if (typeof showSuccess === 'function' && type === 'success') {
             showSuccess(message);
         } else {
             alert(message);
         }
     }
+}
+
+// Fonctions globales pour les boutons
+function openMemoCreation() {
+    // Cacher le formulaire de remarque s'il est ouvert
+    document.getElementById('remarkCreationForm').style.display = 'none';
+
+    // Afficher le formulaire de mémo
+    document.getElementById('memoCreationForm').style.display = 'block';
+
+    // Reset le formulaire
+    document.getElementById('memoDateType').value = '';
+    document.getElementById('memoCustomDateDiv').style.display = 'none';
+    document.getElementById('memoContentDiv').style.display = 'none';
+    document.getElementById('memoContent').value = '';
+}
+
+function cancelMemoCreation() {
+    document.getElementById('memoCreationForm').style.display = 'none';
+    document.getElementById('memoDateType').value = '';
+    document.getElementById('memoCustomDateDiv').style.display = 'none';
+    document.getElementById('memoContentDiv').style.display = 'none';
+    document.getElementById('memoContent').value = '';
+}
+
+function handleMemoDateTypeChange() {
+    const dateType = document.getElementById('memoDateType').value;
+    const customDateDiv = document.getElementById('memoCustomDateDiv');
+    const contentDiv = document.getElementById('memoContentDiv');
+
+    if (!dateType) {
+        customDateDiv.style.display = 'none';
+        contentDiv.style.display = 'none';
+        return;
+    }
+
+    // Afficher le champ de date personnalisée si nécessaire
+    if (dateType === 'custom') {
+        customDateDiv.style.display = 'block';
+    } else {
+        customDateDiv.style.display = 'none';
+    }
+
+    // Toujours afficher le champ de contenu une fois qu'un type de date est sélectionné
+    contentDiv.style.display = 'block';
+}
+
+function submitMemo() {
+    lessonMemosManager.submitMemo();
+}
+
+function openRemarkCreation() {
+    // Cacher le formulaire de mémo s'il est ouvert
+    document.getElementById('memoCreationForm').style.display = 'none';
+
+    // Afficher le formulaire de remarque
+    document.getElementById('remarkCreationForm').style.display = 'block';
+
+    // Reset le formulaire
+    document.getElementById('remarkStudentInput').value = '';
+    lessonMemosManager.selectedStudents = [];
+    lessonMemosManager.updateSelectedStudentsList();
+    document.getElementById('remarkContentDiv').style.display = 'none';
+    document.getElementById('remarkContent').value = '';
+}
+
+function cancelRemarkCreation() {
+    document.getElementById('remarkCreationForm').style.display = 'none';
+    document.getElementById('remarkStudentInput').value = '';
+    lessonMemosManager.selectedStudents = [];
+    lessonMemosManager.updateSelectedStudentsList();
+    document.getElementById('remarkContentDiv').style.display = 'none';
+    document.getElementById('remarkContent').value = '';
+}
+
+function confirmStudentSelection() {
+    if (lessonMemosManager.selectedStudents.length === 0) {
+        alert('Veuillez sélectionner au moins un élève');
+        return;
+    }
+
+    // Afficher le champ de contenu
+    document.getElementById('remarkContentDiv').style.display = 'block';
+
+    // Focus sur le textarea
+    document.getElementById('remarkContent').focus();
+}
+
+function submitRemark() {
+    lessonMemosManager.submitRemark();
 }
 
 // Créer l'instance globale
