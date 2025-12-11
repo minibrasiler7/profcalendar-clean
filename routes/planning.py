@@ -686,6 +686,11 @@ def dashboard():
         db.joinedload(LessonMemo.mixed_group)
     ).order_by(LessonMemo.target_period).all()
 
+    print(f"DEBUG Dashboard - today: {today}")
+    print(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
+    for memo in today_memos:
+        print(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+
     # Mémos pour cette semaine (sans compter aujourd'hui)
     week_memos = LessonMemo.query.filter(
         LessonMemo.user_id == current_user.id,
@@ -696,6 +701,11 @@ def dashboard():
         db.joinedload(LessonMemo.classroom),
         db.joinedload(LessonMemo.mixed_group)
     ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
+
+    print(f"DEBUG Dashboard - week_dates: {week_dates}")
+    print(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
+    for memo in week_memos:
+        print(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
     # Récupérer la liste des classes pour le filtre
     from models.mixed_group import MixedGroup
@@ -6938,6 +6948,14 @@ def create_lesson_memo():
         elif date_type_param == 'custom' and target_date_str:
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         
+        # Debug
+        print(f"DEBUG create_lesson_memo:")
+        print(f"  date_type: {date_type_param}")
+        print(f"  source_date: {source_date}")
+        print(f"  target_date: {target_date}")
+        print(f"  target_period: {target_period}")
+        print(f"  content: {content}")
+
         # Créer le mémo
         memo = LessonMemo(
             user_id=current_user.id,
@@ -6949,10 +6967,12 @@ def create_lesson_memo():
             target_period=target_period,
             content=content
         )
-        
+
         db.session.add(memo)
         db.session.commit()
-        
+
+        print(f"  Mémo créé avec ID: {memo.id}")
+
         return jsonify({'success': True, 'memo_id': memo.id})
         
     except Exception as e:
