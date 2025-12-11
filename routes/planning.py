@@ -673,6 +673,36 @@ def dashboard():
             invitation_id=invitation.id
         ).all()
 
+    # Récupérer les mémos pour aujourd'hui et cette semaine
+    from models.lesson_memo import LessonMemo
+
+    # Mémos pour aujourd'hui
+    today_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date == today,
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).order_by(LessonMemo.target_period).all()
+
+    # Mémos pour cette semaine (sans compter aujourd'hui)
+    week_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date > today,
+        LessonMemo.target_date <= week_dates[4],
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
+
+    # Récupérer la liste des classes pour le filtre
+    from models.mixed_group import MixedGroup
+    mixed_groups = MixedGroup.query.filter_by(teacher_id=current_user.id, is_active=True).all()
+    auto_classroom_ids = {group.auto_classroom_id for group in mixed_groups if group.auto_classroom_id}
+    user_classrooms = [c for c in current_user.classrooms.filter_by(is_temporary=False).all() if c.id not in auto_classroom_ids]
+
     return render_template('planning/dashboard.html',
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
@@ -681,7 +711,11 @@ def dashboard():
                          current_lesson=lesson if is_current_lesson else None,
                          next_lesson=lesson if not is_current_lesson else None,
                          lesson_date=lesson_date,
-                         received_invitations=received_invitations)
+                         received_invitations=received_invitations,
+                         today_memos=today_memos,
+                         week_memos=week_memos,
+                         user_classrooms=user_classrooms,
+                         user_mixed_groups=mixed_groups)
 
 @planning_bp.route('/calendar')
 @login_required

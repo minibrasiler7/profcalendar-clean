@@ -297,7 +297,141 @@
 
     </div>
 </div>
-    
+
+    <!-- Section des mémos -->
+    {% if today_memos or week_memos %}
+    <div class="memos-section" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Mes mémos</h2>
+            <div class="memo-filters" style="display: flex; gap: 0.5rem;">
+                <select id="classFilter" onchange="filterMemos()" style="padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
+                    <option value="all">Toutes les classes</option>
+                    {% for classroom in user_classrooms %}
+                    <option value="classroom-{{ classroom.id }}">{{ classroom.name }}</option>
+                    {% endfor %}
+                    {% for group in user_mixed_groups %}
+                    <option value="mixed-{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Mémos d'aujourd'hui -->
+        {% if today_memos %}
+        <div class="memos-today" style="margin-bottom: 2rem;">
+            <h3 style="color: #DC2626; margin-bottom: 1rem; font-size: 1.1rem;">
+                <i class="fas fa-calendar-day"></i> Aujourd'hui ({{ today_memos|length }})
+            </h3>
+            <div class="memos-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for memo in today_memos %}
+                <div class="memo-card {{ 'classroom-' + memo.classroom_id|string if memo.classroom_id else 'mixed-' + memo.mixed_group_id|string }}"
+                     style="border-left: 4px solid #F59E0B; background-color: #FFFBEB; padding: 1rem; border-radius: 0.375rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="background: #F59E0B; color: white; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
+                                    {{ memo.get_display_name() }}
+                                </span>
+                                {% if memo.target_period %}
+                                <span style="color: #92400E; font-size: 0.875rem;">Période {{ memo.target_period }}</span>
+                                {% endif %}
+                            </div>
+                            <p style="margin: 0; color: #78350F;">{{ memo.content }}</p>
+                        </div>
+                        <button onclick="completeMemo({{ memo.id }})"
+                                style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                title="Marquer comme fait">
+                            <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Mémos de la semaine -->
+        {% if week_memos %}
+        <div class="memos-week">
+            <h3 style="color: #3B82F6; margin-bottom: 1rem; font-size: 1.1rem;">
+                <i class="fas fa-calendar-week"></i> Cette semaine ({{ week_memos|length }})
+            </h3>
+            <div class="memos-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for memo in week_memos %}
+                <div class="memo-card {{ 'classroom-' + memo.classroom_id|string if memo.classroom_id else 'mixed-' + memo.mixed_group_id|string }}"
+                     style="border-left: 4px solid #3B82F6; background-color: #EFF6FF; padding: 1rem; border-radius: 0.375rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="background: #3B82F6; color: white; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">
+                                    {{ memo.get_display_name() }}
+                                </span>
+                                <span style="color: #1E40AF; font-size: 0.875rem;">
+                                    {% set days = {
+                                        0: 'Lundi', 1: 'Mardi', 2: 'Mercredi', 3: 'Jeudi', 4: 'Vendredi'
+                                    } %}
+                                    {{ days[memo.target_date.weekday()] }} {{ memo.target_date.strftime('%d/%m') }}
+                                    {% if memo.target_period %}• P{{ memo.target_period }}{% endif %}
+                                </span>
+                            </div>
+                            <p style="margin: 0; color: #1E3A8A;">{{ memo.content }}</p>
+                        </div>
+                        <button onclick="completeMemo({{ memo.id }})"
+                                style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                title="Marquer comme fait">
+                            <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+    function filterMemos() {
+        const filter = document.getElementById('classFilter').value;
+        const memoCards = document.querySelectorAll('.memo-card');
+
+        memoCards.forEach(card => {
+            if (filter === 'all') {
+                card.style.display = 'flex';
+            } else {
+                if (card.classList.contains(filter)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    async function completeMemo(memoId) {
+        try {
+            const response = await fetch(`/planning/update_lesson_memo/${memoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_completed: true })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Recharger la page pour mettre à jour l'affichage
+                location.reload();
+            } else {
+                alert('Erreur lors de la mise à jour du mémo');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+    </script>
+    {% endif %}
+
     <!-- Section des invitations reçues -->
     {% if received_invitations %}
     <div class="recent-activity" style="margin-bottom: 2rem;">

@@ -41,22 +41,10 @@ if (typeof pdfjsLib !== 'undefined') {
 /* Empêcher le scroll automatique vers les inputs lors du focus */
 html {
     scroll-behavior: auto;
-    /* Fixer la hauteur sur iOS pour éviter le redimensionnement avec le clavier */
-    height: 100%;
-    position: fixed;
-    width: 100%;
 }
 
 body {
     overflow-anchor: none;
-    /* Permettre le scroll dans le body au lieu du html */
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: relative;
-    width: 100%;
-    /* Propriété iOS pour empêcher le zoom sur les inputs */
-    -webkit-text-size-adjust: 100%;
 }
 
 /* Empêcher les inputs de provoquer un scroll */
@@ -64,22 +52,6 @@ input, textarea, select {
     scroll-margin: 0;
     scroll-margin-top: 0;
     scroll-margin-bottom: 0;
-}
-
-/* Désactiver le comportement de scroll sur iOS spécifiquement */
-@supports (-webkit-touch-callout: none) {
-    body {
-        position: fixed;
-        overflow: hidden;
-        width: 100%;
-        height: 100%;
-    }
-
-    .lesson-container {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        height: 100vh;
-    }
 }
 
 .lesson-container {
@@ -1103,6 +1075,17 @@ input, textarea, select {
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label">Planification</label>
+                            <textarea id="planningDescription"
+                                      class="form-control"
+                                      rows="8"
+                                      placeholder="Objectifs du cours, activités prévues, exercices, devoirs...">{{ planning.description if planning else '' }}</textarea>
+                            <div class="checklist-help">
+                                Astuce : Commencez une ligne par "-" pour créer une case à cocher
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label class="form-label">Mémos et remarques</label>
                             <textarea id="memosInput"
                                       class="form-control"
@@ -1118,17 +1101,6 @@ input, textarea, select {
                         <!-- Liste des mémos et remarques existants -->
                         <div id="memosListContainer" class="memos-list-container">
                             <!-- Les mémos/remarques seront affichés ici -->
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Description détaillée</label>
-                            <textarea id="planningDescription"
-                                      class="form-control"
-                                      rows="8"
-                                      placeholder="Objectifs du cours, activités prévues, exercices, devoirs...">{{ planning.description if planning else '' }}</textarea>
-                            <div class="checklist-help">
-                                Astuce : Commencez une ligne par "-" pour créer une case à cocher
-                            </div>
                         </div>
 
                         <div class="form-actions">
