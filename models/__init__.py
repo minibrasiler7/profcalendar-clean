@@ -21,6 +21,7 @@ from models.file_sharing import StudentFileShare
 from models.mixed_group import MixedGroup, MixedGroupStudent
 from models.user_preferences import UserPreferences, UserSanctionPreferences
 from models.accommodation import AccommodationTemplate, StudentAccommodation
+from models.lesson_memo import LessonMemo, StudentRemark
 
 __all__ = ['User', 'Holiday', 'Break', 'Classroom', 'Schedule', 'Planning',
            'Student', 'Grade', 'LegacyClassFile', 'ClassFile', 'Chapter', 'ClassroomChapter', 'StudentFile', 'StudentInfoHistory', 'Attendance', 'FileFolder', 'UserFile', 'FileShare',
@@ -28,4 +29,4 @@ __all__ = ['User', 'Holiday', 'Break', 'Classroom', 'Schedule', 'Planning',
            'Evaluation', 'EvaluationGrade', 'SeatingPlan', 'StudentGroup', 'StudentGroupMembership',
            'ClassMaster', 'TeacherAccessCode', 'TeacherCollaboration', 'SharedClassroom', 'StudentClassroomLink', 'TeacherInvitation', 'InvitationClassroom',
            'ClassroomAccessCode', 'StudentFileShare', 'MixedGroup', 'MixedGroupStudent', 'UserPreferences', 'UserSanctionPreferences',
-           'AccommodationTemplate', 'StudentAccommodation']
+           'AccommodationTemplate', 'StudentAccommodation', 'LessonMemo', 'StudentRemark']

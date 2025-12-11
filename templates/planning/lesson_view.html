@@ -1103,6 +1103,24 @@ input, textarea, select {
                         </div>
 
                         <div class="form-group">
+                            <label class="form-label">Mémos et remarques</label>
+                            <textarea id="memosInput"
+                                      class="form-control"
+                                      rows="3"
+                                      placeholder="% pour créer un mémo de classe, + pour ajouter une remarque élève..."></textarea>
+                            <div class="checklist-help">
+                                <strong>%</strong> Mémo de classe (apparaît dans le dashboard et calendrier) • <strong>+</strong> Remarque élève (ajouté au rapport)
+                            </div>
+                            <!-- Dropdown pour autocomplétion -->
+                            <div id="memoAutocomplete" class="memo-autocomplete" style="display: none;"></div>
+                        </div>
+
+                        <!-- Liste des mémos et remarques existants -->
+                        <div id="memosListContainer" class="memos-list-container">
+                            <!-- Les mémos/remarques seront affichés ici -->
+                        </div>
+
+                        <div class="form-group">
                             <label class="form-label">Description détaillée</label>
                             <textarea id="planningDescription"
                                       class="form-control"
@@ -1435,6 +1453,9 @@ const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 const mixedGroupId = {{ lesson.mixed_group_id if lesson.mixed_group_id else 'null' }};
 let isEditingPlanning = false;
 let isSplitViewActive = false;
+
+// Liste des élèves pour l'autocomplétion
+const lessonStudents = {{ students | tojson if students else '[]' }};
 
 // Variables pour le système de sanctions
 let initialSanctionCounts = {};
@@ -6492,6 +6513,160 @@ function adjustSeatingScale() {
     min-height: 120px;
 }
 
+/* Styles pour l'autocomplétion des mémos */
+.memo-autocomplete {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 300px;
+}
+
+.memo-autocomplete-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #F3F4F6;
+    transition: background-color 0.15s;
+}
+
+.memo-autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.memo-autocomplete-item:hover, .memo-autocomplete-item.selected {
+    background-color: #F3F4F6;
+}
+
+.memo-autocomplete-item.header {
+    background-color: #F9FAFB;
+    font-weight: 600;
+    color: #374151;
+    cursor: default;
+    padding: 0.5rem 1rem;
+}
+
+.memo-autocomplete-item.header:hover {
+    background-color: #F9FAFB;
+}
+
+.memo-autocomplete-student {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.memo-autocomplete-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.memo-autocomplete-name {
+    flex: 1;
+}
+
+/* Liste des mémos/remarques */
+.memos-list-container {
+    margin-top: 1rem;
+}
+
+.memo-item, .remark-item {
+    background: #F9FAFB;
+    border-left: 4px solid #3B82F6;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    transition: all 0.2s;
+}
+
+.remark-item {
+    border-left-color: #8B5CF6;
+}
+
+.memo-item:hover, .remark-item:hover {
+    background: #F3F4F6;
+    transform: translateX(2px);
+}
+
+.memo-content {
+    flex: 1;
+}
+
+.memo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.memo-type-badge {
+    background: #3B82F6;
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.remark-item .memo-type-badge {
+    background: #8B5CF6;
+}
+
+.memo-student-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.memo-date {
+    color: #6B7280;
+    font-size: 0.875rem;
+}
+
+.memo-text {
+    color: #374151;
+    margin-top: 0.25rem;
+}
+
+.memo-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.memo-action-btn {
+    background: none;
+    border: none;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.memo-action-btn:hover {
+    background: #E5E7EB;
+    color: #374151;
+}
+
+.memo-action-btn.delete:hover {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
 .form-actions {
     display: flex;
     gap: 1rem;
@@ -8001,6 +8176,9 @@ body .thumbnail-canvas {
     }
     loadAnnotationEngine();
 </script>
+
+<!-- Système de mémos et remarques -->
+<script src="{{ url_for('static', filename='js/lesson-memos.js') }}?cache_bust={{ range(1000000, 9999999) | random }}"></script>
 
 <!-- Nouveau Lecteur PDF Clean -->
 <script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}?v=5.5.3&cache_bust={{ range(1000000, 9999999) | random }}"></script>

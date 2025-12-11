@@ -4,6 +4,9 @@ from extensions import db
 from models.planning import Planning
 from models.classroom import Classroom
 from models.schedule import Schedule
+from models.lesson_memo import LessonMemo, StudentRemark
+from models.student import Student
+from models.student_info_history import StudentInfoHistory
 from datetime import datetime, timedelta
 from datetime import date as date_type
 import calendar
@@ -6811,3 +6814,278 @@ def delete_mixed_group_student():
         print(f"ERROR in delete_mixed_group_student: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
+# ==================== ROUTES POUR LES MÉMOS ET REMARQUES ====================
+
+@planning_bp.route('/create_lesson_memo', methods=['POST'])
+@login_required
+@teacher_required
+def create_lesson_memo():
+    """Créer un nouveau mémo de classe"""
+    try:
+        data = request.get_json()
+        classroom_id = data.get('classroom_id')
+        mixed_group_id = data.get('mixed_group_id')
+        source_date_str = data.get('source_date')
+        source_period = data.get('source_period')
+        content = data.get('content')
+        date_type_param = data.get('date_type')
+        target_date_str = data.get('target_date')
+
+        if not content:
+            return jsonify({'success': False, 'error': 'Contenu requis'}), 400
+
+        source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        
+        # Calculer la date cible selon le type
+        target_date = None
+        target_period = None
+        
+        if date_type_param == 'next_lesson':
+            # Trouver le prochain cours avec cette classe
+            next_schedule = None
+            current_day = source_date + timedelta(days=1)
+            
+            # Chercher dans les 30 prochains jours
+            for _ in range(30):
+                weekday = current_day.weekday()
+                
+                # Chercher un créneau pour cette classe ce jour-là
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+                
+                if schedules:
+                    # Prendre la première période non fusionnée avec la précédente
+                    for sched in schedules:
+                        if not sched.merged_with_previous:
+                            next_schedule = sched
+                            target_date = current_day
+                            target_period = sched.period_number
+                            break
+                    
+                    if next_schedule:
+                        break
+                
+                current_day += timedelta(days=1)
+                
+        elif date_type_param == 'next_week':
+            target_date = source_date + timedelta(days=7)
+            
+        elif date_type_param == 'custom' and target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        
+        # Créer le mémo
+        memo = LessonMemo(
+            user_id=current_user.id,
+            classroom_id=classroom_id,
+            mixed_group_id=mixed_group_id,
+            source_date=source_date,
+            source_period=source_period,
+            target_date=target_date,
+            target_period=target_period,
+            content=content
+        )
+        
+        db.session.add(memo)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'memo_id': memo.id})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erreur lors de la création du mémo: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/create_student_remark', methods=['POST'])
+@login_required
+@teacher_required
+def create_student_remark():
+    """Créer une nouvelle remarque élève"""
+    try:
+        data = request.get_json()
+        student_id = data.get('student_id')
+        source_date_str = data.get('source_date')
+        source_period = data.get('source_period')
+        content = data.get('content')
+
+        if not student_id or not content:
+            return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+
+        source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        
+        # Créer la remarque
+        remark = StudentRemark(
+            user_id=current_user.id,
+            student_id=student_id,
+            source_date=source_date,
+            source_period=source_period,
+            content=content
+        )
+        
+        db.session.add(remark)
+        
+        # Ajouter également à l'historique des informations supplémentaires
+        info_entry = StudentInfoHistory(
+            student_id=student_id,
+            user_id=current_user.id,
+            content=f"[{source_date.strftime('%d/%m/%Y')}] {content}"
+        )
+        db.session.add(info_entry)
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'remark_id': remark.id})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erreur lors de la création de la remarque: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/get_lesson_memos_remarks', methods=['GET'])
+@login_required
+@teacher_required
+def get_lesson_memos_remarks():
+    """Récupérer tous les mémos et remarques pour une leçon"""
+    try:
+        date_str = request.args.get('date')
+        period = request.args.get('period', type=int)
+        
+        lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Récupérer les mémos
+        memos = LessonMemo.query.filter_by(
+            user_id=current_user.id,
+            source_date=lesson_date,
+            source_period=period
+        ).all()
+        
+        # Récupérer les remarques
+        remarks = StudentRemark.query.filter_by(
+            user_id=current_user.id,
+            source_date=lesson_date,
+            source_period=period
+        ).all()
+        
+        # Formater les données
+        memos_data = [{
+            'id': m.id,
+            'content': m.content,
+            'target_date': m.target_date.isoformat() if m.target_date else None,
+            'is_completed': m.is_completed
+        } for m in memos]
+        
+        remarks_data = [{
+            'id': r.id,
+            'content': r.content,
+            'student_id': r.student_id,
+            'student_name': f"{r.student.first_name} {r.student.last_name}"
+        } for r in remarks]
+        
+        return jsonify({
+            'success': True,
+            'memos': memos_data,
+            'remarks': remarks_data
+        })
+        
+    except Exception as e:
+        print(f"Erreur lors de la récupération des mémos/remarques: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/update_lesson_memo/<int:memo_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_lesson_memo(memo_id):
+    """Mettre à jour un mémo"""
+    try:
+        memo = LessonMemo.query.get_or_404(memo_id)
+        
+        if memo.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        data = request.get_json()
+        if 'content' in data:
+            memo.content = data['content']
+        if 'is_completed' in data:
+            memo.is_completed = data['is_completed']
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete_lesson_memo/<int:memo_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_lesson_memo(memo_id):
+    """Supprimer un mémo"""
+    try:
+        memo = LessonMemo.query.get_or_404(memo_id)
+        
+        if memo.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        db.session.delete(memo)
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/update_student_remark/<int:remark_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_student_remark(remark_id):
+    """Mettre à jour une remarque"""
+    try:
+        remark = StudentRemark.query.get_or_404(remark_id)
+        
+        if remark.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        data = request.get_json()
+        if 'content' in data:
+            remark.content = data['content']
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete_student_remark/<int:remark_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_student_remark(remark_id):
+    """Supprimer une remarque"""
+    try:
+        remark = StudentRemark.query.get_or_404(remark_id)
+        
+        if remark.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        db.session.delete(remark)
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
