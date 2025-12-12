@@ -6985,10 +6985,37 @@ def create_lesson_memo():
                 
         elif date_type_param == 'next_week':
             target_date = source_date + timedelta(days=7)
-            
+
         elif date_type_param == 'custom' and target_date_str:
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
-        
+
+            # Chercher s'il y a un cours ce jour-là avec cette classe
+            weekday = target_date.weekday()
+            logger.error(f"DEBUG - Custom date: {target_date}, weekday={weekday}")
+
+            if classroom_id:
+                schedules = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    classroom_id=classroom_id,
+                    weekday=weekday
+                ).order_by(Schedule.period_number).all()
+            else:
+                schedules = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    mixed_group_id=mixed_group_id,
+                    weekday=weekday
+                ).order_by(Schedule.period_number).all()
+
+            logger.error(f"DEBUG - Found {len(schedules)} schedules for custom date")
+
+            if schedules:
+                # Prendre la première période non fusionnée
+                for sched in schedules:
+                    if not sched.merged_with_previous:
+                        target_period = sched.period_number
+                        logger.error(f"DEBUG - Using period {target_period} for custom date")
+                        break
+
         # Debug
         print(f"DEBUG create_lesson_memo:")
         print(f"  date_type: {date_type_param}")
