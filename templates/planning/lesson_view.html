@@ -1614,6 +1614,10 @@ function togglePlanningEdit() {
     const editBtnText = document.getElementById('editBtnText');
 
     if (isEditingPlanning) {
+        // Sauvegarder la position de scroll avant toute modification
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+
         // Passer en mode édition
         if (planningView) planningView.style.display = 'none';
         if (emptyPlanning) emptyPlanning.style.display = 'none';
@@ -1623,8 +1627,12 @@ function togglePlanningEdit() {
         // Attacher la conversion des tirets en checkboxes
         attachDashConversion();
 
-        // Focus sur le titre
-        document.getElementById('planningTitle').focus();
+        // Focus sur le titre sans scroll
+        const titleInput = document.getElementById('planningTitle');
+        titleInput.focus({ preventScroll: true });
+
+        // Restaurer la position de scroll
+        window.scrollTo(scrollX, scrollY);
     } else {
         // Passer en mode lecture
         planningEdit.style.display = 'none';
@@ -1662,10 +1670,17 @@ function attachDashConversion() {
     }
     console.log('✅ Textarea found:', textarea);
 
+    // Sauvegarder le scroll avant clonage
+    const windowScrollY = window.scrollY;
+    const windowScrollX = window.scrollX;
+
     // Supprimer les anciens listeners pour éviter les doublons
     const newTextarea = textarea.cloneNode(true);
     textarea.parentNode.replaceChild(newTextarea, textarea);
-    console.log('🔄 Textarea cloned and replaced');
+
+    // Restaurer le scroll après clonage
+    window.scrollTo(windowScrollX, windowScrollY);
+    console.log('🔄 Textarea cloned and replaced, scroll restored');
 
     newTextarea.addEventListener('input', function(e) {
         console.log('⌨️ Input event:', {
