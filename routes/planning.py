@@ -7092,26 +7092,37 @@ def create_student_remark():
 @teacher_required
 def get_lesson_memos_remarks():
     """Récupérer tous les mémos et remarques pour une leçon"""
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
         date_str = request.args.get('date')
         period = request.args.get('period', type=int)
-        
+
+        logger.error(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}")
+
         lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        
-        # Récupérer les mémos
+
+        # IMPORTANT: Récupérer les mémos où TARGET_DATE = cette date (pas source_date)
+        # Car on veut afficher les mémos destinés à ce créneau
         memos = LessonMemo.query.filter_by(
             user_id=current_user.id,
-            source_date=lesson_date,
-            source_period=period
+            target_date=lesson_date,
+            target_period=period,
+            is_completed=False
         ).all()
-        
+
+        logger.error(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
+
         # Récupérer les remarques
         remarks = StudentRemark.query.filter_by(
             user_id=current_user.id,
             source_date=lesson_date,
             source_period=period
         ).all()
-        
+
+        logger.error(f"DEBUG - Found {len(remarks)} remarks for source_date={lesson_date}, source_period={period}")
+
         # Formater les données
         memos_data = [{
             'id': m.id,
@@ -7119,22 +7130,24 @@ def get_lesson_memos_remarks():
             'target_date': m.target_date.isoformat() if m.target_date else None,
             'is_completed': m.is_completed
         } for m in memos]
-        
+
         remarks_data = [{
             'id': r.id,
             'content': r.content,
             'student_id': r.student_id,
             'student_name': f"{r.student.first_name} {r.student.last_name}"
         } for r in remarks]
-        
+
+        logger.error(f"DEBUG - Returning {len(memos_data)} memos and {len(remarks_data)} remarks")
+
         return jsonify({
             'success': True,
             'memos': memos_data,
             'remarks': remarks_data
         })
-        
+
     except Exception as e:
-        print(f"Erreur lors de la récupération des mémos/remarques: {str(e)}")
+        logger.error(f"Erreur lors de la récupération des mémos/remarques: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
