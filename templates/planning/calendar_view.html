@@ -1365,7 +1365,8 @@ if (typeof pdfjsLib !== 'undefined') {
                                             </div>
                                             {% endif %}
                                             {% set date_str = date.strftime('%Y-%m-%d') %}
-                                            {% if date_str in memos_by_date %}
+                                            <!-- DEBUG: date_str={{ date_str }}, has memos={{ date_str in memos_by_date }} -->
+                                            {% if memos_by_date and date_str in memos_by_date %}
                                             <div class="memo-badge" title="{{ memos_by_date[date_str]|length }} mémo(s)">
                                                 <i class="fas fa-sticky-note"></i>
                                                 <span class="memo-count">{{ memos_by_date[date_str]|length }}</span>
