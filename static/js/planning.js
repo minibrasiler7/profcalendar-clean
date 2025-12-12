@@ -186,8 +186,12 @@ function openPlanningModal(cell, fromAnnualView = false) {
         document.getElementById('planningModal').classList.add('show');
 
         // Charger les mémos pour cette date/période
+        console.log('DEBUG: About to load memos - date:', date, 'basePeriod:', basePeriod);
+        console.log('DEBUG: loadMemosForModal function exists?', typeof loadMemosForModal === 'function');
         if (typeof loadMemosForModal === 'function') {
             loadMemosForModal(date, basePeriod, 'modalMemosList', 'modalMemosSection');
+        } else {
+            console.error('ERROR: loadMemosForModal function not found!');
         }
     });
 }

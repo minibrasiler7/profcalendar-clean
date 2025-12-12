@@ -5112,16 +5112,26 @@ function toggleDayGroupRepeatOptions() {
 
 // Charger et afficher les mémos pour une date/période donnée
 async function loadMemosForModal(date, period, targetContainerId, targetSectionId) {
+    console.log('🔍 loadMemosForModal called with:', {date, period, targetContainerId, targetSectionId});
     try {
-        const response = await fetch(`/planning/get_lesson_memos_remarks?date=${date}&period=${period}`);
+        const url = `/planning/get_lesson_memos_remarks?date=${date}&period=${period}`;
+        console.log('📡 Fetching memos from:', url);
+        const response = await fetch(url);
         const data = await response.json();
+        console.log('📊 Received data:', data);
 
         const container = document.getElementById(targetContainerId);
         const section = document.getElementById(targetSectionId);
 
-        if (!container || !section) return;
+        console.log('🎯 DOM elements:', {container: !!container, section: !!section});
+
+        if (!container || !section) {
+            console.error('❌ Container or section not found!');
+            return;
+        }
 
         if (data.success && data.memos && data.memos.length > 0) {
+            console.log('✅ Found', data.memos.length, 'memos');
             let html = '';
             data.memos.forEach(memo => {
                 const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : 'Non défini';
@@ -5136,11 +5146,13 @@ async function loadMemosForModal(date, period, targetContainerId, targetSectionI
             });
             container.innerHTML = html;
             section.style.display = 'block';
+            console.log('✅ Memos displayed successfully');
         } else {
+            console.log('ℹ️ No memos found or empty response');
             section.style.display = 'none';
         }
     } catch (error) {
-        console.error('Erreur lors du chargement des mémos:', error);
+        console.error('❌ Erreur lors du chargement des mémos:', error);
     }
 }
 
