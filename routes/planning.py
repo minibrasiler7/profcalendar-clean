@@ -686,10 +686,12 @@ def dashboard():
         db.joinedload(LessonMemo.mixed_group)
     ).order_by(LessonMemo.target_period).all()
 
-    print(f"DEBUG Dashboard - today: {today}")
-    print(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"DEBUG Dashboard - today: {today}")
+    logger.error(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
     for memo in today_memos:
-        print(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
     # Mémos pour cette semaine (sans compter aujourd'hui)
     week_memos = LessonMemo.query.filter(
@@ -702,10 +704,10 @@ def dashboard():
         db.joinedload(LessonMemo.mixed_group)
     ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
 
-    print(f"DEBUG Dashboard - week_dates: {week_dates}")
-    print(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
+    logger.error(f"DEBUG Dashboard - week_dates: {week_dates}")
+    logger.error(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
     for memo in week_memos:
-        print(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
     # Récupérer la liste des classes pour le filtre
     from models.mixed_group import MixedGroup
