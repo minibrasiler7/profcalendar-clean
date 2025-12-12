@@ -142,7 +142,7 @@ function openPlanningModal(cell, fromAnnualView = false) {
         }
 
         // Adapter l'interface selon si la période est passée ou non
-        const descriptionContainer = document.querySelector('.modal-body .form-group:last-child');
+        const descriptionContainer = document.getElementById('modalDescriptionContainer');
         const saveButton = document.querySelector('.modal-footer .btn-primary');
 
         if (isPastPeriod) {
