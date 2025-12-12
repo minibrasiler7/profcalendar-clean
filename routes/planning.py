@@ -693,11 +693,13 @@ def dashboard():
     for memo in today_memos:
         logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
-    # Mémos pour cette semaine (sans compter aujourd'hui)
+    # Mémos pour cette semaine ET la semaine prochaine (sans compter aujourd'hui)
+    # On affiche les mémos jusqu'à 14 jours dans le futur
+    next_two_weeks = today + timedelta(days=14)
     week_memos = LessonMemo.query.filter(
         LessonMemo.user_id == current_user.id,
         LessonMemo.target_date > today,
-        LessonMemo.target_date <= week_dates[4],
+        LessonMemo.target_date <= next_two_weeks,
         LessonMemo.is_completed == False
     ).options(
         db.joinedload(LessonMemo.classroom),
@@ -705,6 +707,7 @@ def dashboard():
     ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
 
     logger.error(f"DEBUG Dashboard - week_dates: {week_dates}")
+    logger.error(f"DEBUG Dashboard - Searching memos from {today} to {next_two_weeks}")
     logger.error(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
     for memo in week_memos:
         logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
