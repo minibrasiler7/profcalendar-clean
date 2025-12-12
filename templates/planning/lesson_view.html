@@ -1654,27 +1654,44 @@ function togglePlanningEdit() {
 
 // Fonction pour attacher l'auto-conversion des tirets en checkboxes
 function attachDashConversion() {
+    console.log('🔧 attachDashConversion called');
     const textarea = document.getElementById('planningDescription');
-    if (!textarea) return;
+    if (!textarea) {
+        console.error('❌ planningDescription textarea not found!');
+        return;
+    }
+    console.log('✅ Textarea found:', textarea);
 
     // Supprimer les anciens listeners pour éviter les doublons
     const newTextarea = textarea.cloneNode(true);
     textarea.parentNode.replaceChild(newTextarea, textarea);
+    console.log('🔄 Textarea cloned and replaced');
 
     newTextarea.addEventListener('input', function(e) {
+        console.log('⌨️ Input event:', {
+            inputType: e.inputType,
+            data: e.data,
+            value: this.value,
+            cursorPos: this.selectionStart
+        });
+
         const cursorPos = this.selectionStart;
         const value = this.value;
 
         // Vérifier si on vient de taper un tiret en début de ligne
         if (e.inputType === 'insertText' && e.data === '-') {
+            console.log('➖ Dash detected!');
             const lines = value.substring(0, cursorPos).split('\n');
             const currentLine = lines[lines.length - 1];
+            console.log('📝 Current line:', currentLine, 'trimmed:', currentLine.trim());
 
             // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
             if (currentLine.trim() === '-') {
+                console.log('✨ Converting dash to checkbox');
                 // Sauvegarder la position de scroll avant modification
                 const scrollTop = this.scrollTop;
                 const scrollLeft = this.scrollLeft;
+                const windowScrollY = window.scrollY;
 
                 // Remplacer le tiret par [ ]
                 const beforeCursor = value.substring(0, cursorPos - 1);
@@ -1690,9 +1707,12 @@ function attachDashConversion() {
                 // Restaurer la position de scroll
                 this.scrollTop = scrollTop;
                 this.scrollLeft = scrollLeft;
+                window.scrollTo(0, windowScrollY);
+                console.log('✅ Conversion complete, scroll restored');
             }
         }
     });
+    console.log('👂 Event listener attached');
 }
 
 // Fonction pour échapper le HTML
