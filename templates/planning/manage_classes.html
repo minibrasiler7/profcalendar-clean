@@ -1165,7 +1165,6 @@
     overflow-y: auto;
     max-height: 400px;
     user-select: none;
-    touch-action: none;
 }
 
 .student-label {
@@ -1180,8 +1179,7 @@
     cursor: grab;
     transition: all 0.2s ease;
     user-select: none;
-    touch-action: none;
-    -webkit-user-drag: none;
+    -webkit-user-select: none;
 }
 
 .student-label:hover {
@@ -1207,6 +1205,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Éléments du plan de classe */
@@ -1681,8 +1681,7 @@
     font-size: 0.75rem;
     border-radius: 15px;
     user-select: none;
-    touch-action: none;
-    -webkit-user-drag: none;
+    -webkit-user-select: none;
 }
 
 .student-label.placed {
