@@ -299,11 +299,14 @@
 </div>
 
     <!-- Section des mémos -->
-    {% if today_memos or week_memos %}
     <div class="memos-section" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h2><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Mes mémos</h2>
-            <div class="memo-filters" style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button onclick="openMemoCreationModal()" class="action-button" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border: none; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    <i class="fas fa-plus"></i>
+                    <span>Nouveau mémo</span>
+                </button>
                 <select id="classFilter" onchange="filterMemos()" style="padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
                     <option value="all">Toutes les classes</option>
                     {% for classroom in user_classrooms %}
@@ -315,6 +318,8 @@
                 </select>
             </div>
         </div>
+
+        {% if today_memos or week_memos %}
 
         <!-- Mémos d'aujourd'hui -->
         {% if today_memos %}
@@ -338,11 +343,18 @@
                             </div>
                             <p style="margin: 0; color: #78350F;">{{ memo.content }}</p>
                         </div>
-                        <button onclick="completeMemo({{ memo.id }})"
-                                style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                title="Marquer comme fait">
-                            <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="editMemo({{ memo.id }}, '{{ memo.content|replace("'", "\\'") }}', {{ memo.classroom_id or 'null' }}, {{ memo.mixed_group_id or 'null' }}, '{{ memo.target_date.strftime('%Y-%m-%d') if memo.target_date else '' }}', {{ memo.target_period or 'null' }})"
+                                    style="background: none; border: none; color: #3B82F6; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                    title="Modifier">
+                                <i class="fas fa-edit" style="font-size: 1.25rem;"></i>
+                            </button>
+                            <button onclick="completeMemo({{ memo.id }})"
+                                    style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                    title="Marquer comme fait">
+                                <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -376,17 +388,105 @@
                             </div>
                             <p style="margin: 0; color: #1E3A8A;">{{ memo.content }}</p>
                         </div>
-                        <button onclick="completeMemo({{ memo.id }})"
-                                style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                title="Marquer comme fait">
-                            <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="editMemo({{ memo.id }}, '{{ memo.content|replace("'", "\\'") }}', {{ memo.classroom_id or 'null' }}, {{ memo.mixed_group_id or 'null' }}, '{{ memo.target_date.strftime('%Y-%m-%d') if memo.target_date else '' }}', {{ memo.target_period or 'null' }})"
+                                    style="background: none; border: none; color: #3B82F6; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                    title="Modifier">
+                                <i class="fas fa-edit" style="font-size: 1.25rem;"></i>
+                            </button>
+                            <button onclick="completeMemo({{ memo.id }})"
+                                    style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
+                                    title="Marquer comme fait">
+                                <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
+
+        {% else %}
+        <!-- Message si aucun mémo -->
+        <p style="color: #6B7280; text-align: center; padding: 2rem;">
+            <i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 1rem; opacity: 0.5;"></i>
+            Aucun mémo pour le moment. Créez-en un pour ne rien oublier !
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Modal de création/édition de mémo -->
+    <div id="memoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="memoModalTitle" style="margin: 0;">
+                    <i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Nouveau mémo
+                </h2>
+                <button onclick="closeMemoModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="memoForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                <input type="hidden" id="memoId" value="">
+
+                <!-- Sélection de la classe -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                        Classe / Groupe
+                    </label>
+                    <select id="memoClassSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
+                        <option value="">-- Sélectionner une classe --</option>
+                        {% for classroom in user_classrooms %}
+                        <option value="classroom-{{ classroom.id }}">{{ classroom.name }}</option>
+                        {% endfor %}
+                        {% for group in user_mixed_groups %}
+                        <option value="mixed-{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Type de date -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                        Rappel pour
+                    </label>
+                    <select id="memoDateType" onchange="handleMemoDateTypeChange()" required style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
+                        <option value="">-- Choisir --</option>
+                        <option value="next_lesson">Prochain cours</option>
+                        <option value="custom">Date personnalisée</option>
+                        <option value="no_date">Sans date</option>
+                    </select>
+                </div>
+
+                <!-- Date personnalisée -->
+                <div id="memoCustomDateDiv" style="display: none;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                        Date
+                    </label>
+                    <input type="date" id="memoCustomDate" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
+                </div>
+
+                <!-- Contenu -->
+                <div id="memoContentDiv" style="display: none;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
+                        Contenu du mémo
+                    </label>
+                    <textarea id="memoContent" required rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem; resize: vertical;" placeholder="Notez votre mémo ici..."></textarea>
+                </div>
+
+                <!-- Boutons -->
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" onclick="closeMemoModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; background: white; color: #374151; cursor: pointer; font-size: 1rem;">
+                        Annuler
+                    </button>
+                    <button type="submit" style="padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white; cursor: pointer; font-size: 1rem; font-weight: 600;">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -429,8 +529,172 @@
             alert('Erreur lors de la communication avec le serveur');
         }
     }
+
+    // Fonctions pour le modal de création/édition
+    function openMemoCreationModal() {
+        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Nouveau mémo';
+        document.getElementById('memoId').value = '';
+        document.getElementById('memoForm').reset();
+        document.getElementById('memoCustomDateDiv').style.display = 'none';
+        document.getElementById('memoContentDiv').style.display = 'none';
+        document.getElementById('memoModal').style.display = 'flex';
+    }
+
+    function closeMemoModal() {
+        document.getElementById('memoModal').style.display = 'none';
+        document.getElementById('memoForm').reset();
+    }
+
+    function handleMemoDateTypeChange() {
+        const dateType = document.getElementById('memoDateType').value;
+        const customDateDiv = document.getElementById('memoCustomDateDiv');
+        const contentDiv = document.getElementById('memoContentDiv');
+
+        if (!dateType) {
+            customDateDiv.style.display = 'none';
+            contentDiv.style.display = 'none';
+            return;
+        }
+
+        // Afficher le champ de date personnalisée si nécessaire
+        if (dateType === 'custom') {
+            customDateDiv.style.display = 'block';
+        } else {
+            customDateDiv.style.display = 'none';
+        }
+
+        // Toujours afficher le champ de contenu une fois qu'un type de date est sélectionné
+        contentDiv.style.display = 'block';
+    }
+
+    function editMemo(id, content, classroomId, mixedGroupId, targetDate, targetPeriod) {
+        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-edit" style="color: #3B82F6;"></i> Modifier le mémo';
+        document.getElementById('memoId').value = id;
+        document.getElementById('memoContent').value = content;
+
+        // Sélectionner la classe
+        const classSelect = document.getElementById('memoClassSelect');
+        if (classroomId) {
+            classSelect.value = `classroom-${classroomId}`;
+        } else if (mixedGroupId) {
+            classSelect.value = `mixed-${mixedGroupId}`;
+        }
+
+        // Définir le type de date
+        if (targetDate) {
+            document.getElementById('memoDateType').value = 'custom';
+            document.getElementById('memoCustomDate').value = targetDate;
+            document.getElementById('memoCustomDateDiv').style.display = 'block';
+        } else {
+            document.getElementById('memoDateType').value = 'no_date';
+        }
+
+        document.getElementById('memoContentDiv').style.display = 'block';
+        document.getElementById('memoModal').style.display = 'flex';
+    }
+
+    async function deleteMemo(memoId) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce mémo ?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/planning/delete_lesson_memo/${memoId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur lors de la suppression du mémo');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la communication avec le serveur');
+        }
+    }
+
+    // Gestion de la soumission du formulaire
+    document.addEventListener('DOMContentLoaded', function() {
+        const memoForm = document.getElementById('memoForm');
+        if (memoForm) {
+            memoForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const memoId = document.getElementById('memoId').value;
+                const classValue = document.getElementById('memoClassSelect').value;
+                const dateType = document.getElementById('memoDateType').value;
+                const content = document.getElementById('memoContent').value.trim();
+
+                if (!classValue || !dateType || !content) {
+                    alert('Veuillez remplir tous les champs obligatoires');
+                    return;
+                }
+
+                // Parser classroom_id et mixed_group_id
+                let classroomId = null;
+                let mixedGroupId = null;
+                if (classValue.startsWith('classroom-')) {
+                    classroomId = parseInt(classValue.replace('classroom-', ''));
+                } else if (classValue.startsWith('mixed-')) {
+                    mixedGroupId = parseInt(classValue.replace('mixed-', ''));
+                }
+
+                let targetDate = null;
+                if (dateType === 'custom') {
+                    targetDate = document.getElementById('memoCustomDate').value;
+                    if (!targetDate) {
+                        alert('Veuillez sélectionner une date');
+                        return;
+                    }
+                }
+
+                const payload = {
+                    classroom_id: classroomId,
+                    mixed_group_id: mixedGroupId,
+                    date_type: dateType,
+                    target_date: targetDate,
+                    content: content
+                };
+
+                try {
+                    let response;
+                    if (memoId) {
+                        // Modification
+                        response = await fetch(`/planning/update_lesson_memo/${memoId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                    } else {
+                        // Création
+                        response = await fetch('/planning/create_lesson_memo', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        closeMemoModal();
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Erreur lors de l\'enregistrement du mémo');
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la communication avec le serveur');
+                }
+            });
+        }
+    });
     </script>
-    {% endif %}
 
     <!-- Section des invitations reçues -->
     {% if received_invitations %}

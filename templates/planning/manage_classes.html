@@ -1128,6 +1128,7 @@
     position: relative;
     min-height: 500px;
     overflow: hidden;
+    touch-action: none;
 }
 
 .students-sidebar {
@@ -1163,6 +1164,8 @@
     flex: 1;
     overflow-y: auto;
     max-height: 400px;
+    user-select: none;
+    touch-action: none;
 }
 
 .student-label {
@@ -1177,6 +1180,8 @@
     cursor: grab;
     transition: all 0.2s ease;
     user-select: none;
+    touch-action: none;
+    -webkit-user-drag: none;
 }
 
 .student-label:hover {
@@ -1212,7 +1217,8 @@
     border-radius: 8px;
     cursor: grab;
     user-select: none;
-    transition: all 0.2s ease;
+    touch-action: none;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .seating-element:hover {
@@ -1224,6 +1230,7 @@
     opacity: 0.8;
     z-index: 1000;
     cursor: grabbing;
+    transition: none;
 }
 
 .desk-single {
@@ -1515,6 +1522,7 @@
     background-image: 
         radial-gradient(circle, #e9ecef 1px, transparent 1px);
     background-size: 20px 20px;
+    touch-action: none;
 }
 
 .toolbar-section {
@@ -1672,6 +1680,9 @@
     color: #2e7d32;
     font-size: 0.75rem;
     border-radius: 15px;
+    user-select: none;
+    touch-action: none;
+    -webkit-user-drag: none;
 }
 
 .student-label.placed {
@@ -4576,7 +4587,7 @@ let isDragging = false;
 let currentDragElement = null;
 let dragOffset = { x: 0, y: 0 };
 let currentStudents = [];
-let magnetRadius = 100; // Distance pour l'aimantation en pixels (augmenté pour plus de facilité)
+let magnetRadius = 140; // Distance pour l'aimantation en pixels (un peu plus large pour le tactile)
 
 // Initialisation du plan de classe
 function initializeSeatingPlan() {
@@ -4668,21 +4679,75 @@ function setupSeatingEventListeners() {
     // Event listeners pour l'espace de travail
     seatingWorkspace.addEventListener('dragover', handleWorkspaceDragOver);
     seatingWorkspace.addEventListener('drop', handleWorkspaceDrop);
-    
-    // Event listeners globaux pour le drag des tables
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousemove', handleMouseMove);
-    
-    // Support tactile pour les tablettes
-    document.addEventListener('touchmove', handleTouchMove, {passive: false});
-    document.addEventListener('touchend', handleTouchEnd);
-    
+
     // Event listener pour empêcher la sélection de texte pendant le drag
     document.addEventListener('selectstart', function(e) {
         if (isDragging) {
             e.preventDefault();
         }
     });
+}
+
+// Drag des tables avec Pointer Events (souris + tactile)
+function attachElementPointerDrag(element) {
+    let activePointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    const endDrag = (e) => {
+        if (activePointerId === null || (e && e.pointerId !== activePointerId)) return;
+        element.classList.remove('dragging');
+        element.style.cursor = 'grab';
+        element.style.zIndex = '';
+        isDragging = false;
+        currentDragElement = null;
+        if (element.releasePointerCapture && activePointerId !== null) {
+            try { element.releasePointerCapture(activePointerId); } catch (err) {}
+        }
+        element.removeEventListener('pointermove', onPointerMove);
+        element.removeEventListener('pointerup', endDrag);
+        element.removeEventListener('pointercancel', endDrag);
+        activePointerId = null;
+    };
+
+    const onPointerMove = (e) => {
+        if (e.pointerId !== activePointerId) return;
+        e.preventDefault();
+        const workspaceRect = seatingWorkspace.getBoundingClientRect();
+        let newX = e.clientX - workspaceRect.left - offsetX;
+        let newY = e.clientY - workspaceRect.top - offsetY;
+
+        newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
+        newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
+
+        element.style.left = newX + 'px';
+        element.style.top = newY + 'px';
+    };
+
+    element.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        if (e.target.closest('.element-delete')) return;
+        e.preventDefault();
+
+        isDragging = true;
+        currentDragElement = element;
+        const rect = element.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        activePointerId = e.pointerId;
+
+        element.style.cursor = 'grabbing';
+        element.style.zIndex = '1000';
+        element.classList.add('dragging');
+        element.setPointerCapture?.(activePointerId);
+
+        element.addEventListener('pointermove', onPointerMove);
+        element.addEventListener('pointerup', endDrag);
+        element.addEventListener('pointercancel', endDrag);
+    });
+
+    // Curseur au repos
+    element.style.cursor = 'grab';
 }
 
 // Ajouter un élément (table ou bureau)
@@ -4757,55 +4822,9 @@ function addElement(elementType) {
             `;
             break;
     }
-    
-    // Système de drag-and-drop simplifié directement sur l'élément
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDraggingElement = false;
-    
-    element.onmousedown = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        isDraggingElement = true;
-        
-        const rect = element.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveElement(e) {
-            if (!isDraggingElement) return;
-            
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = e.clientX - workspaceRect.left - offsetX;
-            let newY = e.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('mousemove', moveElement);
-            document.removeEventListener('mouseup', stopDragging);
-        }
-        
-        document.addEventListener('mousemove', moveElement);
-        document.addEventListener('mouseup', stopDragging);
-    };
-    
+
     seatingWorkspace.appendChild(element);
+    attachElementPointerDrag(element);
     
     // Ajuster la largeur pour les tables doubles vides dès la création
     if (elementType === 'desk-double') {
@@ -5513,101 +5532,6 @@ function createTeacherDesk(customId = null) {
 }
 
 // Configurer le drag-and-drop pour un élément
-function setupElementDragging(element) {
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDraggingElement = false;
-    
-    element.onmousedown = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        isDraggingElement = true;
-        
-        const rect = element.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveElement(e) {
-            if (!isDraggingElement) return;
-            
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = e.clientX - workspaceRect.left - offsetX;
-            let newY = e.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('mousemove', moveElement);
-            document.removeEventListener('mouseup', stopDragging);
-        }
-        
-        document.addEventListener('mousemove', moveElement);
-        document.addEventListener('mouseup', stopDragging);
-    };
-    
-    // Support tactile pour tablettes
-    element.ontouchstart = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
-        isDraggingElement = true;
-        
-        const touch = e.touches[0];
-        const rect = element.getBoundingClientRect();
-        offsetX = touch.clientX - rect.left;
-        offsetY = touch.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveTouchElement(e) {
-            if (!isDraggingElement) return;
-            
-            e.preventDefault();
-            const touch = e.touches[0];
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = touch.clientX - workspaceRect.left - offsetX;
-            let newY = touch.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopTouchDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('touchmove', moveTouchElement);
-            document.removeEventListener('touchend', stopTouchDragging);
-        }
-        
-        document.addEventListener('touchmove', moveTouchElement, {passive: false});
-        document.addEventListener('touchend', stopTouchDragging);
-    };
-}
-
 // Charger un plan de classe depuis le serveur
 function loadSeatingPlan(classroomId) {
     if (!classroomId) {
@@ -5649,7 +5573,7 @@ function loadSeatingPlan(classroomId) {
                         element.style.left = elementData.x + 'px';
                         element.style.top = elementData.y + 'px';
                         seatingWorkspace.appendChild(element);
-                        setupElementDragging(element);
+                        attachElementPointerDrag(element);
                     }
                 });
             }
@@ -5738,7 +5662,7 @@ function loadMasterSeatingPlan() {
                         element.style.left = elementData.x + 'px';
                         element.style.top = elementData.y + 'px';
                         seatingWorkspace.appendChild(element);
-                        setupElementDragging(element);
+                        attachElementPointerDrag(element);
                     }
                 });
             }
@@ -5911,20 +5835,21 @@ let studentTouchStartPos = null;
 let isDraggingStudent = false;
 
 document.addEventListener('touchstart', function(e) {
-    if (e.target.classList.contains('student-label')) {
-        e.preventDefault();
-        touchDraggedStudent = e.target;
-        isDraggingStudent = false; // Pas encore en cours de drag
-        
-        const touch = e.touches[0];
-        studentTouchStartPos = {
-            x: touch.clientX,
-            y: touch.clientY,
-            startTime: Date.now()
-        };
-        
-        console.log('Touch start on student:', touchDraggedStudent.dataset.studentId);
-    }
+    const label = e.target.closest('.student-label');
+    if (!label) return;
+
+    e.preventDefault();
+    touchDraggedStudent = label;
+    isDraggingStudent = false; // Pas encore en cours de drag
+    
+    const touch = e.touches[0];
+    studentTouchStartPos = {
+        x: touch.clientX,
+        y: touch.clientY,
+        startTime: Date.now()
+    };
+    
+    console.log('Touch start on student:', touchDraggedStudent.dataset.studentId);
 });
 
 document.addEventListener('touchmove', function(e) {
@@ -5952,18 +5877,27 @@ document.addEventListener('touchend', function(e) {
     if (!touchDraggedStudent) return;
     
     const touch = e.changedTouches[0];
+    let targetDesk = null;
     const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
-    
-    if (isDraggingStudent && elementUnderTouch) {
-        // Trouver le bureau le plus proche
-        const desk = elementUnderTouch.closest('.seating-element');
-        if (desk) {
-            console.log('Touch drop student on desk:', desk.id);
-            // Utiliser la même logique que le drop souris
-            const studentId = touchDraggedStudent.dataset.studentId || touchDraggedStudent.dataset.studentid;
-            if (studentId) {
-                placeStudentOnDesk(touchDraggedStudent, desk, touch.clientX);
-            }
+
+    if (isDraggingStudent) {
+        if (!seatingWorkspace) {
+            seatingWorkspace = document.getElementById('seating-workspace');
+        }
+        if (!seatingWorkspace) return;
+        // Chercher une table sous le doigt ou à proximité (aimantation)
+        const workspaceRect = seatingWorkspace.getBoundingClientRect();
+        const dropX = touch.clientX - workspaceRect.left;
+        const dropY = touch.clientY - workspaceRect.top;
+        const nearestDesk = findClosestDesk(dropX, dropY);
+        targetDesk = elementUnderTouch?.closest('.seating-element') || nearestDesk;
+    }
+
+    if (isDraggingStudent && targetDesk) {
+        console.log('Touch drop student on desk:', targetDesk.id);
+        const studentId = touchDraggedStudent.dataset.studentId || touchDraggedStudent.dataset.studentid;
+        if (studentId) {
+            placeStudentOnDesk(touchDraggedStudent, targetDesk, touch.clientX);
         }
     }
     

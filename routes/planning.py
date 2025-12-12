@@ -962,16 +962,19 @@ def calendar_view():
 
     logger.error(f"DEBUG Calendar - Found {len(week_memos)} memos")
 
-    # Organiser les mémos par date
-    memos_by_date = {}
+    # Organiser les mémos par date ET période
+    memos_by_date_period = {}
     for memo in week_memos:
         date_str = memo.target_date.strftime('%Y-%m-%d')
-        if date_str not in memos_by_date:
-            memos_by_date[date_str] = []
-        memos_by_date[date_str].append(memo)
-        logger.error(f"DEBUG Calendar - Memo ID {memo.id}: date={date_str}, content={memo.content[:30]}")
+        period = memo.target_period
+        key = f"{date_str}_{period}" if period else f"{date_str}_none"
 
-    logger.error(f"DEBUG Calendar - memos_by_date keys: {list(memos_by_date.keys())}")
+        if key not in memos_by_date_period:
+            memos_by_date_period[key] = []
+        memos_by_date_period[key].append(memo)
+        logger.error(f"DEBUG Calendar - Memo ID {memo.id}: date={date_str}, period={period}, key={key}")
+
+    logger.error(f"DEBUG Calendar - memos_by_date_period keys: {list(memos_by_date_period.keys())}")
 
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
@@ -989,7 +992,7 @@ def calendar_view():
                          days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
                          today=date_type.today(),
                          merged_info=merged_info,  # Passer les infos de fusion par jour
-                         memos_by_date=memos_by_date)  # Ajouter les mémos
+                         memos_by_date_period=memos_by_date_period)  # Ajouter les mémos par date et période
 
 def calculate_periods(user):
     """Calcule les périodes en fonction de la configuration de l'utilisateur"""
@@ -6930,7 +6933,11 @@ def create_lesson_memo():
             print("DEBUG - ERROR: Content is empty!")
             return jsonify({'success': False, 'error': 'Contenu requis'}), 400
 
-        source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        # Si appelé depuis le dashboard, source_date_str peut être None
+        if source_date_str:
+            source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        else:
+            source_date = datetime.now().date()
         print(f"DEBUG - source_date parsed: {source_date}")
         
         # Calculer la date cible selon le type
@@ -7025,6 +7032,10 @@ def create_lesson_memo():
         print(f"  content: {content}")
 
         # Créer le mémo
+        # Si source_period est None (création depuis dashboard), mettre 1 par défaut
+        if source_period is None:
+            source_period = 1
+
         memo = LessonMemo(
             user_id=current_user.id,
             classroom_id=classroom_id,
@@ -7193,19 +7204,102 @@ def update_lesson_memo(memo_id):
     """Mettre à jour un mémo"""
     try:
         memo = LessonMemo.query.get_or_404(memo_id)
-        
+
         if memo.user_id != current_user.id:
             return jsonify({'success': False, 'error': 'Non autorisé'}), 403
-        
+
         data = request.get_json()
+
+        # Mise à jour simple du contenu ou statut
         if 'content' in data:
             memo.content = data['content']
         if 'is_completed' in data:
             memo.is_completed = data['is_completed']
-        
+
+        # Mise à jour complète (depuis le dashboard)
+        if 'classroom_id' in data or 'mixed_group_id' in data:
+            memo.classroom_id = data.get('classroom_id')
+            memo.mixed_group_id = data.get('mixed_group_id')
+
+        if 'date_type' in data:
+            date_type_param = data.get('date_type')
+            target_date_str = data.get('target_date')
+
+            # Réinitialiser les dates
+            memo.target_date = None
+            memo.target_period = None
+
+            if date_type_param == 'next_lesson':
+                # Trouver le prochain cours
+                classroom_id = memo.classroom_id
+                mixed_group_id = memo.mixed_group_id
+
+                today = datetime.now().date()
+                current_weekday = today.weekday()
+
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id
+                    ).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id
+                    ).all()
+
+                found = False
+                for days_ahead in range(0, 14):
+                    check_date = today + timedelta(days=days_ahead)
+                    check_weekday = check_date.weekday()
+
+                    day_schedules = [s for s in schedules if s.weekday == check_weekday]
+                    if day_schedules:
+                        day_schedules.sort(key=lambda x: x.period_number)
+
+                        for sched in day_schedules:
+                            if not sched.merged_with_previous:
+                                memo.target_date = check_date
+                                memo.target_period = sched.period_number
+                                found = True
+                                break
+
+                    if found:
+                        break
+
+            elif date_type_param == 'custom' and target_date_str:
+                target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+                weekday = target_date.weekday()
+
+                classroom_id = memo.classroom_id
+                mixed_group_id = memo.mixed_group_id
+
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+
+                memo.target_date = target_date
+
+                if schedules:
+                    for sched in schedules:
+                        if not sched.merged_with_previous:
+                            memo.target_period = sched.period_number
+                            break
+
+            # 'no_date' => target_date et target_period restent None
+
         db.session.commit()
         return jsonify({'success': True})
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
