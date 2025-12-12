@@ -149,7 +149,8 @@ class LessonMemosManager {
 
     async loadExistingMemosAndRemarks() {
         try {
-            const response = await fetch(`/planning/get_lesson_memos_remarks?date=${lessonDate}&period=${periodNumber}`);
+            // Mode 'source' car on veut les mémos CRÉÉS depuis cette leçon
+            const response = await fetch(`/planning/get_lesson_memos_remarks?date=${lessonDate}&period=${periodNumber}&mode=source`);
             const data = await response.json();
 
             if (data.success) {

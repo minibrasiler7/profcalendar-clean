@@ -1625,12 +1625,12 @@ function togglePlanningEdit() {
     } else {
         // Passer en mode lecture
         planningEdit.style.display = 'none';
-        
+
         // Vérifier s'il y a du contenu de planification en regardant le titre
         const titleDisplay = document.getElementById('planningTitleDisplay');
-        const hasPlanning = titleDisplay && titleDisplay.textContent.trim() && 
+        const hasPlanning = titleDisplay && titleDisplay.textContent.trim() &&
                            titleDisplay.textContent !== 'Cours sans titre';
-        
+
         if (hasPlanning) {
             // Il y a une planification, afficher la vue de lecture
             if (planningView) planningView.style.display = 'block';
@@ -1641,6 +1641,11 @@ function togglePlanningEdit() {
             if (emptyPlanning) emptyPlanning.style.display = 'block';
         }
         editBtnText.textContent = 'Modifier';
+
+        // Recharger les mémos/remarques pour la vue en lecture seule
+        if (typeof lessonMemosManager !== 'undefined' && lessonMemosManager) {
+            lessonMemosManager.loadExistingMemosAndRemarks();
+        }
     }
 }
 

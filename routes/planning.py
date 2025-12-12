@@ -7098,23 +7098,31 @@ def get_lesson_memos_remarks():
     try:
         date_str = request.args.get('date')
         period = request.args.get('period', type=int)
+        mode = request.args.get('mode', 'target')  # 'source' ou 'target'
 
-        logger.error(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}")
+        logger.error(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}, mode={mode}")
 
         lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # IMPORTANT: Récupérer les mémos où TARGET_DATE = cette date (pas source_date)
-        # Car on veut afficher les mémos destinés à ce créneau
-        memos = LessonMemo.query.filter_by(
-            user_id=current_user.id,
-            target_date=lesson_date,
-            target_period=period,
-            is_completed=False
-        ).all()
+        # Mode 'source' : mémos créés DEPUIS cette leçon (pour page /lesson)
+        # Mode 'target' : mémos destinés À cette leçon (pour modaux calendrier)
+        if mode == 'source':
+            memos = LessonMemo.query.filter_by(
+                user_id=current_user.id,
+                source_date=lesson_date,
+                source_period=period
+            ).all()
+            logger.error(f"DEBUG - Found {len(memos)} memos for source_date={lesson_date}, source_period={period}")
+        else:
+            memos = LessonMemo.query.filter_by(
+                user_id=current_user.id,
+                target_date=lesson_date,
+                target_period=period,
+                is_completed=False
+            ).all()
+            logger.error(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
 
-        logger.error(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
-
-        # Récupérer les remarques
+        # Récupérer les remarques (toujours par source_date)
         remarks = StudentRemark.query.filter_by(
             user_id=current_user.id,
             source_date=lesson_date,
