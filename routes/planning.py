@@ -942,8 +942,14 @@ def calendar_view():
                 'type': 'custom'
             }
 
-    # Récupérer les mémos pour cette semaine
+    # Récupérer les mémos pour la semaine AFFICHÉE (pas forcément la semaine actuelle)
     from models.lesson_memo import LessonMemo
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.error(f"DEBUG Calendar - week_dates: {week_dates}")
+    logger.error(f"DEBUG Calendar - Searching memos from {week_dates[0]} to {week_dates[4]}")
+
     week_memos = LessonMemo.query.filter(
         LessonMemo.user_id == current_user.id,
         LessonMemo.target_date >= week_dates[0],
@@ -954,6 +960,8 @@ def calendar_view():
         db.joinedload(LessonMemo.mixed_group)
     ).all()
 
+    logger.error(f"DEBUG Calendar - Found {len(week_memos)} memos")
+
     # Organiser les mémos par date
     memos_by_date = {}
     for memo in week_memos:
@@ -961,6 +969,9 @@ def calendar_view():
         if date_str not in memos_by_date:
             memos_by_date[date_str] = []
         memos_by_date[date_str].append(memo)
+        logger.error(f"DEBUG Calendar - Memo ID {memo.id}: date={date_str}, content={memo.content[:30]}")
+
+    logger.error(f"DEBUG Calendar - memos_by_date keys: {list(memos_by_date.keys())}")
 
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
