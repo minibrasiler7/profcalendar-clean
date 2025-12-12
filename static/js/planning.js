@@ -184,6 +184,11 @@ function openPlanningModal(cell, fromAnnualView = false) {
 
         // Afficher le modal
         document.getElementById('planningModal').classList.add('show');
+
+        // Charger les mémos pour cette date/période
+        if (typeof loadMemosForModal === 'function') {
+            loadMemosForModal(date, basePeriod, 'modalMemosList', 'modalMemosSection');
+        }
     });
 }
 

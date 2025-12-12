@@ -1636,6 +1636,16 @@ if (typeof pdfjsLib !== 'undefined') {
                 <textarea id="modalDescription" class="form-control" rows="3"
                           placeholder="Détails du cours, exercices prévus..."></textarea>
             </div>
+
+            <!-- Section mémos -->
+            <div class="form-group" id="modalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                <label class="form-label" style="color: #92400E; font-weight: 600;">
+                    <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                </label>
+                <div id="modalMemosList" style="margin-top: 10px;">
+                    <!-- Les mémos seront insérés ici par JavaScript -->
+                </div>
+            </div>
         </div>
 
         <div class="modal-footer">
@@ -3617,6 +3627,16 @@ function showDaySlotEditModal(title, description) {
                         <textarea id="daySlotDescription" class="form-control" rows="4"
                                   placeholder="Détails du cours, exercices prévus...">${description}</textarea>
                     </div>
+
+                    <!-- Section mémos pour modal annuel -->
+                    <div class="form-group" id="dayModalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                        <label class="form-label" style="color: #92400E; font-weight: 600;">
+                            <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                        </label>
+                        <div id="dayModalMemosList" style="margin-top: 10px;">
+                            <!-- Les mémos seront insérés ici par JavaScript -->
+                        </div>
+                    </div>
                 </div>
                 <div class="day-edit-footer">
                     <button class="btn btn-outline" onclick="closeDayEditModal()">Annuler</button>
@@ -3636,10 +3656,15 @@ function showDaySlotEditModal(title, description) {
     
     // Charger les groupes pour cette classe
     loadGroupsForDayModal(currentEditingSlot.classroomId);
-    
+
     // Afficher le modal
     setTimeout(() => {
         document.getElementById('dayEditModal').classList.add('show');
+
+        // Charger les mémos pour cette date/période
+        if (typeof loadMemosForModal === 'function') {
+            loadMemosForModal(currentEditingSlot.date, currentEditingSlot.basePeriod, 'dayModalMemosList', 'dayModalMemosSection');
+        }
     }, 10);
 }
 
@@ -5070,11 +5095,11 @@ function toggleGroupRepeatOptions() {
 function toggleDayGroupRepeatOptions() {
     const groupSelect = document.getElementById('dayModalGroup');
     const repeatOptions = document.getElementById('dayGroupRepeatOptions');
-    
+
     if (groupSelect && repeatOptions) {
         const hasGroupSelected = groupSelect.value && groupSelect.value !== '';
         repeatOptions.style.display = hasGroupSelected ? 'block' : 'none';
-        
+
         // Réinitialiser les boutons radio quand on cache les options
         if (!hasGroupSelected) {
             const noneOption = document.querySelector('input[name="dayGroupRepeat"][value="none"]');
@@ -5083,6 +5108,47 @@ function toggleDayGroupRepeatOptions() {
             }
         }
     }
+}
+
+// Charger et afficher les mémos pour une date/période donnée
+async function loadMemosForModal(date, period, targetContainerId, targetSectionId) {
+    try {
+        const response = await fetch(`/planning/get_lesson_memos_remarks?date=${date}&period=${period}`);
+        const data = await response.json();
+
+        const container = document.getElementById(targetContainerId);
+        const section = document.getElementById(targetSectionId);
+
+        if (!container || !section) return;
+
+        if (data.success && data.memos && data.memos.length > 0) {
+            let html = '';
+            data.memos.forEach(memo => {
+                const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : 'Non défini';
+                html += `
+                    <div style="background-color: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #F59E0B;">
+                        <div style="font-size: 0.75rem; color: #92400E; font-weight: 600; margin-bottom: 4px;">
+                            📅 ${dateStr}
+                        </div>
+                        <div style="color: #1F2937;">${escapeHtml(memo.content)}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des mémos:', error);
+    }
+}
+
+// Fonction helper pour échapper le HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 </script>
