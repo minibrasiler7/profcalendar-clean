@@ -1627,12 +1627,17 @@ function togglePlanningEdit() {
         // Attacher la conversion des tirets en checkboxes
         attachDashConversion();
 
-        // Focus sur le titre sans scroll
-        const titleInput = document.getElementById('planningTitle');
-        titleInput.focus({ preventScroll: true });
+        // Ne pas faire de focus automatique pour éviter le scroll
+        // L'utilisateur peut cliquer où il veut
 
-        // Restaurer la position de scroll
-        window.scrollTo(scrollX, scrollY);
+        // Forcer la restauration du scroll après toutes les opérations du navigateur
+        requestAnimationFrame(() => {
+            window.scrollTo(scrollX, scrollY);
+            // Double protection avec un second requestAnimationFrame
+            requestAnimationFrame(() => {
+                window.scrollTo(scrollX, scrollY);
+            });
+        });
     } else {
         // Passer en mode lecture
         planningEdit.style.display = 'none';
