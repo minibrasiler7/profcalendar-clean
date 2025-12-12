@@ -6923,13 +6923,15 @@ def create_lesson_memo():
         
         if date_type_param == 'next_lesson':
             # Trouver le prochain cours avec cette classe
+            logger.error(f"DEBUG - Calculating next_lesson from source_date={source_date}, classroom_id={classroom_id}, mixed_group_id={mixed_group_id}")
             next_schedule = None
             current_day = source_date + timedelta(days=1)
-            
+
             # Chercher dans les 30 prochains jours
-            for _ in range(30):
+            for day_count in range(30):
                 weekday = current_day.weekday()
-                
+                logger.error(f"DEBUG - Checking day {day_count}: {current_day}, weekday={weekday}")
+
                 # Chercher un créneau pour cette classe ce jour-là
                 if classroom_id:
                     schedules = Schedule.query.filter_by(
@@ -6943,20 +6945,27 @@ def create_lesson_memo():
                         mixed_group_id=mixed_group_id,
                         weekday=weekday
                     ).order_by(Schedule.period_number).all()
-                
+
+                logger.error(f"DEBUG - Found {len(schedules)} schedules for this day")
+
                 if schedules:
                     # Prendre la première période non fusionnée avec la précédente
                     for sched in schedules:
+                        logger.error(f"DEBUG - Checking schedule period={sched.period_number}, merged_with_previous={sched.merged_with_previous}")
                         if not sched.merged_with_previous:
                             next_schedule = sched
                             target_date = current_day
                             target_period = sched.period_number
+                            logger.error(f"DEBUG - FOUND next lesson: date={target_date}, period={target_period}")
                             break
-                    
+
                     if next_schedule:
                         break
-                
+
                 current_day += timedelta(days=1)
+
+            if not next_schedule:
+                logger.error("DEBUG - WARNING: No next lesson found in the next 30 days!")
                 
         elif date_type_param == 'next_week':
             target_date = source_date + timedelta(days=7)

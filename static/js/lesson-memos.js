@@ -260,7 +260,7 @@ class LessonMemosManager {
             if (data.success) {
                 cancelMemoCreation(); // Appel de la fonction globale
                 this.loadExistingMemosAndRemarks();
-                this.showNotification('Mémo créé avec succès', 'success');
+                // Pas de notification - ajout silencieux
             } else {
                 alert(data.error || 'Erreur lors de la création du mémo');
             }
@@ -308,7 +308,7 @@ class LessonMemosManager {
 
             cancelRemarkCreation(); // Appel de la fonction globale
             this.loadExistingMemosAndRemarks();
-            this.showNotification(`Remarque(s) ajoutée(s) pour ${this.selectedStudents.length} élève(s)`, 'success');
+            // Pas de notification - ajout silencieux
         } catch (error) {
             console.error('Erreur:', error);
             alert('Erreur lors de la communication avec le serveur');
@@ -331,7 +331,7 @@ class LessonMemosManager {
             const data = await response.json();
             if (data.success) {
                 this.loadExistingMemosAndRemarks();
-                this.showNotification('Mémo mis à jour', 'success');
+                // Pas de notification
             }
         } catch (error) {
             console.error('Erreur:', error);
@@ -349,7 +349,7 @@ class LessonMemosManager {
             const data = await response.json();
             if (data.success) {
                 this.loadExistingMemosAndRemarks();
-                this.showNotification('Mémo supprimé', 'success');
+                // Pas de notification
             }
         } catch (error) {
             console.error('Erreur:', error);
@@ -372,7 +372,7 @@ class LessonMemosManager {
             const data = await response.json();
             if (data.success) {
                 this.loadExistingMemosAndRemarks();
-                this.showNotification('Remarque mise à jour', 'success');
+                // Pas de notification
             }
         } catch (error) {
             console.error('Erreur:', error);
@@ -390,7 +390,7 @@ class LessonMemosManager {
             const data = await response.json();
             if (data.success) {
                 this.loadExistingMemosAndRemarks();
-                this.showNotification('Remarque supprimée', 'success');
+                // Pas de notification
             }
         } catch (error) {
             console.error('Erreur:', error);
