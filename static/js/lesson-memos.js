@@ -20,6 +20,7 @@ class LessonMemosManager {
 
     setup() {
         this.memosListContainer = document.getElementById('memosListContainer');
+        this.memosViewContainer = document.getElementById('memosViewContainer');
 
         // Setup autocomplete pour les remarques
         const remarkInput = document.getElementById('remarkStudentInput');
@@ -160,8 +161,24 @@ class LessonMemosManager {
     }
 
     displayMemosAndRemarks(memos, remarks) {
-        if (!this.memosListContainer) return;
+        // Afficher dans le conteneur du mode édition
+        if (this.memosListContainer) {
+            this.memosListContainer.innerHTML = this.buildMemosHtml(memos, remarks, true);
+        }
 
+        // Afficher dans le conteneur du mode lecture seule
+        if (this.memosViewContainer) {
+            const html = this.buildMemosHtml(memos, remarks, false);
+            if (html.trim()) {
+                this.memosViewContainer.innerHTML = html;
+                this.memosViewContainer.style.display = 'block';
+            } else {
+                this.memosViewContainer.style.display = 'none';
+            }
+        }
+    }
+
+    buildMemosHtml(memos, remarks, showEditButton) {
         let html = '';
 
         // Afficher les mémos
@@ -177,9 +194,11 @@ class LessonMemosManager {
                         <div class="memo-text">${this.escapeHtml(memo.content)}</div>
                     </div>
                     <div class="memo-actions">
+                        ${showEditButton ? `
                         <button class="memo-action-btn" onclick="lessonMemosManager.editMemo(${memo.id})" title="Modifier">
                             <i class="fas fa-edit"></i>
                         </button>
+                        ` : ''}
                         <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteMemo(${memo.id})" title="Supprimer">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -200,9 +219,11 @@ class LessonMemosManager {
                         <div class="memo-text">${this.escapeHtml(remark.content)}</div>
                     </div>
                     <div class="memo-actions">
+                        ${showEditButton ? `
                         <button class="memo-action-btn" onclick="lessonMemosManager.editRemark(${remark.id})" title="Modifier">
                             <i class="fas fa-edit"></i>
                         </button>
+                        ` : ''}
                         <button class="memo-action-btn delete" onclick="lessonMemosManager.deleteRemark(${remark.id})" title="Supprimer">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -211,7 +232,7 @@ class LessonMemosManager {
             `;
         });
 
-        this.memosListContainer.innerHTML = html;
+        return html;
     }
 
     async submitMemo() {
