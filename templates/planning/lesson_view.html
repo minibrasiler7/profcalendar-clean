@@ -1620,6 +1620,9 @@ function togglePlanningEdit() {
         planningEdit.style.display = 'block';
         editBtnText.textContent = 'Fermer';
 
+        // Attacher la conversion des tirets en checkboxes
+        attachDashConversion();
+
         // Focus sur le titre
         document.getElementById('planningTitle').focus();
     } else {
@@ -1649,34 +1652,48 @@ function togglePlanningEdit() {
     }
 }
 
-// Fonction pour gérer l'auto-conversion des tirets en checkboxes
-document.getElementById('planningDescription').addEventListener('input', function(e) {
-    const textarea = e.target;
-    const cursorPos = textarea.selectionStart;
-    const value = textarea.value;
+// Fonction pour attacher l'auto-conversion des tirets en checkboxes
+function attachDashConversion() {
+    const textarea = document.getElementById('planningDescription');
+    if (!textarea) return;
 
-    // Vérifier si on vient de taper un tiret en début de ligne
-    if (e.inputType === 'insertText' && e.data === '-') {
-        const lines = value.substring(0, cursorPos).split('\n');
-        const currentLine = lines[lines.length - 1];
+    // Supprimer les anciens listeners pour éviter les doublons
+    const newTextarea = textarea.cloneNode(true);
+    textarea.parentNode.replaceChild(newTextarea, textarea);
 
-        // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
-        if (currentLine.trim() === '-') {
-            e.preventDefault();
+    newTextarea.addEventListener('input', function(e) {
+        const cursorPos = this.selectionStart;
+        const value = this.value;
 
-            // Remplacer le tiret par [ ]
-            const beforeCursor = value.substring(0, cursorPos - 1);
-            const afterCursor = value.substring(cursorPos);
-            const spaces = currentLine.match(/^\s*/)[0]; // Préserver l'indentation
+        // Vérifier si on vient de taper un tiret en début de ligne
+        if (e.inputType === 'insertText' && e.data === '-') {
+            const lines = value.substring(0, cursorPos).split('\n');
+            const currentLine = lines[lines.length - 1];
 
-            textarea.value = beforeCursor + spaces + '[ ] ' + afterCursor;
+            // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
+            if (currentLine.trim() === '-') {
+                // Sauvegarder la position de scroll avant modification
+                const scrollTop = this.scrollTop;
+                const scrollLeft = this.scrollLeft;
 
-            // Placer le curseur après [ ]
-            const newCursorPos = cursorPos - 1 + spaces.length + 4;
-            textarea.setSelectionRange(newCursorPos, newCursorPos);
+                // Remplacer le tiret par [ ]
+                const beforeCursor = value.substring(0, cursorPos - 1);
+                const afterCursor = value.substring(cursorPos);
+                const spaces = currentLine.match(/^\s*/)[0]; // Préserver l'indentation
+
+                this.value = beforeCursor + spaces + '[ ] ' + afterCursor;
+
+                // Placer le curseur après [ ]
+                const newCursorPos = cursorPos - 1 + spaces.length + 4;
+                this.setSelectionRange(newCursorPos, newCursorPos);
+
+                // Restaurer la position de scroll
+                this.scrollTop = scrollTop;
+                this.scrollLeft = scrollLeft;
+            }
         }
-    }
-});
+    });
+}
 
 // Fonction pour échapper le HTML
 function escapeHtml(text) {
