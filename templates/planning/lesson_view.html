@@ -1679,15 +1679,14 @@ function attachDashConversion() {
         const value = this.value;
 
         // Vérifier si on vient de taper un tiret en début de ligne
-        // Support à la fois '-' et '/' (certains claviers suisses/français produisent '/')
-        if (e.inputType === 'insertText' && (e.data === '-' || e.data === '/')) {
-            console.log('➖ Dash/Slash detected!');
+        if (e.inputType === 'insertText' && e.data === '-') {
+            console.log('➖ Dash detected!');
             const lines = value.substring(0, cursorPos).split('\n');
             const currentLine = lines[lines.length - 1];
             console.log('📝 Current line:', currentLine, 'trimmed:', currentLine.trim());
 
-            // Si le tiret/slash est au début de la ligne (avec éventuellement des espaces avant)
-            if (currentLine.trim() === '-' || currentLine.trim() === '/') {
+            // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
+            if (currentLine.trim() === '-') {
                 console.log('✨ Converting dash to checkbox');
                 // Sauvegarder la position de scroll avant modification
                 const scrollTop = this.scrollTop;
