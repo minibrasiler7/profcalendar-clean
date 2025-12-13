@@ -7132,12 +7132,14 @@ def create_student_remark():
         source_date_str = data.get('source_date')
         source_period = data.get('source_period')
         content = data.get('content')
+        send_to_parent_and_student = data.get('send_to_parent_and_student', False)
 
         print(f"DEBUG - Parsed values:")
         print(f"  student_id: {student_id}")
         print(f"  source_date_str: {source_date_str}")
         print(f"  source_period: {source_period}")
         print(f"  content: {content}")
+        print(f"  send_to_parent_and_student: {send_to_parent_and_student}")
 
         if not student_id or not content:
             print("DEBUG - ERROR: student_id or content is missing!")
@@ -7145,14 +7147,15 @@ def create_student_remark():
 
         source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
         print(f"DEBUG - source_date parsed: {source_date}")
-        
+
         # Créer la remarque
         remark = StudentRemark(
             user_id=current_user.id,
             student_id=student_id,
             source_date=source_date,
             source_period=source_period,
-            content=content
+            content=content,
+            send_to_parent_and_student=send_to_parent_and_student
         )
         
         db.session.add(remark)

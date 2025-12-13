@@ -58,6 +58,11 @@ class StudentRemark(db.Model):
     # Contenu de la remarque
     content = db.Column(db.Text, nullable=False)
 
+    # Envoi aux parents et élèves
+    send_to_parent_and_student = db.Column(db.Boolean, default=False)
+    is_viewed_by_parent = db.Column(db.Boolean, default=False)
+    is_viewed_by_student = db.Column(db.Boolean, default=False)
+
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -294,6 +294,7 @@ class LessonMemosManager {
 
     async submitRemark() {
         const content = document.getElementById('remarkContent').value.trim();
+        const sendToParentAndStudent = document.getElementById('sendToParentAndStudent').checked;
 
         if (this.selectedStudents.length === 0) {
             alert('Veuillez sélectionner au moins un élève');
@@ -317,7 +318,8 @@ class LessonMemosManager {
                         student_id: student.id,
                         source_date: lessonDate,
                         source_period: periodNumber,
-                        content: content
+                        content: content,
+                        send_to_parent_and_student: sendToParentAndStudent
                     })
                 });
 
@@ -505,6 +507,7 @@ function cancelRemarkCreation() {
     lessonMemosManager.updateSelectedStudentsList();
     document.getElementById('remarkContentDiv').style.display = 'none';
     document.getElementById('remarkContent').value = '';
+    document.getElementById('sendToParentAndStudent').checked = false;
 }
 
 function confirmStudentSelection() {

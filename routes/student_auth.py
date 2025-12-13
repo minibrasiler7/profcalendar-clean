@@ -223,11 +223,19 @@ def dashboard():
     
     # Convertir en format compatible avec le template existant
     class_files = [file for share, file in recent_shared_files]
-    
-    return render_template('student/dashboard.html', 
-                         student=student, 
+
+    # Récupérer les remarques envoyées à l'élève
+    from models.lesson_memo import StudentRemark
+    remarks = StudentRemark.query.filter(
+        StudentRemark.student_id.in_(all_student_ids),
+        StudentRemark.send_to_parent_and_student == True
+    ).order_by(StudentRemark.created_at.desc()).limit(20).all()
+
+    return render_template('student/dashboard.html',
+                         student=student,
                          grades_by_subject=grades_by_subject,
-                         class_files=class_files)
+                         class_files=class_files,
+                         remarks=remarks)
 
 @student_auth_bp.route('/logout')
 def logout():

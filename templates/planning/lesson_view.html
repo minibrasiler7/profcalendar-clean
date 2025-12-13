@@ -1158,6 +1158,14 @@ input, textarea, select {
                                 <div id="remarkContentDiv" class="form-group" style="display: none;">
                                     <label class="form-label">Contenu de la remarque</label>
                                     <textarea id="remarkContent" class="form-control" rows="3" placeholder="Entrez la remarque..."></textarea>
+
+                                    <div class="form-check" style="margin-top: 1rem; margin-bottom: 1rem;">
+                                        <input type="checkbox" class="form-check-input" id="sendToParentAndStudent">
+                                        <label class="form-check-label" for="sendToParentAndStudent">
+                                            <i class="fas fa-paper-plane"></i> Envoyer aux parents et à l'élève
+                                        </label>
+                                    </div>
+
                                     <div class="memo-form-actions">
                                         <button type="button" class="btn btn-primary" onclick="submitRemark()">
                                             <i class="fas fa-plus"></i> Ajouter

@@ -310,21 +310,29 @@ def dashboard():
     """Tableau de bord des parents"""
     if not current_user.teacher_id:
         return redirect(url_for('parent_auth.link_teacher'))
-    
+
     # Récupérer les enfants du parent
     children = db.session.query(Student, ParentChild).join(
         ParentChild, Student.id == ParentChild.student_id
     ).filter(
         ParentChild.parent_id == current_user.id
     ).all()
-    
+
     # Récupérer les justifications d'absence soumises par ce parent
     from models.absence_justification import AbsenceJustification
     justifications = AbsenceJustification.query.filter_by(
         parent_id=current_user.id
     ).order_by(AbsenceJustification.created_at.desc()).limit(10).all()
-    
-    return render_template('parent/dashboard.html', children=children, justifications=justifications)
+
+    # Récupérer les remarques envoyées aux parents
+    from models.lesson_memo import StudentRemark
+    student_ids = [child.id for child, _ in children]
+    remarks = StudentRemark.query.filter(
+        StudentRemark.student_id.in_(student_ids),
+        StudentRemark.send_to_parent_and_student == True
+    ).order_by(StudentRemark.created_at.desc()).limit(20).all()
+
+    return render_template('parent/dashboard.html', children=children, justifications=justifications, remarks=remarks)
 
 @parent_auth_bp.route('/logout')
 @parent_required
