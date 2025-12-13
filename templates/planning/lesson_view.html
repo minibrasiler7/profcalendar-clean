@@ -6382,8 +6382,9 @@ function loadSeatingPlan() {
                 if (student) {
                     // Utiliser le format abrégé pour l'affichage
                     const displayName = formatStudentName(student.full_name);
-                    slot.innerHTML = `<div class="student-placed">${displayName}</div>`;
+                    slot.innerHTML = `<div class="student-placed" draggable="true" data-student-id="${student.id}">${displayName}</div>`;
                     slot.classList.add('occupied');
+                    slot.dataset.studentId = student.id;
                     console.log(`DEBUG lesson_view: Placed student ${displayName} (${student.full_name}) in slot`);
                 } else {
                     // Si l'étudiant n'est pas trouvé, laisser le slot vide
@@ -6398,11 +6399,14 @@ function loadSeatingPlan() {
     setTimeout(() => {
         adjustSeatingScale();
     }, 200);
-    
+
     // Initialiser l'état du système d'avertissements
     currentWarnings = {};
     warningHistory = [];
     updateUndoButton();
+
+    // Initialiser le drag-and-drop pour échanger les places
+    initializeDragAndDrop();
     
     // Observer les changements de taille du conteneur
     if (window.ResizeObserver) {
@@ -6497,6 +6501,247 @@ function handleSlotClick(elementId, slotIndex) {
     applyWarningStates();
     
     console.log(`Slot cliqué: ${elementId}, index: ${slotIndex}, niveau: ${nextLevel}`);
+}
+
+// Variables pour le drag-and-drop
+let draggedStudent = null;
+let sourceSlot = null;
+
+// Fonction pour initialiser le drag-and-drop
+function initializeDragAndDrop() {
+    const workspace = document.getElementById('seating-workspace');
+    if (!workspace) return;
+
+    // Ajouter les événements à tous les slots (occupés et vides)
+    const allSlots = workspace.querySelectorAll('.student-slot');
+    allSlots.forEach(slot => {
+        // Activer drag si le slot est occupé
+        if (slot.classList.contains('occupied')) {
+            enableDragOnSlot(slot);
+        }
+        // Activer drop sur tous les slots
+        enableDropOnSlot(slot);
+    });
+}
+
+// Activer le drag sur un slot occupé
+function enableDragOnSlot(slot) {
+    const studentElement = slot.querySelector('.student-placed');
+    if (!studentElement) return;
+
+    studentElement.addEventListener('dragstart', function(e) {
+        draggedStudent = {
+            id: this.dataset.studentId,
+            name: this.textContent
+        };
+        sourceSlot = slot;
+        this.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+        console.log('Drag started:', draggedStudent);
+    });
+
+    studentElement.addEventListener('dragend', function(e) {
+        this.style.opacity = '1';
+        // Retirer les classes de survol
+        document.querySelectorAll('.student-slot').forEach(s => {
+            s.classList.remove('drag-over');
+        });
+    });
+}
+
+// Activer le drop sur un slot (occupé ou vide)
+function enableDropOnSlot(slot) {
+    slot.addEventListener('dragover', function(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+        return false;
+    });
+
+    slot.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+
+    slot.addEventListener('drop', function(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        this.classList.remove('drag-over');
+
+        if (!draggedStudent || !sourceSlot) return false;
+
+        const targetSlot = this;
+
+        // Si on drop sur le slot source, ne rien faire
+        if (targetSlot === sourceSlot) {
+            return false;
+        }
+
+        // Cas 1: Drop sur un slot vide - déplacer l'étudiant
+        if (!targetSlot.classList.contains('occupied')) {
+            moveStudent(sourceSlot, targetSlot);
+        }
+        // Cas 2: Drop sur un slot occupé - échanger les étudiants
+        else {
+            swapStudents(sourceSlot, targetSlot);
+        }
+
+        // Réinitialiser
+        draggedStudent = null;
+        sourceSlot = null;
+
+        return false;
+    });
+}
+
+// Déplacer un étudiant vers un slot vide
+function moveStudent(fromSlot, toSlot) {
+    const studentElement = fromSlot.querySelector('.student-placed');
+    if (!studentElement) return;
+
+    const studentId = fromSlot.dataset.studentId;
+    const studentName = studentElement.textContent;
+
+    // Déplacer l'élément
+    toSlot.innerHTML = fromSlot.innerHTML;
+    toSlot.classList.add('occupied');
+    toSlot.dataset.studentId = studentId;
+
+    // Vider le slot source
+    fromSlot.innerHTML = '';
+    fromSlot.classList.remove('occupied');
+    delete fromSlot.dataset.studentId;
+
+    // Réactiver les événements
+    enableDragOnSlot(toSlot);
+    enableDropOnSlot(fromSlot);
+
+    console.log(`Déplacé ${studentName} vers un slot vide`);
+
+    // Sauvegarder les changements
+    saveSeatingChanges();
+}
+
+// Échanger deux étudiants
+function swapStudents(slot1, slot2) {
+    const student1Element = slot1.querySelector('.student-placed');
+    const student2Element = slot2.querySelector('.student-placed');
+
+    if (!student1Element || !student2Element) return;
+
+    const student1Id = slot1.dataset.studentId;
+    const student2Id = slot2.dataset.studentId;
+    const student1HTML = slot1.innerHTML;
+    const student2HTML = slot2.innerHTML;
+
+    // Échanger les contenus
+    slot1.innerHTML = student2HTML;
+    slot1.dataset.studentId = student2Id;
+
+    slot2.innerHTML = student1HTML;
+    slot2.dataset.studentId = student1Id;
+
+    // Réactiver les événements sur les deux slots
+    enableDragOnSlot(slot1);
+    enableDragOnSlot(slot2);
+    enableDropOnSlot(slot1);
+    enableDropOnSlot(slot2);
+
+    console.log(`Échangé ${student1Element.textContent} avec ${student2Element.textContent}`);
+
+    // Sauvegarder les changements
+    saveSeatingChanges();
+}
+
+// Sauvegarder les changements du plan de classe
+function saveSeatingChanges() {
+    const workspace = document.getElementById('seating-workspace');
+    if (!workspace) return;
+
+    // Construire les données du plan
+    const elements = [];
+    const studentsPlacement = [];
+
+    // Récupérer tous les éléments (tables, bureau prof, etc.)
+    workspace.querySelectorAll('.seating-element').forEach(element => {
+        const elementId = element.dataset.elementId;
+        const x = parseFloat(element.style.left) || 0;
+        const y = parseFloat(element.style.top) || 0;
+
+        let type = 'desk-single';
+        if (element.classList.contains('desk-double')) type = 'desk-double';
+        if (element.classList.contains('teacher-desk')) type = 'teacher-desk';
+
+        elements.push({
+            id: elementId,
+            type: type,
+            x: x,
+            y: y
+        });
+
+        // Récupérer les placements d'étudiants
+        const slots = element.querySelectorAll('.student-slot');
+        slots.forEach((slot, index) => {
+            if (slot.classList.contains('occupied') && slot.dataset.studentId) {
+                const studentId = parseInt(slot.dataset.studentId);
+                const student = studentsData.find(s => s.id === studentId);
+
+                if (student) {
+                    studentsPlacement.push({
+                        element_id: elementId,
+                        slot_index: index,
+                        student_id: studentId,
+                        student_name: student.full_name
+                    });
+                }
+            }
+        });
+    });
+
+    const planData = {
+        elements: elements,
+        students_placement: studentsPlacement
+    };
+
+    // Récupérer l'ID de la classe depuis les variables globales
+    {% if lesson_classroom %}
+    const classroomId = {{ lesson_classroom.id }};
+    {% else %}
+    const classroomId = null;
+    {% endif %}
+
+    if (!classroomId) {
+        console.error('Impossible de sauvegarder: ID de classe non disponible');
+        return;
+    }
+
+    // Envoyer au serveur
+    fetch('/planning/save-seating-plan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            classroom_id: classroomId,
+            plan_data: planData,
+            name: 'Plan par défaut'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Plan de classe sauvegardé avec succès');
+            // Notification visuelle discrète (optionnelle)
+        } else {
+            console.error('Erreur lors de la sauvegarde:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur réseau:', error);
+    });
 }
 
 // Fonction pour ajuster l'échelle du plan pour qu'il s'adapte au conteneur
@@ -7405,12 +7650,26 @@ function adjustSeatingScale() {
     overflow: visible;
     text-overflow: unset;
     padding: 0 2px;
+    cursor: move;
+    cursor: grab;
+}
+
+.student-placed:active {
+    cursor: grabbing;
 }
 
 .student-not-found {
     color: #dc3545 !important;
     font-style: italic;
     opacity: 0.7;
+}
+
+/* Effet de drag-and-drop */
+.student-slot.drag-over {
+    background-color: #e3f2fd !important;
+    border: 2px dashed #2196F3 !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
 }
 
 /* Vue côte-à-côte pour édition de planification avec visualisation PDF */

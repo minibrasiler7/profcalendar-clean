@@ -1485,17 +1485,25 @@ def lesson_view():
         db.session.add(planning)
         db.session.commit()
         current_app.logger.error(f"=== MEMO AUTO-ADD === Created planning with {len(lesson_memos)} memo(s)")
-    elif lesson_memos and planning and planning.description:
+    elif lesson_memos and planning:
         # Si une planification existe déjà, vérifier si les mémos y sont déjà
+        # Initialiser description si elle n'existe pas
+        if not planning.description:
+            planning.description = ""
+
+        current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning.description exists: {bool(planning.description)}, value: '{planning.description}'")
+
         for memo in lesson_memos:
+            memo_task = f"[ ] {memo.content}"
             if memo.content not in planning.description:
                 # Ajouter le mémo à la fin de la planification existante
                 if planning.description.strip():
-                    planning.description += f"\n[ ] {memo.content}"
+                    planning.description += f"\n{memo_task}"
                 else:
-                    planning.description = f"[ ] {memo.content}"
+                    planning.description = memo_task
+                current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Added memo: {memo.content}")
         db.session.commit()
-        current_app.logger.error(f"=== MEMO AUTO-ADD === Updated planning with new memo(s)")
+        current_app.logger.error(f"=== MEMO AUTO-ADD === Updated planning with memo(s)")
 
     # Déterminer la classroom à utiliser
     lesson_classroom = None
