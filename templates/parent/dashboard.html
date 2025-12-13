@@ -122,12 +122,17 @@
             <h2>
                 <i class="fas fa-comment-dots"></i>
                 Remarques des enseignants
+                {% if unread_remarks_count > 0 %}
+                <span class="unread-badge">{{ unread_remarks_count }}</span>
+                {% endif %}
             </h2>
         </div>
 
         <div class="remarks-list">
             {% for remark in remarks %}
-                <div class="remark-card {% if not remark.is_viewed_by_parent %}unread{% endif %}">
+                <div class="remark-card {% if not remark.is_viewed_by_parent %}unread{% endif %}"
+                     data-remark-id="{{ remark.id }}"
+                     onclick="markRemarkAsRead({{ remark.id }}, this)">
                     <div class="remark-header">
                         <div class="remark-info">
                             <h4>{{ remark.student.first_name }} {{ remark.student.last_name }}</h4>
@@ -999,7 +1004,8 @@
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--primary-color);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.3s, border-left-color 0.3s;
+    cursor: pointer;
 }
 
 .remark-card.unread {
@@ -1057,6 +1063,20 @@
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+}
+
+.unread-badge {
+    background: #e74c3c;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
 }
 
 .remark-content {
@@ -2694,6 +2714,48 @@ function renderTeachersInfo(data, studentName) {
     `;
     
     return html;
+}
+
+function markRemarkAsRead(remarkId, element) {
+    // Ne rien faire si déjà lue
+    if (!element.classList.contains('unread')) {
+        return;
+    }
+
+    // Marquer comme lue immédiatement (optimistic update)
+    element.classList.remove('unread');
+    const badge = element.querySelector('.new-badge');
+    if (badge) {
+        badge.remove();
+    }
+
+    // Envoyer la requête au serveur
+    fetch(`/planning/mark_remark_read/${remarkId}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors du marquage');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            console.error('Erreur:', data.error);
+            // Restaurer l'état en cas d'erreur
+            element.classList.add('unread');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        // Restaurer l'état en cas d'erreur
+        element.classList.add('unread');
+    });
 }
 </script>
 {% endblock %}

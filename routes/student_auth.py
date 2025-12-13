@@ -235,11 +235,19 @@ def dashboard():
         StudentRemark.send_to_parent_and_student == True
     ).order_by(StudentRemark.created_at.desc()).limit(20).all()
 
+    # Compter les remarques non lues
+    unread_remarks_count = StudentRemark.query.filter(
+        StudentRemark.student_id.in_(all_student_ids),
+        StudentRemark.send_to_parent_and_student == True,
+        StudentRemark.is_viewed_by_student == False
+    ).count()
+
     return render_template('student/dashboard.html',
                          student=student,
                          grades_by_subject=grades_by_subject,
                          class_files=class_files,
-                         remarks=remarks)
+                         remarks=remarks,
+                         unread_remarks_count=unread_remarks_count)
 
 @student_auth_bp.route('/logout')
 @login_required

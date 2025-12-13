@@ -7413,14 +7413,54 @@ def delete_student_remark(remark_id):
     """Supprimer une remarque"""
     try:
         remark = StudentRemark.query.get_or_404(remark_id)
-        
+
         if remark.user_id != current_user.id:
             return jsonify({'success': False, 'error': 'Non autorisé'}), 403
-        
+
         db.session.delete(remark)
         db.session.commit()
         return jsonify({'success': True})
-        
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/mark_remark_read/<int:remark_id>', methods=['POST'])
+@login_required
+def mark_remark_read(remark_id):
+    """Marquer une remarque comme lue (parents ou élèves)"""
+    try:
+        from models.parent import Parent
+
+        remark = StudentRemark.query.get_or_404(remark_id)
+
+        # Vérifier que l'utilisateur a le droit de marquer cette remarque
+        if isinstance(current_user, Parent):
+            # Vérifier que le parent a accès à cet élève
+            from models.parent import ParentChild
+            has_access = ParentChild.query.filter_by(
+                parent_id=current_user.id,
+                student_id=remark.student_id
+            ).first()
+
+            if not has_access:
+                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+            remark.is_viewed_by_parent = True
+
+        elif isinstance(current_user, Student):
+            # Vérifier que c'est bien l'élève concerné
+            if current_user.id != remark.student_id:
+                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+            remark.is_viewed_by_student = True
+        else:
+            return jsonify({'success': False, 'error': 'Type d\'utilisateur non autorisé'}), 403
+
+        db.session.commit()
+        return jsonify({'success': True})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

@@ -292,11 +292,17 @@
         border-radius: 10px;
         border-left: 4px solid #667eea;
         position: relative;
+        transition: background-color 0.3s, border-left-color 0.3s;
+        cursor: pointer;
     }
 
     .remark-item.unread {
         background-color: #fff5f5;
         border-left-color: #e74c3c;
+    }
+
+    .remark-item:hover {
+        background-color: #edf2f7;
     }
 
     .remark-teacher {
@@ -327,6 +333,20 @@
         border-radius: 0.25rem;
         font-size: 0.7rem;
         font-weight: 600;
+    }
+
+    .unread-badge {
+        background: #e74c3c;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
     }
 </style>
 {% endblock %}
@@ -444,12 +464,19 @@
                 <div class="card-icon">
                     <i class="fas fa-comment-dots"></i>
                 </div>
-                <h2 class="card-title">Remarques</h2>
+                <h2 class="card-title">
+                    Remarques
+                    {% if unread_remarks_count > 0 %}
+                    <span class="unread-badge">{{ unread_remarks_count }}</span>
+                    {% endif %}
+                </h2>
             </div>
             <div class="remarks-container">
                 {% if remarks %}
                     {% for remark in remarks[:5] %}
-                        <div class="remark-item {% if not remark.is_viewed_by_student %}unread{% endif %}">
+                        <div class="remark-item {% if not remark.is_viewed_by_student %}unread{% endif %}"
+                             data-remark-id="{{ remark.id }}"
+                             onclick="markRemarkAsRead({{ remark.id }}, this)">
                             <div class="remark-teacher">
                                 <i class="fas fa-user"></i> {{ remark.user.username }}
                             </div>
@@ -486,4 +513,48 @@
         </a>
     </div>
 </div>
+
+<script>
+function markRemarkAsRead(remarkId, element) {
+    // Ne rien faire si déjà lue
+    if (!element.classList.contains('unread')) {
+        return;
+    }
+
+    // Marquer comme lue immédiatement (optimistic update)
+    element.classList.remove('unread');
+    const badge = element.querySelector('.new-indicator');
+    if (badge) {
+        badge.remove();
+    }
+
+    // Envoyer la requête au serveur
+    fetch(`/planning/mark_remark_read/${remarkId}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors du marquage');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            console.error('Erreur:', data.error);
+            // Restaurer l'état en cas d'erreur
+            element.classList.add('unread');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        // Restaurer l'état en cas d'erreur
+        element.classList.add('unread');
+    });
+}
+</script>
 {% endblock %}
