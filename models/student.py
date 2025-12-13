@@ -1,7 +1,8 @@
 from extensions import db
 from datetime import datetime
+from flask_login import UserMixin
 
-class Student(db.Model):
+class Student(UserMixin, db.Model):
     """Modèle pour les élèves"""
     __tablename__ = 'students'
 
@@ -37,6 +38,10 @@ class Student(db.Model):
         if self.last_name:
             initials += self.last_name[0].upper()
         return initials
+
+    def get_id(self):
+        """Retourne l'ID composite pour flask-login"""
+        return f"student:{self.id}"
 
     def __repr__(self):
         return f'<Student {self.full_name}>'

@@ -59,10 +59,10 @@ def login():
             # Mettre à jour la dernière connexion
             student.last_login = datetime.utcnow()
             db.session.commit()
-            
-            # Connexion de l'élève
-            session['student_id'] = student.id
+
+            # Connexion de l'élève via Flask-Login
             session['user_type'] = 'student'
+            login_user(student, remember=True)
             flash('Connexion réussie !', 'success')
             return redirect(url_for('student_auth.dashboard'))
         else:
@@ -138,10 +138,12 @@ def verify_code():
         if code and code.is_valid():
             student.is_authenticated = True
             student.last_login = datetime.utcnow()
-            
+
             try:
                 db.session.commit()
+                # Connexion via Flask-Login
                 session['user_type'] = 'student'
+                login_user(student, remember=True)
                 flash('Code validé avec succès !', 'success')
                 return redirect(url_for('student_auth.dashboard'))
             except Exception as e:
@@ -153,13 +155,15 @@ def verify_code():
     return render_template('student/verify_code.html', form=form, student=student)
 
 @student_auth_bp.route('/dashboard')
+@login_required
 def dashboard():
     """Tableau de bord de l'élève"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    # Vérifier que c'est bien un élève qui est connecté
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
-    
-    student = Student.query.get(session['student_id'])
-    if not student or not student.is_authenticated:
+
+    student = current_user
+    if not student.is_authenticated:
         return redirect(url_for('student_auth.login'))
     
     # Récupérer toutes les copies de l'élève dans les classes dérivées
@@ -238,21 +242,23 @@ def dashboard():
                          remarks=remarks)
 
 @student_auth_bp.route('/logout')
+@login_required
 def logout():
     """Déconnexion de l'élève"""
-    session.pop('student_id', None)
+    logout_user()
     session.pop('user_type', None)
     flash('Vous avez été déconnecté.', 'info')
     return redirect(url_for('student_auth.login'))
 
 @student_auth_bp.route('/grades')
+@login_required
 def grades():
     """Affichage détaillé des notes"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
-    
-    student = Student.query.get(session['student_id'])
-    if not student or not student.is_authenticated:
+
+    student = current_user
+    if not student.is_authenticated:
         return redirect(url_for('student_auth.login'))
     
     # Récupérer toutes les copies de l'élève dans les classes dérivées
