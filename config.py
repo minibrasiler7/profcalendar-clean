@@ -9,7 +9,14 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     # Configuration générale
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    # En production, SECRET_KEY DOIT être définie via variable d'environnement
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        # Avertissement si pas de SECRET_KEY
+        if os.environ.get('FLASK_ENV') == 'production':
+            raise ValueError("❌ SECRET_KEY doit être définie en production via variable d'environnement!")
+        # Clé par défaut uniquement pour développement
+        SECRET_KEY = 'dev-secret-key-change-in-production'
 
     # Configuration base de données (identique à la production)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
@@ -18,7 +25,8 @@ class Config:
 
     # Configuration session
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-    SESSION_COOKIE_SECURE = False  # Mettre True en production avec HTTPS
+    # Cookies sécurisés uniquement en production (HTTPS)
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
 

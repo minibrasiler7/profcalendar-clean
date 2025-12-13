@@ -35,8 +35,8 @@ class ProductionConfig:
     SESSION_PERMANENT = os.environ.get('SESSION_PERMANENT', 'False').lower() == 'true'
     PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_TIMEOUT)
     
-    # Cookies sécurisés
-    SESSION_COOKIE_SECURE = os.environ.get('SECURE_COOKIES', 'False').lower() == 'true'
+    # Cookies sécurisés - HTTPS obligatoire en production
+    SESSION_COOKIE_SECURE = True  # Toujours True en production
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
