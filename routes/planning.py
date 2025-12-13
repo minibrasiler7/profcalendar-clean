@@ -1450,6 +1450,49 @@ def lesson_view():
                     # Cette période n'est pas fusionnée, arrêter la recherche
                     break
 
+    # Vérifier s'il y a des mémos pour cette leçon et les ajouter à la planification si elle n'existe pas
+    from models.lesson_memo import LessonMemo
+    lesson_memos = LessonMemo.query.filter_by(
+        user_id=current_user.id,
+        target_date=lesson_date,
+        target_period=lesson.period_number,
+        is_completed=False
+    ).all()
+
+    # Si on a des mémos et pas de planification, en créer une avec les mémos comme tâches
+    if lesson_memos and not planning and hasattr(lesson, 'classroom_id') and lesson.classroom_id:
+        # Créer le contenu avec les mémos
+        memo_tasks = []
+        for memo in lesson_memos:
+            # Ajouter chaque mémo comme une tâche non cochée
+            memo_tasks.append(f"[ ] {memo.content}")
+
+        memo_content = "\n".join(memo_tasks)
+
+        # Créer une nouvelle planification avec les mémos
+        planning = Planning(
+            user_id=current_user.id,
+            classroom_id=lesson.classroom_id,
+            date=lesson_date,
+            period_number=lesson.period_number,
+            title="Mémos du jour",
+            description=memo_content
+        )
+        db.session.add(planning)
+        db.session.commit()
+        current_app.logger.error(f"=== MEMO AUTO-ADD === Created planning with {len(lesson_memos)} memo(s)")
+    elif lesson_memos and planning and planning.description:
+        # Si une planification existe déjà, vérifier si les mémos y sont déjà
+        for memo in lesson_memos:
+            if memo.content not in planning.description:
+                # Ajouter le mémo à la fin de la planification existante
+                if planning.description.strip():
+                    planning.description += f"\n[ ] {memo.content}"
+                else:
+                    planning.description = f"[ ] {memo.content}"
+        db.session.commit()
+        current_app.logger.error(f"=== MEMO AUTO-ADD === Updated planning with new memo(s)")
+
     # Déterminer la classroom à utiliser
     lesson_classroom = None
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has classroom_id: {hasattr(lesson, 'classroom_id')}, value: {getattr(lesson, 'classroom_id', None)}")
