@@ -734,6 +734,7 @@ def dashboard():
 
 @planning_bp.route('/calendar')
 @login_required
+@teacher_required
 def calendar_view():
     # Vérifier la configuration
     if not current_user.setup_completed:
