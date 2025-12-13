@@ -15,6 +15,8 @@
 <!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
 <!-- Lecteur PDF unifié -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
+<!-- Nouveau lecteur PDF Clean -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-pdf-viewer.css') }}">
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
@@ -1213,6 +1215,41 @@ if (typeof pdfjsLib !== 'undefined') {
     border-left: 3px solid rgba(59, 130, 246, 0.4);
     pointer-events: none;
 }
+
+/* Ajustements pour le CleanPDFViewer dans le conteneur calendar à 50% */
+#pdf-viewer-container-calendar .clean-pdf-viewer,
+#pdf-viewer-container-day .clean-pdf-viewer {
+    width: 100%;
+    height: 100%;
+}
+
+/* Réduire les tailles pour s'adapter à 50% d'écran */
+#pdf-viewer-container-calendar .pdf-toolbar,
+#pdf-viewer-container-day .pdf-toolbar {
+    height: 45px;
+    font-size: 13px;
+}
+
+#pdf-viewer-container-calendar .toolbar-btn,
+#pdf-viewer-container-day .toolbar-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+#pdf-viewer-container-calendar .pdf-sidebar,
+#pdf-viewer-container-day .pdf-sidebar {
+    width: 180px;
+}
+
+#pdf-viewer-container-calendar .thumbnail-item,
+#pdf-viewer-container-day .thumbnail-item {
+    min-height: 100px;
+}
+
+#pdf-viewer-container-calendar .thumbnail-canvas,
+#pdf-viewer-container-day .thumbnail-canvas {
+    height: 90px;
+}
 </style>
 {% endblock %}
 
@@ -1696,8 +1733,8 @@ if (typeof pdfjsLib !== 'undefined') {
         </div>
     </div>
 
-    <!-- Conteneur pour le lecteur PDF unifié en mode split -->
-    <div id="pdf-viewer-container" style="display: none; z-index: 11000; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #F8FAFC;"></div>
+    <!-- Conteneur pour le lecteur PDF Clean en mode split 50% -->
+    <div id="pdf-viewer-container-calendar" style="display: none; position: fixed; top: 0; right: 0; width: 50%; height: 100vh; z-index: 11000; background: #F8FAFC; box-shadow: -4px 0 12px rgba(0,0,0,0.1);"></div>
 
 </div>
 
@@ -2439,116 +2476,61 @@ let annotationCtx = null;
 let pdfCanvas = null;
 let pdfCtx = null;
 
-// Ouvrir un PDF avec le lecteur unifié en mode split
+// Ouvrir un PDF avec le nouveau lecteur CleanPDFViewer en mode split 50%
 async function openPdfInViewer(fileId, fileName) {
-    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split:', fileName);
-    console.log('📍 FileId:', fileId, 'FileName:', fileName);
-    
+    console.log('📄 Ouverture du PDF avec CleanPDFViewer:', fileName);
+
     try {
-        // Utiliser la même approche que openDayPdfInViewer
-        let container = document.getElementById('pdf-viewer-container-main');
-        if (container) {
-            document.body.removeChild(container);
+        const container = document.getElementById('pdf-viewer-container-calendar');
+        if (!container) {
+            console.error('❌ Conteneur PDF non trouvé');
+            return;
         }
-        
-        container = document.createElement('div');
-        container.id = 'pdf-viewer-container-main';
-        container.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            width: 50vw !important;
-            height: 100vh !important;
-            z-index: 15000 !important;
-            background: #F8FAFC !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
-        `;
-        
-        document.body.appendChild(container);
-        console.log('✅ Nouveau conteneur principal créé dans le body');
-        
-        // Vérifier les dimensions après ajout au body
-        console.log('🔍 Debug nouveau conteneur principal:', {
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-            visible: container.offsetParent !== null
-        });
-        
-        // Déterminer quelle classe utiliser pour l'envoi de fichiers
-        let currentClassId = selectedClassroomId;
-        
-        // Récupérer les étudiants de la classe actuelle
-        const studentsData = await getStudentsForClass(currentClassId);
-        
-        // Configuration pour le mode split sans suivi d'élèves
-        const options = {
-            mode: 'split',
-            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
-            enableSendToStudents: true,   // Activer l'envoi aux élèves
-            currentClassId: currentClassId,
-            studentData: studentsData,
-            autoSave: true,
-            saveDelay: 3000,
-            apiEndpoints: {
-                saveAnnotations: '/file_manager/api/save-annotations',
-                loadAnnotations: '/file_manager/api/load-annotations',
-                search: '/api/search-pdf'
-            }
-        };
-        
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
         // Détruire l'instance précédente si elle existe
-        if (window.currentPdfViewer) {
-            window.currentPdfViewer.destroy();
+        if (window.cleanPDFViewerCalendar) {
+            window.cleanPDFViewerCalendar.destroy();
+            window.cleanPDFViewerCalendar = null;
         }
-        
-        // Créer la nouvelle instance avec le nouveau conteneur
-        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-main', options);
-        
-        // Attendre que le DOM se mette à jour
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Forcer les dimensions des conteneurs internes
-        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
-        const pdfMain = container.querySelector('.pdf-main');
-        
-        if (pdfViewerArea) {
-            pdfViewerArea.style.width = '100%';
-            pdfViewerArea.style.height = '100%';
-            pdfViewerArea.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-viewer-area principal:', {
-                width: pdfViewerArea.offsetWidth,
-                height: pdfViewerArea.offsetHeight
-            });
-        }
-        if (pdfMain) {
-            pdfMain.style.width = '100%';
-            pdfMain.style.height = '100%';
-            pdfMain.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-main principal:', {
-                width: pdfMain.offsetWidth,
-                height: pdfMain.offsetHeight
-            });
-        }
-        
-        // Charger le PDF avec fileId pour la sauvegarde
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Préparer l'URL du PDF
         const pdfUrl = `/file_manager/serve_file/${fileId}`;
-        console.log('📎 URL du PDF:', pdfUrl);
-        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
-        
-        // Forcer le recalcul des dimensions après le chargement
-        setTimeout(() => {
-            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
-                console.log('🔧 Recalcul forcé des dimensions de la toolbar principal');
-                window.currentPdfViewer.handleToolbarResize();
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            if (selectedClassroomId) {
+                studentsData = await getStudentsForClass(selectedClassroomId);
             }
-        }, 200);
-        
-        console.log('✅ PDF chargé avec succès en mode split unifié');
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean
+        window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+            fileId: fileId,
+            pdfUrl: pdfUrl,
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            studentData: studentsData,
+            scale: 0.5, // Réduire de 50% pour s'adapter à la moitié d'écran
+            onClose: () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerCalendar = null;
+            }
+        });
+
+        console.log('✅ CleanPDFViewer créé avec succès');
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
+        alert('Erreur lors du chargement du PDF: ' + error.message);
     }
 }
 
@@ -4186,152 +4168,75 @@ function updateDayBreadcrumb(path) {
     }
 }
 
-// Ouvrir un PDF dans le lecteur intégré en mode split pour la vue journalière
+// Ouvrir un PDF avec le nouveau lecteur CleanPDFViewer pour la vue journalière (modal)
 async function openDayPdfInViewer(fileId, fileName) {
-    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split journalier:', fileName);
-    console.log('📍 FileId:', fileId, 'FileName:', fileName);
-    
+    console.log('📄 Ouverture du PDF journalier avec CleanPDFViewer:', fileName);
+
     try {
-        // Approche alternative : créer un nouveau conteneur directement dans le body
+        // Créer un conteneur dédié pour la vue journalière si nécessaire
         let container = document.getElementById('pdf-viewer-container-day');
-        if (container) {
-            document.body.removeChild(container);
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'pdf-viewer-container-day';
+            container.style.cssText = `
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 50%;
+                height: 100vh;
+                z-index: 15000;
+                background: #F8FAFC;
+                box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+                display: none;
+            `;
+            document.body.appendChild(container);
         }
-        
-        container = document.createElement('div');
-        container.id = 'pdf-viewer-container-day';
-        container.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            width: 50vw !important;
-            height: 100vh !important;
-            z-index: 15000 !important;
-            background: #F8FAFC !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
-        `;
-        
-        document.body.appendChild(container);
-        console.log('✅ Nouveau conteneur créé dans le body');
-        
-        // Vérifier les dimensions après ajout au body
-        console.log('🔍 Debug nouveau conteneur:', {
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-            visible: container.offsetParent !== null
-        });
-        
-        // Déterminer quelle classe utiliser pour l'envoi de fichiers selon le contexte journalier
-        let currentClassId = getDayViewSelectedClassId();
-        
-        // Récupérer les étudiants de la classe actuelle
-        const studentsData = await getStudentsForClass(currentClassId);
-        
-        // Configuration pour le mode split sans suivi d'élèves
-        const options = {
-            mode: 'split',
-            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
-            enableSendToStudents: true,   // Activer l'envoi aux élèves
-            currentClassId: currentClassId,
-            studentData: studentsData,
-            autoSave: true,
-            saveDelay: 3000,
-            apiEndpoints: {
-                saveAnnotations: '/file_manager/api/save-annotations',
-                loadAnnotations: '/file_manager/api/load-annotations',
-                search: '/api/search-pdf'
-            }
-        };
-        
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
         // Détruire l'instance précédente si elle existe
-        if (window.currentPdfViewer) {
-            window.currentPdfViewer.destroy();
+        if (window.cleanPDFViewerDay) {
+            window.cleanPDFViewerDay.destroy();
+            window.cleanPDFViewerDay = null;
         }
-        
-        // Créer la nouvelle instance avec le nouveau conteneur
-        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-day', options);
-        
-        // Attendre que le DOM se mette à jour
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Vérifier et forcer tous les styles de visibilité
-        const computedStyle = window.getComputedStyle(container);
-        console.log('🔍 Debug conteneur principal avant correction:', {
-            containerDisplay: container.style.display,
-            containerWidth: container.offsetWidth,
-            containerHeight: container.offsetHeight,
-            containerVisible: container.offsetParent !== null,
-            computedDisplay: computedStyle.display,
-            computedVisibility: computedStyle.visibility,
-            computedOpacity: computedStyle.opacity
-        });
-        
-        // Forcer absolument la visibilité
-        container.style.display = 'block !important';
-        container.style.visibility = 'visible !important';
-        container.style.opacity = '1 !important';
-        container.style.zIndex = '11000';
-        
-        // Re-check après forçage
-        setTimeout(() => {
-            console.log('🔍 Debug conteneur après forçage:', {
-                containerWidth: container.offsetWidth,
-                containerHeight: container.offsetHeight,
-                containerVisible: container.offsetParent !== null
-            });
-        }, 50);
-        
-        // Forcer les dimensions des conteneurs internes
-        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
-        const pdfMain = container.querySelector('.pdf-main');
-        const unifiedViewer = container.querySelector('.unified-pdf-viewer');
-        
-        if (unifiedViewer) {
-            console.log('🔍 Debug unified-pdf-viewer:', {
-                width: unifiedViewer.offsetWidth,
-                height: unifiedViewer.offsetHeight,
-                computedStyle: window.getComputedStyle(unifiedViewer).display
-            });
-        }
-        
-        if (pdfViewerArea) {
-            pdfViewerArea.style.width = '100%';
-            pdfViewerArea.style.height = '100%';
-            pdfViewerArea.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-viewer-area:', {
-                width: pdfViewerArea.offsetWidth,
-                height: pdfViewerArea.offsetHeight
-            });
-        }
-        if (pdfMain) {
-            pdfMain.style.width = '100%';
-            pdfMain.style.height = '100%';
-            pdfMain.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-main:', {
-                width: pdfMain.offsetWidth,
-                height: pdfMain.offsetHeight
-            });
-        }
-        
-        // Charger le PDF avec fileId pour la sauvegarde  
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Préparer l'URL du PDF
         const pdfUrl = `/file_manager/serve_file/${fileId}`;
-        console.log('📎 URL du PDF:', pdfUrl);
-        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
-        
-        // Forcer le recalcul des dimensions après le chargement
-        setTimeout(() => {
-            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
-                console.log('🔧 Recalcul forcé des dimensions de la toolbar');
-                window.currentPdfViewer.handleToolbarResize();
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            const currentClassId = getDayViewSelectedClassId();
+            if (currentClassId) {
+                studentsData = await getStudentsForClass(currentClassId);
             }
-        }, 200);
-        
-        console.log('✅ PDF chargé avec succès');
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean pour la vue journalière
+        window.cleanPDFViewerDay = new CleanPDFViewer('pdf-viewer-container-day', {
+            fileId: fileId,
+            pdfUrl: pdfUrl,
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            studentData: studentsData,
+            scale: 0.5, // Réduire de 50% pour s'adapter à la moitié d'écran
+            onClose: () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerDay = null;
+            }
+        });
+
+        console.log('✅ CleanPDFViewer journalier créé avec succès');
     } catch (error) {
-        console.error('❌ Erreur lors du chargement du PDF:', error);
+        console.error('❌ Erreur lors du chargement du PDF journalier:', error);
+        alert('Erreur lors du chargement du PDF: ' + error.message);
     }
 }
 
@@ -5167,4 +5072,8 @@ function escapeHtml(text) {
 }
 
 </script>
+
+<!-- Nouveau lecteur PDF Clean -->
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.3&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+
 {% endblock %}

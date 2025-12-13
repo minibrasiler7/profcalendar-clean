@@ -10,8 +10,13 @@ def teacher_required(f):
     @login_required
     def decorated_function(*args, **kwargs):
         from models.parent import Parent
+        from models.student import Student
+
         if isinstance(current_user, Parent):
             flash('Accès réservé aux enseignants', 'error')
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('parent_auth.dashboard'))
+        elif isinstance(current_user, Student):
+            flash('Accès réservé aux enseignants', 'error')
+            return redirect(url_for('student_auth.dashboard'))
         return f(*args, **kwargs)
     return decorated_function
