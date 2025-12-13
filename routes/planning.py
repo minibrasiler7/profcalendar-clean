@@ -1459,6 +1459,10 @@ def lesson_view():
         is_completed=False
     ).all()
 
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Found {len(lesson_memos)} memos for date={lesson_date}, period={lesson.period_number}")
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning exists: {planning is not None}")
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === lesson.classroom_id: {getattr(lesson, 'classroom_id', None)}")
+
     # Si on a des mémos et pas de planification, en créer une avec les mémos comme tâches
     if lesson_memos and not planning and hasattr(lesson, 'classroom_id') and lesson.classroom_id:
         # Créer le contenu avec les mémos

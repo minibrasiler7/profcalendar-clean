@@ -1610,6 +1610,7 @@ function togglePlanningEdit() {
     const planningView = document.getElementById('planningView');
     const planningEdit = document.getElementById('planningEdit');
     const emptyPlanning = document.getElementById('emptyPlanning');
+    const memosViewContainer = document.getElementById('memosViewContainer');
     const editBtn = document.querySelector('.edit-planning-btn');
     const editBtnText = document.getElementById('editBtnText');
 
@@ -1621,6 +1622,7 @@ function togglePlanningEdit() {
         // Passer en mode édition
         if (planningView) planningView.style.display = 'none';
         if (emptyPlanning) emptyPlanning.style.display = 'none';
+        if (memosViewContainer) memosViewContainer.style.display = 'none';
         planningEdit.style.display = 'block';
         editBtnText.textContent = 'Fermer';
 
@@ -1656,6 +1658,10 @@ function togglePlanningEdit() {
             if (planningView) planningView.style.display = 'none';
             if (emptyPlanning) emptyPlanning.style.display = 'block';
         }
+
+        // Toujours afficher les mémos en mode lecture
+        if (memosViewContainer) memosViewContainer.style.display = 'block';
+
         editBtnText.textContent = 'Modifier';
 
         // Recharger les mémos/remarques pour la vue en lecture seule
