@@ -1349,6 +1349,69 @@ if (typeof pdfjsLib !== 'undefined') {
     padding: 6px 10px !important;
     font-size: 10px !important;
 }
+
+/* Masquer les outils non essentiels dans calendar (garder seulement stylo, gomme, fermer) */
+/* Masquer tous les boutons sauf pen, eraser et close */
+#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(.close-btn),
+#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(.close-btn):not(.toolbar-separator) {
+    display: none !important;
+}
+
+/* Masquer les groupes d'outils non nécessaires */
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="highlighter"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="ruler"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="compass"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="angle"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="arc"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="arrow"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="rectangle"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="disk"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="grid"]),
+#pdf-viewer-container-calendar .toolbar-group:has(select),
+#pdf-viewer-container-calendar .toolbar-group:has(input[type="color"]),
+#pdf-viewer-container-calendar .page-controls,
+#pdf-viewer-container-calendar .zoom-controls {
+    display: none !important;
+}
+
+/* Masquer la sidebar complètement pour plus d'espace */
+#pdf-viewer-container-calendar .pdf-sidebar {
+    display: none !important;
+}
+
+/* Ajuster le pdf-main pour prendre toute la largeur sans sidebar */
+#pdf-viewer-container-calendar .pdf-content {
+    margin-left: 0 !important;
+}
+
+/* Masquer les séparateurs (traits verticaux) */
+#pdf-viewer-container-calendar .toolbar-separator,
+#pdf-viewer-container-calendar .separator {
+    display: none !important;
+}
+
+/* Réorganiser la toolbar pour mettre fermer à côté de la gomme */
+#pdf-viewer-container-calendar .pdf-toolbar {
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+}
+
+/* Déplacer le bouton fermer dans le flux normal (pas à droite) */
+#pdf-viewer-container-calendar .close-btn {
+    position: relative !important;
+    margin-left: 0 !important;
+    order: 3 !important;
+}
+
+/* Ordonner les boutons : stylo, gomme, fermer */
+#pdf-viewer-container-calendar button[data-tool="pen"] {
+    order: 1 !important;
+}
+
+#pdf-viewer-container-calendar button[data-tool="eraser"] {
+    order: 2 !important;
+}
 </style>
 {% endblock %}
 
