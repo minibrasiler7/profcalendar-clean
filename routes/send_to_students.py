@@ -5,6 +5,7 @@ from models.class_file import ClassFile
 from models.file_sharing import StudentFileShare
 from models.classroom import Classroom
 from models.student import Student
+from models.file_manager import UserFile
 from datetime import datetime
 import os
 import uuid
@@ -130,35 +131,47 @@ def send_pdf_to_students():
         # Pour les fichiers envoyés aux élèves, conserver le nom original mais ajouter un UUID pour éviter les conflits
         name, ext = os.path.splitext(original_filename)
         # Garder le nom original mais ajouter un UUID pour l'unicité dans le système de fichiers
-        unique_filename = f"{uuid.uuid4().hex[:8]}_{original_filename}"
-        
-        # Créer le dossier de destination pour les fichiers partagés avec les élèves
-        shared_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(classroom.id))
-        os.makedirs(shared_folder, exist_ok=True)
-        
+        unique_filename = f"{uuid.uuid4().hex}.pdf"
+
+        # Créer le dossier de destination pour les fichiers de l'enseignant
+        user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
+        os.makedirs(user_folder, exist_ok=True)
+
         # Chemin complet du fichier
-        file_path = os.path.join(shared_folder, unique_filename)
-        
+        file_path = os.path.join(user_folder, unique_filename)
+
         # Sauvegarder le fichier
         pdf_file.save(file_path)
-        
+
         # Calculer la taille du fichier
         file_size = os.path.getsize(file_path)
-        
-        # Créer l'entrée ClassFile (marqué comme fichier partagé avec les élèves)
-        class_file = ClassFile(
-            classroom_id=classroom.id,
+
+        # 1. Créer d'abord l'entrée UserFile
+        user_file = UserFile(
+            user_id=current_user.id,
+            folder_id=None,  # Pas dans un dossier spécifique
             filename=unique_filename,
-            original_filename=original_filename,  # Conserver le nom original
+            original_filename=original_filename,
             file_type='pdf',
             file_size=file_size,
+            mime_type='application/pdf',
             description=f"Document annoté envoyé aux élèves le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
-            uploaded_at=datetime.utcnow(),
-            is_student_shared=True  # Marquer comme fichier partagé aux élèves
+            uploaded_at=datetime.utcnow()
         )
-        
+
+        db.session.add(user_file)
+        db.session.flush()  # Pour obtenir l'ID du UserFile
+
+        # 2. Créer l'entrée ClassFile qui référence le UserFile
+        class_file = ClassFile(
+            classroom_id=classroom.id,
+            user_file_id=user_file.id,
+            folder_path='Documents envoyés',  # Dossier virtuel pour les documents envoyés
+            copied_at=datetime.utcnow()
+        )
+
         db.session.add(class_file)
-        db.session.flush()  # Pour obtenir l'ID
+        db.session.flush()  # Pour obtenir l'ID du ClassFile
         
         # Créer les partages avec les élèves
         shares_created = 0
