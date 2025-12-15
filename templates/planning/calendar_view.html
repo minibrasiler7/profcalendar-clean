@@ -1352,8 +1352,8 @@ if (typeof pdfjsLib !== 'undefined') {
 
 /* Masquer les outils non essentiels dans calendar (garder seulement stylo, gomme, fermer) */
 /* Masquer tous les boutons sauf pen, eraser et close */
-#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(.close-btn),
-#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(.close-btn):not(.toolbar-separator) {
+#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close),
+#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close):not(.toolbar-separator) {
     display: none !important;
 }
 
@@ -1374,9 +1374,9 @@ if (typeof pdfjsLib !== 'undefined') {
     display: none !important;
 }
 
-/* Masquer la sidebar complètement pour plus d'espace */
+/* Afficher la sidebar */
 #pdf-viewer-container-calendar .pdf-sidebar {
-    display: none !important;
+    display: block !important;
 }
 
 /* Ajuster le pdf-main pour prendre toute la largeur sans sidebar */
@@ -1398,7 +1398,7 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 
 /* Déplacer le bouton fermer dans le flux normal (pas à droite) */
-#pdf-viewer-container-calendar .close-btn {
+#pdf-viewer-container-calendar #btn-close {
     position: relative !important;
     margin-left: 0 !important;
     order: 3 !important;
