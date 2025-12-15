@@ -103,8 +103,24 @@ def create_app(config_name='development'):
         print("✅ migrate_schedule blueprint ajouté (temporaire)")
     except ImportError:
         print("❌ migrate_schedule blueprint non trouvé")
-        
-        
+
+    # Blueprint push tokens
+    try:
+        from routes.push import push_bp
+        app.register_blueprint(push_bp)
+        print("✅ push blueprint ajouté")
+    except ImportError:
+        print("❌ push blueprint non trouvé")
+
+    # Blueprint send to students
+    try:
+        from routes.send_to_students import send_to_students_bp
+        app.register_blueprint(send_to_students_bp)
+        print("✅ send_to_students blueprint ajouté")
+    except ImportError:
+        print("❌ send_to_students blueprint non trouvé")
+
+
     # mixed_groups n'existe pas, on le retire
     # try:
     #     from routes.mixed_groups import mixed_groups_bp
