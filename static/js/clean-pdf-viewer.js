@@ -5519,20 +5519,15 @@ class CleanPDFViewer {
     }
 
     /**
-     * Effectuer l'envoi aux élèves
+     * Effectuer l'envoi aux élèves - partage le fichier existant
      */
     async performSendToStudents(selectedStudents) {
         this.showLoading(true);
 
         try {
-            // Générer le PDF avec annotations
-            const pdfBlob = await this.exportPDFWithAnnotations();
-
-            // Préparer les données
+            // Préparer les données - envoyer l'ID du fichier au lieu du PDF complet
             const formData = new FormData();
-            formData.append('pdf_file', pdfBlob, this.options.fileName || 'document_annote.pdf');
-            formData.append('action', 'send_to_students');
-            formData.append('send_mode', 'selected');
+            formData.append('file_id', this.options.fileId);  // ID du fichier à partager
             formData.append('selected_students', JSON.stringify(selectedStudents));
 
             // Récupérer l'ID de classe depuis la page
@@ -5550,14 +5545,14 @@ class CleanPDFViewer {
             const result = await response.json();
 
             if (result.success) {
-                alert(`Document envoyé avec succès à ${result.shares_created} élève(s)`);
+                alert(`Document partagé avec succès avec ${result.shares_created} élève(s)`);
             } else {
                 alert('Erreur: ' + (result.message || 'Erreur inconnue'));
             }
 
         } catch (error) {
-            console.error('Erreur lors de l\'envoi:', error);
-            alert('Erreur lors de l\'envoi du document');
+            console.error('Erreur lors du partage:', error);
+            alert('Erreur lors du partage du document');
         } finally {
             this.showLoading(false);
         }
