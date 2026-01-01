@@ -1361,11 +1361,17 @@ class CleanPDFViewer {
             }
 
             // Activer visuellement les canvas au premier contact stylet
+            // OPTIMISÉ: Utiliser requestAnimationFrame pour éviter de bloquer le thread principal
             if (e.pointerType === 'pen' && !this.penDetected) {
                 console.log('[Viewer NEW] PREMIER contact stylet - activation visuelle des canvas');
                 this.penDetected = true;
-                this.container.querySelectorAll('.annotation-canvas').forEach(canvas => {
-                    canvas.classList.add('pen-active');
+
+                // Activation asynchrone pour ne pas bloquer le début du trait
+                requestAnimationFrame(() => {
+                    const canvases = this.container.querySelectorAll('.annotation-canvas');
+                    canvases.forEach(canvas => {
+                        canvas.classList.add('pen-active');
+                    });
                 });
             }
 
@@ -2581,18 +2587,25 @@ class CleanPDFViewer {
 
     /**
      * Trouver le canvas à une position donnée
+     * OPTIMISÉ: Utilise elementFromPoint au lieu de parcourir tous les canvas
      */
     getCanvasAtPoint(clientX, clientY) {
-        // Parcourir tous les canvas pour trouver celui sous le pointeur
-        const allCanvas = this.container.querySelectorAll('.annotation-canvas');
-        for (const canvas of allCanvas) {
-            const rect = canvas.getBoundingClientRect();
-            if (clientX >= rect.left && clientX <= rect.right &&
-                clientY >= rect.top && clientY <= rect.bottom) {
-                return canvas;
-            }
+        // Utiliser l'API native du navigateur - beaucoup plus performant
+        // que de parcourir tous les canvas avec getBoundingClientRect()
+        const element = document.elementFromPoint(clientX, clientY);
+
+        if (!element) {
+            return null;
         }
-        return null;
+
+        // Si c'est directement un canvas d'annotation, le retourner
+        if (element.classList.contains('annotation-canvas')) {
+            return element;
+        }
+
+        // Sinon, vérifier si c'est un enfant d'un container de canvas
+        const canvas = element.closest('.pdf-canvas-container')?.querySelector('.annotation-canvas');
+        return canvas || null;
     }
 
     /**
