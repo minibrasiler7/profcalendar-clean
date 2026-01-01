@@ -1978,6 +1978,179 @@ if (typeof pdfjsLib !== 'undefined') {
 
 </div>
 
+<!-- Modal des présences pour périodes passées -->
+<div class="planning-modal" id="attendanceModal" style="display: none;">
+    <div class="modal-content" id="attendanceModalContent">
+        <div class="modal-header">
+            <h3 id="attendanceModalTitle">Présences de la période</h3>
+            <button class="modal-close" onclick="closeAttendanceModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div id="attendanceLoadingState" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
+                <p style="margin-top: 1rem; color: var(--text-muted);">Chargement des présences...</p>
+            </div>
+
+            <div id="attendanceContent" style="display: none;">
+                <!-- Planification de la période -->
+                <div id="planningSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-clipboard-list" style="margin-right: 0.5rem;"></i>
+                        Planification
+                    </h4>
+                    <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
+                        <div id="planningTitle" style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);"></div>
+                        <div id="planningDescription" style="color: var(--text-secondary); white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+
+                <!-- Tâches complétées -->
+                <div id="completedTasksSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #16a34a; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                        Tâches réalisées (<span id="completedCount">0</span>)
+                    </h4>
+                    <div id="completedTasksList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les tâches complétées seront ajoutées ici -->
+                    </div>
+                </div>
+
+                <!-- Tâches non réalisées -->
+                <div id="incompleteTasksSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-times-circle" style="margin-right: 0.5rem;"></i>
+                        Tâches non réalisées (<span id="incompleteCount">0</span>)
+                    </h4>
+                    <div id="incompleteTasksList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les tâches non complétées seront ajoutées ici -->
+                    </div>
+                </div>
+
+                <!-- Liste des élèves absents -->
+                <div id="absentStudentsSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-user-times" style="margin-right: 0.5rem;"></i>
+                        Élèves absents (<span id="absentCount">0</span>)
+                    </h4>
+                    <div id="absentStudentsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les élèves absents seront ajoutés ici -->
+                    </div>
+                </div>
+
+                <!-- Liste des élèves en retard -->
+                <div id="lateStudentsSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #ea580c; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>
+                        Élèves en retard (<span id="lateCount">0</span>)
+                    </h4>
+                    <div id="lateStudentsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les élèves en retard seront ajoutés ici -->
+                    </div>
+                </div>
+
+                <!-- Message si tous présents -->
+                <div id="allPresentMessage" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: #16a34a; margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem;">Tous les élèves étaient présents</p>
+                </div>
+
+                <!-- Message d'erreur -->
+                <div id="attendanceErrorMessage" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #dc2626; margin-bottom: 1rem;"></i>
+                    <p id="attendanceErrorText" style="color: var(--text-secondary);"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeAttendanceModal()">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-item {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid;
+}
+
+.student-item.absent {
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
+.student-item.late {
+    border-left-color: #ea580c;
+    background: #fff7ed;
+}
+
+.student-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.late-badge {
+    background: #ea580c;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.task-item {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-left: 4px solid;
+}
+
+.task-item.completed {
+    border-left-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.task-item.incomplete {
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
+.task-checkbox {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.task-checkbox.completed {
+    color: #16a34a;
+}
+
+.task-checkbox.incomplete {
+    color: #dc2626;
+}
+
+.task-content {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.task-item.completed .task-content {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+</style>
+
 <form id="weekNavigationForm" method="GET" style="display: none;">
     <input type="hidden" name="week" id="weekInput">
     <input type="hidden" name="classroom" value="{{ selected_classroom_id }}">
@@ -3427,8 +3600,108 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', function() {
             closePlanningModal();
             closeDayPlanningModal();
+            closeAttendanceModal();
         });
     }
+});
+
+// Intercepter les clics sur les cellules du calendrier pour afficher les présences si période passée
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendre que planning.js soit chargé
+    setTimeout(function() {
+        const originalOpenPlanningModal2 = window.openPlanningModal;
+
+        window.openPlanningModal = function(cell, fromAnnualView = false) {
+            const date = cell.dataset.date;
+            const period = cell.dataset.period;
+
+            console.log('🔍 openPlanningModal intercepted:', {
+                date,
+                period,
+                cellDataset: cell.dataset
+            });
+
+            // Vérifier si c'est une période passée
+            const periodDate = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            console.log('📅 Date comparison:', {
+                periodDate: periodDate.toISOString(),
+                today: today.toISOString(),
+                isPast: periodDate < today
+            });
+
+            // Récupérer les informations de la classe/groupe
+            const defaultClassroom = cell.dataset.defaultClassroom;
+            const defaultMixedGroup = cell.dataset.defaultMixedGroup;
+            const defaultCustomTask = cell.dataset.defaultCustomTask;
+
+            console.log('📚 Classroom info:', {
+                defaultClassroom,
+                defaultMixedGroup,
+                defaultCustomTask
+            });
+
+            // Ne pas afficher les présences pour les tâches personnalisées (périodes "Autre")
+            if (defaultCustomTask === 'true') {
+                // Continuer avec le modal de planification normal
+                if (typeof originalOpenPlanningModal2 === 'function') {
+                    originalOpenPlanningModal2(cell, fromAnnualView);
+                }
+                return;
+            }
+
+            // Si la période est passée ET qu'il y a une classe/groupe, afficher les présences
+            if (periodDate < today && (defaultClassroom || defaultMixedGroup)) {
+                // Extraire l'ID et le type de la classe/groupe
+                let classroomId = null;
+                let isMixedGroup = false;
+
+                if (defaultMixedGroup) {
+                    // Format: "mixed_group_123" ou juste "123"
+                    if (defaultMixedGroup.includes('_')) {
+                        const parts = defaultMixedGroup.split('_');
+                        classroomId = parts[parts.length - 1]; // Prendre la dernière partie
+                    } else {
+                        classroomId = defaultMixedGroup;
+                    }
+                    isMixedGroup = true;
+                } else if (defaultClassroom) {
+                    // Format: "classroom_123" ou juste "123"
+                    if (defaultClassroom.includes('_')) {
+                        const parts = defaultClassroom.split('_');
+                        classroomId = parts[parts.length - 1]; // Prendre la dernière partie
+                    } else {
+                        classroomId = defaultClassroom;
+                    }
+                    isMixedGroup = false;
+                }
+
+                console.log('🎯 Calling showPeriodAttendance with:', {
+                    date,
+                    period: period.split('-')[0],
+                    classroomId,
+                    isMixedGroup
+                });
+
+                if (classroomId) {
+                    // Récupérer le titre de la période depuis le contenu de la cellule
+                    const titleElement = cell.querySelector('.planning-title');
+                    const periodTitle = titleElement ? titleElement.textContent : null;
+
+                    // Afficher le modal de présences
+                    showPeriodAttendance(date, period.split('-')[0], classroomId, isMixedGroup, periodTitle);
+                    return;
+                }
+            }
+
+            // Sinon, continuer avec le modal de planification normal
+            if (typeof originalOpenPlanningModal2 === 'function') {
+                originalOpenPlanningModal2(cell, fromAnnualView);
+            }
+        };
+    }, 200);
 });
 
 // ============================================
@@ -5255,6 +5528,200 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ============ GESTION DES PRÉSENCES POUR PÉRIODES PASSÉES ============
+
+function closeAttendanceModal() {
+    const modal = document.getElementById('attendanceModal');
+    const overlay = document.getElementById('modalOverlay');
+    modal.style.display = 'none';
+    overlay.style.display = 'none';
+}
+
+async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
+    // Vérifier que la période est dans le passé
+    const periodDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (periodDate > today) {
+        return; // Ne rien faire si la période n'est pas encore passée
+    }
+
+    // Ouvrir le modal
+    const modal = document.getElementById('attendanceModal');
+    const overlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('attendanceModalTitle');
+
+    // Mettre à jour le titre
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    modalTitle.textContent = `Présences - ${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+
+    // Afficher le modal avec l'état de chargement
+    document.getElementById('attendanceLoadingState').style.display = 'block';
+    document.getElementById('attendanceContent').style.display = 'none';
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+
+    try {
+        // Appeler l'API
+        const response = await fetch(
+            `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showAttendanceError(data.error || 'Erreur lors du chargement des présences');
+            return;
+        }
+
+        // Filtrer les élèves par statut
+        const absentStudents = data.students.filter(s => s.status === 'absent');
+        const lateStudents = data.students.filter(s => s.status === 'late');
+
+        // Masquer l'état de chargement
+        document.getElementById('attendanceLoadingState').style.display = 'none';
+        document.getElementById('attendanceContent').style.display = 'block';
+
+        // Masquer tous les messages d'abord
+        document.getElementById('planningSection').style.display = 'none';
+        document.getElementById('completedTasksSection').style.display = 'none';
+        document.getElementById('incompleteTasksSection').style.display = 'none';
+        document.getElementById('absentStudentsSection').style.display = 'none';
+        document.getElementById('lateStudentsSection').style.display = 'none';
+        document.getElementById('allPresentMessage').style.display = 'none';
+        document.getElementById('attendanceErrorMessage').style.display = 'none';
+
+        // Afficher la planification si elle existe
+        if (data.planning) {
+            const planning = data.planning;
+
+            // Afficher la planification générale (titre + description sans checklist)
+            if (planning.title || (planning.description && !planning.has_checklist)) {
+                document.getElementById('planningTitle').textContent = planning.title || '';
+                // Si description sans checklist, l'afficher
+                if (!planning.has_checklist) {
+                    document.getElementById('planningDescription').textContent = planning.description || '';
+                } else {
+                    document.getElementById('planningDescription').textContent = '';
+                }
+                document.getElementById('planningSection').style.display = 'block';
+            }
+
+            // Afficher les tâches (checklist items)
+            if (planning.has_checklist && planning.checklist_items) {
+                const completedTasks = planning.checklist_items.filter(item => item.checked);
+                const incompleteTasks = planning.checklist_items.filter(item => !item.checked);
+
+                // Tâches complétées
+                if (completedTasks.length > 0) {
+                    document.getElementById('completedCount').textContent = completedTasks.length;
+                    const completedList = document.getElementById('completedTasksList');
+                    completedList.innerHTML = '';
+
+                    completedTasks.forEach(task => {
+                        const item = document.createElement('div');
+                        item.className = 'task-item completed';
+                        item.innerHTML = `
+                            <span class="task-checkbox completed">
+                                <i class="fas fa-check-square"></i>
+                            </span>
+                            <span class="task-content">${task.content}</span>
+                        `;
+                        completedList.appendChild(item);
+                    });
+
+                    document.getElementById('completedTasksSection').style.display = 'block';
+                }
+
+                // Tâches non complétées
+                if (incompleteTasks.length > 0) {
+                    document.getElementById('incompleteCount').textContent = incompleteTasks.length;
+                    const incompleteList = document.getElementById('incompleteTasksList');
+                    incompleteList.innerHTML = '';
+
+                    incompleteTasks.forEach(task => {
+                        const item = document.createElement('div');
+                        item.className = 'task-item incomplete';
+                        item.innerHTML = `
+                            <span class="task-checkbox incomplete">
+                                <i class="far fa-square"></i>
+                            </span>
+                            <span class="task-content">${task.content}</span>
+                        `;
+                        incompleteList.appendChild(item);
+                    });
+
+                    document.getElementById('incompleteTasksSection').style.display = 'block';
+                }
+            }
+        }
+
+        if (absentStudents.length === 0 && lateStudents.length === 0) {
+            // Tous présents
+            document.getElementById('allPresentMessage').style.display = 'block';
+        } else {
+            // Afficher les élèves absents
+            if (absentStudents.length > 0) {
+                document.getElementById('absentCount').textContent = absentStudents.length;
+                const absentList = document.getElementById('absentStudentsList');
+                absentList.innerHTML = '';
+
+                absentStudents.forEach(student => {
+                    const item = document.createElement('div');
+                    item.className = 'student-item absent';
+                    item.innerHTML = `
+                        <span class="student-name">${student.first_name} ${student.last_name}</span>
+                    `;
+                    absentList.appendChild(item);
+                });
+
+                document.getElementById('absentStudentsSection').style.display = 'block';
+            }
+
+            // Afficher les élèves en retard
+            if (lateStudents.length > 0) {
+                document.getElementById('lateCount').textContent = lateStudents.length;
+                const lateList = document.getElementById('lateStudentsList');
+                lateList.innerHTML = '';
+
+                lateStudents.forEach(student => {
+                    const item = document.createElement('div');
+                    item.className = 'student-item late';
+                    const lateText = student.late_minutes ? `${student.late_minutes} min` : 'En retard';
+                    item.innerHTML = `
+                        <span class="student-name">${student.first_name} ${student.last_name}</span>
+                        <span class="late-badge">${lateText}</span>
+                    `;
+                    lateList.appendChild(item);
+                });
+
+                document.getElementById('lateStudentsSection').style.display = 'block';
+            }
+        }
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des présences:', error);
+        showAttendanceError('Erreur de connexion au serveur');
+    }
+}
+
+function showAttendanceError(message) {
+    document.getElementById('attendanceLoadingState').style.display = 'none';
+    document.getElementById('attendanceContent').style.display = 'block';
+    document.getElementById('absentStudentsSection').style.display = 'none';
+    document.getElementById('lateStudentsSection').style.display = 'none';
+    document.getElementById('allPresentMessage').style.display = 'none';
+    document.getElementById('attendanceErrorMessage').style.display = 'block';
+    document.getElementById('attendanceErrorText').textContent = message;
 }
 
 </script>

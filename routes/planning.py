@@ -995,6 +995,105 @@ def calendar_view():
                          merged_info=merged_info,  # Passer les infos de fusion par jour
                          memos_by_date_period=memos_by_date_period)  # Ajouter les mémos par date et période
 
+@planning_bp.route('/get_period_attendance', methods=['GET'])
+@login_required
+@teacher_required
+def get_period_attendance():
+    """Récupère les présences/absences/retards pour une période donnée"""
+    try:
+        date_str = request.args.get('date')
+        period_number = request.args.get('period')
+        classroom_id = request.args.get('classroom_id')
+        is_mixed_group = request.args.get('is_mixed_group') == 'true'
+
+        if not date_str or not period_number:
+            return jsonify({'success': False, 'error': 'Date et période requis'}), 400
+
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        period_num = int(period_number)
+
+        # Vérifier que la période est dans le passé
+        now = current_user.get_local_datetime()
+        today = now.date()
+
+        if date_obj > today:
+            return jsonify({'success': False, 'error': 'Cette période n\'est pas encore passée'}), 400
+
+        # Récupérer les élèves de la classe ou du groupe mixte
+        students = []
+        if classroom_id:
+            classroom_id_int = int(classroom_id)
+            if is_mixed_group:
+                from models.mixed_group import MixedGroup
+                mixed_group = MixedGroup.query.get(classroom_id_int)
+                if mixed_group and mixed_group.teacher_id == current_user.id:
+                    students = mixed_group.get_students()
+            else:
+                classroom = Classroom.query.get(classroom_id_int)
+                if classroom and classroom.user_id == current_user.id:
+                    students = classroom.students.all()
+
+        if not students:
+            return jsonify({'success': False, 'error': 'Aucun élève trouvé'}), 404
+
+        # Récupérer les présences pour cette période
+        from models.attendance import Attendance
+        attendances = Attendance.query.filter_by(
+            user_id=current_user.id,
+            date=date_obj,
+            period_number=period_num
+        ).all()
+
+        # Créer un dictionnaire des présences par student_id
+        attendance_by_student = {att.student_id: att for att in attendances}
+
+        # Construire la liste des élèves avec leur statut
+        students_data = []
+        for student in students:
+            attendance = attendance_by_student.get(student.id)
+            status = attendance.status if attendance else 'present'
+            late_minutes = attendance.late_minutes if attendance and attendance.status == 'late' else None
+
+            students_data.append({
+                'id': student.id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'status': status,
+                'late_minutes': late_minutes
+            })
+
+        # Trier par nom de famille puis prénom
+        students_data.sort(key=lambda s: (s['last_name'], s['first_name']))
+
+        # Récupérer la planification pour cette période
+        planning = Planning.query.filter_by(
+            user_id=current_user.id,
+            date=date_obj,
+            period_number=period_num
+        ).first()
+
+        planning_data = None
+        if planning:
+            # Récupérer les items de checklist avec leur état
+            checklist_items = planning.get_checklist_items_with_states()
+
+            planning_data = {
+                'title': planning.title,
+                'description': planning.description,
+                'checklist_items': checklist_items,
+                'has_checklist': len(checklist_items) > 0
+            }
+
+        return jsonify({
+            'success': True,
+            'students': students_data,
+            'planning': planning_data
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur get_period_attendance: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 def calculate_periods(user):
     """Calcule les périodes en fonction de la configuration de l'utilisateur"""
     from routes.schedule import calculate_periods as calc_periods
