@@ -186,10 +186,21 @@ if (typeof pdfjsLib !== 'undefined') {
     font-weight: 500;
 }
 
+/* Fichiers épinglés */
+.file-item.pinned {
+    background-color: #FFFBEB;
+    border-left: 3px solid #F59E0B;
+}
+
+.file-item.pinned:hover {
+    background-color: #FEF3C7;
+}
+
 .file-icon {
     font-size: 1.125rem;
     width: 20px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .file-icon.fa-folder {
@@ -204,10 +215,85 @@ if (typeof pdfjsLib !== 'undefined') {
     color: #10b981;
 }
 
-.file-name {
+.file-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.file-name {
     font-size: 0.875rem;
     color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-item:hover .file-actions {
+    opacity: 1;
+}
+
+.file-action-btn {
+    padding: 0.25rem 0.5rem;
+    background: none;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.file-action-btn:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.file-action-btn.pinned {
+    color: #F59E0B;
+    opacity: 1;
+}
+
+.file-action-btn.pinned:hover {
+    background-color: #FEF3C7;
+}
+
+/* Section des fichiers épinglés */
+.pinned-resources {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.pinned-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+    color: #F59E0B;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.pinned-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .no-files {
@@ -1873,6 +1959,17 @@ if (typeof pdfjsLib !== 'undefined') {
                 <p>Chargement des fichiers...</p>
             </div>
 
+            <!-- Fichiers épinglés -->
+            <div class="pinned-resources" id="pinnedResources" style="display: none;">
+                <div class="pinned-header">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>Fichiers épinglés</span>
+                </div>
+                <div class="pinned-list" id="pinnedList">
+                    <!-- Les fichiers épinglés seront chargés ici -->
+                </div>
+            </div>
+
             <!-- Navigation des dossiers -->
             <div class="file-navigation" id="fileNavigation" style="display: none;">
                 <div class="breadcrumb" id="fileBreadcrumb">
@@ -1951,6 +2048,17 @@ if (typeof pdfjsLib !== 'undefined') {
             <div class="file-loading" id="dayFileLoading">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Chargement des fichiers...</p>
+            </div>
+
+            <!-- Fichiers épinglés -->
+            <div class="pinned-resources" id="dayPinnedResources" style="display: none;">
+                <div class="pinned-header">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>Fichiers épinglés</span>
+                </div>
+                <div class="pinned-list" id="dayPinnedList">
+                    <!-- Les fichiers épinglés seront chargés ici -->
+                </div>
             </div>
 
             <!-- Navigation des dossiers -->
@@ -2567,38 +2675,46 @@ async function loadClassFiles(classroomId) {
     const fileNavigation = document.getElementById('fileNavigation');
     const fileTree = document.getElementById('fileTree');
     const noFiles = document.getElementById('noFiles');
-    
+    const pinnedResources = document.getElementById('pinnedResources');
+
     console.log('Chargement des fichiers pour la classe:', classroomId);
-    
+
     // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
     const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
-    
+
     // Afficher le chargement
     fileLoading.style.display = 'block';
     fileNavigation.style.display = 'none';
     fileTree.style.display = 'none';
     noFiles.style.display = 'none';
-    
+    pinnedResources.style.display = 'none';
+
     try {
         const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Données reçues:', data);
-        
+
         fileLoading.style.display = 'none';
-        
+
+        // Afficher les fichiers épinglés s'il y en a
+        if (data.success && data.pinned_files && data.pinned_files.length > 0) {
+            renderPinnedFiles(data.pinned_files);
+            pinnedResources.style.display = 'block';
+        }
+
         if (data.success && data.files && data.files.length > 0) {
             // Stocker tous les fichiers globalement
             allClassFiles = data.files;
             fileNavigation.style.display = 'block';
             fileTree.style.display = 'block';
             renderFileTree(data.files, currentFilePath);
-        } else {
+        } else if (!data.pinned_files || data.pinned_files.length === 0) {
             console.log('Aucun fichier trouvé ou erreur dans la réponse');
             noFiles.style.display = 'block';
         }
@@ -2607,6 +2723,76 @@ async function loadClassFiles(classroomId) {
         fileLoading.style.display = 'none';
         noFiles.style.display = 'block';
     }
+}
+
+// Afficher les fichiers épinglés
+function renderPinnedFiles(pinnedFiles) {
+    const pinnedList = document.getElementById('pinnedList');
+    if (!pinnedList) return;
+
+    pinnedList.innerHTML = pinnedFiles.map(file => {
+        const icon = getFileIconByType(file.file_type);
+        return `
+            <div class="file-item pinned" data-file-id="${file.id}">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                    <span class="file-size">${formatFileSize(file.file_size)}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn pinned"
+                            onclick="togglePinFile(${file.id})"
+                            title="Désépingler">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="file-action-btn"
+                            onclick="openPdfInViewer(${file.id}, '${file.original_filename}')"
+                            title="Ouvrir">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Épingler/Désépingler un fichier
+async function togglePinFile(fileId) {
+    try {
+        const response = await fetch('/planning/toggle-pin-resource', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: fileId
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            // Recharger les fichiers pour mettre à jour l'affichage
+            const classroomSelect = document.getElementById('classroomSelect');
+            if (classroomSelect && classroomSelect.value) {
+                await loadClassFiles(classroomSelect.value);
+            }
+        } else {
+            console.error('Erreur:', result.message);
+            alert('Erreur lors de l\'épinglage: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'épinglage:', error);
+        alert('Erreur lors de l\'épinglage du fichier');
+    }
+}
+
+// Formater la taille du fichier
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
 // Afficher l'arborescence des fichiers
@@ -2706,18 +2892,27 @@ function renderFileTree(files, currentPath = '') {
     currentLevelFiles.forEach(file => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
-        
+
         const icon = getFileIconByType(file.file_type);
-        
+
         fileItem.innerHTML = `
             <i class="${icon} file-icon"></i>
-            <span class="file-name">${file.original_filename}</span>
+            <div class="file-info">
+                <span class="file-name">${file.original_filename}</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
+                        onclick="event.stopPropagation(); togglePinFile(${file.id})"
+                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         `;
-        
+
         if (file.file_type === 'pdf') {
             fileItem.onclick = () => openPdfInViewer(file.id, file.original_filename);
         }
-        
+
         fileTree.appendChild(fileItem);
     });
     
@@ -4409,31 +4604,39 @@ async function loadDayClassFiles(classroomId) {
     const fileNavigation = document.getElementById('dayFileNavigation');
     const fileTree = document.getElementById('dayFileTree');
     const noFiles = document.getElementById('dayNoFiles');
-    
+    const pinnedResources = document.getElementById('dayPinnedResources');
+
     console.log('Chargement des fichiers pour la classe:', classroomId);
-    
+
     // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
     const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
-    
+
     // Afficher le chargement
     fileLoading.style.display = 'block';
     fileNavigation.style.display = 'none';
     fileTree.style.display = 'none';
     noFiles.style.display = 'none';
-    
+    pinnedResources.style.display = 'none';
+
     try {
         const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Données reçues:', data);
-        
+
         fileLoading.style.display = 'none';
-        
+
+        // Afficher les fichiers épinglés s'il y en a
+        if (data.success && data.pinned_files && data.pinned_files.length > 0) {
+            renderDayPinnedFiles(data.pinned_files);
+            pinnedResources.style.display = 'block';
+        }
+
         if (data.success && data.files && data.files.length > 0) {
             allDayClassFiles = data.files;
             fileNavigation.style.display = 'block';
@@ -4447,6 +4650,64 @@ async function loadDayClassFiles(classroomId) {
         console.error('Erreur lors du chargement des fichiers:', error);
         fileLoading.style.display = 'none';
         noFiles.style.display = 'block';
+    }
+}
+
+// Afficher les fichiers épinglés pour la vue journalière
+function renderDayPinnedFiles(pinnedFiles) {
+    const pinnedList = document.getElementById('dayPinnedList');
+    if (!pinnedList) return;
+
+    pinnedList.innerHTML = pinnedFiles.map(file => {
+        const icon = getFileIconByType(file.file_type);
+        return `
+            <div class="file-item pinned" data-file-id="${file.id}">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                    <span class="file-size">${formatFileSize(file.file_size)}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn pinned"
+                            onclick="toggleDayPinFile(${file.id})"
+                            title="Désépingler">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="file-action-btn"
+                            onclick="openDayPdfInViewer(${file.id}, '${file.original_filename}')"
+                            title="Ouvrir">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Épingler/désépingler un fichier pour la vue journalière
+async function toggleDayPinFile(fileId) {
+    try {
+        const response = await fetch('/planning/toggle-pin-resource', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: fileId
+            })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            // Recharger les fichiers pour mettre à jour l'affichage
+            const classroomSelect = document.getElementById('dayModalClassroom');
+            if (classroomSelect && classroomSelect.value) {
+                await loadDayClassFiles(classroomSelect.value);
+            }
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'épinglage:', error);
+        alert('Erreur lors de l\'épinglage du fichier');
     }
 }
 
@@ -4542,14 +4803,23 @@ function renderDayFileTree(files, currentPath = '') {
     currentLevelFiles.forEach(file => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
-        
+
         const icon = getFileIconByType(file.file_type);
-        
+
         fileItem.innerHTML = `
             <i class="${icon} file-icon"></i>
-            <span class="file-name">${file.original_filename}</span>
+            <div class="file-info">
+                <span class="file-name">${file.original_filename}</span>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
+                        onclick="event.stopPropagation(); toggleDayPinFile(${file.id})"
+                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         `;
-        
+
         if (file.file_type === 'pdf') {
             console.log('📄 Création du gestionnaire de clic pour le PDF:', file.original_filename, 'ID:', file.id);
             fileItem.onclick = () => {
@@ -4557,7 +4827,7 @@ function renderDayFileTree(files, currentPath = '') {
                 openDayPdfInViewer(file.id, file.original_filename);
             };
         }
-        
+
         fileTree.appendChild(fileItem);
     });
     
