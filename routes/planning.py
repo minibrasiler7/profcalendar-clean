@@ -1301,24 +1301,31 @@ def save_planning():
         checklist_states = data.get('checklist_states', {})  # Récupérer les états des checkboxes
         group_id = data.get('group_id')  # Récupérer l'ID du groupe
 
-        # Convertir les IDs en entiers
+        # Convertir les IDs en entiers ou None (pour les périodes "Autre")
+        # Nettoyer les valeurs vides/falsy en les convertissant en None
         if classroom_id:
             try:
-                classroom_id = int(classroom_id)
+                classroom_id = int(classroom_id) if classroom_id else None
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
-        
+                classroom_id = None  # Valeur invalide = période "Autre"
+        else:
+            classroom_id = None  # Pas de classroom = période "Autre"
+
         if mixed_group_id:
             try:
-                mixed_group_id = int(mixed_group_id)
+                mixed_group_id = int(mixed_group_id) if mixed_group_id else None
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe mixte invalide'}), 400
-        
+                mixed_group_id = None  # Valeur invalide = période "Autre"
+        else:
+            mixed_group_id = None  # Pas de mixed_group = période "Autre"
+
         if group_id:
             try:
-                group_id = int(group_id)
+                group_id = int(group_id) if group_id else None
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
+                group_id = None
+        else:
+            group_id = None
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
