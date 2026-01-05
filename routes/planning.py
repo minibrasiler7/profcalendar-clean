@@ -3797,21 +3797,24 @@ def save_lesson_planning():
         title = data.get('title', '').strip()
         description = data.get('description', '').strip()
         checklist_states = data.get('checklist_states', {})
-        
-        # Convertir classroom_id en entier
+
+        # Convertir classroom_id en entier ou None (pour les périodes "Autre")
         if classroom_id:
             try:
-                classroom_id = int(classroom_id)
+                classroom_id = int(classroom_id) if classroom_id else None
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                classroom_id = None  # Valeur invalide = période "Autre"
+        else:
+            classroom_id = None  # Pas de classroom = période "Autre"
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Vérifier la classe
-        classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
-        if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+        # Vérifier la classe SEULEMENT si classroom_id est fourni
+        if classroom_id:
+            classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+            if not classroom:
+                return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
 
         # Chercher un planning existant
         existing = Planning.query.filter_by(
