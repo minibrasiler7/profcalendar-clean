@@ -17,6 +17,12 @@ def fix_constraint():
         print("  python fix_production_constraint.py")
         return False
 
+    # IMPORTANT: psycopg n'accepte pas le préfixe +psycopg (utilisé par SQLAlchemy)
+    # Convertir postgresql+psycopg:// en postgresql://
+    if database_url.startswith('postgresql+psycopg://'):
+        database_url = database_url.replace('postgresql+psycopg://', 'postgresql://')
+        print("✅ URL convertie de SQLAlchemy vers format psycopg")
+
     # Afficher la DB (masquer le mot de passe)
     parsed = urlparse(database_url)
     db_display = f"{parsed.scheme}://***@{parsed.hostname}/{parsed.path.lstrip('/')}"
