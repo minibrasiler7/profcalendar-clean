@@ -19,11 +19,14 @@ def upgrade():
     # Supprimer l'ancienne contrainte qui exigeait qu'une période ait toujours une classe OU un groupe mixte
     op.drop_constraint('_classroom_or_mixed_group_planning', 'plannings', type_='check')
 
-    # Créer la nouvelle contrainte qui permet les deux à NULL mais interdit les deux d'être définis
+    # Créer la nouvelle contrainte qui permet les périodes "Autre" (les deux NULL)
+    # Syntaxe explicite pour garantir la compatibilité PostgreSQL
     op.create_check_constraint(
         '_classroom_or_mixed_group_planning',
         'plannings',
-        'NOT (classroom_id IS NOT NULL AND mixed_group_id IS NOT NULL)'
+        '(classroom_id IS NULL AND mixed_group_id IS NULL) OR '
+        '(classroom_id IS NOT NULL AND mixed_group_id IS NULL) OR '
+        '(classroom_id IS NULL AND mixed_group_id IS NOT NULL)'
     )
 
 

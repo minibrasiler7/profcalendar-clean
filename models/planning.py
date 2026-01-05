@@ -42,9 +42,13 @@ class Planning(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'date', 'period_number', name='_user_date_period_uc'),
         # Permet les périodes "Autre" sans classe ni groupe (les deux peuvent être NULL)
-        # Mais interdit les deux d'être définis en même temps
-        db.CheckConstraint('NOT (classroom_id IS NOT NULL AND mixed_group_id IS NOT NULL)',
-                          name='_classroom_or_mixed_group_planning'),
+        # Syntaxe explicite pour garantir la compatibilité PostgreSQL
+        db.CheckConstraint(
+            '(classroom_id IS NULL AND mixed_group_id IS NULL) OR '
+            '(classroom_id IS NOT NULL AND mixed_group_id IS NULL) OR '
+            '(classroom_id IS NULL AND mixed_group_id IS NOT NULL)',
+            name='_classroom_or_mixed_group_planning'
+        ),
     )
 
     def get_checklist_states(self):
