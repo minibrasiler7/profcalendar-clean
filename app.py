@@ -113,6 +113,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ push blueprint non trouvé")
 
+    # Debug blueprint
+    try:
+        from routes.debug_constraint import debug_bp
+        app.register_blueprint(debug_bp)
+        print("✅ debug blueprint ajouté")
+    except ImportError:
+        print("❌ debug blueprint non trouvé")
+
     # Blueprint send to students
     try:
         from routes.send_to_students import send_to_students_bp
