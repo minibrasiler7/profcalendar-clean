@@ -6,3 +6,8 @@ backups/
 .DS_Store
 .idea/
 venv*/
+mobile/node_modules/
+mobile/android/
+mobile/ios/
+mobile/web-dist/*
+!mobile/web-dist/index.html

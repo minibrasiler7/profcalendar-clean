@@ -34,6 +34,7 @@ class CleanPDFViewer {
             showSidebar: options.showSidebar !== false,
             enableAnnotations: options.enableAnnotations !== false,
             autoSaveInterval: options.autoSaveInterval || 2000, // 2 secondes
+            initialScale: options.initialScale || null, // Scale initial forcé (null = auto)
             ...options
         };
 
@@ -41,7 +42,7 @@ class CleanPDFViewer {
         this.pdf = null;
         this.currentPage = 1;
         this.totalPages = 0;
-        this.scale = 1.0;
+        this.scale = this.options.initialScale || 1.0; // Utiliser initialScale si fourni
         this.rotation = 0;
 
         // Pages (originales + ajoutées)
@@ -1648,14 +1649,18 @@ class CleanPDFViewer {
      * Rendre les miniatures
      */
     async renderThumbnails() {
+        console.log('[renderThumbnails] Début - pageOrder.length:', this.pageOrder.length);
+        console.log('[renderThumbnails] thumbnailsContainer:', this.elements.thumbnailsContainer);
         this.elements.thumbnailsContainer.innerHTML = '';
 
         for (let i = 0; i < this.pageOrder.length; i++) {
             const pageId = this.pageOrder[i];
             const pageNumber = i + 1; // Numéro séquentiel (1, 2, 3, ...)
+            console.log('[renderThumbnails] Création miniature pour pageId:', pageId, 'pageNumber:', pageNumber);
             const thumbnailItem = await this.createThumbnail(pageId, pageNumber);
             this.elements.thumbnailsContainer.appendChild(thumbnailItem);
         }
+        console.log('[renderThumbnails] Terminé - miniatures rendues:', this.pageOrder.length);
     }
 
     /**
@@ -1786,17 +1791,20 @@ class CleanPDFViewer {
      * Rendre une miniature sur canvas
      */
     async renderThumbnailCanvas(canvas, pageNum) {
+        console.log('[renderThumbnailCanvas] Rendu miniature page:', pageNum);
         const page = await this.pdf.getPage(pageNum);
         const viewport = page.getViewport({scale: 0.2});
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        console.log('[renderThumbnailCanvas] Canvas dimensions:', canvas.width, 'x', canvas.height);
 
         const ctx = canvas.getContext('2d');
         await page.render({
             canvasContext: ctx,
             viewport: viewport
         }).promise;
+        console.log('[renderThumbnailCanvas] Miniature rendue pour page:', pageNum);
     }
 
     /**
@@ -1869,7 +1877,8 @@ class CleanPDFViewer {
         const calculatedScale = targetWidth / baseViewport.width;
 
         // Utiliser le scale calculé ou le scale actuel (pour le zoom)
-        const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+        // Si initialScale est fourni, toujours l'utiliser au lieu du calculatedScale
+        const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
         const viewport = page.getViewport({scale: scale});
 
         pdfCanvas.width = viewport.width;
@@ -1905,7 +1914,7 @@ class CleanPDFViewer {
             const targetWidth = viewerWidth * 0.95;
             const baseViewport = referencePage.getViewport({scale: 1});
             const calculatedScale = targetWidth / baseViewport.width;
-            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
             const viewport = referencePage.getViewport({scale: scale});
             width = viewport.width;
             height = viewport.height;
@@ -1947,7 +1956,7 @@ class CleanPDFViewer {
             const targetWidth = viewerWidth * 0.95;
             const baseViewport = referencePage.getViewport({scale: 1});
             const calculatedScale = targetWidth / baseViewport.width;
-            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
             const viewport = referencePage.getViewport({scale: scale});
             width = viewport.width;
             height = viewport.height;

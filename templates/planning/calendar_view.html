@@ -2764,6 +2764,7 @@ function renderPinnedFiles(pinnedFiles) {
 
 // Épingler/Désépingler un fichier
 async function togglePinFile(fileId) {
+    console.log('🔧 togglePinFile appelé avec fileId:', fileId);
     try {
         const response = await fetch('/planning/toggle-pin-resource', {
             method: 'POST',
@@ -2776,18 +2777,23 @@ async function togglePinFile(fileId) {
         });
 
         const result = await response.json();
+        console.log('✅ Résultat de l\'épinglage:', result);
+
         if (result.success) {
             // Recharger les fichiers pour mettre à jour l'affichage
-            const classroomSelect = document.getElementById('classroomSelect');
-            if (classroomSelect && classroomSelect.value) {
-                await loadClassFiles(classroomSelect.value);
+            const modalClassroom = document.getElementById('modalClassroom');
+            if (modalClassroom && modalClassroom.value) {
+                console.log('🔄 Rechargement des fichiers pour la classe:', modalClassroom.value);
+                await loadClassFiles(modalClassroom.value);
+            } else {
+                console.warn('⚠️ modalClassroom non trouvé ou sans valeur');
             }
         } else {
-            console.error('Erreur:', result.message);
+            console.error('❌ Erreur:', result.message);
             alert('Erreur lors de l\'épinglage: ' + result.message);
         }
     } catch (error) {
-        console.error('Erreur lors de l\'épinglage:', error);
+        console.error('❌ Erreur lors de l\'épinglage:', error);
         alert('Erreur lors de l\'épinglage du fichier');
     }
 }
@@ -3052,6 +3058,8 @@ async function openPdfInViewer(fileId, fileName) {
         }
 
         // Créer l'instance du nouveau lecteur clean
+        // IMPORTANT: initialScale est doublé car le conteneur fait 50% de la largeur
+        // Cela permet de garder les annotations à la bonne taille relative au PDF
         window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
             fileId: fileId,
             pdfUrl: pdfUrl,
@@ -3059,6 +3067,7 @@ async function openPdfInViewer(fileId, fileName) {
             enableAnnotations: true,
             autoSaveInterval: 5000,
             studentData: studentsData,
+            initialScale: 2.0,  // 2x le scale normal pour compenser la largeur 50%
             onClose: () => {
                 container.style.display = 'none';
                 window.cleanPDFViewerCalendar = null;
@@ -4682,6 +4691,7 @@ function renderDayPinnedFiles(pinnedFiles) {
 
 // Épingler/désépingler un fichier pour la vue journalière
 async function toggleDayPinFile(fileId) {
+    console.log('🔧 toggleDayPinFile appelé avec fileId:', fileId);
     try {
         const response = await fetch('/planning/toggle-pin-resource', {
             method: 'POST',
@@ -4694,15 +4704,23 @@ async function toggleDayPinFile(fileId) {
         });
 
         const result = await response.json();
+        console.log('✅ Résultat de l\'épinglage (day):', result);
+
         if (result.success) {
             // Recharger les fichiers pour mettre à jour l'affichage
-            const classroomSelect = document.getElementById('dayModalClassroom');
-            if (classroomSelect && classroomSelect.value) {
-                await loadDayClassFiles(classroomSelect.value);
+            const dayModalClassroom = document.getElementById('dayModalClassroom');
+            if (dayModalClassroom && dayModalClassroom.value) {
+                console.log('🔄 Rechargement des fichiers (day) pour la classe:', dayModalClassroom.value);
+                await loadDayClassFiles(dayModalClassroom.value);
+            } else {
+                console.warn('⚠️ dayModalClassroom non trouvé ou sans valeur');
             }
+        } else {
+            console.error('❌ Erreur:', result.message);
+            alert('Erreur lors de l\'épinglage: ' + result.message);
         }
     } catch (error) {
-        console.error('Erreur lors de l\'épinglage:', error);
+        console.error('❌ Erreur lors de l\'épinglage:', error);
         alert('Erreur lors de l\'épinglage du fichier');
     }
 }
