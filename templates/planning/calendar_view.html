@@ -1367,12 +1367,26 @@ if (typeof pdfjsLib !== 'undefined') {
 #pdf-viewer-container-calendar .thumbnail-canvas,
 #pdf-viewer-container-day .thumbnail-canvas {
     height: 70px !important;
+    width: 100% !important;
+    display: block !important;
 }
 
 #pdf-viewer-container-calendar .thumbnail-number,
 #pdf-viewer-container-day .thumbnail-number {
     font-size: 9px !important;
     padding: 2px 4px !important;
+}
+
+/* S'assurer que le conteneur des vignettes est visible */
+#pdf-viewer-container-calendar .thumbnails-container,
+#pdf-viewer-container-day .thumbnails-container {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#pdf-viewer-container-calendar .thumbnail-wrapper,
+#pdf-viewer-container-day .thumbnail-wrapper {
+    display: block !important;
 }
 
 #pdf-viewer-container-calendar .pdf-main,
@@ -3060,6 +3074,7 @@ async function openPdfInViewer(fileId, fileName) {
         // Créer l'instance du nouveau lecteur clean
         // IMPORTANT: initialScale est doublé car le conteneur fait 50% de la largeur
         // Cela permet de garder les annotations à la bonne taille relative au PDF
+        // annotationOffset: décale les annotations pour compenser le décalage dû au scale
         window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
             fileId: fileId,
             pdfUrl: pdfUrl,
@@ -3068,6 +3083,7 @@ async function openPdfInViewer(fileId, fileName) {
             autoSaveInterval: 5000,
             studentData: studentsData,
             initialScale: 2.0,  // 2x le scale normal pour compenser la largeur 50%
+            annotationOffset: {x: 10, y: 50},  // Décalage pour aligner les annotations
             onClose: () => {
                 container.style.display = 'none';
                 window.cleanPDFViewerCalendar = null;
