@@ -1385,6 +1385,12 @@ if (typeof pdfjsLib !== 'undefined') {
     max-width: 100% !important;
 }
 
+/* Augmenter la largeur du pdf-pages-container à 100% */
+#pdf-viewer-container-calendar .pdf-pages-container,
+#pdf-viewer-container-day .pdf-pages-container {
+    max-width: 100% !important;
+}
+
 #pdf-viewer-container-calendar input[type="number"],
 #pdf-viewer-container-day input[type="number"],
 #pdf-viewer-container-calendar select,
@@ -2896,9 +2902,11 @@ function renderFileTree(files, currentPath = '') {
         const icon = getFileIconByType(file.file_type);
 
         fileItem.innerHTML = `
-            <i class="${icon} file-icon"></i>
-            <div class="file-info">
-                <span class="file-name">${file.original_filename}</span>
+            <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                </div>
             </div>
             <div class="file-actions">
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
@@ -2910,7 +2918,8 @@ function renderFileTree(files, currentPath = '') {
         `;
 
         if (file.file_type === 'pdf') {
-            fileItem.onclick = () => openPdfInViewer(file.id, file.original_filename);
+            const clickableArea = fileItem.querySelector('.file-clickable-area');
+            clickableArea.onclick = () => openPdfInViewer(file.id, file.original_filename);
         }
 
         fileTree.appendChild(fileItem);
@@ -3055,19 +3064,6 @@ async function openPdfInViewer(fileId, fileName) {
                 window.cleanPDFViewerCalendar = null;
             }
         });
-
-        // Définir le zoom initial à 50% après chargement du PDF
-        if (window.cleanPDFViewerCalendar) {
-            // Attendre que le PDF soit chargé pour ajuster le zoom
-            setTimeout(() => {
-                if (window.cleanPDFViewerCalendar && window.cleanPDFViewerCalendar.scale) {
-                    window.cleanPDFViewerCalendar.scale = 0.6; // 60% pour meilleure lisibilité
-                    if (window.cleanPDFViewerCalendar.renderCurrentPage) {
-                        window.cleanPDFViewerCalendar.renderCurrentPage();
-                    }
-                }
-            }, 500);
-        }
 
         console.log('✅ CleanPDFViewer créé avec succès');
     } catch (error) {
@@ -4807,9 +4803,11 @@ function renderDayFileTree(files, currentPath = '') {
         const icon = getFileIconByType(file.file_type);
 
         fileItem.innerHTML = `
-            <i class="${icon} file-icon"></i>
-            <div class="file-info">
-                <span class="file-name">${file.original_filename}</span>
+            <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                </div>
             </div>
             <div class="file-actions">
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
@@ -4822,7 +4820,8 @@ function renderDayFileTree(files, currentPath = '') {
 
         if (file.file_type === 'pdf') {
             console.log('📄 Création du gestionnaire de clic pour le PDF:', file.original_filename, 'ID:', file.id);
-            fileItem.onclick = () => {
+            const clickableArea = fileItem.querySelector('.file-clickable-area');
+            clickableArea.onclick = () => {
                 console.log('🖱️ Clic sur le fichier PDF:', file.original_filename);
                 openDayPdfInViewer(file.id, file.original_filename);
             };
