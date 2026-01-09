@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "537757123546",
+    "project_id": "profcalendar-a34fa",
+    "storage_bucket": "profcalendar-a34fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537757123546:android:1bef8672a24d78f4b276e3",
+        "android_client_info": {
+          "package_name": "ch.teacherplanner.parents"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKwPxlH6pAFClU2ytruDfMPyVRt8iWp8M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
