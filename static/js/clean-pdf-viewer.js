@@ -35,6 +35,7 @@ class CleanPDFViewer {
             enableAnnotations: options.enableAnnotations !== false,
             autoSaveInterval: options.autoSaveInterval || 2000, // 2 secondes
             initialScale: options.initialScale || null, // Scale initial forcé (null = auto)
+            annotationOffset: options.annotationOffset || {x: 0, y: 0}, // Offset pour les annotations
             ...options
         };
 
@@ -3682,6 +3683,12 @@ class CleanPDFViewer {
             opacity: annotation.opacity
         };
 
+        // Appliquer l'offset si défini (pour compenser les décalages dus au scale)
+        ctx.save();
+        if (this.options.annotationOffset) {
+            ctx.translate(this.options.annotationOffset.x, this.options.annotationOffset.y);
+        }
+
         if (this.annotationTools) {
             switch (annotation.tool) {
                 case 'pen':
@@ -3803,6 +3810,9 @@ class CleanPDFViewer {
             ctx.stroke();
             ctx.globalAlpha = 1.0;
         }
+
+        // Restaurer le contexte après avoir appliqué l'offset
+        ctx.restore();
     }
 
     /**
