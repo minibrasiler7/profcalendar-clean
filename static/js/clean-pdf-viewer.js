@@ -43,7 +43,7 @@ class CleanPDFViewer {
         this.pdf = null;
         this.currentPage = 1;
         this.totalPages = 0;
-        this.scale = this.options.initialScale || 1.0; // Utiliser initialScale si fourni
+        this.scale = 1.0;
         this.rotation = 0;
 
         // Pages (originales + ajoutées)
@@ -1878,8 +1878,7 @@ class CleanPDFViewer {
         const calculatedScale = targetWidth / baseViewport.width;
 
         // Utiliser le scale calculé ou le scale actuel (pour le zoom)
-        // Si initialScale est fourni, toujours l'utiliser au lieu du calculatedScale
-        const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
+        const scale = this.scale === 1.0 ? calculatedScale : this.scale;
         const viewport = page.getViewport({scale: scale});
 
         pdfCanvas.width = viewport.width;
@@ -1915,7 +1914,7 @@ class CleanPDFViewer {
             const targetWidth = viewerWidth * 0.95;
             const baseViewport = referencePage.getViewport({scale: 1});
             const calculatedScale = targetWidth / baseViewport.width;
-            const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
             const viewport = referencePage.getViewport({scale: scale});
             width = viewport.width;
             height = viewport.height;
@@ -1957,7 +1956,7 @@ class CleanPDFViewer {
             const targetWidth = viewerWidth * 0.95;
             const baseViewport = referencePage.getViewport({scale: 1});
             const calculatedScale = targetWidth / baseViewport.width;
-            const scale = this.options.initialScale ? this.scale : (this.scale === 1.0 ? calculatedScale : this.scale);
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
             const viewport = referencePage.getViewport({scale: scale});
             width = viewport.width;
             height = viewport.height;
@@ -3683,12 +3682,6 @@ class CleanPDFViewer {
             opacity: annotation.opacity
         };
 
-        // Appliquer l'offset si défini (pour compenser les décalages dus au scale)
-        ctx.save();
-        if (this.options.annotationOffset) {
-            ctx.translate(this.options.annotationOffset.x, this.options.annotationOffset.y);
-        }
-
         if (this.annotationTools) {
             switch (annotation.tool) {
                 case 'pen':
@@ -3810,9 +3803,6 @@ class CleanPDFViewer {
             ctx.stroke();
             ctx.globalAlpha = 1.0;
         }
-
-        // Restaurer le contexte après avoir appliqué l'offset
-        ctx.restore();
     }
 
     /**

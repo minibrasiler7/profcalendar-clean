@@ -1366,9 +1366,10 @@ if (typeof pdfjsLib !== 'undefined') {
 
 #pdf-viewer-container-calendar .thumbnail-canvas,
 #pdf-viewer-container-day .thumbnail-canvas {
-    height: 70px !important;
     width: 100% !important;
+    height: auto !important;
     display: block !important;
+    visibility: visible !important;
 }
 
 #pdf-viewer-container-calendar .thumbnail-number,
@@ -3072,9 +3073,6 @@ async function openPdfInViewer(fileId, fileName) {
         }
 
         // Créer l'instance du nouveau lecteur clean
-        // IMPORTANT: initialScale est doublé car le conteneur fait 50% de la largeur
-        // Cela permet de garder les annotations à la bonne taille relative au PDF
-        // annotationOffset: décale les annotations pour compenser le décalage dû au scale
         window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
             fileId: fileId,
             pdfUrl: pdfUrl,
@@ -3082,8 +3080,6 @@ async function openPdfInViewer(fileId, fileName) {
             enableAnnotations: true,
             autoSaveInterval: 5000,
             studentData: studentsData,
-            initialScale: 2.0,  // 2x le scale normal pour compenser la largeur 50%
-            annotationOffset: {x: 10, y: 50},  // Décalage pour aligner les annotations
             onClose: () => {
                 container.style.display = 'none';
                 window.cleanPDFViewerCalendar = null;
