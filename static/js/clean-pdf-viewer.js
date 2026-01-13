@@ -1652,6 +1652,8 @@ class CleanPDFViewer {
     async renderThumbnails() {
         console.log('[renderThumbnails] Début - pageOrder.length:', this.pageOrder.length);
         console.log('[renderThumbnails] thumbnailsContainer:', this.elements.thumbnailsContainer);
+        console.log('[renderThumbnails] thumbnailsContainer display:', window.getComputedStyle(this.elements.thumbnailsContainer).display);
+        console.log('[renderThumbnails] thumbnailsContainer dimensions:', this.elements.thumbnailsContainer.offsetWidth, 'x', this.elements.thumbnailsContainer.offsetHeight);
         this.elements.thumbnailsContainer.innerHTML = '';
 
         for (let i = 0; i < this.pageOrder.length; i++) {
@@ -1659,9 +1661,12 @@ class CleanPDFViewer {
             const pageNumber = i + 1; // Numéro séquentiel (1, 2, 3, ...)
             console.log('[renderThumbnails] Création miniature pour pageId:', pageId, 'pageNumber:', pageNumber);
             const thumbnailItem = await this.createThumbnail(pageId, pageNumber);
+            console.log('[renderThumbnails] thumbnailItem créé:', thumbnailItem);
             this.elements.thumbnailsContainer.appendChild(thumbnailItem);
+            console.log('[renderThumbnails] thumbnailItem ajouté au DOM');
         }
         console.log('[renderThumbnails] Terminé - miniatures rendues:', this.pageOrder.length);
+        console.log('[renderThumbnails] thumbnailsContainer final children count:', this.elements.thumbnailsContainer.children.length);
     }
 
     /**
@@ -1793,19 +1798,24 @@ class CleanPDFViewer {
      */
     async renderThumbnailCanvas(canvas, pageNum) {
         console.log('[renderThumbnailCanvas] Rendu miniature page:', pageNum);
+        console.log('[renderThumbnailCanvas] Canvas element:', canvas);
+        console.log('[renderThumbnailCanvas] Canvas parent:', canvas.parentElement);
+
         const page = await this.pdf.getPage(pageNum);
         const viewport = page.getViewport({scale: 0.2});
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        console.log('[renderThumbnailCanvas] Canvas dimensions:', canvas.width, 'x', canvas.height);
+        console.log('[renderThumbnailCanvas] Canvas dimensions SET TO:', canvas.width, 'x', canvas.height);
+        console.log('[renderThumbnailCanvas] Canvas style:', window.getComputedStyle(canvas).display, window.getComputedStyle(canvas).width, window.getComputedStyle(canvas).height);
 
         const ctx = canvas.getContext('2d');
         await page.render({
             canvasContext: ctx,
             viewport: viewport
         }).promise;
-        console.log('[renderThumbnailCanvas] Miniature rendue pour page:', pageNum);
+        console.log('[renderThumbnailCanvas] ✅ Miniature rendue pour page:', pageNum);
+        console.log('[renderThumbnailCanvas] Canvas AFTER render - displayed dimensions:', canvas.offsetWidth, 'x', canvas.offsetHeight);
     }
 
     /**
@@ -1880,6 +1890,9 @@ class CleanPDFViewer {
         // Utiliser le scale calculé ou le scale actuel (pour le zoom)
         const scale = this.scale === 1.0 ? calculatedScale : this.scale;
         const viewport = page.getViewport({scale: scale});
+
+        // Stocker le scale actuel pour l'utiliser lors de la création d'annotations
+        this.currentScale = scale;
 
         pdfCanvas.width = viewport.width;
         pdfCanvas.height = viewport.height;
@@ -3682,6 +3695,19 @@ class CleanPDFViewer {
             opacity: annotation.opacity
         };
 
+        // Calculer le ratio de scale si l'annotation a été créée à un scale différent
+        let scaleRatio = 1.0;
+        if (annotation.originalScale && this.currentScale && annotation.originalScale !== this.currentScale) {
+            scaleRatio = this.currentScale / annotation.originalScale;
+            console.log('[DrawAnnotation] Scale transformation - original:', annotation.originalScale, 'current:', this.currentScale, 'ratio:', scaleRatio);
+        }
+
+        // Appliquer la transformation de scale si nécessaire
+        ctx.save();
+        if (scaleRatio !== 1.0) {
+            ctx.scale(scaleRatio, scaleRatio);
+        }
+
         if (this.annotationTools) {
             switch (annotation.tool) {
                 case 'pen':
@@ -3803,6 +3829,9 @@ class CleanPDFViewer {
             ctx.stroke();
             ctx.globalAlpha = 1.0;
         }
+
+        // Restaurer le contexte après transformation
+        ctx.restore();
     }
 
     /**
@@ -3821,6 +3850,11 @@ class CleanPDFViewer {
 
         // Ajouter un ID unique à l'annotation pour la traçabilité
         annotation.id = Date.now() + '_' + Math.random();
+
+        // Ajouter le scale actuel si pas déjà présent (pour adapter le rendu plus tard)
+        if (!annotation.originalScale && this.currentScale) {
+            annotation.originalScale = this.currentScale;
+        }
 
         // Ajouter à l'historique
         this.annotationHistory.push({
