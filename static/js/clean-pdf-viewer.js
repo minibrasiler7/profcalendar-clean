@@ -3735,6 +3735,30 @@ class CleanPDFViewer {
             console.log('[DrawAnnotation] Points transformés - premier point original:', annotation.points[0], 'transformé:', pointsToUse[0]);
         }
 
+        // Appliquer l'offset Y si spécifié dans les options du viewer (uniquement pour /calendar)
+        const offsetY = this.options.annotationOffsetY || 0;
+        if (offsetY !== 0 && pointsToUse && pointsToUse.length > 0) {
+            // Si pointsToUse n'a pas été transformé, c'est une référence à annotation.points
+            // On doit faire une copie pour ne pas modifier l'original
+            if (pointsToUse === annotation.points) {
+                if (Array.isArray(pointsToUse[0])) {
+                    pointsToUse = pointsToUse.map(p => [...p]);
+                } else if (pointsToUse[0].x !== undefined) {
+                    pointsToUse = pointsToUse.map(p => ({...p}));
+                }
+            }
+
+            // Appliquer l'offset Y
+            if (Array.isArray(pointsToUse[0])) {
+                // Format tableau [[x,y], [x,y], ...]
+                pointsToUse = pointsToUse.map(p => [p[0], p[1] + offsetY]);
+            } else if (pointsToUse[0].x !== undefined) {
+                // Format objet [{x,y}, {x,y}, ...]
+                pointsToUse = pointsToUse.map(p => ({x: p.x, y: p.y + offsetY}));
+            }
+            console.log('[DrawAnnotation] Offset Y appliqué:', offsetY, 'px');
+        }
+
         ctx.save();
 
         if (this.annotationTools) {

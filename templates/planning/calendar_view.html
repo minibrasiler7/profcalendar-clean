@@ -3093,6 +3093,7 @@ async function openPdfInViewer(fileId, fileName) {
             showSidebar: true,
             enableAnnotations: true,
             autoSaveInterval: 5000,
+            annotationOffsetY: 50, // Décaler les annotations de 50px vers le bas
             studentData: studentsData,
             onClose: () => {
                 container.style.display = 'none';
@@ -4985,6 +4986,7 @@ async function openDayPdfInViewer(fileId, fileName) {
             showSidebar: true,
             enableAnnotations: true,
             autoSaveInterval: 5000,
+            annotationOffsetY: 50, // Décaler les annotations de 50px vers le bas
             studentData: studentsData,
             onClose: () => {
                 container.style.display = 'none';
