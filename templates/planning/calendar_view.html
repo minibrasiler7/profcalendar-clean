@@ -1381,8 +1381,9 @@ if (typeof pdfjsLib !== 'undefined') {
 /* S'assurer que le conteneur des vignettes est visible */
 #pdf-viewer-container-calendar .thumbnails-container,
 #pdf-viewer-container-day .thumbnails-container {
-    display: flex !important;
-    flex-direction: column !important;
+    display: grid !important;
+    min-height: 200px !important;
+    height: auto !important;
 }
 
 #pdf-viewer-container-calendar .thumbnail-wrapper,

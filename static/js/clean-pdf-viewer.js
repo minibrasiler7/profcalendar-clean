@@ -3695,31 +3695,44 @@ class CleanPDFViewer {
             opacity: annotation.opacity
         };
 
-        // Calculer le ratio de scale si l'annotation a été créée à un scale différent
-        let scaleRatio = 1.0;
-        if (annotation.originalScale && this.currentScale && annotation.originalScale !== this.currentScale) {
-            scaleRatio = this.currentScale / annotation.originalScale;
-            console.log('[DrawAnnotation] Scale transformation - original:', annotation.originalScale, 'current:', this.currentScale, 'ratio:', scaleRatio);
+        // Calculer le ratio de transformation basé sur les dimensions du canvas
+        let scaleRatioX = 1.0;
+        let scaleRatioY = 1.0;
+
+        // Obtenir les dimensions actuelles du canvas
+        const currentCanvas = ctx.canvas;
+        const currentWidth = currentCanvas.width;
+        const currentHeight = currentCanvas.height;
+
+        // Si l'annotation a été créée sur un canvas de taille différente, recalculer les coordonnées
+        if (annotation.canvasWidth && annotation.canvasHeight) {
+            if (annotation.canvasWidth !== currentWidth || annotation.canvasHeight !== currentHeight) {
+                scaleRatioX = currentWidth / annotation.canvasWidth;
+                scaleRatioY = currentHeight / annotation.canvasHeight;
+                console.log('[DrawAnnotation] Canvas transformation - original:', annotation.canvasWidth, 'x', annotation.canvasHeight,
+                           'actuel:', currentWidth, 'x', currentHeight, 'ratios:', scaleRatioX, 'x', scaleRatioY);
+            }
         }
 
         // Transformer les points et la taille si nécessaire
         let pointsToUse = annotation.points;
         let optionsToUse = options;
 
-        if (scaleRatio !== 1.0 && annotation.points) {
+        if ((scaleRatioX !== 1.0 || scaleRatioY !== 1.0) && annotation.points) {
             // Transformer chaque point selon le format (tableau [x,y] ou objet {x,y})
             if (annotation.points.length > 0) {
                 if (Array.isArray(annotation.points[0])) {
                     // Format tableau [[x,y], [x,y], ...] utilisé par pen/highlighter
-                    pointsToUse = annotation.points.map(p => [p[0] * scaleRatio, p[1] * scaleRatio]);
+                    pointsToUse = annotation.points.map(p => [p[0] * scaleRatioX, p[1] * scaleRatioY]);
                 } else if (annotation.points[0].x !== undefined) {
                     // Format objet [{x,y}, {x,y}, ...] utilisé par les autres outils
-                    pointsToUse = annotation.points.map(p => ({x: p.x * scaleRatio, y: p.y * scaleRatio}));
+                    pointsToUse = annotation.points.map(p => ({x: p.x * scaleRatioX, y: p.y * scaleRatioY}));
                 }
             }
-            // Transformer la taille du trait
-            optionsToUse = {...options, size: (options.size || 2) * scaleRatio};
-            console.log('[DrawAnnotation] Points transformés - premier point original:', annotation.points[0], 'transformé:', pointsToUse[0], 'scaleRatio:', scaleRatio);
+            // Transformer la taille du trait (utiliser la moyenne des ratios)
+            const avgRatio = (scaleRatioX + scaleRatioY) / 2;
+            optionsToUse = {...options, size: (options.size || 2) * avgRatio};
+            console.log('[DrawAnnotation] Points transformés - premier point original:', annotation.points[0], 'transformé:', pointsToUse[0]);
         }
 
         ctx.save();
@@ -3816,13 +3829,11 @@ class CleanPDFViewer {
                     break;
 
                 case 'grid':
-                    console.log('[Draw] Grid case - canvasWidth:', annotation.canvasWidth, 'canvasHeight:', annotation.canvasHeight);
+                    console.log('[Draw] Grid case - stored canvasWidth:', annotation.canvasWidth, 'canvasHeight:', annotation.canvasHeight);
                     if (annotation.canvasWidth && annotation.canvasHeight) {
-                        console.log('[Draw] Calling drawGrid');
-                        // Transformer les dimensions du canvas si nécessaire
-                        const gridWidth = scaleRatio !== 1.0 ? annotation.canvasWidth * scaleRatio : annotation.canvasWidth;
-                        const gridHeight = scaleRatio !== 1.0 ? annotation.canvasHeight * scaleRatio : annotation.canvasHeight;
-                        this.annotationTools.drawGrid(ctx, gridWidth, gridHeight);
+                        console.log('[Draw] Calling drawGrid with current canvas dimensions');
+                        // Pour la grille, utiliser les dimensions ACTUELLES du canvas (pas les dimensions sauvegardées)
+                        this.annotationTools.drawGrid(ctx, currentWidth, currentHeight);
                         console.log('[Draw] drawGrid completed');
                     } else {
                         console.warn('[Draw] Grid missing dimensions');
@@ -3870,9 +3881,14 @@ class CleanPDFViewer {
         // Ajouter un ID unique à l'annotation pour la traçabilité
         annotation.id = Date.now() + '_' + Math.random();
 
-        // Ajouter le scale actuel si pas déjà présent (pour adapter le rendu plus tard)
-        if (!annotation.originalScale && this.currentScale) {
-            annotation.originalScale = this.currentScale;
+        // Sauvegarder les dimensions du canvas pour recalculer les coordonnées plus tard
+        if (!annotation.canvasWidth || !annotation.canvasHeight) {
+            const canvas = this.pages.get(pageId)?.annotationCanvas;
+            if (canvas) {
+                annotation.canvasWidth = canvas.width;
+                annotation.canvasHeight = canvas.height;
+                console.log('[History] Sauvegarde dimensions canvas:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+            }
         }
 
         // Ajouter à l'historique
@@ -6036,6 +6052,15 @@ class CleanPDFViewer {
 
                         // Ajouter chaque annotation à la page ET à l'historique
                         for (const annotation of pageAnnotations) {
+                            // Migrer les annotations legacy sans canvasWidth/canvasHeight
+                            // Assumer qu'elles ont été créées sur un canvas "standard" (viewer plein écran sur /lesson)
+                            // Taille de référence : PDF A4 à scale ~1.7 = 1200x1697 pixels
+                            if (!annotation.canvasWidth || !annotation.canvasHeight) {
+                                annotation.canvasWidth = 1200;
+                                annotation.canvasHeight = 1697;
+                                console.log('[Load] Migration annotation legacy - assigné dimensions par défaut:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+                            }
+
                             // Ajouter à la Map des annotations
                             this.annotations.get(pageId).push(annotation);
 
