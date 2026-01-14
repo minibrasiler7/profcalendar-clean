@@ -1407,6 +1407,19 @@ if (typeof pdfjsLib !== 'undefined') {
     max-width: 100% !important;
 }
 
+/* Retirer le padding du pdf-viewer qui crée un décalage des annotations */
+#pdf-viewer-container-calendar .pdf-viewer,
+#pdf-viewer-container-day .pdf-viewer {
+    padding: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Ajouter un petit padding uniquement autour du contenu si nécessaire */
+#pdf-viewer-container-calendar .pdf-pages-container,
+#pdf-viewer-container-day .pdf-pages-container {
+    padding: 8px !important;
+}
+
 #pdf-viewer-container-calendar input[type="number"],
 #pdf-viewer-container-day input[type="number"],
 #pdf-viewer-container-calendar select,
