@@ -3702,29 +3702,45 @@ class CleanPDFViewer {
             console.log('[DrawAnnotation] Scale transformation - original:', annotation.originalScale, 'current:', this.currentScale, 'ratio:', scaleRatio);
         }
 
-        // Appliquer la transformation de scale si nécessaire
-        ctx.save();
-        if (scaleRatio !== 1.0) {
-            ctx.scale(scaleRatio, scaleRatio);
+        // Transformer les points et la taille si nécessaire
+        let pointsToUse = annotation.points;
+        let optionsToUse = options;
+
+        if (scaleRatio !== 1.0 && annotation.points) {
+            // Transformer chaque point selon le format (tableau [x,y] ou objet {x,y})
+            if (annotation.points.length > 0) {
+                if (Array.isArray(annotation.points[0])) {
+                    // Format tableau [[x,y], [x,y], ...] utilisé par pen/highlighter
+                    pointsToUse = annotation.points.map(p => [p[0] * scaleRatio, p[1] * scaleRatio]);
+                } else if (annotation.points[0].x !== undefined) {
+                    // Format objet [{x,y}, {x,y}, ...] utilisé par les autres outils
+                    pointsToUse = annotation.points.map(p => ({x: p.x * scaleRatio, y: p.y * scaleRatio}));
+                }
+            }
+            // Transformer la taille du trait
+            optionsToUse = {...options, size: (options.size || 2) * scaleRatio};
+            console.log('[DrawAnnotation] Points transformés - premier point original:', annotation.points[0], 'transformé:', pointsToUse[0], 'scaleRatio:', scaleRatio);
         }
+
+        ctx.save();
 
         if (this.annotationTools) {
             switch (annotation.tool) {
                 case 'pen':
                 case 'highlighter':
-                    this.annotationTools.drawWithPerfectFreehand(ctx, annotation.points, options);
+                    this.annotationTools.drawWithPerfectFreehand(ctx, pointsToUse, optionsToUse);
                     break;
 
                 case 'pen-line':
                     // Ligne droite sans mesure (créée par détection automatique)
-                    if (annotation.points.length >= 2) {
-                        const start = annotation.points[0];
-                        const end = annotation.points[annotation.points.length - 1];
+                    if (pointsToUse.length >= 2) {
+                        const start = pointsToUse[0];
+                        const end = pointsToUse[pointsToUse.length - 1];
                         // Dessiner juste une ligne droite simple, sans la mesure
                         ctx.save();
-                        ctx.strokeStyle = options.color || '#000000';
-                        ctx.lineWidth = options.size || 2;
-                        ctx.globalAlpha = options.opacity || 1.0;
+                        ctx.strokeStyle = optionsToUse.color || '#000000';
+                        ctx.lineWidth = optionsToUse.size || 2;
+                        ctx.globalAlpha = optionsToUse.opacity || 1.0;
                         ctx.lineCap = 'round';
                         ctx.beginPath();
                         ctx.moveTo(start.x, start.y);
@@ -3735,67 +3751,67 @@ class CleanPDFViewer {
                     break;
 
                 case 'ruler':
-                    if (annotation.points.length >= 2) {
-                        const start = annotation.points[0];
-                        const end = annotation.points[annotation.points.length - 1];
-                        this.annotationTools.drawRuler(ctx, start, end, options);
+                    if (pointsToUse.length >= 2) {
+                        const start = pointsToUse[0];
+                        const end = pointsToUse[pointsToUse.length - 1];
+                        this.annotationTools.drawRuler(ctx, start, end, optionsToUse);
                     }
                     break;
 
                 case 'compass':
-                    if (annotation.points.length >= 2) {
-                        const center = annotation.points[0];
-                        const edge = annotation.points[annotation.points.length - 1];
+                    if (pointsToUse.length >= 2) {
+                        const center = pointsToUse[0];
+                        const edge = pointsToUse[pointsToUse.length - 1];
                         const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
-                        this.annotationTools.drawCompass(ctx, center, radius, options);
+                        this.annotationTools.drawCompass(ctx, center, radius, optionsToUse);
                     }
                     break;
 
                 case 'angle':
-                    if (annotation.points.length >= 3) {
-                        const center = annotation.points[0];
-                        const point1 = annotation.points[1];
-                        const point2 = annotation.points[annotation.points.length - 1];
-                        this.annotationTools.drawAngle(ctx, center, point1, point2, options);
+                    if (pointsToUse.length >= 3) {
+                        const center = pointsToUse[0];
+                        const point1 = pointsToUse[1];
+                        const point2 = pointsToUse[pointsToUse.length - 1];
+                        this.annotationTools.drawAngle(ctx, center, point1, point2, optionsToUse);
                     }
                     break;
 
                 case 'arc':
-                    if (annotation.points.length >= 3) {
-                        const center = annotation.points[0];
-                        const start = annotation.points[1];
-                        const end = annotation.points[annotation.points.length - 1];
+                    if (pointsToUse.length >= 3) {
+                        const center = pointsToUse[0];
+                        const start = pointsToUse[1];
+                        const end = pointsToUse[pointsToUse.length - 1];
                         const radius = Math.sqrt((start.x - center.x) ** 2 + (start.y - center.y) ** 2);
                         const startAngle = Math.atan2(start.y - center.y, start.x - center.x);
                         const endAngle = Math.atan2(end.y - center.y, end.x - center.x);
                         // Passer les angles visités si disponibles
-                        const arcOptions = {...options, visitedAngles: annotation.visitedAngles};
+                        const arcOptions = {...optionsToUse, visitedAngles: annotation.visitedAngles};
                         this.annotationTools.drawArc(ctx, center, radius, startAngle, endAngle, arcOptions);
                     }
                     break;
 
                 case 'arrow':
-                    if (annotation.points.length >= 2) {
-                        const start = annotation.points[0];
-                        const end = annotation.points[annotation.points.length - 1];
-                        this.annotationTools.drawArrow(ctx, start, end, options);
+                    if (pointsToUse.length >= 2) {
+                        const start = pointsToUse[0];
+                        const end = pointsToUse[pointsToUse.length - 1];
+                        this.annotationTools.drawArrow(ctx, start, end, optionsToUse);
                     }
                     break;
 
                 case 'rectangle':
-                    if (annotation.points.length >= 2) {
-                        const start = annotation.points[0];
-                        const end = annotation.points[annotation.points.length - 1];
-                        this.annotationTools.drawRectangle(ctx, start, end, options);
+                    if (pointsToUse.length >= 2) {
+                        const start = pointsToUse[0];
+                        const end = pointsToUse[pointsToUse.length - 1];
+                        this.annotationTools.drawRectangle(ctx, start, end, optionsToUse);
                     }
                     break;
 
                 case 'disk':
-                    if (annotation.points.length >= 2) {
-                        const center = annotation.points[0];
-                        const edge = annotation.points[annotation.points.length - 1];
+                    if (pointsToUse.length >= 2) {
+                        const center = pointsToUse[0];
+                        const edge = pointsToUse[pointsToUse.length - 1];
                         const radius = Math.sqrt((edge.x - center.x) ** 2 + (edge.y - center.y) ** 2);
-                        this.annotationTools.drawDisk(ctx, center, radius, options);
+                        this.annotationTools.drawDisk(ctx, center, radius, optionsToUse);
                     }
                     break;
 
@@ -3803,7 +3819,10 @@ class CleanPDFViewer {
                     console.log('[Draw] Grid case - canvasWidth:', annotation.canvasWidth, 'canvasHeight:', annotation.canvasHeight);
                     if (annotation.canvasWidth && annotation.canvasHeight) {
                         console.log('[Draw] Calling drawGrid');
-                        this.annotationTools.drawGrid(ctx, annotation.canvasWidth, annotation.canvasHeight);
+                        // Transformer les dimensions du canvas si nécessaire
+                        const gridWidth = scaleRatio !== 1.0 ? annotation.canvasWidth * scaleRatio : annotation.canvasWidth;
+                        const gridHeight = scaleRatio !== 1.0 ? annotation.canvasHeight * scaleRatio : annotation.canvasHeight;
+                        this.annotationTools.drawGrid(ctx, gridWidth, gridHeight);
                         console.log('[Draw] drawGrid completed');
                     } else {
                         console.warn('[Draw] Grid missing dimensions');
@@ -3811,20 +3830,20 @@ class CleanPDFViewer {
                     break;
 
                 default:
-                    this.annotationTools.drawSimple(ctx, annotation.points, options);
+                    this.annotationTools.drawSimple(ctx, pointsToUse, optionsToUse);
             }
         } else {
             // Fallback
             ctx.strokeStyle = annotation.color;
-            ctx.lineWidth = annotation.size;
+            ctx.lineWidth = optionsToUse.size;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.globalAlpha = annotation.opacity;
 
             ctx.beginPath();
-            ctx.moveTo(annotation.points[0].x, annotation.points[0].y);
-            for (let i = 1; i < annotation.points.length; i++) {
-                ctx.lineTo(annotation.points[i].x, annotation.points[i].y);
+            ctx.moveTo(pointsToUse[0].x, pointsToUse[0].y);
+            for (let i = 1; i < pointsToUse.length; i++) {
+                ctx.lineTo(pointsToUse[i].x, pointsToUse[i].y);
             }
             ctx.stroke();
             ctx.globalAlpha = 1.0;
