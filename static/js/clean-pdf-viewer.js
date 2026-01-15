@@ -3709,6 +3709,15 @@ class CleanPDFViewer {
             if (annotation.canvasWidth !== currentWidth || annotation.canvasHeight !== currentHeight) {
                 scaleRatioX = currentWidth / annotation.canvasWidth;
                 scaleRatioY = currentHeight / annotation.canvasHeight;
+
+                // Appliquer le multiplicateur de scale si spécifié (pour ajuster finement l'alignement)
+                const scaleMultiplier = this.options.annotationScaleMultiplier || 1.0;
+                if (scaleMultiplier !== 1.0) {
+                    scaleRatioX *= scaleMultiplier;
+                    scaleRatioY *= scaleMultiplier;
+                    console.log('[DrawAnnotation] Scale multiplier appliqué:', scaleMultiplier);
+                }
+
                 console.log('[DrawAnnotation] Canvas transformation - original:', annotation.canvasWidth, 'x', annotation.canvasHeight,
                            'actuel:', currentWidth, 'x', currentHeight, 'ratios:', scaleRatioX, 'x', scaleRatioY);
             }
