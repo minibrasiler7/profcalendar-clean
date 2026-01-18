@@ -129,6 +129,8 @@ class CleanPDFViewer {
         if (this.options.pdfUrl) {
             console.log('[Init] Chargement du PDF:', this.options.pdfUrl);
             await this.loadPDF(this.options.pdfUrl);
+        } else {
+            console.log('[Init] Aucun PDF fourni - mode pages blanches');
         }
 
         // Charger les annotations sauvegardées
@@ -138,6 +140,22 @@ class CleanPDFViewer {
             await this.loadAnnotations();
         } else {
             console.log('[Init] Pas de fileId, annotations non chargées');
+        }
+
+        // Si aucune page n'existe après le chargement, créer une première page blanche
+        if (this.pageOrder.length === 0) {
+            console.log('[Init] Aucune page trouvée, création d\'une première page blanche');
+            const newPageId = `blank_${Date.now()}`;
+            this.pages.set(newPageId, {type: 'blank', data: {}});
+            this.pageOrder.push(newPageId);
+            this.totalPages = 1;
+            this.currentPage = newPageId;
+
+            // Re-rendre
+            await this.renderThumbnails();
+            await this.renderPages();
+
+            this.isDirty = true; // Marquer comme modifié pour forcer la première sauvegarde
         }
 
         // Démarrer l'auto-save
