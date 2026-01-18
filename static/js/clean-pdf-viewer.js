@@ -6633,23 +6633,14 @@ class CleanPDFViewer {
             console.log('[SetSquare] Gestionnaires globaux de blocage retirés');
         }
 
-        // Retirer les gestionnaires pointer de l'équerre
-        if (this.setSquarePointerDownHandler) {
-            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler);
-            this.setSquarePointerDownHandler = null;
-        }
-        if (this.setSquarePointerMoveHandler) {
-            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler);
-            this.setSquarePointerMoveHandler = null;
-        }
-        if (this.setSquarePointerUpHandler) {
-            document.removeEventListener('pointerup', this.setSquarePointerUpHandler);
-            this.setSquarePointerUpHandler = null;
-        }
-        if (this.setSquarePointerCancelHandler) {
-            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler);
-            this.setSquarePointerCancelHandler = null;
-        }
+        // NOTE: On ne retire PAS les gestionnaires pointer de l'équerre
+        // car ils vérifient déjà this.setSquareActive et retournent immédiatement si false.
+        // Cela évite d'avoir à les réattacher à chaque réactivation de l'équerre.
+        // Les gestionnaires restent attachés mais inactifs quand l'équerre est cachée.
+
+        // CORRECTION BUG: Si on retire les gestionnaires ici, ils ne sont pas réattachés
+        // lors de la réactivation (car showSetSquare() ne les attache que lors de la création initiale).
+        // Résultat: l'équerre ne peut plus tourner ni se déplacer après la première désactivation.
 
         console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
     }
