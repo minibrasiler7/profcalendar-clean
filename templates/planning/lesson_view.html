@@ -1413,6 +1413,9 @@ input, textarea, select {
                     <button class="resource-btn" onclick="refreshResources()" title="Actualiser">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <button class="add-resource-btn" onclick="openBlankPages()" title="Créer des feuilles blanches" style="margin-right: 0.5rem;">
+                        <i class="fas fa-file-medical"></i> Feuilles blanches
+                    </button>
                     <a href="{{ url_for('file_manager.index') }}" class="add-resource-btn" target="_blank">
                         <i class="fas fa-plus"></i> Gestionnaire
                     </a>
@@ -8792,10 +8795,72 @@ function openFileWithUnifiedViewer(filePath, fileName) {
 // closeFileViewer() est défini plus haut dans le fichier (ligne ~5354)
 // Ne pas dupliquer la fonction ici
 
+// Fonction pour ouvrir le viewer avec des pages blanches
+function openBlankPages() {
+    console.log('📄 Ouverture du viewer avec des pages blanches');
+
+    // Afficher la modal
+    const modal = document.getElementById('fileViewerModal');
+    if (!modal) {
+        console.error('Modal fileViewerModal non trouvée');
+        return;
+    }
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Vérifier la disponibilité des données des élèves
+    if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
+        console.warn('studentsData non défini, utilisation d'un tableau vide');
+        studentsData = [];
+    }
+
+    // Afficher le container du viewer
+    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    if (viewerContainer) {
+        viewerContainer.style.display = 'block';
+    }
+
+    // Créer un ID spécial pour les pages blanches basé sur la leçon actuelle
+    {% if lesson %}
+    const blankPagesId = 'blank_lesson_{{ lesson.id }}';
+    {% else %}
+    const blankPagesId = 'blank_lesson_new';
+    {% endif %}
+
+    // Créer l'instance du viewer pour pages blanches
+    if (!cleanPDFViewer) {
+        try {
+            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                fileId: blankPagesId, // ID spécial pour sauvegarder les pages blanches
+                pdfUrl: null, // Pas de PDF à charger
+                showSidebar: true,
+                enableAnnotations: true,
+                autoSaveInterval: 5000,
+                studentData: studentsData,
+                onClose: () => {
+                    if (viewerContainer) {
+                        viewerContainer.style.display = 'none';
+                    }
+                    cleanPDFViewer = null;
+                }
+            });
+
+            console.log('✅ Viewer avec pages blanches créé, ID:', blankPagesId);
+        } catch (error) {
+            console.error('❌ Erreur lors de la création du viewer:', error);
+            alert('Erreur lors de la création du viewer: ' + error.message);
+            return;
+        }
+    } else {
+        console.warn('Le viewer est déjà ouvert. Fermez-le d\'abord.');
+    }
+}
+
 // Fonction modifiée pour ouvrir les fichiers (remplace l'ancienne fonction openFile)
 function openFile(filePath, fileName, fileType) {
     console.log('📁 Ouverture du fichier:', fileName, 'Type:', fileType);
-    
+
     if (fileType === 'pdf') {
         // Utiliser le nouveau lecteur unifié pour les PDF
         openFileWithUnifiedViewer(filePath, fileName);

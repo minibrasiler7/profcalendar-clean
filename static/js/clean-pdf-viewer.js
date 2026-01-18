@@ -242,6 +242,10 @@ class CleanPDFViewer {
                             <i class="fas fa-trash"></i>
                         </button>
                         <div class="separator"></div>
+                        <button class="btn-action" id="btn-add-blank-page" title="Ajouter une page blanche">
+                            <i class="fas fa-file-medical"></i>
+                        </button>
+                        <div class="separator"></div>
                         <button class="btn-action" id="btn-download" title="Télécharger/Envoyer">
                             <i class="fas fa-download"></i>
                         </button>
@@ -310,6 +314,7 @@ class CleanPDFViewer {
             btnUndo: this.container.querySelector('#btn-undo'),
             btnRedo: this.container.querySelector('#btn-redo'),
             btnClearPage: this.container.querySelector('#btn-clear-page'),
+            btnAddBlankPage: this.container.querySelector('#btn-add-blank-page'),
             btnDownload: this.container.querySelector('#btn-download'),
             btnClose: this.container.querySelector('#btn-close'),
             loading: this.container.querySelector('#pdf-loading'),
@@ -1223,6 +1228,7 @@ class CleanPDFViewer {
         this.elements.btnUndo.addEventListener('click', () => this.undo());
         this.elements.btnRedo.addEventListener('click', () => this.redo());
         this.elements.btnClearPage.addEventListener('click', () => this.clearCurrentPage());
+        this.elements.btnAddBlankPage.addEventListener('click', () => this.addBlankPageAfterCurrent());
         this.elements.btnDownload.addEventListener('click', () => this.showDownloadMenu());
         this.elements.btnClose.addEventListener('click', () => this.close());
 
@@ -5219,6 +5225,51 @@ class CleanPDFViewer {
         this.goToPage(newPageId);
 
         this.isDirty = true;
+    }
+
+    /**
+     * Ajouter une page blanche après la page courante
+     */
+    async addBlankPageAfterCurrent() {
+        // Si aucune page n'existe (aucun PDF ouvert), créer une première page blanche
+        if (this.pageOrder.length === 0) {
+            console.log('[AddBlankPage] Aucune page existante, création de la première page blanche');
+
+            // Créer la première page blanche
+            const newPageId = `blank_${Date.now()}`;
+            this.pages.set(newPageId, {type: 'blank', data: {}});
+            this.pageOrder.push(newPageId);
+
+            // Mettre à jour le nombre total de pages
+            this.totalPages = 1;
+
+            // Re-rendre
+            await this.renderThumbnails();
+            await this.renderPages();
+
+            // Naviguer vers la nouvelle page
+            this.goToPage(newPageId);
+
+            this.isDirty = true;
+            return;
+        }
+
+        // Utiliser la page courante ou la dernière page si aucune n'est définie
+        let currentPageId = this.currentPage;
+
+        if (!currentPageId && this.pageOrder.length > 0) {
+            currentPageId = this.pageOrder[this.pageOrder.length - 1];
+        }
+
+        if (!currentPageId) {
+            console.warn('[AddBlankPage] Aucune page disponible');
+            return;
+        }
+
+        console.log('[AddBlankPage] Ajout d\'une page blanche après la page:', currentPageId);
+
+        // Utiliser la méthode existante addPage
+        await this.addPage(currentPageId, 'blank');
     }
 
     /**

@@ -1983,9 +1983,14 @@ if (typeof pdfjsLib !== 'undefined') {
     <div class="file-manager-panel" id="fileManagerPanel" style="display: none;">
         <div class="file-manager-header">
             <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
-            <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-icon" onclick="openBlankPagesCalendar()" title="Créer des feuilles blanches">
+                    <i class="fas fa-file-medical"></i>
+                </button>
+                <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="file-manager-content" id="fileManagerContent">
             <!-- Chargement initial -->
@@ -3106,6 +3111,69 @@ async function openPdfInViewer(fileId, fileName) {
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
         alert('Erreur lors du chargement du PDF: ' + error.message);
+    }
+}
+
+// Ouvrir le viewer avec des pages blanches (mode split 50%)
+async function openBlankPagesCalendar() {
+    console.log('📄 Ouverture du viewer avec des pages blanches');
+
+    try {
+        const container = document.getElementById('pdf-viewer-container-calendar');
+        if (!container) {
+            console.error('❌ Conteneur PDF non trouvé');
+            return;
+        }
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
+        // Détruire l'instance précédente si elle existe
+        if (window.cleanPDFViewerCalendar) {
+            window.cleanPDFViewerCalendar.destroy();
+            window.cleanPDFViewerCalendar = null;
+        }
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Créer un ID spécial pour les pages blanches basé sur la classe et la période
+        let blankPagesId = 'blank_calendar';
+        if (selectedClassroomId) {
+            // Si une classe est sélectionnée, utiliser son ID
+            blankPagesId = `blank_calendar_${selectedClassroomId}`;
+        }
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            if (selectedClassroomId) {
+                studentsData = await getStudentsForClass(selectedClassroomId);
+            }
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean pour pages blanches
+        window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+            fileId: blankPagesId, // ID spécial pour sauvegarder les pages blanches
+            pdfUrl: null, // Pas de PDF à charger
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            annotationOffsetY: -10,
+            annotationScaleMultiplier: 1.05,
+            studentData: studentsData,
+            onClose: () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerCalendar = null;
+            }
+        });
+
+        console.log('✅ Viewer avec pages blanches créé, ID:', blankPagesId);
+    } catch (error) {
+        console.error('❌ Erreur lors de la création du viewer:', error);
+        alert('Erreur lors de la création du viewer: ' + error.message);
     }
 }
 
