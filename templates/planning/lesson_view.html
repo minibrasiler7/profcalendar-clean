@@ -8686,16 +8686,7 @@ let cleanPDFViewer = null;
 let currentPDFUrl = null;
 
 // Données des étudiants (définies globalement pour le PDF viewer)
-let studentsData = [
-    {% for student in students %}
-    {
-        id: {{ student.id }},
-        first_name: "{{ student.first_name }}",
-        last_name: "{{ student.last_name or '' }}",
-        full_name: "{{ student.full_name }}"
-    }{% if not loop.last %},{% endif %}
-    {% endfor %}
-];
+let studentsData = {{ students | tojson | safe }};
 
 // Fonction pour ouvrir un fichier avec le nouveau lecteur unifié
 function openFileWithUnifiedViewer(filePath, fileName) {
