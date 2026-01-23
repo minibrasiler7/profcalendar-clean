@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 ProfCalendar - Production App for Render
+Version: 1bc396b - Force Gunicorn reload for template fix
 """
 import os
 from app import create_app
