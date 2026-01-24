@@ -6405,8 +6405,12 @@ class CleanPDFViewer {
                     }
                 }
 
+                // Mettre à jour le nombre total de pages
+                this.totalPages = this.pageOrder.length;
+
                 // Rendre les pages
-                await this.renderAllPages();
+                await this.renderThumbnails();
+                await this.renderPages();
             } else {
                 // Aucune page custom, créer une page blanche par défaut
                 await this.addBlankPageAfterCurrent();
@@ -6420,8 +6424,8 @@ class CleanPDFViewer {
                     this.annotations.set(pageId, pageAnnotations);
                 }
 
-                // Redessiner les annotations
-                this.redrawAllAnnotations();
+                // Les annotations seront automatiquement redessinées lors du renderPages()
+                console.log('[LoadBlankSheet] Annotations chargées en mémoire');
             }
 
             this.isDirty = false;
