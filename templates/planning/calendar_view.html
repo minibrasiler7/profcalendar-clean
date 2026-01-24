@@ -2225,6 +2225,26 @@ if (typeof pdfjsLib !== 'undefined') {
             </div>
 
             <div id="attendanceContent" style="display: none;">
+                <!-- Feuilles blanches -->
+                <div id="blankSheetsSection" style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>
+                            <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
+                            Feuilles blanches (<span id="blankSheetsCount">0</span>)
+                        </span>
+                        <button class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                            <i class="fas fa-plus"></i> Nouvelle
+                        </button>
+                    </h4>
+                    <div id="blankSheetsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les feuilles blanches seront ajoutées ici -->
+                    </div>
+                    <div id="noBlankSheetsMessage" style="display: none; text-align: center; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; color: #92400e;">
+                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                        Aucune feuille blanche pour cette période
+                    </div>
+                </div>
+
                 <!-- Planification de la période -->
                 <div id="planningSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
@@ -6251,6 +6271,86 @@ function escapeHtml(text) {
 
 // ============ GESTION DES PRÉSENCES POUR PÉRIODES PASSÉES ============
 
+/**
+ * Charge les feuilles blanches pour une période
+ */
+async function loadBlankSheetsForPeriod(date, periodNumber, classroomId) {
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        const blankSheetsList = document.getElementById('blankSheetsList');
+        const noBlankSheetsMessage = document.getElementById('noBlankSheetsMessage');
+        const blankSheetsCount = document.getElementById('blankSheetsCount');
+
+        if (data.success && data.sheets && data.sheets.length > 0) {
+            // Afficher les feuilles blanches
+            blankSheetsList.innerHTML = '';
+            data.sheets.forEach(sheet => {
+                const sheetItem = document.createElement('div');
+                sheetItem.className = 'blank-sheet-item';
+                sheetItem.style.cssText = 'padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f59e0b; cursor: pointer;';
+                sheetItem.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-file" style="color: #f59e0b;"></i>
+                        <div>
+                            <div style="font-weight: 500; color: #78350f;">${sheet.title}</div>
+                            <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem;">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                `;
+                sheetItem.onclick = () => openBlankSheetFromModal(sheet.id);
+                blankSheetsList.appendChild(sheetItem);
+            });
+
+            blankSheetsList.style.display = 'grid';
+            noBlankSheetsMessage.style.display = 'none';
+            blankSheetsCount.textContent = data.sheets.length;
+        } else {
+            // Aucune feuille blanche
+            blankSheetsList.style.display = 'none';
+            noBlankSheetsMessage.style.display = 'block';
+            blankSheetsCount.textContent = '0';
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des feuilles blanches:', error);
+    }
+}
+
+/**
+ * Crée une nouvelle feuille blanche depuis le modal de période
+ */
+function createNewBlankSheetFromModal() {
+    if (!window.currentAttendanceContext) {
+        alert('Contexte de période non disponible');
+        return;
+    }
+
+    const { date, periodNumber, classroomId } = window.currentAttendanceContext;
+
+    // Fermer le modal de période
+    closeAttendanceModal();
+
+    // Ouvrir le viewer avec une nouvelle feuille blanche
+    openNewBlankSheetCalendar(date, periodNumber, classroomId);
+}
+
+/**
+ * Ouvre une feuille blanche existante depuis le modal
+ */
+async function openBlankSheetFromModal(sheetId) {
+    console.log('📄 Ouverture feuille blanche depuis modal:', sheetId);
+
+    // Fermer le modal de période
+    closeAttendanceModal();
+
+    // Ouvrir la feuille blanche existante
+    openExistingBlankSheetCalendar(sheetId);
+}
+
 function closeAttendanceModal() {
     const modal = document.getElementById('attendanceModal');
     const overlay = document.getElementById('modalOverlay');
@@ -6288,15 +6388,6 @@ async function openBlankSheetsFromAttendance() {
 }
 
 async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
-    // Vérifier que la période est dans le passé
-    const periodDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (periodDate > today) {
-        return; // Ne rien faire si la période n'est pas encore passée
-    }
-
     // Ouvrir le modal
     const modal = document.getElementById('attendanceModal');
     const overlay = document.getElementById('modalOverlay');
@@ -6310,7 +6401,7 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         month: 'long',
         day: 'numeric'
     });
-    modalTitle.textContent = `Présences - ${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+    modalTitle.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
 
     // Stocker les informations pour le bouton feuilles blanches
     window.currentAttendanceContext = {
@@ -6319,10 +6410,10 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         classroomId: classroomId
     };
 
-    // Afficher le bouton feuilles blanches
+    // Masquer le bouton feuilles blanches (maintenant intégré dans la modal)
     const blankSheetsBtn = document.getElementById('attendanceBlankSheetsBtn');
     if (blankSheetsBtn) {
-        blankSheetsBtn.style.display = 'block';
+        blankSheetsBtn.style.display = 'none';
     }
 
     // Afficher le modal avec l'état de chargement
@@ -6331,22 +6422,24 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
     modal.style.display = 'block';
     overlay.style.display = 'block';
 
+    // Vérifier que la période est dans le passé pour charger les présences
+    const periodDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPastPeriod = periodDate <= today;
+
     try {
-        // Appeler l'API
-        const response = await fetch(
-            `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
-        );
+        // Charger les feuilles blanches (toujours)
+        await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
 
-        const data = await response.json();
-
-        if (!data.success) {
-            showAttendanceError(data.error || 'Erreur lors du chargement des présences');
-            return;
+        // Charger les présences uniquement si période passée
+        let data = null;
+        if (isPastPeriod) {
+            const response = await fetch(
+                `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
+            );
+            data = await response.json();
         }
-
-        // Filtrer les élèves par statut
-        const absentStudents = data.students.filter(s => s.status === 'absent');
-        const lateStudents = data.students.filter(s => s.status === 'late');
 
         // Masquer l'état de chargement
         document.getElementById('attendanceLoadingState').style.display = 'none';
@@ -6360,6 +6453,20 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         document.getElementById('lateStudentsSection').style.display = 'none';
         document.getElementById('allPresentMessage').style.display = 'none';
         document.getElementById('attendanceErrorMessage').style.display = 'none';
+
+        // Si période future, ne pas traiter les présences
+        if (!isPastPeriod) {
+            return;
+        }
+
+        if (!data || !data.success) {
+            showAttendanceError(data?.error || 'Erreur lors du chargement des présences');
+            return;
+        }
+
+        // Filtrer les élèves par statut
+        const absentStudents = data.students.filter(s => s.status === 'absent');
+        const lateStudents = data.students.filter(s => s.status === 'late');
 
         // Afficher la planification si elle existe
         if (data.planning) {

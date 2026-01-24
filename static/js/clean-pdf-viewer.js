@@ -139,13 +139,17 @@ class CleanPDFViewer {
             console.log('[Init] Aucun PDF fourni - mode pages blanches');
         }
 
-        // Charger les annotations sauvegardées
-        console.log('[Init] Vérification fileId:', this.options.fileId);
-        if (this.options.fileId) {
-            console.log('[Init] Appel de loadAnnotations()...');
+        // Charger les annotations sauvegardées OU la feuille blanche
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            // Mode feuille blanche
+            console.log('[Init] Mode feuille blanche détecté, blankSheetId:', this.options.blankSheetId);
+            await this.loadBlankSheet();
+        } else if (this.options.fileId) {
+            // Mode annotation sur PDF existant
+            console.log('[Init] Mode annotation sur PDF, fileId:', this.options.fileId);
             await this.loadAnnotations();
         } else {
-            console.log('[Init] Pas de fileId, annotations non chargées');
+            console.log('[Init] Pas de fileId ni de blankSheetId, annotations non chargées');
         }
 
         // Si aucune page n'existe après le chargement, créer une première page blanche
