@@ -260,10 +260,6 @@ class CleanPDFViewer {
                             <i class="fas fa-trash"></i>
                         </button>
                         <div class="separator"></div>
-                        <button class="btn-action" id="btn-add-blank-page" title="Ajouter une page blanche">
-                            <i class="fas fa-file-medical"></i>
-                        </button>
-                        <div class="separator"></div>
                         <button class="btn-action" id="btn-download" title="Télécharger/Envoyer">
                             <i class="fas fa-download"></i>
                         </button>
@@ -332,7 +328,6 @@ class CleanPDFViewer {
             btnUndo: this.container.querySelector('#btn-undo'),
             btnRedo: this.container.querySelector('#btn-redo'),
             btnClearPage: this.container.querySelector('#btn-clear-page'),
-            btnAddBlankPage: this.container.querySelector('#btn-add-blank-page'),
             btnDownload: this.container.querySelector('#btn-download'),
             btnClose: this.container.querySelector('#btn-close'),
             loading: this.container.querySelector('#pdf-loading'),
@@ -1246,7 +1241,6 @@ class CleanPDFViewer {
         this.elements.btnUndo.addEventListener('click', () => this.undo());
         this.elements.btnRedo.addEventListener('click', () => this.redo());
         this.elements.btnClearPage.addEventListener('click', () => this.clearCurrentPage());
-        this.elements.btnAddBlankPage.addEventListener('click', () => this.addBlankPageAfterCurrent());
         this.elements.btnDownload.addEventListener('click', () => this.showDownloadMenu());
         this.elements.btnClose.addEventListener('click', () => this.close());
 
