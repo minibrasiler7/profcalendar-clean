@@ -2655,7 +2655,7 @@ function renderResourceTree(files) {
 
 // Fonction pour charger et afficher les feuilles blanches de la leçon
 async function renderBlankSheets() {
-    const lessonDate = '{{ lesson.date.strftime("%Y-%m-%d") if lesson else "" }}';
+    const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") if lesson_date else "" }}';
     const periodNumber = {{ lesson.period_number if lesson else 0 }};
     const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 
@@ -9020,7 +9020,7 @@ function openFileWithUnifiedViewer(filePath, fileName) {
  * Affiche le menu de sélection des feuilles blanches
  */
 async function showBlankSheetsMenu() {
-    const lessonDate = '{{ lesson.date.strftime("%Y-%m-%d") if lesson else "" }}';
+    const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") if lesson_date else "" }}';
     const periodNumber = {{ lesson.period_number if lesson else 0 }};
     const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 
