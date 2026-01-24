@@ -6360,7 +6360,7 @@ class CleanPDFViewer {
         if (!this.options.blankSheetId) {
             console.log('[LoadBlankSheet] Pas de blankSheetId, création nouvelle feuille');
             // Créer une première page blanche
-            await this.insertBlankPageAtPosition(0);
+            await this.addBlankPageAfterCurrent();
             return;
         }
 
@@ -6409,7 +6409,7 @@ class CleanPDFViewer {
                 await this.renderAllPages();
             } else {
                 // Aucune page custom, créer une page blanche par défaut
-                await this.insertBlankPageAtPosition(0);
+                await this.addBlankPageAfterCurrent();
             }
 
             // Charger les annotations
@@ -6430,7 +6430,7 @@ class CleanPDFViewer {
         } catch (error) {
             console.error('[LoadBlankSheet] Erreur chargement:', error);
             // En cas d'erreur, créer une page blanche par défaut
-            await this.insertBlankPageAtPosition(0);
+            await this.addBlankPageAfterCurrent();
         }
     }
 
