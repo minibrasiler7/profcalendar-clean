@@ -6386,6 +6386,17 @@ class CleanPDFViewer {
 
             console.log('[LoadBlankSheet] Données chargées:', sheetData);
 
+            // Charger les annotations AVANT de rendre les pages
+            if (sheetData.annotations) {
+                console.log('[LoadBlankSheet] Chargement annotations pour', Object.keys(sheetData.annotations).length, 'pages');
+
+                for (const [pageId, pageAnnotations] of Object.entries(sheetData.annotations)) {
+                    this.annotations.set(pageId, pageAnnotations);
+                }
+
+                console.log('[LoadBlankSheet] Annotations chargées en mémoire');
+            }
+
             // Charger les pages custom
             if (sheetData.custom_pages && sheetData.custom_pages.length > 0) {
                 console.log('[LoadBlankSheet] Chargement de', sheetData.custom_pages.length, 'pages custom');
@@ -6408,24 +6419,12 @@ class CleanPDFViewer {
                 // Mettre à jour le nombre total de pages
                 this.totalPages = this.pageOrder.length;
 
-                // Rendre les pages
+                // Rendre les pages (les annotations déjà en mémoire seront dessinées automatiquement)
                 await this.renderThumbnails();
                 await this.renderPages();
             } else {
                 // Aucune page custom, créer une page blanche par défaut
                 await this.addBlankPageAfterCurrent();
-            }
-
-            // Charger les annotations
-            if (sheetData.annotations) {
-                console.log('[LoadBlankSheet] Chargement annotations pour', Object.keys(sheetData.annotations).length, 'pages');
-
-                for (const [pageId, pageAnnotations] of Object.entries(sheetData.annotations)) {
-                    this.annotations.set(pageId, pageAnnotations);
-                }
-
-                // Les annotations seront automatiquement redessinées lors du renderPages()
-                console.log('[LoadBlankSheet] Annotations chargées en mémoire');
             }
 
             this.isDirty = false;
