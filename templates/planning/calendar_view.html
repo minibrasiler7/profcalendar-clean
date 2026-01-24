@@ -1533,6 +1533,83 @@ if (typeof pdfjsLib !== 'undefined') {
 #pdf-viewer-container-calendar button[data-tool="eraser"] {
     order: 2 !important;
 }
+
+/* Styles pour le menu de sélection des feuilles blanches */
+.blank-sheets-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    z-index: 12000;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.blank-sheets-menu .menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.blank-sheets-menu .menu-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.blank-sheets-menu .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid #e5e7eb;
+}
+
+.blank-sheets-menu .sheet-item:hover {
+    background-color: #f3f4f6;
+}
+
+.blank-sheets-menu .sheet-item i {
+    color: #f59e0b;
+    font-size: 1.25rem;
+}
+
+.blank-sheets-menu .sheet-item span {
+    flex: 1;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .sheet-item small {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+/* Style pour les feuilles blanches dans la liste de fichiers */
+.file-item.blank-sheet {
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.file-item.blank-sheet .file-icon {
+    color: #f59e0b;
+}
 </style>
 {% endblock %}
 
@@ -2319,6 +2396,11 @@ const mergedInfo = {{ merged_info | tojson }};
 let currentPlanningCell = null;
 let isExtendedView = false;
 
+// Variables globales pour le contexte modal actuel (pour feuilles blanches)
+let currentModalDate = null;
+let currentModalPeriod = null;
+let currentModalClassroomId = null;
+
 // Variables globales pour les mises à jour dynamiques
 window.selectedClassroomId = selectedClassroomId;
 window.classroomsData = classrooms;
@@ -2730,6 +2812,7 @@ async function loadClassFiles(classroomId) {
     pinnedResources.style.display = 'none';
 
     try {
+        // Charger les fichiers de la classe
         const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
 
@@ -2739,6 +2822,20 @@ async function loadClassFiles(classroomId) {
 
         const data = await response.json();
         console.log('Données reçues:', data);
+
+        // Charger les feuilles blanches si on a une date et période
+        currentBlankSheets = []; // Réinitialiser
+        if (currentModalDate && currentModalPeriod && numericId) {
+            try {
+                const blankResponse = await fetch(`/api/blank-sheets/list?date=${currentModalDate}&period=${currentModalPeriod}&classroom_id=${numericId}`);
+                const blankData = await blankResponse.json();
+                if (blankData.success && blankData.sheets) {
+                    currentBlankSheets = blankData.sheets;
+                }
+            } catch (error) {
+                console.warn('Erreur lors du chargement des feuilles blanches:', error);
+            }
+        }
 
         fileLoading.style.display = 'none';
 
@@ -2753,7 +2850,12 @@ async function loadClassFiles(classroomId) {
             allClassFiles = data.files;
             fileNavigation.style.display = 'block';
             fileTree.style.display = 'block';
-            renderFileTree(data.files, currentFilePath);
+            renderFileTree(data.files, currentFilePath, currentBlankSheets);
+        } else if (currentBlankSheets.length > 0) {
+            // Afficher seulement les feuilles blanches si pas de fichiers
+            fileNavigation.style.display = 'block';
+            fileTree.style.display = 'block';
+            renderFileTree([], currentFilePath, currentBlankSheets);
         } else if (!data.pinned_files || data.pinned_files.length === 0) {
             console.log('Aucun fichier trouvé ou erreur dans la réponse');
             noFiles.style.display = 'block';
@@ -2842,10 +2944,34 @@ function formatFileSize(bytes) {
 }
 
 // Afficher l'arborescence des fichiers
-function renderFileTree(files, currentPath = '') {
+function renderFileTree(files, currentPath = '', blankSheets = []) {
     const fileTree = document.getElementById('fileTree');
     fileTree.innerHTML = '';
-    
+
+    // Afficher les feuilles blanches en premier (seulement à la racine)
+    if (!currentPath && blankSheets && blankSheets.length > 0) {
+        const blankSheetsSection = document.createElement('div');
+        blankSheetsSection.className = 'blank-sheets-section';
+        blankSheetsSection.innerHTML = '<h4 style="font-size: 0.875rem; font-weight: 600; color: #6b7280; margin: 0.5rem 0; padding: 0.5rem; border-bottom: 1px solid #e5e7eb;"><i class="fas fa-file"></i> Feuilles blanches</h4>';
+
+        blankSheets.forEach(sheet => {
+            const sheetItem = document.createElement('div');
+            sheetItem.className = 'file-item blank-sheet';
+            sheetItem.innerHTML = `
+                <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;" onclick="openExistingBlankSheetCalendar(${sheet.id})">
+                    <i class="fas fa-file file-icon"></i>
+                    <div class="file-info">
+                        <span class="file-name">${escapeHtmlCalendar(sheet.title)}</span>
+                        <small style="color: #6b7280; font-size: 0.75rem;">${formatDateTimeCalendar(sheet.created_at)}</small>
+                    </div>
+                </div>
+            `;
+            blankSheetsSection.appendChild(sheetItem);
+        });
+
+        fileTree.appendChild(blankSheetsSection);
+    }
+
     // Organiser les fichiers par dossier
     const folders = {};
     const currentLevelFiles = [];
@@ -2971,6 +3097,7 @@ function renderFileTree(files, currentPath = '') {
 
 // Variable globale pour stocker tous les fichiers
 let allClassFiles = [];
+let currentBlankSheets = []; // Pour stocker les feuilles blanches de la période en cours
 
 // Obtenir l'icône appropriée pour un type de fichier
 function getFileIconByType(fileType) {
@@ -2991,9 +3118,10 @@ function getFileIconByType(fileType) {
 function navigateToFolder(folderPath) {
     currentFilePath = folderPath;
     console.log('Navigation vers le dossier:', folderPath);
-    
+
     // Re-render l'arbre avec le nouveau chemin
-    renderFileTree(allClassFiles, folderPath);
+    // Afficher les feuilles blanches seulement à la racine
+    renderFileTree(allClassFiles, folderPath, folderPath === '' ? currentBlankSheets : []);
 }
 
 // Mettre à jour le fil d'Ariane
@@ -3115,10 +3243,173 @@ async function openPdfInViewer(fileId, fileName) {
 }
 
 // Ouvrir le viewer avec des pages blanches (mode split 50%)
+/**
+ * Affiche le menu de sélection des feuilles blanches pour la leçon en cours
+ */
 async function openBlankPagesCalendar() {
-    console.log('📄 Ouverture du viewer avec des pages blanches');
+    console.log('📄 Ouverture du menu des feuilles blanches');
+
+    // Vérifier qu'on a les informations nécessaires
+    if (!currentModalDate || !currentModalPeriod) {
+        alert('Veuillez d\'abord sélectionner une date et une période');
+        return;
+    }
+
+    // Récupérer l'ID de la classe sélectionnée dans le modal
+    const modalClassroom = document.getElementById('modalClassroom');
+    if (!modalClassroom || !modalClassroom.value) {
+        alert('Veuillez d\'abord sélectionner une classe');
+        return;
+    }
+
+    // Extraire l'ID numérique de la classe
+    let classroomId = null;
+    const classroomValue = modalClassroom.value;
+    if (classroomValue.startsWith('classroom_')) {
+        classroomId = classroomValue.replace('classroom_', '');
+    } else if (classroomValue.startsWith('mixed_group_')) {
+        classroomId = classroomValue.replace('mixed_group_', '');
+    } else {
+        alert('Type de classe non supporté');
+        return;
+    }
 
     try {
+        // Charger les feuilles blanches existantes
+        const response = await fetch(`/api/blank-sheets/list?date=${currentModalDate}&period=${currentModalPeriod}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (data.sheets && data.sheets.length === 0) {
+            // Aucune feuille existante, créer directement
+            openNewBlankSheetCalendar(currentModalDate, currentModalPeriod, classroomId);
+        } else {
+            // Afficher menu de sélection
+            displayBlankSheetsMenuCalendar(data.sheets, currentModalDate, currentModalPeriod, classroomId);
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des feuilles blanches:', error);
+        alert('Erreur lors du chargement des feuilles blanches');
+    }
+}
+
+/**
+ * Affiche un menu pour sélectionner une feuille blanche existante ou en créer une nouvelle
+ */
+function displayBlankSheetsMenuCalendar(sheets, lessonDate, periodNumber, classroomId) {
+    // Créer le menu modal
+    const menu = document.createElement('div');
+    menu.className = 'blank-sheets-menu';
+    menu.innerHTML = `
+        <div class="menu-header">
+            <h4>Feuilles blanches de la leçon</h4>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">×</button>
+        </div>
+        <div class="menu-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
+            ${sheets.map(sheet => `
+                <div class="sheet-item" onclick="openExistingBlankSheetCalendar(${sheet.id}); this.parentElement.parentElement.parentElement.remove();">
+                    <i class="fas fa-file"></i>
+                    <span>${escapeHtmlCalendar(sheet.title)}</span>
+                    <small>${formatDateTimeCalendar(sheet.created_at)}</small>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-primary" onclick="openNewBlankSheetCalendar('${lessonDate}', ${periodNumber}, ${classroomId}); this.parentElement.remove();" style="width: 100%; margin-top: 1rem;">
+            <i class="fas fa-plus"></i> Nouvelle feuille
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+}
+
+/**
+ * Ouvre une nouvelle feuille blanche
+ */
+async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) {
+    console.log('📄 Création nouvelle feuille blanche');
+
+    const container = document.getElementById('pdf-viewer-container-calendar');
+    if (!container) {
+        console.error('❌ Conteneur PDF non trouvé');
+        return;
+    }
+
+    // Afficher le conteneur
+    container.style.display = 'block';
+
+    // Détruire l'instance précédente si elle existe
+    if (window.cleanPDFViewerCalendar) {
+        window.cleanPDFViewerCalendar.destroy();
+        window.cleanPDFViewerCalendar = null;
+    }
+
+    // Vider le conteneur
+    container.innerHTML = '';
+
+    // Récupérer les étudiants de la classe actuelle si disponible
+    let studentsData = [];
+    try {
+        if (classroomId) {
+            studentsData = await getStudentsForClass(classroomId);
+        }
+    } catch (error) {
+        console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+    }
+
+    // Créer l'instance du nouveau lecteur clean pour pages blanches
+    window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+        blankSheetId: null, // Nouvelle feuille
+        lessonDate: lessonDate,
+        periodNumber: periodNumber,
+        classroomId: classroomId,
+        title: 'Feuille blanche',
+        pdfUrl: null,
+        showSidebar: true,
+        enableAnnotations: true,
+        autoSaveInterval: 5000,
+        annotationOffsetY: -10,
+        annotationScaleMultiplier: 1.05,
+        studentData: studentsData,
+        onClose: () => {
+            container.style.display = 'none';
+            window.cleanPDFViewerCalendar = null;
+            // Recharger les fichiers pour afficher la nouvelle feuille
+            const modalClassroom = document.getElementById('modalClassroom');
+            if (modalClassroom && modalClassroom.value) {
+                const classroomValue = modalClassroom.value;
+                let id = null;
+                if (classroomValue.startsWith('classroom_')) {
+                    id = classroomValue.replace('classroom_', '');
+                } else if (classroomValue.startsWith('mixed_group_')) {
+                    id = classroomValue.replace('mixed_group_', '');
+                }
+                if (id) {
+                    loadClassFiles(id);
+                }
+            }
+        }
+    });
+
+    console.log('✅ Nouvelle feuille blanche créée');
+}
+
+/**
+ * Ouvre une feuille blanche existante
+ */
+async function openExistingBlankSheetCalendar(sheetId) {
+    console.log('📄 Ouverture feuille blanche:', sheetId);
+
+    try {
+        // Charger les données de la feuille
+        const response = await fetch(`/api/blank-sheets/${sheetId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Erreur lors du chargement de la feuille: ' + (data.message || 'Erreur inconnue'));
+            return;
+        }
+
+        const sheet = data.sheet;
+
         const container = document.getElementById('pdf-viewer-container-calendar');
         if (!container) {
             console.error('❌ Conteneur PDF non trouvé');
@@ -3137,27 +3428,24 @@ async function openBlankPagesCalendar() {
         // Vider le conteneur
         container.innerHTML = '';
 
-        // Créer un ID spécial pour les pages blanches basé sur la classe et la période
-        let blankPagesId = 'blank_calendar';
-        if (selectedClassroomId) {
-            // Si une classe est sélectionnée, utiliser son ID
-            blankPagesId = `blank_calendar_${selectedClassroomId}`;
-        }
-
         // Récupérer les étudiants de la classe actuelle si disponible
         let studentsData = [];
         try {
-            if (selectedClassroomId) {
-                studentsData = await getStudentsForClass(selectedClassroomId);
+            if (sheet.classroom_id) {
+                studentsData = await getStudentsForClass(sheet.classroom_id);
             }
         } catch (error) {
             console.warn('⚠️ Impossible de récupérer les étudiants:', error);
         }
 
-        // Créer l'instance du nouveau lecteur clean pour pages blanches
+        // Créer l'instance du nouveau lecteur clean
         window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
-            fileId: blankPagesId, // ID spécial pour sauvegarder les pages blanches
-            pdfUrl: null, // Pas de PDF à charger
+            blankSheetId: sheet.id,
+            lessonDate: sheet.lesson_date,
+            periodNumber: sheet.period_number,
+            classroomId: sheet.classroom_id,
+            title: sheet.title,
+            pdfUrl: null,
             showSidebar: true,
             enableAnnotations: true,
             autoSaveInterval: 5000,
@@ -3167,14 +3455,51 @@ async function openBlankPagesCalendar() {
             onClose: () => {
                 container.style.display = 'none';
                 window.cleanPDFViewerCalendar = null;
+                // Recharger les fichiers pour afficher les modifications
+                const modalClassroom = document.getElementById('modalClassroom');
+                if (modalClassroom && modalClassroom.value) {
+                    const classroomValue = modalClassroom.value;
+                    let id = null;
+                    if (classroomValue.startsWith('classroom_')) {
+                        id = classroomValue.replace('classroom_', '');
+                    } else if (classroomValue.startsWith('mixed_group_')) {
+                        id = classroomValue.replace('mixed_group_', '');
+                    }
+                    if (id) {
+                        loadClassFiles(id);
+                    }
+                }
             }
         });
 
-        console.log('✅ Viewer avec pages blanches créé, ID:', blankPagesId);
+        console.log('✅ Feuille blanche chargée');
     } catch (error) {
-        console.error('❌ Erreur lors de la création du viewer:', error);
-        alert('Erreur lors de la création du viewer: ' + error.message);
+        console.error('Erreur lors du chargement de la feuille blanche:', error);
+        alert('Erreur lors du chargement de la feuille blanche');
     }
+}
+
+/**
+ * Fonction utilitaire pour échapper le HTML (calendar version)
+ */
+function escapeHtmlCalendar(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Fonction utilitaire pour formater la date/heure (calendar version)
+ */
+function formatDateTimeCalendar(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 // Charger un document PDF (copié de lesson_view.html)
@@ -3910,6 +4235,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.openPlanningModal = function(cell, fromAnnualView = false) {
             const date = cell.dataset.date;
             const period = cell.dataset.period;
+
+            // Stocker le contexte modal pour les feuilles blanches
+            currentModalDate = date;
+            currentModalPeriod = period ? period.split('-')[0] : null; // Prendre le premier numéro pour périodes fusionnées
 
             console.log('🔍 openPlanningModal intercepted:', {
                 date,

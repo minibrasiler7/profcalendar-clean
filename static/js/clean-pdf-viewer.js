@@ -31,6 +31,12 @@ class CleanPDFViewer {
         this.options = {
             fileId: options.fileId || null,
             pdfUrl: options.pdfUrl || null,
+            // Nouvelles options pour les feuilles blanches
+            blankSheetId: options.blankSheetId || null,  // ID de la feuille blanche (si c'est une feuille blanche)
+            lessonDate: options.lessonDate || null,      // Date de la leçon (pour feuilles blanches)
+            periodNumber: options.periodNumber || null,  // Numéro de période (pour feuilles blanches)
+            classroomId: options.classroomId || null,    // ID de la classe (pour feuilles blanches)
+            title: options.title || 'Feuille blanche',   // Titre de la feuille blanche
             showSidebar: options.showSidebar !== false,
             enableAnnotations: options.enableAnnotations !== false,
             autoSaveInterval: options.autoSaveInterval || 2000, // 2 secondes
@@ -6088,12 +6094,17 @@ class CleanPDFViewer {
      * Charger les annotations
      */
     async loadAnnotations() {
+        // Si c'est une feuille blanche, utiliser le chargement spécifique
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            return this.loadBlankSheet();
+        }
+
         if (!this.options.fileId) {
             console.log('[Load] Pas de fileId, chargement ignoré');
             return;
         }
 
-        try {
+        try{
             console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
             console.log('[Load] Envoi de la requête fetch...');
             const response = await fetch(`/file_manager/api/load-annotations/${this.options.fileId}`);
@@ -6205,6 +6216,11 @@ class CleanPDFViewer {
      * Sauvegarder les annotations (version asynchrone)
      */
     async saveAnnotations() {
+        // Si c'est une feuille blanche (blankSheetId ou lessonDate+periodNumber), utiliser la sauvegarde spécifique
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            return this.saveBlankSheet();
+        }
+
         if (!this.options.fileId) {
             console.log('[Save] Pas de fileId, sauvegarde ignorée');
             return;
@@ -6261,6 +6277,160 @@ class CleanPDFViewer {
             }
         } catch (error) {
             console.error('[Save] Erreur sauvegarde:', error);
+        }
+    }
+
+    /**
+     * Sauvegarde les données d'une feuille blanche
+     */
+    async saveBlankSheet() {
+        if (!this.isDirty) {
+            console.log('[SaveBlankSheet] Pas de modifications, sauvegarde ignorée');
+            return;
+        }
+
+        try {
+            // Préparer les données d'annotations
+            const annotationsData = {};
+            this.annotations.forEach((annotations, pageId) => {
+                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+                if (annotationsToSave.length > 0) {
+                    annotationsData[pageId] = annotationsToSave;
+                }
+            });
+
+            // Préparer les pages custom (vierges et graphiques)
+            const customPages = [];
+            this.pages.forEach((pageData, pageId) => {
+                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                    const pageIndex = this.pageOrder.indexOf(pageId);
+                    customPages.push({
+                        pageId: pageId,
+                        type: pageData.type,
+                        data: pageData.data || {},
+                        position: pageIndex
+                    });
+                }
+            });
+
+            console.log('[SaveBlankSheet] Sauvegarde feuille blanche, annotations:', Object.keys(annotationsData).length, 'pages, custom:', customPages.length, 'pages');
+
+            const sheetData = {
+                sheet_id: this.options.blankSheetId,  // null si nouvelle feuille
+                lesson_date: this.options.lessonDate,
+                period_number: this.options.periodNumber,
+                classroom_id: this.options.classroomId,
+                title: this.options.title || 'Feuille blanche',
+                sheet_data: {
+                    custom_pages: customPages,
+                    annotations: annotationsData
+                }
+            };
+
+            const response = await fetch('/api/blank-sheets/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(sheetData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('[SaveBlankSheet] Sauvegarde réussie:', result);
+
+                // Mettre à jour l'ID si c'était une nouvelle feuille
+                if (!this.options.blankSheetId && result.sheet_id) {
+                    this.options.blankSheetId = result.sheet_id;
+                    console.log('[SaveBlankSheet] Nouvelle feuille créée avec ID:', result.sheet_id);
+                }
+
+                this.isDirty = false;
+            } else {
+                const error = await response.json();
+                console.error('[SaveBlankSheet] Erreur HTTP:', response.status, error);
+            }
+        } catch (error) {
+            console.error('[SaveBlankSheet] Erreur sauvegarde:', error);
+        }
+    }
+
+    /**
+     * Charge les données d'une feuille blanche
+     */
+    async loadBlankSheet() {
+        if (!this.options.blankSheetId) {
+            console.log('[LoadBlankSheet] Pas de blankSheetId, création nouvelle feuille');
+            // Créer une première page blanche
+            await this.insertBlankPageAtPosition(0);
+            return;
+        }
+
+        try {
+            console.log('[LoadBlankSheet] Chargement feuille:', this.options.blankSheetId);
+
+            const response = await fetch(`/api/blank-sheets/${this.options.blankSheetId}`);
+
+            if (!response.ok) {
+                console.error('[LoadBlankSheet] Erreur HTTP:', response.status);
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                console.error('[LoadBlankSheet] Erreur:', result.message);
+                return;
+            }
+
+            const sheet = result.sheet;
+            const sheetData = sheet.sheet_data;
+
+            console.log('[LoadBlankSheet] Données chargées:', sheetData);
+
+            // Charger les pages custom
+            if (sheetData.custom_pages && sheetData.custom_pages.length > 0) {
+                console.log('[LoadBlankSheet] Chargement de', sheetData.custom_pages.length, 'pages custom');
+
+                const customPagesSorted = sheetData.custom_pages.sort((a, b) => a.position - b.position);
+
+                for (const customPage of customPagesSorted) {
+                    this.pages.set(customPage.pageId, {
+                        type: customPage.type,
+                        data: customPage.data || {}
+                    });
+
+                    if (customPage.position < this.pageOrder.length) {
+                        this.pageOrder.splice(customPage.position, 0, customPage.pageId);
+                    } else {
+                        this.pageOrder.push(customPage.pageId);
+                    }
+                }
+
+                // Rendre les pages
+                await this.renderAllPages();
+            } else {
+                // Aucune page custom, créer une page blanche par défaut
+                await this.insertBlankPageAtPosition(0);
+            }
+
+            // Charger les annotations
+            if (sheetData.annotations) {
+                console.log('[LoadBlankSheet] Chargement annotations pour', Object.keys(sheetData.annotations).length, 'pages');
+
+                for (const [pageId, pageAnnotations] of Object.entries(sheetData.annotations)) {
+                    this.annotations.set(pageId, pageAnnotations);
+                }
+
+                // Redessiner les annotations
+                this.redrawAllAnnotations();
+            }
+
+            this.isDirty = false;
+            console.log('[LoadBlankSheet] Chargement terminé');
+
+        } catch (error) {
+            console.error('[LoadBlankSheet] Erreur chargement:', error);
+            // En cas d'erreur, créer une page blanche par défaut
+            await this.insertBlankPageAtPosition(0);
         }
     }
 
