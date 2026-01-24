@@ -2664,7 +2664,7 @@ async function renderBlankSheets() {
     }
 
     try {
-        const response = await fetch(`/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
         const data = await response.json();
 
         if (data.success && data.sheets && data.sheets.length > 0) {
@@ -9031,7 +9031,7 @@ async function showBlankSheetsMenu() {
 
     try {
         // Charger les feuilles blanches existantes
-        const response = await fetch(`/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -9160,7 +9160,7 @@ async function openExistingBlankSheet(sheetId) {
 
     try {
         // Charger les données de la feuille
-        const response = await fetch(`/api/blank-sheets/${sheetId}`);
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`);
         const data = await response.json();
 
         if (!data.success) {

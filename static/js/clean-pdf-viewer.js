@@ -6327,7 +6327,7 @@ class CleanPDFViewer {
                 }
             };
 
-            const response = await fetch('/api/blank-sheets/save', {
+            const response = await fetch('/planning/api/blank-sheets/save', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(sheetData)
@@ -6367,7 +6367,7 @@ class CleanPDFViewer {
         try {
             console.log('[LoadBlankSheet] Chargement feuille:', this.options.blankSheetId);
 
-            const response = await fetch(`/api/blank-sheets/${this.options.blankSheetId}`);
+            const response = await fetch(`/planning/api/blank-sheets/${this.options.blankSheetId}`);
 
             if (!response.ok) {
                 console.error('[LoadBlankSheet] Erreur HTTP:', response.status);
