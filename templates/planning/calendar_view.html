@@ -2208,9 +2208,14 @@ if (typeof pdfjsLib !== 'undefined') {
     <div class="modal-content" id="attendanceModalContent">
         <div class="modal-header">
             <h3 id="attendanceModalTitle">Présences de la période</h3>
-            <button class="modal-close" onclick="closeAttendanceModal()">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="modal-header-actions">
+                <button class="btn-icon" id="attendanceBlankSheetsBtn" onclick="openBlankSheetsFromAttendance()" title="Feuilles blanches" style="display: none;">
+                    <i class="fas fa-file"></i>
+                </button>
+                <button class="modal-close" onclick="closeAttendanceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
 
         <div class="modal-body">
@@ -6253,6 +6258,35 @@ function closeAttendanceModal() {
     overlay.style.display = 'none';
 }
 
+/**
+ * Ouvre le menu des feuilles blanches depuis le modal d'attendance (périodes passées)
+ */
+async function openBlankSheetsFromAttendance() {
+    if (!window.currentAttendanceContext) {
+        alert('Contexte de période non disponible');
+        return;
+    }
+
+    const { date, periodNumber, classroomId } = window.currentAttendanceContext;
+
+    try {
+        // Charger les feuilles blanches existantes
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (data.sheets && data.sheets.length === 0) {
+            // Aucune feuille existante, créer directement
+            openNewBlankSheetCalendar(date, periodNumber, classroomId);
+        } else {
+            // Afficher menu de sélection
+            displayBlankSheetsMenuCalendar(data.sheets, date, periodNumber, classroomId);
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des feuilles blanches:', error);
+        alert('Erreur lors du chargement des feuilles blanches');
+    }
+}
+
 async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
     // Vérifier que la période est dans le passé
     const periodDate = new Date(date);
@@ -6277,6 +6311,19 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         day: 'numeric'
     });
     modalTitle.textContent = `Présences - ${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+
+    // Stocker les informations pour le bouton feuilles blanches
+    window.currentAttendanceContext = {
+        date: date,
+        periodNumber: periodNumber,
+        classroomId: classroomId
+    };
+
+    // Afficher le bouton feuilles blanches
+    const blankSheetsBtn = document.getElementById('attendanceBlankSheetsBtn');
+    if (blankSheetsBtn) {
+        blankSheetsBtn.style.display = 'block';
+    }
 
     // Afficher le modal avec l'état de chargement
     document.getElementById('attendanceLoadingState').style.display = 'block';

@@ -6702,6 +6702,28 @@ class CleanPDFViewer {
     }
 
     /**
+     * Détruit complètement le viewer sans sauvegarder
+     */
+    destroy() {
+        console.log('[Destroy] Destruction du viewer PDF...');
+
+        // Masquer l'équerre si elle est affichée
+        this.hideSetSquare();
+
+        // Nettoyer les timers et listeners
+        this.stopAutoSave();
+        this.cleanupBeforeUnload();
+
+        // Nettoyer le DOM
+        if (this.container) {
+            this.container.innerHTML = '';
+            this.container.style.display = 'none';
+        }
+
+        console.log('[Destroy] Viewer détruit');
+    }
+
+    /**
      * Afficher l'équerre (set square)
      */
     showSetSquare() {

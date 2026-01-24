@@ -9118,10 +9118,20 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
         viewerContainer.style.display = 'block';
     }
 
-    if (!cleanPDFViewer) {
+    // Détruire le viewer existant s'il y en a un
+    if (cleanPDFViewer) {
+        console.log('🔄 Destruction du viewer existant...');
         try {
-            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
-                blankSheetId: null,  // Nouvelle feuille
+            cleanPDFViewer.destroy();
+        } catch (e) {
+            console.warn('Erreur lors de la destruction du viewer:', e);
+        }
+        cleanPDFViewer = null;
+    }
+
+    try {
+        cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+            blankSheetId: null,  // Nouvelle feuille
                 lessonDate: lessonDate,
                 periodNumber: periodNumber,
                 classroomId: classroomId,
@@ -9141,14 +9151,11 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
                 }
             });
 
-            console.log('✅ Nouvelle feuille blanche créée');
-        } catch (error) {
-            console.error('❌ Erreur lors de la création du viewer:', error);
-            alert('Erreur lors de la création du viewer: ' + error.message);
-            return;
-        }
-    } else {
-        console.warn('Le viewer est déjà ouvert. Fermez-le d\'abord.');
+        console.log('✅ Nouvelle feuille blanche créée');
+    } catch (error) {
+        console.error('❌ Erreur lors de la création du viewer:', error);
+        alert('Erreur lors de la création du viewer: ' + error.message);
+        return;
     }
 }
 
@@ -9190,9 +9197,19 @@ async function openExistingBlankSheet(sheetId) {
             viewerContainer.style.display = 'block';
         }
 
-        if (!cleanPDFViewer) {
+        // Détruire le viewer existant s'il y en a un
+        if (cleanPDFViewer) {
+            console.log('🔄 Destruction du viewer existant...');
             try {
-                cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                cleanPDFViewer.destroy();
+            } catch (e) {
+                console.warn('Erreur lors de la destruction du viewer:', e);
+            }
+            cleanPDFViewer = null;
+        }
+
+        try {
+            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
                     blankSheetId: sheet.id,
                     lessonDate: sheet.lesson_date,
                     periodNumber: sheet.period_number,
@@ -9213,14 +9230,11 @@ async function openExistingBlankSheet(sheetId) {
                     }
                 });
 
-                console.log('✅ Feuille blanche chargée');
-            } catch (error) {
-                console.error('❌ Erreur lors du chargement du viewer:', error);
-                alert('Erreur lors du chargement du viewer: ' + error.message);
-                return;
-            }
-        } else {
-            console.warn('Le viewer est déjà ouvert. Fermez-le d\'abord.');
+            console.log('✅ Feuille blanche chargée');
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement du viewer:', error);
+            alert('Erreur lors du chargement du viewer: ' + error.message);
+            return;
         }
     } catch (error) {
         console.error('Erreur lors du chargement de la feuille blanche:', error);
