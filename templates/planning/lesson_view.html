@@ -9214,40 +9214,48 @@ async function openExistingBlankSheet(sheetId) {
         }
 
         const sheet = data.sheet;
+        console.log('📋 Données de la feuille chargées:', sheet);
 
         const modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée:', modal);
         if (!modal) {
-            console.error('Modal fileViewerModal non trouvée');
+            console.error('❌ Modal fileViewerModal non trouvée dans le DOM');
+            alert('Erreur: La modal de visualisation n\'existe pas');
             return;
         }
 
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
         // Vérifier la disponibilité des données des élèves
         if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
             console.warn("studentsData non défini, utilisation d'un tableau vide");
-            studentsData = [];
+            window.studentsData = [];
         }
 
         const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+        console.log('🔍 Container trouvé:', viewerContainer);
         if (viewerContainer) {
             viewerContainer.style.display = 'block';
+        } else {
+            console.error('❌ Container unified-pdf-viewer-container non trouvé');
+            return;
         }
 
         // Détruire le viewer existant s'il y en a un
-        if (cleanPDFViewer) {
+        if (window.cleanPDFViewer) {
             console.log('🔄 Destruction du viewer existant...');
             try {
-                cleanPDFViewer.destroy();
+                window.cleanPDFViewer.destroy();
             } catch (e) {
                 console.warn('Erreur lors de la destruction du viewer:', e);
             }
-            cleanPDFViewer = null;
+            window.cleanPDFViewer = null;
         }
 
         try {
-            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+            console.log('🚀 Création du CleanPDFViewer avec blankSheetId:', sheet.id);
+            window.cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
                     blankSheetId: sheet.id,
                     lessonDate: sheet.lesson_date,
                     periodNumber: sheet.period_number,
@@ -9257,12 +9265,15 @@ async function openExistingBlankSheet(sheetId) {
                     showSidebar: true,
                     enableAnnotations: true,
                     autoSaveInterval: 5000,
-                    studentData: studentsData,
+                    studentData: window.studentsData,
                     onClose: () => {
+                        console.log('🔒 Fermeture du viewer');
+                        modal.style.display = 'none';
+                        document.body.style.overflow = '';
                         if (viewerContainer) {
                             viewerContainer.style.display = 'none';
                         }
-                        cleanPDFViewer = null;
+                        window.cleanPDFViewer = null;
                         // Recharger la liste des ressources pour afficher les modifications
                         loadClassResources();
                     }
@@ -9272,11 +9283,13 @@ async function openExistingBlankSheet(sheetId) {
         } catch (error) {
             console.error('❌ Erreur lors du chargement du viewer:', error);
             alert('Erreur lors du chargement du viewer: ' + error.message);
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
             return;
         }
     } catch (error) {
         console.error('Erreur lors du chargement de la feuille blanche:', error);
-        alert('Erreur lors du chargement de la feuille blanche');
+        alert('Erreur lors du chargement de la feuille blanche: ' + error.message);
     }
 }
 

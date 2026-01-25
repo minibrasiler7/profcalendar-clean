@@ -2875,12 +2875,7 @@ async function loadClassFiles(classroomId) {
             allClassFiles = data.files;
             fileNavigation.style.display = 'block';
             fileTree.style.display = 'block';
-            renderFileTree(data.files, currentFilePath, currentBlankSheets);
-        } else if (currentBlankSheets.length > 0) {
-            // Afficher seulement les feuilles blanches si pas de fichiers
-            fileNavigation.style.display = 'block';
-            fileTree.style.display = 'block';
-            renderFileTree([], currentFilePath, currentBlankSheets);
+            renderFileTree(data.files, currentFilePath);
         } else if (!data.pinned_files || data.pinned_files.length === 0) {
             console.log('Aucun fichier trouvé ou erreur dans la réponse');
             noFiles.style.display = 'block';
@@ -2969,33 +2964,12 @@ function formatFileSize(bytes) {
 }
 
 // Afficher l'arborescence des fichiers
-function renderFileTree(files, currentPath = '', blankSheets = []) {
+function renderFileTree(files, currentPath = '') {
     const fileTree = document.getElementById('fileTree');
     fileTree.innerHTML = '';
 
-    // Afficher les feuilles blanches en premier (seulement à la racine)
-    if (!currentPath && blankSheets && blankSheets.length > 0) {
-        const blankSheetsSection = document.createElement('div');
-        blankSheetsSection.className = 'blank-sheets-section';
-        blankSheetsSection.innerHTML = '<h4 style="font-size: 0.875rem; font-weight: 600; color: #6b7280; margin: 0.5rem 0; padding: 0.5rem; border-bottom: 1px solid #e5e7eb;"><i class="fas fa-file"></i> Feuilles blanches</h4>';
-
-        blankSheets.forEach(sheet => {
-            const sheetItem = document.createElement('div');
-            sheetItem.className = 'file-item blank-sheet';
-            sheetItem.innerHTML = `
-                <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;" onclick="openExistingBlankSheetCalendar(${sheet.id})">
-                    <i class="fas fa-file file-icon"></i>
-                    <div class="file-info">
-                        <span class="file-name">${escapeHtmlCalendar(sheet.title)}</span>
-                        <small style="color: #6b7280; font-size: 0.75rem;">${formatDateTimeCalendar(sheet.created_at)}</small>
-                    </div>
-                </div>
-            `;
-            blankSheetsSection.appendChild(sheetItem);
-        });
-
-        fileTree.appendChild(blankSheetsSection);
-    }
+    // Note: Les feuilles blanches sont maintenant affichées uniquement dans le modal de période
+    // (pas dans le file-manager-panel)
 
     // Organiser les fichiers par dossier
     const folders = {};
