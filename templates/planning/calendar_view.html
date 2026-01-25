@@ -2209,6 +2209,9 @@ if (typeof pdfjsLib !== 'undefined') {
         <div class="modal-header">
             <h3 id="attendanceModalTitle">Présences de la période</h3>
             <div class="modal-header-actions">
+                <button class="btn-icon" onclick="openFileManagerFromAttendance()" title="Fichiers de la classe">
+                    <i class="fas fa-folder-open"></i>
+                </button>
                 <button class="btn-icon" id="attendanceBlankSheetsBtn" onclick="openBlankSheetsFromAttendance()" title="Feuilles blanches" style="display: none;">
                     <i class="fas fa-file"></i>
                 </button>
@@ -6243,6 +6246,14 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Fonction pour formater une date ISO en format lisible
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+
 // ============ GESTION DES PRÉSENCES POUR PÉRIODES PASSÉES ============
 
 /**
@@ -6385,6 +6396,23 @@ function closeAttendanceModal() {
 }
 
 /**
+ * Ouvre le gestionnaire de fichiers depuis le modal d'attendance
+ */
+function openFileManagerFromAttendance() {
+    if (!window.currentAttendanceContext) {
+        // Si pas de contexte, ouvrir juste le gestionnaire de fichiers
+        window.open('{{ url_for("file_manager.index") }}', '_blank');
+        return;
+    }
+
+    const { classroomId } = window.currentAttendanceContext;
+
+    // Ouvrir le gestionnaire de fichiers dans un nouvel onglet
+    // Si on a l'ID de la classe, on pourrait filtrer par classe (future amélioration)
+    window.open('{{ url_for("file_manager.index") }}', '_blank');
+}
+
+/**
  * Ouvre le menu des feuilles blanches depuis le modal d'attendance (périodes passées)
  */
 async function openBlankSheetsFromAttendance() {
@@ -6458,14 +6486,11 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         // Charger les feuilles blanches (toujours)
         await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
 
-        // Charger les présences uniquement si période passée
-        let data = null;
-        if (isPastPeriod) {
-            const response = await fetch(
-                `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
-            );
-            data = await response.json();
-        }
+        // Charger les données (présences + planification) - toujours appeler pour avoir la planification
+        const response = await fetch(
+            `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
+        );
+        const data = await response.json();
 
         // Masquer l'état de chargement
         document.getElementById('attendanceLoadingState').style.display = 'none';
@@ -6480,8 +6505,17 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         document.getElementById('allPresentMessage').style.display = 'none';
         document.getElementById('attendanceErrorMessage').style.display = 'none';
 
-        // Si période future, ne pas traiter les présences
+        // Pour les périodes futures, afficher uniquement la planification (pas les présences)
         if (!isPastPeriod) {
+            // Afficher la planification si elle existe
+            if (data && data.planning) {
+                const planning = data.planning;
+                if (planning.title || planning.description) {
+                    document.getElementById('planningTitle').textContent = planning.title || '';
+                    document.getElementById('planningDescription').textContent = planning.description || '';
+                    document.getElementById('planningSection').style.display = 'block';
+                }
+            }
             return;
         }
 
