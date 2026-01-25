@@ -4276,8 +4276,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Si la période est passée ET qu'il y a une classe/groupe, afficher les présences
-            if (periodDate < today && (defaultClassroom || defaultMixedGroup)) {
+            // Si il y a une classe/groupe, afficher le modal de période (présences + feuilles blanches)
+            if (defaultClassroom || defaultMixedGroup) {
                 // Extraire l'ID et le type de la classe/groupe
                 let classroomId = null;
                 let isMixedGroup = false;
