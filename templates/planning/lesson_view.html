@@ -1057,6 +1057,41 @@ input, textarea, select {
     gap: 0.5rem;
 }
 
+/* Bouton de suppression des feuilles blanches */
+.btn-delete-blank-sheet {
+    background: none;
+    border: none;
+    color: #dc2626;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    opacity: 0.6;
+}
+
+.btn-delete-blank-sheet:hover {
+    background-color: #fee2e2;
+    opacity: 1;
+}
+
+.resource-item.blank-sheet {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.resource-item.blank-sheet .resource-info {
+    flex: 1;
+    cursor: pointer;
+}
+
 .resource-item.blank-sheet {
     background-color: #fef3c7;
     border-left: 3px solid #f59e0b;
@@ -2680,11 +2715,11 @@ async function renderBlankSheets() {
                 </h4>
                 <div class="blank-sheets-list">
                     ${data.sheets.map(sheet => `
-                        <div class="resource-item blank-sheet" onclick="openExistingBlankSheet(${sheet.id})">
-                            <div class="resource-icon blank-sheet-icon">
+                        <div class="resource-item blank-sheet">
+                            <div class="resource-icon blank-sheet-icon" onclick="openExistingBlankSheet(${sheet.id})">
                                 <i class="fas fa-file"></i>
                             </div>
-                            <div class="resource-info">
+                            <div class="resource-info" onclick="openExistingBlankSheet(${sheet.id})">
                                 <div class="resource-main">
                                     <div class="resource-name clickable-file">${escapeHtml(sheet.title)}</div>
                                     <div class="resource-meta">
@@ -2693,6 +2728,9 @@ async function renderBlankSheets() {
                                     </div>
                                 </div>
                             </div>
+                            <button class="btn-delete-blank-sheet" onclick="event.stopPropagation(); deleteBlankSheet(${sheet.id})" title="Supprimer la feuille blanche">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     `).join('')}
                 </div>
@@ -9250,6 +9288,38 @@ function formatDateTime(isoString) {
     const date = new Date(isoString);
     const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
     return date.toLocaleDateString('fr-FR', options);
+}
+
+/**
+ * Supprime une feuille blanche
+ */
+async function deleteBlankSheet(sheetId) {
+    console.log('🗑️ Suppression feuille blanche:', sheetId);
+
+    // Confirmer la suppression
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Feuille blanche supprimée');
+            // Recharger la liste des ressources
+            await loadClassResources();
+        } else {
+            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la feuille blanche:', error);
+        alert('Erreur lors de la suppression de la feuille blanche');
+    }
 }
 
 // Fonction pour ouvrir le viewer avec des pages blanches (LEGACY - gardée pour compatibilité)

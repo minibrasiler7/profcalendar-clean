@@ -6291,18 +6291,22 @@ async function loadBlankSheetsForPeriod(date, periodNumber, classroomId) {
                 sheetItem.className = 'blank-sheet-item';
                 sheetItem.style.cssText = 'padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f59e0b; cursor: pointer;';
                 sheetItem.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div onclick="openBlankSheetFromModal(${sheet.id})" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; cursor: pointer;">
                         <i class="fas fa-file" style="color: #f59e0b;"></i>
                         <div>
                             <div style="font-weight: 500; color: #78350f;">${sheet.title}</div>
                             <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
                         </div>
                     </div>
-                    <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem;">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Ouvrir">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 `;
-                sheetItem.onclick = () => openBlankSheetFromModal(sheet.id);
                 blankSheetsList.appendChild(sheetItem);
             });
 
@@ -6349,6 +6353,41 @@ async function openBlankSheetFromModal(sheetId) {
 
     // Ouvrir la feuille blanche existante
     openExistingBlankSheetCalendar(sheetId);
+}
+
+/**
+ * Supprime une feuille blanche depuis le modal
+ */
+async function deleteBlankSheetFromModal(sheetId) {
+    console.log('🗑️ Suppression feuille blanche:', sheetId);
+
+    // Confirmer la suppression
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Feuille blanche supprimée');
+            // Recharger la liste des feuilles blanches
+            if (window.currentAttendanceContext) {
+                const { date, periodNumber, classroomId } = window.currentAttendanceContext;
+                await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
+            }
+        } else {
+            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la feuille blanche:', error);
+        alert('Erreur lors de la suppression de la feuille blanche');
+    }
 }
 
 function closeAttendanceModal() {

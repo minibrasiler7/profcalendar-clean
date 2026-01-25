@@ -6408,6 +6408,7 @@ class CleanPDFViewer {
                 const customPagesSorted = sheetData.custom_pages.sort((a, b) => a.position - b.position);
 
                 for (const customPage of customPagesSorted) {
+                    console.log('[LoadBlankSheet] Ajout page:', customPage.pageId, 'type:', customPage.type, 'position:', customPage.position);
                     this.pages.set(customPage.pageId, {
                         type: customPage.type,
                         data: customPage.data || {}
@@ -6422,12 +6423,17 @@ class CleanPDFViewer {
 
                 // Mettre à jour le nombre total de pages
                 this.totalPages = this.pageOrder.length;
+                console.log('[LoadBlankSheet] Total pages:', this.totalPages, 'pageOrder:', this.pageOrder);
 
                 // Rendre les pages (les annotations déjà en mémoire seront dessinées automatiquement)
+                console.log('[LoadBlankSheet] Début rendu thumbnails...');
                 await this.renderThumbnails();
+                console.log('[LoadBlankSheet] Thumbnails rendus, début rendu pages...');
                 await this.renderPages();
+                console.log('[LoadBlankSheet] Pages rendues');
             } else {
                 // Aucune page custom, créer une page blanche par défaut
+                console.log('[LoadBlankSheet] Aucune page custom, création page blanche par défaut');
                 await this.addBlankPageAfterCurrent();
             }
 
