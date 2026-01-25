@@ -2694,7 +2694,10 @@ async function renderBlankSheets() {
     const periodNumber = {{ lesson.period_number if lesson else 0 }};
     const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 
+    console.log('📄 renderBlankSheets appelée - date:', lessonDate, 'période:', periodNumber, 'classe:', classroomId);
+
     if (!lessonDate || !periodNumber) {
+        console.warn('⚠️ renderBlankSheets: lessonDate ou periodNumber manquant');
         return;
     }
 
@@ -2702,7 +2705,10 @@ async function renderBlankSheets() {
         const response = await fetch(`/planning/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
         const data = await response.json();
 
+        console.log('📋 renderBlankSheets: Données reçues:', data);
+
         if (data.success && data.sheets && data.sheets.length > 0) {
+            console.log('✅ renderBlankSheets: Affichage de', data.sheets.length, 'feuilles blanches');
             const resourcesTree = document.getElementById('resourcesTree');
             if (!resourcesTree) return;
 
@@ -2738,9 +2744,12 @@ async function renderBlankSheets() {
 
             // Insérer avant le contenu actuel (au début de l'arborescence)
             resourcesTree.insertBefore(blankSheetsSection, resourcesTree.firstChild);
+            console.log('✅ renderBlankSheets: Section ajoutée au DOM');
+        } else {
+            console.log('ℹ️ renderBlankSheets: Aucune feuille blanche à afficher');
         }
     } catch (error) {
-        console.error('Erreur lors du chargement des feuilles blanches:', error);
+        console.error('❌ Erreur lors du chargement des feuilles blanches:', error);
     }
 }
 
