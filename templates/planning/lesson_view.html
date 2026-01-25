@@ -8955,15 +8955,26 @@ let studentsData = [
 // Fonction pour ouvrir un fichier avec le nouveau lecteur unifié
 function openFileWithUnifiedViewer(filePath, fileName) {
     console.log('🎯 Ouverture avec le lecteur unifié:', fileName);
-    
-    // Afficher la modal
-    const modal = document.getElementById('fileViewerModal');
-    if (!modal) {
-        console.error('Modal fileViewerModal non trouvée');
+
+    // Afficher directement le container
+    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    if (!viewerContainer) {
+        console.error('❌ Container unified-pdf-viewer-container non trouvé');
+        alert('Erreur: Le container de visualisation n\'existe pas');
         return;
     }
-    
-    modal.style.display = 'block';
+
+    viewerContainer.style.display = 'block';
+
+    // Afficher aussi la modal parente si elle existe
+    const modal = document.getElementById('fileViewerModal');
+    if (modal) {
+        console.log('✅ Modal trouvée, affichage');
+        modal.style.display = 'flex';
+    } else {
+        console.warn('⚠️ Modal non trouvée, affichage direct du container');
+    }
+
     document.body.style.overflow = 'hidden';
     
     // Vérifier la disponibilité des données des élèves
@@ -9136,24 +9147,31 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
 function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
     console.log('📄 Création nouvelle feuille blanche');
 
-    const modal = document.getElementById('fileViewerModal');
-    if (!modal) {
-        console.error('Modal fileViewerModal non trouvée');
+    // Afficher directement le container
+    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    if (!viewerContainer) {
+        console.error('❌ Container unified-pdf-viewer-container non trouvé');
+        alert('Erreur: Le container de visualisation n\'existe pas');
         return;
     }
 
-    modal.style.display = 'block';
+    viewerContainer.style.display = 'block';
+
+    // Afficher aussi la modal parente si elle existe
+    const modal = document.getElementById('fileViewerModal');
+    if (modal) {
+        console.log('✅ Modal trouvée, affichage');
+        modal.style.display = 'flex';
+    } else {
+        console.warn('⚠️ Modal non trouvée, affichage direct du container');
+    }
+
     document.body.style.overflow = 'hidden';
 
     // Vérifier la disponibilité des données des élèves
     if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
         console.warn("studentsData non défini, utilisation d'un tableau vide");
         studentsData = [];
-    }
-
-    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
-    if (viewerContainer) {
-        viewerContainer.style.display = 'block';
     }
 
     // Détruire le viewer existant s'il y en a un
@@ -9180,10 +9198,21 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
                 autoSaveInterval: 5000,
                 studentData: studentsData,
                 onClose: () => {
-                    if (viewerContainer) {
-                        viewerContainer.style.display = 'none';
+                    // Fermer la modal si elle existe
+                    const modalToClose = document.getElementById('fileViewerModal');
+                    if (modalToClose) {
+                        modalToClose.style.display = 'none';
                     }
+
+                    // Fermer le container
+                    const containerToClose = document.getElementById('unified-pdf-viewer-container');
+                    if (containerToClose) {
+                        containerToClose.style.display = 'none';
+                    }
+
+                    document.body.style.overflow = '';
                     cleanPDFViewer = null;
+
                     // Recharger la liste des ressources pour afficher la nouvelle feuille
                     loadClassResources();
                 }
@@ -9216,30 +9245,32 @@ async function openExistingBlankSheet(sheetId) {
         const sheet = data.sheet;
         console.log('📋 Données de la feuille chargées:', sheet);
 
-        const modal = document.getElementById('fileViewerModal');
-        console.log('🔍 Modal trouvée:', modal);
-        if (!modal) {
-            console.error('❌ Modal fileViewerModal non trouvée dans le DOM');
-            alert('Erreur: La modal de visualisation n\'existe pas');
+        // Afficher directement le container sans vérifier la modal
+        const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+        console.log('🔍 Container trouvé:', viewerContainer);
+        if (!viewerContainer) {
+            console.error('❌ Container unified-pdf-viewer-container non trouvé');
+            alert('Erreur: Le container de visualisation n\'existe pas');
             return;
         }
 
-        modal.style.display = 'flex';
+        viewerContainer.style.display = 'block';
+
+        // Afficher aussi la modal parente si elle existe
+        const modal = document.getElementById('fileViewerModal');
+        if (modal) {
+            console.log('✅ Modal trouvée, affichage');
+            modal.style.display = 'flex';
+        } else {
+            console.warn('⚠️ Modal non trouvée, affichage direct du container');
+        }
+
         document.body.style.overflow = 'hidden';
 
         // Vérifier la disponibilité des données des élèves
         if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
             console.warn("studentsData non défini, utilisation d'un tableau vide");
             window.studentsData = [];
-        }
-
-        const viewerContainer = document.getElementById('unified-pdf-viewer-container');
-        console.log('🔍 Container trouvé:', viewerContainer);
-        if (viewerContainer) {
-            viewerContainer.style.display = 'block';
-        } else {
-            console.error('❌ Container unified-pdf-viewer-container non trouvé');
-            return;
         }
 
         // Détruire le viewer existant s'il y en a un
@@ -9268,12 +9299,22 @@ async function openExistingBlankSheet(sheetId) {
                     studentData: window.studentsData,
                     onClose: () => {
                         console.log('🔒 Fermeture du viewer');
-                        modal.style.display = 'none';
-                        document.body.style.overflow = '';
-                        if (viewerContainer) {
-                            viewerContainer.style.display = 'none';
+
+                        // Fermer la modal si elle existe
+                        const modalToClose = document.getElementById('fileViewerModal');
+                        if (modalToClose) {
+                            modalToClose.style.display = 'none';
                         }
+
+                        // Fermer le container
+                        const containerToClose = document.getElementById('unified-pdf-viewer-container');
+                        if (containerToClose) {
+                            containerToClose.style.display = 'none';
+                        }
+
+                        document.body.style.overflow = '';
                         window.cleanPDFViewer = null;
+
                         // Recharger la liste des ressources pour afficher les modifications
                         loadClassResources();
                     }
