@@ -2046,6 +2046,22 @@ if (typeof pdfjsLib !== 'undefined') {
                     <!-- Les mémos seront insérés ici par JavaScript -->
                 </div>
             </div>
+
+            <!-- Section feuilles blanches -->
+            <div class="form-group" id="modalBlankSheetsSection" style="display: none; margin-top: 20px;">
+                <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>
+                        <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
+                        Feuilles blanches (<span id="modalBlankSheetsCount">0</span>)
+                    </span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromPlanningModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                        <i class="fas fa-plus"></i> Nouvelle
+                    </button>
+                </h4>
+                <div id="modalBlankSheetsList" style="display: grid; gap: 0.5rem;">
+                    <!-- Les feuilles blanches seront ajoutées ici -->
+                </div>
+            </div>
         </div>
 
         <div class="modal-footer">
@@ -2209,12 +2225,6 @@ if (typeof pdfjsLib !== 'undefined') {
         <div class="modal-header">
             <h3 id="attendanceModalTitle">Présences de la période</h3>
             <div class="modal-header-actions">
-                <button class="btn-icon" onclick="openFileManagerFromAttendance()" title="Fichiers de la classe">
-                    <i class="fas fa-folder-open"></i>
-                </button>
-                <button class="btn-icon" id="attendanceBlankSheetsBtn" onclick="openBlankSheetsFromAttendance()" title="Feuilles blanches" style="display: none;">
-                    <i class="fas fa-file"></i>
-                </button>
                 <button class="modal-close" onclick="closeAttendanceModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -6398,51 +6408,132 @@ function closeAttendanceModal() {
 /**
  * Ouvre le gestionnaire de fichiers depuis le modal d'attendance
  */
-function openFileManagerFromAttendance() {
-    if (!window.currentAttendanceContext) {
-        // Si pas de contexte, ouvrir juste le gestionnaire de fichiers
-        window.open('{{ url_for("file_manager.index") }}', '_blank');
-        return;
+/**
+ * Charge les feuilles blanches pour le planningModal
+ */
+async function loadBlankSheetsForPlanningModal(date, periodNumber, classroomId) {
+    console.log('📄 loadBlankSheetsForPlanningModal - date:', date, 'période:', periodNumber);
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        const blankSheetsList = document.getElementById('modalBlankSheetsList');
+        const blankSheetsCount = document.getElementById('modalBlankSheetsCount');
+        const blankSheetsSection = document.getElementById('modalBlankSheetsSection');
+
+        if (data.success && data.sheets && data.sheets.length > 0) {
+            console.log('✅ Affichage de', data.sheets.length, 'feuilles blanches dans planningModal');
+            blankSheetsList.innerHTML = '';
+            blankSheetsCount.textContent = data.sheets.length;
+
+            data.sheets.forEach(sheet => {
+                const sheetItem = document.createElement('div');
+                sheetItem.className = 'blank-sheet-item';
+                sheetItem.style.cssText = 'padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f59e0b; cursor: pointer;';
+                sheetItem.innerHTML = `
+                    <div onclick="openBlankSheetFromModal(${sheet.id})" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; cursor: pointer;">
+                        <i class="fas fa-file" style="color: #f59e0b;"></i>
+                        <div>
+                            <div style="font-weight: 500; color: #78350f;">${sheet.title}</div>
+                            <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                blankSheetsList.appendChild(sheetItem);
+            });
+
+            blankSheetsSection.style.display = 'block';
+        } else {
+            console.log('ℹ️ Aucune feuille blanche pour cette période');
+            blankSheetsCount.textContent = '0';
+            blankSheetsList.innerHTML = '';
+            blankSheetsSection.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des feuilles blanches:', error);
     }
-
-    const { classroomId } = window.currentAttendanceContext;
-
-    // Ouvrir le gestionnaire de fichiers dans un nouvel onglet
-    // Si on a l'ID de la classe, on pourrait filtrer par classe (future amélioration)
-    window.open('{{ url_for("file_manager.index") }}', '_blank');
 }
 
 /**
- * Ouvre le menu des feuilles blanches depuis le modal d'attendance (périodes passées)
+ * Crée une nouvelle feuille blanche depuis le planningModal
  */
-async function openBlankSheetsFromAttendance() {
-    if (!window.currentAttendanceContext) {
+function createNewBlankSheetFromPlanningModal() {
+    if (!window.currentPlanningContext) {
         alert('Contexte de période non disponible');
         return;
     }
 
-    const { date, periodNumber, classroomId } = window.currentAttendanceContext;
-
-    try {
-        // Charger les feuilles blanches existantes
-        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
-        const data = await response.json();
-
-        if (data.sheets && data.sheets.length === 0) {
-            // Aucune feuille existante, créer directement
-            openNewBlankSheetCalendar(date, periodNumber, classroomId);
-        } else {
-            // Afficher menu de sélection
-            displayBlankSheetsMenuCalendar(data.sheets, date, periodNumber, classroomId);
-        }
-    } catch (error) {
-        console.error('Erreur lors du chargement des feuilles blanches:', error);
-        alert('Erreur lors du chargement des feuilles blanches');
-    }
+    const { date, periodNumber, classroomId } = window.currentPlanningContext;
+    openNewBlankSheetCalendar(date, periodNumber, classroomId);
 }
 
+/**
+ * Ouvre le modal de planification pour une période spécifique (périodes futures)
+ */
+async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
+    console.log('📝 Ouverture modal planification pour période:', {date, periodNumber, classroomId});
+
+    const modal = document.getElementById('planningModal');
+    const overlay = document.getElementById('modalOverlay');
+    const modalTitleElem = document.getElementById('modalTitle');
+
+    // Mettre à jour le titre
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    modalTitleElem.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+
+    // Stocker le contexte pour la sauvegarde
+    window.currentPlanningContext = {
+        date: date,
+        periodNumber: periodNumber,
+        classroomId: classroomId,
+        isMixedGroup: isMixedGroup
+    };
+
+    // Pré-sélectionner la classe
+    const classroomSelect = document.getElementById('modalClassroom');
+    const classroomValue = isMixedGroup ? `mixed_group_${classroomId}` : `classroom_${classroomId}`;
+    classroomSelect.value = classroomValue;
+
+    // Charger les groupes si c'est une classe normale
+    if (!isMixedGroup) {
+        await loadGroupsForClass(classroomValue);
+    }
+
+    // Charger les feuilles blanches pour cette période
+    await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+
+    // Afficher le modal
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+/**
+ * Affiche le modal de présences pour les périodes passées OU le modal de planification pour les périodes futures
+ */
 async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
-    // Ouvrir le modal
+    // Vérifier si la période est dans le passé
+    const periodDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPastPeriod = periodDate <= today;
+
+    // Pour les périodes futures, ouvrir le modal de planification
+    if (!isPastPeriod) {
+        await openPeriodPlanningModal(date, periodNumber, classroomId, isMixedGroup, periodTitle);
+        return;
+    }
+
+    // Pour les périodes passées, afficher le modal de présences
     const modal = document.getElementById('attendanceModal');
     const overlay = document.getElementById('modalOverlay');
     const modalTitle = document.getElementById('attendanceModalTitle');
@@ -6457,18 +6548,12 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
     });
     modalTitle.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
 
-    // Stocker les informations pour le bouton feuilles blanches
+    // Stocker les informations pour les feuilles blanches
     window.currentAttendanceContext = {
         date: date,
         periodNumber: periodNumber,
         classroomId: classroomId
     };
-
-    // Masquer le bouton feuilles blanches (maintenant intégré dans la modal)
-    const blankSheetsBtn = document.getElementById('attendanceBlankSheetsBtn');
-    if (blankSheetsBtn) {
-        blankSheetsBtn.style.display = 'none';
-    }
 
     // Afficher le modal avec l'état de chargement
     document.getElementById('attendanceLoadingState').style.display = 'block';
