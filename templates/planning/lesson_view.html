@@ -9026,12 +9026,9 @@ function openFileWithUnifiedViewer(filePath, fileName) {
     } catch (error) {
         console.warn('Erreur lors de la récupération du plan de classe:', error);
     }
-    
-    // Afficher le container du viewer
-    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
-    if (viewerContainer) {
-        viewerContainer.style.display = 'block';
-    }
+
+    // Le viewerContainer est déjà défini et affiché au début de la fonction (ligne 8977)
+    // Pas besoin de le redéclarer ici
 
     // Créer l'instance du nouveau lecteur clean s'il n'existe pas
     if (!cleanPDFViewer) {

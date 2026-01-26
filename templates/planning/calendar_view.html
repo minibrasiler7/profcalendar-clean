@@ -6505,28 +6505,14 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
         document.getElementById('allPresentMessage').style.display = 'none';
         document.getElementById('attendanceErrorMessage').style.display = 'none';
 
-        // Pour les périodes futures, afficher uniquement la planification (pas les présences)
-        if (!isPastPeriod) {
-            // Afficher la planification si elle existe
-            if (data && data.planning) {
-                const planning = data.planning;
-                if (planning.title || planning.description) {
-                    document.getElementById('planningTitle').textContent = planning.title || '';
-                    document.getElementById('planningDescription').textContent = planning.description || '';
-                    document.getElementById('planningSection').style.display = 'block';
-                }
-            }
-            return;
-        }
-
         if (!data || !data.success) {
             showAttendanceError(data?.error || 'Erreur lors du chargement des présences');
             return;
         }
 
-        // Filtrer les élèves par statut
-        const absentStudents = data.students.filter(s => s.status === 'absent');
-        const lateStudents = data.students.filter(s => s.status === 'late');
+        // Filtrer les élèves par statut (seulement pour périodes passées)
+        const absentStudents = isPastPeriod ? data.students.filter(s => s.status === 'absent') : [];
+        const lateStudents = isPastPeriod ? data.students.filter(s => s.status === 'late') : [];
 
         // Afficher la planification si elle existe
         if (data.planning) {
@@ -6593,12 +6579,14 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
             }
         }
 
-        if (absentStudents.length === 0 && lateStudents.length === 0) {
-            // Tous présents
-            document.getElementById('allPresentMessage').style.display = 'block';
-        } else {
-            // Afficher les élèves absents
-            if (absentStudents.length > 0) {
+        // Afficher les présences uniquement pour les périodes passées
+        if (isPastPeriod) {
+            if (absentStudents.length === 0 && lateStudents.length === 0) {
+                // Tous présents
+                document.getElementById('allPresentMessage').style.display = 'block';
+            } else {
+                // Afficher les élèves absents
+                if (absentStudents.length > 0) {
                 document.getElementById('absentCount').textContent = absentStudents.length;
                 const absentList = document.getElementById('absentStudentsList');
                 absentList.innerHTML = '';
@@ -6633,6 +6621,7 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
                 });
 
                 document.getElementById('lateStudentsSection').style.display = 'block';
+            }
             }
         }
 
