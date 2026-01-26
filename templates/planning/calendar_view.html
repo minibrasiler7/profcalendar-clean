@@ -3387,21 +3387,28 @@ async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) 
         annotationOffsetY: -10,
         annotationScaleMultiplier: 1.05,
         studentData: studentsData,
-        onClose: () => {
+        onClose: async () => {
             container.style.display = 'none';
             window.cleanPDFViewerCalendar = null;
-            // Recharger les fichiers pour afficher la nouvelle feuille
-            const modalClassroom = document.getElementById('modalClassroom');
-            if (modalClassroom && modalClassroom.value) {
-                const classroomValue = modalClassroom.value;
-                let id = null;
-                if (classroomValue.startsWith('classroom_')) {
-                    id = classroomValue.replace('classroom_', '');
-                } else if (classroomValue.startsWith('mixed_group_')) {
-                    id = classroomValue.replace('mixed_group_', '');
-                }
-                if (id) {
-                    loadClassFiles(id);
+
+            // Si on est dans le contexte d'un modal de planification, recharger la liste des feuilles blanches
+            if (window.currentPlanningContext) {
+                const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+            } else {
+                // Sinon recharger les fichiers de la classe (comportement original)
+                const modalClassroom = document.getElementById('modalClassroom');
+                if (modalClassroom && modalClassroom.value) {
+                    const classroomValue = modalClassroom.value;
+                    let id = null;
+                    if (classroomValue.startsWith('classroom_')) {
+                        id = classroomValue.replace('classroom_', '');
+                    } else if (classroomValue.startsWith('mixed_group_')) {
+                        id = classroomValue.replace('mixed_group_', '');
+                    }
+                    if (id) {
+                        loadClassFiles(id);
+                    }
                 }
             }
         }
@@ -3470,21 +3477,28 @@ async function openExistingBlankSheetCalendar(sheetId) {
             annotationOffsetY: -10,
             annotationScaleMultiplier: 1.05,
             studentData: studentsData,
-            onClose: () => {
+            onClose: async () => {
                 container.style.display = 'none';
                 window.cleanPDFViewerCalendar = null;
-                // Recharger les fichiers pour afficher les modifications
-                const modalClassroom = document.getElementById('modalClassroom');
-                if (modalClassroom && modalClassroom.value) {
-                    const classroomValue = modalClassroom.value;
-                    let id = null;
-                    if (classroomValue.startsWith('classroom_')) {
-                        id = classroomValue.replace('classroom_', '');
-                    } else if (classroomValue.startsWith('mixed_group_')) {
-                        id = classroomValue.replace('mixed_group_', '');
-                    }
-                    if (id) {
-                        loadClassFiles(id);
+
+                // Si on est dans le contexte d'un modal de planification, recharger la liste des feuilles blanches
+                if (window.currentPlanningContext) {
+                    const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                    await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+                } else {
+                    // Sinon recharger les fichiers de la classe (comportement original)
+                    const modalClassroom = document.getElementById('modalClassroom');
+                    if (modalClassroom && modalClassroom.value) {
+                        const classroomValue = modalClassroom.value;
+                        let id = null;
+                        if (classroomValue.startsWith('classroom_')) {
+                            id = classroomValue.replace('classroom_', '');
+                        } else if (classroomValue.startsWith('mixed_group_')) {
+                            id = classroomValue.replace('mixed_group_', '');
+                        }
+                        if (id) {
+                            loadClassFiles(id);
+                        }
                     }
                 }
             }
@@ -6390,8 +6404,13 @@ async function deleteBlankSheetFromModal(sheetId) {
 
         if (data.success) {
             console.log('✅ Feuille blanche supprimée');
-            // Recharger la liste des feuilles blanches
-            if (window.currentAttendanceContext) {
+            // Recharger la liste des feuilles blanches selon le contexte
+            if (window.currentPlanningContext) {
+                // Dans le modal de planification (périodes futures)
+                const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+            } else if (window.currentAttendanceContext) {
+                // Dans le modal d'attendance (périodes passées)
                 const { date, periodNumber, classroomId } = window.currentAttendanceContext;
                 await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
             }
@@ -6580,14 +6599,14 @@ async function savePlanning() {
         console.log('💾 Sauvegarde planification période:', {date, periodNumber, classroomSelectValue, title});
 
         try {
-            const response = await fetch('/planning/save', {
+            const response = await fetch('/planning/save_planning', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     date: date,
-                    period: periodNumber,
+                    period_number: periodNumber,
                     classroom_id: classroomSelectValue,
                     title: title,
                     description: description,
