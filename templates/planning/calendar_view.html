@@ -1982,6 +1982,22 @@ if (typeof pdfjsLib !== 'undefined') {
         </div>
 
         <div class="modal-body">
+            <!-- Section feuilles blanches (en premier) -->
+            <div class="form-group" id="modalBlankSheetsSection" style="display: none; margin-bottom: 1.5rem;">
+                <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>
+                        <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
+                        Feuilles blanches (<span id="modalBlankSheetsCount">0</span>)
+                    </span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromPlanningModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                        <i class="fas fa-plus"></i> Nouvelle
+                    </button>
+                </h4>
+                <div id="modalBlankSheetsList" style="display: grid; gap: 0.5rem;">
+                    <!-- Les feuilles blanches seront ajoutées ici -->
+                </div>
+            </div>
+
             <div class="form-group">
                 <label class="form-label">Classe</label>
                 <select id="modalClassroom" class="form-control" onchange="loadGroupsForClass(this.value)">
@@ -2044,22 +2060,6 @@ if (typeof pdfjsLib !== 'undefined') {
                 </label>
                 <div id="modalMemosList" style="margin-top: 10px;">
                     <!-- Les mémos seront insérés ici par JavaScript -->
-                </div>
-            </div>
-
-            <!-- Section feuilles blanches -->
-            <div class="form-group" id="modalBlankSheetsSection" style="display: none; margin-top: 20px;">
-                <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
-                    <span>
-                        <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
-                        Feuilles blanches (<span id="modalBlankSheetsCount">0</span>)
-                    </span>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromPlanningModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
-                        <i class="fas fa-plus"></i> Nouvelle
-                    </button>
-                </h4>
-                <div id="modalBlankSheetsList" style="display: grid; gap: 0.5rem;">
-                    <!-- Les feuilles blanches seront ajoutées ici -->
                 </div>
             </div>
         </div>
@@ -6515,12 +6515,113 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
         await loadGroupsForClass(classroomValue);
     }
 
+    // Charger la planification existante si elle existe
+    try {
+        const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (data.success && data.planning) {
+            // Pré-remplir les champs avec la planification existante
+            document.getElementById('modalPlanningTitle').value = data.planning.title || '';
+            document.getElementById('modalDescription').value = data.planning.description || '';
+        } else {
+            // Vider les champs pour une nouvelle planification
+            document.getElementById('modalPlanningTitle').value = '';
+            document.getElementById('modalDescription').value = '';
+        }
+    } catch (error) {
+        console.warn('Erreur lors du chargement de la planification:', error);
+        // Vider les champs en cas d'erreur
+        document.getElementById('modalPlanningTitle').value = '';
+        document.getElementById('modalDescription').value = '';
+    }
+
     // Charger les feuilles blanches pour cette période
     await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
 
     // Afficher le modal
     modal.style.display = 'block';
     overlay.style.display = 'block';
+}
+
+/**
+ * Ferme le modal de planification (surcharge la fonction de planning.js)
+ */
+function closePlanningModal() {
+    const modal = document.getElementById('planningModal');
+    const overlay = document.getElementById('modalOverlay');
+
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
+
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+
+    // Nettoyer le contexte
+    window.currentPlanningContext = null;
+    currentPlanningCell = null;
+}
+
+/**
+ * Sauvegarde la planification (surcharge la fonction de planning.js pour gérer les périodes)
+ */
+async function savePlanning() {
+    // Si on a un contexte de période (modal ouvert via showPeriodAttendance), utiliser ce contexte
+    if (window.currentPlanningContext) {
+        const { date, periodNumber, classroomId, isMixedGroup } = window.currentPlanningContext;
+        const classroomSelectValue = document.getElementById('modalClassroom').value;
+        const title = document.getElementById('modalPlanningTitle').value;
+        const description = document.getElementById('modalDescription').value;
+        const groupId = document.getElementById('modalGroup') ? document.getElementById('modalGroup').value : null;
+
+        console.log('💾 Sauvegarde planification période:', {date, periodNumber, classroomSelectValue, title});
+
+        try {
+            const response = await fetch('/planning/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date: date,
+                    period: periodNumber,
+                    classroom_id: classroomSelectValue,
+                    title: title,
+                    description: description,
+                    group_id: groupId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ Planification sauvegardée avec succès');
+                closePlanningModal();
+                // Recharger la page pour afficher la mise à jour
+                location.reload();
+            } else {
+                alert('Erreur lors de la sauvegarde: ' + (data.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
+            alert('Erreur de connexion au serveur');
+        }
+        return;
+    }
+
+    // Sinon, utiliser la logique originale de planning.js
+    if (!currentPlanningCell) {
+        console.error('Pas de cellule de planification sélectionnée');
+        return;
+    }
+
+    // Appeler la fonction originale de planning.js si elle existe
+    if (typeof window.originalSavePlanning === 'function') {
+        await window.originalSavePlanning();
+    }
 }
 
 /**
