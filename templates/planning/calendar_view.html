@@ -2422,15 +2422,21 @@ if (typeof pdfjsLib !== 'undefined') {
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/planning.js') }}"></script>
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
 <script>
+// Définir les variables globales AVANT de charger planning.js qui les utilise
 const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
 const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
 const periodsData = {{ periods_json | tojson }};
 const classrooms = {{ classrooms_json | tojson }};
 const scheduleGrid = {{ schedule_grid_json | tojson }};
 const mergedInfo = {{ merged_info | tojson }};
+</script>
+
+<!-- Charger planning.js APRÈS avoir défini les variables globales -->
+<script src="{{ url_for('static', filename='js/planning.js') }}"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
+
+<script>
 let currentPlanningCell = null;
 let isExtendedView = false;
 
