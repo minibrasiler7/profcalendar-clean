@@ -8974,19 +8974,20 @@ function openFileWithUnifiedViewer(filePath, fileName) {
     console.log('🎯 Ouverture avec le lecteur unifié:', fileName);
 
     // Vérifier et obtenir la modal parente d'abord
-    let modal = document.getElementById('fileViewerModal');
-    console.log('🔍 Modal trouvée:', modal);
+    // Utiliser querySelector directement car c'est plus fiable
+    let modal = document.querySelector('.file-viewer-modal');
+    console.log('🔍 Modal trouvée (querySelector):', modal);
+
+    // Fallback sur getElementById si querySelector ne fonctionne pas
+    if (!modal) {
+        modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée (getElementById):', modal);
+    }
 
     if (!modal) {
-        console.warn('⚠️ Modal fileViewerModal non trouvée, tentative de recherche alternative...');
-        // Essayer de trouver la modal par classe
-        modal = document.querySelector('.file-viewer-modal');
-        if (!modal) {
-            console.error('❌ Impossible de trouver la modal, rechargement de la page recommandé');
-            alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
-            return;
-        }
-        console.log('✅ Modal trouvée via sélecteur de classe');
+        console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
+        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+        return;
     }
 
     // Afficher la modal d'abord
@@ -9192,19 +9193,20 @@ function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
     console.log('📄 Création nouvelle feuille blanche');
 
     // Vérifier et obtenir la modal parente d'abord
-    let modal = document.getElementById('fileViewerModal');
-    console.log('🔍 Modal trouvée:', modal);
+    // Utiliser querySelector directement car c'est plus fiable
+    let modal = document.querySelector('.file-viewer-modal');
+    console.log('🔍 Modal trouvée (querySelector):', modal);
+
+    // Fallback sur getElementById si querySelector ne fonctionne pas
+    if (!modal) {
+        modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée (getElementById):', modal);
+    }
 
     if (!modal) {
-        console.warn('⚠️ Modal fileViewerModal non trouvée, tentative de recherche alternative...');
-        // Essayer de trouver la modal par classe
-        modal = document.querySelector('.file-viewer-modal');
-        if (!modal) {
-            console.error('❌ Impossible de trouver la modal, rechargement de la page recommandé');
-            alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
-            return;
-        }
-        console.log('✅ Modal trouvée via sélecteur de classe');
+        console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
+        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+        return;
     }
 
     // Afficher la modal d'abord
@@ -9319,20 +9321,24 @@ async function openExistingBlankSheet(sheetId) {
         const sheet = data.sheet;
         console.log('📋 Données de la feuille chargées:', sheet);
 
+        // Attendre que le DOM soit stable (au cas où un autre script manipule le DOM)
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
         // Vérifier et obtenir la modal parente d'abord
-        let modal = document.getElementById('fileViewerModal');
-        console.log('🔍 Modal trouvée:', modal);
+        // Utiliser querySelector directement car c'est plus fiable
+        let modal = document.querySelector('.file-viewer-modal');
+        console.log('🔍 Modal trouvée (querySelector):', modal);
+
+        // Fallback sur getElementById si querySelector ne fonctionne pas
+        if (!modal) {
+            modal = document.getElementById('fileViewerModal');
+            console.log('🔍 Modal trouvée (getElementById):', modal);
+        }
 
         if (!modal) {
-            console.warn('⚠️ Modal fileViewerModal non trouvée, tentative de recherche alternative...');
-            // Essayer de trouver la modal par classe
-            modal = document.querySelector('.file-viewer-modal');
-            if (!modal) {
-                console.error('❌ Impossible de trouver la modal, rechargement de la page recommandé');
-                alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
-                return;
-            }
-            console.log('✅ Modal trouvée via sélecteur de classe');
+            console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
+            alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+            return;
         }
 
         // Afficher la modal d'abord
