@@ -3384,8 +3384,8 @@ async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) 
         showSidebar: true,
         enableAnnotations: true,
         autoSaveInterval: 5000,
-        annotationOffsetY: -10,
-        annotationScaleMultiplier: 1.05,
+        // Pour les feuilles blanches, laisser le système automatique calculer le redimensionnement
+        // (les paramètres annotationOffsetY et annotationScaleMultiplier sont désactivés)
         studentData: studentsData,
         onClose: async () => {
             container.style.display = 'none';
@@ -3474,8 +3474,8 @@ async function openExistingBlankSheetCalendar(sheetId) {
             showSidebar: true,
             enableAnnotations: true,
             autoSaveInterval: 5000,
-            annotationOffsetY: -10,
-            annotationScaleMultiplier: 1.05,
+            // Pour les feuilles blanches, laisser le système automatique calculer le redimensionnement
+            // (les paramètres annotationOffsetY et annotationScaleMultiplier sont désactivés)
             studentData: studentsData,
             onClose: async () => {
                 container.style.display = 'none';
