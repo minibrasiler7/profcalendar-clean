@@ -9195,11 +9195,11 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
     menu.innerHTML = `
         <div class="menu-header">
             <h4>Feuilles blanches de la leçon</h4>
-            <button class="close-menu-btn" onclick="this.parentElement.parentElement.remove()">×</button>
+            <button class="close-menu-btn">×</button>
         </div>
         <div class="menu-list">
             ${sheets.map(sheet => `
-                <div class="sheet-item" onclick="openExistingBlankSheet(${sheet.id}); this.parentElement.parentElement.parentElement.remove();">
+                <div class="sheet-item" data-sheet-id="${sheet.id}">
                     <i class="fas fa-file"></i>
                     <div class="sheet-info">
                         <span class="sheet-title">${sheet.title}</span>
@@ -9208,12 +9208,40 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
                 </div>
             `).join('')}
         </div>
-        <button class="btn-primary new-sheet-btn" onclick="openNewBlankSheet('${lessonDate}', ${periodNumber}, ${classroomId}); this.parentElement.remove();">
+        <button class="btn-primary new-sheet-btn">
             <i class="fas fa-plus"></i> Nouvelle feuille
         </button>
     `;
 
     document.body.appendChild(menu);
+
+    // Attacher les event listeners après l'ajout au DOM
+    const closeBtn = menu.querySelector('.close-menu-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            menu.remove();
+        });
+    }
+
+    // Event listeners pour les feuilles existantes
+    menu.querySelectorAll('.sheet-item').forEach(item => {
+        const sheetId = parseInt(item.dataset.sheetId);
+        item.addEventListener('click', () => {
+            console.log('🖱️ Click menu: Ouverture feuille', sheetId);
+            menu.remove(); // Fermer le menu d'abord
+            openExistingBlankSheet(sheetId); // Puis ouvrir la feuille
+        });
+    });
+
+    // Event listener pour le bouton nouvelle feuille
+    const newSheetBtn = menu.querySelector('.new-sheet-btn');
+    if (newSheetBtn) {
+        newSheetBtn.addEventListener('click', () => {
+            console.log('🖱️ Click menu: Nouvelle feuille');
+            menu.remove(); // Fermer le menu d'abord
+            openNewBlankSheet(lessonDate, periodNumber, classroomId); // Puis créer nouvelle feuille
+        });
+    }
 }
 
 /**
