@@ -2721,11 +2721,11 @@ async function renderBlankSheets() {
                 </h4>
                 <div class="blank-sheets-list">
                     ${data.sheets.map(sheet => `
-                        <div class="resource-item blank-sheet">
-                            <div class="resource-icon blank-sheet-icon" onclick="openExistingBlankSheet(${sheet.id})">
+                        <div class="resource-item blank-sheet" data-sheet-id="${sheet.id}">
+                            <div class="resource-icon blank-sheet-icon">
                                 <i class="fas fa-file"></i>
                             </div>
-                            <div class="resource-info" onclick="openExistingBlankSheet(${sheet.id})">
+                            <div class="resource-info">
                                 <div class="resource-main">
                                     <div class="resource-name clickable-file">${escapeHtml(sheet.title)}</div>
                                     <div class="resource-meta">
@@ -2734,7 +2734,7 @@ async function renderBlankSheets() {
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn-delete-blank-sheet" onclick="event.stopPropagation(); deleteBlankSheet(${sheet.id})" title="Supprimer la feuille blanche">
+                            <button class="btn-delete-blank-sheet" data-sheet-id="${sheet.id}" title="Supprimer la feuille blanche">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -2745,6 +2745,36 @@ async function renderBlankSheets() {
             // Insérer avant le contenu actuel (au début de l'arborescence)
             resourcesTree.insertBefore(blankSheetsSection, resourcesTree.firstChild);
             console.log('✅ renderBlankSheets: Section ajoutée au DOM');
+
+            // Attacher les event listeners après l'insertion dans le DOM
+            blankSheetsSection.querySelectorAll('.resource-item.blank-sheet').forEach(item => {
+                const sheetId = parseInt(item.dataset.sheetId);
+                const icon = item.querySelector('.resource-icon');
+                const info = item.querySelector('.resource-info');
+
+                // Click sur l'icône ou les infos pour ouvrir la feuille
+                if (icon) {
+                    icon.addEventListener('click', () => {
+                        console.log('🖱️ Click sur feuille blanche ID:', sheetId);
+                        openExistingBlankSheet(sheetId);
+                    });
+                }
+                if (info) {
+                    info.addEventListener('click', () => {
+                        console.log('🖱️ Click sur feuille blanche ID:', sheetId);
+                        openExistingBlankSheet(sheetId);
+                    });
+                }
+            });
+
+            // Attacher les event listeners pour les boutons de suppression
+            blankSheetsSection.querySelectorAll('.btn-delete-blank-sheet').forEach(btn => {
+                const sheetId = parseInt(btn.dataset.sheetId);
+                btn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    deleteBlankSheet(sheetId);
+                });
+            });
         } else {
             console.log('ℹ️ renderBlankSheets: Aucune feuille blanche à afficher');
         }
@@ -9321,23 +9351,41 @@ async function openExistingBlankSheet(sheetId) {
         const sheet = data.sheet;
         console.log('📋 Données de la feuille chargées:', sheet);
 
-        // Attendre que le DOM soit stable (au cas où un autre script manipule le DOM)
-        await new Promise(resolve => requestAnimationFrame(resolve));
+        // Attendre que tous les scripts et événements en cours soient terminés
+        await new Promise(resolve => setTimeout(resolve, 50));
 
         // Vérifier et obtenir la modal parente d'abord
-        // Utiliser querySelector directement car c'est plus fiable
+        // Essayer plusieurs méthodes pour trouver la modal
         let modal = document.querySelector('.file-viewer-modal');
         console.log('🔍 Modal trouvée (querySelector):', modal);
 
-        // Fallback sur getElementById si querySelector ne fonctionne pas
         if (!modal) {
             modal = document.getElementById('fileViewerModal');
             console.log('🔍 Modal trouvée (getElementById):', modal);
         }
 
+        // Si toujours pas trouvée, chercher dans tout le document
         if (!modal) {
-            console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
-            alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+            console.warn('⚠️ Modal non trouvée, recherche exhaustive...');
+            const allDivs = document.querySelectorAll('div');
+            for (const div of allDivs) {
+                if (div.id === 'fileViewerModal' || div.classList.contains('file-viewer-modal')) {
+                    modal = div;
+                    console.log('✅ Modal trouvée via recherche exhaustive');
+                    break;
+                }
+            }
+        }
+
+        if (!modal) {
+            console.error('❌ Modal introuvable après recherche exhaustive');
+            console.error('📊 État du DOM:', {
+                body: document.body ? 'existe' : 'null',
+                childElementCount: document.body ? document.body.childElementCount : 0,
+                allModals: document.querySelectorAll('[id*="modal"]').length,
+                allViewers: document.querySelectorAll('[id*="viewer"]').length
+            });
+            alert('Erreur: La modal de visualisation n\'existe pas dans le DOM.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
             return;
         }
 
