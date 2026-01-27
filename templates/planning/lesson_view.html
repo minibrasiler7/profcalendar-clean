@@ -9161,25 +9161,55 @@ function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
 function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
     console.log('📄 Création nouvelle feuille blanche');
 
-    // Afficher directement le container
-    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    // Vérifier et obtenir la modal parente d'abord
+    let modal = document.getElementById('fileViewerModal');
+    console.log('🔍 Modal trouvée:', modal);
+
+    if (!modal) {
+        console.warn('⚠️ Modal fileViewerModal non trouvée, tentative de recherche alternative...');
+        // Essayer de trouver la modal par classe
+        modal = document.querySelector('.file-viewer-modal');
+        if (!modal) {
+            console.error('❌ Impossible de trouver la modal, rechargement de la page recommandé');
+            alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+            return;
+        }
+        console.log('✅ Modal trouvée via sélecteur de classe');
+    }
+
+    // Afficher la modal d'abord
+    modal.style.display = 'flex';
+
+    // Maintenant chercher le container à l'intérieur de la modal
+    let viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    console.log('🔍 Container trouvé:', viewerContainer);
+
     if (!viewerContainer) {
-        console.error('❌ Container unified-pdf-viewer-container non trouvé');
-        alert('Erreur: Le container de visualisation n\'existe pas');
-        return;
+        console.warn('⚠️ Container non trouvé par ID, recherche dans la modal...');
+        // Chercher le container dans la modal
+        viewerContainer = modal.querySelector('#unified-pdf-viewer-container');
+        if (!viewerContainer) {
+            console.error('❌ Container toujours introuvable, tentative de recréation...');
+            // Essayer de recréer le container
+            const wrapper = modal.querySelector('.unified-pdf-viewer-wrapper');
+            if (wrapper) {
+                console.log('🔧 Wrapper trouvé, recréation du container...');
+                viewerContainer = document.createElement('div');
+                viewerContainer.id = 'unified-pdf-viewer-container';
+                wrapper.appendChild(viewerContainer);
+                console.log('✅ Container recréé avec succès');
+            } else {
+                console.error('❌ Wrapper introuvable, impossible de recréer le container');
+                alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                modal.style.display = 'none';
+                return;
+            }
+        } else {
+            console.log('✅ Container trouvé dans la modal via querySelector');
+        }
     }
 
     viewerContainer.style.display = 'block';
-
-    // Afficher aussi la modal parente si elle existe
-    const modal = document.getElementById('fileViewerModal');
-    if (modal) {
-        console.log('✅ Modal trouvée, affichage');
-        modal.style.display = 'flex';
-    } else {
-        console.warn('⚠️ Modal non trouvée, affichage direct du container');
-    }
-
     document.body.style.overflow = 'hidden';
 
     // Vérifier la disponibilité des données des élèves
@@ -9259,26 +9289,55 @@ async function openExistingBlankSheet(sheetId) {
         const sheet = data.sheet;
         console.log('📋 Données de la feuille chargées:', sheet);
 
-        // Afficher directement le container sans vérifier la modal
-        const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+        // Vérifier et obtenir la modal parente d'abord
+        let modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée:', modal);
+
+        if (!modal) {
+            console.warn('⚠️ Modal fileViewerModal non trouvée, tentative de recherche alternative...');
+            // Essayer de trouver la modal par classe
+            modal = document.querySelector('.file-viewer-modal');
+            if (!modal) {
+                console.error('❌ Impossible de trouver la modal, rechargement de la page recommandé');
+                alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                return;
+            }
+            console.log('✅ Modal trouvée via sélecteur de classe');
+        }
+
+        // Afficher la modal d'abord
+        modal.style.display = 'flex';
+
+        // Maintenant chercher le container à l'intérieur de la modal
+        let viewerContainer = document.getElementById('unified-pdf-viewer-container');
         console.log('🔍 Container trouvé:', viewerContainer);
+
         if (!viewerContainer) {
-            console.error('❌ Container unified-pdf-viewer-container non trouvé');
-            alert('Erreur: Le container de visualisation n\'existe pas');
-            return;
+            console.warn('⚠️ Container non trouvé par ID, recherche dans la modal...');
+            // Chercher le container dans la modal
+            viewerContainer = modal.querySelector('#unified-pdf-viewer-container');
+            if (!viewerContainer) {
+                console.error('❌ Container toujours introuvable, tentative de recréation...');
+                // Essayer de recréer le container
+                const wrapper = modal.querySelector('.unified-pdf-viewer-wrapper');
+                if (wrapper) {
+                    console.log('🔧 Wrapper trouvé, recréation du container...');
+                    viewerContainer = document.createElement('div');
+                    viewerContainer.id = 'unified-pdf-viewer-container';
+                    wrapper.appendChild(viewerContainer);
+                    console.log('✅ Container recréé avec succès');
+                } else {
+                    console.error('❌ Wrapper introuvable, impossible de recréer le container');
+                    alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                    modal.style.display = 'none';
+                    return;
+                }
+            } else {
+                console.log('✅ Container trouvé dans la modal via querySelector');
+            }
         }
 
         viewerContainer.style.display = 'block';
-
-        // Afficher aussi la modal parente si elle existe
-        const modal = document.getElementById('fileViewerModal');
-        if (modal) {
-            console.log('✅ Modal trouvée, affichage');
-            modal.style.display = 'flex';
-        } else {
-            console.warn('⚠️ Modal non trouvée, affichage direct du container');
-        }
-
         document.body.style.overflow = 'hidden';
 
         // Vérifier la disponibilité des données des élèves
