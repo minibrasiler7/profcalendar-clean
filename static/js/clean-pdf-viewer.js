@@ -6167,6 +6167,15 @@ class CleanPDFViewer {
 
                         // Ajouter chaque annotation à la page ET à l'historique
                         for (const annotation of pageAnnotations) {
+                            // LOG DE DEBUG: Vérifier les dimensions AVANT la migration
+                            console.log(`[Load] DEBUG Annotation AVANT migration pageId ${pageId}:`, {
+                                tool: annotation.tool,
+                                canvasWidth: annotation.canvasWidth,
+                                canvasHeight: annotation.canvasHeight,
+                                hasCanvasWidth: 'canvasWidth' in annotation,
+                                hasCanvasHeight: 'canvasHeight' in annotation
+                            });
+
                             // Migrer les annotations legacy sans canvasWidth/canvasHeight
                             // Assumer qu'elles ont été créées sur un canvas "standard" (viewer plein écran sur /lesson)
                             // Taille de référence : PDF A4 à scale ~1.7 = 1200x1697 pixels
@@ -6175,6 +6184,13 @@ class CleanPDFViewer {
                                 annotation.canvasHeight = 1697;
                                 console.log('[Load] Migration annotation legacy - assigné dimensions par défaut:', annotation.canvasWidth, 'x', annotation.canvasHeight);
                             }
+
+                            // LOG DE DEBUG: Vérifier les dimensions APRÈS la migration
+                            console.log(`[Load] DEBUG Annotation APRÈS migration pageId ${pageId}:`, {
+                                tool: annotation.tool,
+                                canvasWidth: annotation.canvasWidth,
+                                canvasHeight: annotation.canvasHeight
+                            });
 
                             // Ajouter à la Map des annotations
                             this.annotations.get(pageId).push(annotation);
@@ -6265,6 +6281,19 @@ class CleanPDFViewer {
             });
 
             console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations et', customPages.length, 'pages custom');
+
+            // LOG DE DEBUG: Vérifier les dimensions des annotations avant sauvegarde
+            for (const [pageId, pageAnnotations] of Object.entries(annotationsData)) {
+                for (const ann of pageAnnotations) {
+                    console.log(`[Save] DEBUG Annotation pageId ${pageId}:`, {
+                        tool: ann.tool,
+                        canvasWidth: ann.canvasWidth,
+                        canvasHeight: ann.canvasHeight,
+                        hasCanvasWidth: 'canvasWidth' in ann,
+                        hasCanvasHeight: 'canvasHeight' in ann
+                    });
+                }
+            }
 
             const response = await fetch('/file_manager/api/save-annotations', {
                 method: 'POST',
