@@ -3944,11 +3944,15 @@ class CleanPDFViewer {
 
         // Sauvegarder les dimensions du canvas pour recalculer les coordonnées plus tard
         if (!annotation.canvasWidth || !annotation.canvasHeight) {
-            const canvas = this.pages.get(pageId)?.annotationCanvas;
+            // Trouver le canvas d'annotation via le DOM
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            const canvas = pageWrapper?.querySelector('.annotation-canvas');
             if (canvas) {
                 annotation.canvasWidth = canvas.width;
                 annotation.canvasHeight = canvas.height;
-                console.log('[History] Sauvegarde dimensions canvas:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+                console.log('[History] Sauvegarde dimensions canvas:', annotation.canvasWidth, 'x', annotation.canvasHeight, 'pour pageId:', pageId);
+            } else {
+                console.warn('[History] Canvas d\'annotation introuvable pour pageId:', pageId);
             }
         }
 
@@ -6395,7 +6399,20 @@ class CleanPDFViewer {
                 console.log('[LoadBlankSheet] Chargement annotations pour', Object.keys(sheetData.annotations).length, 'pages');
 
                 for (const [pageId, pageAnnotations] of Object.entries(sheetData.annotations)) {
-                    this.annotations.set(pageId, pageAnnotations);
+                    // Migrer les annotations legacy sans canvasWidth/canvasHeight
+                    // Utiliser les dimensions standard d'une page A4 à 96 DPI en largeur = viewerWidth * 0.95
+                    const migratedAnnotations = pageAnnotations.map(annotation => {
+                        if (!annotation.canvasWidth || !annotation.canvasHeight) {
+                            // Dimensions standard pour une page créée sur /lesson (plein écran)
+                            // Ces valeurs seront ajustées automatiquement lors du redimensionnement
+                            annotation.canvasWidth = 1200;  // Largeur typique d'un viewer plein écran
+                            annotation.canvasHeight = 1697;  // Hauteur A4 proportionnelle
+                            console.log('[LoadBlankSheet] Migration annotation legacy - ajout dimensions:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+                        }
+                        return annotation;
+                    });
+
+                    this.annotations.set(pageId, migratedAnnotations);
                 }
 
                 console.log('[LoadBlankSheet] Annotations chargées en mémoire');
