@@ -2512,42 +2512,48 @@ class CleanPDFViewer {
                 const centerX = totalX / count;
                 const centerY = totalY / count;
 
-                // Créer le bouton rond
+                // Créer le bouton rond avec icône de chaîne
                 const linkButton = document.createElement('a');
                 linkButton.className = 'pdf-link-button';
                 linkButton.href = url;
                 linkButton.target = '_blank';
                 linkButton.rel = 'noopener noreferrer';
-                linkButton.textContent = 'Aller à la page !';
+                linkButton.innerHTML = '<i class="fas fa-link"></i>';
 
-                // Positionner le bouton au centre
+                // Style du bouton petit et rond avec 30% d'opacité
                 linkButton.style.position = 'absolute';
                 linkButton.style.left = `${centerX}px`;
                 linkButton.style.top = `${centerY}px`;
                 linkButton.style.transform = 'translate(-50%, -50%)';
-                linkButton.style.padding = '8px 16px';
+                linkButton.style.width = '32px';
+                linkButton.style.height = '32px';
+                linkButton.style.display = 'flex';
+                linkButton.style.alignItems = 'center';
+                linkButton.style.justifyContent = 'center';
+                linkButton.style.padding = '0';
                 linkButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 linkButton.style.color = 'white';
-                linkButton.style.borderRadius = '20px';
+                linkButton.style.borderRadius = '50%';
                 linkButton.style.fontSize = '14px';
-                linkButton.style.fontWeight = 'bold';
                 linkButton.style.textDecoration = 'none';
-                linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                linkButton.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
                 linkButton.style.cursor = 'pointer';
                 linkButton.style.zIndex = '5';
                 linkButton.style.transition = 'all 0.3s ease';
                 linkButton.style.border = 'none';
-                linkButton.style.whiteSpace = 'nowrap';
+                linkButton.style.opacity = '0.3';
 
-                // Effet hover
+                // Effet hover - augmenter l'opacité
                 linkButton.addEventListener('mouseenter', () => {
-                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.05)';
-                    linkButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.6)';
+                    linkButton.style.opacity = '1';
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.5)';
                 });
 
                 linkButton.addEventListener('mouseleave', () => {
+                    linkButton.style.opacity = '0.3';
                     linkButton.style.transform = 'translate(-50%, -50%) scale(1)';
-                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                    linkButton.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
                 });
 
                 container.appendChild(linkButton);
