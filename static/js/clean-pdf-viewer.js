@@ -907,6 +907,38 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Bouton de configuration de la frise chronologique */
+            .timeline-config-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: white;
+                border: 2px solid #667eea;
+                color: #667eea;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-config-btn:hover {
+                background: #667eea;
+                color: white;
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+            }
+
+            .timeline-config-btn:active {
+                transform: scale(0.95);
+            }
+
             /* Panneau de configuration du graphique */
             .graph-config-panel {
                 position: fixed;
@@ -1895,6 +1927,16 @@ class CleanPDFViewer {
             configBtn.title = 'Configurer le graphique';
             configBtn.addEventListener('click', () => this.openGraphConfigPanel(pageId));
             container.appendChild(configBtn);
+        } else if (pageData && pageData.type === 'timeline') {
+            await this.renderTimelinePage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+
+            // Ajouter un bouton de configuration pour les frises chronologiques
+            const configBtn = document.createElement('button');
+            configBtn.className = 'timeline-config-btn';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configurer la frise chronologique';
+            configBtn.addEventListener('click', () => this.openTimelineConfigPanel(pageId));
+            container.appendChild(configBtn);
         }
 
         // Configurer les événements d'annotation
@@ -2214,6 +2256,498 @@ class CleanPDFViewer {
         } catch (e) {
             throw new Error('Invalid expression');
         }
+    }
+
+    /**
+     * Rendre une page de frise chronologique
+     */
+    async renderTimelinePage(pdfCanvas, annotationCanvas, timelineData = {}, pageId) {
+        // Adapter la taille à celle des pages PDF
+        let width, height;
+
+        if (this.pdf && this.pdf.numPages > 0) {
+            const referencePage = await this.pdf.getPage(1);
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const baseViewport = referencePage.getViewport({scale: 1});
+            const calculatedScale = targetWidth / baseViewport.width;
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const viewport = referencePage.getViewport({scale: scale});
+            width = viewport.width;
+            height = viewport.height;
+        } else {
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const a4Ratio = 297 / 210;
+            width = targetWidth;
+            height = width * a4Ratio;
+        }
+
+        pdfCanvas.width = width;
+        pdfCanvas.height = height;
+        annotationCanvas.width = width;
+        annotationCanvas.height = height;
+
+        const ctx = pdfCanvas.getContext('2d');
+
+        // Fond blanc
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // Paramètres de la frise
+        const orientation = timelineData.orientation || 'horizontal';
+        const startYear = timelineData.startYear || new Date().getFullYear();
+        const endYear = timelineData.endYear || new Date().getFullYear() + 10;
+        const title = timelineData.title || 'Frise chronologique';
+        const events = timelineData.events || [];
+        const lineColor = timelineData.lineColor || '#667eea';
+        const showYears = timelineData.showYears !== false;
+
+        // Dessiner le titre
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, width / 2, 40);
+
+        // Dessiner la frise
+        if (orientation === 'horizontal') {
+            this.drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears);
+        } else {
+            this.drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears);
+        }
+
+        // Redessiner les annotations existantes
+        if (pageId) {
+            this.redrawAnnotations(annotationCanvas, pageId);
+        }
+    }
+
+    /**
+     * Dessiner une frise chronologique horizontale
+     */
+    drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears) {
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, lineY);
+        ctx.lineTo(lineEndX, lineY);
+        ctx.stroke();
+
+        // Flèche à la fin
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineEndX, lineY);
+        ctx.lineTo(lineEndX - 15, lineY - 8);
+        ctx.lineTo(lineEndX - 15, lineY + 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+
+            for (let year = startYear; year <= endYear; year++) {
+                const x = lineStartX + ((year - startYear) / yearRange) * lineLength;
+
+                // Graduation
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 10);
+                ctx.lineTo(x, lineY + 10);
+                ctx.stroke();
+
+                // Année
+                ctx.fillText(year.toString(), x, lineY + 30);
+            }
+        }
+
+        // Événements
+        events.forEach((event, index) => {
+            const eventYear = event.year || startYear;
+            const eventX = lineStartX + ((eventYear - startYear) / yearRange) * lineLength;
+            const isTop = index % 2 === 0;
+            const eventY = isTop ? lineY - 80 : lineY + 80;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ligne verticale vers l'événement
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(eventX, lineY);
+            ctx.lineTo(eventX, isTop ? eventY + 40 : eventY - 40);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte d'événement
+            const boxWidth = 150;
+            const boxHeight = 60;
+            const boxX = eventX - boxWidth / 2;
+            const boxY = isTop ? eventY - boxHeight / 2 : eventY - boxHeight / 2;
+
+            // Ombre
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            // Fond
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Titre de l'événement
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.title || 'Événement', eventX, boxY + 20, boxWidth - 10);
+
+            // Description
+            if (event.description) {
+                ctx.font = '11px Arial';
+                ctx.fillStyle = '#6b7280';
+                const words = event.description.split(' ');
+                let line = '';
+                let y = boxY + 35;
+
+                for (let word of words) {
+                    const testLine = line + word + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > boxWidth - 20 && line.length > 0) {
+                        ctx.fillText(line, eventX, y, boxWidth - 10);
+                        line = word + ' ';
+                        y += 14;
+                        if (y > boxY + boxHeight - 10) break;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (y <= boxY + boxHeight - 10 && line.length > 0) {
+                    ctx.fillText(line, eventX, y, boxWidth - 10);
+                }
+            }
+        });
+    }
+
+    /**
+     * Dessiner une frise chronologique verticale
+     */
+    drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears) {
+        const marginTop = 100;
+        const marginBottom = 80;
+        const lineX = width / 2;
+        const lineStartY = marginTop;
+        const lineEndY = height - marginBottom;
+        const lineLength = lineEndY - lineStartY;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineStartY);
+        ctx.lineTo(lineX, lineEndY);
+        ctx.stroke();
+
+        // Flèche en bas
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineEndY);
+        ctx.lineTo(lineX - 8, lineEndY - 15);
+        ctx.lineTo(lineX + 8, lineEndY - 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+
+            for (let year = startYear; year <= endYear; year++) {
+                const y = lineStartY + ((year - startYear) / yearRange) * lineLength;
+
+                // Graduation
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(lineX - 10, y);
+                ctx.lineTo(lineX + 10, y);
+                ctx.stroke();
+
+                // Année
+                ctx.fillText(year.toString(), lineX + 20, y + 5);
+            }
+        }
+
+        // Événements
+        events.forEach((event, index) => {
+            const eventYear = event.year || startYear;
+            const eventY = lineStartY + ((eventYear - startYear) / yearRange) * lineLength;
+            const isLeft = index % 2 === 0;
+            const eventX = isLeft ? lineX - 200 : lineX + 200;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ligne horizontale vers l'événement
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(lineX, eventY);
+            ctx.lineTo(isLeft ? eventX + 75 : eventX - 75, eventY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte d'événement
+            const boxWidth = 150;
+            const boxHeight = 60;
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            // Ombre
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            // Fond
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Titre de l'événement
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.title || 'Événement', eventX, boxY + 20, boxWidth - 10);
+
+            // Description
+            if (event.description) {
+                ctx.font = '11px Arial';
+                ctx.fillStyle = '#6b7280';
+                const words = event.description.split(' ');
+                let line = '';
+                let y = boxY + 35;
+
+                for (let word of words) {
+                    const testLine = line + word + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > boxWidth - 20 && line.length > 0) {
+                        ctx.fillText(line, eventX, y, boxWidth - 10);
+                        line = word + ' ';
+                        y += 14;
+                        if (y > boxY + boxHeight - 10) break;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (y <= boxY + boxHeight - 10 && line.length > 0) {
+                    ctx.fillText(line, eventX, y, boxWidth - 10);
+                }
+            }
+        });
+    }
+
+    /**
+     * Ouvrir le panneau de configuration de la frise chronologique
+     */
+    openTimelineConfigPanel(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+
+        // Créer le panneau
+        const panel = document.createElement('div');
+        panel.id = 'timeline-config-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10001;
+            overflow-y: auto;
+        `;
+
+        panel.innerHTML = `
+            <div style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Configurer la frise chronologique</h3>
+                    <button id="timeline-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Titre de la frise</label>
+                    <input type="text" id="timeline-title" value="${data.title || 'Frise chronologique'}"
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de début</label>
+                        <input type="number" id="timeline-start-year" value="${data.startYear || new Date().getFullYear()}"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de fin</label>
+                        <input type="number" id="timeline-end-year" value="${data.endYear || (new Date().getFullYear() + 10)}"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Orientation</label>
+                    <select id="timeline-orientation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>Horizontale</option>
+                        <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>Verticale</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Couleur de la ligne</label>
+                    <input type="color" id="timeline-line-color" value="${data.lineColor || '#667eea'}"
+                           style="width: 100px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="timeline-show-years" ${data.showYears !== false ? 'checked' : ''}>
+                        <span>Afficher les années sur la frise</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">Événements</h4>
+                        <button id="add-event-btn" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            + Ajouter un événement
+                        </button>
+                    </div>
+                    <div id="events-list" style="max-height: 300px; overflow-y: auto;">
+                        ${events.map((event, index) => this.renderEventItem(event, index)).join('')}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button id="apply-timeline-btn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Appliquer
+                    </button>
+                    <button id="cancel-timeline-btn" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Event listeners
+        document.getElementById('timeline-close-btn').addEventListener('click', () => panel.remove());
+        document.getElementById('cancel-timeline-btn').addEventListener('click', () => panel.remove());
+
+        document.getElementById('add-event-btn').addEventListener('click', () => {
+            const eventsList = document.getElementById('events-list');
+            const newIndex = eventsList.children.length;
+            const newEventHtml = this.renderEventItem({
+                year: parseInt(document.getElementById('timeline-start-year').value),
+                title: '',
+                description: '',
+                color: '#3b82f6'
+            }, newIndex);
+            eventsList.insertAdjacentHTML('beforeend', newEventHtml);
+        });
+
+        document.getElementById('apply-timeline-btn').addEventListener('click', () => {
+            // Collecter les événements
+            const eventElements = document.querySelectorAll('.timeline-event-item');
+            const collectedEvents = [];
+
+            eventElements.forEach(elem => {
+                const year = parseInt(elem.querySelector('.event-year').value);
+                const title = elem.querySelector('.event-title').value;
+                const description = elem.querySelector('.event-description').value;
+                const color = elem.querySelector('.event-color').value;
+
+                if (title) { // Seulement si le titre n'est pas vide
+                    collectedEvents.push({ year, title, description, color });
+                }
+            });
+
+            // Mettre à jour les données
+            pageData.data = {
+                title: document.getElementById('timeline-title').value,
+                startYear: parseInt(document.getElementById('timeline-start-year').value),
+                endYear: parseInt(document.getElementById('timeline-end-year').value),
+                orientation: document.getElementById('timeline-orientation').value,
+                lineColor: document.getElementById('timeline-line-color').value,
+                showYears: document.getElementById('timeline-show-years').checked,
+                events: collectedEvents
+            };
+
+            // Re-rendre la page
+            this.renderPages();
+            this.isDirty = true;
+
+            panel.remove();
+        });
+
+        // Délégation d'événements pour les boutons de suppression
+        document.getElementById('events-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-event-btn') || e.target.closest('.delete-event-btn')) {
+                const btn = e.target.classList.contains('delete-event-btn') ? e.target : e.target.closest('.delete-event-btn');
+                btn.closest('.timeline-event-item').remove();
+            }
+        });
+    }
+
+    /**
+     * Rendre un élément d'événement pour la liste
+     */
+    renderEventItem(event, index) {
+        return `
+            <div class="timeline-event-item" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb;">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="number" class="event-year" value="${event.year || new Date().getFullYear()}"
+                           placeholder="Année" style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <input type="color" class="event-color" value="${event.color || '#3b82f6'}"
+                           title="Couleur" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                    <input type="text" class="event-title" value="${event.title || ''}"
+                           placeholder="Titre de l'événement" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <button class="delete-event-btn" type="button" style="width: 32px; height: 32px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">×</button>
+                </div>
+                <textarea class="event-description" placeholder="Description (optionnelle)"
+                          style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 50px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
+            </div>
+        `;
     }
 
     /**
@@ -5206,8 +5740,11 @@ class CleanPDFViewer {
             <button class="add-blank" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📄 Page vierge
             </button>
-            <button class="add-graph" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+            <button class="add-graph" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📊 Page graphique
+            </button>
+            <button class="add-timeline" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+                📅 Frise chronologique
             </button>
         `;
 
@@ -5220,6 +5757,11 @@ class CleanPDFViewer {
 
         menu.querySelector('.add-graph').addEventListener('click', () => {
             this.addPage(afterPageId, 'graph');
+            menu.remove();
+        });
+
+        menu.querySelector('.add-timeline').addEventListener('click', () => {
+            this.addPage(afterPageId, 'timeline');
             menu.remove();
         });
 
@@ -6265,7 +6807,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
@@ -6329,7 +6871,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
@@ -6513,7 +7055,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
