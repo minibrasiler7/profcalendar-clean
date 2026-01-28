@@ -6539,10 +6539,16 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
         const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
         const data = await response.json();
 
-        if (data.success && data.planning) {
+        if (data.success && data.slot) {
             // Pré-remplir les champs avec la planification existante
-            document.getElementById('modalPlanningTitle').value = data.planning.title || '';
-            document.getElementById('modalDescription').value = data.planning.description || '';
+            document.getElementById('modalPlanningTitle').value = data.slot.title || '';
+            document.getElementById('modalDescription').value = data.slot.description || '';
+
+            console.log('📄 Planification chargée:', {
+                title: data.slot.title,
+                description: data.slot.description,
+                has_planning: data.slot.has_planning
+            });
         } else {
             // Vider les champs pour une nouvelle planification
             document.getElementById('modalPlanningTitle').value = '';
