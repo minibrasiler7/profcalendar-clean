@@ -6168,13 +6168,7 @@ class CleanPDFViewer {
                         // Ajouter chaque annotation à la page ET à l'historique
                         for (const annotation of pageAnnotations) {
                             // LOG DE DEBUG: Vérifier les dimensions AVANT la migration
-                            console.log(`[Load] DEBUG Annotation AVANT migration pageId ${pageId}:`, {
-                                tool: annotation.tool,
-                                canvasWidth: annotation.canvasWidth,
-                                canvasHeight: annotation.canvasHeight,
-                                hasCanvasWidth: 'canvasWidth' in annotation,
-                                hasCanvasHeight: 'canvasHeight' in annotation
-                            });
+                            console.log(`[Load] DEBUG AVANT migration pageId ${pageId} tool ${annotation.tool}: canvasW=${annotation.canvasWidth} canvasH=${annotation.canvasHeight} hasW=${'canvasWidth' in annotation} hasH=${'canvasHeight' in annotation}`);
 
                             // Migrer les annotations legacy sans canvasWidth/canvasHeight
                             // Assumer qu'elles ont été créées sur un canvas "standard" (viewer plein écran sur /lesson)
@@ -6186,11 +6180,7 @@ class CleanPDFViewer {
                             }
 
                             // LOG DE DEBUG: Vérifier les dimensions APRÈS la migration
-                            console.log(`[Load] DEBUG Annotation APRÈS migration pageId ${pageId}:`, {
-                                tool: annotation.tool,
-                                canvasWidth: annotation.canvasWidth,
-                                canvasHeight: annotation.canvasHeight
-                            });
+                            console.log(`[Load] DEBUG APRÈS migration pageId ${pageId} tool ${annotation.tool}: canvasW=${annotation.canvasWidth} canvasH=${annotation.canvasHeight}`);
 
                             // Ajouter à la Map des annotations
                             this.annotations.get(pageId).push(annotation);
@@ -6285,13 +6275,7 @@ class CleanPDFViewer {
             // LOG DE DEBUG: Vérifier les dimensions des annotations avant sauvegarde
             for (const [pageId, pageAnnotations] of Object.entries(annotationsData)) {
                 for (const ann of pageAnnotations) {
-                    console.log(`[Save] DEBUG Annotation pageId ${pageId}:`, {
-                        tool: ann.tool,
-                        canvasWidth: ann.canvasWidth,
-                        canvasHeight: ann.canvasHeight,
-                        hasCanvasWidth: 'canvasWidth' in ann,
-                        hasCanvasHeight: 'canvasHeight' in ann
-                    });
+                    console.log(`[Save] DEBUG pageId ${pageId} tool ${ann.tool}: canvasW=${ann.canvasWidth} canvasH=${ann.canvasHeight} hasW=${'canvasWidth' in ann} hasH=${'canvasHeight' in ann}`);
                 }
             }
 
