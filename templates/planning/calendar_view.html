@@ -6596,7 +6596,15 @@ async function savePlanning() {
         const description = document.getElementById('modalDescription').value;
         const groupId = document.getElementById('modalGroup') ? document.getElementById('modalGroup').value : null;
 
-        console.log('💾 Sauvegarde planification période:', {date, periodNumber, classroomSelectValue, title});
+        // Extraire l'ID numérique de la classe depuis 'classroom_2' -> 2
+        let finalClassroomId = null;
+        if (classroomSelectValue && classroomSelectValue.startsWith('classroom_')) {
+            finalClassroomId = parseInt(classroomSelectValue.replace('classroom_', ''));
+        } else if (classroomSelectValue && !isNaN(classroomSelectValue)) {
+            finalClassroomId = parseInt(classroomSelectValue);
+        }
+
+        console.log('💾 Sauvegarde planification période:', {date, periodNumber, classroomSelectValue, finalClassroomId, title});
 
         try {
             const response = await fetch('/planning/save_planning', {
@@ -6607,7 +6615,7 @@ async function savePlanning() {
                 body: JSON.stringify({
                     date: date,
                     period_number: periodNumber,
-                    classroom_id: classroomSelectValue,
+                    classroom_id: finalClassroomId,
                     title: title,
                     description: description,
                     group_id: groupId
