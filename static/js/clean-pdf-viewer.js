@@ -31,6 +31,12 @@ class CleanPDFViewer {
         this.options = {
             fileId: options.fileId || null,
             pdfUrl: options.pdfUrl || null,
+            // Nouvelles options pour les feuilles blanches
+            blankSheetId: options.blankSheetId || null,  // ID de la feuille blanche (si c'est une feuille blanche)
+            lessonDate: options.lessonDate || null,      // Date de la leçon (pour feuilles blanches)
+            periodNumber: options.periodNumber || null,  // Numéro de période (pour feuilles blanches)
+            classroomId: options.classroomId || null,    // ID de la classe (pour feuilles blanches)
+            title: options.title || 'Feuille blanche',   // Titre de la feuille blanche
             showSidebar: options.showSidebar !== false,
             enableAnnotations: options.enableAnnotations !== false,
             autoSaveInterval: options.autoSaveInterval || 2000, // 2 secondes
@@ -129,15 +135,37 @@ class CleanPDFViewer {
         if (this.options.pdfUrl) {
             console.log('[Init] Chargement du PDF:', this.options.pdfUrl);
             await this.loadPDF(this.options.pdfUrl);
+        } else {
+            console.log('[Init] Aucun PDF fourni - mode pages blanches');
         }
 
-        // Charger les annotations sauvegardées
-        console.log('[Init] Vérification fileId:', this.options.fileId);
-        if (this.options.fileId) {
-            console.log('[Init] Appel de loadAnnotations()...');
+        // Charger les annotations sauvegardées OU la feuille blanche
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            // Mode feuille blanche
+            console.log('[Init] Mode feuille blanche détecté, blankSheetId:', this.options.blankSheetId);
+            await this.loadBlankSheet();
+        } else if (this.options.fileId) {
+            // Mode annotation sur PDF existant
+            console.log('[Init] Mode annotation sur PDF, fileId:', this.options.fileId);
             await this.loadAnnotations();
         } else {
-            console.log('[Init] Pas de fileId, annotations non chargées');
+            console.log('[Init] Pas de fileId ni de blankSheetId, annotations non chargées');
+        }
+
+        // Si aucune page n'existe après le chargement, créer une première page blanche
+        if (this.pageOrder.length === 0) {
+            console.log('[Init] Aucune page trouvée, création d\'une première page blanche');
+            const newPageId = `blank_${Date.now()}`;
+            this.pages.set(newPageId, {type: 'blank', data: {}});
+            this.pageOrder.push(newPageId);
+            this.totalPages = 1;
+            this.currentPage = newPageId;
+
+            // Re-rendre
+            await this.renderThumbnails();
+            await this.renderPages();
+
+            this.isDirty = true; // Marquer comme modifié pour forcer la première sauvegarde
         }
 
         // Démarrer l'auto-save
@@ -3916,11 +3944,15 @@ class CleanPDFViewer {
 
         // Sauvegarder les dimensions du canvas pour recalculer les coordonnées plus tard
         if (!annotation.canvasWidth || !annotation.canvasHeight) {
-            const canvas = this.pages.get(pageId)?.annotationCanvas;
+            // Trouver le canvas d'annotation via le DOM
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            const canvas = pageWrapper?.querySelector('.annotation-canvas');
             if (canvas) {
                 annotation.canvasWidth = canvas.width;
                 annotation.canvasHeight = canvas.height;
-                console.log('[History] Sauvegarde dimensions canvas:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+                console.log('[History] Sauvegarde dimensions canvas:', annotation.canvasWidth, 'x', annotation.canvasHeight, 'pour pageId:', pageId);
+            } else {
+                console.warn('[History] Canvas d\'annotation introuvable pour pageId:', pageId);
             }
         }
 
@@ -5222,6 +5254,51 @@ class CleanPDFViewer {
     }
 
     /**
+     * Ajouter une page blanche après la page courante
+     */
+    async addBlankPageAfterCurrent() {
+        // Si aucune page n'existe (aucun PDF ouvert), créer une première page blanche
+        if (this.pageOrder.length === 0) {
+            console.log('[AddBlankPage] Aucune page existante, création de la première page blanche');
+
+            // Créer la première page blanche
+            const newPageId = `blank_${Date.now()}`;
+            this.pages.set(newPageId, {type: 'blank', data: {}});
+            this.pageOrder.push(newPageId);
+
+            // Mettre à jour le nombre total de pages
+            this.totalPages = 1;
+
+            // Re-rendre
+            await this.renderThumbnails();
+            await this.renderPages();
+
+            // Naviguer vers la nouvelle page
+            this.goToPage(newPageId);
+
+            this.isDirty = true;
+            return;
+        }
+
+        // Utiliser la page courante ou la dernière page si aucune n'est définie
+        let currentPageId = this.currentPage;
+
+        if (!currentPageId && this.pageOrder.length > 0) {
+            currentPageId = this.pageOrder[this.pageOrder.length - 1];
+        }
+
+        if (!currentPageId) {
+            console.warn('[AddBlankPage] Aucune page disponible');
+            return;
+        }
+
+        console.log('[AddBlankPage] Ajout d\'une page blanche après la page:', currentPageId);
+
+        // Utiliser la méthode existante addPage
+        await this.addPage(currentPageId, 'blank');
+    }
+
+    /**
      * Afficher le menu contextuel pour une page
      */
     showPageContextMenu(event, pageId, pageNumber) {
@@ -6025,12 +6102,17 @@ class CleanPDFViewer {
      * Charger les annotations
      */
     async loadAnnotations() {
+        // Si c'est une feuille blanche, utiliser le chargement spécifique
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            return this.loadBlankSheet();
+        }
+
         if (!this.options.fileId) {
             console.log('[Load] Pas de fileId, chargement ignoré');
             return;
         }
 
-        try {
+        try{
             console.log('[Load] Chargement des annotations pour fileId:', this.options.fileId);
             console.log('[Load] Envoi de la requête fetch...');
             const response = await fetch(`/file_manager/api/load-annotations/${this.options.fileId}`);
@@ -6085,6 +6167,9 @@ class CleanPDFViewer {
 
                         // Ajouter chaque annotation à la page ET à l'historique
                         for (const annotation of pageAnnotations) {
+                            // LOG DE DEBUG: Vérifier les dimensions AVANT la migration
+                            console.log(`[Load] DEBUG AVANT migration pageId ${pageId} tool ${annotation.tool}: canvasW=${annotation.canvasWidth} canvasH=${annotation.canvasHeight} hasW=${'canvasWidth' in annotation} hasH=${'canvasHeight' in annotation}`);
+
                             // Migrer les annotations legacy sans canvasWidth/canvasHeight
                             // Assumer qu'elles ont été créées sur un canvas "standard" (viewer plein écran sur /lesson)
                             // Taille de référence : PDF A4 à scale ~1.7 = 1200x1697 pixels
@@ -6093,6 +6178,9 @@ class CleanPDFViewer {
                                 annotation.canvasHeight = 1697;
                                 console.log('[Load] Migration annotation legacy - assigné dimensions par défaut:', annotation.canvasWidth, 'x', annotation.canvasHeight);
                             }
+
+                            // LOG DE DEBUG: Vérifier les dimensions APRÈS la migration
+                            console.log(`[Load] DEBUG APRÈS migration pageId ${pageId} tool ${annotation.tool}: canvasW=${annotation.canvasWidth} canvasH=${annotation.canvasHeight}`);
 
                             // Ajouter à la Map des annotations
                             this.annotations.get(pageId).push(annotation);
@@ -6142,6 +6230,11 @@ class CleanPDFViewer {
      * Sauvegarder les annotations (version asynchrone)
      */
     async saveAnnotations() {
+        // Si c'est une feuille blanche (blankSheetId ou lessonDate+periodNumber), utiliser la sauvegarde spécifique
+        if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
+            return this.saveBlankSheet();
+        }
+
         if (!this.options.fileId) {
             console.log('[Save] Pas de fileId, sauvegarde ignorée');
             return;
@@ -6179,6 +6272,13 @@ class CleanPDFViewer {
 
             console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations et', customPages.length, 'pages custom');
 
+            // LOG DE DEBUG: Vérifier les dimensions des annotations avant sauvegarde
+            for (const [pageId, pageAnnotations] of Object.entries(annotationsData)) {
+                for (const ann of pageAnnotations) {
+                    console.log(`[Save] DEBUG pageId ${pageId} tool ${ann.tool}: canvasW=${ann.canvasWidth} canvasH=${ann.canvasHeight} hasW=${'canvasWidth' in ann} hasH=${'canvasHeight' in ann}`);
+                }
+            }
+
             const response = await fetch('/file_manager/api/save-annotations', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -6198,6 +6298,182 @@ class CleanPDFViewer {
             }
         } catch (error) {
             console.error('[Save] Erreur sauvegarde:', error);
+        }
+    }
+
+    /**
+     * Sauvegarde les données d'une feuille blanche
+     */
+    async saveBlankSheet() {
+        if (!this.isDirty) {
+            console.log('[SaveBlankSheet] Pas de modifications, sauvegarde ignorée');
+            return;
+        }
+
+        try {
+            // Préparer les données d'annotations
+            const annotationsData = {};
+            this.annotations.forEach((annotations, pageId) => {
+                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+                if (annotationsToSave.length > 0) {
+                    annotationsData[pageId] = annotationsToSave;
+                }
+            });
+
+            // Préparer les pages custom (vierges et graphiques)
+            const customPages = [];
+            this.pages.forEach((pageData, pageId) => {
+                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                    const pageIndex = this.pageOrder.indexOf(pageId);
+                    customPages.push({
+                        pageId: pageId,
+                        type: pageData.type,
+                        data: pageData.data || {},
+                        position: pageIndex
+                    });
+                }
+            });
+
+            console.log('[SaveBlankSheet] Sauvegarde feuille blanche, annotations:', Object.keys(annotationsData).length, 'pages, custom:', customPages.length, 'pages');
+
+            const sheetData = {
+                sheet_id: this.options.blankSheetId,  // null si nouvelle feuille
+                lesson_date: this.options.lessonDate,
+                period_number: this.options.periodNumber,
+                classroom_id: this.options.classroomId,
+                title: this.options.title || 'Feuille blanche',
+                sheet_data: {
+                    custom_pages: customPages,
+                    annotations: annotationsData
+                }
+            };
+
+            const response = await fetch('/planning/api/blank-sheets/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(sheetData)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('[SaveBlankSheet] Sauvegarde réussie:', result);
+
+                // Mettre à jour l'ID si c'était une nouvelle feuille
+                if (!this.options.blankSheetId && result.sheet_id) {
+                    this.options.blankSheetId = result.sheet_id;
+                    console.log('[SaveBlankSheet] Nouvelle feuille créée avec ID:', result.sheet_id);
+                }
+
+                this.isDirty = false;
+            } else {
+                const error = await response.json();
+                console.error('[SaveBlankSheet] Erreur HTTP:', response.status, error);
+            }
+        } catch (error) {
+            console.error('[SaveBlankSheet] Erreur sauvegarde:', error);
+        }
+    }
+
+    /**
+     * Charge les données d'une feuille blanche
+     */
+    async loadBlankSheet() {
+        if (!this.options.blankSheetId) {
+            console.log('[LoadBlankSheet] Pas de blankSheetId, création nouvelle feuille');
+            // Créer une première page blanche
+            await this.addBlankPageAfterCurrent();
+            return;
+        }
+
+        try {
+            console.log('[LoadBlankSheet] Chargement feuille:', this.options.blankSheetId);
+
+            const response = await fetch(`/planning/api/blank-sheets/${this.options.blankSheetId}`);
+
+            if (!response.ok) {
+                console.error('[LoadBlankSheet] Erreur HTTP:', response.status);
+                return;
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                console.error('[LoadBlankSheet] Erreur:', result.message);
+                return;
+            }
+
+            const sheet = result.sheet;
+            const sheetData = sheet.sheet_data;
+
+            console.log('[LoadBlankSheet] Données chargées:', sheetData);
+
+            // Charger les annotations AVANT de rendre les pages
+            if (sheetData.annotations) {
+                console.log('[LoadBlankSheet] Chargement annotations pour', Object.keys(sheetData.annotations).length, 'pages');
+
+                for (const [pageId, pageAnnotations] of Object.entries(sheetData.annotations)) {
+                    // Migrer les annotations legacy sans canvasWidth/canvasHeight
+                    // Utiliser les dimensions standard d'une page A4 à 96 DPI en largeur = viewerWidth * 0.95
+                    const migratedAnnotations = pageAnnotations.map(annotation => {
+                        if (!annotation.canvasWidth || !annotation.canvasHeight) {
+                            // Dimensions standard pour une page créée sur /lesson (plein écran)
+                            // Ces valeurs seront ajustées automatiquement lors du redimensionnement
+                            annotation.canvasWidth = 1200;  // Largeur typique d'un viewer plein écran
+                            annotation.canvasHeight = 1697;  // Hauteur A4 proportionnelle
+                            console.log('[LoadBlankSheet] Migration annotation legacy - ajout dimensions:', annotation.canvasWidth, 'x', annotation.canvasHeight);
+                        }
+                        return annotation;
+                    });
+
+                    this.annotations.set(pageId, migratedAnnotations);
+                }
+
+                console.log('[LoadBlankSheet] Annotations chargées en mémoire');
+            }
+
+            // Charger les pages custom
+            if (sheetData.custom_pages && sheetData.custom_pages.length > 0) {
+                console.log('[LoadBlankSheet] Chargement de', sheetData.custom_pages.length, 'pages custom');
+
+                const customPagesSorted = sheetData.custom_pages.sort((a, b) => a.position - b.position);
+
+                for (const customPage of customPagesSorted) {
+                    console.log('[LoadBlankSheet] Ajout page:', customPage.pageId, 'type:', customPage.type, 'position:', customPage.position);
+                    this.pages.set(customPage.pageId, {
+                        type: customPage.type,
+                        data: customPage.data || {}
+                    });
+
+                    if (customPage.position < this.pageOrder.length) {
+                        this.pageOrder.splice(customPage.position, 0, customPage.pageId);
+                    } else {
+                        this.pageOrder.push(customPage.pageId);
+                    }
+                }
+
+                // Mettre à jour le nombre total de pages
+                this.totalPages = this.pageOrder.length;
+                console.log('[LoadBlankSheet] Total pages:', this.totalPages, 'pageOrder:', this.pageOrder);
+
+                // Rendre les pages (les annotations déjà en mémoire seront dessinées automatiquement)
+                console.log('[LoadBlankSheet] Début rendu thumbnails...');
+                await this.renderThumbnails();
+                console.log('[LoadBlankSheet] Thumbnails rendus, début rendu pages...');
+                await this.renderPages();
+                console.log('[LoadBlankSheet] Pages rendues');
+            } else {
+                // Aucune page custom, créer une page blanche par défaut
+                console.log('[LoadBlankSheet] Aucune page custom, création page blanche par défaut');
+                await this.addBlankPageAfterCurrent();
+            }
+
+            this.isDirty = false;
+            console.log('[LoadBlankSheet] Chargement terminé');
+
+        } catch (error) {
+            console.error('[LoadBlankSheet] Erreur chargement:', error);
+            // En cas d'erreur, créer une page blanche par défaut
+            await this.addBlankPageAfterCurrent();
         }
     }
 
@@ -6465,6 +6741,28 @@ class CleanPDFViewer {
     }
 
     /**
+     * Détruit complètement le viewer sans sauvegarder
+     */
+    destroy() {
+        console.log('[Destroy] Destruction du viewer PDF...');
+
+        // Masquer l'équerre si elle est affichée
+        this.hideSetSquare();
+
+        // Nettoyer les timers et listeners
+        this.stopAutoSave();
+        this.cleanupBeforeUnload();
+
+        // Nettoyer le DOM
+        if (this.container) {
+            this.container.innerHTML = '';
+            this.container.style.display = 'none';
+        }
+
+        console.log('[Destroy] Viewer détruit');
+    }
+
+    /**
      * Afficher l'équerre (set square)
      */
     showSetSquare() {
@@ -6633,23 +6931,14 @@ class CleanPDFViewer {
             console.log('[SetSquare] Gestionnaires globaux de blocage retirés');
         }
 
-        // Retirer les gestionnaires pointer de l'équerre
-        if (this.setSquarePointerDownHandler) {
-            document.removeEventListener('pointerdown', this.setSquarePointerDownHandler);
-            this.setSquarePointerDownHandler = null;
-        }
-        if (this.setSquarePointerMoveHandler) {
-            document.removeEventListener('pointermove', this.setSquarePointerMoveHandler);
-            this.setSquarePointerMoveHandler = null;
-        }
-        if (this.setSquarePointerUpHandler) {
-            document.removeEventListener('pointerup', this.setSquarePointerUpHandler);
-            this.setSquarePointerUpHandler = null;
-        }
-        if (this.setSquarePointerCancelHandler) {
-            document.removeEventListener('pointercancel', this.setSquarePointerCancelHandler);
-            this.setSquarePointerCancelHandler = null;
-        }
+        // NOTE: On ne retire PAS les gestionnaires pointer de l'équerre
+        // car ils vérifient déjà this.setSquareActive et retournent immédiatement si false.
+        // Cela évite d'avoir à les réattacher à chaque réactivation de l'équerre.
+        // Les gestionnaires restent attachés mais inactifs quand l'équerre est cachée.
+
+        // CORRECTION BUG: Si on retire les gestionnaires ici, ils ne sont pas réattachés
+        // lors de la réactivation (car showSetSquare() ne les attache que lors de la création initiale).
+        // Résultat: l'équerre ne peut plus tourner ni se déplacer après la première désactivation.
 
         console.log('[SetSquare] Équerre désactivée - scroll/zoom doigts restaurés');
     }

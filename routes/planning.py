@@ -7574,3 +7574,163 @@ def mark_remark_read(remark_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# FEUILLES BLANCHES DE LEÇON
+# ============================================================================
+
+@planning_bp.route('/api/blank-sheets/list', methods=['GET'])
+@login_required
+def list_blank_sheets():
+    """Récupère les feuilles blanches pour une date + période"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        lesson_date_str = request.args.get('date')  # Format: YYYY-MM-DD
+        period_number = request.args.get('period', type=int)
+        classroom_id = request.args.get('classroom_id', type=int)
+
+        if not lesson_date_str or not period_number:
+            return jsonify({'success': False, 'message': 'Date et période requises'}), 400
+
+        # Convertir la date
+        lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
+
+        # Requête
+        query = LessonBlankSheet.query.filter_by(
+            user_id=current_user.id,
+            lesson_date=lesson_date,
+            period_number=period_number
+        )
+
+        # Filtrer par classroom si fourni
+        if classroom_id:
+            query = query.filter_by(classroom_id=classroom_id)
+
+        sheets = query.order_by(LessonBlankSheet.created_at).all()
+
+        return jsonify({
+            'success': True,
+            'sheets': [sheet.to_dict() for sheet in sheets]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/<int:sheet_id>', methods=['GET'])
+@login_required
+def get_blank_sheet(sheet_id):
+    """Charge les données d'une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        sheet = LessonBlankSheet.query.filter_by(
+            id=sheet_id,
+            user_id=current_user.id
+        ).first()
+
+        if not sheet:
+            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+        return jsonify({
+            'success': True,
+            'sheet': {
+                'id': sheet.id,
+                'title': sheet.title,
+                'sheet_data': sheet.sheet_data,
+                'lesson_date': sheet.lesson_date.isoformat(),
+                'period_number': sheet.period_number,
+                'classroom_id': sheet.classroom_id,
+                'created_at': sheet.created_at.isoformat() if sheet.created_at else None,
+                'updated_at': sheet.updated_at.isoformat() if sheet.updated_at else None
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/save', methods=['POST'])
+@login_required
+def save_blank_sheet():
+    """Crée ou met à jour une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        data = request.get_json()
+
+        sheet_id = data.get('sheet_id')  # None si nouvelle feuille
+        lesson_date_str = data.get('lesson_date')
+        period_number = data.get('period_number')
+        classroom_id = data.get('classroom_id')
+        title = data.get('title', 'Feuille blanche')
+        sheet_data = data.get('sheet_data')
+
+        if not lesson_date_str or not period_number or not sheet_data:
+            return jsonify({'success': False, 'message': 'Données incomplètes'}), 400
+
+        lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
+
+        if sheet_id:
+            # Mise à jour
+            sheet = LessonBlankSheet.query.filter_by(
+                id=sheet_id,
+                user_id=current_user.id
+            ).first()
+
+            if not sheet:
+                return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+            sheet.title = title
+            sheet.sheet_data = sheet_data
+            sheet.updated_at = datetime.utcnow()
+
+        else:
+            # Création
+            sheet = LessonBlankSheet(
+                user_id=current_user.id,
+                classroom_id=classroom_id,
+                lesson_date=lesson_date,
+                period_number=period_number,
+                title=title,
+                sheet_data=sheet_data
+            )
+            db.session.add(sheet)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'sheet_id': sheet.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/<int:sheet_id>', methods=['DELETE'])
+@login_required
+def delete_blank_sheet(sheet_id):
+    """Supprime une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        sheet = LessonBlankSheet.query.filter_by(
+            id=sheet_id,
+            user_id=current_user.id
+        ).first()
+
+        if not sheet:
+            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+        db.session.delete(sheet)
+        db.session.commit()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

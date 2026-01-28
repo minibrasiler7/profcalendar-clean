@@ -13,7 +13,11 @@ def create_app(config_name='development'):
         app.config.from_object(ProductionConfig)
     else:
         app.config.from_object(Config)
-    
+
+    # Forcer le rechargement des templates en production pour éviter le cache
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.jinja_env.auto_reload = True
+
     # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
