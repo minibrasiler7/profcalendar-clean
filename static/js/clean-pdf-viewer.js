@@ -939,6 +939,36 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Bouton d'animation du marcheur sur la frise */
+            .timeline-animation-btn {
+                position: absolute;
+                top: 16px;
+                right: 76px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-animation-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            }
+
+            .timeline-animation-btn:active {
+                transform: scale(0.95);
+            }
+
             /* Sélecteur d'emoji pour la frise */
             .emoji-option:hover {
                 background: #e0e7ff !important;
@@ -1961,6 +1991,17 @@ class CleanPDFViewer {
             configBtn.title = 'Configurer la frise chronologique';
             configBtn.addEventListener('click', () => this.openTimelineConfigPanel(pageId));
             container.appendChild(configBtn);
+
+            // Ajouter le bouton d'animation si il y a des événements
+            const events = pageData.data?.events || [];
+            if (events.length > 0 && pageData.data?.orientation !== 'vertical') {
+                const animBtn = document.createElement('button');
+                animBtn.className = 'timeline-animation-btn';
+                animBtn.innerHTML = '🚶';
+                animBtn.title = 'Lancer l\'animation du marcheur';
+                animBtn.addEventListener('click', () => this.startTimelineWalkerAnimation(pageId));
+                container.appendChild(animBtn);
+            }
         }
 
         // Configurer les événements d'annotation
@@ -2683,9 +2724,10 @@ class CleanPDFViewer {
         }
 
         // Trouver le canvas
-        const pageContainer = document.querySelector(`.pdf-page-container[data-page-id="${pageId}"]`);
-        if (!pageContainer) return;
-        const pdfCanvas = pageContainer.querySelector('.pdf-canvas');
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!pageWrapper) return;
+        const pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+        if (!pdfCanvas) return;
         const ctx = pdfCanvas.getContext('2d');
 
         const width = pdfCanvas.width;
@@ -2753,8 +2795,16 @@ class CleanPDFViewer {
 
                 // Vérifier si on a terminé
                 if (walkerX > lineEndX + 30) {
-                    // Animation terminée - redessiner la frise normalement
+                    // Animation terminée - redessiner la frise normalement en restant sur la page
+                    const scrollTop = this.elements.pagesContainer?.scrollTop || 0;
                     this.renderPages();
+                    requestAnimationFrame(() => {
+                        if (pageWrapper) {
+                            pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+                        } else if (this.elements.pagesContainer) {
+                            this.elements.pagesContainer.scrollTop = scrollTop;
+                        }
+                    });
                     return;
                 }
             } else {
@@ -3108,16 +3158,6 @@ class CleanPDFViewer {
                     </div>
                 </div>
 
-                <!-- Bouton Animation -->
-                <div style="margin-bottom: 20px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px;">
-                    <button id="start-animation-btn" style="width: 100%; padding: 10px; background: white; color: #667eea; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span style="font-size: 18px;">🚶</span> Lancer l'animation du marcheur
-                    </button>
-                    <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.9); text-align: center;">
-                        Un personnage parcourt la frise et révèle les événements un par un
-                    </p>
-                </div>
-
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <h4 style="margin: 0;">Événements</h4>
@@ -3147,17 +3187,6 @@ class CleanPDFViewer {
         document.getElementById('timeline-close-btn').addEventListener('click', () => panel.remove());
         document.getElementById('cancel-timeline-btn').addEventListener('click', () => panel.remove());
 
-        // Bouton d'animation
-        document.getElementById('start-animation-btn').addEventListener('click', () => {
-            // D'abord sauvegarder les changements
-            this.saveTimelineConfig(pageData, panel);
-            panel.remove();
-            // Puis lancer l'animation
-            setTimeout(() => {
-                this.startTimelineWalkerAnimation(pageId);
-            }, 100);
-        });
-
         document.getElementById('add-event-btn').addEventListener('click', () => {
             const eventsList = document.getElementById('events-list');
             const newIndex = eventsList.children.length;
@@ -3173,7 +3202,7 @@ class CleanPDFViewer {
         });
 
         document.getElementById('apply-timeline-btn').addEventListener('click', () => {
-            this.saveTimelineConfig(pageData, panel);
+            this.saveTimelineConfig(pageData, panel, pageId);
             panel.remove();
         });
 
@@ -3189,12 +3218,22 @@ class CleanPDFViewer {
         document.querySelectorAll('.timeline-event-item').forEach(item => {
             this.attachEmojiPickerEvents(item);
         });
+
+        // Listener global pour fermer les dropdowns emoji (une seule fois par panneau)
+        const closeDropdowns = (e) => {
+            if (!e.target.closest('.emoji-picker-btn') && !e.target.closest('.emoji-dropdown')) {
+                document.querySelectorAll('.emoji-dropdown').forEach(d => {
+                    d.style.display = 'none';
+                });
+            }
+        };
+        panel.addEventListener('click', closeDropdowns);
     }
 
     /**
      * Sauvegarder la configuration de la frise
      */
-    saveTimelineConfig(pageData, panel) {
+    saveTimelineConfig(pageData, panel, pageId) {
         // Collecter les événements
         const eventElements = document.querySelectorAll('.timeline-event-item');
         const collectedEvents = [];
@@ -3227,9 +3266,26 @@ class CleanPDFViewer {
             events: collectedEvents
         };
 
+        // Sauvegarder la position de scroll actuelle
+        const scrollTop = this.elements.pagesContainer?.scrollTop || 0;
+        const currentPageId = pageId;
+
         // Re-rendre la page
         this.renderPages();
         this.isDirty = true;
+
+        // Restaurer la position de scroll après le rendu
+        requestAnimationFrame(() => {
+            if (this.elements.pagesContainer) {
+                // Essayer de scroller vers la page modifiée
+                const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${currentPageId}"]`);
+                if (pageWrapper) {
+                    pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+                } else {
+                    this.elements.pagesContainer.scrollTop = scrollTop;
+                }
+            }
+        });
     }
 
     /**
@@ -3261,10 +3317,7 @@ class CleanPDFViewer {
             });
         });
 
-        // Fermer le dropdown en cliquant ailleurs
-        document.addEventListener('click', () => {
-            emojiDropdown.style.display = 'none';
-        });
+        // Note: Le listener global pour fermer les dropdowns est géré une seule fois
     }
 
     /**
