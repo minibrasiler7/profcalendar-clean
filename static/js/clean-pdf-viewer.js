@@ -939,6 +939,30 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Sélecteur d'emoji pour la frise */
+            .emoji-option:hover {
+                background: #e0e7ff !important;
+                transform: scale(1.2);
+            }
+
+            .emoji-dropdown::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-thumb {
+                background: #c7d2fe;
+                border-radius: 3px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-thumb:hover {
+                background: #a5b4fc;
+            }
+
             /* Panneau de configuration du graphique */
             .graph-config-panel {
                 position: fixed;
@@ -2302,6 +2326,7 @@ class CleanPDFViewer {
         const events = timelineData.events || [];
         const lineColor = timelineData.lineColor || '#667eea';
         const showYears = timelineData.showYears !== false;
+        const tickInterval = timelineData.tickInterval || null;
 
         // Dessiner le titre
         ctx.fillStyle = '#1f2937';
@@ -2311,9 +2336,9 @@ class CleanPDFViewer {
 
         // Dessiner la frise
         if (orientation === 'horizontal') {
-            this.drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears);
+            this.drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval);
         } else {
-            this.drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears);
+            this.drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval);
         }
 
         // Redessiner les annotations existantes
@@ -2323,9 +2348,104 @@ class CleanPDFViewer {
     }
 
     /**
+     * Calculer l'intervalle optimal pour les graduations de la frise
+     * Retourne un intervalle qui donne entre 10 et 25 traits avec des nombres ronds
+     */
+    calculateOptimalInterval(yearRange, fixedInterval = null) {
+        // Si un intervalle fixe est spécifié, l'utiliser
+        if (fixedInterval && fixedInterval > 0) {
+            return fixedInterval;
+        }
+
+        // Intervalles possibles (nombres ronds)
+        const possibleIntervals = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
+        // Chercher l'intervalle qui donne entre 10 et 25 traits
+        for (const interval of possibleIntervals) {
+            const numTicks = Math.floor(yearRange / interval) + 1;
+            if (numTicks >= 10 && numTicks <= 25) {
+                return interval;
+            }
+        }
+
+        // Si aucun intervalle ne convient, calculer un intervalle approximatif
+        const targetTicks = 15; // Viser 15 traits
+        const rawInterval = yearRange / targetTicks;
+
+        // Arrondir à un nombre "joli"
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+        const normalized = rawInterval / magnitude;
+
+        let niceInterval;
+        if (normalized <= 1.5) niceInterval = 1;
+        else if (normalized <= 3) niceInterval = 2;
+        else if (normalized <= 7) niceInterval = 5;
+        else niceInterval = 10;
+
+        return niceInterval * magnitude;
+    }
+
+    /**
+     * Calculer les positions des événements pour éviter les chevauchements
+     */
+    calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth) {
+        // Trier les événements par année
+        const sortedEvents = [...events].map((event, originalIndex) => ({
+            ...event,
+            originalIndex,
+            x: lineStartX + (((event.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.x - b.x);
+
+        // Calculer les niveaux pour éviter les chevauchements
+        const minSpacing = boxWidth + 20; // Espacement minimum entre deux boîtes
+        const topLevels = []; // Positions X occupées en haut à chaque niveau
+        const bottomLevels = []; // Positions X occupées en bas à chaque niveau
+
+        sortedEvents.forEach((event, idx) => {
+            const eventX = event.x;
+            let level = 0;
+            let isTop = idx % 2 === 0; // Alterner par défaut
+
+            // Chercher le niveau le plus proche de la ligne où l'événement peut être placé
+            const levelsToCheck = isTop ? topLevels : bottomLevels;
+
+            for (let l = 0; l < 10; l++) { // Max 10 niveaux
+                const currentLevel = isTop ? topLevels[l] : bottomLevels[l];
+                if (!currentLevel) {
+                    // Ce niveau est vide
+                    level = l;
+                    break;
+                }
+
+                // Vérifier si on peut placer l'événement à ce niveau
+                const canPlace = currentLevel.every(pos => Math.abs(pos - eventX) >= minSpacing);
+                if (canPlace) {
+                    level = l;
+                    break;
+                }
+                level = l + 1;
+            }
+
+            // Enregistrer la position
+            if (isTop) {
+                if (!topLevels[level]) topLevels[level] = [];
+                topLevels[level].push(eventX);
+            } else {
+                if (!bottomLevels[level]) bottomLevels[level] = [];
+                bottomLevels[level].push(eventX);
+            }
+
+            event.level = level;
+            event.isTop = isTop;
+        });
+
+        return sortedEvents;
+    }
+
+    /**
      * Dessiner une frise chronologique horizontale
      */
-    drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears) {
+    drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval = null, isAnimating = false, visibleEventIndices = null) {
         const margin = 80;
         const lineY = height / 2;
         const lineStartX = margin;
@@ -2350,13 +2470,16 @@ class CleanPDFViewer {
         ctx.closePath();
         ctx.fill();
 
-        // Marques d'années
+        // Marques d'années avec intervalle optimisé
         if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
             ctx.fillStyle = '#4b5563';
             ctx.font = '14px Arial';
             ctx.textAlign = 'center';
 
-            for (let year = startYear; year <= endYear; year++) {
+            for (let year = firstTick; year <= endYear; year += interval) {
                 const x = lineStartX + ((year - startYear) / yearRange) * lineLength;
 
                 // Graduation
@@ -2372,12 +2495,22 @@ class CleanPDFViewer {
             }
         }
 
+        // Calculer les positions des événements pour éviter les chevauchements
+        const boxWidth = 150;
+        const boxHeight = 70; // Augmenté pour l'emoji
+        const positionedEvents = this.calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth);
+
         // Événements
-        events.forEach((event, index) => {
-            const eventYear = event.year || startYear;
-            const eventX = lineStartX + ((eventYear - startYear) / yearRange) * lineLength;
-            const isTop = index % 2 === 0;
-            const eventY = isTop ? lineY - 80 : lineY + 80;
+        positionedEvents.forEach((event) => {
+            // En mode animation, ne dessiner que les événements visibles
+            if (isAnimating && visibleEventIndices && !visibleEventIndices.includes(event.originalIndex)) {
+                return;
+            }
+
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
             const markerColor = event.color || '#3b82f6';
 
             // Point sur la ligne
@@ -2392,15 +2525,14 @@ class CleanPDFViewer {
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(eventX, lineY);
-            ctx.lineTo(eventX, isTop ? eventY + 40 : eventY - 40);
+            const lineEndY = event.isTop ? eventY + boxHeight / 2 : eventY - boxHeight / 2;
+            ctx.lineTo(eventX, lineEndY);
             ctx.stroke();
             ctx.setLineDash([]);
 
             // Boîte d'événement
-            const boxWidth = 150;
-            const boxHeight = 60;
             const boxX = eventX - boxWidth / 2;
-            const boxY = isTop ? eventY - boxHeight / 2 : eventY - boxHeight / 2;
+            const boxY = eventY - boxHeight / 2;
 
             // Ombre
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
@@ -2413,19 +2545,28 @@ class CleanPDFViewer {
             ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
             ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
+            // Emoji (si présent)
+            let titleOffsetY = boxY + 20;
+            if (event.emoji) {
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(event.emoji, eventX, boxY + 22);
+                titleOffsetY = boxY + 40;
+            }
+
             // Titre de l'événement
             ctx.fillStyle = '#1f2937';
-            ctx.font = 'bold 13px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(event.title || 'Événement', eventX, boxY + 20, boxWidth - 10);
+            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
 
             // Description
             if (event.description) {
-                ctx.font = '11px Arial';
+                ctx.font = '10px Arial';
                 ctx.fillStyle = '#6b7280';
                 const words = event.description.split(' ');
                 let line = '';
-                let y = boxY + 35;
+                let y = titleOffsetY + 14;
 
                 for (let word of words) {
                     const testLine = line + word + ' ';
@@ -2433,23 +2574,265 @@ class CleanPDFViewer {
                     if (metrics.width > boxWidth - 20 && line.length > 0) {
                         ctx.fillText(line, eventX, y, boxWidth - 10);
                         line = word + ' ';
-                        y += 14;
-                        if (y > boxY + boxHeight - 10) break;
+                        y += 12;
+                        if (y > boxY + boxHeight - 8) break;
                     } else {
                         line = testLine;
                     }
                 }
-                if (y <= boxY + boxHeight - 10 && line.length > 0) {
+                if (y <= boxY + boxHeight - 8 && line.length > 0) {
                     ctx.fillText(line, eventX, y, boxWidth - 10);
                 }
             }
         });
+
+        return { lineStartX, lineEndX, lineY, positionedEvents };
+    }
+
+    /**
+     * Dessiner le personnage marcheur sur la frise
+     */
+    drawWalker(ctx, x, y, direction = 1, frame = 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (direction < 0) ctx.scale(-1, 1);
+
+        // Petit bonhomme stylisé
+        const scale = 0.8;
+        ctx.scale(scale, scale);
+
+        // Tête
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(0, -35, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Yeux
+        ctx.fillStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.arc(-4, -38, 2, 0, Math.PI * 2);
+        ctx.arc(4, -38, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sourire
+        ctx.beginPath();
+        ctx.arc(0, -33, 5, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+
+        // Corps
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-8, -22, 16, 25);
+
+        // Jambes (animation de marche)
+        const legAngle = Math.sin(frame * 0.3) * 0.4;
+        ctx.fillStyle = '#1f2937';
+
+        // Jambe gauche
+        ctx.save();
+        ctx.translate(-4, 3);
+        ctx.rotate(legAngle);
+        ctx.fillRect(-3, 0, 6, 20);
+        ctx.restore();
+
+        // Jambe droite
+        ctx.save();
+        ctx.translate(4, 3);
+        ctx.rotate(-legAngle);
+        ctx.fillRect(-3, 0, 6, 20);
+        ctx.restore();
+
+        // Bras (animation de balancement)
+        const armAngle = Math.sin(frame * 0.3) * 0.3;
+        ctx.fillStyle = '#fbbf24';
+
+        // Bras gauche
+        ctx.save();
+        ctx.translate(-8, -18);
+        ctx.rotate(-armAngle);
+        ctx.fillRect(-3, 0, 6, 15);
+        ctx.restore();
+
+        // Bras droit
+        ctx.save();
+        ctx.translate(8, -18);
+        ctx.rotate(armAngle);
+        ctx.fillRect(-3, 0, 6, 15);
+        ctx.restore();
+
+        ctx.restore();
+    }
+
+    /**
+     * Lancer l'animation du marcheur sur la frise
+     */
+    startTimelineWalkerAnimation(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+        if (events.length === 0) return;
+
+        // Arrêter toute animation précédente
+        if (this.walkerAnimationId) {
+            cancelAnimationFrame(this.walkerAnimationId);
+            this.walkerAnimationId = null;
+        }
+
+        // Trouver le canvas
+        const pageContainer = document.querySelector(`.pdf-page-container[data-page-id="${pageId}"]`);
+        if (!pageContainer) return;
+        const pdfCanvas = pageContainer.querySelector('.pdf-canvas');
+        const ctx = pdfCanvas.getContext('2d');
+
+        const width = pdfCanvas.width;
+        const height = pdfCanvas.height;
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const startYear = data.startYear || new Date().getFullYear();
+        const endYear = data.endYear || new Date().getFullYear() + 10;
+        const yearRange = endYear - startYear;
+        const lineColor = data.lineColor || '#667eea';
+        const tickInterval = data.tickInterval || null;
+
+        // Trier les événements par année
+        const sortedEvents = [...events].map((e, i) => ({
+            ...e,
+            originalIndex: i,
+            x: lineStartX + (((e.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.x - b.x);
+
+        let walkerX = lineStartX - 30;
+        let currentEventIndex = -1;
+        let eventDisplayTimer = 0;
+        let visibleEvents = [];
+        let frame = 0;
+        let isShowingEvent = false;
+        const eventDisplayDuration = 150; // Frames (environ 2.5 secondes à 60fps)
+        const walkerSpeed = 2;
+
+        const animate = () => {
+            frame++;
+
+            // Effacer et redessiner le fond
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+
+            // Redessiner le titre
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+
+            // Redessiner la frise avec seulement les événements visibles
+            this.drawHorizontalTimeline(
+                ctx, width, height, startYear, endYear,
+                events, lineColor, data.showYears !== false, tickInterval,
+                true, visibleEvents
+            );
+
+            // Logique de l'animation
+            if (!isShowingEvent) {
+                // Le marcheur avance
+                walkerX += walkerSpeed;
+
+                // Vérifier si on atteint un événement
+                const nextEvent = sortedEvents[currentEventIndex + 1];
+                if (nextEvent && walkerX >= nextEvent.x) {
+                    currentEventIndex++;
+                    visibleEvents.push(nextEvent.originalIndex);
+                    isShowingEvent = true;
+                    eventDisplayTimer = 0;
+                }
+
+                // Vérifier si on a terminé
+                if (walkerX > lineEndX + 30) {
+                    // Animation terminée - redessiner la frise normalement
+                    this.renderPages();
+                    return;
+                }
+            } else {
+                // Afficher l'événement pendant un moment
+                eventDisplayTimer++;
+                if (eventDisplayTimer >= eventDisplayDuration) {
+                    isShowingEvent = false;
+                    // Retirer l'événement de la liste visible
+                    const lastEventIndex = visibleEvents.pop();
+                }
+            }
+
+            // Dessiner le marcheur
+            this.drawWalker(ctx, walkerX, lineY - 10, 1, frame);
+
+            this.walkerAnimationId = requestAnimationFrame(animate);
+        };
+
+        animate();
+    }
+
+    /**
+     * Calculer les positions des événements verticaux pour éviter les chevauchements
+     */
+    calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight) {
+        // Trier les événements par année
+        const sortedEvents = [...events].map((event, originalIndex) => ({
+            ...event,
+            originalIndex,
+            y: lineStartY + (((event.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.y - b.y);
+
+        // Calculer les niveaux pour éviter les chevauchements
+        const minSpacing = boxHeight + 15;
+        const leftLevels = [];
+        const rightLevels = [];
+
+        sortedEvents.forEach((event, idx) => {
+            const eventY = event.y;
+            let level = 0;
+            let isLeft = idx % 2 === 0;
+
+            const levelsToCheck = isLeft ? leftLevels : rightLevels;
+
+            for (let l = 0; l < 10; l++) {
+                const currentLevel = isLeft ? leftLevels[l] : rightLevels[l];
+                if (!currentLevel) {
+                    level = l;
+                    break;
+                }
+
+                const canPlace = currentLevel.every(pos => Math.abs(pos - eventY) >= minSpacing);
+                if (canPlace) {
+                    level = l;
+                    break;
+                }
+                level = l + 1;
+            }
+
+            if (isLeft) {
+                if (!leftLevels[level]) leftLevels[level] = [];
+                leftLevels[level].push(eventY);
+            } else {
+                if (!rightLevels[level]) rightLevels[level] = [];
+                rightLevels[level].push(eventY);
+            }
+
+            event.level = level;
+            event.isLeft = isLeft;
+        });
+
+        return sortedEvents;
     }
 
     /**
      * Dessiner une frise chronologique verticale
      */
-    drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears) {
+    drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval = null) {
         const marginTop = 100;
         const marginBottom = 80;
         const lineX = width / 2;
@@ -2475,13 +2858,16 @@ class CleanPDFViewer {
         ctx.closePath();
         ctx.fill();
 
-        // Marques d'années
+        // Marques d'années avec intervalle optimisé
         if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
             ctx.fillStyle = '#4b5563';
             ctx.font = '14px Arial';
             ctx.textAlign = 'left';
 
-            for (let year = startYear; year <= endYear; year++) {
+            for (let year = firstTick; year <= endYear; year += interval) {
                 const y = lineStartY + ((year - startYear) / yearRange) * lineLength;
 
                 // Graduation
@@ -2497,12 +2883,17 @@ class CleanPDFViewer {
             }
         }
 
+        // Calculer les positions des événements pour éviter les chevauchements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight);
+
         // Événements
-        events.forEach((event, index) => {
-            const eventYear = event.year || startYear;
-            const eventY = lineStartY + ((eventYear - startYear) / yearRange) * lineLength;
-            const isLeft = index % 2 === 0;
-            const eventX = isLeft ? lineX - 200 : lineX + 200;
+        positionedEvents.forEach((event) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
             const markerColor = event.color || '#3b82f6';
 
             // Point sur la ligne
@@ -2517,13 +2908,12 @@ class CleanPDFViewer {
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(lineX, eventY);
-            ctx.lineTo(isLeft ? eventX + 75 : eventX - 75, eventY);
+            const lineEndX = event.isLeft ? eventX + boxWidth / 2 : eventX - boxWidth / 2;
+            ctx.lineTo(lineEndX, eventY);
             ctx.stroke();
             ctx.setLineDash([]);
 
             // Boîte d'événement
-            const boxWidth = 150;
-            const boxHeight = 60;
             const boxX = eventX - boxWidth / 2;
             const boxY = eventY - boxHeight / 2;
 
@@ -2538,19 +2928,28 @@ class CleanPDFViewer {
             ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
             ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
+            // Emoji (si présent)
+            let titleOffsetY = boxY + 20;
+            if (event.emoji) {
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(event.emoji, eventX, boxY + 22);
+                titleOffsetY = boxY + 40;
+            }
+
             // Titre de l'événement
             ctx.fillStyle = '#1f2937';
-            ctx.font = 'bold 13px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(event.title || 'Événement', eventX, boxY + 20, boxWidth - 10);
+            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
 
             // Description
             if (event.description) {
-                ctx.font = '11px Arial';
+                ctx.font = '10px Arial';
                 ctx.fillStyle = '#6b7280';
                 const words = event.description.split(' ');
                 let line = '';
-                let y = boxY + 35;
+                let y = titleOffsetY + 14;
 
                 for (let word of words) {
                     const testLine = line + word + ' ';
@@ -2558,17 +2957,65 @@ class CleanPDFViewer {
                     if (metrics.width > boxWidth - 20 && line.length > 0) {
                         ctx.fillText(line, eventX, y, boxWidth - 10);
                         line = word + ' ';
-                        y += 14;
-                        if (y > boxY + boxHeight - 10) break;
+                        y += 12;
+                        if (y > boxY + boxHeight - 8) break;
                     } else {
                         line = testLine;
                     }
                 }
-                if (y <= boxY + boxHeight - 10 && line.length > 0) {
+                if (y <= boxY + boxHeight - 8 && line.length > 0) {
                     ctx.fillText(line, eventX, y, boxWidth - 10);
                 }
             }
         });
+    }
+
+    /**
+     * Liste des emojis historiques disponibles
+     */
+    getHistoryEmojis() {
+        return [
+            { emoji: '', label: 'Aucun' },
+            { emoji: '👑', label: 'Couronne (royauté)' },
+            { emoji: '⚔️', label: 'Épées (guerre)' },
+            { emoji: '🏰', label: 'Château' },
+            { emoji: '📜', label: 'Parchemin' },
+            { emoji: '🗡️', label: 'Épée' },
+            { emoji: '🛡️', label: 'Bouclier' },
+            { emoji: '⛪', label: 'Église' },
+            { emoji: '🏛️', label: 'Monument' },
+            { emoji: '🎭', label: 'Théâtre/Arts' },
+            { emoji: '🎨', label: 'Art' },
+            { emoji: '📖', label: 'Livre' },
+            { emoji: '🔬', label: 'Science' },
+            { emoji: '💡', label: 'Invention' },
+            { emoji: '🚂', label: 'Train (révolution industrielle)' },
+            { emoji: '⚓', label: 'Ancre (navigation)' },
+            { emoji: '🗺️', label: 'Carte (exploration)' },
+            { emoji: '🏴', label: 'Drapeau' },
+            { emoji: '✝️', label: 'Religion' },
+            { emoji: '☪️', label: 'Islam' },
+            { emoji: '🕎', label: 'Judaïsme' },
+            { emoji: '🔥', label: 'Feu/Destruction' },
+            { emoji: '💀', label: 'Mort/Épidémie' },
+            { emoji: '🌍', label: 'Monde' },
+            { emoji: '🗽', label: 'Liberté' },
+            { emoji: '⚖️', label: 'Justice/Loi' },
+            { emoji: '🎵', label: 'Musique' },
+            { emoji: '🏆', label: 'Victoire' },
+            { emoji: '💎', label: 'Richesse' },
+            { emoji: '🌾', label: 'Agriculture' },
+            { emoji: '🏺', label: 'Antiquité' },
+            { emoji: '🗿', label: 'Préhistoire' },
+            { emoji: '📝', label: 'Écriture/Traité' },
+            { emoji: '🎓', label: 'Éducation' },
+            { emoji: '🚀', label: 'Espace' },
+            { emoji: '💻', label: 'Informatique' },
+            { emoji: '⚡', label: 'Électricité' },
+            { emoji: '🏥', label: 'Médecine' },
+            { emoji: '🗳️', label: 'Vote/Démocratie' },
+            { emoji: '✊', label: 'Révolution' }
+        ];
     }
 
     /**
@@ -2589,8 +3036,8 @@ class CleanPDFViewer {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 600px;
-            max-height: 80vh;
+            width: 650px;
+            max-height: 85vh;
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
@@ -2624,25 +3071,51 @@ class CleanPDFViewer {
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Orientation</label>
-                    <select id="timeline-orientation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
-                        <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>Horizontale</option>
-                        <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>Verticale</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Orientation</label>
+                        <select id="timeline-orientation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>Horizontale</option>
+                            <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>Verticale</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Intervalle des graduations</label>
+                        <select id="timeline-tick-interval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="auto" ${!data.tickInterval ? 'selected' : ''}>Automatique (10-25 traits)</option>
+                            <option value="1" ${data.tickInterval === 1 ? 'selected' : ''}>Tous les 1 an</option>
+                            <option value="5" ${data.tickInterval === 5 ? 'selected' : ''}>Tous les 5 ans</option>
+                            <option value="10" ${data.tickInterval === 10 ? 'selected' : ''}>Tous les 10 ans</option>
+                            <option value="25" ${data.tickInterval === 25 ? 'selected' : ''}>Tous les 25 ans</option>
+                            <option value="50" ${data.tickInterval === 50 ? 'selected' : ''}>Tous les 50 ans</option>
+                            <option value="100" ${data.tickInterval === 100 ? 'selected' : ''}>Tous les 100 ans</option>
+                            <option value="500" ${data.tickInterval === 500 ? 'selected' : ''}>Tous les 500 ans</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Couleur de la ligne</label>
-                    <input type="color" id="timeline-line-color" value="${data.lineColor || '#667eea'}"
-                           style="width: 100px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Couleur de la ligne</label>
+                        <input type="color" id="timeline-line-color" value="${data.lineColor || '#667eea'}"
+                               style="width: 100px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="timeline-show-years" ${data.showYears !== false ? 'checked' : ''}>
+                            <span>Afficher les années</span>
+                        </label>
+                    </div>
                 </div>
 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="timeline-show-years" ${data.showYears !== false ? 'checked' : ''}>
-                        <span>Afficher les années sur la frise</span>
-                    </label>
+                <!-- Bouton Animation -->
+                <div style="margin-bottom: 20px; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px;">
+                    <button id="start-animation-btn" style="width: 100%; padding: 10px; background: white; color: #667eea; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span style="font-size: 18px;">🚶</span> Lancer l'animation du marcheur
+                    </button>
+                    <p style="margin: 8px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.9); text-align: center;">
+                        Un personnage parcourt la frise et révèle les événements un par un
+                    </p>
                 </div>
 
                 <div style="margin-bottom: 16px;">
@@ -2652,7 +3125,7 @@ class CleanPDFViewer {
                             + Ajouter un événement
                         </button>
                     </div>
-                    <div id="events-list" style="max-height: 300px; overflow-y: auto;">
+                    <div id="events-list" style="max-height: 250px; overflow-y: auto;">
                         ${events.map((event, index) => this.renderEventItem(event, index)).join('')}
                     </div>
                 </div>
@@ -2674,6 +3147,17 @@ class CleanPDFViewer {
         document.getElementById('timeline-close-btn').addEventListener('click', () => panel.remove());
         document.getElementById('cancel-timeline-btn').addEventListener('click', () => panel.remove());
 
+        // Bouton d'animation
+        document.getElementById('start-animation-btn').addEventListener('click', () => {
+            // D'abord sauvegarder les changements
+            this.saveTimelineConfig(pageData, panel);
+            panel.remove();
+            // Puis lancer l'animation
+            setTimeout(() => {
+                this.startTimelineWalkerAnimation(pageId);
+            }, 100);
+        });
+
         document.getElementById('add-event-btn').addEventListener('click', () => {
             const eventsList = document.getElementById('events-list');
             const newIndex = eventsList.children.length;
@@ -2681,42 +3165,15 @@ class CleanPDFViewer {
                 year: parseInt(document.getElementById('timeline-start-year').value),
                 title: '',
                 description: '',
-                color: '#3b82f6'
+                color: '#3b82f6',
+                emoji: ''
             }, newIndex);
             eventsList.insertAdjacentHTML('beforeend', newEventHtml);
+            this.attachEmojiPickerEvents(eventsList.lastElementChild);
         });
 
         document.getElementById('apply-timeline-btn').addEventListener('click', () => {
-            // Collecter les événements
-            const eventElements = document.querySelectorAll('.timeline-event-item');
-            const collectedEvents = [];
-
-            eventElements.forEach(elem => {
-                const year = parseInt(elem.querySelector('.event-year').value);
-                const title = elem.querySelector('.event-title').value;
-                const description = elem.querySelector('.event-description').value;
-                const color = elem.querySelector('.event-color').value;
-
-                if (title) { // Seulement si le titre n'est pas vide
-                    collectedEvents.push({ year, title, description, color });
-                }
-            });
-
-            // Mettre à jour les données
-            pageData.data = {
-                title: document.getElementById('timeline-title').value,
-                startYear: parseInt(document.getElementById('timeline-start-year').value),
-                endYear: parseInt(document.getElementById('timeline-end-year').value),
-                orientation: document.getElementById('timeline-orientation').value,
-                lineColor: document.getElementById('timeline-line-color').value,
-                showYears: document.getElementById('timeline-show-years').checked,
-                events: collectedEvents
-            };
-
-            // Re-rendre la page
-            this.renderPages();
-            this.isDirty = true;
-
+            this.saveTimelineConfig(pageData, panel);
             panel.remove();
         });
 
@@ -2727,25 +3184,120 @@ class CleanPDFViewer {
                 btn.closest('.timeline-event-item').remove();
             }
         });
+
+        // Attacher les événements pour les sélecteurs d'emoji existants
+        document.querySelectorAll('.timeline-event-item').forEach(item => {
+            this.attachEmojiPickerEvents(item);
+        });
+    }
+
+    /**
+     * Sauvegarder la configuration de la frise
+     */
+    saveTimelineConfig(pageData, panel) {
+        // Collecter les événements
+        const eventElements = document.querySelectorAll('.timeline-event-item');
+        const collectedEvents = [];
+
+        eventElements.forEach(elem => {
+            const year = parseInt(elem.querySelector('.event-year').value);
+            const title = elem.querySelector('.event-title').value;
+            const description = elem.querySelector('.event-description').value;
+            const color = elem.querySelector('.event-color').value;
+            const emoji = elem.querySelector('.event-emoji').value || '';
+
+            if (title) { // Seulement si le titre n'est pas vide
+                collectedEvents.push({ year, title, description, color, emoji });
+            }
+        });
+
+        // Récupérer l'intervalle de graduation
+        const tickIntervalValue = document.getElementById('timeline-tick-interval').value;
+        const tickInterval = tickIntervalValue === 'auto' ? null : parseInt(tickIntervalValue);
+
+        // Mettre à jour les données
+        pageData.data = {
+            title: document.getElementById('timeline-title').value,
+            startYear: parseInt(document.getElementById('timeline-start-year').value),
+            endYear: parseInt(document.getElementById('timeline-end-year').value),
+            orientation: document.getElementById('timeline-orientation').value,
+            lineColor: document.getElementById('timeline-line-color').value,
+            showYears: document.getElementById('timeline-show-years').checked,
+            tickInterval: tickInterval,
+            events: collectedEvents
+        };
+
+        // Re-rendre la page
+        this.renderPages();
+        this.isDirty = true;
+    }
+
+    /**
+     * Attacher les événements pour le sélecteur d'emoji
+     */
+    attachEmojiPickerEvents(eventItem) {
+        const emojiBtn = eventItem.querySelector('.emoji-picker-btn');
+        const emojiInput = eventItem.querySelector('.event-emoji');
+        const emojiDropdown = eventItem.querySelector('.emoji-dropdown');
+
+        if (!emojiBtn || !emojiDropdown) return;
+
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Fermer tous les autres dropdowns
+            document.querySelectorAll('.emoji-dropdown').forEach(d => {
+                if (d !== emojiDropdown) d.style.display = 'none';
+            });
+            emojiDropdown.style.display = emojiDropdown.style.display === 'none' ? 'grid' : 'none';
+        });
+
+        emojiDropdown.querySelectorAll('.emoji-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const emoji = opt.dataset.emoji;
+                emojiInput.value = emoji;
+                emojiBtn.textContent = emoji || '😀';
+                emojiDropdown.style.display = 'none';
+            });
+        });
+
+        // Fermer le dropdown en cliquant ailleurs
+        document.addEventListener('click', () => {
+            emojiDropdown.style.display = 'none';
+        });
     }
 
     /**
      * Rendre un élément d'événement pour la liste
      */
     renderEventItem(event, index) {
+        const emojis = this.getHistoryEmojis();
+        const emojiOptions = emojis.map(e =>
+            `<div class="emoji-option" data-emoji="${e.emoji}" title="${e.label}" style="cursor: pointer; padding: 4px; border-radius: 4px; text-align: center; font-size: 18px;">${e.emoji || '❌'}</div>`
+        ).join('');
+
         return `
             <div class="timeline-event-item" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb;">
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
                     <input type="number" class="event-year" value="${event.year || new Date().getFullYear()}"
                            placeholder="Année" style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <input type="color" class="event-color" value="${event.color || '#3b82f6'}"
                            title="Couleur" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                    <div style="position: relative;">
+                        <input type="hidden" class="event-emoji" value="${event.emoji || ''}">
+                        <button type="button" class="emoji-picker-btn" style="width: 36px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: white; font-size: 16px;" title="Choisir un emoji">
+                            ${event.emoji || '😀'}
+                        </button>
+                        <div class="emoji-dropdown" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); grid-template-columns: repeat(8, 1fr); gap: 2px; width: 280px; max-height: 200px; overflow-y: auto;">
+                            ${emojiOptions}
+                        </div>
+                    </div>
                     <input type="text" class="event-title" value="${event.title || ''}"
                            placeholder="Titre de l'événement" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <button class="delete-event-btn" type="button" style="width: 32px; height: 32px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">×</button>
                 </div>
                 <textarea class="event-description" placeholder="Description (optionnelle)"
-                          style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 50px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
+                          style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 40px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
             </div>
         `;
     }
