@@ -3223,8 +3223,8 @@ class CleanPDFViewer {
         });
 
         document.getElementById('apply-timeline-btn').addEventListener('click', async () => {
-            panel.remove();
             await this.saveTimelineConfig(pageData, panel, pageId);
+            panel.remove();
         });
 
         // Délégation d'événements pour les boutons de suppression
