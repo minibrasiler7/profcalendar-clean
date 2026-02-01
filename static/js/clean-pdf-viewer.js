@@ -2541,26 +2541,23 @@ class CleanPDFViewer {
         const boxHeight = 70; // Augmenté pour l'emoji
         const positionedEvents = this.calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth);
 
-        // Événements
-        positionedEvents.forEach((event) => {
-            // En mode animation, ne dessiner que les événements visibles
+        // Filtrer les événements visibles
+        const visibleEvents = positionedEvents.filter(event => {
             if (isAnimating && visibleEventIndices && !visibleEventIndices.includes(event.originalIndex)) {
-                return;
+                return false;
             }
+            return true;
+        });
 
+        // PASSE 1 : Dessiner tous les traits pointillés et points EN PREMIER (pour qu'ils passent sous les boîtes)
+        visibleEvents.forEach((event) => {
             const eventX = event.x;
             const baseOffset = 80;
             const levelOffset = event.level * (boxHeight + 20);
             const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
             const markerColor = event.color || '#3b82f6';
 
-            // Point sur la ligne
-            ctx.fillStyle = markerColor;
-            ctx.beginPath();
-            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Ligne verticale vers l'événement
+            // Ligne verticale vers l'événement (trait pointillé)
             ctx.strokeStyle = markerColor;
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
@@ -2570,6 +2567,21 @@ class CleanPDFViewer {
             ctx.lineTo(eventX, lineEndY);
             ctx.stroke();
             ctx.setLineDash([]);
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // PASSE 2 : Dessiner toutes les boîtes d'événements PAR-DESSUS les traits
+        visibleEvents.forEach((event) => {
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
 
             // Boîte d'événement
             const boxX = eventX - boxWidth / 2;
@@ -2938,7 +2950,7 @@ class CleanPDFViewer {
         const boxHeight = 70;
         const positionedEvents = this.calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight);
 
-        // Événements
+        // PASSE 1 : Dessiner tous les traits pointillés et points EN PREMIER
         positionedEvents.forEach((event) => {
             const eventY = event.y;
             const baseOffset = 200;
@@ -2946,13 +2958,7 @@ class CleanPDFViewer {
             const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
             const markerColor = event.color || '#3b82f6';
 
-            // Point sur la ligne
-            ctx.fillStyle = markerColor;
-            ctx.beginPath();
-            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Ligne horizontale vers l'événement
+            // Ligne horizontale vers l'événement (trait pointillé)
             ctx.strokeStyle = markerColor;
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
@@ -2962,6 +2968,21 @@ class CleanPDFViewer {
             ctx.lineTo(lineEndX, eventY);
             ctx.stroke();
             ctx.setLineDash([]);
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // PASSE 2 : Dessiner toutes les boîtes d'événements PAR-DESSUS les traits
+        positionedEvents.forEach((event) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
 
             // Boîte d'événement
             const boxX = eventX - boxWidth / 2;
@@ -3201,9 +3222,9 @@ class CleanPDFViewer {
             this.attachEmojiPickerEvents(eventsList.lastElementChild);
         });
 
-        document.getElementById('apply-timeline-btn').addEventListener('click', () => {
-            this.saveTimelineConfig(pageData, panel, pageId);
+        document.getElementById('apply-timeline-btn').addEventListener('click', async () => {
             panel.remove();
+            await this.saveTimelineConfig(pageData, panel, pageId);
         });
 
         // Délégation d'événements pour les boutons de suppression
@@ -3233,7 +3254,7 @@ class CleanPDFViewer {
     /**
      * Sauvegarder la configuration de la frise
      */
-    saveTimelineConfig(pageData, panel, pageId) {
+    async saveTimelineConfig(pageData, panel, pageId) {
         // Collecter les événements
         const eventElements = document.querySelectorAll('.timeline-event-item');
         const collectedEvents = [];
@@ -3266,26 +3287,17 @@ class CleanPDFViewer {
             events: collectedEvents
         };
 
-        // Sauvegarder la position de scroll actuelle
-        const scrollTop = this.elements.pagesContainer?.scrollTop || 0;
-        const currentPageId = pageId;
-
-        // Re-rendre la page
-        this.renderPages();
+        // Re-rendre la page et scroller vers la page modifiée
+        await this.renderPages();
         this.isDirty = true;
 
-        // Restaurer la position de scroll après le rendu
-        requestAnimationFrame(() => {
-            if (this.elements.pagesContainer) {
-                // Essayer de scroller vers la page modifiée
-                const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${currentPageId}"]`);
-                if (pageWrapper) {
-                    pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
-                } else {
-                    this.elements.pagesContainer.scrollTop = scrollTop;
-                }
+        // Scroller vers la page modifiée après le rendu
+        setTimeout(() => {
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (pageWrapper) {
+                pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
             }
-        });
+        }, 50);
     }
 
     /**
