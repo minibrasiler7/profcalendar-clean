@@ -5079,24 +5079,21 @@ def apply_group_pattern():
             ).first()
             
             if existing:
-                # Mettre à jour la planification existante
-                existing.classroom_id = classroom_id
-                existing.title = title
-                existing.description = description
+                # Mettre à jour seulement le group_id de la planification existante
+                # Ne pas écraser le titre et la description
                 existing.group_id = group_to_assign
-                existing.set_checklist_states(checklist_states)
             else:
-                # Créer une nouvelle planification
+                # Créer une nouvelle planification avec seulement le group_id
+                # Le titre et la description restent vides pour que l'utilisateur les remplisse
                 planning = Planning(
                     user_id=current_user.id,
                     classroom_id=classroom_id,
                     date=current_date,
                     period_number=period_number,
-                    title=title,
-                    description=description,
+                    title='',  # Vide intentionnellement
+                    description='',  # Vide intentionnellement
                     group_id=group_to_assign
                 )
-                planning.set_checklist_states(checklist_states)
                 db.session.add(planning)
             
             created_count += 1

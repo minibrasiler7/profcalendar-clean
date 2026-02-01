@@ -4644,11 +4644,11 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
     // Récupérer les données existantes pour ce créneau (utiliser la période de base)
     getDaySlotData(dateStr, basePeriodNumber, classroomId).then(data => {
         if (data.success && data.planning) {
-            // Pré-remplir avec les données existantes
-            showDaySlotEditModal(data.planning.title || '', data.planning.description || '');
+            // Pré-remplir avec les données existantes (y compris le group_id)
+            showDaySlotEditModal(data.planning.title || '', data.planning.description || '', data.planning.group_id || null);
         } else {
             // Nouveau créneau vide
-            showDaySlotEditModal('', '');
+            showDaySlotEditModal('', '', null);
         }
     });
 }
@@ -4668,7 +4668,9 @@ async function getDaySlotData(dateStr, periodNumber, classroomId) {
 }
 
 // Afficher le modal d'édition de créneau
-function showDaySlotEditModal(title, description) {
+function showDaySlotEditModal(title, description, groupId = null) {
+    // Stocker le group_id pour la présélection
+    currentEditingSlot.groupId = groupId;
     // Créer un modal d'édition simple
     const modalHtml = `
         <div class="day-edit-modal" id="dayEditModal">
@@ -4973,22 +4975,22 @@ async function loadGroupsForClass(classroomId) {
 async function loadGroupsForDayModal(classroomId) {
     const groupDiv = document.getElementById('dayGroupSelectionDiv');
     const groupSelect = document.getElementById('dayModalGroup');
-    
+
     if (!classroomId) {
         groupDiv.style.display = 'none';
         return;
     }
-    
+
     try {
         // Extraire l'ID numérique si classroomId contient un préfixe
         const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
         const response = await fetch(`/planning/get-groups/${numericId}`);
         const data = await response.json();
-        
+
         if (data.success && data.groups.length > 0) {
             // Réinitialiser les options
             groupSelect.innerHTML = '<option value="">Classe entière</option>';
-            
+
             // Ajouter les groupes
             data.groups.forEach(group => {
                 const option = document.createElement('option');
@@ -4997,7 +4999,12 @@ async function loadGroupsForDayModal(classroomId) {
                 option.style.color = group.color;
                 groupSelect.appendChild(option);
             });
-            
+
+            // Présélectionner le groupe si un group_id existe
+            if (currentEditingSlot && currentEditingSlot.groupId) {
+                groupSelect.value = currentEditingSlot.groupId;
+            }
+
             groupDiv.style.display = 'block';
         } else {
             groupDiv.style.display = 'none';
