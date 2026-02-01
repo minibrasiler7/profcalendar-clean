@@ -4643,11 +4643,17 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
     
     // Récupérer les données existantes pour ce créneau (utiliser la période de base)
     getDaySlotData(dateStr, basePeriodNumber, classroomId).then(data => {
-        if (data.success && data.planning) {
-            // Pré-remplir avec les données existantes (y compris le group_id)
-            showDaySlotEditModal(data.planning.title || '', data.planning.description || '', data.planning.group_id || null);
+        if (data.success && data.slot) {
+            const slot = data.slot;
+            if (slot.has_planning) {
+                // Pré-remplir avec les données existantes (y compris le group_id)
+                showDaySlotEditModal(slot.title || '', slot.description || '', slot.group_id || null);
+            } else {
+                // Nouveau créneau vide mais vérifier s'il y a un group_id défini (pattern de groupe)
+                showDaySlotEditModal('', '', slot.group_id || null);
+            }
         } else {
-            // Nouveau créneau vide
+            // Erreur ou pas de données
             showDaySlotEditModal('', '', null);
         }
     });
