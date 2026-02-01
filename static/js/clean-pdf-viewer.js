@@ -969,6 +969,62 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Bouton mode test sur la frise */
+            .timeline-test-btn {
+                position: absolute;
+                top: 16px;
+                right: 136px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-test-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+            }
+
+            .timeline-test-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Bouton quitter le mode test */
+            .timeline-exit-test-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 10px 20px;
+                border-radius: 8px;
+                background: #ef4444;
+                border: none;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-exit-test-btn:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+            }
+
             /* Sélecteur d'emoji pour la frise */
             .emoji-option:hover {
                 background: #e0e7ff !important;
@@ -1992,15 +2048,26 @@ class CleanPDFViewer {
             configBtn.addEventListener('click', () => this.openTimelineConfigPanel(pageId));
             container.appendChild(configBtn);
 
-            // Ajouter le bouton d'animation si il y a des événements
+            // Ajouter les boutons si il y a des événements
             const events = pageData.data?.events || [];
-            if (events.length > 0 && pageData.data?.orientation !== 'vertical') {
-                const animBtn = document.createElement('button');
-                animBtn.className = 'timeline-animation-btn';
-                animBtn.innerHTML = '🚶';
-                animBtn.title = 'Lancer l\'animation du marcheur';
-                animBtn.addEventListener('click', () => this.startTimelineWalkerAnimation(pageId));
-                container.appendChild(animBtn);
+            if (events.length > 0) {
+                // Bouton mode test
+                const testBtn = document.createElement('button');
+                testBtn.className = 'timeline-test-btn';
+                testBtn.innerHTML = '❓';
+                testBtn.title = 'Mode test - Cliquez sur les événements pour révéler leur contenu';
+                testBtn.addEventListener('click', () => this.startTimelineTestMode(pageId));
+                container.appendChild(testBtn);
+
+                // Bouton animation (seulement pour les frises horizontales)
+                if (pageData.data?.orientation !== 'vertical') {
+                    const animBtn = document.createElement('button');
+                    animBtn.className = 'timeline-animation-btn';
+                    animBtn.innerHTML = '🚶';
+                    animBtn.title = 'Lancer l\'animation du marcheur';
+                    animBtn.addEventListener('click', () => this.startTimelineWalkerAnimation(pageId));
+                    container.appendChild(animBtn);
+                }
             }
         }
 
@@ -2808,15 +2875,15 @@ class CleanPDFViewer {
                 // Vérifier si on a terminé
                 if (walkerX > lineEndX + 30) {
                     // Animation terminée - redessiner la frise normalement en restant sur la page
-                    const scrollTop = this.elements.pagesContainer?.scrollTop || 0;
-                    this.renderPages();
-                    requestAnimationFrame(() => {
-                        if (pageWrapper) {
-                            pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
-                        } else if (this.elements.pagesContainer) {
-                            this.elements.pagesContainer.scrollTop = scrollTop;
-                        }
-                    });
+                    (async () => {
+                        await this.renderPages();
+                        setTimeout(() => {
+                            const newPageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+                            if (newPageWrapper) {
+                                newPageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+                            }
+                        }, 50);
+                    })();
                     return;
                 }
             } else {
@@ -2836,6 +2903,468 @@ class CleanPDFViewer {
         };
 
         animate();
+    }
+
+    /**
+     * Lancer le mode test sur la frise chronologique
+     * Les événements sont cachés et l'élève doit cliquer pour les révéler
+     */
+    startTimelineTestMode(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+        if (events.length === 0) return;
+
+        // Trouver le wrapper et le canvas
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!pageWrapper) return;
+        const canvasContainer = pageWrapper.querySelector('.pdf-canvas-container');
+        const pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+        if (!pdfCanvas || !canvasContainer) return;
+
+        const ctx = pdfCanvas.getContext('2d');
+        const width = pdfCanvas.width;
+        const height = pdfCanvas.height;
+
+        // Paramètres de la frise
+        const orientation = data.orientation || 'horizontal';
+        const startYear = data.startYear || new Date().getFullYear();
+        const endYear = data.endYear || new Date().getFullYear() + 10;
+        const lineColor = data.lineColor || '#667eea';
+        const tickInterval = data.tickInterval || null;
+        const yearRange = endYear - startYear;
+
+        // Cacher les boutons normaux
+        const configBtn = canvasContainer.querySelector('.timeline-config-btn');
+        const animBtn = canvasContainer.querySelector('.timeline-animation-btn');
+        const testBtn = canvasContainer.querySelector('.timeline-test-btn');
+        if (configBtn) configBtn.style.display = 'none';
+        if (animBtn) animBtn.style.display = 'none';
+        if (testBtn) testBtn.style.display = 'none';
+
+        // Ajouter le bouton pour quitter le mode test
+        const exitBtn = document.createElement('button');
+        exitBtn.className = 'timeline-exit-test-btn';
+        exitBtn.innerHTML = '✕ Quitter le test';
+        exitBtn.addEventListener('click', () => this.exitTimelineTestMode(pageId));
+        canvasContainer.appendChild(exitBtn);
+
+        // Créer l'overlay pour les cartes cliquables
+        const overlay = document.createElement('div');
+        overlay.className = 'timeline-test-overlay';
+        overlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        `;
+        canvasContainer.appendChild(overlay);
+
+        // Redessiner la frise avec les événements cachés
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // Titre
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+
+        // Dessiner la frise de base (ligne et graduations) mais pas les événements normaux
+        if (orientation === 'horizontal') {
+            this.drawTimelineTestModeHorizontal(ctx, pdfCanvas, width, height, startYear, endYear, events, lineColor, data.showYears !== false, tickInterval, overlay);
+        } else {
+            this.drawTimelineTestModeVertical(ctx, pdfCanvas, width, height, startYear, endYear, events, lineColor, data.showYears !== false, tickInterval, overlay);
+        }
+
+        // Stocker l'état du mode test
+        pageData.testMode = true;
+    }
+
+    /**
+     * Dessiner la frise horizontale en mode test
+     */
+    drawTimelineTestModeHorizontal(ctx, canvas, width, height, startYear, endYear, events, lineColor, showYears, tickInterval, overlay) {
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, lineY);
+        ctx.lineTo(lineEndX, lineY);
+        ctx.stroke();
+
+        // Flèche à la fin
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineEndX, lineY);
+        ctx.lineTo(lineEndX - 15, lineY - 8);
+        ctx.lineTo(lineEndX - 15, lineY + 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const x = lineStartX + ((year - startYear) / yearRange) * lineLength;
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 10);
+                ctx.lineTo(x, lineY + 10);
+                ctx.stroke();
+                ctx.fillText(year.toString(), x, lineY + 30);
+            }
+        }
+
+        // Calculer les positions des événements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth);
+
+        // Obtenir les dimensions réelles du canvas sur l'écran
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvasRect.width / width;
+        const scaleY = canvasRect.height / height;
+
+        // Dessiner les points et les cartes cachées
+        positionedEvents.forEach((event, idx) => {
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Trait pointillé
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(eventX, lineY);
+            ctx.lineTo(eventX, event.isTop ? eventY + boxHeight / 2 : eventY - boxHeight / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte cachée (avec ?)
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            ctx.fillStyle = '#f3f4f6';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Année
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.year.toString(), eventX, boxY + 25);
+
+            // Point d'interrogation
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillText('?', eventX, boxY + 55);
+
+            // Créer la zone cliquable HTML
+            const clickZone = document.createElement('div');
+            clickZone.className = 'timeline-test-card';
+            clickZone.dataset.eventIndex = idx;
+            clickZone.dataset.revealed = 'false';
+            clickZone.style.cssText = `
+                position: absolute;
+                left: ${boxX * scaleX}px;
+                top: ${boxY * scaleY}px;
+                width: ${boxWidth * scaleX}px;
+                height: ${boxHeight * scaleY}px;
+                cursor: pointer;
+                pointer-events: auto;
+                border-radius: 4px;
+            `;
+
+            // Stocker les données de l'événement
+            clickZone.dataset.eventData = JSON.stringify({
+                x: eventX,
+                y: eventY,
+                boxX: boxX,
+                boxY: boxY,
+                boxWidth: boxWidth,
+                boxHeight: boxHeight,
+                year: event.year,
+                title: event.title,
+                description: event.description,
+                emoji: event.emoji,
+                color: markerColor
+            });
+
+            clickZone.addEventListener('click', (e) => this.revealTimelineEvent(e, ctx, canvas, scaleX, scaleY));
+            overlay.appendChild(clickZone);
+        });
+    }
+
+    /**
+     * Dessiner la frise verticale en mode test
+     */
+    drawTimelineTestModeVertical(ctx, canvas, width, height, startYear, endYear, events, lineColor, showYears, tickInterval, overlay) {
+        const marginTop = 100;
+        const marginBottom = 80;
+        const lineX = width / 2;
+        const lineStartY = marginTop;
+        const lineEndY = height - marginBottom;
+        const lineLength = lineEndY - lineStartY;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineStartY);
+        ctx.lineTo(lineX, lineEndY);
+        ctx.stroke();
+
+        // Flèche en bas
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineEndY);
+        ctx.lineTo(lineX - 8, lineEndY - 15);
+        ctx.lineTo(lineX + 8, lineEndY - 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const y = lineStartY + ((year - startYear) / yearRange) * lineLength;
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(lineX - 10, y);
+                ctx.lineTo(lineX + 10, y);
+                ctx.stroke();
+                ctx.fillText(year.toString(), lineX + 20, y + 5);
+            }
+        }
+
+        // Calculer les positions des événements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight);
+
+        // Obtenir les dimensions réelles du canvas sur l'écran
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvasRect.width / width;
+        const scaleY = canvasRect.height / height;
+
+        // Dessiner les points et les cartes cachées
+        positionedEvents.forEach((event, idx) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Trait pointillé
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(lineX, eventY);
+            ctx.lineTo(event.isLeft ? eventX + boxWidth / 2 : eventX - boxWidth / 2, eventY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte cachée (avec ?)
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            ctx.fillStyle = '#f3f4f6';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Année
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.year.toString(), eventX, boxY + 25);
+
+            // Point d'interrogation
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillText('?', eventX, boxY + 55);
+
+            // Créer la zone cliquable HTML
+            const clickZone = document.createElement('div');
+            clickZone.className = 'timeline-test-card';
+            clickZone.dataset.eventIndex = idx;
+            clickZone.dataset.revealed = 'false';
+            clickZone.style.cssText = `
+                position: absolute;
+                left: ${boxX * scaleX}px;
+                top: ${boxY * scaleY}px;
+                width: ${boxWidth * scaleX}px;
+                height: ${boxHeight * scaleY}px;
+                cursor: pointer;
+                pointer-events: auto;
+                border-radius: 4px;
+            `;
+
+            // Stocker les données de l'événement
+            clickZone.dataset.eventData = JSON.stringify({
+                x: eventX,
+                y: eventY,
+                boxX: boxX,
+                boxY: boxY,
+                boxWidth: boxWidth,
+                boxHeight: boxHeight,
+                year: event.year,
+                title: event.title,
+                description: event.description,
+                emoji: event.emoji,
+                color: markerColor
+            });
+
+            clickZone.addEventListener('click', (e) => this.revealTimelineEvent(e, ctx, canvas, scaleX, scaleY));
+            overlay.appendChild(clickZone);
+        });
+    }
+
+    /**
+     * Révéler un événement lors du clic en mode test
+     */
+    revealTimelineEvent(e, ctx, canvas, scaleX, scaleY) {
+        const clickZone = e.currentTarget;
+        if (clickZone.dataset.revealed === 'true') return;
+
+        clickZone.dataset.revealed = 'true';
+        clickZone.style.cursor = 'default';
+
+        const eventData = JSON.parse(clickZone.dataset.eventData);
+        const { boxX, boxY, boxWidth, boxHeight, year, title, description, emoji, color } = eventData;
+
+        // Animation de révélation - redessiner la boîte avec le contenu
+        // Effacer l'ancienne boîte
+        ctx.fillStyle = 'white';
+        ctx.fillRect(boxX - 5, boxY - 5, boxWidth + 10, boxHeight + 10);
+
+        // Redessiner la boîte avec le contenu révélé
+        // Ombre
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+        // Fond avec effet de succès
+        ctx.fillStyle = '#ecfdf5';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Emoji (si présent)
+        let titleOffsetY = boxY + 20;
+        if (emoji) {
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(emoji, eventData.x, boxY + 22);
+            titleOffsetY = boxY + 40;
+        }
+
+        // Titre de l'événement
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title || 'Événement', eventData.x, titleOffsetY, boxWidth - 10);
+
+        // Description
+        if (description) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#6b7280';
+            const words = description.split(' ');
+            let line = '';
+            let y = titleOffsetY + 14;
+
+            for (let word of words) {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > boxWidth - 20 && line.length > 0) {
+                    ctx.fillText(line, eventData.x, y, boxWidth - 10);
+                    line = word + ' ';
+                    y += 12;
+                    if (y > boxY + boxHeight - 8) break;
+                } else {
+                    line = testLine;
+                }
+            }
+            if (y <= boxY + boxHeight - 8 && line.length > 0) {
+                ctx.fillText(line, eventData.x, y, boxWidth - 10);
+            }
+        }
+
+        // Petit effet visuel sur la zone cliquable
+        clickZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+    }
+
+    /**
+     * Quitter le mode test
+     */
+    async exitTimelineTestMode(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (pageData) {
+            pageData.testMode = false;
+        }
+
+        // Redessiner la page normalement
+        await this.renderPages();
+
+        // Scroller vers la page
+        setTimeout(() => {
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (pageWrapper) {
+                pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }
+        }, 50);
     }
 
     /**
