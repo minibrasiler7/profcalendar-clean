@@ -5044,18 +5044,20 @@ def apply_group_pattern():
             if not all_groups:
                 return jsonify({'success': False, 'message': 'Aucun groupe trouvé pour cette classe'}), 400
         
-        # Calculer toutes les dates jusqu'à la fin de l'année scolaire
-        current_date = start_date
+        # Calculer toutes les dates à partir de la SEMAINE SUIVANTE jusqu'à la fin de l'année scolaire
+        # La semaine actuelle est déjà sauvegardée par saveDaySlot
+        current_date = start_date + timedelta(days=7)
         created_count = 0
         group_index = 0  # Pour l'alternance
-        
+
         # Si on fait de l'alternance, trouver l'index du groupe sélectionné
+        # et commencer au groupe SUIVANT (car la semaine actuelle a déjà le groupe sélectionné)
         if pattern_type == 'alternate' and selected_group_id:
             try:
-                group_index = all_groups.index(int(selected_group_id))
+                group_index = all_groups.index(int(selected_group_id)) + 1  # +1 pour commencer au groupe suivant
             except (ValueError, TypeError):
-                group_index = 0
-        
+                group_index = 1
+
         while current_date <= current_user.school_year_end:
             # Vérifier si c'est un jour de vacances
             if is_holiday(current_date, current_user):
@@ -5071,13 +5073,14 @@ def apply_group_pattern():
             else:
                 group_to_assign = selected_group_id
             
-            # Chercher une planification existante
+            # Chercher une planification existante pour cette classe spécifique
             existing = Planning.query.filter_by(
                 user_id=current_user.id,
                 date=current_date,
-                period_number=period_number
+                period_number=period_number,
+                classroom_id=classroom_id
             ).first()
-            
+
             if existing:
                 # Mettre à jour seulement le group_id de la planification existante
                 # Ne pas écraser le titre et la description
