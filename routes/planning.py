@@ -754,6 +754,10 @@ def calendar_view():
             current_week = date_type.today()
     else:
         current_week = date_type.today()
+        # Si on est samedi ou dimanche, afficher la semaine suivante
+        if current_week.weekday() >= 5:  # 5 = samedi, 6 = dimanche
+            days_until_monday = 7 - current_week.weekday()
+            current_week = current_week + timedelta(days=days_until_monday)
 
     # Obtenir les dates de la semaine
     week_dates = get_week_dates(current_week)
