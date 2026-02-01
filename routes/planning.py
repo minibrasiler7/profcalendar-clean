@@ -5461,20 +5461,31 @@ def get_slot_data(date_str, period):
     try:
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         weekday = planning_date.weekday()
-        
+        classroom_id = request.args.get('classroom_id')
+
+        # Convertir classroom_id en entier si présent
+        if classroom_id:
+            try:
+                classroom_id = int(classroom_id)
+            except (ValueError, TypeError):
+                classroom_id = None
+
         # Récupérer la période pour les horaires
         periods = calculate_periods(current_user)
         period_info = next((p for p in periods if p['number'] == period), None)
-        
+
         if not period_info:
             return jsonify({'success': False, 'message': 'Période invalide'}), 400
-        
-        # Chercher un planning existant
-        planning = Planning.query.filter_by(
+
+        # Chercher un planning existant (filtrer par classroom_id si fourni)
+        query = Planning.query.filter_by(
             user_id=current_user.id,
             date=planning_date,
             period_number=period
-        ).first()
+        )
+        if classroom_id:
+            query = query.filter_by(classroom_id=classroom_id)
+        planning = query.first()
         
         # Récupérer l'horaire type par défaut
         schedule = Schedule.query.filter_by(
