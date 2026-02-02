@@ -6717,15 +6717,78 @@ async function savePlanning() {
         return;
     }
 
-    // Sinon, utiliser la logique originale de planning.js
+    // Sinon, utiliser la logique pour les cases vides (ouvertes via planning.js)
     if (!currentPlanningCell) {
         console.error('Pas de cellule de planification sélectionnée');
         return;
     }
 
-    // Appeler la fonction originale de planning.js si elle existe
-    if (typeof window.originalSavePlanning === 'function') {
-        await window.originalSavePlanning();
+    // Récupérer les données depuis la cellule et le modal
+    const date = currentPlanningCell.dataset.date;
+    const period = currentPlanningCell.dataset.period;
+    const classroomSelectValue = document.getElementById('modalClassroom').value;
+    const title = document.getElementById('modalPlanningTitle').value;
+    const descriptionElem = document.getElementById('modalDescription');
+    const description = descriptionElem ? descriptionElem.value : '';
+    const groupSelect = document.getElementById('modalGroup');
+    const groupId = groupSelect ? groupSelect.value : null;
+
+    // Extraire le numéro de période de base (pour "3-4", prendre "3")
+    const basePeriod = period.includes('-') ? period.split('-')[0] : period;
+
+    // Extraire l'ID de classe
+    let finalClassroomId = null;
+    if (classroomSelectValue && classroomSelectValue.startsWith('classroom_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('classroom_', ''));
+    } else if (classroomSelectValue && classroomSelectValue.startsWith('mixed_group_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('mixed_group_', ''));
+    } else if (classroomSelectValue && classroomSelectValue !== 'custom_task' && !isNaN(classroomSelectValue)) {
+        finalClassroomId = parseInt(classroomSelectValue);
+    }
+
+    // Convertir groupId en entier ou null
+    let finalGroupId = null;
+    if (groupId && !isNaN(groupId)) {
+        finalGroupId = parseInt(groupId);
+    }
+
+    console.log('💾 Sauvegarde planification (case vide):', {
+        date,
+        period: basePeriod,
+        classroomId: finalClassroomId,
+        title,
+        groupId: finalGroupId
+    });
+
+    try {
+        const response = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: date,
+                period_number: parseInt(basePeriod),
+                classroom_id: finalClassroomId,
+                title: title,
+                description: description,
+                group_id: finalGroupId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Planification sauvegardée avec succès');
+            closePlanningModal();
+            // Recharger la page pour afficher la mise à jour
+            location.reload();
+        } else {
+            alert('Erreur lors de la sauvegarde: ' + (data.error || data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur de connexion au serveur');
     }
 }
 
