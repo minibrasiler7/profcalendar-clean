@@ -17,6 +17,31 @@ from models.classroom_access_code import ClassroomAccessCode
 
 planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
 
+def extract_numeric_id(value):
+    """Extraire l'ID numérique d'une valeur qui peut être:
+    - Un entier: 123
+    - Une chaîne numérique: "123"
+    - Un format préfixé: "classroom_123" ou "mixed_group_456"
+    Retourne l'entier ou None si conversion impossible.
+    """
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        # Essayer d'abord une conversion directe
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        # Essayer d'extraire l'ID après un underscore (format "prefix_123")
+        if '_' in value:
+            try:
+                return int(value.split('_')[-1])
+            except ValueError:
+                pass
+    return None
+
 @planning_bp.route('/migrate-pinning')
 @login_required 
 def migrate_pinning():
@@ -1305,31 +1330,11 @@ def save_planning():
         checklist_states = data.get('checklist_states', {})  # Récupérer les états des checkboxes
         group_id = data.get('group_id')  # Récupérer l'ID du groupe
 
-        # Convertir les IDs en entiers ou None (pour les périodes "Autre")
-        # Nettoyer les valeurs vides/falsy en les convertissant en None
-        if classroom_id:
-            try:
-                classroom_id = int(classroom_id) if classroom_id else None
-            except (ValueError, TypeError):
-                classroom_id = None  # Valeur invalide = période "Autre"
-        else:
-            classroom_id = None  # Pas de classroom = période "Autre"
-
-        if mixed_group_id:
-            try:
-                mixed_group_id = int(mixed_group_id) if mixed_group_id else None
-            except (ValueError, TypeError):
-                mixed_group_id = None  # Valeur invalide = période "Autre"
-        else:
-            mixed_group_id = None  # Pas de mixed_group = période "Autre"
-
-        if group_id:
-            try:
-                group_id = int(group_id) if group_id else None
-            except (ValueError, TypeError):
-                group_id = None
-        else:
-            group_id = None
+        # Convertir les IDs en entiers (supporte formats: 123, "123", "classroom_123")
+        classroom_id = extract_numeric_id(classroom_id)
+        mixed_group_id = extract_numeric_id(mixed_group_id)
+        group_id = extract_numeric_id(group_id)
+        period_number = extract_numeric_id(period_number)
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -4999,19 +5004,17 @@ def apply_group_pattern():
         pattern_type = data.get('pattern_type')  # 'same' ou 'alternate'
         selected_group_id = data.get('group_id')
         
-        # Convertir les IDs en entiers
-        if classroom_id:
-            try:
-                classroom_id = int(classroom_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
-        
-        if selected_group_id:
-            try:
-                selected_group_id = int(selected_group_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
-        
+        # Convertir les IDs en entiers (supporte formats: 123, "123", "classroom_123")
+        classroom_id = extract_numeric_id(classroom_id)
+        selected_group_id = extract_numeric_id(selected_group_id)
+        period_number = extract_numeric_id(period_number)
+        current_app.logger.info(f"apply-group-pattern: classroom_id={classroom_id}, period={period_number}, group_id={selected_group_id}, pattern={pattern_type}")
+
+        if not classroom_id:
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        if not period_number:
+            return jsonify({'success': False, 'message': 'Numéro de période invalide'}), 400
+
         # Convertir la date de début
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         start_weekday = start_date.weekday()
@@ -5464,14 +5467,11 @@ def get_slot_data(date_str, period):
     try:
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         weekday = planning_date.weekday()
-        classroom_id = request.args.get('classroom_id')
 
-        # Convertir classroom_id en entier si présent
-        if classroom_id:
-            try:
-                classroom_id = int(classroom_id)
-            except (ValueError, TypeError):
-                classroom_id = None
+        # Convertir classroom_id en entier (supporte formats: 123, "123", "classroom_123")
+        raw_classroom_id = request.args.get('classroom_id')
+        classroom_id = extract_numeric_id(raw_classroom_id)
+        current_app.logger.info(f"get_slot_data: date={date_str}, period={period}, raw_classroom_id={raw_classroom_id}, classroom_id={classroom_id}")
 
         # Récupérer la période pour les horaires
         periods = calculate_periods(current_user)
@@ -5489,7 +5489,8 @@ def get_slot_data(date_str, period):
         if classroom_id:
             query = query.filter_by(classroom_id=classroom_id)
         planning = query.first()
-        
+        current_app.logger.info(f"get_slot_data: planning found={planning is not None}, group_id={planning.group_id if planning else None}")
+
         # Récupérer l'horaire type par défaut
         schedule = Schedule.query.filter_by(
             user_id=current_user.id,

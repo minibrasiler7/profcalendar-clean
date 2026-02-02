@@ -4662,9 +4662,13 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
 // Récupérer les données d'un créneau spécifique
 async function getDaySlotData(dateStr, periodNumber, classroomId) {
     try {
+        console.log(`🔍 getDaySlotData: date=${dateStr}, period=${periodNumber}, classroom=${classroomId}`);
         const response = await fetch(`/planning/api/slot/${dateStr}/${periodNumber}?classroom_id=${classroomId}`);
         if (response.ok) {
-            return await response.json();
+            const data = await response.json();
+            console.log(`🔍 getDaySlotData response:`, data);
+            console.log(`🔍 group_id from API: ${data.slot?.group_id}`);
+            return data;
         }
         return { success: false };
     } catch (error) {
@@ -4847,6 +4851,7 @@ async function saveDaySlot() {
             
             // Si une option de répétition est sélectionnée, appliquer le pattern
             if (shouldApplyPattern) {
+                console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${groupId}, classroomId=${currentEditingSlot.classroomId}`);
                 const patternResponse = await fetch('/planning/apply-group-pattern', {
                     method: 'POST',
                     headers: {
@@ -5007,8 +5012,10 @@ async function loadGroupsForDayModal(classroomId) {
             });
 
             // Présélectionner le groupe si un group_id existe
+            console.log(`🎯 Pre-selecting group: groupId=${currentEditingSlot?.groupId}`);
             if (currentEditingSlot && currentEditingSlot.groupId) {
                 groupSelect.value = currentEditingSlot.groupId;
+                console.log(`🎯 Group select value after setting: ${groupSelect.value}`);
             }
 
             groupDiv.style.display = 'block';
