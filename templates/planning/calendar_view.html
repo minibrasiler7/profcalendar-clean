@@ -6549,12 +6549,8 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     const classroomValue = isMixedGroup ? `mixed_group_${classroomId}` : `classroom_${classroomId}`;
     classroomSelect.value = classroomValue;
 
-    // Charger les groupes si c'est une classe normale
-    if (!isMixedGroup) {
-        await loadGroupsForClass(classroomValue);
-    }
-
-    // Charger la planification existante si elle existe
+    // Charger la planification existante si elle existe (avant de charger les groupes)
+    let existingGroupId = null;
     try {
         const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
         const data = await response.json();
@@ -6563,11 +6559,13 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
             // Pré-remplir les champs avec la planification existante
             document.getElementById('modalPlanningTitle').value = data.slot.title || '';
             document.getElementById('modalDescription').value = data.slot.description || '';
+            existingGroupId = data.slot.group_id;
 
             console.log('📄 Planification chargée:', {
                 title: data.slot.title,
                 description: data.slot.description,
-                has_planning: data.slot.has_planning
+                has_planning: data.slot.has_planning,
+                group_id: data.slot.group_id
             });
         } else {
             // Vider les champs pour une nouvelle planification
@@ -6579,6 +6577,22 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
         // Vider les champs en cas d'erreur
         document.getElementById('modalPlanningTitle').value = '';
         document.getElementById('modalDescription').value = '';
+    }
+
+    // Charger les groupes si c'est une classe normale
+    if (!isMixedGroup) {
+        await loadGroupsForClass(classroomValue);
+
+        // Pré-sélectionner le groupe si un group_id existe
+        if (existingGroupId) {
+            const groupSelect = document.getElementById('modalGroup');
+            if (groupSelect) {
+                groupSelect.value = existingGroupId;
+                console.log(`🎯 Groupe pré-sélectionné: ${existingGroupId}`);
+                // Afficher les options de répétition si un groupe est sélectionné
+                toggleGroupRepeatOptions();
+            }
+        }
     }
 
     // Charger les feuilles blanches pour cette période
@@ -6639,7 +6653,11 @@ async function savePlanning() {
             finalGroupId = parseInt(groupId);
         }
 
-        console.log('💾 Sauvegarde planification période:', {date, periodNumber: finalPeriodNumber, classroomSelectValue, finalClassroomId, title});
+        // Vérifier les options de répétition des groupes
+        const groupRepeatOption = document.querySelector('input[name="groupRepeat"]:checked');
+        const shouldApplyPattern = groupRepeatOption && groupRepeatOption.value !== 'none' && finalGroupId;
+
+        console.log('💾 Sauvegarde planification période:', {date, periodNumber: finalPeriodNumber, classroomSelectValue, finalClassroomId, title, groupId: finalGroupId, pattern: groupRepeatOption?.value});
 
         try {
             const response = await fetch('/planning/save_planning', {
@@ -6661,6 +6679,33 @@ async function savePlanning() {
 
             if (data.success) {
                 console.log('✅ Planification sauvegardée avec succès');
+
+                // Si une option de répétition est sélectionnée, appliquer le pattern
+                if (shouldApplyPattern) {
+                    console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${finalGroupId}, classroomId=${finalClassroomId}`);
+                    const patternResponse = await fetch('/planning/apply-group-pattern', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            start_date: date,
+                            period_number: finalPeriodNumber,
+                            classroom_id: finalClassroomId,
+                            pattern_type: groupRepeatOption.value,
+                            group_id: finalGroupId
+                        })
+                    });
+
+                    const patternResult = await patternResponse.json();
+
+                    if (patternResult.success) {
+                        console.log(`✅ Pattern appliqué: ${patternResult.message}`);
+                    } else {
+                        console.log(`⚠️ Erreur lors de l'application du pattern: ${patternResult.message}`);
+                    }
+                }
+
                 closePlanningModal();
                 // Recharger la page pour afficher la mise à jour
                 location.reload();
