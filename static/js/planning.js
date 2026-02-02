@@ -182,8 +182,16 @@ function openPlanningModal(cell, fromAnnualView = false) {
         });
         document.getElementById('modalTitle').textContent = `Planifier - ${dateStr} - Période ${displayPeriod}`;
 
-        // Afficher le modal
-        document.getElementById('planningModal').classList.add('show');
+        // Afficher le modal (utiliser style.display pour cohérence avec closePlanningModal)
+        const planningModal = document.getElementById('planningModal');
+        planningModal.style.display = 'block';
+        planningModal.classList.add('show');
+
+        // Afficher l'overlay
+        const modalOverlay = document.getElementById('modalOverlay');
+        if (modalOverlay) {
+            modalOverlay.style.display = 'block';
+        }
 
         // Charger les mémos pour cette date/période
         console.log('DEBUG: About to load memos - date:', date, 'basePeriod:', basePeriod);

@@ -13,10 +13,8 @@
 <!-- Font Awesome pour les icônes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
-<!-- Lecteur PDF unifié -->
+<!-- Lecteur PDF unifié (inclut les styles pour clean-pdf-viewer) -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
-<!-- Nouveau lecteur PDF Clean -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-pdf-viewer.css') }}">
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
@@ -4643,12 +4641,18 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
     
     // Récupérer les données existantes pour ce créneau (utiliser la période de base)
     getDaySlotData(dateStr, basePeriodNumber, classroomId).then(data => {
-        if (data.success && data.planning) {
-            // Pré-remplir avec les données existantes
-            showDaySlotEditModal(data.planning.title || '', data.planning.description || '');
+        if (data.success && data.slot) {
+            const slot = data.slot;
+            if (slot.has_planning) {
+                // Pré-remplir avec les données existantes (y compris le group_id)
+                showDaySlotEditModal(slot.title || '', slot.description || '', slot.group_id || null);
+            } else {
+                // Nouveau créneau vide mais vérifier s'il y a un group_id défini (pattern de groupe)
+                showDaySlotEditModal('', '', slot.group_id || null);
+            }
         } else {
-            // Nouveau créneau vide
-            showDaySlotEditModal('', '');
+            // Erreur ou pas de données
+            showDaySlotEditModal('', '', null);
         }
     });
 }
@@ -4656,9 +4660,13 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
 // Récupérer les données d'un créneau spécifique
 async function getDaySlotData(dateStr, periodNumber, classroomId) {
     try {
+        console.log(`🔍 getDaySlotData: date=${dateStr}, period=${periodNumber}, classroom=${classroomId}`);
         const response = await fetch(`/planning/api/slot/${dateStr}/${periodNumber}?classroom_id=${classroomId}`);
         if (response.ok) {
-            return await response.json();
+            const data = await response.json();
+            console.log(`🔍 getDaySlotData response:`, data);
+            console.log(`🔍 group_id from API: ${data.slot?.group_id}`);
+            return data;
         }
         return { success: false };
     } catch (error) {
@@ -4668,7 +4676,9 @@ async function getDaySlotData(dateStr, periodNumber, classroomId) {
 }
 
 // Afficher le modal d'édition de créneau
-function showDaySlotEditModal(title, description) {
+function showDaySlotEditModal(title, description, groupId = null) {
+    // Stocker le group_id pour la présélection
+    currentEditingSlot.groupId = groupId;
     // Créer un modal d'édition simple
     const modalHtml = `
         <div class="day-edit-modal" id="dayEditModal">
@@ -4839,6 +4849,7 @@ async function saveDaySlot() {
             
             // Si une option de répétition est sélectionnée, appliquer le pattern
             if (shouldApplyPattern) {
+                console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${groupId}, classroomId=${currentEditingSlot.classroomId}`);
                 const patternResponse = await fetch('/planning/apply-group-pattern', {
                     method: 'POST',
                     headers: {
@@ -4973,22 +4984,22 @@ async function loadGroupsForClass(classroomId) {
 async function loadGroupsForDayModal(classroomId) {
     const groupDiv = document.getElementById('dayGroupSelectionDiv');
     const groupSelect = document.getElementById('dayModalGroup');
-    
+
     if (!classroomId) {
         groupDiv.style.display = 'none';
         return;
     }
-    
+
     try {
         // Extraire l'ID numérique si classroomId contient un préfixe
         const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
         const response = await fetch(`/planning/get-groups/${numericId}`);
         const data = await response.json();
-        
+
         if (data.success && data.groups.length > 0) {
             // Réinitialiser les options
             groupSelect.innerHTML = '<option value="">Classe entière</option>';
-            
+
             // Ajouter les groupes
             data.groups.forEach(group => {
                 const option = document.createElement('option');
@@ -4997,7 +5008,14 @@ async function loadGroupsForDayModal(classroomId) {
                 option.style.color = group.color;
                 groupSelect.appendChild(option);
             });
-            
+
+            // Présélectionner le groupe si un group_id existe
+            console.log(`🎯 Pre-selecting group: groupId=${currentEditingSlot?.groupId}`);
+            if (currentEditingSlot && currentEditingSlot.groupId) {
+                groupSelect.value = currentEditingSlot.groupId;
+                console.log(`🎯 Group select value after setting: ${groupSelect.value}`);
+            }
+
             groupDiv.style.display = 'block';
         } else {
             groupDiv.style.display = 'none';
@@ -6529,12 +6547,8 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     const classroomValue = isMixedGroup ? `mixed_group_${classroomId}` : `classroom_${classroomId}`;
     classroomSelect.value = classroomValue;
 
-    // Charger les groupes si c'est une classe normale
-    if (!isMixedGroup) {
-        await loadGroupsForClass(classroomValue);
-    }
-
-    // Charger la planification existante si elle existe
+    // Charger la planification existante si elle existe (avant de charger les groupes)
+    let existingGroupId = null;
     try {
         const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
         const data = await response.json();
@@ -6543,11 +6557,13 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
             // Pré-remplir les champs avec la planification existante
             document.getElementById('modalPlanningTitle').value = data.slot.title || '';
             document.getElementById('modalDescription').value = data.slot.description || '';
+            existingGroupId = data.slot.group_id;
 
             console.log('📄 Planification chargée:', {
                 title: data.slot.title,
                 description: data.slot.description,
-                has_planning: data.slot.has_planning
+                has_planning: data.slot.has_planning,
+                group_id: data.slot.group_id
             });
         } else {
             // Vider les champs pour une nouvelle planification
@@ -6559,6 +6575,22 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
         // Vider les champs en cas d'erreur
         document.getElementById('modalPlanningTitle').value = '';
         document.getElementById('modalDescription').value = '';
+    }
+
+    // Charger les groupes si c'est une classe normale
+    if (!isMixedGroup) {
+        await loadGroupsForClass(classroomValue);
+
+        // Pré-sélectionner le groupe si un group_id existe
+        if (existingGroupId) {
+            const groupSelect = document.getElementById('modalGroup');
+            if (groupSelect) {
+                groupSelect.value = existingGroupId;
+                console.log(`🎯 Groupe pré-sélectionné: ${existingGroupId}`);
+                // Afficher les options de répétition si un groupe est sélectionné
+                toggleGroupRepeatOptions();
+            }
+        }
     }
 
     // Charger les feuilles blanches pour cette période
@@ -6619,7 +6651,11 @@ async function savePlanning() {
             finalGroupId = parseInt(groupId);
         }
 
-        console.log('💾 Sauvegarde planification période:', {date, periodNumber: finalPeriodNumber, classroomSelectValue, finalClassroomId, title});
+        // Vérifier les options de répétition des groupes
+        const groupRepeatOption = document.querySelector('input[name="groupRepeat"]:checked');
+        const shouldApplyPattern = groupRepeatOption && groupRepeatOption.value !== 'none' && finalGroupId;
+
+        console.log('💾 Sauvegarde planification période:', {date, periodNumber: finalPeriodNumber, classroomSelectValue, finalClassroomId, title, groupId: finalGroupId, pattern: groupRepeatOption?.value});
 
         try {
             const response = await fetch('/planning/save_planning', {
@@ -6641,6 +6677,33 @@ async function savePlanning() {
 
             if (data.success) {
                 console.log('✅ Planification sauvegardée avec succès');
+
+                // Si une option de répétition est sélectionnée, appliquer le pattern
+                if (shouldApplyPattern) {
+                    console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${finalGroupId}, classroomId=${finalClassroomId}`);
+                    const patternResponse = await fetch('/planning/apply-group-pattern', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            start_date: date,
+                            period_number: finalPeriodNumber,
+                            classroom_id: finalClassroomId,
+                            pattern_type: groupRepeatOption.value,
+                            group_id: finalGroupId
+                        })
+                    });
+
+                    const patternResult = await patternResponse.json();
+
+                    if (patternResult.success) {
+                        console.log(`✅ Pattern appliqué: ${patternResult.message}`);
+                    } else {
+                        console.log(`⚠️ Erreur lors de l'application du pattern: ${patternResult.message}`);
+                    }
+                }
+
                 closePlanningModal();
                 // Recharger la page pour afficher la mise à jour
                 location.reload();
@@ -6654,15 +6717,78 @@ async function savePlanning() {
         return;
     }
 
-    // Sinon, utiliser la logique originale de planning.js
+    // Sinon, utiliser la logique pour les cases vides (ouvertes via planning.js)
     if (!currentPlanningCell) {
         console.error('Pas de cellule de planification sélectionnée');
         return;
     }
 
-    // Appeler la fonction originale de planning.js si elle existe
-    if (typeof window.originalSavePlanning === 'function') {
-        await window.originalSavePlanning();
+    // Récupérer les données depuis la cellule et le modal
+    const date = currentPlanningCell.dataset.date;
+    const period = currentPlanningCell.dataset.period;
+    const classroomSelectValue = document.getElementById('modalClassroom').value;
+    const title = document.getElementById('modalPlanningTitle').value;
+    const descriptionElem = document.getElementById('modalDescription');
+    const description = descriptionElem ? descriptionElem.value : '';
+    const groupSelect = document.getElementById('modalGroup');
+    const groupId = groupSelect ? groupSelect.value : null;
+
+    // Extraire le numéro de période de base (pour "3-4", prendre "3")
+    const basePeriod = period.includes('-') ? period.split('-')[0] : period;
+
+    // Extraire l'ID de classe
+    let finalClassroomId = null;
+    if (classroomSelectValue && classroomSelectValue.startsWith('classroom_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('classroom_', ''));
+    } else if (classroomSelectValue && classroomSelectValue.startsWith('mixed_group_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('mixed_group_', ''));
+    } else if (classroomSelectValue && classroomSelectValue !== 'custom_task' && !isNaN(classroomSelectValue)) {
+        finalClassroomId = parseInt(classroomSelectValue);
+    }
+
+    // Convertir groupId en entier ou null
+    let finalGroupId = null;
+    if (groupId && !isNaN(groupId)) {
+        finalGroupId = parseInt(groupId);
+    }
+
+    console.log('💾 Sauvegarde planification (case vide):', {
+        date,
+        period: basePeriod,
+        classroomId: finalClassroomId,
+        title,
+        groupId: finalGroupId
+    });
+
+    try {
+        const response = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: date,
+                period_number: parseInt(basePeriod),
+                classroom_id: finalClassroomId,
+                title: title,
+                description: description,
+                group_id: finalGroupId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Planification sauvegardée avec succès');
+            closePlanningModal();
+            // Recharger la page pour afficher la mise à jour
+            location.reload();
+        } else {
+            alert('Erreur lors de la sauvegarde: ' + (data.error || data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur de connexion au serveur');
     }
 }
 

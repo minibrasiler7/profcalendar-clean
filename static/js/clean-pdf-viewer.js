@@ -907,6 +907,148 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Bouton de configuration de la frise chronologique */
+            .timeline-config-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: white;
+                border: 2px solid #667eea;
+                color: #667eea;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-config-btn:hover {
+                background: #667eea;
+                color: white;
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+            }
+
+            .timeline-config-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Bouton d'animation du marcheur sur la frise */
+            .timeline-animation-btn {
+                position: absolute;
+                top: 16px;
+                right: 76px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-animation-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            }
+
+            .timeline-animation-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Bouton mode test sur la frise */
+            .timeline-test-btn {
+                position: absolute;
+                top: 16px;
+                right: 136px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-test-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+            }
+
+            .timeline-test-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* Bouton quitter le mode test */
+            .timeline-exit-test-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 10px 20px;
+                border-radius: 8px;
+                background: #ef4444;
+                border: none;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .timeline-exit-test-btn:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+            }
+
+            /* Sélecteur d'emoji pour la frise */
+            .emoji-option:hover {
+                background: #e0e7ff !important;
+                transform: scale(1.2);
+            }
+
+            .emoji-dropdown::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-thumb {
+                background: #c7d2fe;
+                border-radius: 3px;
+            }
+
+            .emoji-dropdown::-webkit-scrollbar-thumb:hover {
+                background: #a5b4fc;
+            }
+
             /* Panneau de configuration du graphique */
             .graph-config-panel {
                 position: fixed;
@@ -1895,6 +2037,38 @@ class CleanPDFViewer {
             configBtn.title = 'Configurer le graphique';
             configBtn.addEventListener('click', () => this.openGraphConfigPanel(pageId));
             container.appendChild(configBtn);
+        } else if (pageData && pageData.type === 'timeline') {
+            await this.renderTimelinePage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+
+            // Ajouter un bouton de configuration pour les frises chronologiques
+            const configBtn = document.createElement('button');
+            configBtn.className = 'timeline-config-btn';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configurer la frise chronologique';
+            configBtn.addEventListener('click', () => this.openTimelineConfigPanel(pageId));
+            container.appendChild(configBtn);
+
+            // Ajouter les boutons si il y a des événements
+            const events = pageData.data?.events || [];
+            if (events.length > 0) {
+                // Bouton mode test
+                const testBtn = document.createElement('button');
+                testBtn.className = 'timeline-test-btn';
+                testBtn.innerHTML = '❓';
+                testBtn.title = 'Mode test - Cliquez sur les événements pour révéler leur contenu';
+                testBtn.addEventListener('click', () => this.startTimelineTestMode(pageId));
+                container.appendChild(testBtn);
+
+                // Bouton animation (seulement pour les frises horizontales)
+                if (pageData.data?.orientation !== 'vertical') {
+                    const animBtn = document.createElement('button');
+                    animBtn.className = 'timeline-animation-btn';
+                    animBtn.innerHTML = '🚶';
+                    animBtn.title = 'Lancer l\'animation du marcheur';
+                    animBtn.addEventListener('click', () => this.startTimelineWalkerAnimation(pageId));
+                    container.appendChild(animBtn);
+                }
+            }
         }
 
         // Configurer les événements d'annotation
@@ -2217,6 +2391,1512 @@ class CleanPDFViewer {
     }
 
     /**
+     * Rendre une page de frise chronologique
+     */
+    async renderTimelinePage(pdfCanvas, annotationCanvas, timelineData = {}, pageId) {
+        // Adapter la taille à celle des pages PDF
+        let width, height;
+
+        if (this.pdf && this.pdf.numPages > 0) {
+            const referencePage = await this.pdf.getPage(1);
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const baseViewport = referencePage.getViewport({scale: 1});
+            const calculatedScale = targetWidth / baseViewport.width;
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const viewport = referencePage.getViewport({scale: scale});
+            width = viewport.width;
+            height = viewport.height;
+        } else {
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const a4Ratio = 297 / 210;
+            width = targetWidth;
+            height = width * a4Ratio;
+        }
+
+        pdfCanvas.width = width;
+        pdfCanvas.height = height;
+        annotationCanvas.width = width;
+        annotationCanvas.height = height;
+
+        const ctx = pdfCanvas.getContext('2d');
+
+        // Fond blanc
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // Paramètres de la frise
+        const orientation = timelineData.orientation || 'horizontal';
+        const startYear = timelineData.startYear || new Date().getFullYear();
+        const endYear = timelineData.endYear || new Date().getFullYear() + 10;
+        const title = timelineData.title || 'Frise chronologique';
+        const events = timelineData.events || [];
+        const lineColor = timelineData.lineColor || '#667eea';
+        const showYears = timelineData.showYears !== false;
+        const tickInterval = timelineData.tickInterval || null;
+
+        // Dessiner le titre
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, width / 2, 40);
+
+        // Dessiner la frise
+        if (orientation === 'horizontal') {
+            this.drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval);
+        } else {
+            this.drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval);
+        }
+
+        // Redessiner les annotations existantes
+        if (pageId) {
+            this.redrawAnnotations(annotationCanvas, pageId);
+        }
+    }
+
+    /**
+     * Calculer l'intervalle optimal pour les graduations de la frise
+     * Retourne un intervalle qui donne entre 10 et 25 traits avec des nombres ronds
+     */
+    calculateOptimalInterval(yearRange, fixedInterval = null) {
+        // Si un intervalle fixe est spécifié, l'utiliser
+        if (fixedInterval && fixedInterval > 0) {
+            return fixedInterval;
+        }
+
+        // Intervalles possibles (nombres ronds)
+        const possibleIntervals = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
+        // Chercher l'intervalle qui donne entre 10 et 25 traits
+        for (const interval of possibleIntervals) {
+            const numTicks = Math.floor(yearRange / interval) + 1;
+            if (numTicks >= 10 && numTicks <= 25) {
+                return interval;
+            }
+        }
+
+        // Si aucun intervalle ne convient, calculer un intervalle approximatif
+        const targetTicks = 15; // Viser 15 traits
+        const rawInterval = yearRange / targetTicks;
+
+        // Arrondir à un nombre "joli"
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+        const normalized = rawInterval / magnitude;
+
+        let niceInterval;
+        if (normalized <= 1.5) niceInterval = 1;
+        else if (normalized <= 3) niceInterval = 2;
+        else if (normalized <= 7) niceInterval = 5;
+        else niceInterval = 10;
+
+        return niceInterval * magnitude;
+    }
+
+    /**
+     * Calculer les positions des événements pour éviter les chevauchements
+     */
+    calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth) {
+        // Trier les événements par année
+        const sortedEvents = [...events].map((event, originalIndex) => ({
+            ...event,
+            originalIndex,
+            x: lineStartX + (((event.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.x - b.x);
+
+        // Calculer les niveaux pour éviter les chevauchements
+        const minSpacing = boxWidth + 20; // Espacement minimum entre deux boîtes
+        const topLevels = []; // Positions X occupées en haut à chaque niveau
+        const bottomLevels = []; // Positions X occupées en bas à chaque niveau
+
+        sortedEvents.forEach((event, idx) => {
+            const eventX = event.x;
+            let level = 0;
+            let isTop = idx % 2 === 0; // Alterner par défaut
+
+            // Chercher le niveau le plus proche de la ligne où l'événement peut être placé
+            const levelsToCheck = isTop ? topLevels : bottomLevels;
+
+            for (let l = 0; l < 10; l++) { // Max 10 niveaux
+                const currentLevel = isTop ? topLevels[l] : bottomLevels[l];
+                if (!currentLevel) {
+                    // Ce niveau est vide
+                    level = l;
+                    break;
+                }
+
+                // Vérifier si on peut placer l'événement à ce niveau
+                const canPlace = currentLevel.every(pos => Math.abs(pos - eventX) >= minSpacing);
+                if (canPlace) {
+                    level = l;
+                    break;
+                }
+                level = l + 1;
+            }
+
+            // Enregistrer la position
+            if (isTop) {
+                if (!topLevels[level]) topLevels[level] = [];
+                topLevels[level].push(eventX);
+            } else {
+                if (!bottomLevels[level]) bottomLevels[level] = [];
+                bottomLevels[level].push(eventX);
+            }
+
+            event.level = level;
+            event.isTop = isTop;
+        });
+
+        return sortedEvents;
+    }
+
+    /**
+     * Dessiner une frise chronologique horizontale
+     */
+    drawHorizontalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval = null, isAnimating = false, visibleEventIndices = null) {
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, lineY);
+        ctx.lineTo(lineEndX, lineY);
+        ctx.stroke();
+
+        // Flèche à la fin
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineEndX, lineY);
+        ctx.lineTo(lineEndX - 15, lineY - 8);
+        ctx.lineTo(lineEndX - 15, lineY + 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années avec intervalle optimisé
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const x = lineStartX + ((year - startYear) / yearRange) * lineLength;
+
+                // Graduation
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 10);
+                ctx.lineTo(x, lineY + 10);
+                ctx.stroke();
+
+                // Année
+                ctx.fillText(year.toString(), x, lineY + 30);
+            }
+        }
+
+        // Calculer les positions des événements pour éviter les chevauchements
+        const boxWidth = 150;
+        const boxHeight = 70; // Augmenté pour l'emoji
+        const positionedEvents = this.calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth);
+
+        // Filtrer les événements visibles
+        const visibleEvents = positionedEvents.filter(event => {
+            if (isAnimating && visibleEventIndices && !visibleEventIndices.includes(event.originalIndex)) {
+                return false;
+            }
+            return true;
+        });
+
+        // PASSE 1 : Dessiner tous les traits pointillés et points EN PREMIER (pour qu'ils passent sous les boîtes)
+        visibleEvents.forEach((event) => {
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Ligne verticale vers l'événement (trait pointillé)
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(eventX, lineY);
+            const lineEndY = event.isTop ? eventY + boxHeight / 2 : eventY - boxHeight / 2;
+            ctx.lineTo(eventX, lineEndY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // PASSE 2 : Dessiner toutes les boîtes d'événements PAR-DESSUS les traits
+        visibleEvents.forEach((event) => {
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Boîte d'événement
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            // Ombre
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            // Fond
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Emoji (si présent)
+            let titleOffsetY = boxY + 20;
+            if (event.emoji) {
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(event.emoji, eventX, boxY + 22);
+                titleOffsetY = boxY + 40;
+            }
+
+            // Titre de l'événement
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
+
+            // Description
+            if (event.description) {
+                ctx.font = '10px Arial';
+                ctx.fillStyle = '#6b7280';
+                const words = event.description.split(' ');
+                let line = '';
+                let y = titleOffsetY + 14;
+
+                for (let word of words) {
+                    const testLine = line + word + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > boxWidth - 20 && line.length > 0) {
+                        ctx.fillText(line, eventX, y, boxWidth - 10);
+                        line = word + ' ';
+                        y += 12;
+                        if (y > boxY + boxHeight - 8) break;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (y <= boxY + boxHeight - 8 && line.length > 0) {
+                    ctx.fillText(line, eventX, y, boxWidth - 10);
+                }
+            }
+        });
+
+        return { lineStartX, lineEndX, lineY, positionedEvents };
+    }
+
+    /**
+     * Dessiner le personnage marcheur sur la frise
+     */
+    drawWalker(ctx, x, y, direction = 1, frame = 0) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (direction < 0) ctx.scale(-1, 1);
+
+        // Petit bonhomme stylisé
+        const scale = 0.8;
+        ctx.scale(scale, scale);
+
+        // Tête
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(0, -35, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Yeux
+        ctx.fillStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.arc(-4, -38, 2, 0, Math.PI * 2);
+        ctx.arc(4, -38, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Sourire
+        ctx.beginPath();
+        ctx.arc(0, -33, 5, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+
+        // Corps
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-8, -22, 16, 25);
+
+        // Jambes (animation de marche)
+        const legAngle = Math.sin(frame * 0.3) * 0.4;
+        ctx.fillStyle = '#1f2937';
+
+        // Jambe gauche
+        ctx.save();
+        ctx.translate(-4, 3);
+        ctx.rotate(legAngle);
+        ctx.fillRect(-3, 0, 6, 20);
+        ctx.restore();
+
+        // Jambe droite
+        ctx.save();
+        ctx.translate(4, 3);
+        ctx.rotate(-legAngle);
+        ctx.fillRect(-3, 0, 6, 20);
+        ctx.restore();
+
+        // Bras (animation de balancement)
+        const armAngle = Math.sin(frame * 0.3) * 0.3;
+        ctx.fillStyle = '#fbbf24';
+
+        // Bras gauche
+        ctx.save();
+        ctx.translate(-8, -18);
+        ctx.rotate(-armAngle);
+        ctx.fillRect(-3, 0, 6, 15);
+        ctx.restore();
+
+        // Bras droit
+        ctx.save();
+        ctx.translate(8, -18);
+        ctx.rotate(armAngle);
+        ctx.fillRect(-3, 0, 6, 15);
+        ctx.restore();
+
+        ctx.restore();
+    }
+
+    /**
+     * Lancer l'animation du marcheur sur la frise
+     */
+    startTimelineWalkerAnimation(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+        if (events.length === 0) return;
+
+        // Arrêter toute animation précédente
+        if (this.walkerAnimationId) {
+            cancelAnimationFrame(this.walkerAnimationId);
+            this.walkerAnimationId = null;
+        }
+
+        // Trouver le canvas
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!pageWrapper) return;
+        const pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+        if (!pdfCanvas) return;
+        const ctx = pdfCanvas.getContext('2d');
+
+        const width = pdfCanvas.width;
+        const height = pdfCanvas.height;
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const startYear = data.startYear || new Date().getFullYear();
+        const endYear = data.endYear || new Date().getFullYear() + 10;
+        const yearRange = endYear - startYear;
+        const lineColor = data.lineColor || '#667eea';
+        const tickInterval = data.tickInterval || null;
+
+        // Trier les événements par année
+        const sortedEvents = [...events].map((e, i) => ({
+            ...e,
+            originalIndex: i,
+            x: lineStartX + (((e.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.x - b.x);
+
+        let walkerX = lineStartX - 30;
+        let currentEventIndex = -1;
+        let eventDisplayTimer = 0;
+        let visibleEvents = [];
+        let frame = 0;
+        let isShowingEvent = false;
+        const eventDisplayDuration = 150; // Frames (environ 2.5 secondes à 60fps)
+        const walkerSpeed = 2;
+
+        const animate = () => {
+            frame++;
+
+            // Effacer et redessiner le fond
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, width, height);
+
+            // Redessiner le titre
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+
+            // Redessiner la frise avec seulement les événements visibles
+            this.drawHorizontalTimeline(
+                ctx, width, height, startYear, endYear,
+                events, lineColor, data.showYears !== false, tickInterval,
+                true, visibleEvents
+            );
+
+            // Logique de l'animation
+            if (!isShowingEvent) {
+                // Le marcheur avance
+                walkerX += walkerSpeed;
+
+                // Vérifier si on atteint un événement
+                const nextEvent = sortedEvents[currentEventIndex + 1];
+                if (nextEvent && walkerX >= nextEvent.x) {
+                    currentEventIndex++;
+                    visibleEvents.push(nextEvent.originalIndex);
+                    isShowingEvent = true;
+                    eventDisplayTimer = 0;
+                }
+
+                // Vérifier si on a terminé
+                if (walkerX > lineEndX + 30) {
+                    // Animation terminée - redessiner la frise normalement en restant sur la page
+                    (async () => {
+                        await this.renderPages();
+                        setTimeout(() => {
+                            const newPageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+                            if (newPageWrapper) {
+                                newPageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+                            }
+                        }, 50);
+                    })();
+                    return;
+                }
+            } else {
+                // Afficher l'événement pendant un moment
+                eventDisplayTimer++;
+                if (eventDisplayTimer >= eventDisplayDuration) {
+                    isShowingEvent = false;
+                    // Retirer l'événement de la liste visible
+                    const lastEventIndex = visibleEvents.pop();
+                }
+            }
+
+            // Dessiner le marcheur
+            this.drawWalker(ctx, walkerX, lineY - 10, 1, frame);
+
+            this.walkerAnimationId = requestAnimationFrame(animate);
+        };
+
+        animate();
+    }
+
+    /**
+     * Lancer le mode test sur la frise chronologique
+     * Les événements sont cachés et l'élève doit cliquer pour les révéler
+     */
+    startTimelineTestMode(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+        if (events.length === 0) return;
+
+        // Trouver le wrapper et le canvas
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!pageWrapper) return;
+        const canvasContainer = pageWrapper.querySelector('.pdf-canvas-container');
+        const pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+        if (!pdfCanvas || !canvasContainer) return;
+
+        const ctx = pdfCanvas.getContext('2d');
+        const width = pdfCanvas.width;
+        const height = pdfCanvas.height;
+
+        // Paramètres de la frise
+        const orientation = data.orientation || 'horizontal';
+        const startYear = data.startYear || new Date().getFullYear();
+        const endYear = data.endYear || new Date().getFullYear() + 10;
+        const lineColor = data.lineColor || '#667eea';
+        const tickInterval = data.tickInterval || null;
+        const yearRange = endYear - startYear;
+
+        // Cacher les boutons normaux
+        const configBtn = canvasContainer.querySelector('.timeline-config-btn');
+        const animBtn = canvasContainer.querySelector('.timeline-animation-btn');
+        const testBtn = canvasContainer.querySelector('.timeline-test-btn');
+        if (configBtn) configBtn.style.display = 'none';
+        if (animBtn) animBtn.style.display = 'none';
+        if (testBtn) testBtn.style.display = 'none';
+
+        // Ajouter le bouton pour quitter le mode test
+        const exitBtn = document.createElement('button');
+        exitBtn.className = 'timeline-exit-test-btn';
+        exitBtn.innerHTML = '✕ Quitter le test';
+        exitBtn.addEventListener('click', () => this.exitTimelineTestMode(pageId));
+        canvasContainer.appendChild(exitBtn);
+
+        // Créer l'overlay pour les cartes cliquables
+        const overlay = document.createElement('div');
+        overlay.className = 'timeline-test-overlay';
+        overlay.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        `;
+        canvasContainer.appendChild(overlay);
+
+        // Redessiner la frise avec les événements cachés
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // Titre
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(data.title || 'Frise chronologique', width / 2, 40);
+
+        // Dessiner la frise de base (ligne et graduations) mais pas les événements normaux
+        if (orientation === 'horizontal') {
+            this.drawTimelineTestModeHorizontal(ctx, pdfCanvas, width, height, startYear, endYear, events, lineColor, data.showYears !== false, tickInterval, overlay);
+        } else {
+            this.drawTimelineTestModeVertical(ctx, pdfCanvas, width, height, startYear, endYear, events, lineColor, data.showYears !== false, tickInterval, overlay);
+        }
+
+        // Stocker l'état du mode test
+        pageData.testMode = true;
+    }
+
+    /**
+     * Dessiner la frise horizontale en mode test
+     */
+    drawTimelineTestModeHorizontal(ctx, canvas, width, height, startYear, endYear, events, lineColor, showYears, tickInterval, overlay) {
+        const margin = 80;
+        const lineY = height / 2;
+        const lineStartX = margin;
+        const lineEndX = width - margin;
+        const lineLength = lineEndX - lineStartX;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineStartX, lineY);
+        ctx.lineTo(lineEndX, lineY);
+        ctx.stroke();
+
+        // Flèche à la fin
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineEndX, lineY);
+        ctx.lineTo(lineEndX - 15, lineY - 8);
+        ctx.lineTo(lineEndX - 15, lineY + 8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const x = lineStartX + ((year - startYear) / yearRange) * lineLength;
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY - 10);
+                ctx.lineTo(x, lineY + 10);
+                ctx.stroke();
+                ctx.fillText(year.toString(), x, lineY + 30);
+            }
+        }
+
+        // Calculer les positions des événements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateEventPositions(events, startYear, yearRange, lineLength, lineStartX, boxWidth);
+
+        // Obtenir les dimensions réelles du canvas sur l'écran
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvasRect.width / width;
+        const scaleY = canvasRect.height / height;
+
+        // Dessiner les points et les cartes cachées
+        positionedEvents.forEach((event, idx) => {
+            const eventX = event.x;
+            const baseOffset = 80;
+            const levelOffset = event.level * (boxHeight + 20);
+            const eventY = event.isTop ? lineY - baseOffset - levelOffset : lineY + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(eventX, lineY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Trait pointillé
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(eventX, lineY);
+            ctx.lineTo(eventX, event.isTop ? eventY + boxHeight / 2 : eventY - boxHeight / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte cachée (avec ?)
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            ctx.fillStyle = '#f3f4f6';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Année
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.year.toString(), eventX, boxY + 25);
+
+            // Point d'interrogation
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillText('?', eventX, boxY + 55);
+
+            // Créer la zone cliquable HTML
+            const clickZone = document.createElement('div');
+            clickZone.className = 'timeline-test-card';
+            clickZone.dataset.eventIndex = idx;
+            clickZone.dataset.revealed = 'false';
+            clickZone.style.cssText = `
+                position: absolute;
+                left: ${boxX * scaleX}px;
+                top: ${boxY * scaleY}px;
+                width: ${boxWidth * scaleX}px;
+                height: ${boxHeight * scaleY}px;
+                cursor: pointer;
+                pointer-events: auto;
+                border-radius: 4px;
+            `;
+
+            // Stocker les données de l'événement
+            clickZone.dataset.eventData = JSON.stringify({
+                x: eventX,
+                y: eventY,
+                boxX: boxX,
+                boxY: boxY,
+                boxWidth: boxWidth,
+                boxHeight: boxHeight,
+                year: event.year,
+                title: event.title,
+                description: event.description,
+                emoji: event.emoji,
+                color: markerColor
+            });
+
+            clickZone.addEventListener('click', (e) => this.revealTimelineEvent(e, ctx, canvas, scaleX, scaleY));
+            overlay.appendChild(clickZone);
+        });
+    }
+
+    /**
+     * Dessiner la frise verticale en mode test
+     */
+    drawTimelineTestModeVertical(ctx, canvas, width, height, startYear, endYear, events, lineColor, showYears, tickInterval, overlay) {
+        const marginTop = 100;
+        const marginBottom = 80;
+        const lineX = width / 2;
+        const lineStartY = marginTop;
+        const lineEndY = height - marginBottom;
+        const lineLength = lineEndY - lineStartY;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineStartY);
+        ctx.lineTo(lineX, lineEndY);
+        ctx.stroke();
+
+        // Flèche en bas
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineEndY);
+        ctx.lineTo(lineX - 8, lineEndY - 15);
+        ctx.lineTo(lineX + 8, lineEndY - 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const y = lineStartY + ((year - startYear) / yearRange) * lineLength;
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(lineX - 10, y);
+                ctx.lineTo(lineX + 10, y);
+                ctx.stroke();
+                ctx.fillText(year.toString(), lineX + 20, y + 5);
+            }
+        }
+
+        // Calculer les positions des événements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight);
+
+        // Obtenir les dimensions réelles du canvas sur l'écran
+        const canvasRect = canvas.getBoundingClientRect();
+        const scaleX = canvasRect.width / width;
+        const scaleY = canvasRect.height / height;
+
+        // Dessiner les points et les cartes cachées
+        positionedEvents.forEach((event, idx) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Trait pointillé
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(lineX, eventY);
+            ctx.lineTo(event.isLeft ? eventX + boxWidth / 2 : eventX - boxWidth / 2, eventY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Boîte cachée (avec ?)
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            ctx.fillStyle = '#f3f4f6';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Année
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.year.toString(), eventX, boxY + 25);
+
+            // Point d'interrogation
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillText('?', eventX, boxY + 55);
+
+            // Créer la zone cliquable HTML
+            const clickZone = document.createElement('div');
+            clickZone.className = 'timeline-test-card';
+            clickZone.dataset.eventIndex = idx;
+            clickZone.dataset.revealed = 'false';
+            clickZone.style.cssText = `
+                position: absolute;
+                left: ${boxX * scaleX}px;
+                top: ${boxY * scaleY}px;
+                width: ${boxWidth * scaleX}px;
+                height: ${boxHeight * scaleY}px;
+                cursor: pointer;
+                pointer-events: auto;
+                border-radius: 4px;
+            `;
+
+            // Stocker les données de l'événement
+            clickZone.dataset.eventData = JSON.stringify({
+                x: eventX,
+                y: eventY,
+                boxX: boxX,
+                boxY: boxY,
+                boxWidth: boxWidth,
+                boxHeight: boxHeight,
+                year: event.year,
+                title: event.title,
+                description: event.description,
+                emoji: event.emoji,
+                color: markerColor
+            });
+
+            clickZone.addEventListener('click', (e) => this.revealTimelineEvent(e, ctx, canvas, scaleX, scaleY));
+            overlay.appendChild(clickZone);
+        });
+    }
+
+    /**
+     * Révéler un événement lors du clic en mode test
+     */
+    revealTimelineEvent(e, ctx, canvas, scaleX, scaleY) {
+        const clickZone = e.currentTarget;
+        if (clickZone.dataset.revealed === 'true') return;
+
+        clickZone.dataset.revealed = 'true';
+        clickZone.style.cursor = 'default';
+
+        const eventData = JSON.parse(clickZone.dataset.eventData);
+        const { boxX, boxY, boxWidth, boxHeight, year, title, description, emoji, color } = eventData;
+
+        // Animation de révélation - redessiner la boîte avec le contenu
+        // Effacer l'ancienne boîte
+        ctx.fillStyle = 'white';
+        ctx.fillRect(boxX - 5, boxY - 5, boxWidth + 10, boxHeight + 10);
+
+        // Redessiner la boîte avec le contenu révélé
+        // Ombre
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+        // Fond avec effet de succès
+        ctx.fillStyle = '#ecfdf5';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+        // Emoji (si présent)
+        let titleOffsetY = boxY + 20;
+        if (emoji) {
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(emoji, eventData.x, boxY + 22);
+            titleOffsetY = boxY + 40;
+        }
+
+        // Titre de l'événement
+        ctx.fillStyle = '#1f2937';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title || 'Événement', eventData.x, titleOffsetY, boxWidth - 10);
+
+        // Description
+        if (description) {
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#6b7280';
+            const words = description.split(' ');
+            let line = '';
+            let y = titleOffsetY + 14;
+
+            for (let word of words) {
+                const testLine = line + word + ' ';
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > boxWidth - 20 && line.length > 0) {
+                    ctx.fillText(line, eventData.x, y, boxWidth - 10);
+                    line = word + ' ';
+                    y += 12;
+                    if (y > boxY + boxHeight - 8) break;
+                } else {
+                    line = testLine;
+                }
+            }
+            if (y <= boxY + boxHeight - 8 && line.length > 0) {
+                ctx.fillText(line, eventData.x, y, boxWidth - 10);
+            }
+        }
+
+        // Petit effet visuel sur la zone cliquable
+        clickZone.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+    }
+
+    /**
+     * Quitter le mode test
+     */
+    async exitTimelineTestMode(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (pageData) {
+            pageData.testMode = false;
+        }
+
+        // Redessiner la page normalement
+        await this.renderPages();
+
+        // Scroller vers la page
+        setTimeout(() => {
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (pageWrapper) {
+                pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }
+        }, 50);
+    }
+
+    /**
+     * Calculer les positions des événements verticaux pour éviter les chevauchements
+     */
+    calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight) {
+        // Trier les événements par année
+        const sortedEvents = [...events].map((event, originalIndex) => ({
+            ...event,
+            originalIndex,
+            y: lineStartY + (((event.year || startYear) - startYear) / yearRange) * lineLength
+        })).sort((a, b) => a.y - b.y);
+
+        // Calculer les niveaux pour éviter les chevauchements
+        const minSpacing = boxHeight + 15;
+        const leftLevels = [];
+        const rightLevels = [];
+
+        sortedEvents.forEach((event, idx) => {
+            const eventY = event.y;
+            let level = 0;
+            let isLeft = idx % 2 === 0;
+
+            const levelsToCheck = isLeft ? leftLevels : rightLevels;
+
+            for (let l = 0; l < 10; l++) {
+                const currentLevel = isLeft ? leftLevels[l] : rightLevels[l];
+                if (!currentLevel) {
+                    level = l;
+                    break;
+                }
+
+                const canPlace = currentLevel.every(pos => Math.abs(pos - eventY) >= minSpacing);
+                if (canPlace) {
+                    level = l;
+                    break;
+                }
+                level = l + 1;
+            }
+
+            if (isLeft) {
+                if (!leftLevels[level]) leftLevels[level] = [];
+                leftLevels[level].push(eventY);
+            } else {
+                if (!rightLevels[level]) rightLevels[level] = [];
+                rightLevels[level].push(eventY);
+            }
+
+            event.level = level;
+            event.isLeft = isLeft;
+        });
+
+        return sortedEvents;
+    }
+
+    /**
+     * Dessiner une frise chronologique verticale
+     */
+    drawVerticalTimeline(ctx, width, height, startYear, endYear, events, lineColor, showYears, tickInterval = null) {
+        const marginTop = 100;
+        const marginBottom = 80;
+        const lineX = width / 2;
+        const lineStartY = marginTop;
+        const lineEndY = height - marginBottom;
+        const lineLength = lineEndY - lineStartY;
+        const yearRange = endYear - startYear;
+
+        // Ligne principale
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineStartY);
+        ctx.lineTo(lineX, lineEndY);
+        ctx.stroke();
+
+        // Flèche en bas
+        ctx.fillStyle = lineColor;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineEndY);
+        ctx.lineTo(lineX - 8, lineEndY - 15);
+        ctx.lineTo(lineX + 8, lineEndY - 15);
+        ctx.closePath();
+        ctx.fill();
+
+        // Marques d'années avec intervalle optimisé
+        if (showYears) {
+            const interval = this.calculateOptimalInterval(yearRange, tickInterval);
+            const firstTick = Math.ceil(startYear / interval) * interval;
+
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+
+            for (let year = firstTick; year <= endYear; year += interval) {
+                const y = lineStartY + ((year - startYear) / yearRange) * lineLength;
+
+                // Graduation
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(lineX - 10, y);
+                ctx.lineTo(lineX + 10, y);
+                ctx.stroke();
+
+                // Année
+                ctx.fillText(year.toString(), lineX + 20, y + 5);
+            }
+        }
+
+        // Calculer les positions des événements pour éviter les chevauchements
+        const boxWidth = 150;
+        const boxHeight = 70;
+        const positionedEvents = this.calculateVerticalEventPositions(events, startYear, yearRange, lineLength, lineStartY, boxHeight);
+
+        // PASSE 1 : Dessiner tous les traits pointillés et points EN PREMIER
+        positionedEvents.forEach((event) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Ligne horizontale vers l'événement (trait pointillé)
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(lineX, eventY);
+            const lineEndX = event.isLeft ? eventX + boxWidth / 2 : eventX - boxWidth / 2;
+            ctx.lineTo(lineEndX, eventY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Point sur la ligne
+            ctx.fillStyle = markerColor;
+            ctx.beginPath();
+            ctx.arc(lineX, eventY, 8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // PASSE 2 : Dessiner toutes les boîtes d'événements PAR-DESSUS les traits
+        positionedEvents.forEach((event) => {
+            const eventY = event.y;
+            const baseOffset = 200;
+            const levelOffset = event.level * (boxWidth + 20);
+            const eventX = event.isLeft ? lineX - baseOffset - levelOffset : lineX + baseOffset + levelOffset;
+            const markerColor = event.color || '#3b82f6';
+
+            // Boîte d'événement
+            const boxX = eventX - boxWidth / 2;
+            const boxY = eventY - boxHeight / 2;
+
+            // Ombre
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(boxX + 3, boxY + 3, boxWidth, boxHeight);
+
+            // Fond
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = markerColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+            // Emoji (si présent)
+            let titleOffsetY = boxY + 20;
+            if (event.emoji) {
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(event.emoji, eventX, boxY + 22);
+                titleOffsetY = boxY + 40;
+            }
+
+            // Titre de l'événement
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(event.title || 'Événement', eventX, titleOffsetY, boxWidth - 10);
+
+            // Description
+            if (event.description) {
+                ctx.font = '10px Arial';
+                ctx.fillStyle = '#6b7280';
+                const words = event.description.split(' ');
+                let line = '';
+                let y = titleOffsetY + 14;
+
+                for (let word of words) {
+                    const testLine = line + word + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > boxWidth - 20 && line.length > 0) {
+                        ctx.fillText(line, eventX, y, boxWidth - 10);
+                        line = word + ' ';
+                        y += 12;
+                        if (y > boxY + boxHeight - 8) break;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                if (y <= boxY + boxHeight - 8 && line.length > 0) {
+                    ctx.fillText(line, eventX, y, boxWidth - 10);
+                }
+            }
+        });
+    }
+
+    /**
+     * Liste des emojis historiques disponibles
+     */
+    getHistoryEmojis() {
+        return [
+            { emoji: '', label: 'Aucun' },
+            { emoji: '👑', label: 'Couronne (royauté)' },
+            { emoji: '⚔️', label: 'Épées (guerre)' },
+            { emoji: '🏰', label: 'Château' },
+            { emoji: '📜', label: 'Parchemin' },
+            { emoji: '🗡️', label: 'Épée' },
+            { emoji: '🛡️', label: 'Bouclier' },
+            { emoji: '⛪', label: 'Église' },
+            { emoji: '🏛️', label: 'Monument' },
+            { emoji: '🎭', label: 'Théâtre/Arts' },
+            { emoji: '🎨', label: 'Art' },
+            { emoji: '📖', label: 'Livre' },
+            { emoji: '🔬', label: 'Science' },
+            { emoji: '💡', label: 'Invention' },
+            { emoji: '🚂', label: 'Train (révolution industrielle)' },
+            { emoji: '⚓', label: 'Ancre (navigation)' },
+            { emoji: '🗺️', label: 'Carte (exploration)' },
+            { emoji: '🏴', label: 'Drapeau' },
+            { emoji: '✝️', label: 'Religion' },
+            { emoji: '☪️', label: 'Islam' },
+            { emoji: '🕎', label: 'Judaïsme' },
+            { emoji: '🔥', label: 'Feu/Destruction' },
+            { emoji: '💀', label: 'Mort/Épidémie' },
+            { emoji: '🌍', label: 'Monde' },
+            { emoji: '🗽', label: 'Liberté' },
+            { emoji: '⚖️', label: 'Justice/Loi' },
+            { emoji: '🎵', label: 'Musique' },
+            { emoji: '🏆', label: 'Victoire' },
+            { emoji: '💎', label: 'Richesse' },
+            { emoji: '🌾', label: 'Agriculture' },
+            { emoji: '🏺', label: 'Antiquité' },
+            { emoji: '🗿', label: 'Préhistoire' },
+            { emoji: '📝', label: 'Écriture/Traité' },
+            { emoji: '🎓', label: 'Éducation' },
+            { emoji: '🚀', label: 'Espace' },
+            { emoji: '💻', label: 'Informatique' },
+            { emoji: '⚡', label: 'Électricité' },
+            { emoji: '🏥', label: 'Médecine' },
+            { emoji: '🗳️', label: 'Vote/Démocratie' },
+            { emoji: '✊', label: 'Révolution' }
+        ];
+    }
+
+    /**
+     * Ouvrir le panneau de configuration de la frise chronologique
+     */
+    openTimelineConfigPanel(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'timeline') return;
+
+        const data = pageData.data || {};
+        const events = data.events || [];
+
+        // Créer le panneau
+        const panel = document.createElement('div');
+        panel.id = 'timeline-config-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 650px;
+            max-height: 85vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10001;
+            overflow-y: auto;
+        `;
+
+        panel.innerHTML = `
+            <div style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Configurer la frise chronologique</h3>
+                    <button id="timeline-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600;">Titre de la frise</label>
+                    <input type="text" id="timeline-title" value="${data.title || 'Frise chronologique'}"
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de début</label>
+                        <input type="number" id="timeline-start-year" value="${data.startYear || new Date().getFullYear()}"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Année de fin</label>
+                        <input type="number" id="timeline-end-year" value="${data.endYear || (new Date().getFullYear() + 10)}"
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Orientation</label>
+                        <select id="timeline-orientation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="horizontal" ${data.orientation === 'horizontal' || !data.orientation ? 'selected' : ''}>Horizontale</option>
+                            <option value="vertical" ${data.orientation === 'vertical' ? 'selected' : ''}>Verticale</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Intervalle des graduations</label>
+                        <select id="timeline-tick-interval" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                            <option value="auto" ${!data.tickInterval ? 'selected' : ''}>Automatique (10-25 traits)</option>
+                            <option value="1" ${data.tickInterval === 1 ? 'selected' : ''}>Tous les 1 an</option>
+                            <option value="5" ${data.tickInterval === 5 ? 'selected' : ''}>Tous les 5 ans</option>
+                            <option value="10" ${data.tickInterval === 10 ? 'selected' : ''}>Tous les 10 ans</option>
+                            <option value="25" ${data.tickInterval === 25 ? 'selected' : ''}>Tous les 25 ans</option>
+                            <option value="50" ${data.tickInterval === 50 ? 'selected' : ''}>Tous les 50 ans</option>
+                            <option value="100" ${data.tickInterval === 100 ? 'selected' : ''}>Tous les 100 ans</option>
+                            <option value="500" ${data.tickInterval === 500 ? 'selected' : ''}>Tous les 500 ans</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Couleur de la ligne</label>
+                        <input type="color" id="timeline-line-color" value="${data.lineColor || '#667eea'}"
+                               style="width: 100px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="timeline-show-years" ${data.showYears !== false ? 'checked' : ''}>
+                            <span>Afficher les années</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0;">Événements</h4>
+                        <button id="add-event-btn" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            + Ajouter un événement
+                        </button>
+                    </div>
+                    <div id="events-list" style="max-height: 250px; overflow-y: auto;">
+                        ${events.map((event, index) => this.renderEventItem(event, index)).join('')}
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button id="apply-timeline-btn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Appliquer
+                    </button>
+                    <button id="cancel-timeline-btn" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Event listeners
+        document.getElementById('timeline-close-btn').addEventListener('click', () => panel.remove());
+        document.getElementById('cancel-timeline-btn').addEventListener('click', () => panel.remove());
+
+        document.getElementById('add-event-btn').addEventListener('click', () => {
+            const eventsList = document.getElementById('events-list');
+            const newIndex = eventsList.children.length;
+            const newEventHtml = this.renderEventItem({
+                year: parseInt(document.getElementById('timeline-start-year').value),
+                title: '',
+                description: '',
+                color: '#3b82f6',
+                emoji: ''
+            }, newIndex);
+            eventsList.insertAdjacentHTML('beforeend', newEventHtml);
+            this.attachEmojiPickerEvents(eventsList.lastElementChild);
+        });
+
+        document.getElementById('apply-timeline-btn').addEventListener('click', async () => {
+            await this.saveTimelineConfig(pageData, panel, pageId);
+            panel.remove();
+        });
+
+        // Délégation d'événements pour les boutons de suppression
+        document.getElementById('events-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-event-btn') || e.target.closest('.delete-event-btn')) {
+                const btn = e.target.classList.contains('delete-event-btn') ? e.target : e.target.closest('.delete-event-btn');
+                btn.closest('.timeline-event-item').remove();
+            }
+        });
+
+        // Attacher les événements pour les sélecteurs d'emoji existants
+        document.querySelectorAll('.timeline-event-item').forEach(item => {
+            this.attachEmojiPickerEvents(item);
+        });
+
+        // Listener global pour fermer les dropdowns emoji (une seule fois par panneau)
+        const closeDropdowns = (e) => {
+            if (!e.target.closest('.emoji-picker-btn') && !e.target.closest('.emoji-dropdown')) {
+                document.querySelectorAll('.emoji-dropdown').forEach(d => {
+                    d.style.display = 'none';
+                });
+            }
+        };
+        panel.addEventListener('click', closeDropdowns);
+    }
+
+    /**
+     * Sauvegarder la configuration de la frise
+     */
+    async saveTimelineConfig(pageData, panel, pageId) {
+        // Collecter les événements
+        const eventElements = document.querySelectorAll('.timeline-event-item');
+        const collectedEvents = [];
+
+        eventElements.forEach(elem => {
+            const year = parseInt(elem.querySelector('.event-year').value);
+            const title = elem.querySelector('.event-title').value;
+            const description = elem.querySelector('.event-description').value;
+            const color = elem.querySelector('.event-color').value;
+            const emoji = elem.querySelector('.event-emoji').value || '';
+
+            if (title) { // Seulement si le titre n'est pas vide
+                collectedEvents.push({ year, title, description, color, emoji });
+            }
+        });
+
+        // Récupérer l'intervalle de graduation
+        const tickIntervalValue = document.getElementById('timeline-tick-interval').value;
+        const tickInterval = tickIntervalValue === 'auto' ? null : parseInt(tickIntervalValue);
+
+        // Mettre à jour les données
+        pageData.data = {
+            title: document.getElementById('timeline-title').value,
+            startYear: parseInt(document.getElementById('timeline-start-year').value),
+            endYear: parseInt(document.getElementById('timeline-end-year').value),
+            orientation: document.getElementById('timeline-orientation').value,
+            lineColor: document.getElementById('timeline-line-color').value,
+            showYears: document.getElementById('timeline-show-years').checked,
+            tickInterval: tickInterval,
+            events: collectedEvents
+        };
+
+        // Re-rendre la page et scroller vers la page modifiée
+        await this.renderPages();
+        this.isDirty = true;
+
+        // Scroller vers la page modifiée après le rendu
+        setTimeout(() => {
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (pageWrapper) {
+                pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }
+        }, 50);
+    }
+
+    /**
+     * Attacher les événements pour le sélecteur d'emoji
+     */
+    attachEmojiPickerEvents(eventItem) {
+        const emojiBtn = eventItem.querySelector('.emoji-picker-btn');
+        const emojiInput = eventItem.querySelector('.event-emoji');
+        const emojiDropdown = eventItem.querySelector('.emoji-dropdown');
+
+        if (!emojiBtn || !emojiDropdown) return;
+
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Fermer tous les autres dropdowns
+            document.querySelectorAll('.emoji-dropdown').forEach(d => {
+                if (d !== emojiDropdown) d.style.display = 'none';
+            });
+            emojiDropdown.style.display = emojiDropdown.style.display === 'none' ? 'grid' : 'none';
+        });
+
+        emojiDropdown.querySelectorAll('.emoji-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const emoji = opt.dataset.emoji;
+                emojiInput.value = emoji;
+                emojiBtn.textContent = emoji || '😀';
+                emojiDropdown.style.display = 'none';
+            });
+        });
+
+        // Note: Le listener global pour fermer les dropdowns est géré une seule fois
+    }
+
+    /**
+     * Rendre un élément d'événement pour la liste
+     */
+    renderEventItem(event, index) {
+        const emojis = this.getHistoryEmojis();
+        const emojiOptions = emojis.map(e =>
+            `<div class="emoji-option" data-emoji="${e.emoji}" title="${e.label}" style="cursor: pointer; padding: 4px; border-radius: 4px; text-align: center; font-size: 18px;">${e.emoji || '❌'}</div>`
+        ).join('');
+
+        return `
+            <div class="timeline-event-item" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e5e7eb;">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                    <input type="number" class="event-year" value="${event.year || new Date().getFullYear()}"
+                           placeholder="Année" style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <input type="color" class="event-color" value="${event.color || '#3b82f6'}"
+                           title="Couleur" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                    <div style="position: relative;">
+                        <input type="hidden" class="event-emoji" value="${event.emoji || ''}">
+                        <button type="button" class="emoji-picker-btn" style="width: 36px; height: 32px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: white; font-size: 16px;" title="Choisir un emoji">
+                            ${event.emoji || '😀'}
+                        </button>
+                        <div class="emoji-dropdown" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1000; background: white; border: 1px solid #ddd; border-radius: 8px; padding: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); grid-template-columns: repeat(8, 1fr); gap: 2px; width: 280px; max-height: 200px; overflow-y: auto;">
+                            ${emojiOptions}
+                        </div>
+                    </div>
+                    <input type="text" class="event-title" value="${event.title || ''}"
+                           placeholder="Titre de l'événement" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <button class="delete-event-btn" type="button" style="width: 32px; height: 32px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">×</button>
+                </div>
+                <textarea class="event-description" placeholder="Description (optionnelle)"
+                          style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 40px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
+            </div>
+        `;
+    }
+
+    /**
      * Ouvrir le panneau de configuration du graphique
      */
     openGraphConfigPanel(pageId) {
@@ -2512,42 +4192,48 @@ class CleanPDFViewer {
                 const centerX = totalX / count;
                 const centerY = totalY / count;
 
-                // Créer le bouton rond
+                // Créer le bouton rond avec icône de chaîne
                 const linkButton = document.createElement('a');
                 linkButton.className = 'pdf-link-button';
                 linkButton.href = url;
                 linkButton.target = '_blank';
                 linkButton.rel = 'noopener noreferrer';
-                linkButton.textContent = 'Aller à la page !';
+                linkButton.innerHTML = '<i class="fas fa-link"></i>';
 
-                // Positionner le bouton au centre
+                // Style du bouton petit et rond avec 30% d'opacité
                 linkButton.style.position = 'absolute';
                 linkButton.style.left = `${centerX}px`;
                 linkButton.style.top = `${centerY}px`;
                 linkButton.style.transform = 'translate(-50%, -50%)';
-                linkButton.style.padding = '8px 16px';
+                linkButton.style.width = '32px';
+                linkButton.style.height = '32px';
+                linkButton.style.display = 'flex';
+                linkButton.style.alignItems = 'center';
+                linkButton.style.justifyContent = 'center';
+                linkButton.style.padding = '0';
                 linkButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 linkButton.style.color = 'white';
-                linkButton.style.borderRadius = '20px';
+                linkButton.style.borderRadius = '50%';
                 linkButton.style.fontSize = '14px';
-                linkButton.style.fontWeight = 'bold';
                 linkButton.style.textDecoration = 'none';
-                linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                linkButton.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
                 linkButton.style.cursor = 'pointer';
                 linkButton.style.zIndex = '5';
                 linkButton.style.transition = 'all 0.3s ease';
                 linkButton.style.border = 'none';
-                linkButton.style.whiteSpace = 'nowrap';
+                linkButton.style.opacity = '0.3';
 
-                // Effet hover
+                // Effet hover - augmenter l'opacité
                 linkButton.addEventListener('mouseenter', () => {
-                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.05)';
-                    linkButton.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.6)';
+                    linkButton.style.opacity = '1';
+                    linkButton.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.5)';
                 });
 
                 linkButton.addEventListener('mouseleave', () => {
+                    linkButton.style.opacity = '0.3';
                     linkButton.style.transform = 'translate(-50%, -50%) scale(1)';
-                    linkButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                    linkButton.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.3)';
                 });
 
                 container.appendChild(linkButton);
@@ -5200,8 +6886,11 @@ class CleanPDFViewer {
             <button class="add-blank" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📄 Page vierge
             </button>
-            <button class="add-graph" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+            <button class="add-graph" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📊 Page graphique
+            </button>
+            <button class="add-timeline" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+                📅 Frise chronologique
             </button>
         `;
 
@@ -5214,6 +6903,11 @@ class CleanPDFViewer {
 
         menu.querySelector('.add-graph').addEventListener('click', () => {
             this.addPage(afterPageId, 'graph');
+            menu.remove();
+        });
+
+        menu.querySelector('.add-timeline').addEventListener('click', () => {
+            this.addPage(afterPageId, 'timeline');
             menu.remove();
         });
 
@@ -6259,7 +7953,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
@@ -6323,7 +8017,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
@@ -6507,7 +8201,7 @@ class CleanPDFViewer {
             // Préparer les pages custom (vierges et graphiques)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
