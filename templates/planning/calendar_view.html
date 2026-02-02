@@ -13,10 +13,8 @@
 <!-- Font Awesome pour les icônes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
-<!-- Lecteur PDF unifié -->
+<!-- Lecteur PDF unifié (inclut les styles pour clean-pdf-viewer) -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
-<!-- Nouveau lecteur PDF Clean -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/clean-pdf-viewer.css') }}">
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
