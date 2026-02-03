@@ -5881,17 +5881,25 @@ class CleanPDFViewer {
         const boxWidth = textBox.width * scaleX;
         const boxHeight = textBox.height * scaleY;
 
+        console.log('[TextControls] Création des contrôles:', {
+            canvasRect: rect,
+            textBox: {x: textBox.x, y: textBox.y, width: textBox.width, height: textBox.height},
+            screenPos: {boxX, boxY, boxWidth, boxHeight},
+            scale: {scaleX, scaleY}
+        });
+
         // Créer le conteneur des contrôles
         const controlsContainer = document.createElement('div');
         controlsContainer.className = 'text-box-controls';
         controlsContainer.style.cssText = `
             position: fixed;
             pointer-events: none;
-            z-index: 1000;
+            z-index: 10000;
             left: ${boxX}px;
             top: ${boxY}px;
             width: ${boxWidth}px;
             height: ${boxHeight}px;
+            overflow: visible;
         `;
 
         // Styles communs pour les boutons
@@ -6020,6 +6028,8 @@ class CleanPDFViewer {
 
         document.body.appendChild(controlsContainer);
         this.textBoxControls = controlsContainer;
+
+        console.log('[TextControls] Contrôles ajoutés au DOM:', controlsContainer);
     }
 
     /**
@@ -6068,7 +6078,7 @@ class CleanPDFViewer {
             font-size: ${textBox.fontSize * scaleX}px;
             color: ${textBox.color || '#000000'};
             overflow: hidden;
-            z-index: 1001;
+            z-index: 10001;
             padding: 0;
             margin: 0;
             line-height: 1.3;
@@ -6380,7 +6390,7 @@ class CleanPDFViewer {
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1002;
+            z-index: 10002;
             overflow: hidden;
             min-width: 120px;
         `;
