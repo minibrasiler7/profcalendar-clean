@@ -5947,17 +5947,34 @@ class CleanPDFViewer {
         deleteBtn.addEventListener('click', () => this.deleteSelectedTextBox());
         controlsContainer.appendChild(deleteBtn);
 
-        // Sélecteur de taille de police (gauche)
-        const fontSizeBtn = document.createElement('button');
-        fontSizeBtn.innerHTML = '<i class="fas fa-text-height"></i>';
-        fontSizeBtn.style.cssText = buttonStyle + `
+        // Boutons de taille de police (gauche) - Plus et Moins
+        const fontSizeUpBtn = document.createElement('button');
+        fontSizeUpBtn.innerHTML = '<i class="fas fa-plus"></i>';
+        fontSizeUpBtn.style.cssText = buttonStyle + `
             left: -36px;
-            top: 50%;
+            top: calc(50% - 18px);
             transform: translateY(-50%);
         `;
-        fontSizeBtn.title = 'Taille de police';
-        fontSizeBtn.addEventListener('click', (e) => this.showFontSizeMenu(e));
-        controlsContainer.appendChild(fontSizeBtn);
+        fontSizeUpBtn.title = 'Augmenter la taille';
+        fontSizeUpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeFontSize(2);
+        });
+        controlsContainer.appendChild(fontSizeUpBtn);
+
+        const fontSizeDownBtn = document.createElement('button');
+        fontSizeDownBtn.innerHTML = '<i class="fas fa-minus"></i>';
+        fontSizeDownBtn.style.cssText = buttonStyle + `
+            left: -36px;
+            top: calc(50% + 18px);
+            transform: translateY(-50%);
+        `;
+        fontSizeDownBtn.title = 'Diminuer la taille';
+        fontSizeDownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeFontSize(-2);
+        });
+        controlsContainer.appendChild(fontSizeDownBtn);
 
         // Sélecteur de police (droite)
         const fontFamilyBtn = document.createElement('button');
@@ -6318,6 +6335,26 @@ class CleanPDFViewer {
         }
 
         this.isDirty = true;
+    }
+
+    /**
+     * Changer la taille de police (+ ou -)
+     */
+    changeFontSize(delta) {
+        if (!this.selectedTextBox) return;
+
+        const minSize = 8;
+        const maxSize = 72;
+        const newSize = Math.max(minSize, Math.min(maxSize, this.selectedTextBox.fontSize + delta));
+
+        if (newSize !== this.selectedTextBox.fontSize) {
+            this.selectedTextBox.fontSize = newSize;
+            this.updateTextBoxInAnnotations(this.selectedTextBox);
+            this.updateTextInputOverlayStyle();
+            this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+            this.isDirty = true;
+            console.log('[Text] Taille de police changée à:', newSize);
+        }
     }
 
     /**
