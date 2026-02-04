@@ -4472,11 +4472,11 @@ class CleanPDFViewer {
             if (clickedTextBox) {
                 // Sélectionner cette zone de texte
                 this.selectTextBox(clickedTextBox, canvas, pageId);
-            } else {
-                // Désélectionner toute zone précédente
+            } else if (this.selectedTextBox) {
+                // Une zone est déjà sélectionnée, on clique ailleurs -> juste désélectionner
                 this.deselectTextBox();
-
-                // Créer une nouvelle zone de texte
+            } else {
+                // Aucune zone sélectionnée, créer une nouvelle zone de texte
                 const textBox = {
                     tool: 'text',
                     id: 'text_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -4489,7 +4489,7 @@ class CleanPDFViewer {
                     fontSize: 16,
                     fontFamily: 'Arial',
                     color: this.currentColor,
-                    isSelected: true,
+                    isSelected: false,
                     canvasWidth: canvas.width,
                     canvasHeight: canvas.height
                 };
@@ -5715,38 +5715,43 @@ class CleanPDFViewer {
         const width = textBox.width * scaleRatioX;
         const height = textBox.height * scaleRatioY;
         const fontSize = textBox.fontSize * ((scaleRatioX + scaleRatioY) / 2);
+        const isSelected = this.selectedTextBox && this.selectedTextBox.id === textBox.id;
 
         ctx.save();
 
-        // Dessiner le fond (léger)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(x, y, width, height);
+        // Si sélectionné: fond blanc + bordure bleue (le textarea affiche le texte)
+        // Si non sélectionné: pas de fond, pas de bordure, juste le texte
+        if (isSelected) {
+            // Dessiner le fond blanc opaque pour cacher le texte du canvas
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillRect(x, y, width, height);
 
-        // Dessiner la bordure
-        const isSelected = this.selectedTextBox && this.selectedTextBox.id === textBox.id;
-        ctx.strokeStyle = isSelected ? '#007aff' : '#cccccc';
-        ctx.lineWidth = isSelected ? 2 : 1;
-        ctx.strokeRect(x, y, width, height);
+            // Dessiner la bordure bleue
+            ctx.strokeStyle = '#007aff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            // Ne pas dessiner le texte ici car le textarea le montre
+        } else {
+            // Non sélectionné: dessiner seulement le texte (pas de fond, pas de bordure)
+            if (textBox.text) {
+                ctx.fillStyle = textBox.color || '#000000';
+                ctx.font = `${fontSize}px ${textBox.fontFamily || 'Arial'}`;
+                ctx.textBaseline = 'top';
 
-        // Dessiner le texte
-        if (textBox.text) {
-            ctx.fillStyle = textBox.color || '#000000';
-            ctx.font = `${fontSize}px ${textBox.fontFamily || 'Arial'}`;
-            ctx.textBaseline = 'top';
+                // Découper le texte en lignes
+                const padding = 8 * scaleRatioX;
+                const lineHeight = fontSize * 1.3;
+                const maxWidth = width - (padding * 2);
+                const lines = this.wrapText(ctx, textBox.text, maxWidth);
 
-            // Découper le texte en lignes
-            const padding = 8 * scaleRatioX;
-            const lineHeight = fontSize * 1.3;
-            const maxWidth = width - (padding * 2);
-            const lines = this.wrapText(ctx, textBox.text, maxWidth);
-
-            // Dessiner chaque ligne
-            lines.forEach((line, index) => {
-                const lineY = y + padding + (index * lineHeight);
-                if (lineY + lineHeight < y + height) {
-                    ctx.fillText(line, x + padding, lineY);
-                }
-            });
+                // Dessiner chaque ligne
+                lines.forEach((line, index) => {
+                    const lineY = y + padding + (index * lineHeight);
+                    if (lineY + lineHeight < y + height) {
+                        ctx.fillText(line, x + padding, lineY);
+                    }
+                });
+            }
         }
 
         ctx.restore();
