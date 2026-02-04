@@ -5719,6 +5719,13 @@ class CleanPDFViewer {
 
         ctx.save();
 
+        // Réinitialiser les effets pour éviter ombre/flou
+        ctx.globalAlpha = 1.0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
         // Si sélectionné: fond blanc + bordure bleue (le textarea affiche le texte)
         // Si non sélectionné: pas de fond, pas de bordure, juste le texte
         if (isSelected) {
@@ -5737,6 +5744,7 @@ class CleanPDFViewer {
                 ctx.fillStyle = textBox.color || '#000000';
                 ctx.font = `${fontSize}px ${textBox.fontFamily || 'Arial'}`;
                 ctx.textBaseline = 'top';
+                ctx.textRendering = 'optimizeLegibility';
 
                 // Découper le texte en lignes
                 const padding = 8 * scaleRatioX;
@@ -6136,6 +6144,8 @@ class CleanPDFViewer {
             this.textInputOverlay.remove();
             this.textInputOverlay = null;
         }
+        // Nettoyer aussi tout élément orphelin
+        document.querySelectorAll('.text-box-input').forEach(el => el.remove());
     }
 
     /**
