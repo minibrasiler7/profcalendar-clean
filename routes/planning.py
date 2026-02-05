@@ -1694,10 +1694,56 @@ def lesson_view():
     students = []
     if planning:
         # Si on a une planification, utiliser sa méthode get_students() pour gérer les groupes
+        current_app.logger.error(f"=== STUDENTS DEBUG === Using planning.get_students(), group_id={planning.group_id}")
         students = planning.get_students()
     elif lesson_classroom:
-        # Sinon, utiliser tous les élèves de la classe
-        students = lesson_classroom.get_students()
+        # Pas de planification pour cette date - chercher le groupe dans les planifications précédentes
+        # pour ce même jour de la semaine et cette même période
+        current_app.logger.error(f"=== STUDENTS DEBUG === No planning, searching for group pattern...")
+
+        from models.student_group import StudentGroup
+
+        # Chercher une planification récente avec un groupe pour cette classe/jour/période
+        recent_planning_with_group = Planning.query.filter(
+            Planning.user_id == current_user.id,
+            Planning.classroom_id == lesson_classroom.id,
+            Planning.group_id.isnot(None),
+            Planning.date < lesson_date,
+            db.func.extract('dow', Planning.date) == (lesson_date.weekday() + 1) % 7,  # PostgreSQL dow: 0=Sunday
+            Planning.period_number == lesson.period_number
+        ).order_by(Planning.date.desc()).first()
+
+        # Si pas trouvé avec PostgreSQL dow, essayer avec SQLite strftime
+        if not recent_planning_with_group:
+            try:
+                recent_planning_with_group = Planning.query.filter(
+                    Planning.user_id == current_user.id,
+                    Planning.classroom_id == lesson_classroom.id,
+                    Planning.group_id.isnot(None),
+                    Planning.date < lesson_date,
+                    Planning.period_number == lesson.period_number
+                ).order_by(Planning.date.desc()).first()
+
+                # Vérifier que c'est le même jour de la semaine
+                if recent_planning_with_group and recent_planning_with_group.date.weekday() != lesson_date.weekday():
+                    recent_planning_with_group = None
+            except Exception as e:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Error searching for group pattern: {e}")
+                recent_planning_with_group = None
+
+        if recent_planning_with_group and recent_planning_with_group.group_id:
+            # Utiliser le groupe de la planification précédente
+            group = StudentGroup.query.get(recent_planning_with_group.group_id)
+            if group:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Found group pattern from {recent_planning_with_group.date}: group_id={group.id}, name={group.name}")
+                students = [membership.student for membership in group.memberships.all()]
+            else:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Group {recent_planning_with_group.group_id} not found, using all students")
+                students = lesson_classroom.get_students()
+        else:
+            # Aucun pattern trouvé, utiliser tous les élèves de la classe
+            current_app.logger.error(f"=== STUDENTS DEBUG === No group pattern found, using all students")
+            students = lesson_classroom.get_students()
     
     if students:
         students = sorted(students, key=lambda s: (s.last_name, s.first_name))
