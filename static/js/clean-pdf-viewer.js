@@ -94,6 +94,12 @@ class CleanPDFViewer {
         // État de l'équerre
         this.setSquareActive = false;
 
+        // État de l'outil texte
+        this.selectedTextBox = null;      // Zone de texte actuellement sélectionnée
+        this.textInputOverlay = null;     // Élément HTML pour l'édition de texte
+        this.textBoxControls = null;      // Conteneur des contrôles de la zone de texte
+        this.textDragState = null;        // État du drag (déplacement/redimensionnement)
+
         // Initialiser
         this.init();
     }
@@ -221,6 +227,9 @@ class CleanPDFViewer {
                         </button>
                         <button class="btn-tool" data-tool="set-square" title="Équerre">
                             <i class="fas fa-ruler-combined"></i>
+                        </button>
+                        <button class="btn-tool" data-tool="text" title="Texte">
+                            <i class="fas fa-font"></i>
                         </button>
                         <div class="separator"></div>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
@@ -1414,7 +1423,13 @@ class CleanPDFViewer {
         this.setupZoomDetection();
 
         // Scroll viewer pour détecter la page actuelle
-        this.elements.viewer.addEventListener('scroll', () => this.updateCurrentPageFromScroll());
+        this.elements.viewer.addEventListener('scroll', () => {
+            this.updateCurrentPageFromScroll();
+            // Mettre à jour la position des contrôles de texte lors du scroll
+            if (this.selectedTextBox) {
+                this.updateTextBoxControlsPosition();
+            }
+        });
 
         // NOUVELLE APPROCHE: Capturer les événements stylet au niveau du VIEWER
         // Les canvas gardent pointer-events: none en PERMANENCE
@@ -2366,10 +2381,31 @@ class CleanPDFViewer {
      * Évaluer une expression mathématique avec une valeur x
      */
     evaluateMathExpression(expression, xValue) {
-        // Remplacer x par la valeur
-        let expr = expression.replace(/x/g, `(${xValue})`);
+        let expr = expression;
 
-        // Remplacer les fonctions mathématiques
+        // 1. Remplacer les virgules par des points (2,5 -> 2.5)
+        expr = expr.replace(/,/g, '.');
+
+        // 2. Ajouter la multiplication implicite
+        // 2a. Nombre suivi de x (3x -> 3*x)
+        expr = expr.replace(/(\d)([x])/gi, '$1*$2');
+        // 2b. Nombre suivi d'une parenthèse ouvrante (3( -> 3*(, 2.5( -> 2.5*()
+        expr = expr.replace(/(\d)\(/g, '$1*(');
+        // 2c. Parenthèse fermante suivie d'un nombre ()3 -> ()*3)
+        expr = expr.replace(/\)(\d)/g, ')*$1');
+        // 2d. Parenthèse fermante suivie de x ()x -> ()*x)
+        expr = expr.replace(/\)([x])/gi, ')*$1');
+        // 2e. x suivi d'une parenthèse (x( -> x*()
+        expr = expr.replace(/([x])\(/gi, '$1*(');
+        // 2f. Parenthèse fermante suivie d'une parenthèse ouvrante ()( -> ()*()
+        expr = expr.replace(/\)\(/g, ')*(');
+        // 2g. x suivi d'un nombre (x2 -> x*2) - rare mais possible
+        expr = expr.replace(/([x])(\d)/gi, '$1*$2');
+
+        // 3. Remplacer x par la valeur
+        expr = expr.replace(/x/gi, `(${xValue})`);
+
+        // 4. Remplacer les fonctions mathématiques
         expr = expr.replace(/sin/g, 'Math.sin');
         expr = expr.replace(/cos/g, 'Math.cos');
         expr = expr.replace(/tan/g, 'Math.tan');
@@ -2378,8 +2414,9 @@ class CleanPDFViewer {
         expr = expr.replace(/exp/g, 'Math.exp');
         expr = expr.replace(/log/g, 'Math.log');
         expr = expr.replace(/pow/g, 'Math.pow');
+        expr = expr.replace(/pi/gi, 'Math.PI');
 
-        // Remplacer ^ par **  (puissance)
+        // 5. Remplacer ^ par ** (puissance)
         expr = expr.replace(/\^/g, '**');
 
         // Évaluer l'expression
@@ -4446,6 +4483,56 @@ class CleanPDFViewer {
             return;
         }
 
+        // Gérer l'outil texte
+        if (this.currentTool === 'text') {
+            console.log('[Text] Outil texte actif, position:', x, y);
+            this.isDrawing = false;
+
+            // Vérifier si on clique sur une zone de texte existante
+            const clickedTextBox = this.findTextBoxAtPosition(pageId, x, y);
+
+            if (clickedTextBox) {
+                // Sélectionner cette zone de texte
+                this.selectTextBox(clickedTextBox, canvas, pageId);
+            } else if (this.selectedTextBox) {
+                // Une zone est déjà sélectionnée, on clique ailleurs -> juste désélectionner
+                this.deselectTextBox();
+            } else {
+                // Aucune zone sélectionnée, créer une nouvelle zone de texte
+                const textBox = {
+                    tool: 'text',
+                    id: 'text_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    pageId: pageId,
+                    x: x - 150,  // Centrer la boîte sur le clic
+                    y: y - 40,
+                    width: 300,
+                    height: 80,
+                    text: '',
+                    fontSize: 16,
+                    fontFamily: 'Arial',
+                    color: this.currentColor,
+                    isSelected: false,
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height
+                };
+
+                // S'assurer que la boîte ne sort pas du canvas
+                if (textBox.x < 0) textBox.x = 10;
+                if (textBox.y < 0) textBox.y = 10;
+                if (textBox.x + textBox.width > canvas.width) textBox.x = canvas.width - textBox.width - 10;
+                if (textBox.y + textBox.height > canvas.height) textBox.y = canvas.height - textBox.height - 10;
+
+                // Ajouter à l'historique
+                this.addAnnotationToHistory(pageId, textBox);
+
+                // Sélectionner la nouvelle zone
+                this.selectTextBox(textBox, canvas, pageId);
+
+                console.log('[Text] Nouvelle zone de texte créée:', textBox);
+            }
+            return;
+        }
+
         // Initialiser selon l'outil standard
         this.currentStroke = {
             tool: this.currentTool,
@@ -4482,6 +4569,24 @@ class CleanPDFViewer {
             // Ne pas effacer la grille
             if (annotation.tool === 'grid') {
                 newAnnotations.push(annotation);
+                continue;
+            }
+
+            // Gérer les zones de texte séparément
+            if (annotation.tool === 'text') {
+                // Vérifier si la gomme touche la zone de texte
+                const inBox = x >= annotation.x && x <= annotation.x + annotation.width &&
+                              y >= annotation.y && y <= annotation.y + annotation.height;
+                if (inBox) {
+                    hasErased = true;
+                    // Si c'est la zone sélectionnée, la désélectionner d'abord
+                    if (this.selectedTextBox && this.selectedTextBox.id === annotation.id) {
+                        this.deselectTextBox();
+                    }
+                    // Ne pas ajouter à newAnnotations = suppression
+                } else {
+                    newAnnotations.push(annotation);
+                }
                 continue;
             }
 
@@ -5399,9 +5504,9 @@ class CleanPDFViewer {
      * Dessiner une annotation
      */
     drawAnnotation(ctx, annotation) {
-        // La grille n'a pas de points, donc on ne vérifie pas pour elle
+        // La grille et le texte n'ont pas de points, donc on ne vérifie pas pour eux
         if (!annotation) return;
-        if (annotation.tool !== 'grid' && (!annotation.points || annotation.points.length === 0)) return;
+        if (annotation.tool !== 'grid' && annotation.tool !== 'text' && (!annotation.points || annotation.points.length === 0)) return;
 
         const options = {
             color: annotation.color,
@@ -5587,6 +5692,11 @@ class CleanPDFViewer {
                     }
                     break;
 
+                case 'text':
+                    // Dessiner la zone de texte
+                    this.drawTextBox(ctx, annotation, scaleRatioX, scaleRatioY);
+                    break;
+
                 default:
                     this.annotationTools.drawSimple(ctx, pointsToUse, optionsToUse);
             }
@@ -5610,6 +5720,817 @@ class CleanPDFViewer {
         // Restaurer le contexte après transformation
         ctx.restore();
     }
+
+    // ============================================================
+    // MÉTHODES POUR L'OUTIL TEXTE
+    // ============================================================
+
+    /**
+     * Dessiner une zone de texte sur le canvas
+     */
+    drawTextBox(ctx, textBox, scaleRatioX = 1, scaleRatioY = 1) {
+        if (!textBox) return;
+
+        // Appliquer le scale si nécessaire
+        const x = textBox.x * scaleRatioX;
+        const y = textBox.y * scaleRatioY;
+        const width = textBox.width * scaleRatioX;
+        const height = textBox.height * scaleRatioY;
+        const fontSize = textBox.fontSize * ((scaleRatioX + scaleRatioY) / 2);
+        const isSelected = this.selectedTextBox && this.selectedTextBox.id === textBox.id;
+
+        ctx.save();
+
+        // Réinitialiser les effets pour éviter ombre/flou
+        ctx.globalAlpha = 1.0;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Si sélectionné: fond blanc + bordure bleue (le textarea affiche le texte)
+        // Si non sélectionné: pas de fond, pas de bordure, juste le texte
+        if (isSelected) {
+            // Dessiner le fond blanc opaque pour cacher le texte du canvas
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillRect(x, y, width, height);
+
+            // Dessiner la bordure bleue
+            ctx.strokeStyle = '#007aff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            // Ne pas dessiner le texte ici car le textarea le montre
+        } else {
+            // Non sélectionné: dessiner seulement le texte (pas de fond, pas de bordure)
+            if (textBox.text) {
+                ctx.fillStyle = textBox.color || '#000000';
+                ctx.font = `${fontSize}px ${textBox.fontFamily || 'Arial'}`;
+                ctx.textBaseline = 'top';
+                ctx.textRendering = 'optimizeLegibility';
+
+                // Découper le texte en lignes
+                const padding = 8 * scaleRatioX;
+                const lineHeight = fontSize * 1.3;
+                const maxWidth = width - (padding * 2);
+                const lines = this.wrapText(ctx, textBox.text, maxWidth);
+
+                // Dessiner chaque ligne
+                lines.forEach((line, index) => {
+                    const lineY = y + padding + (index * lineHeight);
+                    if (lineY + lineHeight < y + height) {
+                        ctx.fillText(line, x + padding, lineY);
+                    }
+                });
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Découper le texte en lignes
+     */
+    wrapText(ctx, text, maxWidth) {
+        const lines = [];
+        const paragraphs = text.split('\n');
+
+        for (const paragraph of paragraphs) {
+            if (!paragraph) {
+                lines.push('');
+                continue;
+            }
+
+            const words = paragraph.split(' ');
+            let currentLine = '';
+
+            for (const word of words) {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const metrics = ctx.measureText(testLine);
+
+                if (metrics.width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+        }
+
+        return lines.length > 0 ? lines : [''];
+    }
+
+    /**
+     * Trouver une zone de texte à une position donnée
+     */
+    findTextBoxAtPosition(pageId, x, y) {
+        const pageAnnotations = this.annotations.get(pageId) || [];
+
+        // Chercher en ordre inverse (les dernières annotations sont au-dessus)
+        for (let i = pageAnnotations.length - 1; i >= 0; i--) {
+            const annotation = pageAnnotations[i];
+            if (annotation.tool === 'text') {
+                if (x >= annotation.x && x <= annotation.x + annotation.width &&
+                    y >= annotation.y && y <= annotation.y + annotation.height) {
+                    return annotation;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Sélectionner une zone de texte
+     */
+    selectTextBox(textBox, canvas, pageId) {
+        console.log('[Text] Sélection de la zone de texte:', textBox.id);
+
+        // Désélectionner l'ancienne zone
+        if (this.selectedTextBox && this.selectedTextBox.id !== textBox.id) {
+            this.deselectTextBox();
+        }
+
+        this.selectedTextBox = textBox;
+        this.selectedTextBoxCanvas = canvas;
+        this.selectedTextBoxPageId = pageId;
+
+        // Créer les contrôles HTML
+        this.createTextBoxControls(textBox, canvas, pageId);
+
+        // Créer l'overlay de saisie de texte
+        this.createTextInputOverlay(textBox, canvas, pageId);
+
+        // Redessiner pour montrer la sélection
+        this.redrawAnnotations(canvas, pageId);
+    }
+
+    /**
+     * Désélectionner la zone de texte active
+     */
+    deselectTextBox() {
+        if (!this.selectedTextBox) return;
+
+        console.log('[Text] Désélection de la zone de texte');
+
+        // Sauvegarder le texte si modifié
+        if (this.textInputOverlay) {
+            this.updateTextBoxContent();
+        }
+
+        // Supprimer les contrôles
+        this.removeTextBoxControls();
+
+        // Supprimer l'overlay de saisie
+        this.removeTextInputOverlay();
+
+        const canvas = this.selectedTextBoxCanvas;
+        const pageId = this.selectedTextBoxPageId;
+
+        this.selectedTextBox = null;
+        this.selectedTextBoxCanvas = null;
+        this.selectedTextBoxPageId = null;
+
+        // Redessiner
+        if (canvas && pageId) {
+            this.redrawAnnotations(canvas, pageId);
+        }
+    }
+
+    /**
+     * Créer les contrôles de la zone de texte
+     */
+    createTextBoxControls(textBox, canvas, pageId) {
+        // Supprimer les anciens contrôles
+        this.removeTextBoxControls();
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / canvas.width;
+        const scaleY = rect.height / canvas.height;
+
+        // Positions en pixels écran
+        const boxX = rect.left + (textBox.x * scaleX);
+        const boxY = rect.top + (textBox.y * scaleY);
+        const boxWidth = textBox.width * scaleX;
+        const boxHeight = textBox.height * scaleY;
+
+        console.log('[TextControls] Création des contrôles:', {
+            canvasRect: rect,
+            textBox: {x: textBox.x, y: textBox.y, width: textBox.width, height: textBox.height},
+            screenPos: {boxX, boxY, boxWidth, boxHeight},
+            scale: {scaleX, scaleY}
+        });
+
+        // Créer le conteneur des contrôles
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'text-box-controls';
+        controlsContainer.style.cssText = `
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            left: ${boxX}px;
+            top: ${boxY}px;
+            width: ${boxWidth}px;
+            height: ${boxHeight}px;
+            overflow: visible;
+        `;
+
+        // Styles communs pour les boutons
+        const buttonStyle = `
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #007aff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            color: #007aff;
+        `;
+
+        // Bouton de déplacement (haut)
+        const moveBtn = document.createElement('button');
+        moveBtn.innerHTML = '<i class="fas fa-arrows-alt"></i>';
+        moveBtn.style.cssText = buttonStyle + `
+            left: 50%;
+            top: -36px;
+            transform: translateX(-50%);
+        `;
+        moveBtn.title = 'Déplacer';
+        moveBtn.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'move'));
+        moveBtn.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'move'), {passive: false});
+        controlsContainer.appendChild(moveBtn);
+
+        // Bouton de suppression (bas)
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        deleteBtn.style.cssText = buttonStyle + `
+            left: 50%;
+            bottom: -36px;
+            transform: translateX(-50%);
+            border-color: #ff3b30;
+            color: #ff3b30;
+        `;
+        deleteBtn.title = 'Supprimer';
+        deleteBtn.addEventListener('click', () => this.deleteSelectedTextBox());
+        controlsContainer.appendChild(deleteBtn);
+
+        // Boutons de taille de police (gauche) - Plus et Moins
+        const fontSizeUpBtn = document.createElement('button');
+        fontSizeUpBtn.innerHTML = '<i class="fas fa-plus"></i>';
+        fontSizeUpBtn.style.cssText = buttonStyle + `
+            left: -36px;
+            top: calc(50% - 18px);
+            transform: translateY(-50%);
+        `;
+        fontSizeUpBtn.title = 'Augmenter la taille';
+        fontSizeUpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeFontSize(2);
+        });
+        controlsContainer.appendChild(fontSizeUpBtn);
+
+        const fontSizeDownBtn = document.createElement('button');
+        fontSizeDownBtn.innerHTML = '<i class="fas fa-minus"></i>';
+        fontSizeDownBtn.style.cssText = buttonStyle + `
+            left: -36px;
+            top: calc(50% + 18px);
+            transform: translateY(-50%);
+        `;
+        fontSizeDownBtn.title = 'Diminuer la taille';
+        fontSizeDownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeFontSize(-2);
+        });
+        controlsContainer.appendChild(fontSizeDownBtn);
+
+        // Sélecteur de police (droite)
+        const fontFamilyBtn = document.createElement('button');
+        fontFamilyBtn.innerHTML = '<i class="fas fa-font"></i>';
+        fontFamilyBtn.style.cssText = buttonStyle + `
+            right: -36px;
+            top: 50%;
+            transform: translateY(-50%);
+        `;
+        fontFamilyBtn.title = 'Police';
+        fontFamilyBtn.addEventListener('click', (e) => this.showFontFamilyMenu(e));
+        controlsContainer.appendChild(fontFamilyBtn);
+
+        // Poignées de redimensionnement (coins)
+        const handleStyle = `
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 2px solid #007aff;
+            border-radius: 2px;
+            pointer-events: auto;
+        `;
+
+        // Coin inférieur droit (principal pour le redimensionnement)
+        const resizeHandle = document.createElement('div');
+        resizeHandle.style.cssText = handleStyle + `
+            right: -6px;
+            bottom: -6px;
+            cursor: nwse-resize;
+        `;
+        resizeHandle.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize'));
+        resizeHandle.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize'), {passive: false});
+        controlsContainer.appendChild(resizeHandle);
+
+        // Coin supérieur gauche
+        const resizeHandleTL = document.createElement('div');
+        resizeHandleTL.style.cssText = handleStyle + `
+            left: -6px;
+            top: -6px;
+            cursor: nwse-resize;
+        `;
+        resizeHandleTL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tl'));
+        resizeHandleTL.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-tl'), {passive: false});
+        controlsContainer.appendChild(resizeHandleTL);
+
+        // Coin supérieur droit
+        const resizeHandleTR = document.createElement('div');
+        resizeHandleTR.style.cssText = handleStyle + `
+            right: -6px;
+            top: -6px;
+            cursor: nesw-resize;
+        `;
+        resizeHandleTR.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tr'));
+        resizeHandleTR.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-tr'), {passive: false});
+        controlsContainer.appendChild(resizeHandleTR);
+
+        // Coin inférieur gauche
+        const resizeHandleBL = document.createElement('div');
+        resizeHandleBL.style.cssText = handleStyle + `
+            left: -6px;
+            bottom: -6px;
+            cursor: nesw-resize;
+        `;
+        resizeHandleBL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-bl'));
+        resizeHandleBL.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-bl'), {passive: false});
+        controlsContainer.appendChild(resizeHandleBL);
+
+        document.body.appendChild(controlsContainer);
+        this.textBoxControls = controlsContainer;
+
+        console.log('[TextControls] Contrôles ajoutés au DOM:', controlsContainer);
+    }
+
+    /**
+     * Supprimer les contrôles de la zone de texte
+     */
+    removeTextBoxControls() {
+        if (this.textBoxControls) {
+            this.textBoxControls.remove();
+            this.textBoxControls = null;
+        }
+
+        // Supprimer les menus ouverts
+        const menus = document.querySelectorAll('.text-box-menu');
+        menus.forEach(menu => menu.remove());
+    }
+
+    /**
+     * Créer l'overlay de saisie de texte
+     */
+    createTextInputOverlay(textBox, canvas, pageId) {
+        this.removeTextInputOverlay();
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / canvas.width;
+        const scaleY = rect.height / canvas.height;
+
+        const boxX = rect.left + (textBox.x * scaleX);
+        const boxY = rect.top + (textBox.y * scaleY);
+        const boxWidth = textBox.width * scaleX;
+        const boxHeight = textBox.height * scaleY;
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'text-box-input';
+        textarea.value = textBox.text || '';
+        textarea.style.cssText = `
+            position: fixed;
+            left: ${boxX + 8}px;
+            top: ${boxY + 8}px;
+            width: ${boxWidth - 16}px;
+            height: ${boxHeight - 16}px;
+            border: none;
+            background: transparent;
+            resize: none;
+            outline: none;
+            font-family: ${textBox.fontFamily || 'Arial'};
+            font-size: ${textBox.fontSize * scaleX}px;
+            color: ${textBox.color || '#000000'};
+            overflow: hidden;
+            z-index: 10001;
+            padding: 0;
+            margin: 0;
+            line-height: 1.3;
+        `;
+
+        // Événements pour mettre à jour le texte
+        textarea.addEventListener('input', () => {
+            this.updateTextBoxContent();
+        });
+
+        // Empêcher la propagation des événements clavier
+        textarea.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+        });
+
+        // Empêcher la désélection quand on clique dans le textarea
+        textarea.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
+
+        document.body.appendChild(textarea);
+        this.textInputOverlay = textarea;
+
+        // Focus sur le textarea
+        setTimeout(() => textarea.focus(), 50);
+    }
+
+    /**
+     * Supprimer l'overlay de saisie
+     */
+    removeTextInputOverlay() {
+        if (this.textInputOverlay) {
+            this.textInputOverlay.remove();
+            this.textInputOverlay = null;
+        }
+        // Nettoyer aussi tout élément orphelin
+        document.querySelectorAll('.text-box-input').forEach(el => el.remove());
+    }
+
+    /**
+     * Mettre à jour le contenu de la zone de texte
+     */
+    updateTextBoxContent() {
+        if (!this.selectedTextBox || !this.textInputOverlay) return;
+
+        const newText = this.textInputOverlay.value;
+        if (newText !== this.selectedTextBox.text) {
+            this.selectedTextBox.text = newText;
+
+            // Mettre à jour dans les annotations
+            this.updateTextBoxInAnnotations(this.selectedTextBox);
+
+            // Redessiner
+            if (this.selectedTextBoxCanvas && this.selectedTextBoxPageId) {
+                this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+            }
+
+            this.isDirty = true;
+        }
+    }
+
+    /**
+     * Mettre à jour une zone de texte dans les annotations
+     */
+    updateTextBoxInAnnotations(textBox) {
+        const pageAnnotations = this.annotations.get(textBox.pageId) || [];
+        const index = pageAnnotations.findIndex(a => a.id === textBox.id);
+
+        if (index !== -1) {
+            pageAnnotations[index] = {...textBox};
+            this.annotations.set(textBox.pageId, pageAnnotations);
+        }
+    }
+
+    /**
+     * Démarrer le drag d'une zone de texte
+     */
+    startTextBoxDrag(e, type) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        this.textDragState = {
+            type: type,
+            startX: clientX,
+            startY: clientY,
+            initialX: this.selectedTextBox.x,
+            initialY: this.selectedTextBox.y,
+            initialWidth: this.selectedTextBox.width,
+            initialHeight: this.selectedTextBox.height
+        };
+
+        // Ajouter les listeners de drag
+        const moveHandler = (e) => this.handleTextBoxDrag(e);
+        const endHandler = (e) => this.endTextBoxDrag(e, moveHandler, endHandler);
+
+        document.addEventListener('mousemove', moveHandler);
+        document.addEventListener('mouseup', endHandler);
+        document.addEventListener('touchmove', moveHandler, {passive: false});
+        document.addEventListener('touchend', endHandler);
+    }
+
+    /**
+     * Gérer le drag d'une zone de texte
+     */
+    handleTextBoxDrag(e) {
+        if (!this.textDragState || !this.selectedTextBox) return;
+
+        e.preventDefault();
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        const canvas = this.selectedTextBoxCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const deltaX = (clientX - this.textDragState.startX) * scaleX;
+        const deltaY = (clientY - this.textDragState.startY) * scaleY;
+
+        switch (this.textDragState.type) {
+            case 'move':
+                this.selectedTextBox.x = Math.max(0, Math.min(
+                    canvas.width - this.selectedTextBox.width,
+                    this.textDragState.initialX + deltaX
+                ));
+                this.selectedTextBox.y = Math.max(0, Math.min(
+                    canvas.height - this.selectedTextBox.height,
+                    this.textDragState.initialY + deltaY
+                ));
+                break;
+
+            case 'resize':
+                this.selectedTextBox.width = Math.max(100, this.textDragState.initialWidth + deltaX);
+                this.selectedTextBox.height = Math.max(50, this.textDragState.initialHeight + deltaY);
+                break;
+
+            case 'resize-tl':
+                const newWidthTL = Math.max(100, this.textDragState.initialWidth - deltaX);
+                const newHeightTL = Math.max(50, this.textDragState.initialHeight - deltaY);
+                this.selectedTextBox.x = this.textDragState.initialX + (this.textDragState.initialWidth - newWidthTL);
+                this.selectedTextBox.y = this.textDragState.initialY + (this.textDragState.initialHeight - newHeightTL);
+                this.selectedTextBox.width = newWidthTL;
+                this.selectedTextBox.height = newHeightTL;
+                break;
+
+            case 'resize-tr':
+                const newHeightTR = Math.max(50, this.textDragState.initialHeight - deltaY);
+                this.selectedTextBox.y = this.textDragState.initialY + (this.textDragState.initialHeight - newHeightTR);
+                this.selectedTextBox.width = Math.max(100, this.textDragState.initialWidth + deltaX);
+                this.selectedTextBox.height = newHeightTR;
+                break;
+
+            case 'resize-bl':
+                const newWidthBL = Math.max(100, this.textDragState.initialWidth - deltaX);
+                this.selectedTextBox.x = this.textDragState.initialX + (this.textDragState.initialWidth - newWidthBL);
+                this.selectedTextBox.width = newWidthBL;
+                this.selectedTextBox.height = Math.max(50, this.textDragState.initialHeight + deltaY);
+                break;
+        }
+
+        // Mettre à jour les contrôles et l'overlay
+        this.updateTextBoxControlsPosition();
+
+        // Mettre à jour dans les annotations et redessiner
+        this.updateTextBoxInAnnotations(this.selectedTextBox);
+        this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+    }
+
+    /**
+     * Terminer le drag d'une zone de texte
+     */
+    endTextBoxDrag(e, moveHandler, endHandler) {
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', endHandler);
+        document.removeEventListener('touchmove', moveHandler);
+        document.removeEventListener('touchend', endHandler);
+
+        this.textDragState = null;
+        this.isDirty = true;
+    }
+
+    /**
+     * Mettre à jour la position des contrôles
+     */
+    updateTextBoxControlsPosition() {
+        if (!this.textBoxControls || !this.selectedTextBox || !this.selectedTextBoxCanvas) return;
+
+        const canvas = this.selectedTextBoxCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / canvas.width;
+        const scaleY = rect.height / canvas.height;
+
+        const boxX = rect.left + (this.selectedTextBox.x * scaleX);
+        const boxY = rect.top + (this.selectedTextBox.y * scaleY);
+        const boxWidth = this.selectedTextBox.width * scaleX;
+        const boxHeight = this.selectedTextBox.height * scaleY;
+
+        this.textBoxControls.style.left = `${boxX}px`;
+        this.textBoxControls.style.top = `${boxY}px`;
+        this.textBoxControls.style.width = `${boxWidth}px`;
+        this.textBoxControls.style.height = `${boxHeight}px`;
+
+        // Mettre à jour l'overlay de texte aussi
+        if (this.textInputOverlay) {
+            this.textInputOverlay.style.left = `${boxX + 8}px`;
+            this.textInputOverlay.style.top = `${boxY + 8}px`;
+            this.textInputOverlay.style.width = `${boxWidth - 16}px`;
+            this.textInputOverlay.style.height = `${boxHeight - 16}px`;
+        }
+    }
+
+    /**
+     * Supprimer la zone de texte sélectionnée
+     */
+    deleteSelectedTextBox() {
+        if (!this.selectedTextBox) return;
+
+        const pageId = this.selectedTextBoxPageId;
+        const textBoxId = this.selectedTextBox.id;
+
+        console.log('[Text] Suppression de la zone de texte:', textBoxId);
+
+        // Supprimer des annotations
+        const pageAnnotations = this.annotations.get(pageId) || [];
+        const newAnnotations = pageAnnotations.filter(a => a.id !== textBoxId);
+        this.annotations.set(pageId, newAnnotations);
+
+        // Désélectionner
+        this.deselectTextBox();
+
+        // Redessiner
+        const canvas = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"] .annotation-canvas`);
+        if (canvas) {
+            this.redrawAnnotations(canvas, pageId);
+        }
+
+        this.isDirty = true;
+    }
+
+    /**
+     * Changer la taille de police (+ ou -)
+     */
+    changeFontSize(delta) {
+        if (!this.selectedTextBox) return;
+
+        const minSize = 8;
+        const maxSize = 72;
+        const newSize = Math.max(minSize, Math.min(maxSize, this.selectedTextBox.fontSize + delta));
+
+        if (newSize !== this.selectedTextBox.fontSize) {
+            this.selectedTextBox.fontSize = newSize;
+            this.updateTextBoxInAnnotations(this.selectedTextBox);
+            this.updateTextInputOverlayStyle();
+            this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+            this.isDirty = true;
+            console.log('[Text] Taille de police changée à:', newSize);
+        }
+    }
+
+    /**
+     * Afficher le menu de taille de police
+     */
+    showFontSizeMenu(e) {
+        e.stopPropagation();
+        this.closeAllMenus();
+
+        const sizes = [12, 14, 16, 18, 20, 24, 28, 32, 40, 48];
+        const menu = this.createTextBoxMenu(sizes.map(size => ({
+            label: `${size}px`,
+            value: size,
+            selected: this.selectedTextBox.fontSize === size
+        })), (value) => {
+            this.selectedTextBox.fontSize = value;
+            this.updateTextBoxInAnnotations(this.selectedTextBox);
+            this.updateTextInputOverlayStyle();
+            this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+            this.isDirty = true;
+        });
+
+        const btn = e.currentTarget;
+        const rect = btn.getBoundingClientRect();
+        menu.style.left = `${rect.left - 60}px`;
+        menu.style.top = `${rect.top}px`;
+    }
+
+    /**
+     * Afficher le menu de police
+     */
+    showFontFamilyMenu(e) {
+        e.stopPropagation();
+        this.closeAllMenus();
+
+        const fonts = [
+            {label: 'Arial', value: 'Arial'},
+            {label: 'Times New Roman', value: 'Times New Roman'},
+            {label: 'Georgia', value: 'Georgia'},
+            {label: 'Courier New', value: 'Courier New'},
+            {label: 'Comic Sans MS', value: 'Comic Sans MS'}
+        ];
+
+        const menu = this.createTextBoxMenu(fonts.map(font => ({
+            label: font.label,
+            value: font.value,
+            selected: this.selectedTextBox.fontFamily === font.value
+        })), (value) => {
+            this.selectedTextBox.fontFamily = value;
+            this.updateTextBoxInAnnotations(this.selectedTextBox);
+            this.updateTextInputOverlayStyle();
+            this.redrawAnnotations(this.selectedTextBoxCanvas, this.selectedTextBoxPageId);
+            this.isDirty = true;
+        });
+
+        const btn = e.currentTarget;
+        const rect = btn.getBoundingClientRect();
+        menu.style.left = `${rect.right + 10}px`;
+        menu.style.top = `${rect.top}px`;
+    }
+
+    /**
+     * Créer un menu pour les options de texte
+     */
+    createTextBoxMenu(options, onSelect) {
+        const menu = document.createElement('div');
+        menu.className = 'text-box-menu';
+        menu.style.cssText = `
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10002;
+            overflow: hidden;
+            min-width: 120px;
+        `;
+
+        options.forEach(opt => {
+            const item = document.createElement('button');
+            item.textContent = opt.label;
+            item.style.cssText = `
+                display: block;
+                width: 100%;
+                padding: 10px 15px;
+                border: none;
+                background: ${opt.selected ? '#f0f0f0' : 'white'};
+                text-align: left;
+                cursor: pointer;
+                font-family: ${opt.value.includes(' ') ? `"${opt.value}"` : opt.value};
+                font-size: 14px;
+            `;
+            item.addEventListener('mouseenter', () => item.style.background = '#f0f0f0');
+            item.addEventListener('mouseleave', () => item.style.background = opt.selected ? '#f0f0f0' : 'white');
+            item.addEventListener('click', () => {
+                onSelect(opt.value);
+                menu.remove();
+            });
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        // Fermer le menu si on clique ailleurs
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 0);
+
+        return menu;
+    }
+
+    /**
+     * Fermer tous les menus ouverts
+     */
+    closeAllMenus() {
+        document.querySelectorAll('.text-box-menu').forEach(menu => menu.remove());
+    }
+
+    /**
+     * Mettre à jour le style de l'overlay de texte
+     */
+    updateTextInputOverlayStyle() {
+        if (!this.textInputOverlay || !this.selectedTextBox || !this.selectedTextBoxCanvas) return;
+
+        const canvas = this.selectedTextBoxCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width / canvas.width;
+
+        this.textInputOverlay.style.fontFamily = this.selectedTextBox.fontFamily || 'Arial';
+        this.textInputOverlay.style.fontSize = `${this.selectedTextBox.fontSize * scaleX}px`;
+    }
+
+    // ============================================================
+    // FIN DES MÉTHODES POUR L'OUTIL TEXTE
+    // ============================================================
 
     /**
      * Ajouter une annotation à l'historique
@@ -5937,6 +6858,11 @@ class CleanPDFViewer {
     setTool(tool) {
         console.log('[Tool] setTool appelé avec:', tool);
 
+        // Désélectionner la zone de texte si on change d'outil (sauf si on reste sur text)
+        if (tool !== 'text' && this.selectedTextBox) {
+            this.deselectTextBox();
+        }
+
         // Cas spécial : l'équerre est un toggle qui ne change pas l'outil actif
         if (tool === 'set-square') {
             const setSquare = document.querySelector('.set-square-overlay');
@@ -5984,6 +6910,11 @@ class CleanPDFViewer {
             // L'utilisateur doit taper sur la page pour toggle la grille
             // (géré dans startAnnotation)
             this.currentOpacity = 1.0;
+        } else if (tool === 'text') {
+            // Outil texte - la couleur actuelle sera utilisée pour le texte
+            this.currentOpacity = 1.0;
+            // Désélectionner toute zone de texte précédente si on change d'outil
+            // Ne pas faire ici car on veut garder la sélection si on reste sur l'outil texte
         } else {
             // Retour à l'opacité normale et couleur noire pour les autres outils
             this.currentOpacity = 1.0;
