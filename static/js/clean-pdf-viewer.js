@@ -2381,10 +2381,31 @@ class CleanPDFViewer {
      * Évaluer une expression mathématique avec une valeur x
      */
     evaluateMathExpression(expression, xValue) {
-        // Remplacer x par la valeur
-        let expr = expression.replace(/x/g, `(${xValue})`);
+        let expr = expression;
 
-        // Remplacer les fonctions mathématiques
+        // 1. Remplacer les virgules par des points (2,5 -> 2.5)
+        expr = expr.replace(/,/g, '.');
+
+        // 2. Ajouter la multiplication implicite
+        // 2a. Nombre suivi de x (3x -> 3*x)
+        expr = expr.replace(/(\d)([x])/gi, '$1*$2');
+        // 2b. Nombre suivi d'une parenthèse ouvrante (3( -> 3*(, 2.5( -> 2.5*()
+        expr = expr.replace(/(\d)\(/g, '$1*(');
+        // 2c. Parenthèse fermante suivie d'un nombre ()3 -> ()*3)
+        expr = expr.replace(/\)(\d)/g, ')*$1');
+        // 2d. Parenthèse fermante suivie de x ()x -> ()*x)
+        expr = expr.replace(/\)([x])/gi, ')*$1');
+        // 2e. x suivi d'une parenthèse (x( -> x*()
+        expr = expr.replace(/([x])\(/gi, '$1*(');
+        // 2f. Parenthèse fermante suivie d'une parenthèse ouvrante ()( -> ()*()
+        expr = expr.replace(/\)\(/g, ')*(');
+        // 2g. x suivi d'un nombre (x2 -> x*2) - rare mais possible
+        expr = expr.replace(/([x])(\d)/gi, '$1*$2');
+
+        // 3. Remplacer x par la valeur
+        expr = expr.replace(/x/gi, `(${xValue})`);
+
+        // 4. Remplacer les fonctions mathématiques
         expr = expr.replace(/sin/g, 'Math.sin');
         expr = expr.replace(/cos/g, 'Math.cos');
         expr = expr.replace(/tan/g, 'Math.tan');
@@ -2393,8 +2414,9 @@ class CleanPDFViewer {
         expr = expr.replace(/exp/g, 'Math.exp');
         expr = expr.replace(/log/g, 'Math.log');
         expr = expr.replace(/pow/g, 'Math.pow');
+        expr = expr.replace(/pi/gi, 'Math.PI');
 
-        // Remplacer ^ par **  (puissance)
+        // 5. Remplacer ^ par ** (puissance)
         expr = expr.replace(/\^/g, '**');
 
         // Évaluer l'expression
