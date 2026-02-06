@@ -2591,6 +2591,12 @@ class CleanPDFViewer {
         // Initialiser les données par défaut si nécessaire
         const charts = diagramData.charts || [];
 
+        // Récupérer le container parent pour ajouter les overlays
+        const container = pdfCanvas.parentElement;
+
+        // Supprimer les anciens overlays de tableaux éditables
+        container.querySelectorAll('.diagram-editable-table').forEach(el => el.remove());
+
         if (charts.length === 0) {
             // Afficher un message d'invitation
             ctx.fillStyle = '#9ca3af';
@@ -2606,8 +2612,8 @@ class CleanPDFViewer {
                 const pos = positions[index];
                 this.drawChart(ctx, chart, pos.x, pos.y, pos.width, pos.height);
 
-                // Dessiner le tableau de données à côté/en dessous du diagramme
-                this.drawInlineDataTable(ctx, chart, pos, index);
+                // Créer le tableau éditable HTML overlay
+                this.createEditableDataTable(container, chart, pos, index, pageId, width);
             });
         }
 
@@ -2671,59 +2677,165 @@ class CleanPDFViewer {
     }
 
     /**
-     * Dessiner le tableau de données inline à côté du diagramme
+     * Créer un tableau de données éditable (HTML overlay)
      */
-    drawInlineDataTable(ctx, chart, pos, chartIndex) {
+    createEditableDataTable(container, chart, pos, chartIndex, pageId, canvasWidth) {
         const data = chart.data || [];
-        if (data.length === 0) return;
 
         const tableX = pos.x + pos.width + 20;
         const tableY = pos.y;
-        const rowHeight = 22;
-        const colWidths = [90, 50, 45]; // Catégorie, Valeur, Couleur
 
-        // Titre du tableau
-        ctx.fillStyle = '#374151';
-        ctx.font = 'bold 11px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText('Données', tableX, tableY);
+        // Créer l'overlay du tableau
+        const tableOverlay = document.createElement('div');
+        tableOverlay.className = 'diagram-editable-table';
+        tableOverlay.dataset.chartIndex = chartIndex;
+        tableOverlay.style.cssText = `
+            position: absolute;
+            left: ${tableX}px;
+            top: ${tableY}px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            z-index: 50;
+            min-width: 200px;
+        `;
 
-        // En-tête
-        const headerY = tableY + 15;
-        ctx.fillStyle = '#f3f4f6';
-        ctx.fillRect(tableX, headerY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(tableX, headerY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+        // Générer le contenu du tableau
+        tableOverlay.innerHTML = `
+            <div style="background: #f3f4f6; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <span>📊 ${chart.title || 'Données'}</span>
+                <button class="add-row-inline-btn" title="Ajouter une ligne" style="background: #10b981; color: white; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1;">+</button>
+            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f9fafb;">
+                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb;">Catégorie</th>
+                        <th style="padding: 4px 6px; text-align: left; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; width: 60px;">Valeur</th>
+                        <th style="padding: 4px 6px; text-align: center; font-weight: 500; color: #6b7280; border-bottom: 1px solid #e5e7eb; width: 40px;">🎨</th>
+                        <th style="width: 24px; border-bottom: 1px solid #e5e7eb;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map((item, i) => `
+                        <tr data-row-index="${i}" style="background: ${i % 2 === 0 ? 'white' : '#fafafa'};">
+                            <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6;">
+                                <input type="text" class="inline-category" value="${item.category || ''}"
+                                       style="width: 100%; padding: 3px 5px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; background: transparent; outline: none;"
+                                       onfocus="this.style.borderColor='#3b82f6'; this.style.background='white';"
+                                       onblur="this.style.borderColor='transparent'; this.style.background='transparent';">
+                            </td>
+                            <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6;">
+                                <input type="number" class="inline-value" value="${item.value || 0}" min="0"
+                                       style="width: 100%; padding: 3px 5px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; background: transparent; outline: none;"
+                                       onfocus="this.style.borderColor='#3b82f6'; this.style.background='white';"
+                                       onblur="this.style.borderColor='transparent'; this.style.background='transparent';">
+                            </td>
+                            <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6; text-align: center;">
+                                <input type="color" class="inline-color" value="${item.color || this.getDiagramColors()[i % 10]}"
+                                       style="width: 28px; height: 20px; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer; padding: 0;">
+                            </td>
+                            <td style="padding: 2px; border-bottom: 1px solid #f3f4f6; text-align: center;">
+                                <button class="delete-row-inline-btn" title="Supprimer" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1;">×</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
 
-        ctx.fillStyle = '#4b5563';
-        ctx.font = 'bold 10px Arial';
-        ctx.fillText('Catégorie', tableX + 4, headerY + 15);
-        ctx.fillText('Valeur', tableX + colWidths[0] + 4, headerY + 15);
+        container.appendChild(tableOverlay);
 
-        // Lignes de données
-        data.forEach((item, i) => {
-            const rowY = headerY + rowHeight * (i + 1);
+        // Attacher les événements
+        this.attachInlineTableEvents(tableOverlay, chartIndex, pageId);
+    }
 
-            // Fond de ligne alternée
-            ctx.fillStyle = i % 2 === 0 ? 'white' : '#fafafa';
-            ctx.fillRect(tableX, rowY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.strokeRect(tableX, rowY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+    /**
+     * Attacher les événements pour le tableau éditable inline
+     */
+    attachInlineTableEvents(tableOverlay, chartIndex, pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || !pageData.data || !pageData.data.charts) return;
 
-            // Contenu
-            ctx.fillStyle = '#374151';
-            ctx.font = '10px Arial';
-            const categoryText = (item.category || '').substring(0, 12);
-            ctx.fillText(categoryText, tableX + 4, rowY + 15);
-            ctx.fillText(item.value.toString(), tableX + colWidths[0] + 4, rowY + 15);
+        const chart = pageData.data.charts[chartIndex];
+        if (!chart) return;
 
-            // Couleur
-            ctx.fillStyle = item.color || '#3B82F6';
-            ctx.fillRect(tableX + colWidths[0] + colWidths[1] + 8, rowY + 5, 28, 12);
-            ctx.strokeStyle = '#d1d5db';
-            ctx.strokeRect(tableX + colWidths[0] + colWidths[1] + 8, rowY + 5, 28, 12);
+        // Fonction pour mettre à jour et redessiner
+        const updateChart = () => {
+            this.isDirty = true;
+            this.redrawDiagramChart(pageId);
+        };
+
+        // Événements sur les inputs de catégorie
+        tableOverlay.querySelectorAll('.inline-category').forEach((input, rowIndex) => {
+            input.addEventListener('change', () => {
+                if (chart.data[rowIndex]) {
+                    chart.data[rowIndex].category = input.value;
+                    updateChart();
+                }
+            });
         });
+
+        // Événements sur les inputs de valeur
+        tableOverlay.querySelectorAll('.inline-value').forEach((input, rowIndex) => {
+            input.addEventListener('change', () => {
+                if (chart.data[rowIndex]) {
+                    chart.data[rowIndex].value = parseFloat(input.value) || 0;
+                    updateChart();
+                }
+            });
+        });
+
+        // Événements sur les inputs de couleur
+        tableOverlay.querySelectorAll('.inline-color').forEach((input, rowIndex) => {
+            input.addEventListener('change', () => {
+                if (chart.data[rowIndex]) {
+                    chart.data[rowIndex].color = input.value;
+                    updateChart();
+                }
+            });
+        });
+
+        // Bouton ajouter ligne
+        tableOverlay.querySelector('.add-row-inline-btn').addEventListener('click', () => {
+            const colors = this.getDiagramColors();
+            const newIndex = chart.data.length;
+            chart.data.push({
+                category: `Catégorie ${newIndex + 1}`,
+                value: 0,
+                color: colors[newIndex % colors.length]
+            });
+            updateChart();
+        });
+
+        // Boutons supprimer ligne
+        tableOverlay.querySelectorAll('.delete-row-inline-btn').forEach((btn, rowIndex) => {
+            btn.addEventListener('click', () => {
+                if (chart.data.length > 1) {
+                    chart.data.splice(rowIndex, 1);
+                    updateChart();
+                }
+            });
+        });
+    }
+
+    /**
+     * Redessiner uniquement le diagramme d'une page (sans re-render complet)
+     */
+    async redrawDiagramChart(pageId) {
+        const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+        if (!pageWrapper) return;
+
+        const pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+        const annotationCanvas = pageWrapper.querySelector('.annotation-canvas');
+        if (!pdfCanvas || !annotationCanvas) return;
+
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'diagram') return;
+
+        await this.renderDiagramPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
     }
 
     /**
