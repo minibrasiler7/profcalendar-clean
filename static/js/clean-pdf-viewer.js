@@ -978,6 +978,38 @@ class CleanPDFViewer {
                 transform: scale(0.95);
             }
 
+            /* Bouton de configuration des diagrammes */
+            .diagram-config-btn {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                border-radius: 12px;
+                background: white;
+                border: 2px solid #10B981;
+                color: #10B981;
+                font-size: 20px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+                transition: all 0.2s ease;
+                z-index: 100;
+            }
+
+            .diagram-config-btn:hover {
+                background: #10B981;
+                color: white;
+                transform: scale(1.05);
+                box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+            }
+
+            .diagram-config-btn:active {
+                transform: scale(0.95);
+            }
+
             /* Bouton mode test sur la frise */
             .timeline-test-btn {
                 position: absolute;
@@ -2084,6 +2116,16 @@ class CleanPDFViewer {
                     container.appendChild(animBtn);
                 }
             }
+        } else if (pageData && pageData.type === 'diagram') {
+            await this.renderDiagramPage(pdfCanvas, annotationCanvas, pageData.data, pageId);
+
+            // Ajouter un bouton de configuration pour les pages diagramme
+            const configBtn = document.createElement('button');
+            configBtn.className = 'diagram-config-btn';
+            configBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            configBtn.title = 'Configurer les diagrammes';
+            configBtn.addEventListener('click', () => this.openDiagramConfigPanel(pageId));
+            container.appendChild(configBtn);
         }
 
         // Configurer les événements d'annotation
@@ -2490,6 +2532,498 @@ class CleanPDFViewer {
         if (pageId) {
             this.redrawAnnotations(annotationCanvas, pageId);
         }
+    }
+
+    /**
+     * Palette de couleurs par défaut pour les diagrammes
+     */
+    getDiagramColors() {
+        return [
+            '#EF4444', // Rouge
+            '#F59E0B', // Orange
+            '#10B981', // Vert
+            '#3B82F6', // Bleu
+            '#6366F1', // Indigo
+            '#8B5CF6', // Violet
+            '#EC4899', // Rose
+            '#14B8A6', // Teal
+            '#F97316', // Orange vif
+            '#84CC16'  // Lime
+        ];
+    }
+
+    /**
+     * Rendre une page de diagramme
+     */
+    async renderDiagramPage(pdfCanvas, annotationCanvas, diagramData = {}, pageId) {
+        // Adapter la taille à celle des pages PDF
+        let width, height;
+
+        if (this.pdf && this.pdf.numPages > 0) {
+            const referencePage = await this.pdf.getPage(1);
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const baseViewport = referencePage.getViewport({scale: 1});
+            const calculatedScale = targetWidth / baseViewport.width;
+            const scale = this.scale === 1.0 ? calculatedScale : this.scale;
+            const viewport = referencePage.getViewport({scale: scale});
+            width = viewport.width;
+            height = viewport.height;
+        } else {
+            const viewerWidth = this.elements.viewer.clientWidth;
+            const targetWidth = viewerWidth * 0.95;
+            const a4Ratio = 297 / 210;
+            width = targetWidth;
+            height = width * a4Ratio;
+        }
+
+        pdfCanvas.width = width;
+        pdfCanvas.height = height;
+        annotationCanvas.width = width;
+        annotationCanvas.height = height;
+
+        const ctx = pdfCanvas.getContext('2d');
+
+        // Fond blanc
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+
+        // Initialiser les données par défaut si nécessaire
+        const charts = diagramData.charts || [];
+
+        if (charts.length === 0) {
+            // Afficher un message d'invitation
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Cliquez sur ⚙️ pour configurer vos diagrammes', width / 2, height / 2);
+        } else {
+            // Dessiner chaque diagramme
+            for (const chart of charts) {
+                this.drawChart(ctx, chart, width, height);
+            }
+        }
+
+        // Redessiner les annotations existantes
+        if (pageId) {
+            this.redrawAnnotations(annotationCanvas, pageId);
+        }
+    }
+
+    /**
+     * Dessiner un diagramme selon son type
+     */
+    drawChart(ctx, chart, canvasWidth, canvasHeight) {
+        const x = chart.x || 50;
+        const y = chart.y || 50;
+        const width = chart.width || 400;
+        const height = chart.height || 300;
+
+        switch (chart.type) {
+            case 'bar':
+                this.drawBarChart(ctx, chart, x, y, width, height);
+                break;
+            case 'pie':
+                this.drawPieChart(ctx, chart, x, y, width, height);
+                break;
+            case 'area':
+                this.drawAreaChart(ctx, chart, x, y, width, height);
+                break;
+            default:
+                this.drawBarChart(ctx, chart, x, y, width, height);
+        }
+    }
+
+    /**
+     * Dessiner un diagramme en barres
+     */
+    drawBarChart(ctx, chart, x, y, width, height) {
+        const data = chart.data || [];
+        if (data.length === 0) return;
+
+        const padding = 40;
+        const titleHeight = chart.showTitle ? 30 : 0;
+        const legendHeight = chart.showLegend ? 30 : 0;
+        const chartX = x + padding;
+        const chartY = y + titleHeight + 10;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - titleHeight - legendHeight - padding - 20;
+
+        // Titre
+        if (chart.showTitle && chart.title) {
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(chart.title, x + width / 2, y + 20);
+        }
+
+        // Calculer la valeur maximale
+        const hasSecondValue = chart.showSecondValue && data.some(d => d.value2 > 0);
+        let maxValue = Math.max(...data.map(d => d.value || 0));
+        if (hasSecondValue) {
+            maxValue = Math.max(maxValue, ...data.map(d => d.value2 || 0));
+        }
+        if (maxValue === 0) maxValue = 100;
+
+        // Arrondir à un nombre agréable
+        const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
+        maxValue = Math.ceil(maxValue / magnitude) * magnitude;
+
+        // Dessiner l'axe Y
+        ctx.strokeStyle = '#9ca3af';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(chartX, chartY);
+        ctx.lineTo(chartX, chartY + chartHeight);
+        ctx.stroke();
+
+        // Graduations Y
+        const numTicks = 5;
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        for (let i = 0; i <= numTicks; i++) {
+            const tickY = chartY + chartHeight - (i / numTicks) * chartHeight;
+            const tickValue = Math.round((i / numTicks) * maxValue);
+
+            ctx.beginPath();
+            ctx.moveTo(chartX - 5, tickY);
+            ctx.lineTo(chartX, tickY);
+            ctx.stroke();
+
+            ctx.fillText(tickValue.toString(), chartX - 8, tickY + 4);
+        }
+
+        // Dessiner l'axe X
+        ctx.beginPath();
+        ctx.moveTo(chartX, chartY + chartHeight);
+        ctx.lineTo(chartX + chartWidth, chartY + chartHeight);
+        ctx.stroke();
+
+        // Dessiner les barres
+        const barGroupWidth = chartWidth / data.length;
+        const barPadding = barGroupWidth * 0.2;
+        const barWidth = hasSecondValue ? (barGroupWidth - barPadding * 2) / 2 : barGroupWidth - barPadding * 2;
+
+        data.forEach((item, index) => {
+            const barX = chartX + index * barGroupWidth + barPadding;
+            const barHeight = (item.value / maxValue) * chartHeight;
+
+            // Première barre
+            ctx.fillStyle = item.color || '#3B82F6';
+            ctx.fillRect(barX, chartY + chartHeight - barHeight, barWidth, barHeight);
+
+            // Étiquette de valeur
+            if (chart.showLabels) {
+                ctx.fillStyle = '#1f2937';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.value.toString(), barX + barWidth / 2, chartY + chartHeight - barHeight - 5);
+            }
+
+            // Deuxième barre si activée
+            if (hasSecondValue && item.value2) {
+                const bar2X = barX + barWidth;
+                const bar2Height = (item.value2 / maxValue) * chartHeight;
+
+                // Couleur légèrement plus claire
+                ctx.fillStyle = this.lightenColor(item.color || '#3B82F6', 30);
+                ctx.fillRect(bar2X, chartY + chartHeight - bar2Height, barWidth, bar2Height);
+
+                if (chart.showLabels) {
+                    ctx.fillStyle = '#1f2937';
+                    ctx.fillText(item.value2.toString(), bar2X + barWidth / 2, chartY + chartHeight - bar2Height - 5);
+                }
+            }
+
+            // Nom de la catégorie
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'center';
+            const labelX = hasSecondValue ? barX + barWidth : barX + barWidth / 2;
+            ctx.fillText(item.category || '', labelX, chartY + chartHeight + 15);
+        });
+
+        // Légende
+        if (chart.showLegend && data.length > 0) {
+            const legendY = y + height - 15;
+            let legendX = x + 20;
+
+            data.forEach((item, index) => {
+                // Carré de couleur
+                ctx.fillStyle = item.color || '#3B82F6';
+                ctx.fillRect(legendX, legendY - 8, 12, 12);
+
+                // Texte
+                ctx.fillStyle = '#4b5563';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'left';
+                const text = item.category || `Série ${index + 1}`;
+                ctx.fillText(text, legendX + 16, legendY + 2);
+
+                legendX += ctx.measureText(text).width + 30;
+            });
+        }
+    }
+
+    /**
+     * Dessiner un diagramme camembert
+     */
+    drawPieChart(ctx, chart, x, y, width, height) {
+        const data = chart.data || [];
+        if (data.length === 0) return;
+
+        const titleHeight = chart.showTitle ? 30 : 0;
+        const legendWidth = chart.showLegend ? 120 : 0;
+        const centerX = x + (width - legendWidth) / 2;
+        const centerY = y + titleHeight + (height - titleHeight) / 2;
+        const radius = Math.min((width - legendWidth) / 2, (height - titleHeight) / 2) - 20;
+
+        // Titre
+        if (chart.showTitle && chart.title) {
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(chart.title, x + width / 2, y + 20);
+        }
+
+        // Calculer le total
+        const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
+        if (total === 0) return;
+
+        // Dessiner les secteurs
+        let currentAngle = -Math.PI / 2; // Commencer en haut
+
+        data.forEach((item, index) => {
+            const sliceAngle = (item.value / total) * 2 * Math.PI;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+            ctx.closePath();
+
+            ctx.fillStyle = item.color || this.getDiagramColors()[index % 10];
+            ctx.fill();
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Étiquette avec pourcentage
+            if (chart.showLabels) {
+                const labelAngle = currentAngle + sliceAngle / 2;
+                const labelRadius = radius * 0.7;
+                const labelX = centerX + Math.cos(labelAngle) * labelRadius;
+                const labelY = centerY + Math.sin(labelAngle) * labelRadius;
+                const percentage = Math.round((item.value / total) * 100);
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${percentage}%`, labelX, labelY);
+            }
+
+            currentAngle += sliceAngle;
+        });
+
+        // Légende
+        if (chart.showLegend) {
+            const legendX = x + width - legendWidth + 10;
+            let legendY = y + titleHeight + 20;
+
+            data.forEach((item, index) => {
+                // Carré de couleur
+                ctx.fillStyle = item.color || this.getDiagramColors()[index % 10];
+                ctx.fillRect(legendX, legendY - 6, 12, 12);
+
+                // Texte
+                ctx.fillStyle = '#4b5563';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                const text = item.category || `Série ${index + 1}`;
+                ctx.fillText(text, legendX + 16, legendY);
+
+                legendY += 20;
+            });
+        }
+    }
+
+    /**
+     * Dessiner un diagramme en aires
+     */
+    drawAreaChart(ctx, chart, x, y, width, height) {
+        const data = chart.data || [];
+        if (data.length === 0) return;
+
+        const padding = 40;
+        const titleHeight = chart.showTitle ? 30 : 0;
+        const legendHeight = chart.showLegend ? 30 : 0;
+        const chartX = x + padding;
+        const chartY = y + titleHeight + 10;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - titleHeight - legendHeight - padding - 20;
+
+        // Titre
+        if (chart.showTitle && chart.title) {
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(chart.title, x + width / 2, y + 20);
+        }
+
+        // Calculer la valeur maximale
+        let maxValue = Math.max(...data.map(d => d.value || 0));
+        if (maxValue === 0) maxValue = 100;
+        const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
+        maxValue = Math.ceil(maxValue / magnitude) * magnitude;
+
+        // Dessiner les axes
+        ctx.strokeStyle = '#9ca3af';
+        ctx.lineWidth = 1;
+
+        // Axe Y
+        ctx.beginPath();
+        ctx.moveTo(chartX, chartY);
+        ctx.lineTo(chartX, chartY + chartHeight);
+        ctx.stroke();
+
+        // Graduations Y
+        const numTicks = 5;
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        for (let i = 0; i <= numTicks; i++) {
+            const tickY = chartY + chartHeight - (i / numTicks) * chartHeight;
+            const tickValue = Math.round((i / numTicks) * maxValue);
+
+            ctx.beginPath();
+            ctx.moveTo(chartX - 5, tickY);
+            ctx.lineTo(chartX, tickY);
+            ctx.stroke();
+
+            ctx.fillText(tickValue.toString(), chartX - 8, tickY + 4);
+        }
+
+        // Axe X
+        ctx.beginPath();
+        ctx.moveTo(chartX, chartY + chartHeight);
+        ctx.lineTo(chartX + chartWidth, chartY + chartHeight);
+        ctx.stroke();
+
+        // Calculer les points
+        const pointSpacing = chartWidth / (data.length - 1 || 1);
+        const points = data.map((item, index) => ({
+            x: chartX + index * pointSpacing,
+            y: chartY + chartHeight - (item.value / maxValue) * chartHeight,
+            value: item.value,
+            category: item.category,
+            color: item.color
+        }));
+
+        // Dessiner l'aire remplie
+        ctx.beginPath();
+        ctx.moveTo(chartX, chartY + chartHeight);
+
+        points.forEach((point, index) => {
+            if (index === 0) {
+                ctx.lineTo(point.x, point.y);
+            } else {
+                ctx.lineTo(point.x, point.y);
+            }
+        });
+
+        ctx.lineTo(points[points.length - 1].x, chartY + chartHeight);
+        ctx.closePath();
+
+        // Gradient pour le remplissage
+        const gradient = ctx.createLinearGradient(0, chartY, 0, chartY + chartHeight);
+        const mainColor = data[0]?.color || '#3B82F6';
+        gradient.addColorStop(0, this.hexToRgba(mainColor, 0.6));
+        gradient.addColorStop(1, this.hexToRgba(mainColor, 0.1));
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Dessiner la ligne
+        ctx.beginPath();
+        points.forEach((point, index) => {
+            if (index === 0) {
+                ctx.moveTo(point.x, point.y);
+            } else {
+                ctx.lineTo(point.x, point.y);
+            }
+        });
+        ctx.strokeStyle = mainColor;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Dessiner les points et étiquettes
+        points.forEach((point, index) => {
+            // Point
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = mainColor;
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Étiquette de valeur
+            if (chart.showLabels) {
+                ctx.fillStyle = '#1f2937';
+                ctx.font = '11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(point.value.toString(), point.x, point.y - 10);
+            }
+
+            // Nom de la catégorie
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(point.category || '', point.x, chartY + chartHeight + 15);
+        });
+
+        // Légende
+        if (chart.showLegend && data.length > 0) {
+            const legendY = y + height - 15;
+            let legendX = x + 20;
+
+            // Carré de couleur
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(legendX, legendY - 8, 12, 12);
+
+            // Texte
+            ctx.fillStyle = '#4b5563';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(chart.title || 'Données', legendX + 16, legendY + 2);
+        }
+    }
+
+    /**
+     * Convertir couleur hex en rgba
+     */
+    hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    /**
+     * Éclaircir une couleur
+     */
+    lightenColor(hex, percent) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+
+        const newR = Math.min(255, r + Math.round((255 - r) * percent / 100));
+        const newG = Math.min(255, g + Math.round((255 - g) * percent / 100));
+        const newB = Math.min(255, b + Math.round((255 - b) * percent / 100));
+
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
     }
 
     /**
@@ -3931,6 +4465,360 @@ class CleanPDFViewer {
                           style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; min-height: 40px; font-size: 13px; font-family: Arial;">${event.description || ''}</textarea>
             </div>
         `;
+    }
+
+    /**
+     * Ouvrir le panneau de configuration des diagrammes
+     */
+    openDiagramConfigPanel(pageId) {
+        const pageData = this.pages.get(pageId);
+        if (!pageData || pageData.type !== 'diagram') return;
+
+        // Initialiser les données par défaut si nécessaire
+        if (!pageData.data) {
+            pageData.data = { charts: [] };
+        }
+        if (!pageData.data.charts) {
+            pageData.data.charts = [];
+        }
+
+        const data = pageData.data;
+        const charts = data.charts;
+
+        // Supprimer le panneau existant s'il y en a un
+        const existingPanel = document.getElementById('diagram-config-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+        }
+
+        // Créer le panneau
+        const panel = document.createElement('div');
+        panel.id = 'diagram-config-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            max-height: 85vh;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10001;
+            overflow-y: auto;
+        `;
+
+        panel.innerHTML = `
+            <div style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">Configuration des diagrammes</h3>
+                    <button id="diagram-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <button id="add-chart-btn" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                        + Ajouter un diagramme
+                    </button>
+                </div>
+
+                <div id="charts-list" style="max-height: 55vh; overflow-y: auto;">
+                    ${charts.map((chart, index) => this.renderChartConfigItem(chart, index)).join('')}
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button id="apply-diagram-btn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Appliquer
+                    </button>
+                    <button id="cancel-diagram-btn" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Annuler
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+
+        // Event listeners
+        document.getElementById('diagram-close-btn').addEventListener('click', () => panel.remove());
+        document.getElementById('cancel-diagram-btn').addEventListener('click', () => panel.remove());
+
+        document.getElementById('add-chart-btn').addEventListener('click', () => {
+            const chartsList = document.getElementById('charts-list');
+            const newIndex = chartsList.querySelectorAll('.diagram-chart-item').length;
+            const colors = this.getDiagramColors();
+            const newChart = {
+                id: `chart_${Date.now()}`,
+                type: 'bar',
+                title: `Diagramme ${newIndex + 1}`,
+                showTitle: true,
+                showLegend: true,
+                showLabels: true,
+                showSecondValue: false,
+                x: 50,
+                y: 50 + newIndex * 350,
+                width: 400,
+                height: 300,
+                data: [
+                    { category: 'Catégorie A', value: 30, value2: 0, color: colors[0] },
+                    { category: 'Catégorie B', value: 45, value2: 0, color: colors[1] },
+                    { category: 'Catégorie C', value: 25, value2: 0, color: colors[2] }
+                ]
+            };
+            const newChartHtml = this.renderChartConfigItem(newChart, newIndex);
+            chartsList.insertAdjacentHTML('beforeend', newChartHtml);
+            this.attachChartConfigEvents(chartsList.lastElementChild);
+        });
+
+        document.getElementById('apply-diagram-btn').addEventListener('click', async () => {
+            await this.saveDiagramConfig(pageData, panel, pageId);
+            panel.remove();
+        });
+
+        // Attacher les événements pour les diagrammes existants
+        document.querySelectorAll('.diagram-chart-item').forEach(item => {
+            this.attachChartConfigEvents(item);
+        });
+    }
+
+    /**
+     * Rendre un élément de configuration de diagramme
+     */
+    renderChartConfigItem(chart, index) {
+        const colors = this.getDiagramColors();
+        const colorOptions = colors.map(c =>
+            `<option value="${c}" ${chart.data?.[0]?.color === c ? 'selected' : ''} style="background-color: ${c}; color: white;">${c}</option>`
+        ).join('');
+
+        // Générer les lignes de données
+        const dataRows = (chart.data || []).map((item, dataIndex) => this.renderDataRow(item, dataIndex, chart.showSecondValue)).join('');
+
+        return `
+            <div class="diagram-chart-item" data-chart-id="${chart.id || `chart_${Date.now()}`}" style="background: #f9fafb; padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #e5e7eb;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-weight: 600; color: #374151;">▼ Diagramme ${index + 1}:</span>
+                        <input type="text" class="chart-title-input" value="${chart.title || ''}" placeholder="Titre du diagramme"
+                               style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; width: 180px; font-size: 14px;">
+                    </div>
+                    <button class="delete-chart-btn" type="button" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Type de diagramme</label>
+                        <select class="chart-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="bar" ${chart.type === 'bar' ? 'selected' : ''}>📊 Barres</option>
+                            <option value="pie" ${chart.type === 'pie' ? 'selected' : ''}>🥧 Camembert</option>
+                            <option value="area" ${chart.type === 'area' ? 'selected' : ''}>📈 Aires</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" class="chart-show-title" ${chart.showTitle !== false ? 'checked' : ''}>
+                            <span>Afficher le titre</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" class="chart-show-legend" ${chart.showLegend !== false ? 'checked' : ''}>
+                            <span>Afficher la légende</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" class="chart-show-labels" ${chart.showLabels !== false ? 'checked' : ''}>
+                        <span>Étiquettes de valeurs</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" class="chart-show-second-value" ${chart.showSecondValue ? 'checked' : ''}>
+                        <span>2ème valeur</span>
+                    </label>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Position X</label>
+                        <input type="number" class="chart-pos-x" value="${chart.x || 50}" min="0"
+                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Position Y</label>
+                        <input type="number" class="chart-pos-y" value="${chart.y || 50}" min="0"
+                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Largeur</label>
+                        <input type="number" class="chart-width" value="${chart.width || 400}" min="100"
+                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Hauteur</label>
+                        <input type="number" class="chart-height" value="${chart.height || 300}" min="100"
+                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-weight: 500; font-size: 13px;">Données</label>
+                        <button class="add-data-row-btn" type="button" style="padding: 4px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            + Ligne
+                        </button>
+                    </div>
+                    <div class="chart-data-table" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px 40px; gap: 0; background: #f3f4f6; padding: 8px; font-weight: 500; font-size: 12px; color: #4b5563;">
+                            <div>Catégorie</div>
+                            <div>Valeur</div>
+                            <div class="value2-header" style="${chart.showSecondValue ? '' : 'display: none;'}">Valeur 2</div>
+                            <div>Couleur</div>
+                            <div></div>
+                        </div>
+                        <div class="data-rows-container">
+                            ${dataRows}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Rendre une ligne de données
+     */
+    renderDataRow(item, index, showSecondValue = false) {
+        const colors = this.getDiagramColors();
+        return `
+            <div class="data-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px 40px; gap: 0; padding: 6px 8px; border-top: 1px solid #e5e7eb; align-items: center;">
+                <input type="text" class="data-category" value="${item.category || ''}" placeholder="Catégorie"
+                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px;">
+                <input type="number" class="data-value" value="${item.value || 0}" min="0"
+                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px;">
+                <input type="number" class="data-value2" value="${item.value2 || 0}" min="0"
+                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px; ${showSecondValue ? '' : 'display: none;'}">
+                <input type="color" class="data-color" value="${item.color || colors[index % colors.length]}"
+                       style="width: 40px; height: 28px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                <button class="delete-data-row-btn" type="button" style="width: 28px; height: 28px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">×</button>
+            </div>
+        `;
+    }
+
+    /**
+     * Attacher les événements pour un élément de configuration de diagramme
+     */
+    attachChartConfigEvents(chartItem) {
+        // Suppression du diagramme
+        chartItem.querySelector('.delete-chart-btn').addEventListener('click', () => {
+            chartItem.remove();
+        });
+
+        // Ajout de ligne de données
+        chartItem.querySelector('.add-data-row-btn').addEventListener('click', () => {
+            const container = chartItem.querySelector('.data-rows-container');
+            const newIndex = container.querySelectorAll('.data-row').length;
+            const showSecondValue = chartItem.querySelector('.chart-show-second-value').checked;
+            const colors = this.getDiagramColors();
+            const newRow = this.renderDataRow({
+                category: '',
+                value: 0,
+                value2: 0,
+                color: colors[newIndex % colors.length]
+            }, newIndex, showSecondValue);
+            container.insertAdjacentHTML('beforeend', newRow);
+
+            // Attacher l'événement de suppression à la nouvelle ligne
+            const lastRow = container.lastElementChild;
+            lastRow.querySelector('.delete-data-row-btn').addEventListener('click', () => {
+                lastRow.remove();
+            });
+        });
+
+        // Suppression de lignes de données existantes
+        chartItem.querySelectorAll('.delete-data-row-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.data-row').remove();
+            });
+        });
+
+        // Toggle affichage de la 2ème valeur
+        const showSecondValueCheckbox = chartItem.querySelector('.chart-show-second-value');
+        showSecondValueCheckbox.addEventListener('change', (e) => {
+            const show = e.target.checked;
+            chartItem.querySelector('.value2-header').style.display = show ? '' : 'none';
+            chartItem.querySelectorAll('.data-value2').forEach(input => {
+                input.style.display = show ? '' : 'none';
+            });
+        });
+    }
+
+    /**
+     * Sauvegarder la configuration des diagrammes
+     */
+    async saveDiagramConfig(pageData, panel, pageId) {
+        const chartElements = panel.querySelectorAll('.diagram-chart-item');
+        const charts = [];
+
+        chartElements.forEach(elem => {
+            const chartId = elem.dataset.chartId || `chart_${Date.now()}`;
+            const type = elem.querySelector('.chart-type-select').value;
+            const title = elem.querySelector('.chart-title-input').value;
+            const showTitle = elem.querySelector('.chart-show-title').checked;
+            const showLegend = elem.querySelector('.chart-show-legend').checked;
+            const showLabels = elem.querySelector('.chart-show-labels').checked;
+            const showSecondValue = elem.querySelector('.chart-show-second-value').checked;
+            const x = parseInt(elem.querySelector('.chart-pos-x').value) || 50;
+            const y = parseInt(elem.querySelector('.chart-pos-y').value) || 50;
+            const width = parseInt(elem.querySelector('.chart-width').value) || 400;
+            const height = parseInt(elem.querySelector('.chart-height').value) || 300;
+
+            // Collecter les données
+            const dataRows = elem.querySelectorAll('.data-row');
+            const data = [];
+
+            dataRows.forEach(row => {
+                const category = row.querySelector('.data-category').value;
+                const value = parseFloat(row.querySelector('.data-value').value) || 0;
+                const value2 = parseFloat(row.querySelector('.data-value2').value) || 0;
+                const color = row.querySelector('.data-color').value;
+
+                if (category || value > 0) {
+                    data.push({ category, value, value2, color });
+                }
+            });
+
+            if (data.length > 0 || title) {
+                charts.push({
+                    id: chartId,
+                    type,
+                    title,
+                    showTitle,
+                    showLegend,
+                    showLabels,
+                    showSecondValue,
+                    x,
+                    y,
+                    width,
+                    height,
+                    data
+                });
+            }
+        });
+
+        // Mettre à jour les données
+        pageData.data = { charts };
+
+        // Re-rendre la page et scroller vers la page modifiée
+        await this.renderPages();
+        this.isDirty = true;
+
+        // Scroller vers la page modifiée après le rendu
+        setTimeout(() => {
+            const pageWrapper = this.container.querySelector(`.pdf-page-wrapper[data-page-id="${pageId}"]`);
+            if (pageWrapper) {
+                pageWrapper.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }
+        }, 50);
     }
 
     /**
@@ -7820,8 +8708,11 @@ class CleanPDFViewer {
             <button class="add-graph" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📊 Page graphique
             </button>
-            <button class="add-timeline" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+            <button class="add-timeline" style="display: block; width: 100%; margin-bottom: 8px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
                 📅 Frise chronologique
+            </button>
+            <button class="add-diagram" style="display: block; width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+                📊 Page diagramme
             </button>
         `;
 
@@ -7839,6 +8730,11 @@ class CleanPDFViewer {
 
         menu.querySelector('.add-timeline').addEventListener('click', () => {
             this.addPage(afterPageId, 'timeline');
+            menu.remove();
+        });
+
+        menu.querySelector('.add-diagram').addEventListener('click', () => {
+            this.addPage(afterPageId, 'diagram');
             menu.remove();
         });
 
