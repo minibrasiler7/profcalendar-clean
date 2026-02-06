@@ -2699,15 +2699,17 @@ class CleanPDFViewer {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             font-family: Arial, sans-serif;
             font-size: 11px;
-            z-index: 50;
+            z-index: 200;
             min-width: 200px;
+            pointer-events: auto;
+            touch-action: auto;
         `;
 
         // Générer le contenu du tableau
         tableOverlay.innerHTML = `
             <div style="background: #f3f4f6; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #374151; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center;">
                 <span>📊 ${chart.title || 'Données'}</span>
-                <button class="add-row-inline-btn" title="Ajouter une ligne" style="background: #10b981; color: white; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1;">+</button>
+                <button class="add-row-inline-btn" title="Ajouter une ligne" style="background: #10b981; color: white; border: none; border-radius: 4px; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1; pointer-events: auto;">+</button>
             </div>
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -2723,22 +2725,18 @@ class CleanPDFViewer {
                         <tr data-row-index="${i}" style="background: ${i % 2 === 0 ? 'white' : '#fafafa'};">
                             <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6;">
                                 <input type="text" class="inline-category" value="${item.category || ''}"
-                                       style="width: 100%; padding: 3px 5px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; background: transparent; outline: none;"
-                                       onfocus="this.style.borderColor='#3b82f6'; this.style.background='white';"
-                                       onblur="this.style.borderColor='transparent'; this.style.background='transparent';">
+                                       style="width: 100%; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px; background: white; outline: none; pointer-events: auto; touch-action: auto;">
                             </td>
                             <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6;">
                                 <input type="number" class="inline-value" value="${item.value || 0}" min="0"
-                                       style="width: 100%; padding: 3px 5px; border: 1px solid transparent; border-radius: 3px; font-size: 11px; background: transparent; outline: none;"
-                                       onfocus="this.style.borderColor='#3b82f6'; this.style.background='white';"
-                                       onblur="this.style.borderColor='transparent'; this.style.background='transparent';">
+                                       style="width: 100%; padding: 3px 5px; border: 1px solid #d1d5db; border-radius: 3px; font-size: 11px; background: white; outline: none; pointer-events: auto; touch-action: auto;">
                             </td>
                             <td style="padding: 2px 4px; border-bottom: 1px solid #f3f4f6; text-align: center;">
                                 <input type="color" class="inline-color" value="${item.color || this.getDiagramColors()[i % 10]}"
-                                       style="width: 28px; height: 20px; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer; padding: 0;">
+                                       style="width: 28px; height: 20px; border: 1px solid #d1d5db; border-radius: 3px; cursor: pointer; padding: 0; pointer-events: auto;">
                             </td>
                             <td style="padding: 2px; border-bottom: 1px solid #f3f4f6; text-align: center;">
-                                <button class="delete-row-inline-btn" title="Supprimer" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1;">×</button>
+                                <button class="delete-row-inline-btn" title="Supprimer" style="background: #fee2e2; color: #dc2626; border: none; border-radius: 3px; width: 20px; height: 20px; cursor: pointer; font-size: 10px; line-height: 1; pointer-events: auto;">×</button>
                             </td>
                         </tr>
                     `).join('')}
@@ -2747,6 +2745,11 @@ class CleanPDFViewer {
         `;
 
         container.appendChild(tableOverlay);
+
+        // Empêcher la propagation des événements pour ne pas déclencher les annotations
+        tableOverlay.addEventListener('mousedown', (e) => e.stopPropagation());
+        tableOverlay.addEventListener('touchstart', (e) => e.stopPropagation());
+        tableOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
 
         // Attacher les événements
         this.attachInlineTableEvents(tableOverlay, chartIndex, pageId);
