@@ -2596,12 +2596,19 @@ class CleanPDFViewer {
             ctx.fillStyle = '#9ca3af';
             ctx.font = '18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Cliquez sur ⚙️ pour configurer vos diagrammes', width / 2, height / 2);
+            ctx.fillText('Cliquez sur ⚙️ pour ajouter des diagrammes', width / 2, height / 2);
         } else {
-            // Dessiner chaque diagramme
-            for (const chart of charts) {
-                this.drawChart(ctx, chart, width, height);
-            }
+            // Calculer automatiquement les positions des diagrammes
+            const positions = this.calculateChartPositions(charts.length, width, height);
+
+            // Dessiner chaque diagramme avec sa position calculée
+            charts.forEach((chart, index) => {
+                const pos = positions[index];
+                this.drawChart(ctx, chart, pos.x, pos.y, pos.width, pos.height);
+
+                // Dessiner le tableau de données à côté/en dessous du diagramme
+                this.drawInlineDataTable(ctx, chart, pos, index);
+            });
         }
 
         // Redessiner les annotations existantes
@@ -2611,14 +2618,118 @@ class CleanPDFViewer {
     }
 
     /**
+     * Calculer automatiquement les positions des diagrammes sur la page
+     */
+    calculateChartPositions(numCharts, canvasWidth, canvasHeight) {
+        const positions = [];
+        const margin = 30;
+        const tableWidth = 200; // Largeur réservée pour le tableau de données
+
+        if (numCharts === 1) {
+            // Un seul diagramme : centré avec tableau à droite
+            const chartWidth = Math.min(canvasWidth * 0.5, 450);
+            const chartHeight = Math.min(canvasHeight * 0.6, 350);
+            positions.push({
+                x: margin,
+                y: margin + 30,
+                width: chartWidth,
+                height: chartHeight
+            });
+        } else if (numCharts === 2) {
+            // Deux diagrammes : côte à côte
+            const chartWidth = (canvasWidth - margin * 3 - tableWidth) / 2;
+            const chartHeight = Math.min(canvasHeight * 0.5, 300);
+            positions.push({
+                x: margin,
+                y: margin + 30,
+                width: chartWidth,
+                height: chartHeight
+            });
+            positions.push({
+                x: margin,
+                y: margin + chartHeight + 80,
+                width: chartWidth,
+                height: chartHeight
+            });
+        } else {
+            // Plus de 2 diagrammes : en grille verticale
+            const chartWidth = canvasWidth - margin * 2 - tableWidth - 20;
+            const availableHeight = canvasHeight - margin * 2;
+            const chartHeight = Math.min(availableHeight / numCharts - 60, 280);
+
+            for (let i = 0; i < numCharts; i++) {
+                positions.push({
+                    x: margin,
+                    y: margin + 30 + i * (chartHeight + 70),
+                    width: chartWidth,
+                    height: chartHeight
+                });
+            }
+        }
+
+        return positions;
+    }
+
+    /**
+     * Dessiner le tableau de données inline à côté du diagramme
+     */
+    drawInlineDataTable(ctx, chart, pos, chartIndex) {
+        const data = chart.data || [];
+        if (data.length === 0) return;
+
+        const tableX = pos.x + pos.width + 20;
+        const tableY = pos.y;
+        const rowHeight = 22;
+        const colWidths = [90, 50, 45]; // Catégorie, Valeur, Couleur
+
+        // Titre du tableau
+        ctx.fillStyle = '#374151';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('Données', tableX, tableY);
+
+        // En-tête
+        const headerY = tableY + 15;
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(tableX, headerY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tableX, headerY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+
+        ctx.fillStyle = '#4b5563';
+        ctx.font = 'bold 10px Arial';
+        ctx.fillText('Catégorie', tableX + 4, headerY + 15);
+        ctx.fillText('Valeur', tableX + colWidths[0] + 4, headerY + 15);
+
+        // Lignes de données
+        data.forEach((item, i) => {
+            const rowY = headerY + rowHeight * (i + 1);
+
+            // Fond de ligne alternée
+            ctx.fillStyle = i % 2 === 0 ? 'white' : '#fafafa';
+            ctx.fillRect(tableX, rowY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.strokeRect(tableX, rowY, colWidths[0] + colWidths[1] + colWidths[2], rowHeight);
+
+            // Contenu
+            ctx.fillStyle = '#374151';
+            ctx.font = '10px Arial';
+            const categoryText = (item.category || '').substring(0, 12);
+            ctx.fillText(categoryText, tableX + 4, rowY + 15);
+            ctx.fillText(item.value.toString(), tableX + colWidths[0] + 4, rowY + 15);
+
+            // Couleur
+            ctx.fillStyle = item.color || '#3B82F6';
+            ctx.fillRect(tableX + colWidths[0] + colWidths[1] + 8, rowY + 5, 28, 12);
+            ctx.strokeStyle = '#d1d5db';
+            ctx.strokeRect(tableX + colWidths[0] + colWidths[1] + 8, rowY + 5, 28, 12);
+        });
+    }
+
+    /**
      * Dessiner un diagramme selon son type
      */
-    drawChart(ctx, chart, canvasWidth, canvasHeight) {
-        const x = chart.x || 50;
-        const y = chart.y || 50;
-        const width = chart.width || 400;
-        const height = chart.height || 300;
-
+    drawChart(ctx, chart, x, y, width, height) {
         switch (chart.type) {
             case 'bar':
                 this.drawBarChart(ctx, chart, x, y, width, height);
@@ -2658,11 +2769,7 @@ class CleanPDFViewer {
         }
 
         // Calculer la valeur maximale
-        const hasSecondValue = chart.showSecondValue && data.some(d => d.value2 > 0);
         let maxValue = Math.max(...data.map(d => d.value || 0));
-        if (hasSecondValue) {
-            maxValue = Math.max(maxValue, ...data.map(d => d.value2 || 0));
-        }
         if (maxValue === 0) maxValue = 100;
 
         // Arrondir à un nombre agréable
@@ -2703,13 +2810,13 @@ class CleanPDFViewer {
         // Dessiner les barres
         const barGroupWidth = chartWidth / data.length;
         const barPadding = barGroupWidth * 0.2;
-        const barWidth = hasSecondValue ? (barGroupWidth - barPadding * 2) / 2 : barGroupWidth - barPadding * 2;
+        const barWidth = barGroupWidth - barPadding * 2;
 
         data.forEach((item, index) => {
             const barX = chartX + index * barGroupWidth + barPadding;
             const barHeight = (item.value / maxValue) * chartHeight;
 
-            // Première barre
+            // Barre
             ctx.fillStyle = item.color || '#3B82F6';
             ctx.fillRect(barX, chartY + chartHeight - barHeight, barWidth, barHeight);
 
@@ -2721,27 +2828,11 @@ class CleanPDFViewer {
                 ctx.fillText(item.value.toString(), barX + barWidth / 2, chartY + chartHeight - barHeight - 5);
             }
 
-            // Deuxième barre si activée
-            if (hasSecondValue && item.value2) {
-                const bar2X = barX + barWidth;
-                const bar2Height = (item.value2 / maxValue) * chartHeight;
-
-                // Couleur légèrement plus claire
-                ctx.fillStyle = this.lightenColor(item.color || '#3B82F6', 30);
-                ctx.fillRect(bar2X, chartY + chartHeight - bar2Height, barWidth, bar2Height);
-
-                if (chart.showLabels) {
-                    ctx.fillStyle = '#1f2937';
-                    ctx.fillText(item.value2.toString(), bar2X + barWidth / 2, chartY + chartHeight - bar2Height - 5);
-                }
-            }
-
             // Nom de la catégorie
             ctx.fillStyle = '#4b5563';
             ctx.font = '11px Arial';
             ctx.textAlign = 'center';
-            const labelX = hasSecondValue ? barX + barWidth : barX + barWidth / 2;
-            ctx.fillText(item.category || '', labelX, chartY + chartHeight + 15);
+            ctx.fillText(item.category || '', barX + barWidth / 2, chartY + chartHeight + 15);
         });
 
         // Légende
@@ -3009,21 +3100,6 @@ class CleanPDFViewer {
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    /**
-     * Éclaircir une couleur
-     */
-    lightenColor(hex, percent) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-
-        const newR = Math.min(255, r + Math.round((255 - r) * percent / 100));
-        const newG = Math.min(255, g + Math.round((255 - g) * percent / 100));
-        const newB = Math.min(255, b + Math.round((255 - b) * percent / 100));
-
-        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
     }
 
     /**
@@ -4499,7 +4575,7 @@ class CleanPDFViewer {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 700px;
+            width: 550px;
             max-height: 85vh;
             background: white;
             border-radius: 12px;
@@ -4553,15 +4629,10 @@ class CleanPDFViewer {
                 showTitle: true,
                 showLegend: true,
                 showLabels: true,
-                showSecondValue: false,
-                x: 50,
-                y: 50 + newIndex * 350,
-                width: 400,
-                height: 300,
                 data: [
-                    { category: 'Catégorie A', value: 30, value2: 0, color: colors[0] },
-                    { category: 'Catégorie B', value: 45, value2: 0, color: colors[1] },
-                    { category: 'Catégorie C', value: 25, value2: 0, color: colors[2] }
+                    { category: 'Catégorie A', value: 30, color: colors[0] },
+                    { category: 'Catégorie B', value: 45, color: colors[1] },
+                    { category: 'Catégorie C', value: 25, color: colors[2] }
                 ]
             };
             const newChartHtml = this.renderChartConfigItem(newChart, newIndex);
@@ -4581,102 +4652,79 @@ class CleanPDFViewer {
     }
 
     /**
-     * Rendre un élément de configuration de diagramme
+     * Rendre un élément de configuration de diagramme (accordéon)
      */
     renderChartConfigItem(chart, index) {
-        const colors = this.getDiagramColors();
-        const colorOptions = colors.map(c =>
-            `<option value="${c}" ${chart.data?.[0]?.color === c ? 'selected' : ''} style="background-color: ${c}; color: white;">${c}</option>`
-        ).join('');
-
         // Générer les lignes de données
-        const dataRows = (chart.data || []).map((item, dataIndex) => this.renderDataRow(item, dataIndex, chart.showSecondValue)).join('');
+        const dataRows = (chart.data || []).map((item, dataIndex) => this.renderDataRow(item, dataIndex)).join('');
+
+        // État fermé par défaut sauf pour le premier nouveau diagramme
+        const isExpanded = chart.data?.length === 0;
 
         return `
-            <div class="diagram-chart-item" data-chart-id="${chart.id || `chart_${Date.now()}`}" style="background: #f9fafb; padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #e5e7eb;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="diagram-chart-item" data-chart-id="${chart.id || `chart_${Date.now()}`}" style="background: #f9fafb; border-radius: 10px; margin-bottom: 8px; border: 1px solid #e5e7eb; overflow: hidden;">
+                <!-- En-tête de l'accordéon (toujours visible) -->
+                <div class="chart-accordion-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; cursor: pointer; background: #f3f4f6;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-weight: 600; color: #374151;">▼ Diagramme ${index + 1}:</span>
-                        <input type="text" class="chart-title-input" value="${chart.title || ''}" placeholder="Titre du diagramme"
-                               style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; width: 180px; font-size: 14px;">
+                        <span class="accordion-arrow" style="transition: transform 0.2s; ${isExpanded ? 'transform: rotate(90deg);' : ''}">▶</span>
+                        <span class="chart-preview-title" style="font-weight: 600; color: #374151;">${chart.title || `Diagramme ${index + 1}`}</span>
+                        <span style="color: #9ca3af; font-size: 12px;">(${chart.type === 'bar' ? 'Barres' : chart.type === 'pie' ? 'Camembert' : 'Aires'})</span>
                     </div>
-                    <button class="delete-chart-btn" type="button" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
-                        🗑️ Supprimer
+                    <button class="delete-chart-btn" type="button" style="padding: 4px 10px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        🗑️
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Type de diagramme</label>
-                        <select class="chart-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                            <option value="bar" ${chart.type === 'bar' ? 'selected' : ''}>📊 Barres</option>
-                            <option value="pie" ${chart.type === 'pie' ? 'selected' : ''}>🥧 Camembert</option>
-                            <option value="area" ${chart.type === 'area' ? 'selected' : ''}>📈 Aires</option>
-                        </select>
+                <!-- Contenu de l'accordéon (masqué par défaut) -->
+                <div class="chart-accordion-content" style="padding: 16px; ${isExpanded ? '' : 'display: none;'}">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Titre du diagramme</label>
+                        <input type="text" class="chart-title-input" value="${chart.title || ''}" placeholder="Titre du diagramme"
+                               style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                            <input type="checkbox" class="chart-show-title" ${chart.showTitle !== false ? 'checked' : ''}>
-                            <span>Afficher le titre</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                            <input type="checkbox" class="chart-show-legend" ${chart.showLegend !== false ? 'checked' : ''}>
-                            <span>Afficher la légende</span>
-                        </label>
-                    </div>
-                </div>
 
-                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                        <input type="checkbox" class="chart-show-labels" ${chart.showLabels !== false ? 'checked' : ''}>
-                        <span>Étiquettes de valeurs</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
-                        <input type="checkbox" class="chart-show-second-value" ${chart.showSecondValue ? 'checked' : ''}>
-                        <span>2ème valeur</span>
-                    </label>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;">
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Position X</label>
-                        <input type="number" class="chart-pos-x" value="${chart.x || 50}" min="0"
-                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Position Y</label>
-                        <input type="number" class="chart-pos-y" value="${chart.y || 50}" min="0"
-                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Largeur</label>
-                        <input type="number" class="chart-width" value="${chart.width || 400}" min="100"
-                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    </div>
-                    <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: #6b7280;">Hauteur</label>
-                        <input type="number" class="chart-height" value="${chart.height || 300}" min="100"
-                               style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    </div>
-                </div>
-
-                <div style="margin-top: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label style="font-weight: 500; font-size: 13px;">Données</label>
-                        <button class="add-data-row-btn" type="button" style="padding: 4px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                            + Ligne
-                        </button>
-                    </div>
-                    <div class="chart-data-table" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
-                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px 40px; gap: 0; background: #f3f4f6; padding: 8px; font-weight: 500; font-size: 12px; color: #4b5563;">
-                            <div>Catégorie</div>
-                            <div>Valeur</div>
-                            <div class="value2-header" style="${chart.showSecondValue ? '' : 'display: none;'}">Valeur 2</div>
-                            <div>Couleur</div>
-                            <div></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px;">Type</label>
+                            <select class="chart-type-select" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="bar" ${chart.type === 'bar' ? 'selected' : ''}>📊 Barres</option>
+                                <option value="pie" ${chart.type === 'pie' ? 'selected' : ''}>🥧 Camembert</option>
+                                <option value="area" ${chart.type === 'area' ? 'selected' : ''}>📈 Aires</option>
+                            </select>
                         </div>
-                        <div class="data-rows-container">
-                            ${dataRows}
+                        <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                <input type="checkbox" class="chart-show-title" ${chart.showTitle !== false ? 'checked' : ''}>
+                                <span>Titre</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                <input type="checkbox" class="chart-show-legend" ${chart.showLegend !== false ? 'checked' : ''}>
+                                <span>Légende</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px;">
+                                <input type="checkbox" class="chart-show-labels" ${chart.showLabels !== false ? 'checked' : ''}>
+                                <span>Étiquettes</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-weight: 500; font-size: 13px;">Données</label>
+                            <button class="add-data-row-btn" type="button" style="padding: 4px 10px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                + Ligne
+                            </button>
+                        </div>
+                        <div class="chart-data-table" style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 50px 32px; gap: 0; background: #e5e7eb; padding: 6px 8px; font-weight: 500; font-size: 11px; color: #4b5563;">
+                                <div>Catégorie</div>
+                                <div>Valeur</div>
+                                <div>Couleur</div>
+                                <div></div>
+                            </div>
+                            <div class="data-rows-container">
+                                ${dataRows}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4687,19 +4735,17 @@ class CleanPDFViewer {
     /**
      * Rendre une ligne de données
      */
-    renderDataRow(item, index, showSecondValue = false) {
+    renderDataRow(item, index) {
         const colors = this.getDiagramColors();
         return `
-            <div class="data-row" style="display: grid; grid-template-columns: 2fr 1fr 1fr 60px 40px; gap: 0; padding: 6px 8px; border-top: 1px solid #e5e7eb; align-items: center;">
+            <div class="data-row" style="display: grid; grid-template-columns: 2fr 1fr 50px 32px; gap: 4px; padding: 6px 8px; border-top: 1px solid #e5e7eb; align-items: center; background: white;">
                 <input type="text" class="data-category" value="${item.category || ''}" placeholder="Catégorie"
-                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px;">
+                       style="padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                 <input type="number" class="data-value" value="${item.value || 0}" min="0"
-                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px;">
-                <input type="number" class="data-value2" value="${item.value2 || 0}" min="0"
-                       style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-right: 4px; ${showSecondValue ? '' : 'display: none;'}">
+                       style="padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
                 <input type="color" class="data-color" value="${item.color || colors[index % colors.length]}"
-                       style="width: 40px; height: 28px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
-                <button class="delete-data-row-btn" type="button" style="width: 28px; height: 28px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">×</button>
+                       style="width: 36px; height: 26px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                <button class="delete-data-row-btn" type="button" style="width: 26px; height: 26px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">×</button>
             </div>
         `;
     }
@@ -4708,23 +4754,43 @@ class CleanPDFViewer {
      * Attacher les événements pour un élément de configuration de diagramme
      */
     attachChartConfigEvents(chartItem) {
+        // Toggle accordéon
+        const header = chartItem.querySelector('.chart-accordion-header');
+        const content = chartItem.querySelector('.chart-accordion-content');
+        const arrow = chartItem.querySelector('.accordion-arrow');
+
+        header.addEventListener('click', (e) => {
+            // Ne pas toggler si on clique sur le bouton supprimer
+            if (e.target.closest('.delete-chart-btn')) return;
+
+            const isVisible = content.style.display !== 'none';
+            content.style.display = isVisible ? 'none' : 'block';
+            arrow.style.transform = isVisible ? '' : 'rotate(90deg)';
+        });
+
         // Suppression du diagramme
-        chartItem.querySelector('.delete-chart-btn').addEventListener('click', () => {
+        chartItem.querySelector('.delete-chart-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
             chartItem.remove();
+        });
+
+        // Mise à jour du titre dans l'en-tête en temps réel
+        const titleInput = chartItem.querySelector('.chart-title-input');
+        const previewTitle = chartItem.querySelector('.chart-preview-title');
+        titleInput.addEventListener('input', () => {
+            previewTitle.textContent = titleInput.value || 'Sans titre';
         });
 
         // Ajout de ligne de données
         chartItem.querySelector('.add-data-row-btn').addEventListener('click', () => {
             const container = chartItem.querySelector('.data-rows-container');
             const newIndex = container.querySelectorAll('.data-row').length;
-            const showSecondValue = chartItem.querySelector('.chart-show-second-value').checked;
             const colors = this.getDiagramColors();
             const newRow = this.renderDataRow({
                 category: '',
                 value: 0,
-                value2: 0,
                 color: colors[newIndex % colors.length]
-            }, newIndex, showSecondValue);
+            }, newIndex);
             container.insertAdjacentHTML('beforeend', newRow);
 
             // Attacher l'événement de suppression à la nouvelle ligne
@@ -4738,16 +4804,6 @@ class CleanPDFViewer {
         chartItem.querySelectorAll('.delete-data-row-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.target.closest('.data-row').remove();
-            });
-        });
-
-        // Toggle affichage de la 2ème valeur
-        const showSecondValueCheckbox = chartItem.querySelector('.chart-show-second-value');
-        showSecondValueCheckbox.addEventListener('change', (e) => {
-            const show = e.target.checked;
-            chartItem.querySelector('.value2-header').style.display = show ? '' : 'none';
-            chartItem.querySelectorAll('.data-value2').forEach(input => {
-                input.style.display = show ? '' : 'none';
             });
         });
     }
@@ -4766,11 +4822,6 @@ class CleanPDFViewer {
             const showTitle = elem.querySelector('.chart-show-title').checked;
             const showLegend = elem.querySelector('.chart-show-legend').checked;
             const showLabels = elem.querySelector('.chart-show-labels').checked;
-            const showSecondValue = elem.querySelector('.chart-show-second-value').checked;
-            const x = parseInt(elem.querySelector('.chart-pos-x').value) || 50;
-            const y = parseInt(elem.querySelector('.chart-pos-y').value) || 50;
-            const width = parseInt(elem.querySelector('.chart-width').value) || 400;
-            const height = parseInt(elem.querySelector('.chart-height').value) || 300;
 
             // Collecter les données
             const dataRows = elem.querySelectorAll('.data-row');
@@ -4779,11 +4830,10 @@ class CleanPDFViewer {
             dataRows.forEach(row => {
                 const category = row.querySelector('.data-category').value;
                 const value = parseFloat(row.querySelector('.data-value').value) || 0;
-                const value2 = parseFloat(row.querySelector('.data-value2').value) || 0;
                 const color = row.querySelector('.data-color').value;
 
                 if (category || value > 0) {
-                    data.push({ category, value, value2, color });
+                    data.push({ category, value, color });
                 }
             });
 
@@ -4795,11 +4845,6 @@ class CleanPDFViewer {
                     showTitle,
                     showLegend,
                     showLabels,
-                    showSecondValue,
-                    x,
-                    y,
-                    width,
-                    height,
                     data
                 });
             }
