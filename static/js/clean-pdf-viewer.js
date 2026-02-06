@@ -62,7 +62,7 @@ class CleanPDFViewer {
         this.historyIndex = -1;
 
         // Outil actuel
-        this.currentTool = 'pen'; // pen, highlighter, eraser, ruler, compass, angle, arc, arrow, rectangle, disk, grid, student-tracking
+        this.currentTool = 'pen'; // pen, highlighter, eraser, ruler, compass, angle, arc, arrow, rectangle, disk, grid, text-hider, student-tracking
         this.currentColor = '#000000';
         this.currentSize = 2;
         this.currentOpacity = 1.0;
@@ -230,6 +230,9 @@ class CleanPDFViewer {
                         </button>
                         <button class="btn-tool" data-tool="text" title="Texte">
                             <i class="fas fa-font"></i>
+                        </button>
+                        <button class="btn-tool" data-tool="text-hider" title="Masquer du texte">
+                            <i class="fas fa-eye-slash"></i>
                         </button>
                         <div class="separator"></div>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
@@ -5454,6 +5457,18 @@ class CleanPDFViewer {
             }
         }
 
+        // Vérifier si on clique sur un masque de texte (même si l'outil text-hider n'est pas actif)
+        // Cela permet de révéler/masquer les zones cachées en cliquant dessus
+        if (this.currentTool !== 'text-hider') {
+            const clickedMask = this.findTextMaskAtPosition(pageId, x, y);
+            if (clickedMask) {
+                console.log('[TextHider] Clic sur masque détecté (outil:', this.currentTool, ')');
+                this.toggleTextMaskReveal(clickedMask, canvas, pageId);
+                this.isDrawing = false;
+                return;
+            }
+        }
+
         // Gérer la gomme différemment
         if (this.currentTool === 'eraser') {
             this.currentStroke = {
@@ -5578,6 +5593,31 @@ class CleanPDFViewer {
 
                 console.log('[Text] Nouvelle zone de texte créée:', textBox);
             }
+            return;
+        }
+
+        // Gérer l'outil text-hider (masquage de texte)
+        if (this.currentTool === 'text-hider') {
+            console.log('[TextHider] Outil masquage actif, position:', x, y);
+
+            // Vérifier si on clique sur un masque existant pour le révéler
+            const clickedMask = this.findTextMaskAtPosition(pageId, x, y);
+            if (clickedMask) {
+                this.toggleTextMaskReveal(clickedMask, canvas, pageId);
+                this.isDrawing = false;
+                return;
+            }
+
+            // Sinon, commencer à dessiner un nouveau masque
+            this.textHiderState = {
+                startX: x,
+                startY: y,
+                currentX: x,
+                currentY: y,
+                pageId: pageId,
+                canvas: canvas
+            };
+            this.isDrawing = true;
             return;
         }
 
@@ -5983,6 +6023,14 @@ class CleanPDFViewer {
             return;
         }
 
+        // Gérer l'outil text-hider (masquage de texte) pendant le dessin
+        if (this.currentTool === 'text-hider' && this.textHiderState) {
+            this.textHiderState.currentX = x;
+            this.textHiderState.currentY = y;
+            this.drawTextHiderPreview(canvas, pageId);
+            return;
+        }
+
         // Appliquer l'aimantation à l'équerre si active
         let finalX = x;
         let finalY = y;
@@ -6376,6 +6424,39 @@ class CleanPDFViewer {
             return;
         }
 
+        // Gérer la fin de l'outil text-hider (masquage de texte)
+        if (this.currentTool === 'text-hider' && this.textHiderState) {
+            const state = this.textHiderState;
+            const minX = Math.min(state.startX, state.currentX);
+            const maxX = Math.max(state.startX, state.currentX);
+            const minY = Math.min(state.startY, state.currentY);
+            const maxY = Math.max(state.startY, state.currentY);
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            // Seulement créer le masque si la taille est suffisante
+            if (width > 10 && height > 10) {
+                const maskAnnotation = {
+                    tool: 'text-hider',
+                    x: minX,
+                    y: minY,
+                    width: width,
+                    height: height,
+                    isRevealed: false,
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height
+                };
+                this.addAnnotationToHistory(pageId, maskAnnotation);
+                console.log('[TextHider] Masque créé:', maskAnnotation);
+            }
+
+            // Reset de l'état
+            this.textHiderState = null;
+            this.redrawAnnotations(canvas, pageId);
+            this.isDirty = true;
+            return;
+        }
+
         // Gérer la ligne droite pour l'outil pen
         if (this.currentTool === 'pen' && this.penLineDetection) {
             // Nettoyer le timer si présent
@@ -6552,9 +6633,9 @@ class CleanPDFViewer {
      * Dessiner une annotation
      */
     drawAnnotation(ctx, annotation) {
-        // La grille et le texte n'ont pas de points, donc on ne vérifie pas pour eux
+        // La grille, le texte et les masques n'ont pas de points, donc on ne vérifie pas pour eux
         if (!annotation) return;
-        if (annotation.tool !== 'grid' && annotation.tool !== 'text' && (!annotation.points || annotation.points.length === 0)) return;
+        if (annotation.tool !== 'grid' && annotation.tool !== 'text' && annotation.tool !== 'text-hider' && (!annotation.points || annotation.points.length === 0)) return;
 
         const options = {
             color: annotation.color,
@@ -6743,6 +6824,11 @@ class CleanPDFViewer {
                 case 'text':
                     // Dessiner la zone de texte
                     this.drawTextBox(ctx, annotation, scaleRatioX, scaleRatioY);
+                    break;
+
+                case 'text-hider':
+                    // Dessiner le masque de texte
+                    this.drawTextMask(ctx, annotation, scaleRatioX, scaleRatioY);
                     break;
 
                 default:
@@ -7578,6 +7664,271 @@ class CleanPDFViewer {
 
     // ============================================================
     // FIN DES MÉTHODES POUR L'OUTIL TEXTE
+    // ============================================================
+
+    // ============================================================
+    // MÉTHODES POUR L'OUTIL TEXT-HIDER (MASQUAGE DE TEXTE)
+    // ============================================================
+
+    /**
+     * Trouver un masque de texte à une position donnée
+     */
+    findTextMaskAtPosition(pageId, x, y) {
+        const pageAnnotations = this.annotations.get(pageId) || [];
+
+        // Chercher en ordre inverse (les dernières annotations sont au-dessus)
+        for (let i = pageAnnotations.length - 1; i >= 0; i--) {
+            const annotation = pageAnnotations[i];
+            if (annotation.tool === 'text-hider') {
+                if (x >= annotation.x && x <= annotation.x + annotation.width &&
+                    y >= annotation.y && y <= annotation.y + annotation.height) {
+                    return annotation;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Basculer l'état révélé d'un masque de texte avec animation
+     */
+    toggleTextMaskReveal(mask, canvas, pageId) {
+        console.log('[TextHider] Toggle révélation du masque:', mask.id, 'état actuel:', mask.isRevealed);
+
+        // Trouver l'annotation dans l'historique et la mettre à jour
+        const pageAnnotations = this.annotations.get(pageId) || [];
+        const maskIndex = pageAnnotations.findIndex(a => a.id === mask.id);
+
+        if (maskIndex !== -1) {
+            // Créer l'animation de révélation
+            const newRevealedState = !mask.isRevealed;
+            this.animateTextMaskReveal(canvas, pageId, mask, newRevealedState, () => {
+                // Après l'animation, mettre à jour l'état
+                pageAnnotations[maskIndex].isRevealed = newRevealedState;
+                this.annotations.set(pageId, pageAnnotations);
+                this.redrawAnnotations(canvas, pageId);
+                this.isDirty = true;
+            });
+        }
+    }
+
+    /**
+     * Animer la révélation/masquage d'un masque de texte
+     */
+    animateTextMaskReveal(canvas, pageId, mask, revealing, callback) {
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const scaleRatioX = canvas.width / (mask.canvasWidth || canvas.width);
+        const scaleRatioY = canvas.height / (mask.canvasHeight || canvas.height);
+
+        const scaledX = mask.x * scaleRatioX;
+        const scaledY = mask.y * scaleRatioY;
+        const scaledWidth = mask.width * scaleRatioX;
+        const scaledHeight = mask.height * scaleRatioY;
+
+        const duration = 400; // 400ms d'animation
+        const startTime = Date.now();
+
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Easing fonction (ease-out)
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+            // Redessiner toutes les annotations
+            this.redrawAnnotations(canvas, pageId);
+
+            // Dessiner l'animation du masque par-dessus
+            ctx.save();
+
+            if (revealing) {
+                // Animation de révélation: le masque "s'ouvre" du centre
+                const centerX = scaledX + scaledWidth / 2;
+                const centerY = scaledY + scaledHeight / 2;
+                const currentWidth = scaledWidth * (1 - easeProgress);
+                const currentHeight = scaledHeight * (1 - easeProgress);
+
+                // Dessiner les deux parties qui s'écartent
+                ctx.fillStyle = '#2c3e50';
+
+                // Partie gauche
+                ctx.fillRect(
+                    scaledX,
+                    scaledY,
+                    scaledWidth / 2 * (1 - easeProgress),
+                    scaledHeight
+                );
+
+                // Partie droite
+                ctx.fillRect(
+                    centerX + (scaledWidth / 2) * easeProgress,
+                    scaledY,
+                    scaledWidth / 2 * (1 - easeProgress),
+                    scaledHeight
+                );
+
+                // Effet de brillance au centre
+                if (progress < 0.7) {
+                    const glowAlpha = 0.3 * (1 - progress / 0.7);
+                    ctx.fillStyle = `rgba(255, 215, 0, ${glowAlpha})`;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, scaledHeight / 2 * progress * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else {
+                // Animation de masquage: le masque "se ferme" vers le centre
+                const centerX = scaledX + scaledWidth / 2;
+
+                ctx.fillStyle = '#2c3e50';
+
+                // Partie gauche qui arrive de la gauche
+                ctx.fillRect(
+                    scaledX,
+                    scaledY,
+                    scaledWidth / 2 * easeProgress,
+                    scaledHeight
+                );
+
+                // Partie droite qui arrive de la droite
+                ctx.fillRect(
+                    scaledX + scaledWidth - (scaledWidth / 2 * easeProgress),
+                    scaledY,
+                    scaledWidth / 2 * easeProgress,
+                    scaledHeight
+                );
+            }
+
+            ctx.restore();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                callback();
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
+    /**
+     * Dessiner l'aperçu du rectangle de masquage pendant la création
+     */
+    drawTextHiderPreview(canvas, pageId) {
+        if (!this.textHiderState) return;
+
+        // Redessiner d'abord toutes les annotations existantes
+        this.redrawAnnotations(canvas, pageId);
+
+        const ctx = canvas.getContext('2d');
+        const state = this.textHiderState;
+
+        const minX = Math.min(state.startX, state.currentX);
+        const maxX = Math.max(state.startX, state.currentX);
+        const minY = Math.min(state.startY, state.currentY);
+        const maxY = Math.max(state.startY, state.currentY);
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        ctx.save();
+
+        // Rectangle de prévisualisation avec style distinct
+        ctx.fillStyle = 'rgba(44, 62, 80, 0.6)';
+        ctx.fillRect(minX, minY, width, height);
+
+        // Bordure pointillée
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(minX, minY, width, height);
+
+        // Icône d'œil barré au centre
+        const centerX = minX + width / 2;
+        const centerY = minY + height / 2;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = `${Math.min(width, height) * 0.4}px FontAwesome, Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🙈', centerX, centerY);
+
+        ctx.restore();
+    }
+
+    /**
+     * Dessiner un masque de texte
+     */
+    drawTextMask(ctx, annotation, scaleRatioX, scaleRatioY) {
+        const scaledX = annotation.x * scaleRatioX;
+        const scaledY = annotation.y * scaleRatioY;
+        const scaledWidth = annotation.width * scaleRatioX;
+        const scaledHeight = annotation.height * scaleRatioY;
+
+        ctx.save();
+
+        if (annotation.isRevealed) {
+            // Masque révélé: bordure subtile pour montrer la zone
+            ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Petit indicateur "visible"
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.8)';
+            ctx.beginPath();
+            ctx.arc(scaledX + scaledWidth - 12, scaledY + 12, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('👁', scaledX + scaledWidth - 12, scaledY + 12);
+        } else {
+            // Masque non révélé: rectangle opaque
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Bordure
+            ctx.strokeStyle = '#1a252f';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+            ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+            // Icône d'œil barré au centre
+            const centerX = scaledX + scaledWidth / 2;
+            const centerY = scaledY + scaledHeight / 2;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = `${Math.min(scaledWidth, scaledHeight) * 0.3}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🙈', centerX, centerY);
+
+            // Texte d'info
+            if (scaledWidth > 60 && scaledHeight > 40) {
+                ctx.font = '10px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillText('Cliquer pour révéler', centerX, centerY + scaledHeight * 0.25);
+            }
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * Gérer le clic sur un masque (pour révéler/masquer) indépendamment de l'outil actif
+     */
+    handleTextMaskClick(pageId, x, y, canvas) {
+        const mask = this.findTextMaskAtPosition(pageId, x, y);
+        if (mask) {
+            this.toggleTextMaskReveal(mask, canvas, pageId);
+            return true;
+        }
+        return false;
+    }
+
+    // ============================================================
+    // FIN DES MÉTHODES POUR L'OUTIL TEXT-HIDER
     // ============================================================
 
     /**
