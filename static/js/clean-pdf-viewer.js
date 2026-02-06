@@ -2255,8 +2255,8 @@ class CleanPDFViewer {
         // Paramètres du graphique
         const xMin = graphData.xMin ?? -10;
         const xMax = graphData.xMax ?? 10;
-        const yMin = graphData.yMin ?? -10;
-        const yMax = graphData.yMax ?? 10;
+        const yMin = graphData.yMin ?? -15;
+        const yMax = graphData.yMax ?? 15;
         const showGrid = graphData.showGrid ?? true;
         const gridSpacing = graphData.gridSpacing ?? 1;
 
@@ -4995,8 +4995,8 @@ class CleanPDFViewer {
         const data = pageData.data;
         data.xMin = data.xMin ?? -10;
         data.xMax = data.xMax ?? 10;
-        data.yMin = data.yMin ?? -10;
-        data.yMax = data.yMax ?? 10;
+        data.yMin = data.yMin ?? -15;
+        data.yMax = data.yMax ?? 15;
         data.showGrid = data.showGrid ?? true;
         data.gridSpacing = data.gridSpacing ?? 1;
         data.functions = data.functions || [];
@@ -9937,10 +9937,10 @@ class CleanPDFViewer {
                 }
             });
 
-            // Préparer les pages custom (vierges et graphiques)
+            // Préparer les pages custom (vierges, graphiques, frises et diagrammes)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline' || pageData.type === 'diagram') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
@@ -10001,10 +10001,10 @@ class CleanPDFViewer {
                 }
             });
 
-            // Préparer les pages custom (vierges et graphiques)
+            // Préparer les pages custom (vierges, graphiques, frises et diagrammes)
             const customPages = [];
             this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
+                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline' || pageData.type === 'diagram') {
                     const pageIndex = this.pageOrder.indexOf(pageId);
                     customPages.push({
                         pageId: pageId,
