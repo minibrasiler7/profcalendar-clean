@@ -7717,7 +7717,6 @@ class CleanPDFViewer {
      */
     animateTextMaskReveal(canvas, pageId, mask, revealing, callback) {
         const ctx = canvas.getContext('2d');
-        const rect = canvas.getBoundingClientRect();
         const scaleRatioX = canvas.width / (mask.canvasWidth || canvas.width);
         const scaleRatioY = canvas.height / (mask.canvasHeight || canvas.height);
 
@@ -7725,16 +7724,19 @@ class CleanPDFViewer {
         const scaledY = mask.y * scaleRatioY;
         const scaledWidth = mask.width * scaleRatioX;
         const scaledHeight = mask.height * scaleRatioY;
+        const radius = Math.min(scaledWidth, scaledHeight) * 0.15;
 
-        const duration = 400; // 400ms d'animation
+        const duration = 350; // 350ms d'animation
         const startTime = Date.now();
 
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
 
-            // Easing fonction (ease-out)
-            const easeProgress = 1 - Math.pow(1 - progress, 3);
+            // Easing fonction (ease-in-out)
+            const easeProgress = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
             // Redessiner toutes les annotations
             this.redrawAnnotations(canvas, pageId);
@@ -7742,61 +7744,59 @@ class CleanPDFViewer {
             // Dessiner l'animation du masque par-dessus
             ctx.save();
 
+            const centerX = scaledX + scaledWidth / 2;
+
             if (revealing) {
-                // Animation de révélation: le masque "s'ouvre" du centre
-                const centerX = scaledX + scaledWidth / 2;
-                const centerY = scaledY + scaledHeight / 2;
-                const currentWidth = scaledWidth * (1 - easeProgress);
-                const currentHeight = scaledHeight * (1 - easeProgress);
+                // Animation de révélation: inverse du masquage
+                // Les parties s'écartent vers l'extérieur (depuis le centre vers les bords)
+                const leftWidth = scaledWidth / 2 * (1 - easeProgress);
+                const rightStart = centerX + (scaledWidth / 2) * easeProgress;
+                const rightWidth = scaledWidth / 2 * (1 - easeProgress);
 
-                // Dessiner les deux parties qui s'écartent
-                ctx.fillStyle = '#2c3e50';
+                // Créer le gradient pour effet moderne
+                const gradient = ctx.createLinearGradient(scaledX, scaledY, scaledX, scaledY + scaledHeight);
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.85)');
+                gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.9)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.85)');
 
-                // Partie gauche
-                ctx.fillRect(
-                    scaledX,
-                    scaledY,
-                    scaledWidth / 2 * (1 - easeProgress),
-                    scaledHeight
-                );
+                // Partie gauche qui part vers la gauche
+                if (leftWidth > 0) {
+                    this.drawRoundedRectPartial(ctx, scaledX, scaledY, leftWidth, scaledHeight, radius, 'left');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
 
-                // Partie droite
-                ctx.fillRect(
-                    centerX + (scaledWidth / 2) * easeProgress,
-                    scaledY,
-                    scaledWidth / 2 * (1 - easeProgress),
-                    scaledHeight
-                );
-
-                // Effet de brillance au centre
-                if (progress < 0.7) {
-                    const glowAlpha = 0.3 * (1 - progress / 0.7);
-                    ctx.fillStyle = `rgba(255, 215, 0, ${glowAlpha})`;
-                    ctx.beginPath();
-                    ctx.arc(centerX, centerY, scaledHeight / 2 * progress * 2, 0, Math.PI * 2);
+                // Partie droite qui part vers la droite
+                if (rightWidth > 0) {
+                    this.drawRoundedRectPartial(ctx, rightStart, scaledY, rightWidth, scaledHeight, radius, 'right');
+                    ctx.fillStyle = gradient;
                     ctx.fill();
                 }
             } else {
-                // Animation de masquage: le masque "se ferme" vers le centre
-                const centerX = scaledX + scaledWidth / 2;
+                // Animation de masquage: les parties arrivent depuis les bords vers le centre
+                const leftWidth = scaledWidth / 2 * easeProgress;
+                const rightStart = scaledX + scaledWidth - (scaledWidth / 2 * easeProgress);
+                const rightWidth = scaledWidth / 2 * easeProgress;
 
-                ctx.fillStyle = '#2c3e50';
+                // Créer le gradient pour effet moderne
+                const gradient = ctx.createLinearGradient(scaledX, scaledY, scaledX, scaledY + scaledHeight);
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.85)');
+                gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.9)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.85)');
 
                 // Partie gauche qui arrive de la gauche
-                ctx.fillRect(
-                    scaledX,
-                    scaledY,
-                    scaledWidth / 2 * easeProgress,
-                    scaledHeight
-                );
+                if (leftWidth > 0) {
+                    this.drawRoundedRectPartial(ctx, scaledX, scaledY, leftWidth, scaledHeight, radius, 'left');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
 
                 // Partie droite qui arrive de la droite
-                ctx.fillRect(
-                    scaledX + scaledWidth - (scaledWidth / 2 * easeProgress),
-                    scaledY,
-                    scaledWidth / 2 * easeProgress,
-                    scaledHeight
-                );
+                if (rightWidth > 0) {
+                    this.drawRoundedRectPartial(ctx, rightStart, scaledY, rightWidth, scaledHeight, radius, 'right');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
             }
 
             ctx.restore();
@@ -7809,6 +7809,33 @@ class CleanPDFViewer {
         };
 
         requestAnimationFrame(animate);
+    }
+
+    /**
+     * Dessiner une partie de rectangle arrondi (pour l'animation)
+     */
+    drawRoundedRectPartial(ctx, x, y, width, height, radius, side) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+
+        if (side === 'left') {
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + width, y);
+            ctx.lineTo(x + width, y + height);
+            ctx.lineTo(x + r, y + height);
+            ctx.arcTo(x, y + height, x, y + height - r, r);
+            ctx.lineTo(x, y + r);
+            ctx.arcTo(x, y, x + r, y, r);
+        } else {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + width - r, y);
+            ctx.arcTo(x + width, y, x + width, y + r, r);
+            ctx.lineTo(x + width, y + height - r);
+            ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+            ctx.lineTo(x, y + height);
+        }
+
+        ctx.closePath();
     }
 
     /**
@@ -7829,29 +7856,54 @@ class CleanPDFViewer {
         const maxY = Math.max(state.startY, state.currentY);
         const width = maxX - minX;
         const height = maxY - minY;
+        const radius = Math.min(width, height) * 0.15;
 
         ctx.save();
 
-        // Rectangle de prévisualisation avec style distinct
-        ctx.fillStyle = 'rgba(44, 62, 80, 0.6)';
-        ctx.fillRect(minX, minY, width, height);
+        // Rectangle arrondi avec effet moderne (même style que le masque final)
+        this.drawRoundedRect(ctx, minX, minY, width, height, radius);
 
-        // Bordure pointillée
-        ctx.strokeStyle = '#f39c12';
+        // Gradient violet/indigo moderne
+        const gradient = ctx.createLinearGradient(minX, minY, minX, minY + height);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.7)');
+        gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.75)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.7)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Bordure lumineuse
+        ctx.strokeStyle = 'rgba(167, 139, 250, 0.9)';
         ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(minX, minY, width, height);
+        ctx.setLineDash([]);
+        ctx.stroke();
 
-        // Icône d'œil barré au centre
-        const centerX = minX + width / 2;
-        const centerY = minY + height / 2;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.font = `${Math.min(width, height) * 0.4}px FontAwesome, Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🙈', centerX, centerY);
+        // Effet de brillance intérieur (highlight en haut)
+        this.drawRoundedRect(ctx, minX + 2, minY + 2, width - 4, height * 0.4, radius - 2);
+        const highlightGradient = ctx.createLinearGradient(minX, minY, minX, minY + height * 0.4);
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGradient;
+        ctx.fill();
 
         ctx.restore();
+    }
+
+    /**
+     * Dessiner un rectangle arrondi
+     */
+    drawRoundedRect(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + width - r, y);
+        ctx.arcTo(x + width, y, x + width, y + r, r);
+        ctx.lineTo(x + width, y + height - r);
+        ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+        ctx.lineTo(x + r, y + height);
+        ctx.arcTo(x, y + height, x, y + height - r, r);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
     }
 
     /**
@@ -7862,54 +7914,52 @@ class CleanPDFViewer {
         const scaledY = annotation.y * scaleRatioY;
         const scaledWidth = annotation.width * scaleRatioX;
         const scaledHeight = annotation.height * scaleRatioY;
+        const radius = Math.min(scaledWidth, scaledHeight) * 0.15;
 
         ctx.save();
 
         if (annotation.isRevealed) {
-            // Masque révélé: bordure subtile pour montrer la zone
-            ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([3, 3]);
-            ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+            // Masque révélé: rien à afficher, le texte est visible
+            // Pas d'icône, pas de bordure - complètement transparent
+        } else {
+            // Masque non révélé: effet moderne liquide/loupe
+            this.drawRoundedRect(ctx, scaledX, scaledY, scaledWidth, scaledHeight, radius);
 
-            // Petit indicateur "visible"
-            ctx.fillStyle = 'rgba(46, 204, 113, 0.8)';
-            ctx.beginPath();
-            ctx.arc(scaledX + scaledWidth - 12, scaledY + 12, 8, 0, Math.PI * 2);
+            // Gradient violet/indigo moderne avec effet de profondeur
+            const gradient = ctx.createLinearGradient(scaledX, scaledY, scaledX, scaledY + scaledHeight);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.88)');
+            gradient.addColorStop(0.3, 'rgba(129, 112, 246, 0.92)');
+            gradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.92)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.88)');
+            ctx.fillStyle = gradient;
             ctx.fill();
 
-            ctx.fillStyle = 'white';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('👁', scaledX + scaledWidth - 12, scaledY + 12);
-        } else {
-            // Masque non révélé: rectangle opaque
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+            // Bordure subtile avec effet néon
+            ctx.strokeStyle = 'rgba(167, 139, 250, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
 
-            // Bordure
-            ctx.strokeStyle = '#1a252f';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([]);
-            ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+            // Effet de brillance intérieur (highlight en haut pour effet "bulle")
+            this.drawRoundedRect(ctx, scaledX + 3, scaledY + 3, scaledWidth - 6, scaledHeight * 0.35, radius - 2);
+            const highlightGradient = ctx.createLinearGradient(scaledX, scaledY, scaledX, scaledY + scaledHeight * 0.35);
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = highlightGradient;
+            ctx.fill();
 
-            // Icône d'œil barré au centre
-            const centerX = scaledX + scaledWidth / 2;
-            const centerY = scaledY + scaledHeight / 2;
+            // Effet de reflet en bas (plus subtil)
+            this.drawRoundedRect(ctx, scaledX + 5, scaledY + scaledHeight * 0.7, scaledWidth - 10, scaledHeight * 0.25, radius - 3);
+            const bottomHighlight = ctx.createLinearGradient(scaledX, scaledY + scaledHeight * 0.7, scaledX, scaledY + scaledHeight);
+            bottomHighlight.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            bottomHighlight.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+            ctx.fillStyle = bottomHighlight;
+            ctx.fill();
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            ctx.font = `${Math.min(scaledWidth, scaledHeight) * 0.3}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🙈', centerX, centerY);
-
-            // Texte d'info
-            if (scaledWidth > 60 && scaledHeight > 40) {
-                ctx.font = '10px Arial';
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fillText('Cliquer pour révéler', centerX, centerY + scaledHeight * 0.25);
-            }
+            // Ombre portée externe pour effet de profondeur
+            ctx.shadowColor = 'rgba(99, 102, 241, 0.4)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 2;
         }
 
         ctx.restore();
