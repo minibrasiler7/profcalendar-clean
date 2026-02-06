@@ -7741,6 +7741,17 @@ class CleanPDFViewer {
         const scaledHeight = mask.height * scaleRatioY;
         const radius = Math.min(scaledWidth, scaledHeight) * 0.2;
 
+        // Récupérer le canvas PDF pour l'animation
+        let pdfCanvas = null;
+        try {
+            const pageWrapper = canvas.closest('.pdf-page-wrapper');
+            if (pageWrapper) {
+                pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+            }
+        } catch (e) {
+            // Fallback silencieux
+        }
+
         const duration = 300; // 300ms d'animation fluide
         const startTime = Date.now();
 
@@ -7768,7 +7779,7 @@ class CleanPDFViewer {
 
                 if (opacity > 0.01) {
                     ctx.globalAlpha = opacity;
-                    this.drawFrostedGlassMask(ctx, currentX, currentY, currentWidth, currentHeight, currentRadius);
+                    this.drawFrostedGlassMask(ctx, currentX, currentY, currentWidth, currentHeight, currentRadius, pdfCanvas);
                 }
             } else {
                 // Animation de masquage: fondu + expansion depuis le centre
@@ -7781,7 +7792,7 @@ class CleanPDFViewer {
                 const currentRadius = radius * (1 - expand);
 
                 ctx.globalAlpha = opacity;
-                this.drawFrostedGlassMask(ctx, currentX, currentY, currentWidth, currentHeight, currentRadius);
+                this.drawFrostedGlassMask(ctx, currentX, currentY, currentWidth, currentHeight, currentRadius, pdfCanvas);
             }
 
             ctx.restore();
@@ -7814,65 +7825,170 @@ class CleanPDFViewer {
     }
 
     /**
-     * Dessiner l'effet de verre dépoli (frosted glass)
+     * Dessiner l'effet de verre dépoli (frosted glass) avec déformation type loupe
      */
-    drawFrostedGlassMask(ctx, x, y, width, height, radius) {
+    drawFrostedGlassMask(ctx, x, y, width, height, radius, pdfCanvas = null) {
         ctx.save();
 
-        // Dessiner le rectangle arrondi
+        // Dessiner le rectangle arrondi et clipper
         this.drawRoundedRect(ctx, x, y, width, height, radius);
         ctx.clip();
 
-        // Fond semi-transparent gris clair
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
-        ctx.fillRect(x, y, width, height);
-
-        // Effet de déformation avec lignes de bruit
-        ctx.strokeStyle = 'rgba(150, 150, 150, 0.3)';
-        ctx.lineWidth = 1;
-
-        // Lignes horizontales ondulées pour simuler la déformation
-        const lineSpacing = 3;
-        for (let ly = y; ly < y + height; ly += lineSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(x, ly);
-            for (let lx = x; lx < x + width; lx += 4) {
-                const wave = Math.sin((lx - x) * 0.15 + (ly - y) * 0.1) * 1.5;
-                ctx.lineTo(lx, ly + wave);
-            }
-            ctx.stroke();
-        }
-
-        // Lignes verticales ondulées
-        for (let lx = x; lx < x + width; lx += lineSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(lx, y);
-            for (let ly = y; ly < y + height; ly += 4) {
-                const wave = Math.sin((ly - y) * 0.15 + (lx - x) * 0.1) * 1.5;
-                ctx.lineTo(lx + wave, ly);
-            }
-            ctx.stroke();
-        }
-
-        // Overlay avec effet de flou simulé (points semi-transparents)
-        ctx.fillStyle = 'rgba(180, 180, 180, 0.15)';
-        for (let i = 0; i < 50; i++) {
-            const px = x + Math.random() * width;
-            const py = y + Math.random() * height;
-            const size = 2 + Math.random() * 4;
-            ctx.beginPath();
-            ctx.arc(px, py, size, 0, Math.PI * 2);
-            ctx.fill();
+        // Si on a accès au canvas PDF, capturer et déformer le contenu
+        if (pdfCanvas) {
+            this.drawPixelatedContent(ctx, pdfCanvas, x, y, width, height);
+        } else {
+            // Fallback: fond blanc semi-opaque avec effet de déformation visuelle
+            this.drawDeformationEffect(ctx, x, y, width, height);
         }
 
         ctx.restore();
 
         // Bordure arrondie subtile
         this.drawRoundedRect(ctx, x, y, width, height, radius);
-        ctx.strokeStyle = 'rgba(150, 150, 150, 0.5)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(180, 180, 180, 0.6)';
+        ctx.lineWidth = 1.5;
         ctx.setLineDash([]);
         ctx.stroke();
+    }
+
+    /**
+     * Dessiner le contenu pixelisé (effet de flou par pixelisation)
+     */
+    drawPixelatedContent(ctx, sourceCanvas, x, y, width, height) {
+        const pixelSize = 8; // Taille des blocs de pixels
+        const sourceCtx = sourceCanvas.getContext('2d');
+
+        try {
+            // Capturer les pixels du canvas source
+            const imageData = sourceCtx.getImageData(
+                Math.max(0, Math.floor(x)),
+                Math.max(0, Math.floor(y)),
+                Math.min(Math.ceil(width), sourceCanvas.width - x),
+                Math.min(Math.ceil(height), sourceCanvas.height - y)
+            );
+
+            // Dessiner les pixels en blocs (effet de pixelisation)
+            for (let py = 0; py < height; py += pixelSize) {
+                for (let px = 0; px < width; px += pixelSize) {
+                    // Calculer la couleur moyenne du bloc
+                    let r = 0, g = 0, b = 0, count = 0;
+
+                    for (let by = 0; by < pixelSize && py + by < height; by++) {
+                        for (let bx = 0; bx < pixelSize && px + bx < width; bx++) {
+                            const idx = ((Math.floor(py + by) * Math.floor(width)) + Math.floor(px + bx)) * 4;
+                            if (idx >= 0 && idx < imageData.data.length - 2) {
+                                r += imageData.data[idx];
+                                g += imageData.data[idx + 1];
+                                b += imageData.data[idx + 2];
+                                count++;
+                            }
+                        }
+                    }
+
+                    if (count > 0) {
+                        r = Math.floor(r / count);
+                        g = Math.floor(g / count);
+                        b = Math.floor(b / count);
+
+                        // Ajouter un effet de déformation (légère variation de position)
+                        const offsetX = Math.sin(py * 0.1) * 2;
+                        const offsetY = Math.cos(px * 0.1) * 2;
+
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect(
+                            x + px + offsetX,
+                            y + py + offsetY,
+                            pixelSize,
+                            pixelSize
+                        );
+                    }
+                }
+            }
+
+            // Overlay léger pour unifier
+            ctx.fillStyle = 'rgba(245, 245, 245, 0.3)';
+            ctx.fillRect(x, y, width, height);
+
+        } catch (e) {
+            // En cas d'erreur (cross-origin, etc.), utiliser le fallback
+            console.log('[TextHider] Fallback vers effet de déformation');
+            this.drawDeformationEffect(ctx, x, y, width, height);
+        }
+    }
+
+    /**
+     * Dessiner un effet de déformation visuelle (fallback sans accès au PDF)
+     */
+    drawDeformationEffect(ctx, x, y, width, height) {
+        // Fond blanc/gris avec bonne opacité
+        ctx.fillStyle = 'rgba(250, 250, 250, 0.85)';
+        ctx.fillRect(x, y, width, height);
+
+        // Créer un pattern de déformation dense avec des ellipses qui simulent un effet loupe
+        const cellSize = 6;
+
+        for (let py = y; py < y + height; py += cellSize) {
+            for (let px = x; px < x + width; px += cellSize) {
+                // Variation de couleur pour créer l'effet de déformation
+                const noise = Math.sin(px * 0.3) * Math.cos(py * 0.3);
+                const grayValue = 200 + noise * 40;
+
+                // Déformation de position (effet loupe/ondulation)
+                const waveX = Math.sin((py - y) * 0.15) * 3;
+                const waveY = Math.cos((px - x) * 0.15) * 3;
+
+                ctx.fillStyle = `rgba(${grayValue}, ${grayValue}, ${grayValue}, 0.7)`;
+
+                // Dessiner des ellipses déformées
+                ctx.beginPath();
+                ctx.ellipse(
+                    px + cellSize/2 + waveX,
+                    py + cellSize/2 + waveY,
+                    cellSize/2 + noise,
+                    cellSize/2 - noise * 0.5,
+                    noise * 0.5,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+        }
+
+        // Ajouter des lignes de distorsion horizontales
+        ctx.strokeStyle = 'rgba(220, 220, 220, 0.8)';
+        ctx.lineWidth = 2;
+        for (let ly = y + 4; ly < y + height; ly += 8) {
+            ctx.beginPath();
+            ctx.moveTo(x, ly);
+            for (let lx = x; lx <= x + width; lx += 3) {
+                const wave = Math.sin((lx - x) * 0.2 + (ly - y) * 0.1) * 4;
+                ctx.lineTo(lx, ly + wave);
+            }
+            ctx.stroke();
+        }
+
+        // Ajouter des lignes de distorsion verticales
+        for (let lx = x + 4; lx < x + width; lx += 8) {
+            ctx.beginPath();
+            ctx.moveTo(lx, y);
+            for (let ly = y; ly <= y + height; ly += 3) {
+                const wave = Math.sin((ly - y) * 0.2 + (lx - x) * 0.1) * 4;
+                ctx.lineTo(lx + wave, ly);
+            }
+            ctx.stroke();
+        }
+
+        // Overlay final pour adoucir
+        ctx.fillStyle = 'rgba(248, 248, 248, 0.4)';
+        ctx.fillRect(x, y, width, height);
+
+        // Effet de brillance en haut (reflet de verre)
+        const gradient = ctx.createLinearGradient(x, y, x, y + height * 0.3);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, width, height * 0.3);
     }
 
     /**
@@ -7899,8 +8015,19 @@ class CleanPDFViewer {
 
         ctx.save();
 
+        // Essayer de récupérer le canvas PDF pour l'aperçu
+        let pdfCanvas = null;
+        try {
+            const pageWrapper = canvas.closest('.pdf-page-wrapper');
+            if (pageWrapper) {
+                pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+            }
+        } catch (e) {
+            // Fallback silencieux
+        }
+
         // Aperçu avec effet de verre dépoli
-        this.drawFrostedGlassMask(ctx, minX, minY, width, height, radius);
+        this.drawFrostedGlassMask(ctx, minX, minY, width, height, radius, pdfCanvas);
 
         // Bordure de sélection en pointillés
         this.drawRoundedRect(ctx, minX, minY, width, height, radius);
@@ -7950,8 +8077,20 @@ class CleanPDFViewer {
             ctx.setLineDash([4, 4]);
             ctx.stroke();
         } else {
-            // Masque non révélé: effet de verre dépoli translucide
-            this.drawFrostedGlassMask(ctx, scaledX, scaledY, scaledWidth, scaledHeight, radius);
+            // Essayer de récupérer le canvas PDF pour un vrai effet de pixelisation
+            let pdfCanvas = null;
+            try {
+                const annotationCanvas = ctx.canvas;
+                const pageWrapper = annotationCanvas.closest('.pdf-page-wrapper');
+                if (pageWrapper) {
+                    pdfCanvas = pageWrapper.querySelector('.pdf-canvas');
+                }
+            } catch (e) {
+                console.log('[TextHider] Impossible de récupérer le canvas PDF');
+            }
+
+            // Masque non révélé: effet de verre dépoli avec pixelisation
+            this.drawFrostedGlassMask(ctx, scaledX, scaledY, scaledWidth, scaledHeight, radius, pdfCanvas);
         }
 
         ctx.restore();
