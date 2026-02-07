@@ -25,7 +25,7 @@
     }
 
     .page-header h1 i {
-        color: #EC4899;
+        color: var(--primary-color);
     }
 
     /* Cards des découpages */
@@ -45,7 +45,7 @@
     }
 
     .decoupage-card {
-        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+        background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
         border: 2px solid transparent;
         border-radius: var(--border-radius);
         padding: 1.25rem;
@@ -59,8 +59,8 @@
     }
 
     .decoupage-card.active {
-        border-color: #EC4899;
-        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
     }
 
     .decoupage-card-header {
@@ -78,7 +78,7 @@
 
     .decoupage-card-subject {
         font-size: 0.85rem;
-        color: #EC4899;
+        color: var(--primary-color);
         font-weight: 500;
     }
 
@@ -111,13 +111,13 @@
     }
 
     .new-decoupage-card:hover {
-        border-color: #EC4899;
-        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+        border-color: var(--primary-color);
+        background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
     }
 
     .new-decoupage-card i {
         font-size: 2rem;
-        color: #EC4899;
+        color: var(--primary-color);
         margin-bottom: 0.5rem;
     }
 
@@ -193,12 +193,12 @@
 
     .form-group input:focus, .form-group select:focus {
         outline: none;
-        border-color: #EC4899;
-        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }
 
-    /* Liste des périodes */
-    .periods-list {
+    /* Liste des thèmes */
+    .themes-list {
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -206,7 +206,7 @@
         min-height: 100px;
     }
 
-    .period-item {
+    .theme-item {
         display: grid;
         grid-template-columns: auto 1fr auto auto auto auto;
         gap: 0.75rem;
@@ -218,32 +218,32 @@
         transition: all 0.2s ease;
     }
 
-    .period-item:hover {
+    .theme-item:hover {
         background: #E5E7EB;
     }
 
-    .period-item.dragging {
+    .theme-item.dragging {
         opacity: 0.5;
         cursor: grabbing;
     }
 
-    .period-drag-handle {
+    .theme-drag-handle {
         color: var(--gray-color);
         cursor: grab;
     }
 
-    .period-name {
+    .theme-name {
         font-weight: 500;
         color: var(--dark-color);
     }
 
-    .period-duration {
+    .theme-duration {
         color: var(--gray-color);
         font-size: 0.9rem;
         white-space: nowrap;
     }
 
-    .period-color {
+    .theme-color {
         width: 32px;
         height: 32px;
         border-radius: 0.375rem;
@@ -251,12 +251,12 @@
         box-shadow: var(--shadow-sm);
     }
 
-    .period-actions {
+    .theme-actions {
         display: flex;
         gap: 0.5rem;
     }
 
-    .period-btn {
+    .theme-btn {
         padding: 0.375rem 0.5rem;
         border: none;
         border-radius: 0.25rem;
@@ -265,39 +265,39 @@
         font-size: 0.85rem;
     }
 
-    .period-btn-edit {
+    .theme-btn-edit {
         background: #DBEAFE;
         color: #3B82F6;
     }
 
-    .period-btn-edit:hover {
+    .theme-btn-edit:hover {
         background: #BFDBFE;
     }
 
-    .period-btn-delete {
+    .theme-btn-delete {
         background: #FEE2E2;
         color: #EF4444;
     }
 
-    .period-btn-delete:hover {
+    .theme-btn-delete:hover {
         background: #FECACA;
     }
 
-    .periods-empty {
+    .themes-empty {
         text-align: center;
         padding: 2rem;
         color: var(--gray-color);
         font-style: italic;
     }
 
-    .periods-total {
+    .themes-total {
         display: flex;
         justify-content: flex-end;
         padding: 0.75rem 1rem;
-        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+        background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
         border-radius: 0.5rem;
         font-weight: 600;
-        color: #EC4899;
+        color: var(--primary-color);
     }
 
     /* Prévisualisation timeline */
@@ -327,16 +327,20 @@
     .timeline-segment {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         color: white;
-        font-size: 0.75rem;
         font-weight: 600;
+        overflow: hidden;
+        padding: 0 0.5rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        min-width: 0;
+    }
+
+    .timeline-segment .segment-text {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        padding: 0 0.5rem;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s ease;
     }
 
     .timeline-segment:hover {
@@ -391,7 +395,7 @@
 
     /* Boutons d'action */
     .btn-primary {
-        background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
         color: white;
         border: none;
         padding: 0.75rem 1.5rem;
@@ -406,7 +410,7 @@
 
     .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
     }
 
     .btn-secondary {
@@ -622,7 +626,7 @@
                     </div>
                 </div>
                 <div class="decoupage-card-stats">
-                    <span><i class="fas fa-layer-group"></i> {{ decoupage.periods.count() }} périodes</span>
+                    <span><i class="fas fa-layer-group"></i> {{ decoupage.periods.count() }} thèmes</span>
                     <span><i class="fas fa-users"></i> {{ decoupage.assignments.count() }} classes</span>
                 </div>
             </div>
@@ -653,20 +657,20 @@
                 </div>
             </div>
 
-            <!-- Liste des périodes -->
+            <!-- Liste des thèmes -->
             <div class="panel-header" style="margin-top: 1.5rem;">
-                <h2><i class="fas fa-layer-group"></i> Périodes</h2>
-                <button class="btn-sm btn-primary" onclick="openPeriodModal()">
+                <h2><i class="fas fa-layer-group"></i> Thèmes</h2>
+                <button class="btn-sm btn-primary" onclick="openThemeModal()">
                     <i class="fas fa-plus"></i>
                     Ajouter
                 </button>
             </div>
 
-            <div class="periods-list" id="periodsList">
-                <div class="periods-empty">Aucune période. Cliquez sur "Ajouter" pour créer une période.</div>
+            <div class="themes-list" id="themesList">
+                <div class="themes-empty">Aucun thème. Cliquez sur "Ajouter" pour créer un thème.</div>
             </div>
 
-            <div class="periods-total" id="periodsTotal" style="display: none;">
+            <div class="themes-total" id="themesTotal" style="display: none;">
                 Total: <span id="totalWeeks">0</span> semaines
             </div>
 
@@ -769,22 +773,22 @@
     </div>
 </div>
 
-<!-- Modal période -->
-<div class="modal-overlay" id="periodModal">
+<!-- Modal thème -->
+<div class="modal-overlay" id="themeModal">
     <div class="modal">
         <div class="modal-header">
-            <h3 id="periodModalTitle">Ajouter une période</h3>
-            <button class="modal-close" onclick="closePeriodModal()">&times;</button>
+            <h3 id="themeModalTitle">Ajouter un thème</h3>
+            <button class="modal-close" onclick="closeThemeModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <input type="hidden" id="editingPeriodId">
+            <input type="hidden" id="editingThemeId">
             <div class="form-group">
-                <label for="periodName">Nom de la période</label>
-                <input type="text" id="periodName" placeholder="Ex: Les fractions">
+                <label for="themeName">Nom du thème</label>
+                <input type="text" id="themeName" placeholder="Ex: Les fractions">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
-                <label for="periodDuration">Durée (en semaines)</label>
-                <input type="number" id="periodDuration" min="0.5" step="0.5" value="1" placeholder="Ex: 3">
+                <label for="themeDuration">Durée (en semaines)</label>
+                <input type="number" id="themeDuration" min="0.5" step="0.5" value="1" placeholder="Ex: 3">
             </div>
             <div class="form-group" style="margin-top: 1rem;">
                 <label>Couleur</label>
@@ -803,10 +807,10 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closePeriodModal()">Annuler</button>
-            <button class="btn-primary" onclick="savePeriod()">
+            <button class="btn-secondary" onclick="closeThemeModal()">Annuler</button>
+            <button class="btn-primary" onclick="saveTheme()">
                 <i class="fas fa-check"></i>
-                <span id="periodModalAction">Ajouter</span>
+                <span id="themeModalAction">Ajouter</span>
             </button>
         </div>
     </div>
@@ -839,7 +843,7 @@
 // État global
 let currentDecoupageId = null;
 let currentDecoupage = null;
-let periods = [];
+let themes = [];
 let assignments = {};
 
 // Couleurs prédéfinies
@@ -881,43 +885,43 @@ function setSelectedColor(color) {
     });
 }
 
-// Drag and Drop pour réordonner les périodes
+// Drag and Drop pour réordonner les thèmes
 function initDragAndDrop() {
-    const periodsList = document.getElementById('periodsList');
+    const themesList = document.getElementById('themesList');
 
-    periodsList.addEventListener('dragstart', function(e) {
-        if (e.target.classList.contains('period-item')) {
+    themesList.addEventListener('dragstart', function(e) {
+        if (e.target.classList.contains('theme-item')) {
             e.target.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.target.dataset.periodId);
+            e.dataTransfer.setData('text/plain', e.target.dataset.themeId);
         }
     });
 
-    periodsList.addEventListener('dragend', function(e) {
-        if (e.target.classList.contains('period-item')) {
+    themesList.addEventListener('dragend', function(e) {
+        if (e.target.classList.contains('theme-item')) {
             e.target.classList.remove('dragging');
         }
     });
 
-    periodsList.addEventListener('dragover', function(e) {
+    themesList.addEventListener('dragover', function(e) {
         e.preventDefault();
         const dragging = document.querySelector('.dragging');
-        const afterElement = getDragAfterElement(periodsList, e.clientY);
+        const afterElement = getDragAfterElement(themesList, e.clientY);
 
         if (afterElement == null) {
-            periodsList.appendChild(dragging);
+            themesList.appendChild(dragging);
         } else {
-            periodsList.insertBefore(dragging, afterElement);
+            themesList.insertBefore(dragging, afterElement);
         }
     });
 
-    periodsList.addEventListener('drop', function(e) {
+    themesList.addEventListener('drop', function(e) {
         e.preventDefault();
-        updatePeriodOrder();
+        updateThemeOrder();
     });
 }
 
 function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('.period-item:not(.dragging)')];
+    const draggableElements = [...container.querySelectorAll('.theme-item:not(.dragging)')];
 
     return draggableElements.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
@@ -931,21 +935,20 @@ function getDragAfterElement(container, y) {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-async function updatePeriodOrder() {
-    const periodItems = document.querySelectorAll('.period-item');
-    const periodIds = Array.from(periodItems).map(item => parseInt(item.dataset.periodId));
+async function updateThemeOrder() {
+    const themeItems = document.querySelectorAll('.theme-item');
+    const themeIds = Array.from(themeItems).map(item => parseInt(item.dataset.themeId));
 
     try {
         const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ period_ids: periodIds })
+            body: JSON.stringify({ period_ids: themeIds })
         });
 
         const data = await response.json();
         if (data.success) {
-            // Mettre à jour l'ordre local
-            periods.sort((a, b) => periodIds.indexOf(a.id) - periodIds.indexOf(b.id));
+            themes.sort((a, b) => themeIds.indexOf(a.id) - themeIds.indexOf(b.id));
             updateTimeline();
         }
     } catch (error) {
@@ -955,7 +958,6 @@ async function updatePeriodOrder() {
 
 // Gestion des découpages
 async function selectDecoupage(id) {
-    // Marquer la carte sélectionnée
     document.querySelectorAll('.decoupage-card').forEach(card => {
         card.classList.remove('active');
         if (parseInt(card.dataset.id) === id) {
@@ -963,10 +965,8 @@ async function selectDecoupage(id) {
         }
     });
 
-    // Afficher la section détail
     document.getElementById('detailSection').classList.remove('hidden');
 
-    // Charger les données
     try {
         const response = await fetch(`/planning/api/decoupage/${id}`);
         const data = await response.json();
@@ -974,17 +974,13 @@ async function selectDecoupage(id) {
         if (data.success) {
             currentDecoupageId = id;
             currentDecoupage = data.data;
-            periods = data.data.periods;
+            themes = data.data.periods;
 
-            // Remplir le formulaire
             document.getElementById('decoupageName').value = currentDecoupage.name;
             document.getElementById('decoupageSubject').value = currentDecoupage.subject;
             document.getElementById('detailTitle').textContent = currentDecoupage.name;
 
-            // Afficher les périodes
-            renderPeriods();
-
-            // Charger les assignations
+            renderThemes();
             loadAssignments();
         }
     } catch (error) {
@@ -993,32 +989,32 @@ async function selectDecoupage(id) {
     }
 }
 
-function renderPeriods() {
-    const periodsList = document.getElementById('periodsList');
-    const periodsTotal = document.getElementById('periodsTotal');
+function renderThemes() {
+    const themesList = document.getElementById('themesList');
+    const themesTotal = document.getElementById('themesTotal');
     const totalWeeks = document.getElementById('totalWeeks');
     const timelinePreview = document.getElementById('timelinePreview');
 
-    if (periods.length === 0) {
-        periodsList.innerHTML = '<div class="periods-empty">Aucune période. Cliquez sur "Ajouter" pour créer une période.</div>';
-        periodsTotal.style.display = 'none';
+    if (themes.length === 0) {
+        themesList.innerHTML = '<div class="themes-empty">Aucun thème. Cliquez sur "Ajouter" pour créer un thème.</div>';
+        themesTotal.style.display = 'none';
         timelinePreview.style.display = 'none';
         return;
     }
 
     let html = '';
-    periods.forEach(period => {
+    themes.forEach(theme => {
         html += `
-            <div class="period-item" draggable="true" data-period-id="${period.id}">
-                <i class="fas fa-grip-vertical period-drag-handle"></i>
-                <span class="period-name">${period.name}</span>
-                <span class="period-duration">${period.duration} sem.</span>
-                <div class="period-color" style="background-color: ${period.color};"></div>
-                <div class="period-actions">
-                    <button class="period-btn period-btn-edit" onclick="editPeriod(${period.id})">
+            <div class="theme-item" draggable="true" data-theme-id="${theme.id}">
+                <i class="fas fa-grip-vertical theme-drag-handle"></i>
+                <span class="theme-name">${theme.name}</span>
+                <span class="theme-duration">${theme.duration} sem.</span>
+                <div class="theme-color" style="background-color: ${theme.color};"></div>
+                <div class="theme-actions">
+                    <button class="theme-btn theme-btn-edit" onclick="editTheme(${theme.id})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="period-btn period-btn-delete" onclick="confirmDeletePeriod(${period.id})">
+                    <button class="theme-btn theme-btn-delete" onclick="confirmDeleteTheme(${theme.id})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -1026,14 +1022,12 @@ function renderPeriods() {
         `;
     });
 
-    periodsList.innerHTML = html;
+    themesList.innerHTML = html;
 
-    // Calculer le total
-    const total = periods.reduce((sum, p) => sum + p.duration, 0);
+    const total = themes.reduce((sum, t) => sum + t.duration, 0);
     totalWeeks.textContent = total;
-    periodsTotal.style.display = 'flex';
+    themesTotal.style.display = 'flex';
 
-    // Mettre à jour la timeline
     updateTimeline();
 }
 
@@ -1041,29 +1035,51 @@ function updateTimeline() {
     const timelinePreview = document.getElementById('timelinePreview');
     const timelineBar = document.getElementById('timelineBar');
 
-    if (periods.length === 0) {
+    if (themes.length === 0) {
         timelinePreview.style.display = 'none';
         return;
     }
 
     timelinePreview.style.display = 'block';
 
-    const totalDuration = periods.reduce((sum, p) => sum + p.duration, 0);
+    const totalDuration = themes.reduce((sum, t) => sum + t.duration, 0);
+    const barWidth = timelineBar.offsetWidth || 600;
 
     let html = '';
-    periods.forEach(period => {
-        const widthPercent = (period.duration / totalDuration) * 100;
+    themes.forEach(theme => {
+        const widthPercent = (theme.duration / totalDuration) * 100;
+        const segmentWidth = (widthPercent / 100) * barWidth;
+
+        // Calculer la taille de police adaptative
+        let fontSize = '0.75rem';
+        if (segmentWidth < 40) {
+            fontSize = '0.5rem';
+        } else if (segmentWidth < 60) {
+            fontSize = '0.6rem';
+        } else if (segmentWidth < 80) {
+            fontSize = '0.65rem';
+        } else if (segmentWidth < 100) {
+            fontSize = '0.7rem';
+        }
+
         html += `
             <div class="timeline-segment"
-                 style="background-color: ${period.color}; flex: 0 0 ${widthPercent}%;"
-                 title="${period.name} (${period.duration} sem.)">
-                ${widthPercent > 10 ? period.name : ''}
+                 style="background-color: ${theme.color}; flex: 0 0 ${widthPercent}%; font-size: ${fontSize};"
+                 title="${theme.name} (${theme.duration} sem.)">
+                <span class="segment-text">${theme.name}</span>
             </div>
         `;
     });
 
     timelineBar.innerHTML = html;
 }
+
+// Recalculer la timeline quand la fenêtre change de taille
+window.addEventListener('resize', function() {
+    if (themes.length > 0) {
+        updateTimeline();
+    }
+});
 
 // Modal nouveau découpage
 function openNewDecoupageModal() {
@@ -1098,7 +1114,6 @@ async function createDecoupage() {
             closeNewDecoupageModal();
             showNotification('success', 'Découpage créé');
 
-            // Ajouter la carte
             const grid = document.getElementById('decoupagesGrid');
             const newCard = document.createElement('div');
             newCard.className = 'decoupage-card';
@@ -1112,13 +1127,12 @@ async function createDecoupage() {
                     </div>
                 </div>
                 <div class="decoupage-card-stats">
-                    <span><i class="fas fa-layer-group"></i> 0 périodes</span>
+                    <span><i class="fas fa-layer-group"></i> 0 thèmes</span>
                     <span><i class="fas fa-users"></i> 0 classes</span>
                 </div>
             `;
             grid.appendChild(newCard);
 
-            // Sélectionner le nouveau découpage
             selectDecoupage(data.data.id);
         } else {
             showNotification('error', data.message);
@@ -1129,47 +1143,47 @@ async function createDecoupage() {
     }
 }
 
-// Modal période
-function openPeriodModal(periodId = null) {
-    const modal = document.getElementById('periodModal');
-    const title = document.getElementById('periodModalTitle');
-    const action = document.getElementById('periodModalAction');
-    const editingId = document.getElementById('editingPeriodId');
+// Modal thème
+function openThemeModal(themeId = null) {
+    const modal = document.getElementById('themeModal');
+    const title = document.getElementById('themeModalTitle');
+    const action = document.getElementById('themeModalAction');
+    const editingId = document.getElementById('editingThemeId');
 
-    if (periodId) {
-        const period = periods.find(p => p.id === periodId);
-        if (period) {
-            title.textContent = 'Modifier la période';
+    if (themeId) {
+        const theme = themes.find(t => t.id === themeId);
+        if (theme) {
+            title.textContent = 'Modifier le thème';
             action.textContent = 'Modifier';
-            editingId.value = periodId;
-            document.getElementById('periodName').value = period.name;
-            document.getElementById('periodDuration').value = period.duration;
-            setSelectedColor(period.color);
+            editingId.value = themeId;
+            document.getElementById('themeName').value = theme.name;
+            document.getElementById('themeDuration').value = theme.duration;
+            setSelectedColor(theme.color);
         }
     } else {
-        title.textContent = 'Ajouter une période';
+        title.textContent = 'Ajouter un thème';
         action.textContent = 'Ajouter';
         editingId.value = '';
-        document.getElementById('periodName').value = '';
-        document.getElementById('periodDuration').value = 1;
+        document.getElementById('themeName').value = '';
+        document.getElementById('themeDuration').value = 1;
         setSelectedColor(COLORS[0]);
     }
 
     modal.classList.add('active');
 }
 
-function closePeriodModal() {
-    document.getElementById('periodModal').classList.remove('active');
+function closeThemeModal() {
+    document.getElementById('themeModal').classList.remove('active');
 }
 
-function editPeriod(periodId) {
-    openPeriodModal(periodId);
+function editTheme(themeId) {
+    openThemeModal(themeId);
 }
 
-async function savePeriod() {
-    const editingId = document.getElementById('editingPeriodId').value;
-    const name = document.getElementById('periodName').value.trim();
-    const duration = parseFloat(document.getElementById('periodDuration').value);
+async function saveTheme() {
+    const editingId = document.getElementById('editingThemeId').value;
+    const name = document.getElementById('themeName').value.trim();
+    const duration = parseFloat(document.getElementById('themeDuration').value);
     const color = getSelectedColor();
 
     if (!name || isNaN(duration) || duration <= 0) {
@@ -1180,14 +1194,12 @@ async function savePeriod() {
     try {
         let response;
         if (editingId) {
-            // Modifier
             response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${editingId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, duration, color })
             });
         } else {
-            // Ajouter
             response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1198,22 +1210,20 @@ async function savePeriod() {
         const data = await response.json();
 
         if (data.success) {
-            closePeriodModal();
+            closeThemeModal();
 
             if (editingId) {
-                // Mettre à jour localement
-                const index = periods.findIndex(p => p.id === parseInt(editingId));
+                const index = themes.findIndex(t => t.id === parseInt(editingId));
                 if (index !== -1) {
-                    periods[index] = data.data;
+                    themes[index] = data.data;
                 }
-                showNotification('success', 'Période modifiée');
+                showNotification('success', 'Thème modifié');
             } else {
-                // Ajouter localement
-                periods.push(data.data);
-                showNotification('success', 'Période ajoutée');
+                themes.push(data.data);
+                showNotification('success', 'Thème ajouté');
             }
 
-            renderPeriods();
+            renderThemes();
             updateDecoupageCard();
         } else {
             showNotification('error', data.message);
@@ -1224,21 +1234,21 @@ async function savePeriod() {
     }
 }
 
-async function confirmDeletePeriod(periodId) {
-    if (!confirm('Supprimer cette période ?')) return;
+async function confirmDeleteTheme(themeId) {
+    if (!confirm('Supprimer ce thème ?')) return;
 
     try {
-        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${periodId}`, {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${themeId}`, {
             method: 'DELETE'
         });
 
         const data = await response.json();
 
         if (data.success) {
-            periods = periods.filter(p => p.id !== periodId);
-            renderPeriods();
+            themes = themes.filter(t => t.id !== themeId);
+            renderThemes();
             updateDecoupageCard();
-            showNotification('success', 'Période supprimée');
+            showNotification('success', 'Thème supprimé');
         } else {
             showNotification('error', data.message);
         }
@@ -1273,6 +1283,9 @@ async function saveDecoupage() {
             document.getElementById('detailTitle').textContent = name;
             updateDecoupageCard();
             showNotification('success', 'Découpage sauvegardé');
+
+            // Fermer le panneau après sauvegarde
+            cancelEdit();
         } else {
             showNotification('error', data.message);
         }
@@ -1289,7 +1302,7 @@ function cancelEdit() {
     });
     currentDecoupageId = null;
     currentDecoupage = null;
-    periods = [];
+    themes = [];
 }
 
 function updateDecoupageCard() {
@@ -1300,7 +1313,7 @@ function updateDecoupageCard() {
         const stats = card.querySelector('.decoupage-card-stats');
         const assignCount = Object.values(assignments).filter(a => a.assigned).length;
         stats.innerHTML = `
-            <span><i class="fas fa-layer-group"></i> ${periods.length} périodes</span>
+            <span><i class="fas fa-layer-group"></i> ${themes.length} thèmes</span>
             <span><i class="fas fa-users"></i> ${assignCount} classes</span>
         `;
     }
@@ -1326,15 +1339,12 @@ async function deleteDecoupage() {
         if (data.success) {
             closeDeleteModal();
 
-            // Supprimer la carte
             const card = document.querySelector(`.decoupage-card[data-id="${currentDecoupageId}"]`);
             if (card) {
                 card.remove();
             }
 
-            // Masquer le détail
             cancelEdit();
-
             showNotification('success', 'Découpage supprimé');
         } else {
             showNotification('error', data.message);
@@ -1349,18 +1359,11 @@ async function deleteDecoupage() {
 async function loadAssignments() {
     assignments = {};
 
-    // Récupérer les assignations existantes depuis le découpage
-    if (currentDecoupage && currentDecoupage.periods) {
-        // Les assignations sont chargées via l'API du découpage
-    }
-
-    // Charger les assignations de ce découpage
     try {
         const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}`);
         const data = await response.json();
 
         if (data.success) {
-            // Réinitialiser l'état de toutes les classes
             document.querySelectorAll('[data-classroom-id]').forEach(row => {
                 const classroomId = row.dataset.classroomId;
                 const statusEl = document.getElementById(`status-${classroomId}`);
@@ -1376,23 +1379,11 @@ async function loadAssignments() {
 
                 assignments[classroomId] = { assigned: false, assignment_id: null, start_week: 1 };
             });
-
-            // Marquer les classes assignées à ce découpage
-            // On doit faire un appel spécifique pour obtenir les assignations
-            const assignResponse = await fetch(`/planning/api/decoupage/${currentDecoupageId}`);
-            const assignData = await assignResponse.json();
-
-            if (assignData.success && assignData.data.assignments_count > 0) {
-                // Récupérer les assignations via une nouvelle route ou les données existantes
-                // Pour l'instant, on recharge la page pour avoir les assignations à jour
-                // TODO: Améliorer en ajoutant les assignations dans la réponse de get_decoupage
-            }
         }
     } catch (error) {
         console.error('Erreur lors du chargement des assignations:', error);
     }
 
-    // Charger les assignations par classe
     {% for classroom in classrooms %}
     loadClassroomAssignment({{ classroom.id }});
     {% endfor %}
@@ -1404,7 +1395,6 @@ async function loadClassroomAssignment(classroomId) {
         const data = await response.json();
 
         if (data.success) {
-            // Trouver l'assignation pour ce découpage
             const assignment = data.data.find(a => a.id === currentDecoupageId);
 
             if (assignment) {
@@ -1447,7 +1437,6 @@ async function toggleAssignment(classroomId) {
     const currentAssignment = assignments[classroomId];
 
     if (currentAssignment && currentAssignment.assigned) {
-        // Retirer l'assignation
         try {
             const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/unassign/${classroomId}`, {
                 method: 'DELETE'
@@ -1468,7 +1457,6 @@ async function toggleAssignment(classroomId) {
             showNotification('error', 'Erreur lors du retrait');
         }
     } else {
-        // Créer une assignation
         const startWeek = parseInt(document.getElementById(`week-${classroomId}`).value) || 1;
 
         try {
@@ -1535,7 +1523,6 @@ document.querySelectorAll('.week-input').forEach(input => {
 
 // Notifications
 function showNotification(type, message) {
-    // Utiliser le système de notification existant ou créer une notification simple
     const container = document.querySelector('.flash-container') || createFlashContainer();
 
     const notification = document.createElement('div');
@@ -1550,7 +1537,6 @@ function showNotification(type, message) {
 
     container.appendChild(notification);
 
-    // Auto-dismiss
     setTimeout(() => {
         if (notification.parentElement) {
             notification.remove();

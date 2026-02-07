@@ -974,17 +974,18 @@
 }
 
 /* ==========================================================================
-   DECOUPAGE RIBBON - Ruban de découpage annuel
+   DECOUPAGE RIBBON - Ruban de découpage annuel (sous les cases de la semaine)
    ========================================================================== */
 
 .decoupage-ribbon {
     display: flex;
     align-items: center;
-    padding: 0.25rem 0.5rem;
-    margin: 0.25rem 0;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    min-height: 20px;
+    justify-content: center;
+    padding: 0.2rem 0.5rem;
+    margin-top: 0.25rem;
+    border-radius: 0 0 4px 4px;
+    font-size: 0.65rem;
+    min-height: 18px;
     transition: all 0.2s ease;
 }
 
@@ -998,14 +999,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
+    text-align: center;
 }
 
 /* Style compact pour les petits écrans */
 @media (max-width: 1200px) {
     .decoupage-ribbon {
-        font-size: 0.6rem;
-        padding: 0.15rem 0.35rem;
-        min-height: 16px;
+        font-size: 0.55rem;
+        padding: 0.1rem 0.25rem;
+        min-height: 14px;
     }
 }
 
