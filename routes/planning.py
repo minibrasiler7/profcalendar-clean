@@ -1182,10 +1182,68 @@ def check_day_planning(date, classroom_id):
             'message': str(e)
         })
 
+def get_decoupage_for_week(classroom_id, week_number):
+    """
+    Récupère les informations de découpage pour une semaine donnée d'une classe.
+    Retourne un dict avec les infos du ruban ou None si aucun découpage.
+    """
+    from models.decoupage import DecoupageAssignment, DecoupagePeriod
+
+    if not classroom_id or not week_number:
+        return None
+
+    # Trouver l'assignation de découpage pour cette classe
+    assignment = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).first()
+
+    if not assignment:
+        return None
+
+    decoupage = assignment.decoupage
+    start_week = assignment.start_week
+
+    # Calculer quelle période correspond à cette semaine
+    periods = DecoupagePeriod.query.filter_by(
+        decoupage_id=decoupage.id
+    ).order_by(DecoupagePeriod.order).all()
+
+    if not periods:
+        return None
+
+    # Calculer l'offset depuis le début du découpage
+    week_offset = week_number - start_week
+
+    if week_offset < 0:
+        return None  # Avant le début du découpage
+
+    # Trouver la période correspondante
+    cumulative_weeks = 0
+    for period in periods:
+        period_end = cumulative_weeks + period.duration
+
+        if week_offset < period_end:
+            # Cette semaine est dans cette période
+            week_in_period = week_offset - cumulative_weeks
+
+            return {
+                'name': period.name,
+                'color': period.color,
+                'subject': decoupage.subject,
+                'is_start': week_in_period < 0.5,  # Première demi-semaine
+                'is_end': week_in_period >= period.duration - 0.5,  # Dernière demi-semaine
+                'progress': (week_in_period + 0.5) / period.duration,  # Position dans la période
+                'period_duration': period.duration,
+                'week_in_period': week_in_period + 1
+            }
+
+        cumulative_weeks = period_end
+
+    return None  # Après la fin du découpage
+
+
 def generate_annual_calendar(item, item_type='classroom'):
     """Génère les données du calendrier annuel pour une classe ou un groupe mixte"""
     print(f"🗓️ generate_annual_calendar called for {item_type}: {item.name} (ID: {item.id})")
-    
+
     # Calculer toutes les semaines de l'année scolaire
     start_date = current_user.school_year_start
     end_date = current_user.school_year_end
@@ -1255,6 +1313,11 @@ def generate_annual_calendar(item, item_type='classroom'):
         if not week_holiday and current_date >= start_date:
             week_number += 1
 
+        # Récupérer le ruban de découpage pour cette semaine (uniquement pour les classrooms)
+        decoupage_ribbon = None
+        if item_type == 'classroom' and week_number and not week_holiday:
+            decoupage_ribbon = get_decoupage_for_week(item.id, week_number)
+
         week_info = {
             'start_date': week_dates[0],
             'dates': week_dates,
@@ -1265,7 +1328,8 @@ def generate_annual_calendar(item, item_type='classroom'):
             'holiday_name': week_holiday,
             'holiday_name_short': week_holiday.replace("Vacances d'", "Vac.").replace("Vacances de ", "Vac. ").replace("Relâches de ", "Relâches ") if week_holiday else None,
             'week_number': week_number if not week_holiday else None,
-            'formatted_date': week_dates[0].strftime('%d/%m')  # Date du lundi
+            'formatted_date': week_dates[0].strftime('%d/%m'),  # Date du lundi
+            'decoupage_ribbon': decoupage_ribbon  # Info du ruban de découpage
         }
 
         # Vérifier pour chaque jour si la classe a cours et s'il y a des vacances
@@ -7796,3 +7860,459 @@ def delete_blank_sheet(sheet_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# DÉCOUPAGE ANNUEL - Routes pour la gestion des découpages thématiques
+# ============================================================================
+
+@planning_bp.route('/decoupage')
+@login_required
+@teacher_required
+def decoupage():
+    """Page principale de gestion des découpages annuels"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+    from models.classroom import Classroom
+
+    # Récupérer tous les découpages de l'utilisateur
+    decoupages = Decoupage.query.filter_by(user_id=current_user.id).order_by(Decoupage.created_at.desc()).all()
+
+    # Récupérer toutes les classes de l'utilisateur
+    classrooms = Classroom.query.filter_by(user_id=current_user.id, is_temporary=False).order_by(Classroom.name).all()
+
+    return render_template('planning/decoupage.html',
+                          decoupages=decoupages,
+                          classrooms=classrooms)
+
+
+@planning_bp.route('/api/decoupage', methods=['POST'])
+@login_required
+@teacher_required
+def create_decoupage():
+    """Créer un nouveau découpage"""
+    from models.decoupage import Decoupage
+
+    data = request.get_json()
+
+    name = data.get('name', '').strip()
+    subject = data.get('subject', '').strip()
+
+    if not name or not subject:
+        return jsonify({'success': False, 'message': 'Nom et discipline requis'}), 400
+
+    try:
+        decoupage = Decoupage(
+            user_id=current_user.id,
+            name=name,
+            subject=subject
+        )
+        db.session.add(decoupage)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Découpage créé',
+            'data': decoupage.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['GET'])
+@login_required
+@teacher_required
+def get_decoupage(decoupage_id):
+    """Récupérer un découpage avec ses périodes et assignations"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    return jsonify({
+        'success': True,
+        'data': decoupage.to_dict()
+    })
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_decoupage(decoupage_id):
+    """Modifier un découpage"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+
+    if 'name' in data:
+        decoupage.name = data['name'].strip()
+    if 'subject' in data:
+        decoupage.subject = data['subject'].strip()
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage mis à jour',
+            'data': decoupage.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_decoupage(decoupage_id):
+    """Supprimer un découpage"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    try:
+        db.session.delete(decoupage)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage supprimé'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods', methods=['POST'])
+@login_required
+@teacher_required
+def add_period(decoupage_id):
+    """Ajouter une période à un découpage"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+
+    name = data.get('name', '').strip()
+    duration = data.get('duration')
+    color = data.get('color', '#3B82F6')
+
+    if not name or duration is None:
+        return jsonify({'success': False, 'message': 'Nom et durée requis'}), 400
+
+    try:
+        duration = float(duration)
+        if duration <= 0:
+            return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+
+    # Calculer l'ordre (ajouter à la fin)
+    max_order = db.session.query(db.func.max(DecoupagePeriod.order)).filter_by(decoupage_id=decoupage_id).scalar() or 0
+
+    try:
+        period = DecoupagePeriod(
+            decoupage_id=decoupage_id,
+            name=name,
+            duration=duration,
+            color=color,
+            order=max_order + 1
+        )
+        db.session.add(period)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Période ajoutée',
+            'data': period.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/<int:period_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_period(decoupage_id, period_id):
+    """Modifier une période"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+
+    if not period:
+        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+
+    data = request.get_json()
+
+    if 'name' in data:
+        period.name = data['name'].strip()
+    if 'duration' in data:
+        try:
+            duration = float(data['duration'])
+            if duration <= 0:
+                return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+            period.duration = duration
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+    if 'color' in data:
+        period.color = data['color']
+    if 'order' in data:
+        period.order = int(data['order'])
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Période mise à jour',
+            'data': period.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/<int:period_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_period(decoupage_id, period_id):
+    """Supprimer une période"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+
+    if not period:
+        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+
+    deleted_order = period.order
+
+    try:
+        db.session.delete(period)
+
+        # Réordonner les périodes restantes
+        remaining_periods = DecoupagePeriod.query.filter(
+            DecoupagePeriod.decoupage_id == decoupage_id,
+            DecoupagePeriod.order > deleted_order
+        ).all()
+
+        for p in remaining_periods:
+            p.order -= 1
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Période supprimée'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/reorder', methods=['POST'])
+@login_required
+@teacher_required
+def reorder_periods(decoupage_id):
+    """Réordonner les périodes d'un découpage"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+    period_ids = data.get('period_ids', [])
+
+    if not period_ids:
+        return jsonify({'success': False, 'message': 'Liste des périodes requise'}), 400
+
+    try:
+        for idx, period_id in enumerate(period_ids):
+            period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+            if period:
+                period.order = idx + 1
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Périodes réordonnées'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/assign', methods=['POST'])
+@login_required
+@teacher_required
+def assign_decoupage(decoupage_id):
+    """Assigner un découpage à une classe"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+    from models.classroom import Classroom
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+    classroom_id = data.get('classroom_id')
+    start_week = data.get('start_week', 1)
+
+    if not classroom_id:
+        return jsonify({'success': False, 'message': 'Classe requise'}), 400
+
+    # Vérifier que la classe appartient à l'utilisateur
+    classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+    if not classroom:
+        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+    # Vérifier qu'il n'y a pas déjà une assignation
+    existing = DecoupageAssignment.query.filter_by(
+        decoupage_id=decoupage_id,
+        classroom_id=classroom_id
+    ).first()
+
+    if existing:
+        return jsonify({'success': False, 'message': 'Ce découpage est déjà assigné à cette classe'}), 400
+
+    try:
+        assignment = DecoupageAssignment(
+            decoupage_id=decoupage_id,
+            classroom_id=classroom_id,
+            start_week=start_week
+        )
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Découpage assigné à la classe',
+            'data': assignment.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/unassign/<int:classroom_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def unassign_decoupage(decoupage_id, classroom_id):
+    """Retirer un découpage d'une classe"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    assignment = DecoupageAssignment.query.filter_by(
+        decoupage_id=decoupage_id,
+        classroom_id=classroom_id
+    ).first()
+
+    if not assignment:
+        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+
+    try:
+        db.session.delete(assignment)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage retiré de la classe'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/assignment/<int:assignment_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_assignment(decoupage_id, assignment_id):
+    """Modifier une assignation (ex: changer la semaine de début)"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    assignment = DecoupageAssignment.query.filter_by(id=assignment_id, decoupage_id=decoupage_id).first()
+
+    if not assignment:
+        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+
+    data = request.get_json()
+
+    if 'start_week' in data:
+        try:
+            start_week = int(data['start_week'])
+            if start_week < 1 or start_week > 52:
+                return jsonify({'success': False, 'message': 'Semaine invalide (1-52)'}), 400
+            assignment.start_week = start_week
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Semaine invalide'}), 400
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Assignation mise à jour',
+            'data': assignment.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/classroom/<int:classroom_id>/decoupages', methods=['GET'])
+@login_required
+@teacher_required
+def get_classroom_decoupages(classroom_id):
+    """Récupérer les découpages assignés à une classe"""
+    from models.decoupage import DecoupageAssignment
+    from models.classroom import Classroom
+
+    # Vérifier que la classe appartient à l'utilisateur
+    classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+    if not classroom:
+        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+    assignments = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).all()
+
+    result = []
+    for assignment in assignments:
+        decoupage_data = assignment.decoupage.to_dict()
+        decoupage_data['start_week'] = assignment.start_week
+        decoupage_data['assignment_id'] = assignment.id
+        result.append(decoupage_data)
+
+    return jsonify({
+        'success': True,
+        'data': result
+    })

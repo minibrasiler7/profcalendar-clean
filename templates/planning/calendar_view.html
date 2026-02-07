@@ -1882,6 +1882,15 @@ if (typeof pdfjsLib !== 'undefined') {
                                     {% endif %}
                                 </div>
                             </div>
+                            {% if week.decoupage_ribbon %}
+                            <div class="decoupage-ribbon"
+                                 style="background-color: {{ week.decoupage_ribbon.color }}20; border-left: 3px solid {{ week.decoupage_ribbon.color }};"
+                                 title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }}) - Semaine {{ week.decoupage_ribbon.week_in_period|int }}/{{ week.decoupage_ribbon.period_duration }}">
+                                <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
+                                    {{ week.decoupage_ribbon.name }}
+                                </span>
+                            </div>
+                            {% endif %}
                             <div class="week-days">
                                 {% for has_class in week.has_class %}
                                 {% set i = loop.index0 %}

@@ -1,0 +1,1568 @@
+{% extends "base.html" %}
+
+{% block title %}Création de découpage - TeacherPlanner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .decoupage-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--dark-color);
+    }
+
+    .page-header h1 i {
+        color: #EC4899;
+    }
+
+    /* Cards des découpages */
+    .decoupages-section {
+        background: var(--white);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .decoupages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .decoupage-card {
+        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+        border: 2px solid transparent;
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .decoupage-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .decoupage-card.active {
+        border-color: #EC4899;
+        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
+    }
+
+    .decoupage-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .decoupage-card-title {
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 1.1rem;
+    }
+
+    .decoupage-card-subject {
+        font-size: 0.85rem;
+        color: #EC4899;
+        font-weight: 500;
+    }
+
+    .decoupage-card-stats {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--gray-color);
+    }
+
+    .decoupage-card-stats span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Nouveau découpage card */
+    .new-decoupage-card {
+        background: var(--light-gray);
+        border: 2px dashed #D1D5DB;
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 120px;
+        transition: all 0.2s ease;
+    }
+
+    .new-decoupage-card:hover {
+        border-color: #EC4899;
+        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+    }
+
+    .new-decoupage-card i {
+        font-size: 2rem;
+        color: #EC4899;
+        margin-bottom: 0.5rem;
+    }
+
+    .new-decoupage-card span {
+        color: var(--gray-color);
+        font-weight: 500;
+    }
+
+    /* Section détail */
+    .detail-section {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .detail-section {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .detail-panel {
+        background: var(--white);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--light-gray);
+    }
+
+    .panel-header h2 {
+        font-size: 1.25rem;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Formulaire découpage */
+    .decoupage-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        color: var(--dark-color);
+        font-size: 0.9rem;
+    }
+
+    .form-group input, .form-group select {
+        padding: 0.75rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 0.375rem;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+        outline: none;
+        border-color: #EC4899;
+        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+    }
+
+    /* Liste des périodes */
+    .periods-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        min-height: 100px;
+    }
+
+    .period-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto auto auto;
+        gap: 0.75rem;
+        align-items: center;
+        background: var(--light-gray);
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        cursor: grab;
+        transition: all 0.2s ease;
+    }
+
+    .period-item:hover {
+        background: #E5E7EB;
+    }
+
+    .period-item.dragging {
+        opacity: 0.5;
+        cursor: grabbing;
+    }
+
+    .period-drag-handle {
+        color: var(--gray-color);
+        cursor: grab;
+    }
+
+    .period-name {
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    .period-duration {
+        color: var(--gray-color);
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .period-color {
+        width: 32px;
+        height: 32px;
+        border-radius: 0.375rem;
+        border: 2px solid var(--white);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .period-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .period-btn {
+        padding: 0.375rem 0.5rem;
+        border: none;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+
+    .period-btn-edit {
+        background: #DBEAFE;
+        color: #3B82F6;
+    }
+
+    .period-btn-edit:hover {
+        background: #BFDBFE;
+    }
+
+    .period-btn-delete {
+        background: #FEE2E2;
+        color: #EF4444;
+    }
+
+    .period-btn-delete:hover {
+        background: #FECACA;
+    }
+
+    .periods-empty {
+        text-align: center;
+        padding: 2rem;
+        color: var(--gray-color);
+        font-style: italic;
+    }
+
+    .periods-total {
+        display: flex;
+        justify-content: flex-end;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+        border-radius: 0.5rem;
+        font-weight: 600;
+        color: #EC4899;
+    }
+
+    /* Prévisualisation timeline */
+    .timeline-preview {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--light-gray);
+    }
+
+    .timeline-preview h3 {
+        font-size: 1rem;
+        color: var(--dark-color);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .timeline-bar {
+        display: flex;
+        height: 40px;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .timeline-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 0.5rem;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-segment:hover {
+        filter: brightness(1.1);
+    }
+
+    /* Section assignations */
+    .assignments-section {
+        margin-top: 1.5rem;
+    }
+
+    .assignments-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .assignments-table th,
+    .assignments-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--light-gray);
+    }
+
+    .assignments-table th {
+        font-weight: 600;
+        color: var(--dark-color);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .assignment-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .assignment-status.assigned {
+        background: #D1FAE5;
+        color: #059669;
+    }
+
+    .assignment-status.unassigned {
+        background: var(--light-gray);
+        color: var(--gray-color);
+    }
+
+    /* Boutons d'action */
+    .btn-primary {
+        background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+    }
+
+    .btn-secondary {
+        background: var(--light-gray);
+        color: var(--dark-color);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #E5E7EB;
+    }
+
+    .btn-danger {
+        background: #FEE2E2;
+        color: #DC2626;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .btn-danger:hover {
+        background: #FECACA;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .actions-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--light-gray);
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal {
+        background: var(--white);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-lg);
+        width: 100%;
+        max-width: 500px;
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal {
+        transform: scale(1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--light-gray);
+    }
+
+    .modal-header h3 {
+        font-size: 1.25rem;
+        color: var(--dark-color);
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--gray-color);
+        cursor: pointer;
+        padding: 0.25rem;
+        line-height: 1;
+    }
+
+    .modal-close:hover {
+        color: var(--dark-color);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--light-gray);
+        background: var(--light-gray);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    /* Color picker */
+    .color-picker-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .color-option {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.375rem;
+        border: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+
+    .color-option.selected {
+        border-color: var(--dark-color);
+        box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--dark-color);
+    }
+
+    /* Hidden state */
+    .hidden {
+        display: none !important;
+    }
+
+    /* Week input */
+    .week-input {
+        width: 70px;
+        text-align: center;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-color);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #D1D5DB;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="decoupage-container">
+    <div class="page-header">
+        <h1>
+            <i class="fas fa-cut"></i>
+            Création de découpage annuel
+        </h1>
+        <a href="{{ url_for('planning.dashboard') }}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Retour au tableau de bord
+        </a>
+    </div>
+
+    <!-- Section des découpages existants -->
+    <div class="decoupages-section">
+        <h2><i class="fas fa-folder-open"></i> Mes découpages</h2>
+        <div class="decoupages-grid" id="decoupagesGrid">
+            <div class="new-decoupage-card" onclick="openNewDecoupageModal()">
+                <i class="fas fa-plus-circle"></i>
+                <span>Nouveau découpage</span>
+            </div>
+            {% for decoupage in decoupages %}
+            <div class="decoupage-card" data-id="{{ decoupage.id }}" onclick="selectDecoupage({{ decoupage.id }})">
+                <div class="decoupage-card-header">
+                    <div>
+                        <div class="decoupage-card-title">{{ decoupage.name }}</div>
+                        <div class="decoupage-card-subject">{{ decoupage.subject }}</div>
+                    </div>
+                </div>
+                <div class="decoupage-card-stats">
+                    <span><i class="fas fa-layer-group"></i> {{ decoupage.periods.count() }} périodes</span>
+                    <span><i class="fas fa-users"></i> {{ decoupage.assignments.count() }} classes</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Section détail du découpage sélectionné -->
+    <div class="detail-section hidden" id="detailSection">
+        <div class="detail-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-edit"></i> <span id="detailTitle">Détails du découpage</span></h2>
+                <button class="btn-sm btn-danger" onclick="confirmDeleteDecoupage()">
+                    <i class="fas fa-trash"></i>
+                    Supprimer
+                </button>
+            </div>
+
+            <!-- Formulaire nom/discipline -->
+            <div class="decoupage-form">
+                <div class="form-group">
+                    <label for="decoupageName">Nom du découpage</label>
+                    <input type="text" id="decoupageName" placeholder="Ex: Découpage Maths 2024">
+                </div>
+                <div class="form-group">
+                    <label for="decoupageSubject">Discipline</label>
+                    <input type="text" id="decoupageSubject" placeholder="Ex: Mathématiques">
+                </div>
+            </div>
+
+            <!-- Liste des périodes -->
+            <div class="panel-header" style="margin-top: 1.5rem;">
+                <h2><i class="fas fa-layer-group"></i> Périodes</h2>
+                <button class="btn-sm btn-primary" onclick="openPeriodModal()">
+                    <i class="fas fa-plus"></i>
+                    Ajouter
+                </button>
+            </div>
+
+            <div class="periods-list" id="periodsList">
+                <div class="periods-empty">Aucune période. Cliquez sur "Ajouter" pour créer une période.</div>
+            </div>
+
+            <div class="periods-total" id="periodsTotal" style="display: none;">
+                Total: <span id="totalWeeks">0</span> semaines
+            </div>
+
+            <!-- Prévisualisation timeline -->
+            <div class="timeline-preview" id="timelinePreview" style="display: none;">
+                <h3><i class="fas fa-chart-bar"></i> Prévisualisation</h3>
+                <div class="timeline-bar" id="timelineBar"></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-row">
+                <button class="btn-secondary" onclick="cancelEdit()">
+                    <i class="fas fa-times"></i>
+                    Annuler
+                </button>
+                <button class="btn-primary" onclick="saveDecoupage()">
+                    <i class="fas fa-save"></i>
+                    Sauvegarder
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel d'assignation aux classes -->
+        <div class="detail-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-link"></i> Assignation aux classes</h2>
+            </div>
+
+            <table class="assignments-table">
+                <thead>
+                    <tr>
+                        <th>Classe</th>
+                        <th>Statut</th>
+                        <th>Semaine début</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="assignmentsTableBody">
+                    {% for classroom in classrooms %}
+                    <tr data-classroom-id="{{ classroom.id }}">
+                        <td>{{ classroom.name }}</td>
+                        <td>
+                            <span class="assignment-status unassigned" id="status-{{ classroom.id }}">
+                                <i class="fas fa-minus-circle"></i> Non assigné
+                            </span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-group week-input" id="week-{{ classroom.id }}"
+                                   min="1" max="52" value="1" disabled>
+                        </td>
+                        <td>
+                            <button class="btn-sm btn-primary" id="assign-btn-{{ classroom.id }}"
+                                    onclick="toggleAssignment({{ classroom.id }})">
+                                <i class="fas fa-link"></i> Assigner
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if not classrooms %}
+            <div class="empty-state">
+                <i class="fas fa-chalkboard"></i>
+                <p>Aucune classe configurée</p>
+                <a href="{{ url_for('setup.manage_classrooms') }}" class="btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Créer une classe
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal nouveau découpage -->
+<div class="modal-overlay" id="newDecoupageModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Nouveau découpage</h3>
+            <button class="modal-close" onclick="closeNewDecoupageModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="newDecoupageName">Nom du découpage</label>
+                <input type="text" id="newDecoupageName" placeholder="Ex: Découpage Maths 2024">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="newDecoupageSubject">Discipline</label>
+                <input type="text" id="newDecoupageSubject" placeholder="Ex: Mathématiques">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeNewDecoupageModal()">Annuler</button>
+            <button class="btn-primary" onclick="createDecoupage()">
+                <i class="fas fa-plus"></i>
+                Créer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal période -->
+<div class="modal-overlay" id="periodModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="periodModalTitle">Ajouter une période</h3>
+            <button class="modal-close" onclick="closePeriodModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editingPeriodId">
+            <div class="form-group">
+                <label for="periodName">Nom de la période</label>
+                <input type="text" id="periodName" placeholder="Ex: Les fractions">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label for="periodDuration">Durée (en semaines)</label>
+                <input type="number" id="periodDuration" min="0.5" step="0.5" value="1" placeholder="Ex: 3">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Couleur</label>
+                <div class="color-picker-group" id="colorPicker">
+                    <div class="color-option selected" data-color="#EF4444" style="background: #EF4444;"></div>
+                    <div class="color-option" data-color="#F97316" style="background: #F97316;"></div>
+                    <div class="color-option" data-color="#EAB308" style="background: #EAB308;"></div>
+                    <div class="color-option" data-color="#22C55E" style="background: #22C55E;"></div>
+                    <div class="color-option" data-color="#14B8A6" style="background: #14B8A6;"></div>
+                    <div class="color-option" data-color="#3B82F6" style="background: #3B82F6;"></div>
+                    <div class="color-option" data-color="#8B5CF6" style="background: #8B5CF6;"></div>
+                    <div class="color-option" data-color="#EC4899" style="background: #EC4899;"></div>
+                    <div class="color-option" data-color="#6366F1" style="background: #6366F1;"></div>
+                    <div class="color-option" data-color="#64748B" style="background: #64748B;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closePeriodModal()">Annuler</button>
+            <button class="btn-primary" onclick="savePeriod()">
+                <i class="fas fa-check"></i>
+                <span id="periodModalAction">Ajouter</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal confirmation suppression -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Confirmer la suppression</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Voulez-vous vraiment supprimer ce découpage ? Cette action est irréversible.</p>
+            <p style="margin-top: 0.5rem; color: var(--gray-color); font-size: 0.9rem;">
+                Toutes les assignations aux classes seront également supprimées.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeDeleteModal()">Annuler</button>
+            <button class="btn-danger" onclick="deleteDecoupage()">
+                <i class="fas fa-trash"></i>
+                Supprimer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// État global
+let currentDecoupageId = null;
+let currentDecoupage = null;
+let periods = [];
+let assignments = {};
+
+// Couleurs prédéfinies
+const COLORS = [
+    '#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6',
+    '#3B82F6', '#8B5CF6', '#EC4899', '#6366F1', '#64748B'
+];
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    initColorPicker();
+    initDragAndDrop();
+});
+
+// Color picker
+function initColorPicker() {
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            colorOptions.forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+}
+
+function getSelectedColor() {
+    const selected = document.querySelector('.color-option.selected');
+    return selected ? selected.dataset.color : COLORS[0];
+}
+
+function setSelectedColor(color) {
+    const colorOptions = document.querySelectorAll('.color-option');
+    colorOptions.forEach(option => {
+        if (option.dataset.color === color) {
+            option.classList.add('selected');
+        } else {
+            option.classList.remove('selected');
+        }
+    });
+}
+
+// Drag and Drop pour réordonner les périodes
+function initDragAndDrop() {
+    const periodsList = document.getElementById('periodsList');
+
+    periodsList.addEventListener('dragstart', function(e) {
+        if (e.target.classList.contains('period-item')) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.periodId);
+        }
+    });
+
+    periodsList.addEventListener('dragend', function(e) {
+        if (e.target.classList.contains('period-item')) {
+            e.target.classList.remove('dragging');
+        }
+    });
+
+    periodsList.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        const dragging = document.querySelector('.dragging');
+        const afterElement = getDragAfterElement(periodsList, e.clientY);
+
+        if (afterElement == null) {
+            periodsList.appendChild(dragging);
+        } else {
+            periodsList.insertBefore(dragging, afterElement);
+        }
+    });
+
+    periodsList.addEventListener('drop', function(e) {
+        e.preventDefault();
+        updatePeriodOrder();
+    });
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.period-item:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+async function updatePeriodOrder() {
+    const periodItems = document.querySelectorAll('.period-item');
+    const periodIds = Array.from(periodItems).map(item => parseInt(item.dataset.periodId));
+
+    try {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ period_ids: periodIds })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Mettre à jour l'ordre local
+            periods.sort((a, b) => periodIds.indexOf(a.id) - periodIds.indexOf(b.id));
+            updateTimeline();
+        }
+    } catch (error) {
+        console.error('Erreur lors de la réorganisation:', error);
+    }
+}
+
+// Gestion des découpages
+async function selectDecoupage(id) {
+    // Marquer la carte sélectionnée
+    document.querySelectorAll('.decoupage-card').forEach(card => {
+        card.classList.remove('active');
+        if (parseInt(card.dataset.id) === id) {
+            card.classList.add('active');
+        }
+    });
+
+    // Afficher la section détail
+    document.getElementById('detailSection').classList.remove('hidden');
+
+    // Charger les données
+    try {
+        const response = await fetch(`/planning/api/decoupage/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+            currentDecoupageId = id;
+            currentDecoupage = data.data;
+            periods = data.data.periods;
+
+            // Remplir le formulaire
+            document.getElementById('decoupageName').value = currentDecoupage.name;
+            document.getElementById('decoupageSubject').value = currentDecoupage.subject;
+            document.getElementById('detailTitle').textContent = currentDecoupage.name;
+
+            // Afficher les périodes
+            renderPeriods();
+
+            // Charger les assignations
+            loadAssignments();
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        showNotification('error', 'Erreur lors du chargement du découpage');
+    }
+}
+
+function renderPeriods() {
+    const periodsList = document.getElementById('periodsList');
+    const periodsTotal = document.getElementById('periodsTotal');
+    const totalWeeks = document.getElementById('totalWeeks');
+    const timelinePreview = document.getElementById('timelinePreview');
+
+    if (periods.length === 0) {
+        periodsList.innerHTML = '<div class="periods-empty">Aucune période. Cliquez sur "Ajouter" pour créer une période.</div>';
+        periodsTotal.style.display = 'none';
+        timelinePreview.style.display = 'none';
+        return;
+    }
+
+    let html = '';
+    periods.forEach(period => {
+        html += `
+            <div class="period-item" draggable="true" data-period-id="${period.id}">
+                <i class="fas fa-grip-vertical period-drag-handle"></i>
+                <span class="period-name">${period.name}</span>
+                <span class="period-duration">${period.duration} sem.</span>
+                <div class="period-color" style="background-color: ${period.color};"></div>
+                <div class="period-actions">
+                    <button class="period-btn period-btn-edit" onclick="editPeriod(${period.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="period-btn period-btn-delete" onclick="confirmDeletePeriod(${period.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    periodsList.innerHTML = html;
+
+    // Calculer le total
+    const total = periods.reduce((sum, p) => sum + p.duration, 0);
+    totalWeeks.textContent = total;
+    periodsTotal.style.display = 'flex';
+
+    // Mettre à jour la timeline
+    updateTimeline();
+}
+
+function updateTimeline() {
+    const timelinePreview = document.getElementById('timelinePreview');
+    const timelineBar = document.getElementById('timelineBar');
+
+    if (periods.length === 0) {
+        timelinePreview.style.display = 'none';
+        return;
+    }
+
+    timelinePreview.style.display = 'block';
+
+    const totalDuration = periods.reduce((sum, p) => sum + p.duration, 0);
+
+    let html = '';
+    periods.forEach(period => {
+        const widthPercent = (period.duration / totalDuration) * 100;
+        html += `
+            <div class="timeline-segment"
+                 style="background-color: ${period.color}; flex: 0 0 ${widthPercent}%;"
+                 title="${period.name} (${period.duration} sem.)">
+                ${widthPercent > 10 ? period.name : ''}
+            </div>
+        `;
+    });
+
+    timelineBar.innerHTML = html;
+}
+
+// Modal nouveau découpage
+function openNewDecoupageModal() {
+    document.getElementById('newDecoupageName').value = '';
+    document.getElementById('newDecoupageSubject').value = '';
+    document.getElementById('newDecoupageModal').classList.add('active');
+}
+
+function closeNewDecoupageModal() {
+    document.getElementById('newDecoupageModal').classList.remove('active');
+}
+
+async function createDecoupage() {
+    const name = document.getElementById('newDecoupageName').value.trim();
+    const subject = document.getElementById('newDecoupageSubject').value.trim();
+
+    if (!name || !subject) {
+        showNotification('error', 'Veuillez remplir tous les champs');
+        return;
+    }
+
+    try {
+        const response = await fetch('/planning/api/decoupage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, subject })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeNewDecoupageModal();
+            showNotification('success', 'Découpage créé');
+
+            // Ajouter la carte
+            const grid = document.getElementById('decoupagesGrid');
+            const newCard = document.createElement('div');
+            newCard.className = 'decoupage-card';
+            newCard.dataset.id = data.data.id;
+            newCard.onclick = () => selectDecoupage(data.data.id);
+            newCard.innerHTML = `
+                <div class="decoupage-card-header">
+                    <div>
+                        <div class="decoupage-card-title">${data.data.name}</div>
+                        <div class="decoupage-card-subject">${data.data.subject}</div>
+                    </div>
+                </div>
+                <div class="decoupage-card-stats">
+                    <span><i class="fas fa-layer-group"></i> 0 périodes</span>
+                    <span><i class="fas fa-users"></i> 0 classes</span>
+                </div>
+            `;
+            grid.appendChild(newCard);
+
+            // Sélectionner le nouveau découpage
+            selectDecoupage(data.data.id);
+        } else {
+            showNotification('error', data.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la création');
+    }
+}
+
+// Modal période
+function openPeriodModal(periodId = null) {
+    const modal = document.getElementById('periodModal');
+    const title = document.getElementById('periodModalTitle');
+    const action = document.getElementById('periodModalAction');
+    const editingId = document.getElementById('editingPeriodId');
+
+    if (periodId) {
+        const period = periods.find(p => p.id === periodId);
+        if (period) {
+            title.textContent = 'Modifier la période';
+            action.textContent = 'Modifier';
+            editingId.value = periodId;
+            document.getElementById('periodName').value = period.name;
+            document.getElementById('periodDuration').value = period.duration;
+            setSelectedColor(period.color);
+        }
+    } else {
+        title.textContent = 'Ajouter une période';
+        action.textContent = 'Ajouter';
+        editingId.value = '';
+        document.getElementById('periodName').value = '';
+        document.getElementById('periodDuration').value = 1;
+        setSelectedColor(COLORS[0]);
+    }
+
+    modal.classList.add('active');
+}
+
+function closePeriodModal() {
+    document.getElementById('periodModal').classList.remove('active');
+}
+
+function editPeriod(periodId) {
+    openPeriodModal(periodId);
+}
+
+async function savePeriod() {
+    const editingId = document.getElementById('editingPeriodId').value;
+    const name = document.getElementById('periodName').value.trim();
+    const duration = parseFloat(document.getElementById('periodDuration').value);
+    const color = getSelectedColor();
+
+    if (!name || isNaN(duration) || duration <= 0) {
+        showNotification('error', 'Veuillez remplir tous les champs correctement');
+        return;
+    }
+
+    try {
+        let response;
+        if (editingId) {
+            // Modifier
+            response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${editingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, duration, color })
+            });
+        } else {
+            // Ajouter
+            response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, duration, color })
+            });
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            closePeriodModal();
+
+            if (editingId) {
+                // Mettre à jour localement
+                const index = periods.findIndex(p => p.id === parseInt(editingId));
+                if (index !== -1) {
+                    periods[index] = data.data;
+                }
+                showNotification('success', 'Période modifiée');
+            } else {
+                // Ajouter localement
+                periods.push(data.data);
+                showNotification('success', 'Période ajoutée');
+            }
+
+            renderPeriods();
+            updateDecoupageCard();
+        } else {
+            showNotification('error', data.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la sauvegarde');
+    }
+}
+
+async function confirmDeletePeriod(periodId) {
+    if (!confirm('Supprimer cette période ?')) return;
+
+    try {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/periods/${periodId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            periods = periods.filter(p => p.id !== periodId);
+            renderPeriods();
+            updateDecoupageCard();
+            showNotification('success', 'Période supprimée');
+        } else {
+            showNotification('error', data.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la suppression');
+    }
+}
+
+// Sauvegarde du découpage
+async function saveDecoupage() {
+    const name = document.getElementById('decoupageName').value.trim();
+    const subject = document.getElementById('decoupageSubject').value.trim();
+
+    if (!name || !subject) {
+        showNotification('error', 'Veuillez remplir le nom et la discipline');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, subject })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentDecoupage.name = name;
+            currentDecoupage.subject = subject;
+            document.getElementById('detailTitle').textContent = name;
+            updateDecoupageCard();
+            showNotification('success', 'Découpage sauvegardé');
+        } else {
+            showNotification('error', data.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la sauvegarde');
+    }
+}
+
+function cancelEdit() {
+    document.getElementById('detailSection').classList.add('hidden');
+    document.querySelectorAll('.decoupage-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    currentDecoupageId = null;
+    currentDecoupage = null;
+    periods = [];
+}
+
+function updateDecoupageCard() {
+    const card = document.querySelector(`.decoupage-card[data-id="${currentDecoupageId}"]`);
+    if (card) {
+        card.querySelector('.decoupage-card-title').textContent = currentDecoupage.name;
+        card.querySelector('.decoupage-card-subject').textContent = currentDecoupage.subject;
+        const stats = card.querySelector('.decoupage-card-stats');
+        const assignCount = Object.values(assignments).filter(a => a.assigned).length;
+        stats.innerHTML = `
+            <span><i class="fas fa-layer-group"></i> ${periods.length} périodes</span>
+            <span><i class="fas fa-users"></i> ${assignCount} classes</span>
+        `;
+    }
+}
+
+// Suppression du découpage
+function confirmDeleteDecoupage() {
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+}
+
+async function deleteDecoupage() {
+    try {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeDeleteModal();
+
+            // Supprimer la carte
+            const card = document.querySelector(`.decoupage-card[data-id="${currentDecoupageId}"]`);
+            if (card) {
+                card.remove();
+            }
+
+            // Masquer le détail
+            cancelEdit();
+
+            showNotification('success', 'Découpage supprimé');
+        } else {
+            showNotification('error', data.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la suppression');
+    }
+}
+
+// Gestion des assignations
+async function loadAssignments() {
+    assignments = {};
+
+    // Récupérer les assignations existantes depuis le découpage
+    if (currentDecoupage && currentDecoupage.periods) {
+        // Les assignations sont chargées via l'API du découpage
+    }
+
+    // Charger les assignations de ce découpage
+    try {
+        const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Réinitialiser l'état de toutes les classes
+            document.querySelectorAll('[data-classroom-id]').forEach(row => {
+                const classroomId = row.dataset.classroomId;
+                const statusEl = document.getElementById(`status-${classroomId}`);
+                const weekInput = document.getElementById(`week-${classroomId}`);
+                const assignBtn = document.getElementById(`assign-btn-${classroomId}`);
+
+                statusEl.className = 'assignment-status unassigned';
+                statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> Non assigné';
+                weekInput.disabled = true;
+                weekInput.value = 1;
+                assignBtn.innerHTML = '<i class="fas fa-link"></i> Assigner';
+                assignBtn.className = 'btn-sm btn-primary';
+
+                assignments[classroomId] = { assigned: false, assignment_id: null, start_week: 1 };
+            });
+
+            // Marquer les classes assignées à ce découpage
+            // On doit faire un appel spécifique pour obtenir les assignations
+            const assignResponse = await fetch(`/planning/api/decoupage/${currentDecoupageId}`);
+            const assignData = await assignResponse.json();
+
+            if (assignData.success && assignData.data.assignments_count > 0) {
+                // Récupérer les assignations via une nouvelle route ou les données existantes
+                // Pour l'instant, on recharge la page pour avoir les assignations à jour
+                // TODO: Améliorer en ajoutant les assignations dans la réponse de get_decoupage
+            }
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des assignations:', error);
+    }
+
+    // Charger les assignations par classe
+    {% for classroom in classrooms %}
+    loadClassroomAssignment({{ classroom.id }});
+    {% endfor %}
+}
+
+async function loadClassroomAssignment(classroomId) {
+    try {
+        const response = await fetch(`/planning/api/classroom/${classroomId}/decoupages`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Trouver l'assignation pour ce découpage
+            const assignment = data.data.find(a => a.id === currentDecoupageId);
+
+            if (assignment) {
+                updateAssignmentUI(classroomId, true, assignment.start_week, assignment.assignment_id);
+                assignments[classroomId] = {
+                    assigned: true,
+                    assignment_id: assignment.assignment_id,
+                    start_week: assignment.start_week
+                };
+            }
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+
+function updateAssignmentUI(classroomId, assigned, startWeek = 1, assignmentId = null) {
+    const statusEl = document.getElementById(`status-${classroomId}`);
+    const weekInput = document.getElementById(`week-${classroomId}`);
+    const assignBtn = document.getElementById(`assign-btn-${classroomId}`);
+
+    if (assigned) {
+        statusEl.className = 'assignment-status assigned';
+        statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Assigné';
+        weekInput.disabled = false;
+        weekInput.value = startWeek;
+        assignBtn.innerHTML = '<i class="fas fa-unlink"></i> Retirer';
+        assignBtn.className = 'btn-sm btn-danger';
+    } else {
+        statusEl.className = 'assignment-status unassigned';
+        statusEl.innerHTML = '<i class="fas fa-minus-circle"></i> Non assigné';
+        weekInput.disabled = true;
+        weekInput.value = 1;
+        assignBtn.innerHTML = '<i class="fas fa-link"></i> Assigner';
+        assignBtn.className = 'btn-sm btn-primary';
+    }
+}
+
+async function toggleAssignment(classroomId) {
+    const currentAssignment = assignments[classroomId];
+
+    if (currentAssignment && currentAssignment.assigned) {
+        // Retirer l'assignation
+        try {
+            const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/unassign/${classroomId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                assignments[classroomId] = { assigned: false, assignment_id: null, start_week: 1 };
+                updateAssignmentUI(classroomId, false);
+                updateDecoupageCard();
+                showNotification('success', 'Assignation retirée');
+            } else {
+                showNotification('error', data.message);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('error', 'Erreur lors du retrait');
+        }
+    } else {
+        // Créer une assignation
+        const startWeek = parseInt(document.getElementById(`week-${classroomId}`).value) || 1;
+
+        try {
+            const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ classroom_id: classroomId, start_week: startWeek })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                assignments[classroomId] = {
+                    assigned: true,
+                    assignment_id: data.data.id,
+                    start_week: data.data.start_week
+                };
+                updateAssignmentUI(classroomId, true, data.data.start_week, data.data.id);
+                updateDecoupageCard();
+                showNotification('success', 'Découpage assigné');
+            } else {
+                showNotification('error', data.message);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            showNotification('error', 'Erreur lors de l\'assignation');
+        }
+    }
+}
+
+// Mise à jour de la semaine de début
+document.querySelectorAll('.week-input').forEach(input => {
+    input.addEventListener('change', async function() {
+        const classroomId = this.id.replace('week-', '');
+        const assignment = assignments[classroomId];
+
+        if (assignment && assignment.assigned && assignment.assignment_id) {
+            const newWeek = parseInt(this.value) || 1;
+
+            try {
+                const response = await fetch(`/planning/api/decoupage/${currentDecoupageId}/assignment/${assignment.assignment_id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_week: newWeek })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    assignments[classroomId].start_week = newWeek;
+                    showNotification('success', 'Semaine de début mise à jour');
+                } else {
+                    showNotification('error', data.message);
+                    this.value = assignment.start_week;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('error', 'Erreur lors de la mise à jour');
+                this.value = assignment.start_week;
+            }
+        }
+    });
+});
+
+// Notifications
+function showNotification(type, message) {
+    // Utiliser le système de notification existant ou créer une notification simple
+    const container = document.querySelector('.flash-container') || createFlashContainer();
+
+    const notification = document.createElement('div');
+    notification.className = `flash-message flash-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <span>${message}</span>
+        <button class="flash-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+
+    container.appendChild(notification);
+
+    // Auto-dismiss
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+function createFlashContainer() {
+    const container = document.createElement('div');
+    container.className = 'flash-container';
+    document.body.insertBefore(container, document.body.firstChild.nextSibling);
+    return container;
+}
+</script>
+{% endblock %}
