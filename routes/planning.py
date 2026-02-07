@@ -1185,7 +1185,8 @@ def check_day_planning(date, classroom_id):
 def get_decoupage_for_week(classroom_id, week_number):
     """
     Récupère les informations de découpage pour une semaine donnée d'une classe.
-    Retourne un dict avec les infos du ruban ou None si aucun découpage.
+    Gère les demi-semaines: retourne un dict avec first_half et second_half.
+    Chaque moitié peut avoir un thème différent ou être None.
     """
     from models.decoupage import DecoupageAssignment, DecoupagePeriod
 
@@ -1209,35 +1210,57 @@ def get_decoupage_for_week(classroom_id, week_number):
     if not periods:
         return None
 
-    # Calculer l'offset depuis le début du découpage
+    # Calculer l'offset depuis le début du découpage (en semaines)
+    # week_offset = 0 pour la première semaine du découpage
     week_offset = week_number - start_week
 
     if week_offset < 0:
         return None  # Avant le début du découpage
 
-    # Trouver la période correspondante
-    cumulative_weeks = 0
-    for period in periods:
-        period_end = cumulative_weeks + period.duration
+    # Positions dans le découpage pour cette semaine
+    # first_half: de week_offset à week_offset + 0.5
+    # second_half: de week_offset + 0.5 à week_offset + 1
+    first_half_start = week_offset
+    first_half_end = week_offset + 0.5
+    second_half_start = week_offset + 0.5
+    second_half_end = week_offset + 1
 
-        if week_offset < period_end:
-            # Cette semaine est dans cette période
-            week_in_period = week_offset - cumulative_weeks
+    def find_theme_at_position(pos):
+        """Trouve le thème qui couvre une position donnée"""
+        cumulative = 0
+        for period in periods:
+            period_end = cumulative + period.duration
+            if cumulative <= pos < period_end:
+                return {
+                    'name': period.name,
+                    'color': period.color,
+                    'subject': decoupage.subject
+                }
+            cumulative = period_end
+        return None  # Position après la fin du découpage
 
-            return {
-                'name': period.name,
-                'color': period.color,
-                'subject': decoupage.subject,
-                'is_start': week_in_period < 0.5,  # Première demi-semaine
-                'is_end': week_in_period >= period.duration - 0.5,  # Dernière demi-semaine
-                'progress': (week_in_period + 0.5) / period.duration,  # Position dans la période
-                'period_duration': period.duration,
-                'week_in_period': week_in_period + 1
-            }
+    first_half_theme = find_theme_at_position(first_half_start)
+    second_half_theme = find_theme_at_position(second_half_start)
 
-        cumulative_weeks = period_end
+    # Si aucun thème pour les deux moitiés, retourner None
+    if not first_half_theme and not second_half_theme:
+        return None
 
-    return None  # Après la fin du découpage
+    # Si les deux moitiés ont le même thème, retourner un seul ruban pleine largeur
+    if first_half_theme and second_half_theme and first_half_theme['name'] == second_half_theme['name']:
+        return {
+            'type': 'full',
+            'name': first_half_theme['name'],
+            'color': first_half_theme['color'],
+            'subject': first_half_theme['subject']
+        }
+
+    # Sinon, retourner les deux moitiés séparément
+    return {
+        'type': 'split',
+        'first_half': first_half_theme,
+        'second_half': second_half_theme
+    }
 
 
 def generate_annual_calendar(item, item_type='classroom'):

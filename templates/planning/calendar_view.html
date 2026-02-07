@@ -1860,77 +1860,109 @@ if (typeof pdfjsLib !== 'undefined') {
                     {% endif %}
                     <div class="annual-grid" data-classroom-color="{{ selected_item.color if selected_item else '#4F46E5' }}">
                         {% for week in annual_data[selected_classroom_id] %}
-                        <div class="annual-week {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
-                            <div class="week-info">
-                                <div class="week-date">{{ week.formatted_date }}</div>
-                                <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
-                                    {% if week.is_holiday %}
-                                        <span class="holiday-label" title="{{ week.holiday_name }}">
-                                            {% if week.holiday_name_short %}
-                                                {{ week.holiday_name_short }}
-                                            {% else %}
-                                                {% set holiday_parts = week.holiday_name.split(' ') %}
-                                                {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
-                                                    {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
+                        <div class="annual-week-wrapper {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
+                            <div class="annual-week-row">
+                                <div class="week-info">
+                                    <div class="week-date">{{ week.formatted_date }}</div>
+                                    <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
+                                        {% if week.is_holiday %}
+                                            <span class="holiday-label" title="{{ week.holiday_name }}">
+                                                {% if week.holiday_name_short %}
+                                                    {{ week.holiday_name_short }}
                                                 {% else %}
-                                                    {{ week.holiday_name }}
+                                                    {% set holiday_parts = week.holiday_name.split(' ') %}
+                                                    {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
+                                                        {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
+                                                    {% else %}
+                                                        {{ week.holiday_name }}
+                                                    {% endif %}
                                                 {% endif %}
-                                            {% endif %}
-                                        </span>
-                                    {% else %}
-                                        <span class="week-number-link">S{{ week.week_number }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="week-days">
-                                {% for has_class in week.has_class %}
-                                {% set i = loop.index0 %}
-                                {% set date = week.dates[i] %}
-                                {% set date_str = date.strftime('%Y-%m-%d') %}
-                                {% set holiday_name = week.holidays_by_day[i] %}
-                                <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
-                                     data-date="{{ date_str }}"
-                                     data-weekday="{{ i }}"
-                                     data-has-class="{{ 'true' if has_class else 'false' }}"
-                                     onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
-                                     title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
-                                    <div class="annual-day-content">
-                                        {% if holiday_name %}
-                                            <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
-                                        {% elif week.plannings and date_str in week.plannings %}
-                                            <div class="annual-plannings">
-                                                {% for planning in week.plannings[date_str][:3] %}
-                                                    <div class="annual-planning-item" title="{{ planning.title }}">
-                                                        {% if planning.checklist_summary %}
-                                                        <div class="annual-planning-checklist">
-                                                            {% if planning.checklist_summary.all_checked %}
-                                                                <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
-                                                            {% elif planning.checklist_summary.checked > 0 %}
-                                                                <i class="fas fa-tasks annual-checklist-icon partial"></i>
-                                                            {% else %}
-                                                                <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
-                                                            {% endif %}
-                                                        </div>
-                                                        {% endif %}
-                                                        <span class="annual-planning-text">{{ planning.title }}</span>
-                                                    </div>
-                                                {% endfor %}
-                                                {% if week.plannings[date_str]|length > 3 %}
-                                                    <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
-                                                {% endif %}
-                                            </div>
+                                            </span>
+                                        {% else %}
+                                            <span class="week-number-link">S{{ week.week_number }}</span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                {% endfor %}
+                                <div class="week-days">
+                                    {% for has_class in week.has_class %}
+                                    {% set i = loop.index0 %}
+                                    {% set date = week.dates[i] %}
+                                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                                    {% set holiday_name = week.holidays_by_day[i] %}
+                                    <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
+                                         data-date="{{ date_str }}"
+                                         data-weekday="{{ i }}"
+                                         data-has-class="{{ 'true' if has_class else 'false' }}"
+                                         onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
+                                         title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
+                                        <div class="annual-day-content">
+                                            {% if holiday_name %}
+                                                <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
+                                            {% elif week.plannings and date_str in week.plannings %}
+                                                <div class="annual-plannings">
+                                                    {% for planning in week.plannings[date_str][:3] %}
+                                                        <div class="annual-planning-item" title="{{ planning.title }}">
+                                                            {% if planning.checklist_summary %}
+                                                            <div class="annual-planning-checklist">
+                                                                {% if planning.checklist_summary.all_checked %}
+                                                                    <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
+                                                                {% elif planning.checklist_summary.checked > 0 %}
+                                                                    <i class="fas fa-tasks annual-checklist-icon partial"></i>
+                                                                {% else %}
+                                                                    <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
+                                                                {% endif %}
+                                                            </div>
+                                                            {% endif %}
+                                                            <span class="annual-planning-text">{{ planning.title }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                    {% if week.plannings[date_str]|length > 3 %}
+                                                        <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
                             {% if week.decoupage_ribbon %}
-                            <div class="decoupage-ribbon"
-                                 style="background-color: {{ week.decoupage_ribbon.color }}20; border-bottom: 3px solid {{ week.decoupage_ribbon.color }};"
-                                 title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }}) - Semaine {{ week.decoupage_ribbon.week_in_period|int }}/{{ week.decoupage_ribbon.period_duration }}">
-                                <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
-                                    {{ week.decoupage_ribbon.name }}
-                                </span>
+                            <div class="decoupage-ribbon-row">
+                                <div class="ribbon-spacer"></div>
+                                {% if week.decoupage_ribbon.type == 'full' %}
+                                <div class="decoupage-ribbon full"
+                                     style="background-color: {{ week.decoupage_ribbon.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.color }};"
+                                     title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }})">
+                                    <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
+                                        {{ week.decoupage_ribbon.name }}
+                                    </span>
+                                </div>
+                                {% elif week.decoupage_ribbon.type == 'split' %}
+                                <div class="decoupage-ribbon-split">
+                                    {% if week.decoupage_ribbon.first_half %}
+                                    <div class="decoupage-ribbon half first-half"
+                                         style="background-color: {{ week.decoupage_ribbon.first_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.first_half.color }};"
+                                         title="{{ week.decoupage_ribbon.first_half.name }}">
+                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.first_half.color }};">
+                                            {{ week.decoupage_ribbon.first_half.name }}
+                                        </span>
+                                    </div>
+                                    {% else %}
+                                    <div class="decoupage-ribbon half first-half empty"></div>
+                                    {% endif %}
+                                    {% if week.decoupage_ribbon.second_half %}
+                                    <div class="decoupage-ribbon half second-half"
+                                         style="background-color: {{ week.decoupage_ribbon.second_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.second_half.color }};"
+                                         title="{{ week.decoupage_ribbon.second_half.name }}">
+                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.second_half.color }};">
+                                            {{ week.decoupage_ribbon.second_half.name }}
+                                        </span>
+                                    </div>
+                                    {% else %}
+                                    <div class="decoupage-ribbon half second-half empty"></div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                         </div>

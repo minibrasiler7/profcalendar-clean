@@ -333,12 +333,21 @@
     gap: 0.5rem;
 }
 
-.extended-view .annual-week {
+.extended-view .annual-week,
+.extended-view .annual-week-row {
     gap: 0.5rem;
     padding: 0.25rem 0;
 }
 
+.extended-view .annual-week-wrapper {
+    padding: 0.25rem 0;
+}
+
 .extended-view .week-info {
+    min-width: 60px;
+}
+
+.extended-view .ribbon-spacer {
     min-width: 60px;
 }
 
@@ -419,6 +428,32 @@
     gap: 0.5rem;
 }
 
+/* Wrapper pour une semaine (contient la ligne + le ruban) */
+.annual-week-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.annual-week-wrapper.current-week {
+    background-color: #FEF3C7;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+}
+
+.annual-week-wrapper.holiday-week {
+    background-color: #F3F4F6;
+    opacity: 0.8;
+}
+
+/* Ligne principale de la semaine (info + jours) */
+.annual-week-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Ancien style pour compatibilité */
 .annual-week {
     display: flex;
     align-items: center;
@@ -977,20 +1012,62 @@
    DECOUPAGE RIBBON - Ruban de découpage annuel (sous les cases de la semaine)
    ========================================================================== */
 
+/* Ligne du ruban (alignée avec week-days) */
+.decoupage-ribbon-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-top: 2px;
+}
+
+/* Espace pour s'aligner avec week-info */
+.ribbon-spacer {
+    min-width: 80px;
+    flex-shrink: 0;
+}
+
+/* Ruban de base */
 .decoupage-ribbon {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 0.2rem 0.5rem;
-    margin-top: 0.25rem;
-    border-radius: 0 0 4px 4px;
-    font-size: 0.65rem;
-    min-height: 18px;
+    justify-content: flex-start;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    min-height: 16px;
     transition: all 0.2s ease;
+}
+
+.decoupage-ribbon.full {
+    flex: 1;
 }
 
 .decoupage-ribbon:hover {
     filter: brightness(0.95);
+}
+
+.decoupage-ribbon.empty {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Container pour les rubans divisés (demi-semaines) */
+.decoupage-ribbon-split {
+    display: flex;
+    flex: 1;
+    gap: 2px;
+}
+
+.decoupage-ribbon.half {
+    flex: 1;
+}
+
+.decoupage-ribbon.half.first-half {
+    border-radius: 3px 0 0 3px;
+}
+
+.decoupage-ribbon.half.second-half {
+    border-radius: 0 3px 3px 0;
 }
 
 .ribbon-label {
@@ -999,21 +1076,24 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
-    text-align: center;
 }
 
 /* Style compact pour les petits écrans */
 @media (max-width: 1200px) {
     .decoupage-ribbon {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
         padding: 0.1rem 0.25rem;
         min-height: 14px;
+    }
+
+    .ribbon-spacer {
+        min-width: 60px;
     }
 }
 
 /* Cacher sur les très petits écrans pour économiser l'espace */
 @media (max-width: 768px) {
-    .decoupage-ribbon {
+    .decoupage-ribbon-row {
         display: none;
     }
 }
