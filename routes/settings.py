@@ -125,19 +125,57 @@ def deactivate_class_code(code_id):
     """Désactiver un code de classe"""
     # Vérifier que le code appartient à l'utilisateur
     code = ClassCode.query.filter_by(id=code_id, user_id=current_user.id).first()
-    
+
     if not code:
         return jsonify({'success': False, 'message': 'Code non trouvé'}), 404
-    
+
     try:
         code.is_active = False
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Code désactivé avec succès'
         })
-        
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@settings_bp.route('/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """Changer le mot de passe de l'utilisateur"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({'success': False, 'message': 'Mot de passe actuel et nouveau mot de passe requis'}), 400
+
+    # Vérifier le mot de passe actuel
+    if not current_user.check_password(current_password):
+        return jsonify({'success': False, 'message': 'Le mot de passe actuel est incorrect'}), 400
+
+    # Vérifier la longueur minimale du nouveau mot de passe
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 6 caractères'}), 400
+
+    try:
+        # Mettre à jour le mot de passe
+        current_user.set_password(new_password)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Mot de passe modifié avec succès'
+        })
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
