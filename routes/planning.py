@@ -1906,6 +1906,26 @@ def lesson_view():
     seating_plan = None
     current_group = None
 
+    # Récupérer les préférences d'affichage des aménagements
+    from models.user_preferences import UserPreferences
+    from models.accommodation import StudentAccommodation
+
+    user_preferences = UserPreferences.get_or_create_for_user(current_user.id)
+    accommodation_display = user_preferences.show_accommodations  # 'none', 'emoji', ou 'name'
+
+    # Charger les aménagements des élèves si l'affichage est activé
+    if accommodation_display != 'none' and students:
+        for student in students:
+            accommodations = StudentAccommodation.query.filter_by(
+                student_id=student.id,
+                is_active=True
+            ).all()
+            if accommodations:
+                student_accommodations[student.id] = [
+                    {'name': acc.name, 'emoji': acc.emoji}
+                    for acc in accommodations
+                ]
+
     # Récupérer les sanctions (coches) si classroom disponible
     if lesson_classroom:
         from models.sanctions import SanctionTemplate, ClassroomSanctionImport
@@ -1977,7 +1997,7 @@ def lesson_view():
                          current_group=current_group,
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
-                         accommodation_display=True,
+                         accommodation_display=accommodation_display,
                          render_planning_with_checkboxes=render_planning_with_checkboxes)
 
 @planning_bp.route('/get-class-resources/<int:classroom_id>')
