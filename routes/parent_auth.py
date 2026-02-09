@@ -88,6 +88,21 @@ def login():
         parent = Parent.query.filter_by(email=email).first()
         
         if parent and parent.check_password(password):
+            # Vérifier si l'email est vérifié
+            if not parent.email_verified:
+                verification = EmailVerification.create_verification(email, 'parent')
+                db.session.commit()
+                send_verification_code(email, verification.code, 'parent')
+
+                session['pending_user_id'] = parent.id
+                session['pending_user_type'] = 'parent'
+                session['verification_email'] = email
+
+                if request.is_json:
+                    return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
+                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                return redirect(url_for('parent_auth.verify_email'))
+
             # C'est bien un parent avec le bon mot de passe
             # Connexion réussie
             session.clear()  # Nettoyer la session pour éviter les conflits
@@ -95,10 +110,10 @@ def login():
             login_user(parent, remember=True)
             parent.last_login = datetime.utcnow()
             db.session.commit()
-            
+
             if request.is_json:
                 return jsonify({'success': True, 'redirect': url_for('parent_auth.dashboard')})
-            
+
             # Rediriger selon l'état du parent
             if not parent.teacher_id:
                 return redirect(url_for('parent_auth.link_teacher'))

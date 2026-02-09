@@ -57,7 +57,19 @@ def login():
             if not student.is_authenticated:
                 session['student_id'] = student.id
                 return redirect(url_for('student_auth.verify_code'))
-            
+
+            # Vérifier si l'email est vérifié
+            if not student.email_verified:
+                verification = EmailVerification.create_verification(student.email, 'student')
+                db.session.commit()
+                send_verification_code(student.email, verification.code, 'student')
+
+                session['pending_user_id'] = student.id
+                session['pending_user_type'] = 'student'
+                session['verification_email'] = student.email
+                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                return redirect(url_for('student_auth.verify_email_code'))
+
             # Mettre à jour la dernière connexion
             student.last_login = datetime.utcnow()
             db.session.commit()

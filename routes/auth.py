@@ -66,6 +66,19 @@ def login():
         # Ensuite vérifier l'enseignant
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            # Vérifier si l'email est vérifié
+            if not user.email_verified:
+                # Renvoyer un code et rediriger vers la vérification
+                verification = EmailVerification.create_verification(user.email, 'teacher')
+                db.session.commit()
+                send_verification_code(user.email, verification.code, 'teacher')
+
+                session['pending_user_id'] = user.id
+                session['pending_user_type'] = 'teacher'
+                session['verification_email'] = user.email
+                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                return redirect(url_for('auth.verify_email'))
+
             session.clear()  # Nettoyer la session pour éviter les conflits
             session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
             login_user(user, remember=True)
