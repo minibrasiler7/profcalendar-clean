@@ -14,7 +14,12 @@ def send_verification_code(email, code, user_type='teacher'):
         True si l'envoi a réussi, False sinon
     """
     api_key = os.environ.get('RESEND_API_KEY')
-    from_email = os.environ.get('RESEND_FROM_EMAIL', 'noreply@teacherplanner.com')
+    from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+
+    # Vérifier que l'adresse expéditeur est valide (contient un @domaine.ext)
+    if not from_email or '@' not in from_email or '.' not in from_email.split('@')[-1]:
+        print(f"RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
+        from_email = 'onboarding@resend.dev'
 
     if not api_key:
         print("RESEND_API_KEY non configurée")
