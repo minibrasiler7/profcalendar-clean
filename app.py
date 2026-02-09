@@ -36,6 +36,10 @@ def create_app(config_name='development'):
     # Import du modèle EmailVerification pour les migrations Alembic
     from models.email_verification import EmailVerification
 
+    # Rendre csrf_token() disponible dans tous les templates Jinja2
+    from flask_wtf.csrf import generate_csrf
+    app.jinja_env.globals['csrf_token'] = generate_csrf
+
     # Enregistrement des blueprints
     from routes.auth import auth_bp
     from routes.planning import planning_bp
