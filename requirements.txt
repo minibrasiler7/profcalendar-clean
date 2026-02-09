@@ -10,3 +10,4 @@ Werkzeug==2.3.7
 email-validator==2.1.0
 Pillow==10.4.0
 pytz==2024.1
+resend==2.21.0

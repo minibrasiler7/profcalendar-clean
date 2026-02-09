@@ -19,6 +19,7 @@ class Parent(UserMixin, db.Model):
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Lien vers l'enseignant une fois trouvé
     is_verified = db.Column(db.Boolean, default=False)  # Vérifié après attribution automatique
     
+    email_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
 

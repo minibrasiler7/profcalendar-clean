@@ -18,6 +18,8 @@ class Student(UserMixin, db.Model):
     additional_info = db.Column(db.Text)  # Informations supplémentaires sur l'élève
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    email_verified = db.Column(db.Boolean, default=False)
+
     # Ajout pour l'authentification des élèves
     password_hash = db.Column(db.String(255))
     is_authenticated = db.Column(db.Boolean, default=False)

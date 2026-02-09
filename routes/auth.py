@@ -3,11 +3,12 @@ from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from extensions import db
 from models.user import User
+from models.email_verification import EmailVerification
+from services.email_service import send_verification_code
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -101,30 +102,107 @@ def register():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        
+
         # Créer automatiquement un code d'accès par défaut pour les enseignants spécialisés
         from models.class_collaboration import TeacherAccessCode
         default_access_code = TeacherAccessCode(
             master_teacher_id=user.id,
             code=TeacherAccessCode.generate_code(6),
-            max_uses=None,  # Illimité
-            expires_at=None  # Pas d'expiration
+            max_uses=None,
+            expires_at=None
         )
         db.session.add(default_access_code)
+
+        # Générer et envoyer le code de vérification email
+        verification = EmailVerification.create_verification(user.email, 'teacher')
         db.session.commit()
 
-        session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
-        login_user(user, remember=True)
-        flash('Inscription réussie ! Bienvenue sur TeacherPlanner.', 'success')
-        return redirect(url_for('setup.initial_setup'))
+        send_verification_code(user.email, verification.code, 'teacher')
+
+        # Stocker l'ID utilisateur en session pour la vérification
+        session['pending_user_id'] = user.id
+        session['pending_user_type'] = 'teacher'
+        session['verification_email'] = user.email
+
+        flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        return redirect(url_for('auth.verify_email'))
     else:
-        # Afficher les erreurs de validation pour déboguer
         if form.errors:
             for field, errors in form.errors.items():
                 for error in errors:
                     flash(f'{field}: {error}', 'error')
 
     return render_template('auth/register.html', form=form)
+
+@auth_bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Vérification du code email pour les enseignants"""
+    user_id = session.get('pending_user_id')
+    if not user_id or session.get('pending_user_type') != 'teacher':
+        return redirect(url_for('auth.register'))
+
+    user = User.query.get(user_id)
+    if not user:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('auth.register'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+
+        verification = EmailVerification.query.filter_by(
+            email=user.email,
+            code=code,
+            user_type='teacher',
+            is_used=False
+        ).first()
+
+        if verification and verification.is_valid():
+            verification.is_used = True
+            user.email_verified = True
+            db.session.commit()
+
+            # Connecter l'utilisateur
+            session['user_type'] = 'teacher'
+            login_user(user, remember=True)
+            # Nettoyer la session de vérification
+            session.pop('pending_user_id', None)
+            session.pop('pending_user_type', None)
+            session.pop('verification_email', None)
+
+            flash('Email vérifié avec succès ! Bienvenue sur TeacherPlanner.', 'success')
+            return redirect(url_for('setup.initial_setup'))
+        else:
+            flash('Code invalide ou expiré.', 'error')
+
+    return render_template('auth/verify_email.html', email=user.email)
+
+@auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    user_id = session.get('pending_user_id')
+    if not user_id or session.get('pending_user_type') != 'teacher':
+        return redirect(url_for('auth.register'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('auth.register'))
+
+    # Rate limit: vérifier le dernier envoi
+    last_verification = EmailVerification.query.filter_by(
+        email=user.email,
+        user_type='teacher'
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
+        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
+        return redirect(url_for('auth.verify_email'))
+
+    verification = EmailVerification.create_verification(user.email, 'teacher')
+    db.session.commit()
+
+    send_verification_code(user.email, verification.code, 'teacher')
+    flash('Un nouveau code a été envoyé.', 'success')
+    return redirect(url_for('auth.verify_email'))
 
 @auth_bp.route('/logout')
 @login_required

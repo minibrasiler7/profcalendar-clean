@@ -33,3 +33,7 @@ class Config:
     # Configuration WTForms
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = None
+
+    # Configuration Resend (service d'envoi email transactionnel)
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+    RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@teacherplanner.com')

@@ -9,7 +9,9 @@ from models.attendance import Attendance
 from models.student_sanctions import StudentSanctionCount
 from models.sanctions import StudentSanctionRecord, SanctionTemplate
 from models.evaluation import Evaluation, EvaluationGrade
-from datetime import datetime, date
+from models.email_verification import EmailVerification
+from services.email_service import send_verification_code
+from datetime import datetime, date, timedelta
 import re
 import os
 import uuid
@@ -169,21 +171,26 @@ def register():
                 last_name=last_name
             )
             parent.set_password(password)
-            
+
             db.session.add(parent)
+            db.session.flush()
+
+            # Générer et envoyer le code de vérification email
+            verification = EmailVerification.create_verification(email, 'parent')
             db.session.commit()
-            
-            # Connexion automatique
-            session['user_type'] = 'parent'  # Marquer comme parent dans la session
-            login_user(parent, remember=True)
-            parent.last_login = datetime.utcnow()
-            db.session.commit()
-            
+
+            send_verification_code(email, verification.code, 'parent')
+
+            # Stocker l'ID en session pour la vérification
+            session['pending_user_id'] = parent.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = email
+
             if request.is_json:
-                return jsonify({'success': True, 'redirect': url_for('parent_auth.link_teacher')})
-            
-            flash('Compte créé avec succès !', 'success')
-            return redirect(url_for('parent_auth.link_teacher'))
+                return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
+
+            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            return redirect(url_for('parent_auth.verify_email'))
             
         except Exception as e:
             db.session.rollback()
@@ -303,6 +310,74 @@ def link_children_automatically(parent, classroom_id):
             children_linked += 1
     
     return children_linked
+
+@parent_auth_bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Vérification du code email pour les parents"""
+    parent_id = session.get('pending_user_id')
+    if not parent_id or session.get('pending_user_type') != 'parent':
+        return redirect(url_for('parent_auth.register'))
+
+    parent = Parent.query.get(parent_id)
+    if not parent:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('parent_auth.register'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+
+        verification = EmailVerification.query.filter_by(
+            email=parent.email,
+            code=code,
+            user_type='parent',
+            is_used=False
+        ).first()
+
+        if verification and verification.is_valid():
+            verification.is_used = True
+            parent.email_verified = True
+            db.session.commit()
+
+            # Connecter le parent
+            session.clear()
+            session['user_type'] = 'parent'
+            login_user(parent, remember=True)
+            parent.last_login = datetime.utcnow()
+            db.session.commit()
+
+            flash('Email vérifié avec succès !', 'success')
+            return redirect(url_for('parent_auth.link_teacher'))
+        else:
+            flash('Code invalide ou expiré.', 'error')
+
+    return render_template('parent/verify_email.html', email=parent.email)
+
+@parent_auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    parent_id = session.get('pending_user_id')
+    if not parent_id or session.get('pending_user_type') != 'parent':
+        return redirect(url_for('parent_auth.register'))
+
+    parent = Parent.query.get(parent_id)
+    if not parent:
+        return redirect(url_for('parent_auth.register'))
+
+    last_verification = EmailVerification.query.filter_by(
+        email=parent.email,
+        user_type='parent'
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
+        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
+        return redirect(url_for('parent_auth.verify_email'))
+
+    verification = EmailVerification.create_verification(parent.email, 'parent')
+    db.session.commit()
+
+    send_verification_code(parent.email, verification.code, 'parent')
+    flash('Un nouveau code a été envoyé.', 'success')
+    return redirect(url_for('parent_auth.verify_email'))
 
 @parent_auth_bp.route('/dashboard')
 @parent_required

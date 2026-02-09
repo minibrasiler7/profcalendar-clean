@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification email - Espace Parent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-envelope-open-text auth-icon"></i>
+            <h1 class="auth-title">Vérifiez votre email</h1>
+            <p class="auth-subtitle">Un code à 6 chiffres a été envoyé à <strong>{{ email }}</strong></p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('parent_auth.verify_email') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="code" class="form-label">Code de vérification</label>
+                <div class="code-input-container">
+                    <input type="text" id="code" name="code" class="form-control code-input"
+                           maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
+                           placeholder="000000" required autofocus>
+                </div>
+            </div>
+
+            <div class="timer-container">
+                <i class="fas fa-clock"></i>
+                <span id="timer">10:00</span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-block">Vérifier</button>
+            </div>
+        </form>
+
+        <div class="resend-container">
+            <p>Vous n'avez pas reçu le code ?</p>
+            <form method="POST" action="{{ url_for('parent_auth.resend_code') }}" id="resend-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-resend" id="resend-btn">
+                    <i class="fas fa-redo"></i> Renvoyer le code
+                </button>
+            </form>
+            <p id="resend-cooldown" style="display:none; color: var(--gray-color); font-size: 0.875rem;">
+                Renvoi possible dans <span id="resend-timer">60</span>s
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container { max-width: 400px; margin: 4rem auto; }
+.auth-card {
+    background-color: var(--white, #fff);
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    padding: 3rem;
+}
+.auth-header { text-align: center; margin-bottom: 2rem; }
+.auth-icon { font-size: 3rem; color: var(--primary-color, #4f46e5); margin-bottom: 1rem; display: block; }
+.auth-title { font-size: 2rem; font-weight: 700; color: var(--dark-color, #2d3748); margin-bottom: 0.5rem; }
+.auth-subtitle { color: var(--gray-color, #718096); }
+.code-input-container { text-align: center; }
+.code-input {
+    text-align: center; font-size: 2rem; font-weight: 700;
+    letter-spacing: 0.75rem; padding: 1rem; max-width: 280px; margin: 0 auto;
+}
+.timer-container { text-align: center; color: var(--gray-color, #718096); font-size: 0.9rem; margin: 1rem 0; }
+.timer-container i { margin-right: 0.5rem; }
+#timer.expired { color: var(--danger-color, #e53e3e); }
+.resend-container { text-align: center; margin-top: 1.5rem; color: var(--gray-color, #718096); font-size: 0.9rem; }
+.btn-resend {
+    background: none; border: none; color: var(--primary-color, #4f46e5);
+    cursor: pointer; font-weight: 500; font-size: 0.9rem; padding: 0.5rem 1rem;
+}
+.btn-resend:hover { text-decoration: underline; }
+.btn-resend:disabled { color: var(--gray-color, #718096); cursor: not-allowed; }
+.btn-block { width: 100%; padding: 0.75rem; font-size: 1.1rem; }
+.alert { padding: 0.75rem 1rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 0.5rem; }
+.alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let timeLeft = 600;
+    const timerEl = document.getElementById('timer');
+    const interval = setInterval(function() {
+        timeLeft--;
+        const min = Math.floor(timeLeft / 60);
+        const sec = timeLeft % 60;
+        timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+        if (timeLeft <= 0) { clearInterval(interval); timerEl.textContent = 'Expiré'; timerEl.classList.add('expired'); }
+    }, 1000);
+
+    const resendBtn = document.getElementById('resend-btn');
+    const resendForm = document.getElementById('resend-form');
+    const resendCooldown = document.getElementById('resend-cooldown');
+    const resendTimerEl = document.getElementById('resend-timer');
+    resendForm.addEventListener('submit', function() {
+        resendBtn.disabled = true; resendBtn.style.display = 'none'; resendCooldown.style.display = 'block';
+        let cooldown = 60;
+        const ci = setInterval(function() {
+            cooldown--; resendTimerEl.textContent = cooldown;
+            if (cooldown <= 0) { clearInterval(ci); resendBtn.disabled = false; resendBtn.style.display = 'inline-block'; resendCooldown.style.display = 'none'; }
+        }, 1000);
+    });
+
+    document.getElementById('code').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+});
+</script>
+</body>
+</html>

@@ -4,8 +4,10 @@ from extensions import db
 from models.student import Student
 from models.student_access_code import StudentAccessCode
 from models.class_collaboration import SharedClassroom
+from models.email_verification import EmailVerification
+from services.email_service import send_verification_code
 from werkzeug.security import check_password_hash, generate_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import string
 import random
 from flask_wtf import FlaskForm
@@ -103,15 +105,25 @@ def register():
         # Créer le compte
         student.password_hash = generate_password_hash(form.password.data)
         student.is_authenticated = True
-        
+
         try:
+            # Générer et envoyer le code de vérification email
+            verification = EmailVerification.create_verification(student.email, 'student')
             db.session.commit()
-            flash('Compte créé avec succès ! Vous pouvez maintenant vous connecter.', 'success')
-            return redirect(url_for('student_auth.login'))
+
+            send_verification_code(student.email, verification.code, 'student')
+
+            # Stocker l'ID en session pour la vérification
+            session['pending_user_id'] = student.id
+            session['pending_user_type'] = 'student'
+            session['verification_email'] = student.email
+
+            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            return redirect(url_for('student_auth.verify_email_code'))
         except Exception as e:
             db.session.rollback()
             flash(f'Erreur lors de la création du compte : {str(e)}', 'error')
-    
+
     return render_template('student/register.html', form=form)
 
 @student_auth_bp.route('/verify-code', methods=['GET', 'POST'])
@@ -153,6 +165,73 @@ def verify_code():
             flash('Code invalide ou expiré.', 'error')
     
     return render_template('student/verify_code.html', form=form, student=student)
+
+@student_auth_bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email_code():
+    """Vérification du code email pour les élèves"""
+    student_id = session.get('pending_user_id')
+    if not student_id or session.get('pending_user_type') != 'student':
+        return redirect(url_for('student_auth.register'))
+
+    student = Student.query.get(student_id)
+    if not student:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('student_auth.register'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+
+        verification = EmailVerification.query.filter_by(
+            email=student.email,
+            code=code,
+            user_type='student',
+            is_used=False
+        ).first()
+
+        if verification and verification.is_valid():
+            verification.is_used = True
+            student.email_verified = True
+            student.last_login = datetime.utcnow()
+            db.session.commit()
+
+            # Connecter l'élève
+            session.clear()
+            session['user_type'] = 'student'
+            login_user(student, remember=True)
+
+            flash('Email vérifié avec succès ! Bienvenue.', 'success')
+            return redirect(url_for('student_auth.dashboard'))
+        else:
+            flash('Code invalide ou expiré.', 'error')
+
+    return render_template('student/verify_email.html', email=student.email)
+
+@student_auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    student_id = session.get('pending_user_id')
+    if not student_id or session.get('pending_user_type') != 'student':
+        return redirect(url_for('student_auth.register'))
+
+    student = Student.query.get(student_id)
+    if not student:
+        return redirect(url_for('student_auth.register'))
+
+    last_verification = EmailVerification.query.filter_by(
+        email=student.email,
+        user_type='student'
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
+        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
+        return redirect(url_for('student_auth.verify_email_code'))
+
+    verification = EmailVerification.create_verification(student.email, 'student')
+    db.session.commit()
+
+    send_verification_code(student.email, verification.code, 'student')
+    flash('Un nouveau code a été envoyé.', 'success')
+    return redirect(url_for('student_auth.verify_email_code'))
 
 @student_auth_bp.route('/dashboard')
 @login_required

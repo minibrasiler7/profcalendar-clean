@@ -33,6 +33,9 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ Filtres Jinja2 non trouvés")
     
+    # Import du modèle EmailVerification pour les migrations Alembic
+    from models.email_verification import EmailVerification
+
     # Enregistrement des blueprints
     from routes.auth import auth_bp
     from routes.planning import planning_bp
