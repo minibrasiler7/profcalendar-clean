@@ -14,14 +14,21 @@ os.environ['FLASK_ENV'] = 'production'
 app = create_app('production')
 
 def init_db():
-    """Initialise la base de données si nécessaire"""
+    """Initialise la base de données et applique les migrations"""
     with app.app_context():
         try:
-            # Créer toutes les tables
-            db.create_all()
-            print("Base de donnees initialisee")
+            # Appliquer les migrations Alembic
+            from flask_migrate import upgrade
+            upgrade()
+            print("Migrations appliquees")
         except Exception as e:
-            print(f"Erreur init DB: {e}")
+            print(f"Erreur migrations: {e}")
+            # Fallback: créer les tables si pas de migrations
+            try:
+                db.create_all()
+                print("Base de donnees initialisee (create_all)")
+            except Exception as e2:
+                print(f"Erreur init DB: {e2}")
 
 if __name__ == "__main__":
     # Initialiser la base de données au démarrage
