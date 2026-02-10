@@ -141,13 +141,13 @@ def create_app(config_name='development'):
         print("❌ send_to_students blueprint non trouvé")
 
 
-    # mixed_groups n'existe pas, on le retire
-    # try:
-    #     from routes.mixed_groups import mixed_groups_bp
-    #     app.register_blueprint(mixed_groups_bp)
-    # except ImportError:
-    #     print("mixed_groups blueprint non trouvé")
-    
+    # Redirection de la racine vers /auth/login
+    from flask import redirect, url_for
+
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth.login'))
+
     return app
 
 # Création de l'instance par défaut
