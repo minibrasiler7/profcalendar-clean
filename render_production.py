@@ -17,18 +17,38 @@ def init_db():
     """Initialise la base de données et applique les migrations"""
     with app.app_context():
         try:
-            # Appliquer les migrations Alembic
-            from flask_migrate import upgrade
+            from flask_migrate import upgrade, stamp
+            from sqlalchemy import text
+
+            # Vérifier si Alembic a déjà été initialisé sur cette DB
+            result = db.session.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'alembic_version')"
+            )).scalar()
+
+            if result:
+                # Table alembic_version existe, vérifier si elle a du contenu
+                version = db.session.execute(text("SELECT version_num FROM alembic_version")).scalar()
+                if version:
+                    print(f"Alembic version actuelle: {version}")
+                else:
+                    # Table existe mais vide - stamper à la révision juste avant nos nouvelles migrations
+                    print("Alembic table vide, stamp à 3894eb851cd3")
+                    stamp(revision='3894eb851cd3')
+            else:
+                # Pas de table alembic_version : DB créée avec create_all()
+                # Stamper pour dire que toutes les anciennes migrations sont déjà appliquées
+                print("Pas de table alembic_version, stamp à 3894eb851cd3")
+                stamp(revision='3894eb851cd3')
+
+            db.session.commit()
+
+            # Maintenant appliquer les nouvelles migrations
             upgrade()
-            print("Migrations appliquees")
+            print("Migrations appliquees avec succes")
         except Exception as e:
             print(f"Erreur migrations: {e}")
-            # Fallback: créer les tables si pas de migrations
-            try:
-                db.create_all()
-                print("Base de donnees initialisee (create_all)")
-            except Exception as e2:
-                print(f"Erreur init DB: {e2}")
+            import traceback
+            traceback.print_exc()
 
 if __name__ == "__main__":
     # Initialiser la base de données au démarrage
