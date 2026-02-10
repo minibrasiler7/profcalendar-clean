@@ -16,39 +16,55 @@ app = create_app('production')
 def init_db():
     """Initialise la base de données et applique les migrations"""
     with app.app_context():
-        try:
-            from flask_migrate import upgrade, stamp
-            from sqlalchemy import text
+        from sqlalchemy import text
 
-            # Vérifier si Alembic a déjà été initialisé sur cette DB
-            result = db.session.execute(text(
-                "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'alembic_version')"
-            )).scalar()
+        # Approche directe : ajouter les colonnes manquantes via SQL
+        migrations = [
+            ("email_verified sur users",
+             "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"),
+            ("email_verified sur parents",
+             "ALTER TABLE parents ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"),
+            ("email_verified sur students",
+             "ALTER TABLE students ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"),
+            ("table email_verifications",
+             """CREATE TABLE IF NOT EXISTS email_verifications (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(120) NOT NULL,
+                code VARCHAR(6) NOT NULL,
+                user_type VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                is_used BOOLEAN DEFAULT FALSE
+             )"""),
+            ("index sur email_verifications",
+             "CREATE INDEX IF NOT EXISTS ix_email_verifications_email ON email_verifications (email)"),
+            ("marquer comptes existants comme verifies",
+             "UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
+            ("marquer parents existants comme verifies",
+             "UPDATE parents SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
+            ("marquer eleves existants comme verifies",
+             "UPDATE students SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
+        ]
 
-            if result:
-                # Table alembic_version existe, vérifier si elle a du contenu
-                version = db.session.execute(text("SELECT version_num FROM alembic_version")).scalar()
-                if version:
-                    print(f"Alembic version actuelle: {version}")
+        for description, sql in migrations:
+            try:
+                db.session.execute(text(sql))
+                db.session.commit()
+                print(f"OK: {description}")
+            except Exception as e:
+                db.session.rollback()
+                if "already exists" in str(e) or "duplicate column" in str(e).lower():
+                    print(f"SKIP (deja fait): {description}")
                 else:
-                    # Table existe mais vide - stamper à la révision juste avant nos nouvelles migrations
-                    print("Alembic table vide, stamp à 3894eb851cd3")
-                    stamp(revision='3894eb851cd3')
-            else:
-                # Pas de table alembic_version : DB créée avec create_all()
-                # Stamper pour dire que toutes les anciennes migrations sont déjà appliquées
-                print("Pas de table alembic_version, stamp à 3894eb851cd3")
-                stamp(revision='3894eb851cd3')
+                    print(f"ERREUR {description}: {e}")
 
-            db.session.commit()
-
-            # Maintenant appliquer les nouvelles migrations
-            upgrade()
-            print("Migrations appliquees avec succes")
+        # Stamper Alembic pour les futures migrations
+        try:
+            from flask_migrate import stamp
+            stamp(revision='77214c11cbcf')
+            print("Alembic stampe a 77214c11cbcf")
         except Exception as e:
-            print(f"Erreur migrations: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Stamp alembic: {e}")
 
 if __name__ == "__main__":
     # Initialiser la base de données au démarrage
