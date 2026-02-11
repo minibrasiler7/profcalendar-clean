@@ -5451,6 +5451,12 @@ class CleanPDFViewer {
      * Démarrer une annotation
      */
     startAnnotation(e, canvas, pageId) {
+        // Bloquer si on est en train de drag une zone de texte ou si les contrôles sont actifs
+        if (this.textDragState) {
+            console.log('[StartAnnotation] BLOQUÉ - textDragState actif');
+            return;
+        }
+
         console.log('[StartAnnotation] pageId:', pageId, 'type:', typeof pageId);
         this.isDrawing = true;
         this.currentCanvas = canvas;
@@ -7093,7 +7099,7 @@ class CleanPDFViewer {
         controlsContainer.style.cssText = `
             position: fixed;
             pointer-events: none;
-            z-index: 10000;
+            z-index: 10002;
             left: ${boxX}px;
             top: ${boxY}px;
             width: ${boxWidth}px;
@@ -7145,6 +7151,7 @@ class CleanPDFViewer {
         `;
         deleteBtn.title = 'Supprimer';
         deleteBtn.addEventListener('click', () => this.deleteSelectedTextBox());
+        deleteBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(deleteBtn);
 
         // Boutons de taille de police (gauche) - Plus et Moins
@@ -7156,10 +7163,8 @@ class CleanPDFViewer {
             transform: translateY(-50%);
         `;
         fontSizeUpBtn.title = 'Augmenter la taille';
-        fontSizeUpBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.changeFontSize(2);
-        });
+        fontSizeUpBtn.addEventListener('click', (e) => { e.stopPropagation(); this.changeFontSize(2); });
+        fontSizeUpBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontSizeUpBtn);
 
         const fontSizeDownBtn = document.createElement('button');
@@ -7170,10 +7175,8 @@ class CleanPDFViewer {
             transform: translateY(-50%);
         `;
         fontSizeDownBtn.title = 'Diminuer la taille';
-        fontSizeDownBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.changeFontSize(-2);
-        });
+        fontSizeDownBtn.addEventListener('click', (e) => { e.stopPropagation(); this.changeFontSize(-2); });
+        fontSizeDownBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontSizeDownBtn);
 
         // Sélecteur de police (droite)
@@ -7186,6 +7189,7 @@ class CleanPDFViewer {
         `;
         fontFamilyBtn.title = 'Police';
         fontFamilyBtn.addEventListener('click', (e) => this.showFontFamilyMenu(e));
+        fontFamilyBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); }, {passive: false});
         controlsContainer.appendChild(fontFamilyBtn);
 
         // Poignées de redimensionnement (coins)
@@ -7319,6 +7323,23 @@ class CleanPDFViewer {
         textarea.addEventListener('mousedown', (e) => {
             e.stopPropagation();
         });
+
+        // Bloquer Scribble iPadOS : quand le stylet touche le textarea,
+        // iPadOS convertit l'écriture manuscrite en texte (traits parasites)
+        textarea.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            if (e.pointerType === 'pen') {
+                e.preventDefault(); // Bloque Scribble
+                textarea.focus();
+            }
+        }, { passive: false });
+        textarea.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch && touch.touchType === 'stylus') {
+                e.preventDefault(); // Bloque Scribble
+                textarea.focus();
+            }
+        }, { passive: false });
 
         document.body.appendChild(textarea);
         this.textInputOverlay = textarea;
