@@ -6901,6 +6901,24 @@ class UnifiedPDFViewer {
         textInput.dataset.x = position.x;
         textInput.dataset.y = position.y;
 
+        // === Bloquer Scribble iPadOS sur le textarea ===
+        // Quand l'Apple Pencil touche un champ texte, iPadOS active Scribble
+        // (conversion écriture manuscrite → texte) ce qui crée des traits parasites.
+        // On bloque les événements stylet sur le textarea pour empêcher Scribble.
+        textInput.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'pen') {
+                e.preventDefault();
+                textInput.focus();
+            }
+        }, { passive: false });
+        textInput.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch && touch.touchType === 'stylus') {
+                e.preventDefault();
+                textInput.focus();
+            }
+        }, { passive: false });
+
         // === Coin de redimensionnement ===
         const resizeHandle = document.createElement('div');
         resizeHandle.style.cssText = `
@@ -6932,12 +6950,19 @@ class UnifiedPDFViewer {
         // Focus
         setTimeout(() => { if (textInput.parentNode) textInput.focus(); }, 50);
 
-        // === Bloquer tous les pointer events sur le conteneur ===
+        // === Bloquer tous les pointer/touch events sur le conteneur ===
         ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(evtName => {
             container.addEventListener(evtName, (e) => {
                 e.stopPropagation();
             }, { passive: false });
         });
+        // Bloquer les touchstart stylet sur tout le conteneur (anti-Scribble global)
+        container.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch && touch.touchType === 'stylus') {
+                e.stopPropagation();
+            }
+        }, { passive: false });
 
         // === Drag (déplacement) ===
         let isDragging = false, dragStartX = 0, dragStartY = 0, containerStartX = 0, containerStartY = 0;
