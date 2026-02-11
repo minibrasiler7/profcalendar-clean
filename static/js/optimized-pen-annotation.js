@@ -271,6 +271,15 @@ class OptimizedPenAnnotation {
             return;
         }
 
+        // Ignorer si un input texte est actif (éviter les traits parasites lors du déplacement/redimensionnement)
+        const textInput = document.querySelector('.pdf-text-input');
+        if (textInput) {
+            const topEl = document.elementFromPoint(e.clientX, e.clientY);
+            if (topEl && (topEl === textInput || textInput.contains(topEl) || topEl.closest('.pdf-text-input'))) {
+                return;
+            }
+        }
+
         const isStylus = e.pointerType === 'pen';
         const isMouse = e.pointerType === 'mouse';
         const isFinger = e.pointerType === 'touch';
