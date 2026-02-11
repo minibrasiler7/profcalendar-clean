@@ -1599,6 +1599,18 @@ class CleanPDFViewer {
 
             // Stylet = annotation, bloquer scroll et démarrer annotation
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                // Vérifier si le clic est sur les contrôles de texte (boutons déplacer/redimensionner)
+                const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+                if (targetEl && targetEl.closest('.text-box-controls')) {
+                    console.log('[Viewer NEW] Clic sur contrôle texte - ignoré pour annotation');
+                    // Transmettre l'événement au bouton en simulant les events appropriés
+                    const control = targetEl.closest('button, div[style*="pointer-events: auto"]') || targetEl;
+                    control.dispatchEvent(new MouseEvent('mousedown', {
+                        clientX: e.clientX, clientY: e.clientY, bubbles: true
+                    }));
+                    return;
+                }
+
                 console.log(`[Viewer NEW] ${e.pointerType === 'pen' ? 'Stylet' : 'Souris'} détecté - bloquant scroll`);
                 this.isAnnotating = true;
                 e.preventDefault();
@@ -1633,6 +1645,9 @@ class CleanPDFViewer {
         }, { passive: false });
 
         this.elements.viewer.addEventListener('pointermove', (e) => {
+            // Ignorer si on est en train de drag une zone de texte
+            if (this.textDragState) return;
+
             // Afficher le curseur pour l'Apple Pencil Pro (hover)
             // SEULEMENT si on n'est pas en train de dessiner
             if (e.pointerType === 'pen' && !this.isDrawing) {
@@ -7115,6 +7130,7 @@ class CleanPDFViewer {
         moveBtn.title = 'Déplacer';
         moveBtn.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'move'));
         moveBtn.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'move'), {passive: false});
+        moveBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'move'); }, {passive: false});
         controlsContainer.appendChild(moveBtn);
 
         // Bouton de suppression (bas)
@@ -7192,6 +7208,7 @@ class CleanPDFViewer {
         `;
         resizeHandle.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize'));
         resizeHandle.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize'), {passive: false});
+        resizeHandle.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'resize'); }, {passive: false});
         controlsContainer.appendChild(resizeHandle);
 
         // Coin supérieur gauche
@@ -7203,6 +7220,7 @@ class CleanPDFViewer {
         `;
         resizeHandleTL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tl'));
         resizeHandleTL.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-tl'), {passive: false});
+        resizeHandleTL.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'resize-tl'); }, {passive: false});
         controlsContainer.appendChild(resizeHandleTL);
 
         // Coin supérieur droit
@@ -7214,6 +7232,7 @@ class CleanPDFViewer {
         `;
         resizeHandleTR.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tr'));
         resizeHandleTR.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-tr'), {passive: false});
+        resizeHandleTR.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'resize-tr'); }, {passive: false});
         controlsContainer.appendChild(resizeHandleTR);
 
         // Coin inférieur gauche
@@ -7225,6 +7244,7 @@ class CleanPDFViewer {
         `;
         resizeHandleBL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-bl'));
         resizeHandleBL.addEventListener('touchstart', (e) => this.startTextBoxDrag(e, 'resize-bl'), {passive: false});
+        resizeHandleBL.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.startTextBoxDrag(e, 'resize-bl'); }, {passive: false});
         controlsContainer.appendChild(resizeHandleBL);
 
         document.body.appendChild(controlsContainer);
@@ -7374,7 +7394,7 @@ class CleanPDFViewer {
             initialHeight: this.selectedTextBox.height
         };
 
-        // Ajouter les listeners de drag
+        // Ajouter les listeners de drag (mouse + touch + pointer pour support stylet)
         const moveHandler = (e) => this.handleTextBoxDrag(e);
         const endHandler = (e) => this.endTextBoxDrag(e, moveHandler, endHandler);
 
@@ -7382,6 +7402,8 @@ class CleanPDFViewer {
         document.addEventListener('mouseup', endHandler);
         document.addEventListener('touchmove', moveHandler, {passive: false});
         document.addEventListener('touchend', endHandler);
+        document.addEventListener('pointermove', moveHandler, {passive: false});
+        document.addEventListener('pointerup', endHandler);
     }
 
     /**
@@ -7460,6 +7482,8 @@ class CleanPDFViewer {
         document.removeEventListener('mouseup', endHandler);
         document.removeEventListener('touchmove', moveHandler);
         document.removeEventListener('touchend', endHandler);
+        document.removeEventListener('pointermove', moveHandler);
+        document.removeEventListener('pointerup', endHandler);
 
         this.textDragState = null;
         this.isDirty = true;
