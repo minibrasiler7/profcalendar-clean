@@ -4153,7 +4153,10 @@ class UnifiedPDFViewer {
         // SimplePenAnnotation gère déjà l'outil 'pen', donc on skip les events pour 'pen'
 
         annotationCanvas.addEventListener('pointerdown', (e) => {
-            // DEBUG: Log tous les pointerdown pour identifier les événements en chaîne
+            // Bloquer si une zone de texte est active (éviter traits parasites lors du déplacement/redimensionnement)
+            if (this.activeTextInput) {
+                return;
+            }
 
             // Pour l'outil pen, juste marquer isDrawing pour le pointerup
             if (this.currentTool === 'pen') {
@@ -4176,14 +4179,8 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointermove', (e) => {
-            // DEBUG: Log pointermove uniquement si isDrawing pour éviter le spam
-            if (this.isDrawing || this.currentTool === 'pen') {
-                // Throttle les logs - log seulement 1 sur 10
-                if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
-                this._pointerMoveCounter++;
-                if (this._pointerMoveCounter % 10 === 0) {
-                }
-            }
+            // Bloquer si une zone de texte est active
+            if (this.activeTextInput) return;
 
             // Si c'est l'outil pen, laisser SimplePenAnnotation gérer
             if (this.currentTool === 'pen') return;
@@ -4201,9 +4198,8 @@ class UnifiedPDFViewer {
         });
 
         annotationCanvas.addEventListener('pointerup', (e) => {
-            // DEBUG: Log tous les pointerup
-            // Reset counter
-            this._pointerMoveCounter = 0;
+            // Bloquer si une zone de texte est active
+            if (this.activeTextInput) return;
 
             // Pour le stylo, juste tracker l'état - OptimizedPenAnnotation gère tout
             if (this.currentTool === 'pen') {
@@ -6894,8 +6890,15 @@ class UnifiedPDFViewer {
         
         // Stocker la référence IMMÉDIATEMENT
         this.activeTextInput = textInput;
-        
-        
+
+        // Désactiver les pointer-events sur tous les canvas d'annotation
+        // pour empêcher les traits parasites du stylet lors du déplacement/redimensionnement
+        this.pageElements.forEach((pe) => {
+            if (pe.annotationCanvas) {
+                pe.annotationCanvas.style.pointerEvents = 'none';
+            }
+        });
+
         // Focus avec délai pour s'assurer que l'élément est bien rendu
         setTimeout(() => {
             if (textInput.parentNode) {
@@ -7023,7 +7026,14 @@ class UnifiedPDFViewer {
             this.activeTextInput.remove();
             this.activeTextInput = null;
         }
-        
+
+        // Restaurer les pointer-events sur les canvas d'annotation
+        this.pageElements.forEach((pe) => {
+            if (pe.annotationCanvas) {
+                pe.annotationCanvas.style.pointerEvents = 'auto';
+            }
+        });
+
         // Nettoyer le gestionnaire de clic extérieur
         if (this.textClickHandler) {
             document.removeEventListener('click', this.textClickHandler, true);
