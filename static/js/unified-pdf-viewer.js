@@ -6904,7 +6904,14 @@ class UnifiedPDFViewer {
             }
         }, 10);
         
-        // Événements clavier seulement
+        // Bloquer tous les pointer events pour empêcher le canvas en dessous de dessiner
+        ['pointerdown', 'pointermove', 'pointerup'].forEach(evtName => {
+            textInput.addEventListener(evtName, (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+        });
+
+        // Événements clavier
         textInput.addEventListener('keydown', (e) => {
             e.stopPropagation();
             
