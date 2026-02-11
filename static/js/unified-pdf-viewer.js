@@ -6838,86 +6838,182 @@ class UnifiedPDFViewer {
         if (!pageElement) {
             return;
         }
-        
+
         // Supprimer toute zone de texte existante
         this.removeActiveTextInput();
-        
-        // Créer l'input de texte
-        const textInput = document.createElement('textarea');
-        textInput.className = 'pdf-text-input';
-        
-        // Configuration de base
-        textInput.placeholder = 'Tapez votre texte ici...';
-        textInput.style.position = 'fixed';
-        textInput.style.width = '200px';
-        textInput.style.height = '60px';
-        textInput.style.fontSize = '16px';
-        textInput.style.fontFamily = 'Arial, sans-serif';
-        textInput.style.padding = '8px';
-        textInput.style.borderRadius = '4px';
-        textInput.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-        textInput.style.zIndex = '10000';
-        textInput.style.resize = 'both';
-        textInput.style.minWidth = '150px';
-        textInput.style.minHeight = '40px';
-        textInput.style.outline = 'none';
-        
-        // Appliquer la couleur sélectionnée au texte et à la bordure
-        textInput.style.color = this.currentColor;
-        textInput.style.border = `2px solid ${this.currentColor}`;
-        textInput.style.boxShadow = `0 2px 8px ${this.currentColor}33`; // 33 = 20% d'opacité
-        
-        
-        // Stocker les infos pour la finalisation
-        textInput.dataset.pageNum = pageNum;
-        textInput.dataset.x = position.x;
-        textInput.dataset.y = position.y;
-        
+
         // Calculer la position sur l'écran
         const canvas = pageElement.annotationCanvas;
         const canvasRect = canvas.getBoundingClientRect();
         const screenX = canvasRect.left + position.x;
         const screenY = canvasRect.top + position.y;
-        
-        textInput.style.left = `${screenX}px`;
-        textInput.style.top = `${screenY}px`;
-        
-        // Pour l'outil texte, on ne sauvegarde PAS ici
-        // La sauvegarde se fera après que le texte soit effectivement ajouté au canvas
-        
-        // Ajouter au body
-        document.body.appendChild(textInput);
-        
-        // Stocker la référence IMMÉDIATEMENT
+
+        // === Conteneur principal ===
+        const container = document.createElement('div');
+        container.className = 'pdf-text-container';
+        container.style.cssText = `
+            position: fixed; left: ${screenX}px; top: ${screenY}px;
+            z-index: 10000; touch-action: none; user-select: none;
+            border: 2px solid ${this.currentColor};
+            border-radius: 6px; background: rgba(255,255,255,0.95);
+            box-shadow: 0 4px 12px ${this.currentColor}33;
+            display: flex; flex-direction: column;
+            min-width: 180px; min-height: 80px;
+            width: 220px;
+        `;
+
+        // === Barre de titre (drag handle) ===
+        const dragBar = document.createElement('div');
+        dragBar.style.cssText = `
+            height: 28px; cursor: grab; display: flex; align-items: center;
+            justify-content: space-between; padding: 0 8px;
+            background: ${this.currentColor}18; border-bottom: 1px solid ${this.currentColor}40;
+            border-radius: 4px 4px 0 0; flex-shrink: 0;
+            touch-action: none;
+        `;
+        // Icône déplacement
+        const dragIcon = document.createElement('span');
+        dragIcon.innerHTML = '⠿';
+        dragIcon.style.cssText = `color: ${this.currentColor}; font-size: 16px; pointer-events: none;`;
+        // Bouton valider (✓)
+        const confirmBtn = document.createElement('button');
+        confirmBtn.innerHTML = '✓';
+        confirmBtn.style.cssText = `
+            background: ${this.currentColor}; color: white; border: none;
+            border-radius: 4px; width: 22px; height: 22px; font-size: 14px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            touch-action: none;
+        `;
+        dragBar.appendChild(dragIcon);
+        dragBar.appendChild(confirmBtn);
+
+        // === Textarea ===
+        const textInput = document.createElement('textarea');
+        textInput.className = 'pdf-text-input';
+        textInput.placeholder = 'Tapez votre texte...';
+        textInput.style.cssText = `
+            flex: 1; border: none; outline: none; resize: none;
+            font-size: 16px; font-family: Arial, sans-serif;
+            padding: 6px 8px; background: transparent;
+            color: ${this.currentColor}; min-height: 40px;
+        `;
+        textInput.dataset.pageNum = pageNum;
+        textInput.dataset.x = position.x;
+        textInput.dataset.y = position.y;
+
+        // === Coin de redimensionnement ===
+        const resizeHandle = document.createElement('div');
+        resizeHandle.style.cssText = `
+            width: 100%; height: 16px; cursor: ns-resize;
+            display: flex; align-items: center; justify-content: center;
+            background: ${this.currentColor}10; border-top: 1px solid ${this.currentColor}20;
+            border-radius: 0 0 4px 4px; flex-shrink: 0;
+            touch-action: none;
+        `;
+        resizeHandle.innerHTML = `<span style="color:${this.currentColor}80;font-size:10px;pointer-events:none;">⋯</span>`;
+
+        // Assembler
+        container.appendChild(dragBar);
+        container.appendChild(textInput);
+        container.appendChild(resizeHandle);
+        document.body.appendChild(container);
+
+        // Stocker les références
         this.activeTextInput = textInput;
+        this.activeTextContainer = container;
 
         // Désactiver les pointer-events sur tous les canvas d'annotation
-        // pour empêcher les traits parasites du stylet lors du déplacement/redimensionnement
         this.pageElements.forEach((pe) => {
             if (pe.annotationCanvas) {
                 pe.annotationCanvas.style.pointerEvents = 'none';
             }
         });
 
-        // Focus avec délai pour s'assurer que l'élément est bien rendu
-        setTimeout(() => {
-            if (textInput.parentNode) {
-                textInput.focus();
-                textInput.select();
-            }
-        }, 10);
-        
-        // Bloquer tous les pointer events pour empêcher le canvas en dessous de dessiner
-        ['pointerdown', 'pointermove', 'pointerup'].forEach(evtName => {
-            textInput.addEventListener(evtName, (e) => {
+        // Focus
+        setTimeout(() => { if (textInput.parentNode) textInput.focus(); }, 50);
+
+        // === Bloquer tous les pointer events sur le conteneur ===
+        ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(evtName => {
+            container.addEventListener(evtName, (e) => {
                 e.stopPropagation();
             }, { passive: false });
         });
 
-        // Événements clavier
+        // === Drag (déplacement) ===
+        let isDragging = false, dragStartX = 0, dragStartY = 0, containerStartX = 0, containerStartY = 0;
+
+        dragBar.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isDragging = true;
+            dragBar.style.cursor = 'grabbing';
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            const rect = container.getBoundingClientRect();
+            containerStartX = rect.left;
+            containerStartY = rect.top;
+            try { dragBar.setPointerCapture(e.pointerId); } catch(err) {}
+        }, { passive: false });
+
+        dragBar.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            container.style.left = (containerStartX + dx) + 'px';
+            container.style.top = (containerStartY + dy) + 'px';
+        }, { passive: false });
+
+        dragBar.addEventListener('pointerup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            dragBar.style.cursor = 'grab';
+            try { dragBar.releasePointerCapture(e.pointerId); } catch(err) {}
+            // Mettre à jour les coordonnées canvas pour la finalisation
+            const containerRect = container.getBoundingClientRect();
+            const newCanvasRect = canvas.getBoundingClientRect();
+            textInput.dataset.x = containerRect.left - newCanvasRect.left;
+            textInput.dataset.y = containerRect.top + 28 - newCanvasRect.top; // +28 pour la barre de titre
+        }, { passive: false });
+
+        // === Resize (redimensionnement vertical) ===
+        let isResizing = false, resizeStartY = 0, containerStartH = 0;
+
+        resizeHandle.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isResizing = true;
+            resizeStartY = e.clientY;
+            containerStartH = container.offsetHeight;
+            try { resizeHandle.setPointerCapture(e.pointerId); } catch(err) {}
+        }, { passive: false });
+
+        resizeHandle.addEventListener('pointermove', (e) => {
+            if (!isResizing) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const dy = e.clientY - resizeStartY;
+            const newH = Math.max(80, containerStartH + dy);
+            container.style.height = newH + 'px';
+        }, { passive: false });
+
+        resizeHandle.addEventListener('pointerup', (e) => {
+            if (!isResizing) return;
+            isResizing = false;
+            try { resizeHandle.releasePointerCapture(e.pointerId); } catch(err) {}
+        }, { passive: false });
+
+        // === Bouton valider ===
+        confirmBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.finalizeText(textInput);
+        }, { passive: false });
+
+        // === Clavier ===
         textInput.addEventListener('keydown', (e) => {
             e.stopPropagation();
-            
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 this.finalizeText(textInput);
@@ -6926,104 +7022,108 @@ class UnifiedPDFViewer {
                 this.removeActiveTextInput();
             }
         });
-        
-        // Clic extérieur avec priorité haute pour intercepter avant les autres événements
+
+        // === Clic extérieur pour finaliser ===
         const setupClickHandler = () => {
             this.textClickHandler = (e) => {
-                if (this.activeTextInput && 
-                    !this.activeTextInput.contains(e.target) && 
-                    this.activeTextInput.parentNode) {
-                    
-                    
-                    // Empêcher la propagation pour éviter d'autres clics
+                if (this.activeTextContainer &&
+                    !this.activeTextContainer.contains(e.target) &&
+                    this.activeTextContainer.parentNode) {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    
-                    // Nettoyer immédiatement le gestionnaire
                     document.removeEventListener('click', this.textClickHandler, true);
+                    document.removeEventListener('pointerdown', this.textPointerHandler, true);
                     this.textClickHandler = null;
-                    
-                    // Finaliser le texte
+                    this.textPointerHandler = null;
                     this.finalizeText(this.activeTextInput);
-                    
                     return false;
                 }
             };
-            // Utiliser capture: true pour intercepter l'événement en premier
+            this.textPointerHandler = (e) => {
+                if (this.activeTextContainer &&
+                    !this.activeTextContainer.contains(e.target) &&
+                    this.activeTextContainer.parentNode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    document.removeEventListener('click', this.textClickHandler, true);
+                    document.removeEventListener('pointerdown', this.textPointerHandler, true);
+                    this.textClickHandler = null;
+                    this.textPointerHandler = null;
+                    this.finalizeText(this.activeTextInput);
+                    return false;
+                }
+            };
             document.addEventListener('click', this.textClickHandler, true);
+            document.addEventListener('pointerdown', this.textPointerHandler, true);
         };
-        
-        // Délai de 200ms pour s'assurer que l'événement initial est terminé
-        setTimeout(setupClickHandler, 200);
-        
+        setTimeout(setupClickHandler, 300);
     }
-    
+
     /**
      * Finalise le texte et le dessine sur le canvas
      */
     finalizeText(textInput) {
-        // Vérifier que l'input existe encore et n'a pas déjà été supprimé
         if (!textInput || !textInput.parentNode) {
             return;
         }
-        
+
         const text = textInput.value.trim();
         if (!text) {
-            // Si pas de texte, juste supprimer l'input
             this.removeActiveTextInput();
             return;
         }
-        
+
         const pageNum = parseInt(textInput.dataset.pageNum);
         const x = parseFloat(textInput.dataset.x);
         const y = parseFloat(textInput.dataset.y);
-        
+
         const pageElement = this.pageElements.get(pageNum);
         if (!pageElement?.annotationCtx) {
             this.removeActiveTextInput();
             return;
         }
-        
+
         const ctx = pageElement.annotationCtx;
-        
-        // Configurer le style de texte
+
         ctx.save();
         ctx.font = '16px Arial';
         ctx.fillStyle = this.currentColor;
         ctx.textBaseline = 'top';
-        
-        // Gérer le texte multiligne
+
         const lines = text.split('\n');
         const lineHeight = 20;
-        
+
         lines.forEach((line, index) => {
-            if (line.trim()) { // Éviter de dessiner des lignes vides
+            if (line.trim()) {
                 ctx.fillText(line, x, y + (index * lineHeight));
             }
         });
-        
+
         ctx.restore();
-        
-        // Sauvegarder l'état APRÈS avoir ajouté le texte (comme les autres outils)
+
         this.saveCanvasState(pageNum);
-        
-        // Supprimer l'input
         this.removeActiveTextInput();
-        
-        
-        // Programmer la sauvegarde automatique
+
         if (this.options.autoSave) {
             this.scheduleAutoSave();
         }
     }
-    
+
     /**
      * Supprime la zone de texte active
      */
     removeActiveTextInput() {
+        if (this.activeTextContainer) {
+            this.activeTextContainer.remove();
+            this.activeTextContainer = null;
+        }
         if (this.activeTextInput) {
-            this.activeTextInput.remove();
+            // Au cas où le textarea est orphelin (ancien code)
+            if (this.activeTextInput.parentNode) {
+                this.activeTextInput.remove();
+            }
             this.activeTextInput = null;
         }
 
@@ -7034,10 +7134,14 @@ class UnifiedPDFViewer {
             }
         });
 
-        // Nettoyer le gestionnaire de clic extérieur
+        // Nettoyer les gestionnaires de clic/pointer extérieur
         if (this.textClickHandler) {
             document.removeEventListener('click', this.textClickHandler, true);
             this.textClickHandler = null;
+        }
+        if (this.textPointerHandler) {
+            document.removeEventListener('pointerdown', this.textPointerHandler, true);
+            this.textPointerHandler = null;
         }
     }
     
