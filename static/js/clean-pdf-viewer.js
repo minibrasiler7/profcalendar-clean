@@ -1502,10 +1502,14 @@ class CleanPDFViewer {
         this.lastPencilInteraction = 0;
         this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
 
-        // ========== INTERCEPTEUR STYLET → CONTRÔLES TEXT-BOX (v3) ==========
+        // ========== INTERCEPTEUR STYLET → CONTRÔLES TEXT-BOX (v4) ==========
         // Capture-phase au niveau document : intercepte TOUS les events stylet
         // AVANT tout autre handler (Scribble, viewer, textarea, etc.)
-        // Utilise la vérification de bounding rects (plus fiable que elementFromPoint sur iPad)
+        // v4: Corrige le double-firing (pointerdown+touchstart), bloque Scribble pendant le drag
+        //     en masquant le textarea et en interceptant pointermove/touchmove
+
+        // Garde contre le double-firing: empêche pointerdown ET touchstart de déclencher la même action
+        this._textControlInterceptedAt = 0;
 
         // Fonction utilitaire : trouver un bouton de contrôle sous des coordonnées données
         const findControlButtonAtPoint = (clientX, clientY) => {
@@ -1576,7 +1580,7 @@ class CleanPDFViewer {
             return false;
         };
 
-        // Intercepteur POINTERDOWN (capture phase)
+        // Intercepteur POINTERDOWN (capture phase) - priorité sur touchstart
         document.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'pen' && !e._syntheticTextControl) {
                 const control = findControlButtonAtPoint(e.clientX, e.clientY);
@@ -1584,6 +1588,8 @@ class CleanPDFViewer {
                     console.log('[PEN INTERCEPT pointerdown] Stylet sur contrôle:', control.title || control.tagName, 'coords:', e.clientX, e.clientY);
                     e.preventDefault();
                     e.stopImmediatePropagation();
+                    // Marquer le timestamp pour éviter que touchstart ne re-déclenche l'action
+                    this._textControlInterceptedAt = Date.now();
                     executeControlAction(control, e.clientX, e.clientY);
                     return;
                 }
@@ -1592,16 +1598,52 @@ class CleanPDFViewer {
 
         // Intercepteur TOUCHSTART (capture phase) - backup pour iPad
         // Apple Pencil peut aussi générer des touchstart avec touchType='stylus'
+        // GARDE: ne déclenche l'action QUE si pointerdown ne l'a pas déjà fait
         document.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
             if (touch && (touch.touchType === 'stylus' || touch.force > 0)) {
                 const control = findControlButtonAtPoint(touch.clientX, touch.clientY);
                 if (control) {
-                    console.log('[PEN INTERCEPT touchstart] Stylet touch sur contrôle:', control.title || control.tagName, 'coords:', touch.clientX, touch.clientY);
+                    // Toujours bloquer l'événement pour empêcher Scribble
                     e.preventDefault();
                     e.stopImmediatePropagation();
+                    // Ne déclencher l'action QUE si pointerdown ne l'a pas déjà fait (< 200ms)
+                    if (Date.now() - this._textControlInterceptedAt < 200) {
+                        console.log('[PEN INTERCEPT touchstart] Ignoré (déjà traité par pointerdown)');
+                        return;
+                    }
+                    console.log('[PEN INTERCEPT touchstart] Stylet touch sur contrôle:', control.title || control.tagName, 'coords:', touch.clientX, touch.clientY);
+                    this._textControlInterceptedAt = Date.now();
                     executeControlAction(control, touch.clientX, touch.clientY);
                     return;
+                }
+            }
+        }, { capture: true, passive: false });
+
+        // ========== INTERCEPTEURS POINTERMOVE/TOUCHMOVE pendant le drag ==========
+        // Pendant un drag de text-box, les événements de mouvement du stylet doivent être
+        // bloqués pour empêcher: (1) les annotations sur le canvas, (2) iPadOS Scribble
+        // sur le textarea. On bloque la propagation vers les éléments enfants (viewer, textarea)
+        // mais on laisse les handlers document-level (dragHandler) fonctionner.
+
+        document.addEventListener('pointermove', (e) => {
+            if (this.textDragState && e.pointerType === 'pen') {
+                // Empêcher la propagation vers les éléments enfants (viewer, textarea)
+                // mais NE PAS appeler stopImmediatePropagation car le dragHandler
+                // est aussi sur document (bubble phase) et doit recevoir l'événement
+                e.preventDefault();
+                // Note: on ne peut pas utiliser stopPropagation ici car ça bloquerait
+                // aussi le dragHandler en bubble phase. Le viewer's pointermove
+                // vérifie déjà textDragState et retourne early.
+            }
+        }, { capture: true, passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (this.textDragState) {
+                const touch = e.touches[0];
+                if (touch && (touch.touchType === 'stylus' || touch.force > 0)) {
+                    // Bloquer le mouvement tactile du stylet pendant le drag
+                    e.preventDefault();
                 }
             }
         }, { capture: true, passive: false });
@@ -7550,6 +7592,12 @@ class CleanPDFViewer {
         e.preventDefault();
         e.stopPropagation();
 
+        // Garde contre le double-appel (pointerdown + touchstart peuvent fire tous les deux)
+        if (this.textDragState) {
+            console.log('[TextBoxDrag] Ignoré - drag déjà en cours');
+            return;
+        }
+
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -7562,6 +7610,22 @@ class CleanPDFViewer {
             initialWidth: this.selectedTextBox.width,
             initialHeight: this.selectedTextBox.height
         };
+
+        // ===== ANTI-SCRIBBLE: Désactiver le textarea pendant le drag =====
+        // iPadOS Scribble convertit les mouvements du stylet près d'un champ texte
+        // en texte tapé. Pendant un drag (déplacement/redimensionnement), on doit
+        // empêcher Scribble de s'activer en rendant le textarea invisible et non-interactif.
+        if (this.textInputOverlay) {
+            this.textInputOverlay.blur(); // Retirer le focus pour désactiver Scribble
+            this.textInputOverlay.style.pointerEvents = 'none'; // Ignorer les pointeurs
+            this.textInputOverlay.style.visibility = 'hidden'; // Masquer visuellement (Scribble ne cible pas les éléments invisibles)
+            this.textInputOverlay.setAttribute('readonly', 'true'); // Lecture seule par sécurité
+            console.log('[TextBoxDrag] Textarea désactivé (anti-Scribble)');
+        }
+
+        // S'assurer que le système d'annotation ne démarre pas
+        this.isAnnotating = false;
+        this.isDrawing = false;
 
         // Ajouter les listeners de drag (mouse + touch + pointer pour support stylet)
         const moveHandler = (e) => this.handleTextBoxDrag(e);
@@ -7582,6 +7646,11 @@ class CleanPDFViewer {
         if (!this.textDragState || !this.selectedTextBox) return;
 
         e.preventDefault();
+        e.stopPropagation();
+
+        // Sécurité: s'assurer que l'annotation ne démarre jamais pendant un drag
+        this.isAnnotating = false;
+        this.isDrawing = false;
 
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -7656,6 +7725,22 @@ class CleanPDFViewer {
 
         this.textDragState = null;
         this.isDirty = true;
+
+        // ===== ANTI-SCRIBBLE: Réactiver le textarea après le drag =====
+        if (this.textInputOverlay) {
+            this.textInputOverlay.style.pointerEvents = '';
+            this.textInputOverlay.style.visibility = '';
+            this.textInputOverlay.removeAttribute('readonly');
+            // Repositionner le textarea sur la nouvelle position de la text-box
+            this.updateTextBoxControlsPosition();
+            // Remettre le focus après un court délai (pour éviter que Scribble se réactive immédiatement)
+            setTimeout(() => {
+                if (this.textInputOverlay) {
+                    this.textInputOverlay.focus();
+                }
+            }, 100);
+            console.log('[TextBoxDrag] Textarea réactivé');
+        }
     }
 
     /**
