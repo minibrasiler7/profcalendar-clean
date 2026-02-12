@@ -1502,6 +1502,41 @@ class CleanPDFViewer {
         this.lastPencilInteraction = 0;
         this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
 
+        // ========== INTERCEPTEUR STYLET → CONTRÔLES TEXT-BOX ==========
+        // Capture-phase au niveau document : intercepte TOUS les events stylet
+        // AVANT tout autre handler (Scribble, viewer, textarea, etc.)
+        // Résout le problème iPadOS où le stylet est redirigé vers le textarea
+        // ou le canvas au lieu des boutons de contrôle de la zone de texte
+        document.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'pen' && !e._syntheticTextControl) {
+                const targetAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+                if (targetAtPoint && targetAtPoint.closest('.text-box-controls')) {
+                    const control = targetAtPoint.closest('button') ||
+                                   targetAtPoint.closest('[style*="cursor"]') ||
+                                   targetAtPoint;
+                    console.log('[PEN INTERCEPT] Stylet sur contrôle texte - capture phase - redirection vers:', control.title || control.tagName);
+                    // Bloquer TOUS les autres handlers pour cet event
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    // Dispatcher un event synthétique directement sur le bouton
+                    const syntheticEvent = new PointerEvent('pointerdown', {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        pointerId: e.pointerId,
+                        pointerType: e.pointerType,
+                        isPrimary: e.isPrimary,
+                        pressure: e.pressure,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    syntheticEvent._syntheticTextControl = true;
+                    control.dispatchEvent(syntheticEvent);
+                    return;
+                }
+            }
+        }, { capture: true, passive: false });
+        // ========== FIN INTERCEPTEUR ==========
+
         // Méthode 1: Événement pointerdown avec button spécial
         document.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'pen') {
@@ -7115,10 +7150,11 @@ class CleanPDFViewer {
         `;
 
         // Styles communs pour les boutons
+        // Taille 36px pour meilleur ciblage avec stylet iPad (min 44px recommandé Apple, 36px compromis)
         const buttonStyle = `
             position: absolute;
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: white;
             border: 2px solid #007aff;
@@ -7126,10 +7162,11 @@ class CleanPDFViewer {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 14px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             pointer-events: auto;
             color: #007aff;
+            touch-action: none;
         `;
 
         // Bouton de déplacement (haut)
@@ -7200,21 +7237,23 @@ class CleanPDFViewer {
         controlsContainer.appendChild(fontFamilyBtn);
 
         // Poignées de redimensionnement (coins)
+        // Taille augmentée pour meilleur ciblage avec stylet iPad
         const handleStyle = `
             position: absolute;
-            width: 12px;
-            height: 12px;
+            width: 20px;
+            height: 20px;
             background: white;
             border: 2px solid #007aff;
-            border-radius: 2px;
+            border-radius: 4px;
+            touch-action: none;
             pointer-events: auto;
         `;
 
         // Coin inférieur droit (principal pour le redimensionnement)
         const resizeHandle = document.createElement('div');
         resizeHandle.style.cssText = handleStyle + `
-            right: -6px;
-            bottom: -6px;
+            right: -10px;
+            bottom: -10px;
             cursor: nwse-resize;
         `;
         resizeHandle.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize'));
@@ -7225,8 +7264,8 @@ class CleanPDFViewer {
         // Coin supérieur gauche
         const resizeHandleTL = document.createElement('div');
         resizeHandleTL.style.cssText = handleStyle + `
-            left: -6px;
-            top: -6px;
+            left: -10px;
+            top: -10px;
             cursor: nwse-resize;
         `;
         resizeHandleTL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tl'));
@@ -7237,8 +7276,8 @@ class CleanPDFViewer {
         // Coin supérieur droit
         const resizeHandleTR = document.createElement('div');
         resizeHandleTR.style.cssText = handleStyle + `
-            right: -6px;
-            top: -6px;
+            right: -10px;
+            top: -10px;
             cursor: nesw-resize;
         `;
         resizeHandleTR.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-tr'));
@@ -7249,8 +7288,8 @@ class CleanPDFViewer {
         // Coin inférieur gauche
         const resizeHandleBL = document.createElement('div');
         resizeHandleBL.style.cssText = handleStyle + `
-            left: -6px;
-            bottom: -6px;
+            left: -10px;
+            bottom: -10px;
             cursor: nesw-resize;
         `;
         resizeHandleBL.addEventListener('mousedown', (e) => this.startTextBoxDrag(e, 'resize-bl'));
