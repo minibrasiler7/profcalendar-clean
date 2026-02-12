@@ -1603,10 +1603,17 @@ class CleanPDFViewer {
                 const targetEl = document.elementFromPoint(e.clientX, e.clientY);
                 if (targetEl && targetEl.closest('.text-box-controls')) {
                     console.log('[Viewer NEW] Clic sur contrôle texte - ignoré pour annotation');
-                    // Transmettre l'événement au bouton en simulant les events appropriés
+                    // Transmettre l'événement au bouton en simulant un PointerEvent
+                    // (les boutons écoutent pointerdown, pas seulement mousedown)
                     const control = targetEl.closest('button, div[style*="pointer-events: auto"]') || targetEl;
-                    control.dispatchEvent(new MouseEvent('mousedown', {
-                        clientX: e.clientX, clientY: e.clientY, bubbles: true
+                    control.dispatchEvent(new PointerEvent('pointerdown', {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        pointerId: e.pointerId,
+                        pointerType: e.pointerType,
+                        isPrimary: e.isPrimary,
+                        bubbles: true,
+                        cancelable: true
                     }));
                     return;
                 }
@@ -7326,16 +7333,48 @@ class CleanPDFViewer {
 
         // Bloquer Scribble iPadOS : quand le stylet touche le textarea,
         // iPadOS convertit l'écriture manuscrite en texte (traits parasites)
+        // FIX: Vérifier d'abord si le stylet vise un bouton de contrôle,
+        // car iPadOS Scribble étend la zone tactile des champs texte
         textarea.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
             if (e.pointerType === 'pen') {
+                // Vérifier si le stylet vise réellement un contrôle de la text-box
+                // iPadOS Scribble étend la zone de capture au-delà des limites du textarea
+                const targetAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+                if (targetAtPoint && targetAtPoint.closest('.text-box-controls')) {
+                    // Le stylet est sur un bouton de contrôle, pas sur le textarea
+                    // Transmettre l'événement au bon bouton
+                    const control = targetAtPoint.closest('button, [style*="pointer-events: auto"]') || targetAtPoint;
+                    console.log('[TextBox] Stylet sur contrôle détecté via textarea - redirection vers:', control.title || control.tagName);
+                    control.dispatchEvent(new PointerEvent('pointerdown', {
+                        clientX: e.clientX,
+                        clientY: e.clientY,
+                        pointerId: e.pointerId,
+                        pointerType: e.pointerType,
+                        isPrimary: e.isPrimary,
+                        bubbles: true,
+                        cancelable: true
+                    }));
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                e.stopPropagation();
                 e.preventDefault(); // Bloque Scribble
                 textarea.focus();
+            } else {
+                e.stopPropagation();
             }
         }, { passive: false });
         textarea.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
             if (touch && touch.touchType === 'stylus') {
+                // FIX: Vérifier si le stylet vise un contrôle avant de capturer
+                const targetAtPoint = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (targetAtPoint && targetAtPoint.closest('.text-box-controls')) {
+                    // Le stylet est sur un bouton de contrôle - ne pas capturer
+                    console.log('[TextBox] Stylet touch sur contrôle détecté - laissé passer');
+                    return;
+                }
                 e.preventDefault(); // Bloque Scribble
                 textarea.focus();
             }
