@@ -1502,35 +1502,105 @@ class CleanPDFViewer {
         this.lastPencilInteraction = 0;
         this.previousTool = 'pen'; // Pour mémoriser l'outil avant la gomme
 
-        // ========== INTERCEPTEUR STYLET → CONTRÔLES TEXT-BOX ==========
+        // ========== INTERCEPTEUR STYLET → CONTRÔLES TEXT-BOX (v3) ==========
         // Capture-phase au niveau document : intercepte TOUS les events stylet
         // AVANT tout autre handler (Scribble, viewer, textarea, etc.)
-        // Résout le problème iPadOS où le stylet est redirigé vers le textarea
-        // ou le canvas au lieu des boutons de contrôle de la zone de texte
+        // Utilise la vérification de bounding rects (plus fiable que elementFromPoint sur iPad)
+
+        // Fonction utilitaire : trouver un bouton de contrôle sous des coordonnées données
+        const findControlButtonAtPoint = (clientX, clientY) => {
+            const controlsContainer = document.querySelector('.text-box-controls');
+            if (!controlsContainer) return null;
+
+            // Vérifier chaque enfant interactif du conteneur de contrôles
+            const interactiveChildren = controlsContainer.querySelectorAll('button, [style*="pointer-events: auto"]');
+            const PADDING = 8; // Marge supplémentaire pour faciliter le ciblage stylet
+
+            for (const child of interactiveChildren) {
+                const rect = child.getBoundingClientRect();
+                if (clientX >= rect.left - PADDING && clientX <= rect.right + PADDING &&
+                    clientY >= rect.top - PADDING && clientY <= rect.bottom + PADDING) {
+                    return child;
+                }
+            }
+            return null;
+        };
+
+        // Fonction utilitaire : déterminer l'action du bouton et l'exécuter directement
+        const executeControlAction = (control, clientX, clientY) => {
+            // Identifier le type d'action basé sur le style/title du bouton
+            const title = (control.title || '').toLowerCase();
+            const cursor = control.style.cursor || '';
+
+            if (title.includes('déplacer') || title.includes('move')) {
+                console.log('[PEN INTERCEPT] → Action: MOVE');
+                this.startTextBoxDrag({ clientX, clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, 'move');
+                return true;
+            }
+            if (title.includes('supprimer') || title.includes('delete')) {
+                console.log('[PEN INTERCEPT] → Action: DELETE');
+                this.deleteSelectedTextBox();
+                return true;
+            }
+            if (title.includes('augmenter') || title.includes('plus')) {
+                console.log('[PEN INTERCEPT] → Action: FONT SIZE UP');
+                this.changeFontSize(2);
+                return true;
+            }
+            if (title.includes('diminuer') || title.includes('minus') || title.includes('moins')) {
+                console.log('[PEN INTERCEPT] → Action: FONT SIZE DOWN');
+                this.changeFontSize(-2);
+                return true;
+            }
+            if (title.includes('police') || title.includes('font')) {
+                console.log('[PEN INTERCEPT] → Action: FONT FAMILY');
+                this.showFontFamilyMenu({ clientX, clientY, stopPropagation: ()=>{} });
+                return true;
+            }
+            // Poignées de redimensionnement (pas de title, utiliser le cursor)
+            if (cursor.includes('resize') || cursor.includes('nwse') || cursor.includes('nesw')) {
+                // Déterminer quel coin basé sur la position relative
+                const containerRect = document.querySelector('.text-box-controls').getBoundingClientRect();
+                const centerX = containerRect.left + containerRect.width / 2;
+                const centerY = containerRect.top + containerRect.height / 2;
+                let resizeType = 'resize';
+                if (clientX < centerX && clientY < centerY) resizeType = 'resize-tl';
+                else if (clientX > centerX && clientY < centerY) resizeType = 'resize-tr';
+                else if (clientX < centerX && clientY > centerY) resizeType = 'resize-bl';
+                else resizeType = 'resize';
+                console.log('[PEN INTERCEPT] → Action: RESIZE (' + resizeType + ')');
+                this.startTextBoxDrag({ clientX, clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, resizeType);
+                return true;
+            }
+            console.log('[PEN INTERCEPT] → Bouton non identifié, title:', title, 'cursor:', cursor);
+            return false;
+        };
+
+        // Intercepteur POINTERDOWN (capture phase)
         document.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'pen' && !e._syntheticTextControl) {
-                const targetAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-                if (targetAtPoint && targetAtPoint.closest('.text-box-controls')) {
-                    const control = targetAtPoint.closest('button') ||
-                                   targetAtPoint.closest('[style*="cursor"]') ||
-                                   targetAtPoint;
-                    console.log('[PEN INTERCEPT] Stylet sur contrôle texte - capture phase - redirection vers:', control.title || control.tagName);
-                    // Bloquer TOUS les autres handlers pour cet event
+                const control = findControlButtonAtPoint(e.clientX, e.clientY);
+                if (control) {
+                    console.log('[PEN INTERCEPT pointerdown] Stylet sur contrôle:', control.title || control.tagName, 'coords:', e.clientX, e.clientY);
                     e.preventDefault();
                     e.stopImmediatePropagation();
-                    // Dispatcher un event synthétique directement sur le bouton
-                    const syntheticEvent = new PointerEvent('pointerdown', {
-                        clientX: e.clientX,
-                        clientY: e.clientY,
-                        pointerId: e.pointerId,
-                        pointerType: e.pointerType,
-                        isPrimary: e.isPrimary,
-                        pressure: e.pressure,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    syntheticEvent._syntheticTextControl = true;
-                    control.dispatchEvent(syntheticEvent);
+                    executeControlAction(control, e.clientX, e.clientY);
+                    return;
+                }
+            }
+        }, { capture: true, passive: false });
+
+        // Intercepteur TOUCHSTART (capture phase) - backup pour iPad
+        // Apple Pencil peut aussi générer des touchstart avec touchType='stylus'
+        document.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch && (touch.touchType === 'stylus' || touch.force > 0)) {
+                const control = findControlButtonAtPoint(touch.clientX, touch.clientY);
+                if (control) {
+                    console.log('[PEN INTERCEPT touchstart] Stylet touch sur contrôle:', control.title || control.tagName, 'coords:', touch.clientX, touch.clientY);
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    executeControlAction(control, touch.clientX, touch.clientY);
                     return;
                 }
             }
@@ -10979,6 +11049,13 @@ class CleanPDFViewer {
     async close() {
         console.log('[Close] Fermeture du viewer PDF...');
 
+        // Désélectionner la zone de texte active (textarea + contrôles sur document.body)
+        this.deselectTextBox();
+        // Nettoyage supplémentaire des éléments orphelins sur document.body
+        document.querySelectorAll('.text-box-input').forEach(el => el.remove());
+        document.querySelectorAll('.text-box-controls').forEach(el => el.remove());
+        document.querySelectorAll('.text-box-menu').forEach(el => el.remove());
+
         // Masquer l'équerre si elle est affichée
         this.hideSetSquare();
 
@@ -11081,6 +11158,12 @@ class CleanPDFViewer {
      */
     destroy() {
         console.log('[Destroy] Destruction du viewer PDF...');
+
+        // Désélectionner la zone de texte active (textarea + contrôles sur document.body)
+        this.deselectTextBox();
+        document.querySelectorAll('.text-box-input').forEach(el => el.remove());
+        document.querySelectorAll('.text-box-controls').forEach(el => el.remove());
+        document.querySelectorAll('.text-box-menu').forEach(el => el.remove());
 
         // Masquer l'équerre si elle est affichée
         this.hideSetSquare();
