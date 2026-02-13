@@ -46,6 +46,24 @@
 .time-separator {
     font-size: 1.5rem;
     color: var(--gray-color);
+    min-width: 2rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Fix iPad: espacement des dates et séparateur horaire */
+@media (max-width: 1024px) {
+    .date-row {
+        gap: 1.5rem;
+    }
+
+    .time-input-group {
+        gap: 0.75rem;
+    }
+
+    .time-input-group .form-control {
+        min-width: 0;
+    }
 }
 
 .form-help {
@@ -88,7 +106,7 @@
                     <!-- Le statut sera affiché ici -->
                 </div>
                 <div id="copy-info" class="alert alert-info" style="display: none; margin-top: 1rem;">
-                    <i class="fas fa-info-circle"></i> La configuration de ce collège sera copiée. En cliquant sur "Suivant", les paramètres seront automatiquement appliqués.
+                    <i class="fas fa-info-circle"></i> La configuration de ce collège a été copiée dans les champs ci-dessous. Vous pouvez les modifier librement si nécessaire.
                 </div>
                 {% if form.college_name.errors %}
                     <div class="form-error">
@@ -106,7 +124,7 @@
             <h2 class="section-title">Année scolaire</h2>
             <p class="section-description">Définissez les dates de début et de fin de votre année scolaire.</p>
             
-            <div class="form-row">
+            <div class="form-row date-row">
                 <div class="form-group">
                     {{ form.school_year_start.label(class="form-label") }}
                     {{ form.school_year_start(class="form-control", type="date") }}
@@ -294,6 +312,11 @@
     pointer-events: none;
 }
 
+.prefilled-section {
+    border-left: 3px solid var(--primary-color);
+    padding-left: calc(2rem - 3px);
+}
+
 .autocomplete-wrapper {
     position: relative;
 }
@@ -361,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
             collegeStatus.innerHTML = '';
             copyInfo.style.display = 'none';
             setupSections.forEach(section => {
-                section.classList.remove('disabled-section');
+                section.classList.remove('prefilled-section');
             });
             clearFields();
             collegeFound = false;
@@ -428,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
             collegeStatus.innerHTML = '<span style="color: #ffc107;"><i class="fas fa-exclamation-triangle"></i> Ce collège existe mais n\'a pas de configuration complète</span>';
             copyInfo.style.display = 'none';
             setupSections.forEach(section => {
-                section.classList.remove('disabled-section');
+                section.classList.remove('prefilled-section');
             });
             clearFields();
             collegeFound = false;
@@ -450,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 collegeStatus.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> Configuration trouvée pour ce collège</span>';
                 copyInfo.style.display = 'block';
                 setupSections.forEach(section => {
-                    section.classList.add('disabled-section');
+                    section.classList.add('prefilled-section');
                 });
                 fillFields(data.data);
                 collegeFound = true;
@@ -458,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 collegeStatus.innerHTML = '<span style="color: #ffc107;"><i class="fas fa-exclamation-triangle"></i> ' + data.message + '</span>';
                 copyInfo.style.display = 'none';
                 setupSections.forEach(section => {
-                    section.classList.remove('disabled-section');
+                    section.classList.remove('prefilled-section');
                 });
                 clearFields();
                 collegeFound = false;
@@ -466,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 collegeStatus.innerHTML = '<span style="color: #17a2b8;"><i class="fas fa-plus-circle"></i> ' + data.message + '</span>';
                 copyInfo.style.display = 'none';
                 setupSections.forEach(section => {
-                    section.classList.remove('disabled-section');
+                    section.classList.remove('prefilled-section');
                 });
                 clearFields();
                 collegeFound = false;
