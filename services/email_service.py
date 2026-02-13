@@ -1,8 +1,5 @@
 import os
 import resend
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 def send_verification_code(email, code, user_type='teacher'):
@@ -19,18 +16,21 @@ def send_verification_code(email, code, user_type='teacher'):
     api_key = os.environ.get('RESEND_API_KEY')
     from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
 
-    logger.info(f"[EMAIL] Tentative d'envoi de code de vérification à {email} (type: {user_type})")
+    print(f"[EMAIL] === ENVOI CODE VÉRIFICATION ===")
+    print(f"[EMAIL] Destinataire: {email}, Type: {user_type}")
+    print(f"[EMAIL] RESEND_API_KEY présente: {bool(api_key)}")
+    print(f"[EMAIL] RESEND_FROM_EMAIL: {from_email}")
 
     # Vérifier que l'adresse expéditeur est valide (contient un @domaine.ext)
     if not from_email or '@' not in from_email or '.' not in from_email.split('@')[-1]:
-        logger.warning(f"[EMAIL] RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
+        print(f"[EMAIL] RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
         from_email = 'onboarding@resend.dev'
 
     if not api_key:
-        logger.error("[EMAIL] RESEND_API_KEY non configurée - impossible d'envoyer des emails")
+        print("[EMAIL] ERREUR: RESEND_API_KEY non configurée - impossible d'envoyer des emails!")
         return False
 
-    logger.info(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}")
+    print(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}...")
     resend.api_key = api_key
 
     type_labels = {
@@ -74,8 +74,8 @@ def send_verification_code(email, code, user_type='teacher'):
             "subject": f"ProfCalendar - Code de vérification : {code}",
             "html": html_content
         })
-        logger.info(f"[EMAIL] Email envoyé avec succès à {email} - Resend ID: {result}")
+        print(f"[EMAIL] SUCCÈS - Email envoyé à {email} - Resend response: {result}")
         return True
     except Exception as e:
-        logger.error(f"[EMAIL] Échec d'envoi à {email}: {type(e).__name__}: {e}")
+        print(f"[EMAIL] ÉCHEC - Erreur envoi à {email}: {type(e).__name__}: {e}")
         return False
