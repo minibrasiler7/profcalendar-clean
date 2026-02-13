@@ -58,7 +58,8 @@ def login():
     if form.validate_on_submit():
         # Vérifier d'abord si c'est un email de parent
         from models.parent import Parent
-        parent_check = Parent.query.filter_by(email=form.email.data).first()
+        from utils.encryption import encryption_engine
+        parent_check = Parent.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         if parent_check:
             flash('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.', 'error')
             return render_template('auth/login.html', form=form)

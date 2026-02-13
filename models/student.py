@@ -1,6 +1,9 @@
 from extensions import db
 from datetime import datetime
 from flask_login import UserMixin
+from utils.custom_types import EncryptedString, EncryptedText, EncryptedDate
+from utils.encryption import encryption_engine
+from sqlalchemy import event
 
 class Student(UserMixin, db.Model):
     """Modèle pour les élèves"""
@@ -9,15 +12,16 @@ class Student(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120))
-    date_of_birth = db.Column(db.Date)
-    parent_email_mother = db.Column(db.String(120))  # Email de la mère (optionnel)
-    parent_email_father = db.Column(db.String(120))  # Email du père (optionnel)
-    additional_info = db.Column(db.Text)  # Informations supplémentaires sur l'élève
+    first_name = db.Column(EncryptedString(), nullable=False)
+    last_name = db.Column(EncryptedString(), nullable=False)
+    email = db.Column(EncryptedString())
+    email_hash = db.Column(db.String(64), index=True)  # SHA-256 pour recherche par email
+    date_of_birth = db.Column(EncryptedDate())
+    parent_email_mother = db.Column(EncryptedString())  # Email de la mère (optionnel)
+    parent_email_father = db.Column(EncryptedString())  # Email du père (optionnel)
+    additional_info = db.Column(EncryptedText())  # Informations supplémentaires sur l'élève
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     email_verified = db.Column(db.Boolean, default=False)
 
     # Ajout pour l'authentification des élèves
@@ -49,6 +53,18 @@ class Student(UserMixin, db.Model):
         return f'<Student {self.full_name}>'
 
 
+# Event listeners pour maintenir email_hash automatiquement
+@event.listens_for(Student, 'before_insert')
+def student_before_insert(mapper, connection, target):
+    if target.email:
+        target.email_hash = encryption_engine.hash_email(target.email)
+
+@event.listens_for(Student, 'before_update')
+def student_before_update(mapper, connection, target):
+    if target.email:
+        target.email_hash = encryption_engine.hash_email(target.email)
+
+
 class Grade(db.Model):
     """Modèle pour les notes des élèves"""
     __tablename__ = 'grades'
@@ -56,12 +72,12 @@ class Grade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    grade = db.Column(db.Float, nullable=False)
-    max_grade = db.Column(db.Float, default=20.0)  # Note sur 20 par défaut
-    coefficient = db.Column(db.Float, default=1.0)
-    date = db.Column(db.Date, nullable=False)
-    comment = db.Column(db.Text)
+    title = db.Column(EncryptedString(), nullable=False)
+    grade = db.Column(db.Float, nullable=False)  # NON chiffré: calculs de moyennes
+    max_grade = db.Column(db.Float, default=20.0)  # NON chiffré: calculs
+    coefficient = db.Column(db.Float, default=1.0)  # NON chiffré: calculs
+    date = db.Column(db.Date, nullable=False)  # NON chiffré: tri/filtrage
+    comment = db.Column(EncryptedText())
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations

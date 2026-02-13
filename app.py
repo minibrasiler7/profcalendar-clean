@@ -25,6 +25,17 @@ def create_app(config_name='development'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     
+    # Initialisation du moteur de chiffrement
+    try:
+        from utils.encryption import encryption_engine
+        encryption_engine.init_app(app)
+        if encryption_engine.is_enabled:
+            print("✅ Chiffrement des données activé")
+        else:
+            print("⚠️  Chiffrement désactivé (ENCRYPTION_KEY non définie)")
+    except ImportError:
+        print("❌ Module de chiffrement non trouvé")
+
     # Enregistrer les filtres Jinja2
     try:
         from utils.jinja_filters import register_filters

@@ -50,7 +50,8 @@ def login():
     form = StudentLoginForm()
     
     if form.validate_on_submit():
-        student = Student.query.filter_by(email=form.email.data).first()
+        from utils.encryption import encryption_engine
+        student = Student.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         
         if student and student.password_hash and check_password_hash(student.password_hash, form.password.data):
             # Vérifier si l'élève a déjà validé un code d'accès

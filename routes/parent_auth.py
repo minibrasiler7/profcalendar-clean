@@ -84,8 +84,9 @@ def login():
             flash('Email et mot de passe requis', 'error')
             return render_template('parent/login.html')
         
-        # Rechercher le parent d'abord
-        parent = Parent.query.filter_by(email=email).first()
+        # Rechercher le parent par hash d'email
+        from utils.encryption import encryption_engine
+        parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
         
         if parent and parent.check_password(password):
             # Vérifier si l'email est vérifié
@@ -172,7 +173,8 @@ def register():
             return render_template('parent/register.html')
         
         # Vérifier si l'email existe déjà
-        if Parent.query.filter_by(email=email).first():
+        from utils.encryption import encryption_engine
+        if Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first():
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Un compte avec cet email existe déjà'}), 400
             flash('Un compte avec cet email existe déjà', 'error')
@@ -289,31 +291,36 @@ def link_teacher():
 def link_children_automatically(parent, classroom_id):
     """Lier automatiquement les enfants selon l'email du parent"""
     children_linked = 0
-    
-    # Rechercher les élèves avec l'email du parent (mère ou père)
-    students = Student.query.filter(
-        Student.classroom_id == classroom_id,
-        db.or_(
-            Student.parent_email_mother == parent.email,
-            Student.parent_email_father == parent.email
-        )
-    ).all()
-    
-    for student in students:
+
+    # Les emails sont chiffrés (non déterministe), donc on filtre en Python
+    # On charge tous les élèves de la classe et on compare les emails déchiffrés
+    parent_email = parent.email.strip().lower() if parent.email else None
+    if not parent_email:
+        return 0
+
+    all_students = Student.query.filter_by(classroom_id=classroom_id).all()
+
+    for student in all_students:
+        mother_email = (student.parent_email_mother or '').strip().lower()
+        father_email = (student.parent_email_father or '').strip().lower()
+
+        if mother_email != parent_email and father_email != parent_email:
+            continue
+
         # Vérifier si la liaison n'existe pas déjà
         existing_link = ParentChild.query.filter_by(
             parent_id=parent.id,
             student_id=student.id
         ).first()
-        
+
         if not existing_link:
             # Déterminer le type de relation
             relationship = 'parent'  # Par défaut
-            if student.parent_email_mother == parent.email:
+            if mother_email == parent_email:
                 relationship = 'mother'
-            elif student.parent_email_father == parent.email:
+            elif father_email == parent_email:
                 relationship = 'father'
-            
+
             # Créer la liaison
             parent_child = ParentChild(
                 parent_id=parent.id,
@@ -323,7 +330,7 @@ def link_children_automatically(parent, classroom_id):
             )
             db.session.add(parent_child)
             children_linked += 1
-    
+
     return children_linked
 
 @parent_auth_bp.route('/verify-email', methods=['GET', 'POST'])
