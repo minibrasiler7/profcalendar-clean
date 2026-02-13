@@ -15,6 +15,7 @@ Create Date: 2026-02-13
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = 'add_encryption_001'
@@ -23,13 +24,33 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(table_name, column_name):
+    """Vérifie si une colonne existe déjà dans la table."""
+    bind = op.get_bind()
+    insp = inspect(bind)
+    columns = [c['name'] for c in insp.get_columns(table_name)]
+    return column_name in columns
+
+
+def _index_exists(index_name):
+    """Vérifie si un index existe déjà."""
+    bind = op.get_bind()
+    result = bind.execute(sa.text(
+        "SELECT 1 FROM pg_indexes WHERE indexname = :name"
+    ), {"name": index_name})
+    return result.fetchone() is not None
+
+
 def upgrade():
     # === STUDENTS TABLE ===
-    # Add email_hash column
-    op.add_column('students', sa.Column('email_hash', sa.String(64), nullable=True))
-    op.create_index('ix_students_email_hash', 'students', ['email_hash'])
+    # Add email_hash column (idempotent)
+    if not _column_exists('students', 'email_hash'):
+        op.add_column('students', sa.Column('email_hash', sa.String(64), nullable=True))
 
-    # Convert String columns to Text (encrypted data is longer)
+    if not _index_exists('ix_students_email_hash'):
+        op.create_index('ix_students_email_hash', 'students', ['email_hash'])
+
+    # Convert String columns to Text (idempotent - ALTER TYPE TEXT on TEXT is a no-op)
     op.alter_column('students', 'first_name', type_=sa.Text(), existing_type=sa.String(100))
     op.alter_column('students', 'last_name', type_=sa.Text(), existing_type=sa.String(100))
     op.alter_column('students', 'email', type_=sa.Text(), existing_type=sa.String(120))
@@ -38,8 +59,9 @@ def upgrade():
     op.alter_column('students', 'parent_email_father', type_=sa.Text(), existing_type=sa.String(120))
 
     # === PARENTS TABLE ===
-    # Add email_hash column
-    op.add_column('parents', sa.Column('email_hash', sa.String(64), nullable=True))
+    # Add email_hash column (idempotent)
+    if not _column_exists('parents', 'email_hash'):
+        op.add_column('parents', sa.Column('email_hash', sa.String(64), nullable=True))
 
     # Remove old unique constraint on email (if it exists)
     try:
@@ -52,8 +74,9 @@ def upgrade():
     op.alter_column('parents', 'first_name', type_=sa.Text(), existing_type=sa.String(100))
     op.alter_column('parents', 'last_name', type_=sa.Text(), existing_type=sa.String(100))
 
-    # Add unique index on email_hash (replaces unique on email)
-    op.create_index('ix_parents_email_hash', 'parents', ['email_hash'], unique=True)
+    # Add unique index on email_hash (idempotent)
+    if not _index_exists('ix_parents_email_hash'):
+        op.create_index('ix_parents_email_hash', 'parents', ['email_hash'], unique=True)
 
     # === GRADES TABLE ===
     op.alter_column('grades', 'title', type_=sa.Text(), existing_type=sa.String(200))
