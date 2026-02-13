@@ -2391,12 +2391,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Fonction pour mettre à jour les statistiques
+// IMPORTANT: Cibler uniquement .attendance-section pour éviter de compter
+// en double les éléments dupliqués dans le modal de gestion de classe du PDF viewer
 function updateStats() {
     let present = 0;
     let absent = 0;
     let late = 0;
 
-    document.querySelectorAll('.student-attendance').forEach(student => {
+    document.querySelectorAll('.attendance-section .student-attendance').forEach(student => {
         const status = student.dataset.status;
         if (status === 'present') present++;
         else if (status === 'absent') absent++;
