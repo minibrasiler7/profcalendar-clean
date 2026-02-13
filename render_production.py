@@ -39,12 +39,10 @@ def init_db():
              )"""),
             ("index sur email_verifications",
              "CREATE INDEX IF NOT EXISTS ix_email_verifications_email ON email_verifications (email)"),
-            ("marquer comptes existants comme verifies",
-             "UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
-            ("marquer parents existants comme verifies",
-             "UPDATE parents SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
-            ("marquer eleves existants comme verifies",
-             "UPDATE students SET email_verified = TRUE WHERE email_verified IS NULL OR email_verified = FALSE"),
+            # NOTE: Les comptes existants avant la feature email_verified ont été
+            # marqués comme vérifiés lors du premier déploiement. Ne PAS refaire
+            # cet UPDATE à chaque démarrage car ça écraserait le statut des
+            # nouveaux comptes qui n'ont pas encore vérifié leur email.
 
             # --- Encryption migrations (add_encryption_001) ---
             ("email_hash sur students",
