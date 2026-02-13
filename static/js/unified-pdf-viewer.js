@@ -1,7 +1,7 @@
 /**
  * UnifiedPDFViewer - Composant PDF unifié avec outils avancés
  * Version: 2.0.0
- * Auteur: TeacherPlanner
+ * Auteur: ProfCalendar
  * 
  * Fonctionnalités:
  * - Mode adaptatif (complet, prévisualisation, étudiant)

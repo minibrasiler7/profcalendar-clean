@@ -37,7 +37,7 @@ def send_verification_code(email, code, user_type='teacher'):
     html_content = f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: #2d3748; font-size: 1.5rem;">TeacherPlanner</h1>
+            <h1 style="color: #2d3748; font-size: 1.5rem;">ProfCalendar</h1>
             <p style="color: #718096;">Vérification de votre adresse email</p>
         </div>
 
@@ -65,7 +65,7 @@ def send_verification_code(email, code, user_type='teacher'):
         resend.Emails.send({
             "from": from_email,
             "to": [email],
-            "subject": f"TeacherPlanner - Code de vérification : {code}",
+            "subject": f"ProfCalendar - Code de vérification : {code}",
             "html": html_content
         })
         return True

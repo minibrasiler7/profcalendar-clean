@@ -3,7 +3,7 @@
  * Améliore l'expérience de scroll tactile sur iPad et tablettes
  * 
  * @version 1.0.0
- * @author TeacherPlanner
+ * @author ProfCalendar
  */
 
 (function() {

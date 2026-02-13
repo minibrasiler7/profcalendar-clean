@@ -182,7 +182,7 @@ def verify_email():
             session.pop('pending_user_type', None)
             session.pop('verification_email', None)
 
-            flash('Email vérifié avec succès ! Bienvenue sur TeacherPlanner.', 'success')
+            flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
             return redirect(url_for('setup.initial_setup'))
         else:
             flash('Code invalide ou expiré.', 'error')

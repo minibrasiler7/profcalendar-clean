@@ -3,7 +3,7 @@
  * Inspiré de PencilKit iOS avec optimisations web
  *
  * @version 3.0.0
- * @author TeacherPlanner
+ * @author ProfCalendar
  *
  * Caractéristiques:
  * - Double buffering pour éviter les redraws complets

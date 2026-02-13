@@ -65,6 +65,10 @@ body {
     font-size: 1.75rem;
 }
 
+.nav-brand-logo {
+    flex-shrink: 0;
+}
+
 .nav-menu {
     display: flex;
     gap: 2rem;
