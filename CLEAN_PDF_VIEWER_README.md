@@ -314,4 +314,4 @@ Pour tout problème ou question, consulter le code source ou ouvrir une issue.
 
 **Version** : 2.0.0
 **Date** : 2025-01-18
-**Auteur** : TeacherPlanner
+**Auteur** : ProfCalendar

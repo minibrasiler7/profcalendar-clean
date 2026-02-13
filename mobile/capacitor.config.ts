@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'ch.teacherplanner.parents',
-  appName: 'TeacherPlanner Parents',
+  appName: 'ProfCalendar Parents',
   webDir: 'web-dist',
   bundledWebRuntime: false,
   // URL de l'app parents (prod/dev) pour charger la webapp existante

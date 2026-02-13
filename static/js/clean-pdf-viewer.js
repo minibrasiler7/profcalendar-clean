@@ -3,7 +3,7 @@
  * Architecture propre et moderne pour annotation de PDF avec Apple Pencil
  *
  * @version 2.0.0
- * @author TeacherPlanner
+ * @author ProfCalendar
  *
  * Fonctionnalités :
  * - Layout sidebar (1/5) + viewer (4/5)

@@ -2,7 +2,7 @@
   "name": "teacherplanner-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Capacitor wrapper for the TeacherPlanner web app (parents/élèves)",
+  "description": "Capacitor wrapper for the ProfCalendar web app (parents/élèves)",
   "scripts": {
     "cap:doctor": "npx cap doctor",
     "cap:sync": "npx cap sync",
