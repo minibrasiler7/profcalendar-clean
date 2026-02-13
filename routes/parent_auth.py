@@ -93,7 +93,7 @@ def login():
             if not parent.email_verified:
                 verification = EmailVerification.create_verification(email, 'parent')
                 db.session.commit()
-                send_verification_code(email, verification.code, 'parent')
+                email_sent = send_verification_code(email, verification.code, 'parent')
 
                 session['pending_user_id'] = parent.id
                 session['pending_user_type'] = 'parent'
@@ -101,7 +101,10 @@ def login():
 
                 if request.is_json:
                     return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
-                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
                 return redirect(url_for('parent_auth.verify_email'))
 
             # C'est bien un parent avec le bon mot de passe
@@ -196,7 +199,7 @@ def register():
             verification = EmailVerification.create_verification(email, 'parent')
             db.session.commit()
 
-            send_verification_code(email, verification.code, 'parent')
+            email_sent = send_verification_code(email, verification.code, 'parent')
 
             # Stocker l'ID en session pour la vérification
             session['pending_user_id'] = parent.id
@@ -206,7 +209,10 @@ def register():
             if request.is_json:
                 return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
 
-            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            if email_sent:
+                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            else:
+                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
             return redirect(url_for('parent_auth.verify_email'))
             
         except Exception as e:
@@ -397,8 +403,11 @@ def resend_code():
     verification = EmailVerification.create_verification(parent.email, 'parent')
     db.session.commit()
 
-    send_verification_code(parent.email, verification.code, 'parent')
-    flash('Un nouveau code a été envoyé.', 'success')
+    email_sent = send_verification_code(parent.email, verification.code, 'parent')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('parent_auth.verify_email'))
 
 @parent_auth_bp.route('/dashboard')
