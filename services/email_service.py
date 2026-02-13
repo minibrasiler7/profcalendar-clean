@@ -1,5 +1,12 @@
 import os
+import sys
 import resend
+
+
+def _log(msg):
+    """Log forcé vers stderr (non bufferisé) pour visibilité sur Render."""
+    sys.stderr.write(f"{msg}\n")
+    sys.stderr.flush()
 
 
 def send_verification_code(email, code, user_type='teacher'):
@@ -16,21 +23,21 @@ def send_verification_code(email, code, user_type='teacher'):
     api_key = os.environ.get('RESEND_API_KEY')
     from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
 
-    print(f"[EMAIL] === ENVOI CODE VÉRIFICATION ===")
-    print(f"[EMAIL] Destinataire: {email}, Type: {user_type}")
-    print(f"[EMAIL] RESEND_API_KEY présente: {bool(api_key)}")
-    print(f"[EMAIL] RESEND_FROM_EMAIL: {from_email}")
+    _log(f"[EMAIL] === ENVOI CODE VÉRIFICATION ===")
+    _log(f"[EMAIL] Destinataire: {email}, Type: {user_type}")
+    _log(f"[EMAIL] RESEND_API_KEY présente: {bool(api_key)}")
+    _log(f"[EMAIL] RESEND_FROM_EMAIL: {from_email}")
 
     # Vérifier que l'adresse expéditeur est valide (contient un @domaine.ext)
     if not from_email or '@' not in from_email or '.' not in from_email.split('@')[-1]:
-        print(f"[EMAIL] RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
+        _log(f"[EMAIL] RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
         from_email = 'onboarding@resend.dev'
 
     if not api_key:
-        print("[EMAIL] ERREUR: RESEND_API_KEY non configurée - impossible d'envoyer des emails!")
+        _log("[EMAIL] ERREUR: RESEND_API_KEY non configurée - impossible d'envoyer des emails!")
         return False
 
-    print(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}...")
+    _log(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}...")
     resend.api_key = api_key
 
     type_labels = {
@@ -74,8 +81,8 @@ def send_verification_code(email, code, user_type='teacher'):
             "subject": f"ProfCalendar - Code de vérification : {code}",
             "html": html_content
         })
-        print(f"[EMAIL] SUCCÈS - Email envoyé à {email} - Resend response: {result}")
+        _log(f"[EMAIL] SUCCÈS - Email envoyé à {email} - Resend response: {result}")
         return True
     except Exception as e:
-        print(f"[EMAIL] ÉCHEC - Erreur envoi à {email}: {type(e).__name__}: {e}")
+        _log(f"[EMAIL] ÉCHEC - Erreur envoi à {email}: {type(e).__name__}: {e}")
         return False
