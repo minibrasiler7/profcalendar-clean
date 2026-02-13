@@ -8850,6 +8850,14 @@ class CleanPDFViewer {
         if (attendanceSection && modalBody) {
             modalBody.innerHTML = attendanceSection.innerHTML;
 
+            // IMPORTANT: Supprimer tous les handlers inline (onclick, onchange) du HTML copié.
+            // Le HTML original utilise des fonctions globales avec document.getElementById()
+            // qui trouvent les éléments ORIGINAUX (pas ceux du modal) car les IDs sont dupliqués.
+            // Cela causait: (1) l'alert "Veuillez entrer le nombre de minutes" même quand une
+            // valeur était saisie, (2) un freeze complet avec le stylet (boucle Scribble + alert).
+            modalBody.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
+            modalBody.querySelectorAll('[onchange]').forEach(el => el.removeAttribute('onchange'));
+
             // Réattacher les événements pour les interactions
             this.attachAttendanceEventHandlers(modalBody);
 
@@ -9159,7 +9167,7 @@ class CleanPDFViewer {
             };
         });
 
-        // Gestionnaire pour le bouton retard
+        // Gestionnaire pour le bouton retard (.btn-late avec icône horloge)
         container.querySelectorAll('.btn-late').forEach(btn => {
             const studentElement = btn.closest('.student-attendance');
             const studentId = parseInt(studentElement.dataset.studentId);
@@ -9171,13 +9179,48 @@ class CleanPDFViewer {
             };
         });
 
-        // Gestionnaire pour Enter sur les champs de minutes
+        // Gestionnaire pour les boutons +/- de minutes (remplace les onclick inline supprimés)
+        container.querySelectorAll('.late-btn.decrease').forEach(btn => {
+            const studentElement = btn.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.adjustLateMinutes(studentId, -1, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        container.querySelectorAll('.late-btn.increase').forEach(btn => {
+            const studentElement = btn.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.adjustLateMinutes(studentId, 1, studentElement, classroomId, lessonDate, periodNumber);
+            };
+        });
+
+        // Gestionnaire pour Enter et change sur les champs de minutes
+        // (remplace le onchange inline qui appelait la fonction globale avec le mauvais élément)
         container.querySelectorAll('.late-minutes').forEach(input => {
+            const studentElement = input.closest('.student-attendance');
+            const studentId = parseInt(studentElement.dataset.studentId);
+
             input.addEventListener('keypress', async (e) => {
                 if (e.key === 'Enter') {
-                    const studentElement = input.closest('.student-attendance');
-                    const studentId = parseInt(studentElement.dataset.studentId);
+                    e.preventDefault();
                     await this.setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber);
+                }
+            });
+
+            // Gestionnaire change : quand l'utilisateur modifie la valeur (clavier, Scribble, etc.)
+            input.addEventListener('change', async (e) => {
+                e.stopPropagation();
+                const minutes = parseInt(input.value);
+                if (minutes > 0) {
+                    await this.updateAttendanceStatus(studentId, 'late', minutes, studentElement, classroomId, lessonDate, periodNumber);
                 }
             });
         });
@@ -9205,6 +9248,27 @@ class CleanPDFViewer {
     }
 
     /**
+     * Ajuster les minutes de retard (+/-)
+     */
+    async adjustLateMinutes(studentId, delta, studentElement, classroomId, lessonDate, periodNumber) {
+        const lateInput = studentElement.querySelector('.late-minutes');
+        if (!lateInput) return;
+
+        const currentValue = parseInt(lateInput.value) || 0;
+        const newValue = Math.max(0, Math.min(120, currentValue + delta));
+
+        lateInput.value = newValue > 0 ? newValue : '';
+
+        // Si la valeur est > 0, marquer automatiquement en retard
+        if (newValue > 0) {
+            await this.updateAttendanceStatus(studentId, 'late', newValue, studentElement, classroomId, lessonDate, periodNumber);
+        } else {
+            // Si on descend à 0, remettre présent
+            await this.updateAttendanceStatus(studentId, 'present', null, studentElement, classroomId, lessonDate, periodNumber);
+        }
+    }
+
+    /**
      * Marquer un élève en retard (toggle)
      */
     async setLateStatus(studentId, studentElement, classroomId, lessonDate, periodNumber) {
@@ -9218,15 +9282,24 @@ class CleanPDFViewer {
             await this.updateAttendanceStatus(studentId, 'present', null, studentElement, classroomId, lessonDate, periodNumber);
         } else {
             // Sinon, marquer en retard
-            const minutes = lateInput ? lateInput.value : '';
+            const minutes = lateInput ? lateInput.value.trim() : '';
+            const minutesNum = parseInt(minutes);
 
-            if (!minutes || minutes <= 0) {
-                alert('Veuillez entrer le nombre de minutes de retard');
-                if (lateInput) lateInput.focus();
+            if (!minutes || isNaN(minutesNum) || minutesNum <= 0) {
+                // Afficher un message visuel non-bloquant au lieu de alert()
+                // alert() bloque le thread et cause un freeze en boucle avec Scribble iPadOS
+                if (lateInput) {
+                    lateInput.style.outline = '2px solid red';
+                    lateInput.placeholder = 'min !';
+                    setTimeout(() => {
+                        lateInput.style.outline = '';
+                        lateInput.placeholder = 'min';
+                    }, 2000);
+                }
                 return;
             }
 
-            await this.updateAttendanceStatus(studentId, 'late', parseInt(minutes), studentElement, classroomId, lessonDate, periodNumber);
+            await this.updateAttendanceStatus(studentId, 'late', minutesNum, studentElement, classroomId, lessonDate, periodNumber);
         }
     }
 
