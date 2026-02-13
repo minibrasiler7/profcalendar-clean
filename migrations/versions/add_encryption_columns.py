@@ -9,7 +9,7 @@ This migration:
 After running this migration, run: python scripts/encrypt_existing_data.py --execute
 
 Revision ID: add_encryption_001
-Revises: add_lesson_memos_001
+Revises: 77214c11cbcf
 Create Date: 2026-02-13
 
 """
@@ -18,7 +18,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_encryption_001'
-down_revision = 'add_lesson_memos_001'
+down_revision = '77214c11cbcf'
 branch_labels = None
 depends_on = None
 
