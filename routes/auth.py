@@ -72,12 +72,15 @@ def login():
                 # Renvoyer un code et rediriger vers la vérification
                 verification = EmailVerification.create_verification(user.email, 'teacher')
                 db.session.commit()
-                send_verification_code(user.email, verification.code, 'teacher')
+                email_sent = send_verification_code(user.email, verification.code, 'teacher')
 
                 session['pending_user_id'] = user.id
                 session['pending_user_type'] = 'teacher'
                 session['verification_email'] = user.email
-                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer ou contacter le support.', 'error')
                 return redirect(url_for('auth.verify_email'))
 
             session.clear()  # Nettoyer la session pour éviter les conflits
@@ -131,14 +134,17 @@ def register():
         verification = EmailVerification.create_verification(user.email, 'teacher')
         db.session.commit()
 
-        send_verification_code(user.email, verification.code, 'teacher')
+        email_sent = send_verification_code(user.email, verification.code, 'teacher')
 
         # Stocker l'ID utilisateur en session pour la vérification
         session['pending_user_id'] = user.id
         session['pending_user_type'] = 'teacher'
         session['verification_email'] = user.email
 
-        flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        if email_sent:
+            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        else:
+            flash('Compte créé, mais impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
         return redirect(url_for('auth.verify_email'))
     else:
         if form.errors:
@@ -214,8 +220,11 @@ def resend_code():
     verification = EmailVerification.create_verification(user.email, 'teacher')
     db.session.commit()
 
-    send_verification_code(user.email, verification.code, 'teacher')
-    flash('Un nouveau code a été envoyé.', 'success')
+    email_sent = send_verification_code(user.email, verification.code, 'teacher')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('auth.verify_email'))
 
 @auth_bp.route('/logout')
