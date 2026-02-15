@@ -8,8 +8,11 @@ from datetime import datetime
 
 def user_can_access_classroom(user_id, classroom_id):
     """Vérifie si un utilisateur peut accéder à une classe (directement ou via collaboration)"""
-    print(f"DEBUG user_can_access_classroom: user_id={user_id}, classroom_id={classroom_id}")
-    
+    try:
+        classroom_id = int(classroom_id)
+    except (TypeError, ValueError):
+        return False
+
     classroom = Classroom.query.filter_by(id=classroom_id).first()
     if not classroom:
         print(f"DEBUG user_can_access_classroom: classroom {classroom_id} not found")
@@ -157,7 +160,14 @@ def create_evaluation():
         eval_type = data.get('type')
         ta_group_name = data.get('ta_group_name', '').strip() if data.get('ta_group_name') else None
         grades_data = data.get('grades', [])
-        
+
+        # Cast classroom_id to int (envoyé comme string depuis le frontend)
+        if classroom_id is not None:
+            try:
+                classroom_id = int(classroom_id)
+            except (TypeError, ValueError):
+                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+
         # Validation
         if not all([classroom_id, title, date_str, max_points, eval_type]):
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400

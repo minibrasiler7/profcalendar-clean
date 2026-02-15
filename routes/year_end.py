@@ -344,9 +344,15 @@ def step2():
     mixed_groups = _get_user_mixed_groups()
 
     class_info = []
+    from services.year_end_cleanup import get_classroom_collaboration_info
     for c in classrooms:
         count = Student.query.filter_by(classroom_id=c.id, user_id=current_user.id).count()
-        class_info.append({'classroom': c, 'student_count': count})
+        collab_info = get_classroom_collaboration_info(c.id)
+        class_info.append({
+            'classroom': c,
+            'student_count': count,
+            'collaboration': collab_info,
+        })
 
     mg_info = []
     from models.mixed_group import MixedGroupStudent

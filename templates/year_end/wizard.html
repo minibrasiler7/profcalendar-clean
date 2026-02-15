@@ -447,7 +447,22 @@
                         {% if ci.classroom.subject %}<span style="color: var(--gray-color); font-weight: normal;"> — {{ ci.classroom.subject }}</span>{% endif %}
                     </span>
                     <span class="badge">{{ ci.student_count }} élève{{ 's' if ci.student_count != 1 }}</span>
+                    {% if ci.collaboration and ci.collaboration.has_collaborations %}
+                    <span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">
+                        <i class="fas fa-link"></i> {{ ci.collaboration.count }} enseignant{{ 's' if ci.collaboration.count != 1 }} lié{{ 's' if ci.collaboration.count != 1 }}
+                    </span>
+                    {% endif %}
                 </div>
+
+                {% if ci.collaboration and ci.collaboration.has_collaborations %}
+                <div class="collab-warning" style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i>
+                    <strong>Attention :</strong> Cette classe est partagée avec
+                    {% for t in ci.collaboration.teachers %}{{ t.username }}{% if not loop.last %}, {% endif %}{% endfor %}.
+                    Si vous la supprimez, les classes dérivées de ces enseignants seront aussi supprimées
+                    ({% for dc in ci.collaboration.derived_classrooms %}{{ dc.name }} - {{ dc.subject }}{% if not loop.last %}, {% endif %}{% endfor %}).
+                </div>
+                {% endif %}
 
                 <div class="action-options">
                     <div class="action-option">
