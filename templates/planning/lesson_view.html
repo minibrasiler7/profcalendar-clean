@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - ProfCalendar{% endblock %}
+{% block title %}{% if not lesson %}Aucun cours{% elif is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - ProfCalendar{% endblock %}
 
 <!-- VERSION: 2dfd042-fix-studentsdata-tojson - 2026-01-19T16:35:00Z -->
 
@@ -1104,6 +1104,23 @@ input, textarea, select {
 {% endblock %}
 
 {% block content %}
+{% if not lesson %}
+<div style="max-width: 600px; margin: 4rem auto; text-align: center; padding: 2rem;">
+    <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 12px; padding: 2rem;">
+        <i class="fas fa-calendar-alt" style="font-size: 3rem; color: #F59E0B; margin-bottom: 1rem;"></i>
+        <h2 style="color: #92400E; margin-bottom: 0.5rem;">Aucun cours prévu</h2>
+        <p style="color: #78350F; margin-bottom: 1.5rem;">
+            Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici.
+        </p>
+        <a href="{{ url_for('schedule.weekly_schedule') }}"
+           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem;
+                  background: #F59E0B; color: white; border-radius: 8px; text-decoration: none;
+                  font-size: 1rem; font-weight: 600;">
+            <i class="fas fa-edit"></i> Remplir mon horaire type
+        </a>
+    </div>
+</div>
+{% else %}
 <div class="lesson-container">
     <!-- En-tête de la leçon -->
     <div class="lesson-header">
@@ -9656,4 +9673,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endfor %}
 });
 </script>
+{% endif %}
 {% endblock %}

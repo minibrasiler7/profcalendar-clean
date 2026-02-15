@@ -708,7 +708,7 @@
     async function deleteArchiveReport(fileId, btn) {
         if (!confirm('Supprimer ce rapport archivé ? Cette action est irréversible.')) return;
         try {
-            const resp = await fetch(`/files/delete-file/${fileId}`, {
+            const resp = await fetch(`/file_manager/delete-file/${fileId}`, {
                 method: 'DELETE',
                 headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' }
             });
