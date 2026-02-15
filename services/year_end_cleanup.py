@@ -6,6 +6,49 @@ from datetime import date, timedelta
 from extensions import db
 
 
+def _delete_student_dependencies(student_ids):
+    """
+    Supprime toutes les données liées aux élèves (FK) avant de pouvoir supprimer les élèves.
+    Doit être appelé AVANT Student.query.delete().
+    """
+    if not student_ids:
+        return
+
+    from models.attendance import Attendance
+    from models.absence_justification import AbsenceJustification
+    from models.evaluation import EvaluationGrade
+    from models.student import Grade, StudentFile
+    from models.lesson_memo import StudentRemark
+    from models.sanctions import StudentSanctionRecord
+    from models.student_sanctions import StudentSanctionCount
+    from models.student_group import StudentGroupMembership
+    from models.mixed_group import MixedGroupStudent
+    from models.accommodation import StudentAccommodation
+    from models.student_info_history import StudentInfoHistory
+    from models.file_sharing import StudentFileShare
+    from models.class_collaboration import StudentClassroomLink
+    from models.parent import ParentChild
+    from models.student_access_code import StudentAccessCode
+
+    # Supprimer toutes les tables avec FK vers students
+    Attendance.query.filter(Attendance.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    AbsenceJustification.query.filter(AbsenceJustification.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    EvaluationGrade.query.filter(EvaluationGrade.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    Grade.query.filter(Grade.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentRemark.query.filter(StudentRemark.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentSanctionRecord.query.filter(StudentSanctionRecord.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentSanctionCount.query.filter(StudentSanctionCount.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentGroupMembership.query.filter(StudentGroupMembership.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    MixedGroupStudent.query.filter(MixedGroupStudent.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentAccommodation.query.filter(StudentAccommodation.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentInfoHistory.query.filter(StudentInfoHistory.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentFileShare.query.filter(StudentFileShare.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentClassroomLink.query.filter(StudentClassroomLink.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    ParentChild.query.filter(ParentChild.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentAccessCode.query.filter(StudentAccessCode.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentFile.query.filter(StudentFile.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+
+
 def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, holiday_action='clear'):
     """
     Exécute le nettoyage complet de fin d'année en une transaction.
@@ -54,6 +97,10 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
         'mixed_groups_deleted': 0,
     }
 
+    # Collecter les IDs avant de commencer les suppressions
+    all_student_ids = [s.id for s in Student.query.filter_by(user_id=user.id).all()]
+    classroom_ids = [c.id for c in Classroom.query.filter_by(user_id=user.id).all()]
+
     # =========================================================
     # 1. Supprimer les données opérationnelles liées à l'année
     # =========================================================
@@ -66,19 +113,15 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
     count = Attendance.query.filter_by(user_id=user.id).delete()
     summary['attendance_deleted'] = count
 
-    # Justifications d'absence — liées aux élèves, pas directement au user
-    # On passe par les students de ce user
-    student_ids = [s.id for s in Student.query.filter_by(user_id=user.id).all()]
-    if student_ids:
+    # Justifications d'absence
+    if all_student_ids:
         count = AbsenceJustification.query.filter(
-            AbsenceJustification.student_id.in_(student_ids)
+            AbsenceJustification.student_id.in_(all_student_ids)
         ).delete(synchronize_session='fetch')
         summary['justifications_deleted'] = count
 
-    # Évaluations et notes — via les classrooms du user
-    classroom_ids = [c.id for c in Classroom.query.filter_by(user_id=user.id).all()]
+    # Évaluations et notes
     if classroom_ids:
-        # D'abord supprimer les EvaluationGrade liées aux évaluations du user
         eval_ids = [e.id for e in Evaluation.query.filter(
             Evaluation.classroom_id.in_(classroom_ids)
         ).all()]
@@ -109,16 +152,16 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
     summary['remarks_deleted'] = count
 
     # Sanctions attribuées (records)
-    if student_ids:
+    if all_student_ids:
         count = StudentSanctionRecord.query.filter(
-            StudentSanctionRecord.student_id.in_(student_ids)
+            StudentSanctionRecord.student_id.in_(all_student_ids)
         ).delete(synchronize_session='fetch')
         summary['sanctions_deleted'] = count
 
     # Remettre les compteurs de sanctions à 0
-    if student_ids:
+    if all_student_ids:
         count = StudentSanctionCount.query.filter(
-            StudentSanctionCount.student_id.in_(student_ids)
+            StudentSanctionCount.student_id.in_(all_student_ids)
         ).update({'check_count': 0}, synchronize_session='fetch')
         summary['sanctions_reset'] = count
 
@@ -144,15 +187,26 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
         action = action_info.get('action', 'keep')
 
         if action == 'delete':
-            # Supprimer les élèves de cette classe
+            # Récupérer les IDs des élèves de cette classe
+            class_student_ids = [s.id for s in Student.query.filter_by(
+                classroom_id=classroom.id, user_id=user.id
+            ).all()]
+
+            # Supprimer TOUTES les dépendances FK des élèves
+            _delete_student_dependencies(class_student_ids)
+
+            # Maintenant on peut supprimer les élèves
             Student.query.filter_by(classroom_id=classroom.id, user_id=user.id).delete()
+
             # Supprimer les groupes d'élèves
             groups = StudentGroup.query.filter_by(classroom_id=classroom.id).all()
             for g in groups:
                 StudentGroupMembership.query.filter_by(group_id=g.id).delete()
                 db.session.delete(g)
+
             # Supprimer les horaires liés à cette classe
             Schedule.query.filter_by(user_id=user.id, classroom_id=classroom.id).delete()
+
             # Supprimer la classe
             db.session.delete(classroom)
             summary['classes_deleted'] += 1
@@ -201,7 +255,6 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
         # Décaler toutes les vacances d'un an
         holidays = Holiday.query.filter_by(user_id=user.id).all()
         for h in holidays:
-            # Calculer la différence en années entre l'ancienne et la nouvelle année
             year_diff = new_year_start.year - user.school_year_start.year if user.school_year_start else 1
             if year_diff < 1:
                 year_diff = 1

@@ -519,10 +519,11 @@ def execute():
             f'{summary["plannings_deleted"]} plannings supprimés, '
             f'{summary["attendance_deleted"]} présences supprimées, '
             f'{summary["classes_deleted"]} classes supprimées, '
-            f'{summary["classes_renamed"]} classes renommées.',
+            f'{summary["classes_renamed"]} classes renommées. '
+            f'Vous pouvez maintenant configurer vos nouvelles classes.',
             'success'
         )
-        return redirect(url_for('planning.dashboard'))
+        return redirect(url_for('setup.manage_classrooms'))
 
     except Exception as e:
         db.session.rollback()
