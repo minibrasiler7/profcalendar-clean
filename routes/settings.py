@@ -268,7 +268,6 @@ def _generate_backup_pdfs_before_deletion(user_id):
 
 def _delete_all_user_data(user_id):
     """Supprime toutes les données liées à un utilisateur (respecte l'ordre des FK)."""
-    from models.user import User, UnplannedBreak, DayOff
     from models.classroom import Classroom
     from models.student import Student, Grade, StudentFile
     from models.evaluation import Evaluation, EvaluationGrade
@@ -338,7 +337,13 @@ def _delete_all_user_data(user_id):
     StudentRemark.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     LessonMemo.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
-    # 6. Évaluations
+    # 6. Notes (Grade n'a pas de user_id, on supprime via student_ids)
+    if student_ids:
+        Grade.query.filter(
+            Grade.student_id.in_(student_ids)
+        ).delete(synchronize_session='fetch')
+
+    # 7. Évaluations
     if classroom_ids:
         eval_ids = [e.id for e in Evaluation.query.filter(
             Evaluation.classroom_id.in_(classroom_ids)).all()]
@@ -348,22 +353,22 @@ def _delete_all_user_data(user_id):
             ).delete(synchronize_session='fetch')
             Evaluation.query.filter(Evaluation.id.in_(eval_ids)).delete(synchronize_session='fetch')
 
-    # 7. Présences
+    # 8. Présences
     Attendance.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
-    # 8. Fichiers
+    # 9. Fichiers
     StudentFile.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     FileAnnotation.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     UserFile.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     FileFolder.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
-    # 9. Liens élèves-classes
+    # 10. Liens élèves-classes
     if student_ids:
         StudentClassroomLink.query.filter(
             StudentClassroomLink.student_id.in_(student_ids)
         ).delete(synchronize_session='fetch')
 
-    # 10. Invitations
+    # 11. Invitations
     invitations = TeacherInvitation.query.filter(
         (TeacherInvitation.requesting_teacher_id == user_id) |
         (TeacherInvitation.target_master_teacher_id == user_id)
@@ -373,7 +378,7 @@ def _delete_all_user_data(user_id):
         db.session.delete(inv)
     db.session.flush()
 
-    # 11. Collaborations (SharedClassroom AVANT TeacherCollaboration)
+    # 12. Collaborations (SharedClassroom AVANT TeacherCollaboration)
     collab_ids = [c.id for c in TeacherCollaboration.query.filter(
         (TeacherCollaboration.specialized_teacher_id == user_id) |
         (TeacherCollaboration.master_teacher_id == user_id)
@@ -387,20 +392,23 @@ def _delete_all_user_data(user_id):
         (TeacherCollaboration.master_teacher_id == user_id)
     ).delete(synchronize_session='fetch')
 
-    # 12. Classes et dépendances
+    # 13. Classes et dépendances
     for c in classrooms:
         try:
             _delete_classroom_dependencies(c.id)
+        except Exception as e:
+            logger.warning(f"Erreur nettoyage classe {c.id}: {e}")
+        try:
             db.session.delete(c)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Erreur suppression classe {c.id}: {e}")
     db.session.flush()
 
-    # 13. Codes d'accès et ClassMaster
+    # 14. Codes d'accès et ClassMaster
     TeacherAccessCode.query.filter_by(master_teacher_id=user_id).delete(synchronize_session='fetch')
     ClassMaster.query.filter_by(master_teacher_id=user_id).delete(synchronize_session='fetch')
 
-    # 14. Autres données
+    # 15. Autres données
     ClassCode.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     PushToken.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     Planning.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
@@ -410,17 +418,14 @@ def _delete_all_user_data(user_id):
     StudentGroup.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     LessonBlankSheet.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     SeatingPlan.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
-    UnplannedBreak.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
-    DayOff.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
-    Grade.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
-    # 15. Préférences
+    # 16. Préférences
     UserSanctionPreferences.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
     UserSanctionPreferences.query.filter_by(locked_by_user_id=user_id).update(
         {'locked_by_user_id': None, 'is_locked': False}, synchronize_session='fetch')
     UserPreferences.query.filter_by(user_id=user_id).delete(synchronize_session='fetch')
 
-    # 16. Élèves
+    # 17. Élèves
     if student_ids:
         Student.query.filter(Student.id.in_(student_ids)).delete(synchronize_session='fetch')
 

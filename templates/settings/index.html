@@ -17,8 +17,8 @@
             Aménagements
         </a>
         <a href="#danger" class="settings-nav-link" onclick="showSection('danger', this)">
-            <i class="fas fa-exclamation-triangle"></i>
-            Zone de danger
+            <i class="fas fa-trash-alt"></i>
+            Supprimer mon compte
         </a>
     </div>
     
@@ -353,12 +353,7 @@ async function deleteAccount() {
         const result = await response.json();
 
         if (result.success) {
-            alertDiv.className = 'alert alert-success mb-3';
-            alertDiv.textContent = result.message;
-            alertDiv.style.display = 'block';
-            setTimeout(() => {
-                window.location.href = result.redirect || '/auth/login';
-            }, 1500);
+            window.location.href = result.redirect || '/auth/login';
         } else {
             alertDiv.className = 'alert alert-danger mb-3';
             alertDiv.textContent = result.message;
