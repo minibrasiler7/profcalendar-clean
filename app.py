@@ -151,6 +151,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ send_to_students blueprint non trouvé")
 
+    # Blueprint fin d'année scolaire
+    try:
+        from routes.year_end import year_end_bp
+        app.register_blueprint(year_end_bp)
+        print("✅ year_end blueprint ajouté")
+    except ImportError:
+        print("❌ year_end blueprint non trouvé")
+
 
     # Redirection de la racine vers /auth/login
     from flask import redirect, url_for
