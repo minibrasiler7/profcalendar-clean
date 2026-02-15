@@ -740,6 +740,20 @@ def dashboard():
     for memo in week_memos:
         logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
+    # Récupérer les rapports de fin d'année archivés (pour enseignants spécialisés)
+    from models.file_manager import UserFile, FileFolder
+    archive_folder = FileFolder.query.filter_by(
+        user_id=current_user.id,
+        name="Archives de fin d'année",
+        parent_id=None
+    ).first()
+    backup_reports = []
+    if archive_folder:
+        backup_reports = UserFile.query.filter_by(
+            user_id=current_user.id,
+            folder_id=archive_folder.id
+        ).order_by(UserFile.uploaded_at.desc()).limit(5).all()
+
     # Récupérer la liste des classes pour le filtre
     from models.mixed_group import MixedGroup
     mixed_groups = MixedGroup.query.filter_by(teacher_id=current_user.id, is_active=True).all()
@@ -758,7 +772,8 @@ def dashboard():
                          today_memos=today_memos,
                          week_memos=week_memos,
                          user_classrooms=user_classrooms,
-                         user_mixed_groups=mixed_groups)
+                         user_mixed_groups=mixed_groups,
+                         backup_reports=backup_reports)
 
 @planning_bp.route('/calendar')
 @login_required
