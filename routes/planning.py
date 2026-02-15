@@ -140,8 +140,11 @@ def can_add_student_to_class(classroom_id, current_user):
 
 def user_can_access_classroom(user_id, classroom_id):
     """Vérifie si un utilisateur peut accéder à une classe (directement ou via collaboration)"""
-    print(f"DEBUG user_can_access_classroom: user_id={user_id}, classroom_id={classroom_id}")
-    
+    try:
+        classroom_id = int(classroom_id)
+    except (TypeError, ValueError):
+        return False
+
     classroom = Classroom.query.filter_by(id=classroom_id).first()
     if not classroom:
         print(f"DEBUG user_can_access_classroom: classroom {classroom_id} not found")

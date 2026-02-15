@@ -25,6 +25,17 @@ def create_app(config_name='development'):
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     
+    # Initialisation du moteur de chiffrement
+    try:
+        from utils.encryption import encryption_engine
+        encryption_engine.init_app(app)
+        if encryption_engine.is_enabled:
+            print("✅ Chiffrement des données activé")
+        else:
+            print("⚠️  Chiffrement désactivé (ENCRYPTION_KEY non définie)")
+    except ImportError:
+        print("❌ Module de chiffrement non trouvé")
+
     # Enregistrer les filtres Jinja2
     try:
         from utils.jinja_filters import register_filters
@@ -139,6 +150,14 @@ def create_app(config_name='development'):
         print("✅ send_to_students blueprint ajouté")
     except ImportError:
         print("❌ send_to_students blueprint non trouvé")
+
+    # Blueprint fin d'année scolaire
+    try:
+        from routes.year_end import year_end_bp
+        app.register_blueprint(year_end_bp)
+        print("✅ year_end blueprint ajouté")
+    except ImportError:
+        print("❌ year_end blueprint non trouvé")
 
 
     # Redirection de la racine vers /auth/login

@@ -72,10 +72,15 @@ def generate_class_code():
         return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
     
     classroom_id = data.get('classroom_id')
-    
+
     if not classroom_id:
         return jsonify({'success': False, 'message': 'ID de classe requis'}), 400
-    
+
+    try:
+        classroom_id = int(classroom_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+
     # Vérifier que la classe appartient à l'utilisateur
     classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
     if not classroom:
