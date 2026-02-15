@@ -2801,8 +2801,7 @@ def manage_classes():
     available_students = []
     is_specialized_teacher = False
     master_teacher_name = None
-    print(f"DEBUG manage_classes - shared_classroom exists: {shared_classroom is not None}")
-    print(f"DEBUG manage_classes - collaboration exists: {collaboration is not None}")
+    linked_teachers_info = None  # Info pour le maître : quels enseignants spécialisés sont liés
     if shared_classroom and collaboration:
         is_specialized_teacher = True
         # Récupérer le nom du maître de classe
@@ -2812,10 +2811,10 @@ def manage_classes():
             master_teacher_name = master_teacher.username
         # Récupérer tous les élèves de la classe originale (maître)
         master_students = Student.query.filter_by(classroom_id=shared_classroom.original_classroom_id).all()
-        
+
         # Récupérer les élèves déjà présents dans la classe dérivée
         current_student_names = {(s.first_name, s.last_name) for s in students}
-        
+
         # Filtrer pour ne garder que ceux qui ne sont pas déjà dans la classe dérivée
         for master_student in master_students:
             if (master_student.first_name, master_student.last_name) not in current_student_names:
@@ -2826,6 +2825,31 @@ def manage_classes():
                     'full_name': master_student.full_name,
                     'email': master_student.email
                 })
+    else:
+        # Si l'utilisateur est maître de classe, vérifier s'il y a des enseignants spécialisés liés
+        from models.user import User
+        from models.class_collaboration import ClassMaster as CM_check
+        cm_record = CM_check.query.filter_by(
+            classroom_id=primary_classroom.id,
+            master_teacher_id=current_user.id
+        ).first()
+        if cm_record:
+            # C'est le maître — chercher les enseignants spécialisés liés via SharedClassroom
+            linked_shared = SharedClassroom.query.filter_by(
+                original_classroom_id=primary_classroom.id
+            ).all()
+            if linked_shared:
+                linked_names = []
+                for ls in linked_shared:
+                    lc = TeacherCollaboration.query.filter_by(
+                        id=ls.collaboration_id, is_active=True
+                    ).first()
+                    if lc:
+                        spec = User.query.get(lc.specialized_teacher_id)
+                        if spec:
+                            linked_names.append(f"{spec.username} ({ls.subject})")
+                if linked_names:
+                    linked_teachers_info = ', '.join(linked_names)
 
     # Récupérer les données des enseignants de la classe (pour les maîtres de classe et enseignants spécialisés)
     class_teachers = []
@@ -3002,6 +3026,7 @@ def manage_classes():
                          available_students=available_students,
                          is_specialized_teacher=is_specialized_teacher,
                          master_teacher_name=master_teacher_name,
+                         linked_teachers_info=linked_teachers_info,
                          is_mixed_group_class=is_mixed_group_class,
                          mixed_group=mixed_group,
                          classroom_preferences=classroom_preferences,

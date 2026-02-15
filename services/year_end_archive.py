@@ -32,11 +32,21 @@ def get_or_create_archive_folder(user_id):
     return folder
 
 
-def _get_students_data_for_archive(classroom_id, teacher_user_id):
+def _get_students_data_for_archive(original_classroom_id, master_teacher_id,
+                                    derived_classroom_id=None, specialized_teacher_id=None):
     """
     Collecte les données élèves pour le rapport PDF d'archive.
-    Similaire à _get_students_data_for_class() dans routes/year_end.py
-    mais prend un user_id explicite au lieu de current_user.
+
+    Les élèves appartiennent à la classe originale (maître de classe).
+    Les données (évaluations, absences, remarques) peuvent venir soit :
+    - De la classe originale / maître (si pas de classe dérivée)
+    - De la classe dérivée / enseignant spécialisé (pour le backup)
+
+    Args:
+        original_classroom_id: ID de la classe du maître (où sont les élèves)
+        master_teacher_id: ID du maître de classe (propriétaire des élèves)
+        derived_classroom_id: ID de la classe dérivée (optionnel, pour les évals de l'enseignant spécialisé)
+        specialized_teacher_id: ID de l'enseignant spécialisé (optionnel, pour absences/remarques)
     """
     from models.student import Student, Grade
     from models.attendance import Attendance
@@ -44,22 +54,33 @@ def _get_students_data_for_archive(classroom_id, teacher_user_id):
     from models.student_sanctions import StudentSanctionCount
     from models.lesson_memo import StudentRemark
 
+    # Les élèves sont dans la classe originale, propriété du maître
     students = Student.query.filter_by(
-        classroom_id=classroom_id, user_id=teacher_user_id
+        classroom_id=original_classroom_id, user_id=master_teacher_id
     ).order_by(Student.last_name, Student.first_name).all()
+
+    # Pour les évaluations et données : utiliser la classe dérivée si disponible
+    eval_classroom_id = derived_classroom_id or original_classroom_id
+    data_teacher_id = specialized_teacher_id or master_teacher_id
 
     students_data = []
     for student in students:
-        # Absences et retards
+        # Absences et retards (de l'enseignant concerné)
         attendances = Attendance.query.filter_by(
-            student_id=student.id, user_id=teacher_user_id
+            student_id=student.id, user_id=data_teacher_id
         ).all()
         absences_count = sum(1 for a in attendances if a.status == 'absent')
         late_count = sum(1 for a in attendances if a.status == 'late')
         late_minutes_total = sum(a.late_minutes or 0 for a in attendances if a.status == 'late')
 
-        # Notes (évaluations)
-        evals = Evaluation.query.filter_by(classroom_id=classroom_id).all()
+        # Notes — chercher dans les deux classes (dérivée + originale)
+        classroom_ids_for_evals = [eval_classroom_id]
+        if derived_classroom_id and original_classroom_id != derived_classroom_id:
+            classroom_ids_for_evals.append(original_classroom_id)
+
+        evals = Evaluation.query.filter(
+            Evaluation.classroom_id.in_(classroom_ids_for_evals)
+        ).all()
         grades_list = []
         total_points = 0
         total_max = 0
@@ -81,7 +102,7 @@ def _get_students_data_for_archive(classroom_id, teacher_user_id):
 
         # Notes legacy
         legacy_grades = Grade.query.filter_by(
-            student_id=student.id, classroom_id=classroom_id
+            student_id=student.id, classroom_id=eval_classroom_id
         ).all()
         for lg in legacy_grades:
             grades_list.append({
@@ -111,9 +132,9 @@ def _get_students_data_for_archive(classroom_id, teacher_user_id):
                     'count': sc.check_count,
                 })
 
-        # Remarques
+        # Remarques (de l'enseignant concerné)
         remarks = StudentRemark.query.filter_by(
-            student_id=student.id, user_id=teacher_user_id
+            student_id=student.id, user_id=data_teacher_id
         ).order_by(StudentRemark.created_at.desc()).all()
         remarks_list = [{
             'content': r.content,
@@ -183,10 +204,13 @@ def generate_and_store_backup_pdfs(classroom_id, master_teacher):
             continue
 
         # Collecter les données des élèves de la classe ORIGINALE (maître de classe)
-        # Les élèves appartiennent au maître, pas à l'enseignant spécialisé
-        # On utilise l'ID de la classe originale et l'ID du maître
+        # Les élèves appartiennent au maître. Les évaluations/remarques viennent
+        # de la classe dérivée et de l'enseignant spécialisé.
         students_data = _get_students_data_for_archive(
-            shared.original_classroom_id, master_teacher.id
+            original_classroom_id=shared.original_classroom_id,
+            master_teacher_id=master_teacher.id,
+            derived_classroom_id=derived_classroom.id,
+            specialized_teacher_id=specialized_teacher.id,
         )
 
         # Générer le PDF
