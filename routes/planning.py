@@ -1625,9 +1625,20 @@ def lesson_view():
     
     if not lesson:
         current_app.logger.error("=== LESSON VIEW === No lesson found")
-        return render_template('planning/lesson_view.html', 
-                             lesson=None, 
-                             is_current_lesson=False)
+        return render_template('planning/lesson_view.html',
+                             lesson=None,
+                             is_current_lesson=False,
+                             lesson_date=date_type.today(),
+                             periods=[],
+                             planning=None,
+                             students=[],
+                             attendances={},
+                             remarks=[],
+                             sanctions_data={},
+                             imported_sanctions=[],
+                             classroom_preferences={},
+                             is_class_master=False,
+                             next_lesson_info=None)
     
     current_app.logger.error(f"=== LESSON VIEW === Found lesson: P{lesson.period_number} on {lesson_date}")
 
@@ -2795,6 +2806,7 @@ def manage_classes():
     if shared_classroom and collaboration:
         is_specialized_teacher = True
         # Récupérer le nom du maître de classe
+        from models.user import User
         master_teacher = User.query.get(collaboration.master_teacher_id)
         if master_teacher:
             master_teacher_name = master_teacher.username
