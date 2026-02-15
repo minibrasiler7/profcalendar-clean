@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
@@ -58,7 +59,8 @@ def login():
     if form.validate_on_submit():
         # Vérifier d'abord si c'est un email de parent
         from models.parent import Parent
-        parent_check = Parent.query.filter_by(email=form.email.data).first()
+        from utils.encryption import encryption_engine
+        parent_check = Parent.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         if parent_check:
             flash('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.', 'error')
             return render_template('auth/login.html', form=form)
@@ -66,17 +68,26 @@ def login():
         # Ensuite vérifier l'enseignant
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            # Bypass vérification email en mode dev (variable d'environnement)
+            skip_verification = os.environ.get('SKIP_EMAIL_VERIFICATION', '').lower() == 'true'
+            if skip_verification and not user.email_verified:
+                user.email_verified = True
+                db.session.commit()
+
             # Vérifier si l'email est vérifié
             if not user.email_verified:
                 # Renvoyer un code et rediriger vers la vérification
                 verification = EmailVerification.create_verification(user.email, 'teacher')
                 db.session.commit()
-                send_verification_code(user.email, verification.code, 'teacher')
+                email_sent = send_verification_code(user.email, verification.code, 'teacher')
 
                 session['pending_user_id'] = user.id
                 session['pending_user_type'] = 'teacher'
                 session['verification_email'] = user.email
-                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer ou contacter le support.', 'error')
                 return redirect(url_for('auth.verify_email'))
 
             session.clear()  # Nettoyer la session pour éviter les conflits
@@ -130,14 +141,17 @@ def register():
         verification = EmailVerification.create_verification(user.email, 'teacher')
         db.session.commit()
 
-        send_verification_code(user.email, verification.code, 'teacher')
+        email_sent = send_verification_code(user.email, verification.code, 'teacher')
 
         # Stocker l'ID utilisateur en session pour la vérification
         session['pending_user_id'] = user.id
         session['pending_user_type'] = 'teacher'
         session['verification_email'] = user.email
 
-        flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        if email_sent:
+            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        else:
+            flash('Compte créé, mais impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
         return redirect(url_for('auth.verify_email'))
     else:
         if form.errors:
@@ -182,7 +196,7 @@ def verify_email():
             session.pop('pending_user_type', None)
             session.pop('verification_email', None)
 
-            flash('Email vérifié avec succès ! Bienvenue sur TeacherPlanner.', 'success')
+            flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
             return redirect(url_for('setup.initial_setup'))
         else:
             flash('Code invalide ou expiré.', 'error')
@@ -213,8 +227,11 @@ def resend_code():
     verification = EmailVerification.create_verification(user.email, 'teacher')
     db.session.commit()
 
-    send_verification_code(user.email, verification.code, 'teacher')
-    flash('Un nouveau code a été envoyé.', 'success')
+    email_sent = send_verification_code(user.email, verification.code, 'teacher')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('auth.verify_email'))
 
 @auth_bp.route('/logout')

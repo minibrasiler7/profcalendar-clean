@@ -84,15 +84,16 @@ def login():
             flash('Email et mot de passe requis', 'error')
             return render_template('parent/login.html')
         
-        # Rechercher le parent d'abord
-        parent = Parent.query.filter_by(email=email).first()
+        # Rechercher le parent par hash d'email
+        from utils.encryption import encryption_engine
+        parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
         
         if parent and parent.check_password(password):
             # Vérifier si l'email est vérifié
             if not parent.email_verified:
                 verification = EmailVerification.create_verification(email, 'parent')
                 db.session.commit()
-                send_verification_code(email, verification.code, 'parent')
+                email_sent = send_verification_code(email, verification.code, 'parent')
 
                 session['pending_user_id'] = parent.id
                 session['pending_user_type'] = 'parent'
@@ -100,7 +101,10 @@ def login():
 
                 if request.is_json:
                     return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
-                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
                 return redirect(url_for('parent_auth.verify_email'))
 
             # C'est bien un parent avec le bon mot de passe
@@ -172,7 +176,8 @@ def register():
             return render_template('parent/register.html')
         
         # Vérifier si l'email existe déjà
-        if Parent.query.filter_by(email=email).first():
+        from utils.encryption import encryption_engine
+        if Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first():
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Un compte avec cet email existe déjà'}), 400
             flash('Un compte avec cet email existe déjà', 'error')
@@ -194,7 +199,7 @@ def register():
             verification = EmailVerification.create_verification(email, 'parent')
             db.session.commit()
 
-            send_verification_code(email, verification.code, 'parent')
+            email_sent = send_verification_code(email, verification.code, 'parent')
 
             # Stocker l'ID en session pour la vérification
             session['pending_user_id'] = parent.id
@@ -204,7 +209,10 @@ def register():
             if request.is_json:
                 return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
 
-            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            if email_sent:
+                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            else:
+                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
             return redirect(url_for('parent_auth.verify_email'))
             
         except Exception as e:
@@ -289,31 +297,36 @@ def link_teacher():
 def link_children_automatically(parent, classroom_id):
     """Lier automatiquement les enfants selon l'email du parent"""
     children_linked = 0
-    
-    # Rechercher les élèves avec l'email du parent (mère ou père)
-    students = Student.query.filter(
-        Student.classroom_id == classroom_id,
-        db.or_(
-            Student.parent_email_mother == parent.email,
-            Student.parent_email_father == parent.email
-        )
-    ).all()
-    
-    for student in students:
+
+    # Les emails sont chiffrés (non déterministe), donc on filtre en Python
+    # On charge tous les élèves de la classe et on compare les emails déchiffrés
+    parent_email = parent.email.strip().lower() if parent.email else None
+    if not parent_email:
+        return 0
+
+    all_students = Student.query.filter_by(classroom_id=classroom_id).all()
+
+    for student in all_students:
+        mother_email = (student.parent_email_mother or '').strip().lower()
+        father_email = (student.parent_email_father or '').strip().lower()
+
+        if mother_email != parent_email and father_email != parent_email:
+            continue
+
         # Vérifier si la liaison n'existe pas déjà
         existing_link = ParentChild.query.filter_by(
             parent_id=parent.id,
             student_id=student.id
         ).first()
-        
+
         if not existing_link:
             # Déterminer le type de relation
             relationship = 'parent'  # Par défaut
-            if student.parent_email_mother == parent.email:
+            if mother_email == parent_email:
                 relationship = 'mother'
-            elif student.parent_email_father == parent.email:
+            elif father_email == parent_email:
                 relationship = 'father'
-            
+
             # Créer la liaison
             parent_child = ParentChild(
                 parent_id=parent.id,
@@ -323,7 +336,7 @@ def link_children_automatically(parent, classroom_id):
             )
             db.session.add(parent_child)
             children_linked += 1
-    
+
     return children_linked
 
 @parent_auth_bp.route('/verify-email', methods=['GET', 'POST'])
@@ -390,8 +403,11 @@ def resend_code():
     verification = EmailVerification.create_verification(parent.email, 'parent')
     db.session.commit()
 
-    send_verification_code(parent.email, verification.code, 'parent')
-    flash('Un nouveau code a été envoyé.', 'success')
+    email_sent = send_verification_code(parent.email, verification.code, 'parent')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('parent_auth.verify_email'))
 
 @parent_auth_bp.route('/dashboard')

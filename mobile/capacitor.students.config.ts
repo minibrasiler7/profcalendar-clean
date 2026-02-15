@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 // Config dédiée à l'app Élèves (URL dédiée)
 const config: CapacitorConfig = {
   appId: 'ch.teacherplanner.students',
-  appName: 'TeacherPlanner Élèves',
+  appName: 'ProfCalendar Élèves',
   webDir: 'web-dist',
   bundledWebRuntime: false,
   server: {

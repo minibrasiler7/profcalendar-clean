@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+from utils.custom_types import EncryptedText
 
 class LessonMemo(db.Model):
     """Modèle pour les mémos de classe créés depuis lesson_view"""
@@ -18,8 +19,8 @@ class LessonMemo(db.Model):
     target_date = db.Column(db.Date, nullable=True)  # Date où le mémo doit apparaître
     target_period = db.Column(db.Integer, nullable=True)  # Période cible si définie
 
-    # Contenu du mémo
-    content = db.Column(db.Text, nullable=False)
+    # Contenu du mémo - CHIFFRÉ
+    content = db.Column(EncryptedText(), nullable=False)
 
     # Métadonnées
     is_completed = db.Column(db.Boolean, default=False)  # Pour marquer comme fait
@@ -55,8 +56,8 @@ class StudentRemark(db.Model):
     source_date = db.Column(db.Date, nullable=False)
     source_period = db.Column(db.Integer, nullable=False)
 
-    # Contenu de la remarque
-    content = db.Column(db.Text, nullable=False)
+    # Contenu de la remarque - CHIFFRÉ
+    content = db.Column(EncryptedText(), nullable=False)
 
     # Envoi aux parents et élèves
     send_to_parent_and_student = db.Column(db.Boolean, default=False)

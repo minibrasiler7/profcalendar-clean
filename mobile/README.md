@@ -1,4 +1,4 @@
-# TeacherPlanner mobile (Capacitor)
+# ProfCalendar mobile (Capacitor)
 
 Squelette Capacitor pour emballer la plateforme Parents/Élèves en application mobile (Android/iOS) sans réécrire le front.
 

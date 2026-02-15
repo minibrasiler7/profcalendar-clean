@@ -583,8 +583,7 @@ def _cleanup_test_data():
     from models.evaluation import Evaluation, EvaluationGrade
     from models.lesson_memo import StudentRemark
     from models.sanctions import SanctionTemplate, SanctionThreshold, SanctionOption, ClassroomSanctionImport
-    from models.student_sanctions import StudentSanctionCount
-    from models.sanctions import StudentSanctionRecord
+    from models.student_sanctions import StudentSanctionCount, StudentSanctionRecord
     from models.accommodation import AccommodationTemplate, StudentAccommodation
     from models.file_manager import UserFile, FileFolder
 

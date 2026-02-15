@@ -1,5 +1,12 @@
 import os
+import sys
 import resend
+
+
+def _log(msg):
+    """Log forcé vers stderr (non bufferisé) pour visibilité sur Render."""
+    sys.stderr.write(f"{msg}\n")
+    sys.stderr.flush()
 
 
 def send_verification_code(email, code, user_type='teacher'):
@@ -16,15 +23,21 @@ def send_verification_code(email, code, user_type='teacher'):
     api_key = os.environ.get('RESEND_API_KEY')
     from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
 
+    _log(f"[EMAIL] === ENVOI CODE VÉRIFICATION ===")
+    _log(f"[EMAIL] Destinataire: {email}, Type: {user_type}")
+    _log(f"[EMAIL] RESEND_API_KEY présente: {bool(api_key)}")
+    _log(f"[EMAIL] RESEND_FROM_EMAIL: {from_email}")
+
     # Vérifier que l'adresse expéditeur est valide (contient un @domaine.ext)
     if not from_email or '@' not in from_email or '.' not in from_email.split('@')[-1]:
-        print(f"RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
+        _log(f"[EMAIL] RESEND_FROM_EMAIL invalide: '{from_email}', utilisation du fallback")
         from_email = 'onboarding@resend.dev'
 
     if not api_key:
-        print("RESEND_API_KEY non configurée")
+        _log("[EMAIL] ERREUR: RESEND_API_KEY non configurée - impossible d'envoyer des emails!")
         return False
 
+    _log(f"[EMAIL] Envoi via Resend depuis {from_email} vers {email}...")
     resend.api_key = api_key
 
     type_labels = {
@@ -37,7 +50,7 @@ def send_verification_code(email, code, user_type='teacher'):
     html_content = f"""
     <div style="font-family: 'Inter', Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 2rem;">
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="color: #2d3748; font-size: 1.5rem;">TeacherPlanner</h1>
+            <h1 style="color: #2d3748; font-size: 1.5rem;">ProfCalendar</h1>
             <p style="color: #718096;">Vérification de votre adresse email</p>
         </div>
 
@@ -62,13 +75,14 @@ def send_verification_code(email, code, user_type='teacher'):
     """
 
     try:
-        resend.Emails.send({
+        result = resend.Emails.send({
             "from": from_email,
             "to": [email],
-            "subject": f"TeacherPlanner - Code de vérification : {code}",
+            "subject": f"ProfCalendar - Code de vérification : {code}",
             "html": html_content
         })
+        _log(f"[EMAIL] SUCCÈS - Email envoyé à {email} - Resend response: {result}")
         return True
     except Exception as e:
-        print(f"Erreur envoi email Resend: {e}")
+        _log(f"[EMAIL] ÉCHEC - Erreur envoi à {email}: {type(e).__name__}: {e}")
         return False

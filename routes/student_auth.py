@@ -50,7 +50,8 @@ def login():
     form = StudentLoginForm()
     
     if form.validate_on_submit():
-        student = Student.query.filter_by(email=form.email.data).first()
+        from utils.encryption import encryption_engine
+        student = Student.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         
         if student and student.password_hash and check_password_hash(student.password_hash, form.password.data):
             # Vérifier si l'élève a déjà validé un code d'accès
@@ -62,12 +63,15 @@ def login():
             if not student.email_verified:
                 verification = EmailVerification.create_verification(student.email, 'student')
                 db.session.commit()
-                send_verification_code(student.email, verification.code, 'student')
+                email_sent = send_verification_code(student.email, verification.code, 'student')
 
                 session['pending_user_id'] = student.id
                 session['pending_user_type'] = 'student'
                 session['verification_email'] = student.email
-                flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
                 return redirect(url_for('student_auth.verify_email_code'))
 
             # Mettre à jour la dernière connexion
@@ -98,12 +102,32 @@ def register():
             flash('Code d\'accès invalide ou expiré.', 'error')
             return render_template('student/register.html', form=form)
         
-        # Chercher l'élève dans la classe associée au code
+        # Chercher l'élève dans la classe associée au code (par email_hash car email est chiffré)
         from models.student import Student
-        student = Student.query.filter_by(
-            classroom_id=code.classroom_id,
-            email=form.student_email.data
-        ).first()
+        from utils.encryption import encryption_engine
+        student_email = form.student_email.data.strip().lower()
+        student_email_hash = encryption_engine.hash_email(student_email)
+
+        # Recherche par hash si disponible, sinon fallback sur comparaison en Python
+        if student_email_hash:
+            student = Student.query.filter_by(
+                classroom_id=code.classroom_id,
+                email_hash=student_email_hash
+            ).first()
+        else:
+            # Fallback: chiffrement désactivé, chercher par email en clair
+            student = Student.query.filter_by(
+                classroom_id=code.classroom_id,
+                email=student_email
+            ).first()
+
+        # Si pas trouvé par hash, essayer en Python (cas de données legacy sans hash)
+        if not student:
+            all_students = Student.query.filter_by(classroom_id=code.classroom_id).all()
+            for s in all_students:
+                if s.email and s.email.strip().lower() == student_email:
+                    student = s
+                    break
         
         if not student:
             flash('Aucun élève trouvé avec cet email dans cette classe. Vérifiez avec votre enseignant.', 'error')
@@ -123,14 +147,17 @@ def register():
             verification = EmailVerification.create_verification(student.email, 'student')
             db.session.commit()
 
-            send_verification_code(student.email, verification.code, 'student')
+            email_sent = send_verification_code(student.email, verification.code, 'student')
 
             # Stocker l'ID en session pour la vérification
             session['pending_user_id'] = student.id
             session['pending_user_type'] = 'student'
             session['verification_email'] = student.email
 
-            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            if email_sent:
+                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            else:
+                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
             return redirect(url_for('student_auth.verify_email_code'))
         except Exception as e:
             db.session.rollback()
@@ -241,8 +268,11 @@ def resend_code():
     verification = EmailVerification.create_verification(student.email, 'student')
     db.session.commit()
 
-    send_verification_code(student.email, verification.code, 'student')
-    flash('Un nouveau code a été envoyé.', 'success')
+    email_sent = send_verification_code(student.email, verification.code, 'student')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('student_auth.verify_email_code'))
 
 @student_auth_bp.route('/dashboard')

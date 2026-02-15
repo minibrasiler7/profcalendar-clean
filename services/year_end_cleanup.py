@@ -287,6 +287,7 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
         'classes_kept': 0,
         'mixed_groups_deleted': 0,
         'collab_classes_deleted': 0,
+        'backup_pdfs_generated': 0,
     }
 
     # Utiliser no_autoflush pour éviter les erreurs de FK pendant le nettoyage
@@ -386,6 +387,18 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
                 collab_info = get_classroom_collaboration_info(classroom.id)
                 if collab_info['has_collaborations']:
                     summary['collab_classes_deleted'] += len(collab_info['derived_classrooms'])
+
+                    # Générer des PDFs de sauvegarde pour les enseignants spécialisés
+                    # AVANT la suppression des données
+                    try:
+                        from services.year_end_archive import generate_and_store_backup_pdfs
+                        pdf_count = generate_and_store_backup_pdfs(classroom.id, user)
+                        summary['backup_pdfs_generated'] += pdf_count
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).error(
+                            f"Erreur génération PDF backup pour classe {classroom.id}: {e}"
+                        )
 
                 # Supprimer TOUTES les dépendances FK (y compris la chaîne de collaboration)
                 _delete_classroom_dependencies(classroom.id)

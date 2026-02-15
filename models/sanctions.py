@@ -1,15 +1,16 @@
 from extensions import db
 from datetime import datetime
 import json
+from utils.custom_types import EncryptedString, EncryptedText
 
 class SanctionTemplate(db.Model):
     """Modèle de type de problème avec ses seuils et sanctions"""
     __tablename__ = 'sanction_templates'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)  # "oubli", "comportement", etc.
-    description = db.Column(db.Text)
+    name = db.Column(EncryptedString(), nullable=False)  # "oubli", "comportement", etc.
+    description = db.Column(EncryptedText())
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -60,7 +61,7 @@ class SanctionOption(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     threshold_id = db.Column(db.Integer, db.ForeignKey('sanction_thresholds.id'), nullable=False)
-    description = db.Column(db.Text, nullable=False)  # "Copier pages 17-18 de l'aide-mémoire"
+    description = db.Column(EncryptedText(), nullable=False)  # "Copier pages 17-18 de l'aide-mémoire"
     min_days_deadline = db.Column(db.Integer, nullable=True)  # Nombre minimum de jours pour rendre (optionnel)
     order_index = db.Column(db.Integer, default=0)  # Pour l'ordre d'affichage
     is_active = db.Column(db.Boolean, default=True)
@@ -127,7 +128,7 @@ class StudentSanctionRecord(db.Model):
     
     # Statuts
     status = db.Column(db.String(20), default='assigned')  # assigned, completed, overdue
-    notes = db.Column(db.Text)  # Notes additionnelles
+    notes = db.Column(EncryptedText())  # Notes additionnelles
     
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

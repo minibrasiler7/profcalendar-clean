@@ -2,16 +2,20 @@ from extensions import db
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from utils.custom_types import EncryptedString
+from utils.encryption import encryption_engine
+from sqlalchemy import event
 
 class Parent(UserMixin, db.Model):
     """Modèle pour les parents"""
     __tablename__ = 'parents'
 
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(EncryptedString(), nullable=False)
+    email_hash = db.Column(db.String(64), unique=True, index=True)  # SHA-256 pour recherche par email
     password_hash = db.Column(db.String(255), nullable=False)
-    first_name = db.Column(db.String(100))
-    last_name = db.Column(db.String(100))
+    first_name = db.Column(EncryptedString())
+    last_name = db.Column(EncryptedString())
     
     # Informations de liaison avec l'enseignant
     teacher_name = db.Column(db.String(200))  # Nom de l'enseignant saisi par le parent
@@ -47,7 +51,19 @@ class Parent(UserMixin, db.Model):
         return self.email.split('@')[0]  # Fallback sur la partie avant @ de l'email
 
     def __repr__(self):
-        return f'<Parent {self.email}>'
+        return f'<Parent {self.id}>'
+
+
+# Event listeners pour maintenir email_hash automatiquement
+@event.listens_for(Parent, 'before_insert')
+def parent_before_insert(mapper, connection, target):
+    if target.email:
+        target.email_hash = encryption_engine.hash_email(target.email)
+
+@event.listens_for(Parent, 'before_update')
+def parent_before_update(mapper, connection, target):
+    if target.email:
+        target.email_hash = encryption_engine.hash_email(target.email)
 
 
 class ParentChild(db.Model):

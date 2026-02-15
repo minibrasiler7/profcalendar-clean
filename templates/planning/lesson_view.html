@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - TeacherPlanner{% endblock %}
+{% block title %}{% if is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - ProfCalendar{% endblock %}
 
 <!-- VERSION: 2dfd042-fix-studentsdata-tojson - 2026-01-19T16:35:00Z -->
 
@@ -2391,12 +2391,14 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Fonction pour mettre à jour les statistiques
+// IMPORTANT: Cibler uniquement .attendance-section pour éviter de compter
+// en double les éléments dupliqués dans le modal de gestion de classe du PDF viewer
 function updateStats() {
     let present = 0;
     let absent = 0;
     let late = 0;
 
-    document.querySelectorAll('.student-attendance').forEach(student => {
+    document.querySelectorAll('.attendance-section .student-attendance').forEach(student => {
         const status = student.dataset.status;
         if (status === 'present') present++;
         else if (status === 'absent') absent++;

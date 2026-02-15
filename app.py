@@ -159,6 +159,13 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ year_end blueprint non trouvé")
 
+    # Commandes CLI pour les données de test
+    try:
+        from scripts.seed_test_data import register_seed_command
+        register_seed_command(app)
+        print("✅ Commandes seed-test-data enregistrées")
+    except ImportError:
+        print("❌ Commandes seed non trouvées")
 
     # Redirection de la racine vers /auth/login
     from flask import redirect, url_for
