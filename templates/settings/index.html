@@ -16,6 +16,10 @@
             <i class="fas fa-universal-access"></i>
             Aménagements
         </a>
+        <a href="#danger" class="settings-nav-link" onclick="showSection('danger', this)">
+            <i class="fas fa-exclamation-triangle"></i>
+            Zone de danger
+        </a>
     </div>
     
     <!-- Section Compte -->
@@ -100,7 +104,52 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Section Zone de danger -->
+    <div id="danger-section" class="settings-section" style="display: none;">
+        <div class="card mb-4" style="border-color: #EF4444;">
+            <div class="card-header" style="background: #FEF2F2; border-bottom-color: #EF4444;">
+                <h5 style="color: #DC2626;"><i class="fas fa-exclamation-triangle"></i> Supprimer mon compte</h5>
+            </div>
+            <div class="card-body">
+                <div id="delete-alert" class="alert mb-3" style="display: none;"></div>
+
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #991B1B; margin-bottom: 0.5rem; font-weight: 600;">
+                        <i class="fas fa-warning"></i> Cette action est irréversible !
+                    </p>
+                    <p style="color: #991B1B; margin-bottom: 0;">
+                        La suppression de votre compte entraînera la perte définitive de toutes vos données :
+                        classes, élèves, évaluations, notes, remarques, sanctions, planifications, et fichiers.
+                    </p>
+                </div>
+
+                <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #9A3412; margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i>
+                        Si vous êtes maître de classe et que des enseignants spécialisés sont liés à vos classes,
+                        un rapport PDF contenant les données des élèves (notes, remarques, sanctions) leur sera
+                        automatiquement envoyé avant la suppression.
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <label for="delete_password" class="form-label" style="color: #DC2626; font-weight: 600;">
+                        Confirmez avec votre mot de passe :
+                    </label>
+                    <input type="password" class="form-control" id="delete_password"
+                           placeholder="Entrez votre mot de passe" required
+                           style="border-color: #FECACA;">
+                </div>
+
+                <button type="button" class="btn" onclick="deleteAccount()"
+                        style="background: #DC2626; color: white; font-weight: 600; padding: 0.75rem 1.5rem;">
+                    <i class="fas fa-trash"></i> Supprimer définitivement mon compte
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <style>
@@ -269,5 +318,63 @@ document.getElementById('change-password-form').addEventListener('submit', async
         alertDiv.style.display = 'block';
     }
 });
+
+async function deleteAccount() {
+    const password = document.getElementById('delete_password').value;
+    const alertDiv = document.getElementById('delete-alert');
+    alertDiv.style.display = 'none';
+
+    if (!password) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Veuillez entrer votre mot de passe.';
+        alertDiv.style.display = 'block';
+        return;
+    }
+
+    if (!confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est IRRÉVERSIBLE.')) {
+        return;
+    }
+
+    if (!confirm('DERNIÈRE CONFIRMATION : Toutes vos données seront définitivement supprimées. Continuer ?')) {
+        return;
+    }
+
+    try {
+        const btn = document.querySelector('[onclick="deleteAccount()"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression en cours...';
+
+        const response = await fetch('/settings/delete-account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alertDiv.className = 'alert alert-success mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+            setTimeout(() => {
+                window.location.href = result.redirect || '/auth/login';
+            }, 1500);
+        } else {
+            alertDiv.className = 'alert alert-danger mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-trash"></i> Supprimer définitivement mon compte';
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+        alertDiv.style.display = 'block';
+        const btn = document.querySelector('[onclick="deleteAccount()"]');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Supprimer définitivement mon compte';
+    }
+}
 </script>
 {% endblock %}
