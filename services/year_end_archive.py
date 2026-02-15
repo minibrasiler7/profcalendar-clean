@@ -73,13 +73,9 @@ def _get_students_data_for_archive(original_classroom_id, master_teacher_id,
         late_count = sum(1 for a in attendances if a.status == 'late')
         late_minutes_total = sum(a.late_minutes or 0 for a in attendances if a.status == 'late')
 
-        # Notes — chercher dans les deux classes (dérivée + originale)
-        classroom_ids_for_evals = [eval_classroom_id]
-        if derived_classroom_id and original_classroom_id != derived_classroom_id:
-            classroom_ids_for_evals.append(original_classroom_id)
-
-        evals = Evaluation.query.filter(
-            Evaluation.classroom_id.in_(classroom_ids_for_evals)
+        # Notes — uniquement de la classe concernée (dérivée pour enseignant spécialisé)
+        evals = Evaluation.query.filter_by(
+            classroom_id=eval_classroom_id
         ).all()
         grades_list = []
         total_points = 0
