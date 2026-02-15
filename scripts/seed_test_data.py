@@ -154,11 +154,16 @@ def seed_test_data():
         teacher_classrooms = []
         classes = CLASSES_PER_TEACHER[teacher_idx]
 
-        for class_info in classes:
+        # Couleurs pour les classes
+        CLASS_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444']
+
+        for ci_idx, class_info in enumerate(classes):
             classroom = Classroom(
                 name=class_info['name'],
                 subject=class_info['subject'],
                 user_id=user.id,
+                color=CLASS_COLORS[ci_idx % len(CLASS_COLORS)],
+                is_class_master=class_info['is_master'],
             )
             db.session.add(classroom)
             db.session.flush()
@@ -237,6 +242,7 @@ def seed_test_data():
             name=f'{master_classroom.name}',
             subject=subject,
             user_id=spec_teacher.id,
+            color='#8B5CF6',
         )
         db.session.add(derived_classroom)
         db.session.flush()
