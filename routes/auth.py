@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
@@ -67,6 +68,12 @@ def login():
         # Ensuite vérifier l'enseignant
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            # Bypass vérification email en mode dev (variable d'environnement)
+            skip_verification = os.environ.get('SKIP_EMAIL_VERIFICATION', '').lower() == 'true'
+            if skip_verification and not user.email_verified:
+                user.email_verified = True
+                db.session.commit()
+
             # Vérifier si l'email est vérifié
             if not user.email_verified:
                 # Renvoyer un code et rediriger vers la vérification
