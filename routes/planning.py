@@ -2789,10 +2789,15 @@ def manage_classes():
     # Pour les enseignants spécialisés, récupérer les élèves disponibles de la classe du maître
     available_students = []
     is_specialized_teacher = False
+    master_teacher_name = None
     print(f"DEBUG manage_classes - shared_classroom exists: {shared_classroom is not None}")
     print(f"DEBUG manage_classes - collaboration exists: {collaboration is not None}")
     if shared_classroom and collaboration:
         is_specialized_teacher = True
+        # Récupérer le nom du maître de classe
+        master_teacher = User.query.get(collaboration.master_teacher_id)
+        if master_teacher:
+            master_teacher_name = master_teacher.username
         # Récupérer tous les élèves de la classe originale (maître)
         master_students = Student.query.filter_by(classroom_id=shared_classroom.original_classroom_id).all()
         
@@ -2984,10 +2989,12 @@ def manage_classes():
                          can_edit_students=can_edit_students,
                          available_students=available_students,
                          is_specialized_teacher=is_specialized_teacher,
+                         master_teacher_name=master_teacher_name,
                          is_mixed_group_class=is_mixed_group_class,
                          mixed_group=mixed_group,
                          classroom_preferences=classroom_preferences,
                          is_class_master=is_class_master,
+                         has_any_class_master=actual_class_master_id is not None,
                          can_manage_access_codes=can_manage_access_codes,
                          show_teachers_tab=show_teachers_tab,
                          class_teachers=class_teachers)

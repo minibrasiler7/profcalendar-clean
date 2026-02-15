@@ -182,9 +182,11 @@ def generate_and_store_backup_pdfs(classroom_id, master_teacher):
         if not derived_classroom:
             continue
 
-        # Collecter les données des élèves de la classe dérivée
+        # Collecter les données des élèves de la classe ORIGINALE (maître de classe)
+        # Les élèves appartiennent au maître, pas à l'enseignant spécialisé
+        # On utilise l'ID de la classe originale et l'ID du maître
         students_data = _get_students_data_for_archive(
-            derived_classroom.id, specialized_teacher.id
+            shared.original_classroom_id, master_teacher.id
         )
 
         # Générer le PDF

@@ -3154,6 +3154,11 @@
             <div class="header-title">
                 <h1><i class="fas fa-users"></i> Gestion des classes</h1>
             </div>
+            {% if is_specialized_teacher and master_teacher_name %}
+            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #1E40AF;">
+                <i class="fas fa-link"></i> Classe liée — Maître de classe : <strong>{{ master_teacher_name }}</strong>
+            </div>
+            {% endif %}
             <div class="class-selector">
                 <label for="classSelect">Classe :</label>
                 <select id="classSelect" onchange="changeClass(this.value)">
@@ -3762,13 +3767,46 @@
                 </div>
             </div>
             
+            {% set first_classroom = selected_group.classrooms[0] %}
+            {% set has_preferences = first_classroom.id in classroom_preferences %}
+            {% set user_is_master = is_class_master %}
+            {% set user_is_specialized = is_specialized_teacher %}
+
+            {# Afficher le mode d'affichage seulement si un maître de classe existe pour cette classe #}
+            {% if has_any_class_master|default(false) or user_is_master %}
             <div class="display-mode-selector">
                         <label class="form-label">Mode d'affichage :</label>
+                        {% if user_is_specialized and not user_is_master %}
+                        {# Enseignant spécialisé : affichage en lecture seule #}
+                        <div class="radio-group" style="opacity: 0.7; pointer-events: none;">
+                            <div class="radio-option">
+                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified"
+                                       {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'unified' %}checked{% endif %}
+                                       disabled>
+                                <label for="mode-unified">Tableau unifié (toutes disciplines)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="mode-separated" name="sanctionDisplayMode" value="separated"
+                                       {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'separated' %}checked{% endif %}
+                                       disabled>
+                                <label for="mode-separated">Tableaux séparés par discipline</label>
+                            </div>
+                            {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'centralized' %}
+                            <div class="radio-option">
+                                <input type="radio" id="mode-centralized" name="sanctionDisplayMode" value="centralized" checked disabled>
+                                <label for="mode-centralized">Coches centralisées (maître de classe)</label>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="lock-warning">
+                            <i class="fas fa-lock"></i>
+                            Seul le maître de classe peut modifier le mode d'affichage
+                        </div>
+                        {% else %}
+                        {# Maître de classe : peut modifier #}
                         <div class="radio-group">
                             <div class="radio-option">
-                                {% set first_classroom = selected_group.classrooms[0] %}
-                                {% set has_preferences = first_classroom.id in classroom_preferences %}
-                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified" 
+                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified"
                                        {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'unified' %}checked{% endif %}
                                        {% if has_preferences and not classroom_preferences[first_classroom.id].can_change_mode() %}disabled{% endif %}
                                        onclick="handleModeChange(this, '{{ first_classroom.id }}')">
@@ -3792,11 +3830,13 @@
                         </div>
                         {% if has_preferences and not classroom_preferences[first_classroom.id].can_change_mode() %}
                         <div class="lock-warning">
-                            <i class="fas fa-lock"></i> 
+                            <i class="fas fa-lock"></i>
                             Mode verrouillé par {{ classroom_preferences[first_classroom.id].locked_by_user.username if classroom_preferences[first_classroom.id].locked_by_user else 'le maître de classe' }}
                         </div>
                         {% endif %}
+                        {% endif %}
                     </div>
+            {% endif %}
 
             {% if imported_sanctions and students %}
             {% set first_classroom = selected_group.classrooms[0] %}
