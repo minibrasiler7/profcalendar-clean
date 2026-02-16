@@ -1703,140 +1703,7 @@
 }
 
 /* Styles d'impression */
-@media print {
-    @page {
-        size: landscape;
-        margin: 10mm;
-    }
-
-    /* === Impression du plan de classe uniquement === */
-    body.printing-seating-plan {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-    }
-
-    /* Masquer TOUT par défaut */
-    body.printing-seating-plan * {
-        visibility: hidden !important;
-    }
-
-    /* Rendre visible le workspace et tout son contenu */
-    body.printing-seating-plan #seating-workspace,
-    body.printing-seating-plan #seating-workspace * {
-        visibility: visible !important;
-    }
-
-    /* Masquer le message d'aide même s'il est dans le workspace */
-    body.printing-seating-plan #seating-help,
-    body.printing-seating-plan #seating-help * {
-        visibility: hidden !important;
-        display: none !important;
-    }
-
-    /* Positionner le workspace en haut à gauche de la page */
-    body.printing-seating-plan #seating-workspace {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 600px !important;
-        margin: 0 !important;
-        padding: 40px 10px 10px 10px !important;
-        border: none !important;
-        background: white !important;
-        background-image: none !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        display: block !important;
-        transform: none !important;
-    }
-
-    /* Titre d'impression */
-    body.printing-seating-plan #print-title {
-        visibility: visible !important;
-        position: absolute !important;
-        top: 5px !important;
-        left: 0 !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        z-index: 1000 !important;
-    }
-
-    body.printing-seating-plan #print-title * {
-        visibility: visible !important;
-    }
-
-    body.printing-seating-plan #print-title h2 {
-        color: #333 !important;
-        font-size: 1.2rem !important;
-        margin: 0 !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-
-    /* Éléments du plan - préserver position absolue */
-    body.printing-seating-plan .seating-element {
-        position: absolute !important;
-        border: 2px solid #333 !important;
-        border-radius: 8px !important;
-        box-shadow: none !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* Tables et slots */
-    body.printing-seating-plan .student-slot {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: 1px solid #999 !important;
-        border-radius: 4px !important;
-        background: rgba(255,255,255,0.9) !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    body.printing-seating-plan .student-slot.occupied {
-        background: #4caf50 !important;
-        border-color: #388e3c !important;
-    }
-
-    /* Noms des étudiants */
-    body.printing-seating-plan .student-placed {
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        color: white !important;
-        text-align: center !important;
-        line-height: 1.2 !important;
-    }
-
-    /* Masquer les boutons de suppression */
-    body.printing-seating-plan .remove-student {
-        display: none !important;
-    }
-
-    /* Bureau du professeur */
-    body.printing-seating-plan .teacher-desk {
-        font-weight: 700 !important;
-        text-align: center !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* Masquer la sidebar des élèves et la toolbar */
-    body.printing-seating-plan .students-sidebar,
-    body.printing-seating-plan .seating-toolbar,
-    body.printing-seating-plan .seating-toolbar * {
-        display: none !important;
-    }
-}
+/* L'impression du plan de classe utilise une fenêtre dédiée (voir printSeatingPlan()) */
 
 /* ===== STYLES POUR LES GROUPES ===== */
 .groups-container {
@@ -6094,65 +5961,169 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour imprimer le plan de classe
 function printSeatingPlan() {
-    // Vérifier s'il y a des éléments dans le plan
     const seatingWorkspace = document.getElementById('seating-workspace');
     if (!seatingWorkspace) {
         showNotification('error', 'Espace de travail non trouvé');
         return;
     }
-    
+
     const elements = seatingWorkspace.querySelectorAll('.seating-element');
     if (elements.length === 0) {
         showNotification('warning', 'Aucun élément à imprimer. Veuillez d\'abord créer votre plan de classe.');
         return;
     }
-    
-    // Obtenir le nom de la classe sélectionnée pour le titre
+
+    // Nom de la classe pour le titre
     const classSelector = document.getElementById('classroomSelector');
     const selectedClassroom = classSelector ? classSelector.options[classSelector.selectedIndex]?.text : 'Classe';
-    
-    // Créer un titre temporaire pour l'impression
-    const printTitle = document.createElement('div');
-    printTitle.innerHTML = `<h2>Plan de classe - ${selectedClassroom}</h2>`;
-    printTitle.id = 'print-title';
-    printTitle.style.position = 'absolute';
-    printTitle.style.top = '0px';
-    printTitle.style.left = '0px';
-    printTitle.style.width = '100%';
-    printTitle.style.textAlign = 'center';
-    printTitle.style.zIndex = '1000';
-    printTitle.style.backgroundColor = 'white';
-    
-    // Ajouter le titre au workspace
-    seatingWorkspace.appendChild(printTitle);
-    
-    // Ajuster temporairement le padding du workspace pour faire de la place au titre
-    const originalPadding = seatingWorkspace.style.paddingTop;
-    seatingWorkspace.style.paddingTop = '40px';
-    
-    // Ajouter la classe CSS pour activer les règles @media print
-    document.body.classList.add('printing-seating-plan');
 
-    // Fonction de nettoyage après impression (ou annulation)
-    function cleanupAfterPrint() {
-        document.body.classList.remove('printing-seating-plan');
-        const titleElement = document.getElementById('print-title');
-        if (titleElement) {
-            titleElement.remove();
+    // Calculer les bornes du contenu pour centrer le plan
+    let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+    elements.forEach(el => {
+        const left = el.offsetLeft;
+        const top = el.offsetTop;
+        const right = left + el.offsetWidth;
+        const bottom = top + el.offsetHeight;
+        if (left < minX) minX = left;
+        if (top < minY) minY = top;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+    });
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 40;
+
+    // Ouvrir une nouvelle fenêtre avec uniquement le plan
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+        showNotification('error', 'Impossible d\'ouvrir la fenêtre d\'impression. Vérifiez que les pop-ups sont autorisés.');
+        return;
+    }
+
+    // Construire le HTML du plan
+    let elementsHTML = '';
+    elements.forEach(el => {
+        const clone = el.cloneNode(true);
+        // Repositionner par rapport aux bornes
+        const newLeft = el.offsetLeft - minX + padding;
+        const newTop = el.offsetTop - minY + padding + 50; // +50 pour le titre
+        clone.style.left = newLeft + 'px';
+        clone.style.top = newTop + 'px';
+        clone.style.position = 'absolute';
+        // Retirer les boutons de suppression et curseur de déplacement
+        clone.querySelectorAll('.remove-student, .delete-element-btn').forEach(btn => btn.remove());
+        clone.style.cursor = 'default';
+        elementsHTML += clone.outerHTML;
+    });
+
+    const totalWidth = contentWidth + padding * 2;
+    const totalHeight = contentHeight + padding * 2 + 50;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Plan de classe - ${selectedClassroom}</title>
+    <style>
+        @page {
+            size: landscape;
+            margin: 8mm;
         }
-        seatingWorkspace.style.paddingTop = originalPadding;
-        window.removeEventListener('afterprint', cleanupAfterPrint);
-    }
-
-    window.addEventListener('afterprint', cleanupAfterPrint);
-
-    try {
-        window.print();
-    } catch (error) {
-        console.error('Erreur lors de l\'impression:', error);
-        showNotification('error', 'Erreur lors de l\'impression');
-        cleanupAfterPrint();
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .print-container {
+            position: relative;
+            width: ${totalWidth}px;
+            height: ${totalHeight}px;
+            margin: 0 auto;
+        }
+        .print-title {
+            text-align: center;
+            padding: 15px 0 10px 0;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+        }
+        /* Éléments du plan */
+        .seating-element {
+            position: absolute;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .desk-single, .desk-double {
+            background: #e3f2fd;
+            border-color: #1565c0;
+        }
+        .teacher-desk {
+            background: #fff3e0;
+            border-color: #e65100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #e65100;
+        }
+        .student-slot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.9);
+            min-height: 30px;
+        }
+        .student-slot.occupied {
+            background: #4caf50 !important;
+            border-color: #388e3c !important;
+        }
+        .student-placed {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .remove-student, .delete-element-btn {
+            display: none !important;
+        }
+        .desk-label {
+            font-size: 0.65rem;
+            color: #666;
+            text-align: center;
+        }
+        @media print {
+            body { background: white; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-container">
+        <div class="print-title">Plan de classe – ${selectedClassroom}</div>
+        ${elementsHTML}
+    </div>
+    <script>
+        // Lancer l'impression automatiquement une fois la page chargée
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+                // Fermer la fenêtre après impression ou annulation
+                window.onafterprint = function() { window.close(); };
+                // Fallback pour Safari: fermer après un délai
+                setTimeout(function() { window.close(); }, 2000);
+            }, 300);
+        };
+    </script>
+</body>
+</html>`);
+    printWindow.document.close();
 }
 
 // ===== SYSTÈME D'AMÉNAGEMENTS =====
