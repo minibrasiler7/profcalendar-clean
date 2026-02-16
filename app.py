@@ -167,6 +167,19 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ Commandes seed non trouvées")
 
+    # Migration: ajouter les colonnes TOTP si elles n'existent pas
+    with app.app_context():
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(32)"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     # Redirection de la racine vers /auth/login
     from flask import redirect, url_for
 

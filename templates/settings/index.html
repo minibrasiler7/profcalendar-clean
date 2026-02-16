@@ -16,6 +16,10 @@
             <i class="fas fa-universal-access"></i>
             Aménagements
         </a>
+        <a href="#security" class="settings-nav-link" onclick="showSection('security', this)">
+            <i class="fas fa-shield-alt"></i>
+            Sécurité
+        </a>
         <a href="#danger" class="settings-nav-link" onclick="showSection('danger', this)">
             <i class="fas fa-trash-alt"></i>
             Supprimer mon compte
@@ -101,6 +105,81 @@
                 <button type="button" class="btn btn-primary" onclick="saveAccommodationsSettings()">
                     Enregistrer les paramètres
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Sécurité (2FA) -->
+    <div id="security-section" class="settings-section" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> Double authentification (2FA)</h5>
+            </div>
+            <div class="card-body">
+                <div id="2fa-alert" class="alert mb-3" style="display: none;"></div>
+
+                {% if current_user.totp_enabled %}
+                <!-- 2FA activée -->
+                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #166534; margin-bottom: 0; font-weight: 600;">
+                        <i class="fas fa-check-circle"></i> La double authentification est activée
+                    </p>
+                    <p style="color: #166534; margin-bottom: 0; margin-top: 0.5rem; font-size: 0.9rem;">
+                        Un code de votre application d'authentification est requis à chaque connexion.
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <label for="disable_2fa_password" class="form-label">Mot de passe pour désactiver :</label>
+                    <input type="password" class="form-control" id="disable_2fa_password" placeholder="Entrez votre mot de passe">
+                </div>
+
+                <button type="button" class="btn btn-outline-danger" onclick="disable2FA()">
+                    <i class="fas fa-unlock"></i> Désactiver la double authentification
+                </button>
+
+                {% else %}
+                <!-- 2FA désactivée -->
+                <p>Protégez votre compte avec une application d'authentification (Google Authenticator, Microsoft Authenticator, Mots de passe Apple, etc.).</p>
+                <p style="color: var(--gray-color); font-size: 0.9rem;">
+                    Une fois activée, un code à 6 chiffres sera demandé à chaque connexion en plus de votre mot de passe.
+                </p>
+
+                <div id="2fa-setup-container" style="display: none;">
+                    <div style="background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <p style="font-weight: 600; margin-bottom: 1rem;">1. Scannez ce QR code avec votre application :</p>
+                        <div style="text-align: center; margin-bottom: 1rem;">
+                            <img id="2fa-qr-code" src="" alt="QR Code" style="border-radius: 8px;">
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--gray-color); margin-bottom: 0.5rem;">
+                            Ou entrez ce code manuellement : <code id="2fa-secret-display" style="font-size: 1rem; user-select: all;"></code>
+                        </p>
+                    </div>
+
+                    <div style="background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <p style="font-weight: 600; margin-bottom: 1rem;">2. Entrez le code affiché par l'application :</p>
+                        <div style="text-align: center;">
+                            <input type="text" id="2fa-verify-code" class="form-control"
+                                   maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
+                                   placeholder="000000"
+                                   style="text-align: center; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.5rem; max-width: 220px; margin: 0 auto;">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-success" onclick="confirm2FA()">
+                        <i class="fas fa-check"></i> Activer la double authentification
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary ms-2" onclick="cancel2FASetup()">
+                        Annuler
+                    </button>
+                </div>
+
+                <div id="2fa-start-container">
+                    <button type="button" class="btn btn-primary" onclick="start2FASetup()">
+                        <i class="fas fa-shield-alt"></i> Configurer la double authentification
+                    </button>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -319,6 +398,135 @@ document.getElementById('change-password-form').addEventListener('submit', async
     }
 });
 
+// ─── 2FA Functions ───
+let pending2FASecret = null;
+
+async function start2FASetup() {
+    const alertDiv = document.getElementById('2fa-alert');
+    alertDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/settings/setup-2fa');
+        const result = await response.json();
+
+        if (result.success) {
+            pending2FASecret = result.secret;
+            document.getElementById('2fa-qr-code').src = result.qr_code;
+            document.getElementById('2fa-secret-display').textContent = result.secret;
+            document.getElementById('2fa-setup-container').style.display = 'block';
+            document.getElementById('2fa-start-container').style.display = 'none';
+
+            // Auto-focus sur l'input du code
+            setTimeout(() => document.getElementById('2fa-verify-code').focus(), 300);
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Erreur: ' + error.message;
+        alertDiv.style.display = 'block';
+    }
+}
+
+function cancel2FASetup() {
+    pending2FASecret = null;
+    document.getElementById('2fa-setup-container').style.display = 'none';
+    document.getElementById('2fa-start-container').style.display = 'block';
+    document.getElementById('2fa-verify-code').value = '';
+}
+
+async function confirm2FA() {
+    const code = document.getElementById('2fa-verify-code').value.trim();
+    const alertDiv = document.getElementById('2fa-alert');
+    alertDiv.style.display = 'none';
+
+    if (!code || code.length !== 6) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Veuillez entrer un code à 6 chiffres.';
+        alertDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('/settings/enable-2fa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secret: pending2FASecret, code: code })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alertDiv.className = 'alert alert-success mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+            // Recharger la page pour afficher le nouvel état
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            alertDiv.className = 'alert alert-danger mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+        }
+    } catch (error) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Erreur: ' + error.message;
+        alertDiv.style.display = 'block';
+    }
+}
+
+async function disable2FA() {
+    const password = document.getElementById('disable_2fa_password').value;
+    const alertDiv = document.getElementById('2fa-alert');
+    alertDiv.style.display = 'none';
+
+    if (!password) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Veuillez entrer votre mot de passe.';
+        alertDiv.style.display = 'block';
+        return;
+    }
+
+    if (!confirm('Voulez-vous vraiment désactiver la double authentification ?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/settings/disable-2fa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alertDiv.className = 'alert alert-success mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            alertDiv.className = 'alert alert-danger mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+        }
+    } catch (error) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Erreur: ' + error.message;
+        alertDiv.style.display = 'block';
+    }
+}
+
+// Filtrage numérique pour l'input 2FA
+document.addEventListener('DOMContentLoaded', function() {
+    const verifyInput = document.getElementById('2fa-verify-code');
+    if (verifyInput) {
+        verifyInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+});
+
+// ─── Delete Account ───
 async function deleteAccount() {
     const password = document.getElementById('delete_password').value;
     const alertDiv = document.getElementById('delete-alert');

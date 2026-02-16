@@ -189,6 +189,104 @@ def change_password():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@settings_bp.route('/setup-2fa', methods=['GET'])
+@login_required
+def setup_2fa():
+    """Génère un secret TOTP et un QR code pour l'activation de la 2FA"""
+    import pyotp
+    import qrcode
+    import io
+    import base64
+
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(
+        name=current_user.email,
+        issuer_name='ProfCalendar'
+    )
+
+    # Générer le QR code en base64
+    qr = qrcode.QRCode(version=1, box_size=6, border=2)
+    qr.add_data(provisioning_uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='black', back_color='white')
+
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+    return jsonify({
+        'success': True,
+        'secret': secret,
+        'qr_code': f'data:image/png;base64,{qr_base64}'
+    })
+
+
+@settings_bp.route('/enable-2fa', methods=['POST'])
+@login_required
+def enable_2fa():
+    """Active la 2FA après vérification du code TOTP"""
+    import pyotp
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    secret = data.get('secret')
+    code = data.get('code', '').strip()
+
+    if not secret or not code:
+        return jsonify({'success': False, 'message': 'Secret et code requis'}), 400
+
+    # Vérifier que le code est valide
+    totp = pyotp.TOTP(secret)
+    if not totp.verify(code, valid_window=1):
+        return jsonify({'success': False, 'message': 'Code invalide. Vérifiez votre application d\'authentification.'}), 400
+
+    try:
+        current_user.totp_secret = secret
+        current_user.totp_enabled = True
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Double authentification activée avec succès !'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@settings_bp.route('/disable-2fa', methods=['POST'])
+@login_required
+def disable_2fa():
+    """Désactive la 2FA après vérification du mot de passe"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    password = data.get('password')
+    if not password:
+        return jsonify({'success': False, 'message': 'Mot de passe requis'}), 400
+
+    if not current_user.check_password(password):
+        return jsonify({'success': False, 'message': 'Mot de passe incorrect'}), 400
+
+    try:
+        current_user.totp_secret = None
+        current_user.totp_enabled = False
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Double authentification désactivée.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @settings_bp.route('/delete-account', methods=['POST'])
 @login_required
 def delete_account():

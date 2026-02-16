@@ -90,6 +90,12 @@ def login():
                     flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer ou contacter le support.', 'error')
                 return redirect(url_for('auth.verify_email'))
 
+            # Vérifier si la 2FA est activée
+            if user.totp_enabled:
+                session['pending_totp_user_id'] = user.id
+                session['pending_totp_next'] = request.args.get('next', '')
+                return redirect(url_for('auth.verify_totp'))
+
             session.clear()  # Nettoyer la session pour éviter les conflits
             session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
             login_user(user, remember=True)
@@ -233,6 +239,52 @@ def resend_code():
     else:
         flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
     return redirect(url_for('auth.verify_email'))
+
+@auth_bp.route('/verify-totp', methods=['GET', 'POST'])
+def verify_totp():
+    """Vérification du code TOTP pour la double authentification"""
+    user_id = session.get('pending_totp_user_id')
+    if not user_id:
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(user_id)
+    if not user or not user.totp_enabled:
+        session.pop('pending_totp_user_id', None)
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        code = request.form.get('totp_code', '').strip()
+
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        # valid_window=1 accepte le code précédent et suivant (±30s)
+        if totp.verify(code, valid_window=1):
+            # Nettoyer la session TOTP
+            next_page = session.get('pending_totp_next', '')
+            session.pop('pending_totp_user_id', None)
+            session.pop('pending_totp_next', None)
+
+            # Connecter l'utilisateur
+            session['user_type'] = 'teacher'
+            login_user(user, remember=True)
+
+            if not next_page or urlparse(next_page).netloc != '':
+                if not user.school_year_start or not user.day_start_time:
+                    next_page = url_for('setup.initial_setup')
+                elif user.classrooms.count() == 0:
+                    next_page = url_for('setup.manage_classrooms')
+                elif not user.setup_completed:
+                    next_page = url_for('setup.manage_holidays')
+                elif not user.schedule_completed:
+                    next_page = url_for('schedule.weekly_schedule')
+                else:
+                    next_page = url_for('planning.dashboard')
+            return redirect(next_page)
+        else:
+            flash('Code invalide. Veuillez réessayer.', 'error')
+
+    return render_template('auth/verify_totp.html', email=user.email)
+
 
 @auth_bp.route('/logout')
 @login_required

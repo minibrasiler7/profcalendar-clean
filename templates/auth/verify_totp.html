@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Double authentification - ProfCalendar{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-shield-alt auth-icon"></i>
+            <h1 class="auth-title">Double authentification</h1>
+            <p class="auth-subtitle">Entrez le code affiché par votre application d'authentification</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.verify_totp') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="totp_code" class="form-label">Code de vérification</label>
+                <div class="code-input-container">
+                    <input type="text" id="totp_code" name="totp_code" class="form-control code-input"
+                           maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
+                           placeholder="000000" required autofocus>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-block">Vérifier</button>
+            </div>
+        </form>
+
+        <div class="auth-footer">
+            <p><a href="{{ url_for('auth.login') }}"><i class="fas fa-arrow-left"></i> Retour à la connexion</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    max-width: 400px;
+    margin: 4rem auto;
+}
+
+.auth-card {
+    background-color: var(--white);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-lg);
+    padding: 3rem;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.auth-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: var(--gray-color);
+}
+
+.auth-form {
+    margin-bottom: 2rem;
+}
+
+.code-input-container { text-align: center; }
+.code-input {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.75rem;
+    padding: 1rem;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+.btn-block {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.auth-footer {
+    text-align: center;
+    color: var(--gray-color);
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const codeInput = document.getElementById('totp_code');
+    codeInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        // Auto-submit quand 6 chiffres sont entrés
+        if (this.value.length === 6) {
+            this.closest('form').submit();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -13,6 +13,10 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     email_verified = db.Column(db.Boolean, default=False)
 
+    # Double authentification (TOTP)
+    totp_secret = db.Column(db.String(32), nullable=True)  # Secret TOTP Base32
+    totp_enabled = db.Column(db.Boolean, default=False)  # 2FA activée
+
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée
     schedule_completed = db.Column(db.Boolean, default=False)  # Horaire type complété
