@@ -17,6 +17,13 @@ class User(UserMixin, db.Model):
     totp_secret = db.Column(db.String(32), nullable=True)  # Secret TOTP Base32
     totp_enabled = db.Column(db.Boolean, default=False)  # 2FA activée
 
+    # Abonnement et Premium
+    is_admin = db.Column(db.Boolean, default=False)
+    subscription_tier = db.Column(db.String(20), default='freemium')  # 'freemium' ou 'premium'
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    premium_until = db.Column(db.DateTime, nullable=True)  # Date d'expiration premium
+
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée
     schedule_completed = db.Column(db.Boolean, default=False)  # Horaire type complété
@@ -36,6 +43,37 @@ class User(UserMixin, db.Model):
     holidays = db.relationship('Holiday', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
     breaks = db.relationship('Break', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
     schedules = db.relationship('Schedule', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
+
+    def is_premium(self):
+        """Vérifie si l'utilisateur a un accès premium actif"""
+        if self.subscription_tier == 'premium':
+            # Si premium_until est défini, vérifier qu'il n'est pas expiré
+            if self.premium_until:
+                return self.premium_until > datetime.utcnow()
+            # premium sans date d'expiration = illimité
+            return True
+        return False
+
+    def has_premium_access(self):
+        """Alias pour is_premium()"""
+        return self.is_premium()
+
+    def grant_premium_access(self, days=None):
+        """Accorder l'accès premium (days=None = illimité)"""
+        from datetime import timedelta
+        self.subscription_tier = 'premium'
+        if days:
+            self.premium_until = datetime.utcnow() + timedelta(days=days)
+        else:
+            self.premium_until = None
+        db.session.commit()
+
+    def revoke_premium_access(self):
+        """Révoquer l'accès premium"""
+        self.subscription_tier = 'freemium'
+        self.premium_until = None
+        self.stripe_subscription_id = None
+        db.session.commit()
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

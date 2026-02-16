@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Mon abonnement - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="manage-page">
+    <h1><i class="fas fa-credit-card"></i> Mon abonnement</h1>
+
+    <div class="subscription-status-card">
+        {% if is_premium %}
+        <div class="status-badge status-premium">
+            <i class="fas fa-crown"></i> Premium actif
+        </div>
+        <div class="status-details">
+            {% if premium_until %}
+            <p>Votre accès premium est actif jusqu'au <strong>{{ premium_until.strftime('%d/%m/%Y') }}</strong>.</p>
+            {% else %}
+            <p>Votre accès premium est <strong>illimité</strong>.</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="status-badge status-free">
+            <i class="fas fa-user"></i> Plan gratuit
+        </div>
+        <div class="status-details">
+            <p>Vous êtes actuellement sur le plan gratuit.</p>
+            <a href="{{ url_for('subscription.pricing') }}" class="btn-upgrade">
+                <i class="fas fa-crown"></i> Passer à Premium
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if subscription %}
+    <div class="subscription-details-card">
+        <h2>Détails de l'abonnement</h2>
+        <div class="details-grid">
+            <div class="detail-row">
+                <span class="detail-label">Cycle de facturation</span>
+                <span class="detail-value">{{ 'Annuel' if subscription.billing_cycle == 'annual' else 'Mensuel' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Statut</span>
+                <span class="detail-value">
+                    {% if subscription.status == 'active' %}
+                    <span class="badge-active">Actif</span>
+                    {% elif subscription.status == 'canceled' %}
+                    <span class="badge-canceled">Annulé</span>
+                    {% elif subscription.status == 'past_due' %}
+                    <span class="badge-pastdue">Paiement en retard</span>
+                    {% else %}
+                    <span>{{ subscription.status }}</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if subscription.current_period_start and subscription.current_period_end %}
+            <div class="detail-row">
+                <span class="detail-label">Période actuelle</span>
+                <span class="detail-value">
+                    {{ subscription.current_period_start.strftime('%d/%m/%Y') }} — {{ subscription.current_period_end.strftime('%d/%m/%Y') }}
+                </span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="detail-label">Montant</span>
+                <span class="detail-value">CHF {{ "%.2f"|format(subscription.amount / 100) }}/{{ 'an' if subscription.billing_cycle == 'annual' else 'mois' }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.stripe_customer_id %}
+    <div class="billing-section">
+        <h2>Facturation</h2>
+        <p>Gérez vos moyens de paiement et consultez vos factures sur le portail Stripe.</p>
+        <a href="{{ url_for('subscription.customer_portal') }}" class="btn-portal">
+            <i class="fas fa-external-link-alt"></i> Gérer la facturation
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

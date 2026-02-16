@@ -37,3 +37,10 @@ class Config:
     # Configuration Resend (service d'envoi email transactionnel)
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@teacherplanner.com')
+
+    # Configuration Stripe (abonnements)
+    STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+    STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    STRIPE_PRICE_MONTHLY = os.environ.get('STRIPE_PRICE_MONTHLY')   # ID du prix mensuel Stripe
+    STRIPE_PRICE_ANNUAL = os.environ.get('STRIPE_PRICE_ANNUAL')     # ID du prix annuel Stripe

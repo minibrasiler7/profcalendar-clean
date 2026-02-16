@@ -20,6 +20,10 @@
             <i class="fas fa-shield-alt"></i>
             Sécurité
         </a>
+        <a href="#subscription" class="settings-nav-link" onclick="showSection('subscription', this)">
+            <i class="fas fa-crown"></i>
+            Abonnement
+        </a>
         <a href="#danger" class="settings-nav-link" onclick="showSection('danger', this)">
             <i class="fas fa-trash-alt"></i>
             Supprimer mon compte
@@ -293,6 +297,65 @@
                     </button>
                 </div>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Abonnement -->
+    <div id="subscription-section" class="settings-section" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-crown" style="color: #F59E0B;"></i> Mon abonnement</h5>
+            </div>
+            <div class="card-body">
+                {% if current_user.has_premium_access() %}
+                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #166534; margin-bottom: 0; font-weight: 600;">
+                        <i class="fas fa-check-circle"></i> Vous avez un abonnement <strong>Premium</strong>
+                    </p>
+                    {% if current_user.premium_until %}
+                    <p style="color: #166534; margin-bottom: 0; margin-top: 0.5rem; font-size: 0.9rem;">
+                        Valide jusqu'au {{ current_user.premium_until.strftime('%d/%m/%Y') }}
+                    </p>
+                    {% else %}
+                    <p style="color: #166534; margin-bottom: 0; margin-top: 0.5rem; font-size: 0.9rem;">
+                        Accès illimité
+                    </p>
+                    {% endif %}
+                </div>
+                {% if current_user.stripe_subscription_id %}
+                <a href="{{ url_for('subscription.manage') }}" class="btn btn-primary">
+                    <i class="fas fa-cog"></i> Gérer mon abonnement
+                </a>
+                {% endif %}
+                {% else %}
+                <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <p style="color: #9A3412; margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i> Vous utilisez la version <strong>Freemium</strong>.
+                        Passez à Premium pour accéder à la gestion de classe, aux évaluations, au suivi des présences et bien plus.
+                    </p>
+                </div>
+                <a href="{{ url_for('subscription.pricing') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none;">
+                    <i class="fas fa-crown"></i> Voir les offres Premium
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Section Bon / Voucher -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-ticket-alt"></i> Utiliser un bon</h5>
+            </div>
+            <div class="card-body">
+                <p>Si vous avez reçu un code promotionnel, entrez-le ci-dessous pour activer votre accès Premium.</p>
+                <div id="voucher-alert" class="alert mb-3" style="display: none;"></div>
+                <div style="display: flex; gap: 0.5rem; max-width: 400px;">
+                    <input type="text" class="form-control" id="voucher_code" placeholder="Entrez votre code" style="text-transform: uppercase; font-weight: 600; letter-spacing: 0.1rem;">
+                    <button type="button" class="btn btn-primary" onclick="redeemVoucherSettings()">
+                        <i class="fas fa-check"></i> Appliquer
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -791,6 +854,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ─── Voucher Redemption ───
+async function redeemVoucherSettings() {
+    const code = document.getElementById('voucher_code').value.trim();
+    const alertDiv = document.getElementById('voucher-alert');
+    alertDiv.style.display = 'none';
+
+    if (!code) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Veuillez entrer un code.';
+        alertDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('/subscription/redeem-voucher', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alertDiv.className = 'alert alert-success mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            alertDiv.className = 'alert alert-danger mb-3';
+            alertDiv.textContent = result.message;
+            alertDiv.style.display = 'block';
+        }
+    } catch (error) {
+        alertDiv.className = 'alert alert-danger mb-3';
+        alertDiv.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+        alertDiv.style.display = 'block';
+    }
+}
 
 // ─── Delete Account ───
 async function deleteAccount() {

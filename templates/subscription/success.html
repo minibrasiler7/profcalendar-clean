@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Abonnement activé - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="success-page">
+    <div class="success-card">
+        <div class="success-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <h1>Bienvenue dans ProfCalendar Premium !</h1>
+        <p>Votre abonnement est maintenant actif. Vous avez accès à toutes les fonctionnalités premium.</p>
+
+        <div class="success-features">
+            <div class="feature-item">
+                <i class="fas fa-users"></i>
+                <span>Gestion de classe</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Notes et évaluations</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-clipboard-check"></i>
+                <span>Suivi des absences</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-folder"></i>
+                <span>Gestionnaire de fichiers</span>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            <a href="{{ url_for('planning.manage_classes') }}" class="btn-primary-action">
+                <i class="fas fa-arrow-right"></i> Aller à la gestion de classe
+            </a>
+            <a href="{{ url_for('planning.dashboard') }}" class="btn-secondary-action">
+                Retour au tableau de bord
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

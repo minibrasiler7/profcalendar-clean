@@ -52,6 +52,7 @@
                 </a>
                 <a href="{{ url_for('planning.manage_classes') }}" class="nav-link {% if request.endpoint == 'planning.manage_classes' %}active{% endif %}">
                     <i class="fas fa-users"></i> Gestion de classe
+                    {% if not current_user.has_premium_access() %}<i class="fas fa-lock nav-lock"></i>{% endif %}
                 </a>
                 <a href="{{ url_for('planning.calendar_view') }}" class="nav-link {% if request.endpoint == 'planning.calendar_view' %}active{% endif %}">
                     <i class="fas fa-calendar"></i> Calendrier
@@ -63,9 +64,20 @@
                     <button class="user-btn">
                         <i class="fas fa-user-circle"></i>
                         <span>{{ current_user.username }}</span>
+                        {% if current_user.has_premium_access() %}
+                        <span class="premium-nav-badge"><i class="fas fa-crown"></i> PRO</span>
+                        {% endif %}
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="dropdown-menu">
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin.dashboard') }}">
+                            <i class="fas fa-shield-alt"></i> Administration
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('subscription.pricing') }}">
+                            <i class="fas fa-crown"></i> Abonnement
+                        </a>
                         <a href="{{ url_for('settings.index') }}">
                             <i class="fas fa-cog"></i> Paramètres
                         </a>

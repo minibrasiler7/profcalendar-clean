@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-header">
+        <h1><i class="fas fa-shield-alt"></i> Administration</h1>
+        <div class="admin-nav">
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-tab active">Tableau de bord</a>
+            <a href="{{ url_for('admin.vouchers') }}" class="admin-tab">Bons</a>
+            <a href="{{ url_for('admin.subscribers') }}" class="admin-tab">Utilisateurs</a>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #3498db;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ total_users }}</span>
+                <span class="stat-label">Utilisateurs total</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #f39c12;">
+                <i class="fas fa-crown"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ premium_users }}</span>
+                <span class="stat-label">Utilisateurs premium</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #27ae60;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">{{ active_subscriptions }}</span>
+                <span class="stat-label">Abonnements actifs</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #9b59b6;">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-number">CHF {{ "%.2f"|format(monthly_revenue) }}</span>
+                <span class="stat-label">Revenu mensuel estimé</span>
+            </div>
+        </div>
+    </div>
+
+    {% if recent_subscriptions %}
+    <div class="admin-section">
+        <h2>Derniers abonnements</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Statut</th>
+                    <th>Cycle</th>
+                    <th>Montant</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in recent_subscriptions %}
+                <tr>
+                    <td>{{ sub.user.username }} ({{ sub.user.email }})</td>
+                    <td>
+                        <span class="badge-{{ sub.status }}">{{ sub.status }}</span>
+                    </td>
+                    <td>{{ 'Annuel' if sub.billing_cycle == 'annual' else 'Mensuel' }}</td>
+                    <td>CHF {{ "%.2f"|format(sub.amount / 100) }}</td>
+                    <td>{{ sub.created_at.strftime('%d/%m/%Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="admin-empty">
+        <i class="fas fa-inbox"></i>
+        <p>Aucun abonnement pour le moment</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Abonnement - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pricing-page">
+    <div class="pricing-hero">
+        <h1><i class="fas fa-crown"></i> Passez à Premium</h1>
+        <p>Débloquez toutes les fonctionnalités de ProfCalendar pour gérer vos classes efficacement</p>
+    </div>
+
+    {% if is_premium %}
+    <div class="pricing-alert pricing-alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span>Vous avez déjà un accès premium ! <a href="{{ url_for('subscription.manage') }}">Gérer mon abonnement</a></span>
+    </div>
+    {% endif %}
+
+    <div class="pricing-cards">
+        <!-- Carte Freemium -->
+        <div class="pricing-card">
+            <div class="card-header">
+                <h2>Gratuit</h2>
+                <div class="price">
+                    <span class="amount">CHF 0</span>
+                </div>
+                <p class="price-sub">Pour toujours</p>
+            </div>
+            <ul class="features">
+                <li class="included"><i class="fas fa-check"></i> Tableau de bord</li>
+                <li class="included"><i class="fas fa-check"></i> Planification des cours</li>
+                <li class="included"><i class="fas fa-check"></i> Calendrier scolaire</li>
+                <li class="included"><i class="fas fa-check"></i> Configuration de base</li>
+                <li class="included"><i class="fas fa-check"></i> Fin d'année scolaire</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Gestion de classe</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Notes et évaluations</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Suivi des absences</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Sanctions</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Collaboration enseignants</li>
+                <li class="excluded"><i class="fas fa-lock"></i> Gestionnaire de fichiers</li>
+            </ul>
+            <div class="card-footer">
+                <span class="btn-current">Plan actuel</span>
+            </div>
+        </div>
+
+        <!-- Carte Premium Mensuel -->
+        <div class="pricing-card featured">
+            <div class="card-badge">Le plus populaire</div>
+            <div class="card-header">
+                <h2>Premium</h2>
+                <div class="price">
+                    <span class="currency">CHF</span>
+                    <span class="amount">4.90</span>
+                    <span class="period">/mois</span>
+                </div>
+                <p class="price-sub">Facturé mensuellement</p>
+            </div>
+            <ul class="features">
+                <li class="included"><i class="fas fa-check"></i> Tout du plan gratuit</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Gestion de classe</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Notes et évaluations</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Suivi des absences</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Sanctions</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Collaboration enseignants</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Gestionnaire de fichiers</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Plan de classe & impression</li>
+                <li class="included"><i class="fas fa-check"></i> 3 Go de stockage</li>
+            </ul>
+            <div class="card-footer">
+                {% if current_user.is_authenticated and not is_premium %}
+                <button class="btn-subscribe" onclick="startCheckout('monthly')">
+                    <i class="fas fa-bolt"></i> S'abonner
+                </button>
+                {% elif not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn-subscribe">
+                    <i class="fas fa-user-plus"></i> Créer un compte
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Carte Premium Annuel -->
+        <div class="pricing-card">
+            <div class="card-badge annual-badge">Économisez 32%</div>
+            <div class="card-header">
+                <h2>Premium Annuel</h2>
+                <div class="price">
+                    <span class="currency">CHF</span>
+                    <span class="amount">39.90</span>
+                    <span class="period">/an</span>
+                </div>
+                <p class="price-sub">Soit CHF 3.33/mois</p>
+            </div>
+            <ul class="features">
+                <li class="included"><i class="fas fa-check"></i> Tout du plan Premium</li>
+                <li class="included highlight"><i class="fas fa-star"></i> Meilleur rapport qualité-prix</li>
+                <li class="included"><i class="fas fa-check"></i> Engagement annuel</li>
+                <li class="included"><i class="fas fa-check"></i> 3 Go de stockage</li>
+            </ul>
+            <div class="card-footer">
+                {% if current_user.is_authenticated and not is_premium %}
+                <button class="btn-subscribe btn-annual" onclick="startCheckout('annual')">
+                    <i class="fas fa-bolt"></i> S'abonner annuellement
+                </button>
+                {% elif not current_user.is_authenticated %}
+                <a href="{{ url_for('auth.register') }}" class="btn-subscribe btn-annual">
+                    <i class="fas fa-user-plus"></i> Créer un compte
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Bon -->
+    <div class="voucher-section">
+        <h3><i class="fas fa-ticket-alt"></i> Vous avez un bon ?</h3>
+        <p>Entrez votre code pour activer l'accès premium gratuitement</p>
+        {% if current_user.is_authenticated %}
+        <div class="voucher-form">
+            <input type="text" id="voucherCode" placeholder="Code du bon (ex: ABCD1234)" maxlength="50" autocomplete="off">
+            <button class="btn-voucher" onclick="redeemVoucher()">
+                <i class="fas fa-check"></i> Activer
+            </button>
+        </div>
+        <div id="voucherMessage" style="display: none; margin-top: 1rem;"></div>
+        {% else %}
+        <p style="color: #666; font-style: italic;">Connectez-vous pour utiliser un bon.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function startCheckout(cycle) {
+    try {
+        const response = await fetch('{{ url_for("subscription.checkout") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ billing_cycle: cycle })
+        });
+        const data = await response.json();
+        if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la connexion au service de paiement.');
+    }
+}
+
+async function redeemVoucher() {
+    const code = document.getElementById('voucherCode').value.trim();
+    if (!code) {
+        showVoucherMessage('Veuillez entrer un code.', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ url_for("subscription.redeem_voucher") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code })
+        });
+        const data = await response.json();
+        const msgDiv = document.getElementById('voucherMessage');
+
+        if (response.ok && data.success) {
+            showVoucherMessage(data.message, 'success');
+            document.getElementById('voucherCode').value = '';
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showVoucherMessage(data.error || 'Erreur inconnue', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showVoucherMessage('Erreur de connexion.', 'error');
+    }
+}
+
+function showVoucherMessage(message, type) {
+    const msgDiv = document.getElementById('voucherMessage');
+    msgDiv.style.display = 'block';
+    msgDiv.className = 'voucher-message voucher-' + type;
+    msgDiv.textContent = message;
+}
+</script>
+{% endblock %}
