@@ -140,10 +140,123 @@
 
                 {% else %}
                 <!-- 2FA désactivée -->
-                <p>Protégez votre compte avec une application d'authentification (Google Authenticator, Microsoft Authenticator, Mots de passe Apple, etc.).</p>
-                <p style="color: var(--gray-color); font-size: 0.9rem;">
-                    Une fois activée, un code à 6 chiffres sera demandé à chaque connexion en plus de votre mot de passe.
-                </p>
+                <p>Protégez votre compte avec une application d'authentification. Un code à 6 chiffres sera demandé à chaque connexion en plus de votre mot de passe.</p>
+
+                <!-- Tutoriel animé -->
+                <div id="2fa-tutorial" style="margin-bottom: 1.5rem;">
+                    <button type="button" class="btn btn-outline-primary btn-sm mb-3" onclick="toggleTutorial()">
+                        <i class="fas fa-question-circle"></i> <span id="tuto-toggle-text">Comment ça marche ?</span>
+                    </button>
+
+                    <div id="tuto-content" style="display: none;">
+                        <div class="tuto-steps">
+                            <!-- Étape 1 -->
+                            <div class="tuto-step tuto-step-active" id="tuto-step-1">
+                                <div class="tuto-step-number">1</div>
+                                <div class="tuto-step-body">
+                                    <h6 class="tuto-step-title">Installez une app d'authentification</h6>
+                                    <p class="tuto-step-desc">Téléchargez une de ces applications gratuites sur votre téléphone :</p>
+                                    <div class="tuto-apps">
+                                        <div class="tuto-app">
+                                            <div class="tuto-app-icon" style="background: #4285F4;">
+                                                <i class="fas fa-key"></i>
+                                            </div>
+                                            <span>Google Authenticator</span>
+                                        </div>
+                                        <div class="tuto-app">
+                                            <div class="tuto-app-icon" style="background: #00A4EF;">
+                                                <i class="fas fa-shield-alt"></i>
+                                            </div>
+                                            <span>Microsoft Authenticator</span>
+                                        </div>
+                                        <div class="tuto-app">
+                                            <div class="tuto-app-icon" style="background: linear-gradient(135deg, #007AFF, #5856D6);">
+                                                <i class="fas fa-lock"></i>
+                                            </div>
+                                            <span>Mots de passe (Apple)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Étape 2 -->
+                            <div class="tuto-step" id="tuto-step-2">
+                                <div class="tuto-step-number">2</div>
+                                <div class="tuto-step-body">
+                                    <h6 class="tuto-step-title">Scannez le QR code</h6>
+                                    <p class="tuto-step-desc">Cliquez sur "Configurer" ci-dessous, puis scannez le QR code avec votre application.</p>
+                                    <div class="tuto-demo">
+                                        <div class="tuto-phone">
+                                            <div class="tuto-phone-screen">
+                                                <div class="tuto-scan-animation">
+                                                    <i class="fas fa-qrcode" style="font-size: 2rem; color: #CBD5E1;"></i>
+                                                    <div class="tuto-scan-line"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tuto-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </div>
+                                        <div class="tuto-result">
+                                            <div class="tuto-result-card">
+                                                <span style="font-size: 0.7rem; color: #64748B;">profcalendar.org</span>
+                                                <div class="tuto-code-display">
+                                                    <span class="tuto-digit">4</span>
+                                                    <span class="tuto-digit">8</span>
+                                                    <span class="tuto-digit">2</span>
+                                                    <span class="tuto-digit">7</span>
+                                                    <span class="tuto-digit">1</span>
+                                                    <span class="tuto-digit">6</span>
+                                                </div>
+                                                <div class="tuto-timer-bar">
+                                                    <div class="tuto-timer-fill"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Étape 3 -->
+                            <div class="tuto-step" id="tuto-step-3">
+                                <div class="tuto-step-number">3</div>
+                                <div class="tuto-step-body">
+                                    <h6 class="tuto-step-title">Entrez le code pour confirmer</h6>
+                                    <p class="tuto-step-desc">L'application génère un code à 6 chiffres qui change toutes les 30 secondes. Entrez-le pour activer la 2FA.</p>
+                                </div>
+                            </div>
+
+                            <!-- Étape 4 -->
+                            <div class="tuto-step" id="tuto-step-4">
+                                <div class="tuto-step-number"><i class="fas fa-check"></i></div>
+                                <div class="tuto-step-body">
+                                    <h6 class="tuto-step-title">Lors de la connexion</h6>
+                                    <p class="tuto-step-desc">Après votre mot de passe, le code sera demandé. Sur iPhone, il se remplit automatiquement via l'app Mots de passe !</p>
+                                    <div class="tuto-autofill-demo">
+                                        <div class="tuto-input-mock">
+                                            <span style="color: #94A3B8;">000000</span>
+                                        </div>
+                                        <div class="tuto-suggestion-bubble">
+                                            <i class="fas fa-key" style="font-size: 0.7rem;"></i>
+                                            <span>482716</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navigation tuto -->
+                        <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="tutoNav(-1)" id="tuto-prev" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="tuto-indicator" style="display: flex; gap: 0.35rem; align-items: center;"></span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="tutoNav(1)" id="tuto-next">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <div id="2fa-setup-container" style="display: none;">
                     <div style="background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
@@ -269,6 +382,104 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* ─── Tutoriel 2FA ─── */
+.tuto-steps { display: flex; flex-direction: column; gap: 0rem; }
+.tuto-step {
+    display: flex; gap: 1rem; padding: 1rem; border-radius: 10px;
+    opacity: 0.35; transform: scale(0.97); transition: all 0.4s ease;
+    max-height: 60px; overflow: hidden;
+}
+.tuto-step-active {
+    opacity: 1; transform: scale(1);
+    background: #F8FAFC; max-height: 500px;
+}
+.tuto-step-number {
+    width: 32px; height: 32px; min-width: 32px; border-radius: 50%;
+    background: var(--primary-color); color: white; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+}
+.tuto-step-active .tuto-step-number { box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
+.tuto-step-title { font-weight: 600; margin-bottom: 0.25rem; font-size: 0.95rem; }
+.tuto-step-desc { font-size: 0.85rem; color: #64748B; margin-bottom: 0.75rem; }
+
+/* Apps */
+.tuto-apps { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.tuto-app {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: white; border: 1px solid #E2E8F0; border-radius: 8px;
+    padding: 0.4rem 0.75rem; font-size: 0.8rem;
+}
+.tuto-app-icon {
+    width: 24px; height: 24px; border-radius: 6px; color: white;
+    display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+}
+
+/* Demo scan */
+.tuto-demo { display: flex; align-items: center; gap: 1rem; justify-content: center; }
+.tuto-phone {
+    width: 80px; height: 110px; border: 3px solid #334155; border-radius: 14px;
+    padding: 6px; background: white;
+}
+.tuto-phone-screen {
+    width: 100%; height: 100%; background: #F1F5F9; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.tuto-scan-animation { position: relative; }
+.tuto-scan-line {
+    position: absolute; left: -10px; right: -10px; height: 2px;
+    background: #3B82F6; top: 0;
+    animation: scanMove 2s ease-in-out infinite;
+}
+@keyframes scanMove { 0%,100% { top: -15px; } 50% { top: 25px; } }
+
+.tuto-arrow { color: #94A3B8; font-size: 1.2rem; animation: arrowPulse 1.5s ease-in-out infinite; }
+@keyframes arrowPulse { 0%,100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+
+.tuto-result-card {
+    background: white; border: 1px solid #E2E8F0; border-radius: 10px;
+    padding: 0.5rem 0.75rem; text-align: center;
+}
+.tuto-code-display { display: flex; gap: 3px; margin: 0.3rem 0; }
+.tuto-digit {
+    width: 22px; height: 28px; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem; color: #1E40AF;
+    animation: digitAppear 0.3s ease backwards;
+}
+.tuto-digit:nth-child(1) { animation-delay: 0.1s; }
+.tuto-digit:nth-child(2) { animation-delay: 0.2s; }
+.tuto-digit:nth-child(3) { animation-delay: 0.3s; }
+.tuto-digit:nth-child(4) { animation-delay: 0.4s; }
+.tuto-digit:nth-child(5) { animation-delay: 0.5s; }
+.tuto-digit:nth-child(6) { animation-delay: 0.6s; }
+@keyframes digitAppear { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+.tuto-timer-bar { height: 3px; background: #E2E8F0; border-radius: 2px; overflow: hidden; }
+.tuto-timer-fill { height: 100%; background: #3B82F6; border-radius: 2px; animation: timerShrink 4s linear infinite; }
+@keyframes timerShrink { from { width: 100%; } to { width: 0%; } }
+
+/* Autofill demo */
+.tuto-autofill-demo { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.tuto-input-mock {
+    width: 160px; padding: 0.4rem 0.75rem; border: 2px solid #CBD5E1;
+    border-radius: 8px; text-align: center; font-size: 1rem; font-weight: 600;
+    letter-spacing: 0.3rem; background: white;
+}
+.tuto-suggestion-bubble {
+    background: #1E293B; color: white; border-radius: 6px;
+    padding: 0.25rem 0.75rem; font-size: 0.8rem; font-weight: 600;
+    display: flex; align-items: center; gap: 0.4rem;
+    animation: bubbleBounce 2s ease-in-out infinite;
+}
+@keyframes bubbleBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* Dots indicator */
+.tuto-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #CBD5E1;
+    transition: all 0.3s ease; cursor: pointer;
+}
+.tuto-dot-active { background: var(--primary-color); transform: scale(1.3); }
 </style>
 
 <script>
@@ -397,6 +608,61 @@ document.getElementById('change-password-form').addEventListener('submit', async
         alertDiv.style.display = 'block';
     }
 });
+
+// ─── 2FA Tutorial ───
+let tutoStep = 0;
+const tutoTotal = 4;
+
+function toggleTutorial() {
+    const content = document.getElementById('tuto-content');
+    const text = document.getElementById('tuto-toggle-text');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        text.textContent = 'Masquer le tutoriel';
+        initTutoDots();
+        showTutoStep(0);
+    } else {
+        content.style.display = 'none';
+        text.textContent = 'Comment ça marche ?';
+    }
+}
+
+function initTutoDots() {
+    const indicator = document.getElementById('tuto-indicator');
+    indicator.innerHTML = '';
+    for (let i = 0; i < tutoTotal; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'tuto-dot' + (i === 0 ? ' tuto-dot-active' : '');
+        dot.onclick = () => showTutoStep(i);
+        indicator.appendChild(dot);
+    }
+}
+
+function showTutoStep(idx) {
+    tutoStep = idx;
+    for (let i = 1; i <= tutoTotal; i++) {
+        const el = document.getElementById('tuto-step-' + i);
+        if (el) {
+            if (i - 1 === idx) {
+                el.classList.add('tuto-step-active');
+            } else {
+                el.classList.remove('tuto-step-active');
+            }
+        }
+    }
+    const dots = document.querySelectorAll('.tuto-dot');
+    dots.forEach((d, i) => {
+        if (i === idx) d.classList.add('tuto-dot-active');
+        else d.classList.remove('tuto-dot-active');
+    });
+    document.getElementById('tuto-prev').disabled = idx === 0;
+    document.getElementById('tuto-next').disabled = idx === tutoTotal - 1;
+}
+
+function tutoNav(dir) {
+    const next = tutoStep + dir;
+    if (next >= 0 && next < tutoTotal) showTutoStep(next);
+}
 
 // ─── 2FA Functions ───
 let pending2FASecret = null;
