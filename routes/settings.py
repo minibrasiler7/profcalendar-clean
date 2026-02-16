@@ -200,9 +200,11 @@ def setup_2fa():
 
     secret = pyotp.random_base32()
     totp = pyotp.TOTP(secret)
+    # Format: otpauth://totp/ProfCalendar:username?secret=XXX&issuer=ProfCalendar
+    # Le username s'affiche dans l'app d'authentification, l'issuer identifie le site
     provisioning_uri = totp.provisioning_uri(
-        name=current_user.email,
-        issuer_name='ProfCalendar'
+        name=current_user.username,
+        issuer_name='ProfCalendar (profcalendar.org)'
     )
 
     # Générer le QR code en base64
