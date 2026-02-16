@@ -4856,19 +4856,41 @@ def load_seating_plan(classroom_param):
                 classroom_id = int(classroom_param)
                 classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
             except ValueError:
-                # Format nom de classe normale - chercher par nom
-                # Pour les classes normales, le paramètre est le nom du groupe de classe
-                # On doit chercher la première classroom de ce groupe
-                from models.classroom import Classroom
-                classrooms = Classroom.query.filter_by(
-                    user_id=current_user.id,
-                    class_group=classroom_param
-                ).all()
-                
-                if classrooms:
-                    classroom = classrooms[0]  # Prendre la première
+                # Format nom de classe - chercher d'abord par nom, puis par class_group
+                classroom = Classroom.query.filter_by(
+                    name=classroom_param,
+                    user_id=current_user.id
+                ).first()
+
+                if not classroom:
+                    # Essayer aussi par class_group
+                    classrooms = Classroom.query.filter_by(
+                        user_id=current_user.id,
+                        class_group=classroom_param
+                    ).all()
+                    if classrooms:
+                        classroom = classrooms[0]
+
+                # Si pas trouvé directement, vérifier les classes dérivées (collaboration)
+                if not classroom:
+                    from models.class_collaboration import SharedClassroom, TeacherCollaboration
+                    derived_classroom = Classroom.query.filter_by(name=classroom_param).first()
+                    if derived_classroom:
+                        shared = SharedClassroom.query.filter_by(
+                            derived_classroom_id=derived_classroom.id
+                        ).first()
+                        if shared:
+                            collaboration = TeacherCollaboration.query.filter_by(
+                                shared_classroom_id=shared.id,
+                                specialized_teacher_id=current_user.id,
+                                is_active=True
+                            ).first()
+                            if collaboration:
+                                classroom = derived_classroom
+
+                if classroom:
                     classroom_id = classroom.id
-        
+
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
