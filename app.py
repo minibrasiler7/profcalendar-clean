@@ -281,7 +281,7 @@ def create_app(config_name='development'):
         'evaluations.', 'attendance.', 'sanctions.',
         'collaboration.', 'file_manager.', 'class_files.'
     }
-    PREMIUM_EXACT = {'planning.manage_classes'}
+    PREMIUM_EXACT = {'planning.manage_classes', 'planning.decoupage'}
 
     @app.before_request
     def check_premium_access():
