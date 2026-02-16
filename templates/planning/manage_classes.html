@@ -6116,24 +6116,28 @@ function printSeatingPlan() {
     const originalPadding = seatingWorkspace.style.paddingTop;
     seatingWorkspace.style.paddingTop = '40px';
     
+    // Ajouter la classe CSS pour activer les règles @media print
+    document.body.classList.add('printing-seating-plan');
+
+    // Fonction de nettoyage après impression (ou annulation)
+    function cleanupAfterPrint() {
+        document.body.classList.remove('printing-seating-plan');
+        const titleElement = document.getElementById('print-title');
+        if (titleElement) {
+            titleElement.remove();
+        }
+        seatingWorkspace.style.paddingTop = originalPadding;
+        window.removeEventListener('afterprint', cleanupAfterPrint);
+    }
+
+    window.addEventListener('afterprint', cleanupAfterPrint);
+
     try {
-        // Lancer l'impression
         window.print();
     } catch (error) {
         console.error('Erreur lors de l\'impression:', error);
         showNotification('error', 'Erreur lors de l\'impression');
-    } finally {
-        // Nettoyer après impression
-        setTimeout(() => {
-            // Supprimer le titre temporaire
-            const titleElement = document.getElementById('print-title');
-            if (titleElement) {
-                titleElement.remove();
-            }
-            
-            // Restaurer le padding original
-            seatingWorkspace.style.paddingTop = originalPadding;
-        }, 500);
+        cleanupAfterPrint();
     }
 }
 
