@@ -5993,136 +5993,105 @@ function printSeatingPlan() {
     const contentWidth = maxX - minX;
     const contentHeight = maxY - minY;
     const padding = 40;
+    const titleHeight = 50;
 
     // Ouvrir une nouvelle fenêtre avec uniquement le plan
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
     if (!printWindow) {
         showNotification('error', 'Impossible d\'ouvrir la fenêtre d\'impression. Vérifiez que les pop-ups sont autorisés.');
         return;
     }
 
-    // Construire le HTML du plan
+    // Fonction pour copier les styles calculés en inline sur un élément et ses enfants
+    function copyComputedStyles(source, target) {
+        const computed = window.getComputedStyle(source);
+        // Propriétés clés à copier pour préserver le rendu
+        const props = [
+            'display', 'position', 'width', 'height', 'min-width', 'min-height',
+            'max-width', 'max-height', 'padding', 'margin', 'border',
+            'border-radius', 'background', 'background-color', 'color',
+            'font-family', 'font-size', 'font-weight', 'text-align',
+            'line-height', 'white-space', 'overflow', 'flex-direction',
+            'justify-content', 'align-items', 'gap', 'flex-shrink', 'flex',
+            'box-sizing', 'opacity'
+        ];
+        props.forEach(prop => {
+            target.style.setProperty(prop, computed.getPropertyValue(prop));
+        });
+        // Récursivement copier pour les enfants
+        const sourceChildren = source.children;
+        const targetChildren = target.children;
+        for (let i = 0; i < sourceChildren.length && i < targetChildren.length; i++) {
+            copyComputedStyles(sourceChildren[i], targetChildren[i]);
+        }
+    }
+
+    // Construire les éléments clonés avec styles inline
     let elementsHTML = '';
     elements.forEach(el => {
         const clone = el.cloneNode(true);
+        // Injecter dans le DOM temporairement pour accéder aux styles calculés
+        document.body.appendChild(clone);
+        // Ce n'est pas nécessaire car on va copier depuis l'original
+        document.body.removeChild(clone);
+
+        // Recréer le clone et copier les styles
+        const clone2 = el.cloneNode(true);
+        // Copier les styles calculés de l'original vers le clone
+        // On doit ajouter le clone au document temporairement
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        tempDiv.appendChild(clone2);
+        document.body.appendChild(tempDiv);
+
+        // Copier les styles depuis l'élément original
+        copyComputedStyles(el, clone2);
+
+        document.body.removeChild(tempDiv);
+
         // Repositionner par rapport aux bornes
         const newLeft = el.offsetLeft - minX + padding;
-        const newTop = el.offsetTop - minY + padding + 50; // +50 pour le titre
-        clone.style.left = newLeft + 'px';
-        clone.style.top = newTop + 'px';
-        clone.style.position = 'absolute';
-        // Retirer les boutons de suppression et curseur de déplacement
-        clone.querySelectorAll('.remove-student, .delete-element-btn').forEach(btn => btn.remove());
-        clone.style.cursor = 'default';
-        elementsHTML += clone.outerHTML;
+        const newTop = el.offsetTop - minY + padding + titleHeight;
+        clone2.style.left = newLeft + 'px';
+        clone2.style.top = newTop + 'px';
+        clone2.style.position = 'absolute';
+        clone2.style.cursor = 'default';
+
+        // Retirer les boutons interactifs
+        clone2.querySelectorAll('.remove-student, .delete-element-btn, .element-delete').forEach(btn => btn.remove());
+
+        elementsHTML += clone2.outerHTML;
     });
 
     const totalWidth = contentWidth + padding * 2;
-    const totalHeight = contentHeight + padding * 2 + 50;
+    const totalHeight = contentHeight + padding * 2 + titleHeight;
 
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Plan de classe - ${selectedClassroom}</title>
-    <style>
-        @page {
-            size: landscape;
-            margin: 8mm;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        .print-container {
-            position: relative;
-            width: ${totalWidth}px;
-            height: ${totalHeight}px;
-            margin: 0 auto;
-        }
-        .print-title {
-            text-align: center;
-            padding: 15px 0 10px 0;
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #333;
-        }
-        /* Éléments du plan */
-        .seating-element {
-            position: absolute;
-            border: 2px solid #333;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-        .desk-single, .desk-double {
-            background: #e3f2fd;
-            border-color: #1565c0;
-        }
-        .teacher-desk {
-            background: #fff3e0;
-            border-color: #e65100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: #e65100;
-        }
-        .student-slot {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.9);
-            min-height: 30px;
-        }
-        .student-slot.occupied {
-            background: #4caf50 !important;
-            border-color: #388e3c !important;
-        }
-        .student-placed {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: white;
-            text-align: center;
-            line-height: 1.2;
-        }
-        .remove-student, .delete-element-btn {
-            display: none !important;
-        }
-        .desk-label {
-            font-size: 0.65rem;
-            color: #666;
-            text-align: center;
-        }
-        @media print {
-            body { background: white; }
-            .no-print { display: none !important; }
-        }
-    </style>
-</head>
-<body>
-    <div class="print-container">
-        <div class="print-title">Plan de classe – ${selectedClassroom}</div>
-        ${elementsHTML}
-    </div>
-    <scr` + `ipt>
-        // Lancer l'impression automatiquement une fois la page chargée
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-                // Fermer la fenêtre après impression ou annulation
-                window.onafterprint = function() { window.close(); };
-                // Fallback pour Safari: fermer après un délai
-                setTimeout(function() { window.close(); }, 2000);
-            }, 300);
-        };
-    </scr` + `ipt>
-</body>
-</html>`);
+    printWindow.document.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<title>Plan de classe - ' + selectedClassroom + '</title>' +
+        '<style>' +
+        '@page { size: landscape; margin: 8mm; }' +
+        '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+        'body { background: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+        '.print-container { position: relative; width: ' + totalWidth + 'px; height: ' + totalHeight + 'px; margin: 0 auto; }' +
+        '.print-title { text-align: center; padding: 15px 0 10px 0; font-size: 1.3rem; font-weight: bold; color: #333; }' +
+        '</style>' +
+        '</head><body>' +
+        '<div class="print-container">' +
+        '<div class="print-title">Plan de classe \\u2013 ' + selectedClassroom + '</div>' +
+        elementsHTML +
+        '</div>' +
+        '<scr' + 'ipt>' +
+        'window.onload = function() {' +
+        '  setTimeout(function() {' +
+        '    window.print();' +
+        '    window.onafterprint = function() { window.close(); };' +
+        '    setTimeout(function() { window.close(); }, 2000);' +
+        '  }, 300);' +
+        '};' +
+        '</scr' + 'ipt>' +
+        '</body></html>');
     printWindow.document.close();
 }
 
