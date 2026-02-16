@@ -77,19 +77,12 @@ def _delete_classroom_dependencies(classroom_id):
 
     # --- 1. Gérer la chaîne de collaboration ---
     # Si cette classe est une classe originale (maître de classe),
-    # il faut aussi nettoyer les classes dérivées des enseignants spécialisés
-    shared_records = SharedClassroom.query.filter_by(original_classroom_id=classroom_id).all()
-    for shared in shared_records:
-        derived_id = shared.derived_classroom_id
-        # Nettoyer récursivement les dépendances de la classe dérivée
-        _delete_classroom_dependencies(derived_id)
-        # Supprimer la classe dérivée elle-même
-        from models.classroom import Classroom
-        derived = Classroom.query.get(derived_id)
-        if derived:
-            db.session.delete(derived)
+    # on détache les classes dérivées des enseignants spécialisés
+    # SANS les supprimer — les spécialisés conservent leurs données
+    # (les PDFs d'archive sont générés en amont comme filet de sécurité)
 
-    # Supprimer les enregistrements SharedClassroom où cette classe est impliquée
+    # Supprimer uniquement les enregistrements SharedClassroom (le lien)
+    # Les classes dérivées et toutes leurs données restent intactes
     SharedClassroom.query.filter_by(original_classroom_id=classroom_id).delete(synchronize_session='fetch')
     SharedClassroom.query.filter_by(derived_classroom_id=classroom_id).delete(synchronize_session='fetch')
 
