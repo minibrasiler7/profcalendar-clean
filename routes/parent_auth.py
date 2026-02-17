@@ -177,7 +177,23 @@ def register():
         
         # Vérifier si l'email existe déjà
         from utils.encryption import encryption_engine
-        if Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first():
+        existing_parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
+        if existing_parent:
+            # Si l'email n'est pas vérifié, renvoyer un code et rediriger vers la vérification
+            if not existing_parent.email_verified:
+                try:
+                    verification = EmailVerification.create_verification(email, 'parent')
+                    db.session.commit()
+                    send_verification_code(email, verification.code, 'parent')
+                    session['pending_user_id'] = existing_parent.id
+                    session['pending_user_type'] = 'parent'
+                    session['verification_email'] = email
+                    if request.is_json:
+                        return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email'), 'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.'})
+                    flash('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.', 'info')
+                    return redirect(url_for('parent_auth.verify_email'))
+                except Exception:
+                    pass
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Un compte avec cet email existe déjà'}), 400
             flash('Un compte avec cet email existe déjà', 'error')

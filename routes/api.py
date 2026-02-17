@@ -187,6 +187,22 @@ def student_register():
         return jsonify({'error': 'Aucun élève trouvé avec cet email dans cette classe.'}), 404
 
     if student.password_hash:
+        # Si l'email n'est pas vérifié, renvoyer un code et rediriger vers vérification
+        if not student.email_verified:
+            try:
+                from models.email_verification import EmailVerification
+                from services.email_service import send_verification_code
+                verification = EmailVerification.create_verification(student.email, 'student')
+                db.session.commit()
+                send_verification_code(student.email, verification.code, 'student')
+                return jsonify({
+                    'success': True,
+                    'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.',
+                    'needs_verification': True,
+                    'student_id': student.id
+                })
+            except Exception:
+                pass
         return jsonify({'error': 'Un compte existe déjà pour cet élève.'}), 409
 
     student.password_hash = generate_password_hash(password)
@@ -356,7 +372,24 @@ def parent_register():
     from utils.encryption import encryption_engine
     from models.parent import Parent
 
-    if Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first():
+    existing_parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
+    if existing_parent:
+        # Si l'email n'est pas vérifié, renvoyer un code et rediriger vers vérification
+        if not existing_parent.email_verified:
+            try:
+                from models.email_verification import EmailVerification
+                from services.email_service import send_verification_code
+                verification = EmailVerification.create_verification(email, 'parent')
+                db.session.commit()
+                send_verification_code(email, verification.code, 'parent')
+                return jsonify({
+                    'success': True,
+                    'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.',
+                    'needs_verification': True,
+                    'parent_id': existing_parent.id
+                })
+            except Exception:
+                pass
         return jsonify({'error': 'Un compte avec cet email existe déjà'}), 409
 
     try:

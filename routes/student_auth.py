@@ -135,6 +135,19 @@ def register():
         
         # Vérifier que l'élève n'a pas déjà un compte
         if student.password_hash:
+            # Si l'email n'est pas vérifié, renvoyer un code et rediriger
+            if not student.email_verified:
+                try:
+                    verification = EmailVerification.create_verification(student.email, 'student')
+                    db.session.commit()
+                    send_verification_code(student.email, verification.code, 'student')
+                    session['pending_user_id'] = student.id
+                    session['pending_user_type'] = 'student'
+                    session['verification_email'] = student.email
+                    flash('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.', 'info')
+                    return redirect(url_for('student_auth.verify_email_code'))
+                except Exception:
+                    pass
             flash('Un compte existe déjà pour cet élève.', 'error')
             return render_template('student/register.html', form=form)
         
