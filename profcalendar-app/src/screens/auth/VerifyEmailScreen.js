@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, StyleSheet, Alert } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback,
+  Keyboard, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
@@ -50,46 +53,58 @@ export default function VerifyEmailScreen({ route, navigation }) {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="mail-open" size={48} color={colors.primary} />
-      </View>
-      <Text style={styles.title}>Vérifiez votre email</Text>
-      <Text style={styles.subtitle}>
-        Un code de vérification a été envoyé à votre adresse email
-      </Text>
-
-      <TextInput
-        style={styles.codeInput}
-        placeholder="Code de vérification"
-        value={code}
-        onChangeText={setCode}
-        keyboardType="number-pad"
-        textAlign="center"
-        maxLength={6}
-        autoFocus
-      />
-
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleVerify}
-        disabled={loading}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <Text style={styles.buttonText}>{loading ? 'Vérification...' : 'Vérifier'}</Text>
-      </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={styles.iconCircle}>
+            <Ionicons name="mail-open" size={48} color={colors.primary} />
+          </View>
+          <Text style={styles.title}>Vérifiez votre email</Text>
+          <Text style={styles.subtitle}>
+            Un code de vérification a été envoyé à votre adresse email
+          </Text>
 
-      <TouchableOpacity onPress={handleResend} disabled={resending} style={{ marginTop: 20 }}>
-        <Text style={styles.link}>
-          {resending ? 'Envoi en cours...' : 'Renvoyer le code'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+          <TextInput
+            style={styles.codeInput}
+            placeholder="Code de vérification"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            textAlign="center"
+            maxLength={6}
+            autoFocus
+          />
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleVerify}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Vérification...' : 'Vérifier'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleResend} disabled={resending} style={{ marginTop: 20 }}>
+            <Text style={styles.link}>
+              {resending ? 'Envoi en cours...' : 'Renvoyer le code'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  container: {
+    flexGrow: 1, padding: 24, backgroundColor: colors.background,
+    justifyContent: 'center', alignItems: 'center',
+  },
   iconCircle: {
     width: 90, height: 90, borderRadius: 45,
     backgroundColor: colors.primary + '20',
