@@ -20,6 +20,34 @@ from werkzeug.utils import secure_filename
 
 parent_auth_bp = Blueprint('parent_auth', __name__, url_prefix='/parent')
 
+@parent_auth_bp.before_request
+def check_parent_email_verified():
+    """Vérifier que l'email est vérifié pour toutes les routes protégées."""
+    public_routes = [
+        'parent_auth.login', 'parent_auth.register',
+        'parent_auth.verify_email', 'parent_auth.resend_code',
+        'parent_auth.logout'
+    ]
+    if request.endpoint in public_routes:
+        return None
+
+    if current_user.is_authenticated and isinstance(current_user, Parent):
+        if not current_user.email_verified:
+            try:
+                verification = EmailVerification.create_verification(current_user.email, 'parent')
+                db.session.commit()
+                send_verification_code(current_user.email, verification.code, 'parent')
+            except Exception:
+                pass
+            session['pending_user_id'] = current_user.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = current_user.email
+            logout_user()
+            session.pop('user_type', None)
+            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            return redirect(url_for('parent_auth.verify_email'))
+    return None
+
 def get_all_linked_students(original_student_id):
     """Récupérer tous les élèves liés (original + copies dans les classes dérivées)"""
     from models.class_collaboration import SharedClassroom, StudentClassroomLink

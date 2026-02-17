@@ -16,6 +16,36 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationE
 
 student_auth_bp = Blueprint('student_auth', __name__, url_prefix='/student')
 
+@student_auth_bp.before_request
+def check_student_email_verified():
+    """Vérifier que l'email est vérifié pour toutes les routes protégées."""
+    # Routes qui ne nécessitent pas de vérification d'email
+    public_routes = [
+        'student_auth.login', 'student_auth.register',
+        'student_auth.verify_code', 'student_auth.verify_email_code',
+        'student_auth.resend_code', 'student_auth.logout'
+    ]
+    if request.endpoint in public_routes:
+        return None
+
+    if current_user.is_authenticated and isinstance(current_user, Student):
+        if not current_user.email_verified:
+            # Envoyer un nouveau code et rediriger vers la vérification
+            try:
+                verification = EmailVerification.create_verification(current_user.email, 'student')
+                db.session.commit()
+                send_verification_code(current_user.email, verification.code, 'student')
+            except Exception:
+                pass
+            session['pending_user_id'] = current_user.id
+            session['pending_user_type'] = 'student'
+            session['verification_email'] = current_user.email
+            logout_user()
+            session.pop('user_type', None)
+            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            return redirect(url_for('student_auth.verify_email_code'))
+    return None
+
 class StudentLoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Mot de passe', validators=[DataRequired()])
@@ -205,6 +235,18 @@ def verify_code():
 
             try:
                 db.session.commit()
+
+                # Vérifier si l'email est vérifié avant de connecter
+                if not student.email_verified:
+                    verification = EmailVerification.create_verification(student.email, 'student')
+                    db.session.commit()
+                    send_verification_code(student.email, verification.code, 'student')
+                    session['pending_user_id'] = student.id
+                    session['pending_user_type'] = 'student'
+                    session['verification_email'] = student.email
+                    flash('Code d\'accès validé ! Veuillez maintenant vérifier votre email.', 'info')
+                    return redirect(url_for('student_auth.verify_email_code'))
+
                 # Connexion via Flask-Login
                 session['user_type'] = 'student'
                 login_user(student, remember=True)
