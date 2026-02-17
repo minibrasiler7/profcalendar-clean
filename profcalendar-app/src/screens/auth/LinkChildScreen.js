@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -33,6 +33,7 @@ export default function LinkChildScreen({ navigation }) {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={styles.container}>
       <View style={styles.iconCircle}>
         <Ionicons name="link" size={40} color={colors.secondary} />
@@ -70,6 +71,7 @@ export default function LinkChildScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 

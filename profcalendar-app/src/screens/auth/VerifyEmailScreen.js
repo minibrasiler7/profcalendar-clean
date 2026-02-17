@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
@@ -49,6 +49,7 @@ export default function VerifyEmailScreen({ route, navigation }) {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <View style={styles.container}>
       <View style={styles.iconCircle}>
         <Ionicons name="mail-open" size={48} color={colors.primary} />
@@ -83,6 +84,7 @@ export default function VerifyEmailScreen({ route, navigation }) {
         </Text>
       </TouchableOpacity>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 
