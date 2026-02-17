@@ -86,9 +86,28 @@ def parent_required(f):
             # Pour les requêtes AJAX, retourner une erreur JSON
             if request.is_json or request.headers.get('Accept') == 'application/json':
                 return jsonify({'error': 'Accès réservé aux parents'}), 403
-            
+
             flash('Accès réservé aux parents', 'error')
             return redirect(url_for('parent_auth.login'))
+
+        # Vérifier que l'email est vérifié
+        if not current_user.email_verified:
+            try:
+                verification = EmailVerification.create_verification(current_user.email, 'parent')
+                db.session.commit()
+                send_verification_code(current_user.email, verification.code, 'parent')
+            except Exception:
+                pass
+            session['pending_user_id'] = current_user.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = current_user.email
+            logout_user()
+            session.pop('user_type', None)
+            if request.is_json or request.headers.get('Accept') == 'application/json':
+                return jsonify({'error': 'Email non vérifié', 'redirect': url_for('parent_auth.verify_email')}), 403
+            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            return redirect(url_for('parent_auth.verify_email'))
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -458,6 +477,22 @@ def resend_code():
 @parent_required
 def dashboard():
     """Tableau de bord des parents"""
+    # Double vérification : email vérifié (sécurité supplémentaire)
+    if not current_user.email_verified:
+        try:
+            verification = EmailVerification.create_verification(current_user.email, 'parent')
+            db.session.commit()
+            send_verification_code(current_user.email, verification.code, 'parent')
+        except Exception:
+            pass
+        session['pending_user_id'] = current_user.id
+        session['pending_user_type'] = 'parent'
+        session['verification_email'] = current_user.email
+        logout_user()
+        session.pop('user_type', None)
+        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        return redirect(url_for('parent_auth.verify_email'))
+
     if not current_user.teacher_id:
         return redirect(url_for('parent_auth.link_teacher'))
 

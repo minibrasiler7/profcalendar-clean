@@ -16,6 +16,30 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationE
 
 student_auth_bp = Blueprint('student_auth', __name__, url_prefix='/student')
 
+def _check_student_email_verified_session():
+    """Vérifie email_verified pour les routes basées sur session['student_id'].
+    Retourne un redirect si l'email n'est pas vérifié, sinon None."""
+    student_id = session.get('student_id')
+    if not student_id:
+        return None
+    student = Student.query.get(student_id)
+    if student and not student.email_verified:
+        try:
+            verification = EmailVerification.create_verification(student.email, 'student')
+            db.session.commit()
+            send_verification_code(student.email, verification.code, 'student')
+        except Exception:
+            pass
+        session.pop('student_id', None)
+        session.pop('user_type', None)
+        session['pending_user_id'] = student.id
+        session['pending_user_type'] = 'student'
+        session['verification_email'] = student.email
+        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        return redirect(url_for('student_auth.verify_email_code'))
+    return None
+
+
 @student_auth_bp.before_request
 def check_student_email_verified():
     """Vérifier que l'email est vérifié pour toutes les routes protégées."""
@@ -28,6 +52,7 @@ def check_student_email_verified():
     if request.endpoint in public_routes:
         return None
 
+    # Vérification pour les utilisateurs connectés via Flask-Login
     if current_user.is_authenticated and isinstance(current_user, Student):
         if not current_user.email_verified:
             # Envoyer un nouveau code et rediriger vers la vérification
@@ -44,6 +69,12 @@ def check_student_email_verified():
             session.pop('user_type', None)
             flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
             return redirect(url_for('student_auth.verify_email_code'))
+
+    # Vérification pour les routes basées sur session['student_id']
+    redirect_response = _check_student_email_verified_session()
+    if redirect_response:
+        return redirect_response
+
     return None
 
 class StudentLoginForm(FlaskForm):
@@ -341,6 +372,22 @@ def dashboard():
     student = current_user
     if not student.is_authenticated:
         return redirect(url_for('student_auth.login'))
+
+    # Double vérification : email vérifié (sécurité supplémentaire)
+    if not student.email_verified:
+        try:
+            verification = EmailVerification.create_verification(student.email, 'student')
+            db.session.commit()
+            send_verification_code(student.email, verification.code, 'student')
+        except Exception:
+            pass
+        session['pending_user_id'] = student.id
+        session['pending_user_type'] = 'student'
+        session['verification_email'] = student.email
+        logout_user()
+        session.pop('user_type', None)
+        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        return redirect(url_for('student_auth.verify_email_code'))
     
     # Récupérer toutes les copies de l'élève dans les classes dérivées
     all_student_ids = [student.id]
@@ -444,6 +491,9 @@ def grades():
     student = current_user
     if not student.is_authenticated:
         return redirect(url_for('student_auth.login'))
+
+    if not student.email_verified:
+        return redirect(url_for('student_auth.verify_email_code'))
     
     # Récupérer toutes les copies de l'élève dans les classes dérivées
     all_student_ids = [student.id]
@@ -503,10 +553,13 @@ def files():
     """Affichage des fichiers partagés par les enseignants"""
     if 'student_id' not in session or session.get('user_type') != 'student':
         return redirect(url_for('student_auth.login'))
-    
+
     student = Student.query.get(session['student_id'])
     if not student:
         return redirect(url_for('student_auth.login'))
+
+    if not student.email_verified:
+        return redirect(url_for('student_auth.verify_email_code'))
     
     # Récupérer tous les élèves liés (classe originale + classes dérivées)
     all_student_ids = [student.id]
@@ -549,10 +602,13 @@ def download_file(file_id):
     """Télécharger un fichier partagé avec l'élève"""
     if 'student_id' not in session or session.get('user_type') != 'student':
         return redirect(url_for('student_auth.login'))
-    
+
     student = Student.query.get(session['student_id'])
     if not student:
         return redirect(url_for('student_auth.login'))
+
+    if not student.email_verified:
+        return redirect(url_for('student_auth.verify_email_code'))
     
     try:
         from flask import send_file, current_app
@@ -626,10 +682,13 @@ def preview_file(file_id):
     """Prévisualiser un fichier partagé avec l'élève (affichage dans le navigateur)"""
     if 'student_id' not in session or session.get('user_type') != 'student':
         return redirect(url_for('student_auth.login'))
-    
+
     student = Student.query.get(session['student_id'])
     if not student:
         return redirect(url_for('student_auth.login'))
+
+    if not student.email_verified:
+        return redirect(url_for('student_auth.verify_email_code'))
     
     try:
         from flask import send_file, current_app
@@ -711,10 +770,13 @@ def teachers():
     """Afficher la liste des enseignants de l'élève"""
     if 'student_id' not in session or session.get('user_type') != 'student':
         return redirect(url_for('student_auth.login'))
-    
+
     student = Student.query.get(session['student_id'])
     if not student:
         return redirect(url_for('student_auth.login'))
+
+    if not student.email_verified:
+        return redirect(url_for('student_auth.verify_email_code'))
     
     try:
         # Récupérer l'enseignant maître de classe
