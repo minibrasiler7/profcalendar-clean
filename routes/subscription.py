@@ -35,6 +35,9 @@ def checkout():
         price_id = current_app.config.get('STRIPE_PRICE_MONTHLY')
 
     if not price_id:
+        current_app.logger.error(f"STRIPE_PRICE_MONTHLY={current_app.config.get('STRIPE_PRICE_MONTHLY')}")
+        current_app.logger.error(f"STRIPE_PRICE_ANNUAL={current_app.config.get('STRIPE_PRICE_ANNUAL')}")
+        current_app.logger.error(f"billing_cycle={billing_cycle}, price_id={price_id}")
         return jsonify({'error': 'Configuration de prix manquante'}), 500
 
     try:
