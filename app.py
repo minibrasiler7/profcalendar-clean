@@ -153,6 +153,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ send_to_students blueprint non trouvé")
 
+    # Blueprint API mobile (JWT)
+    try:
+        from routes.api import api_bp
+        app.register_blueprint(api_bp)
+        print("✅ api blueprint ajouté")
+    except ImportError:
+        print("❌ api blueprint non trouvé")
+
     # Blueprint fin d'année scolaire
     try:
         from routes.year_end import year_end_bp
