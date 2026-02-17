@@ -48,6 +48,21 @@ class ProductionConfig:
     # Utiliser le stockage persistant Render si disponible
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/opt/render/project/src/uploads')
     
+    # Configuration Resend (service d'envoi email transactionnel)
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+    RESEND_FROM_EMAIL = os.environ.get('RESEND_FROM_EMAIL', 'noreply@profcalendar.org')
+
+    # Configuration Stripe (abonnements)
+    STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
+    STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+    STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+    STRIPE_PRICE_MONTHLY = os.environ.get('STRIPE_PRICE_MONTHLY')
+    STRIPE_PRICE_ANNUAL = os.environ.get('STRIPE_PRICE_ANNUAL')
+
+    # WTForms
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None
+
     # Rate limiting
     RATE_LIMIT_ENABLED = os.environ.get('RATE_LIMIT_ENABLED', 'True').lower() == 'true'
     RATE_LIMIT_DEFAULT = os.environ.get('RATE_LIMIT_DEFAULT', '100 per hour')
@@ -123,10 +138,12 @@ class ProductionConfig:
             # CSP de base
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
                 "font-src 'self' https://cdnjs.cloudflare.com; "
-                "img-src 'self' data:; "
+                "img-src 'self' data: https://*.stripe.com; "
+                "frame-src https://js.stripe.com https://hooks.stripe.com; "
+                "connect-src 'self' https://api.stripe.com; "
             )
             
             # HTTPS obligatoire si configuré
