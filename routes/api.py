@@ -583,8 +583,8 @@ def student_dashboard():
 
     files_data = [{
         'id': f.id,
-        'filename': f.original_filename,
-        'file_type': f.file_type,
+        'filename': f.user_file.original_filename if f.user_file else 'Fichier inconnu',
+        'file_type': f.user_file.file_type if f.user_file else None,
         'shared_at': s.shared_at.isoformat(),
         'message': s.message
     } for s, f in recent_files]
@@ -725,9 +725,9 @@ def student_files():
 
     files_data = [{
         'id': f.id,
-        'filename': f.original_filename,
-        'file_type': f.file_type,
-        'file_size': f.file_size,
+        'filename': f.user_file.original_filename if f.user_file else 'Fichier inconnu',
+        'file_type': f.user_file.file_type if f.user_file else None,
+        'file_size': f.user_file.file_size if f.user_file else None,
         'shared_at': s.shared_at.isoformat(),
         'message': s.message,
         'viewed': s.viewed_at is not None
@@ -763,17 +763,30 @@ def student_download_file(file_id):
     share, class_file = result
     share.mark_as_viewed()
 
-    if class_file.is_student_shared:
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared',
-                                 str(class_file.classroom_id), class_file.filename)
-    else:
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files',
-                                 str(class_file.classroom_id), class_file.filename)
+    if not class_file.user_file:
+        return jsonify({'error': 'Fichier source introuvable'}), 404
+
+    user_file = class_file.user_file
+
+    # Essayer d'abord le BLOB
+    if user_file.file_content:
+        from flask import Response
+        mimetype = user_file.mime_type or 'application/octet-stream'
+        return Response(
+            user_file.file_content,
+            mimetype=mimetype,
+            headers={
+                'Content-Disposition': f'attachment; filename="{user_file.original_filename}"'
+            }
+        )
+
+    # Sinon, fichier physique
+    file_path = os.path.join(current_app.root_path, user_file.get_file_path())
 
     if not os.path.exists(file_path):
         return jsonify({'error': 'Fichier physique introuvable'}), 404
 
-    return send_file(file_path, as_attachment=True, download_name=class_file.original_filename)
+    return send_file(file_path, as_attachment=True, download_name=user_file.original_filename)
 
 
 @api_bp.route('/student/teachers', methods=['GET'])

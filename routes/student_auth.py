@@ -649,30 +649,41 @@ def download_file(file_id):
             return redirect(url_for('student_auth.files'))
         
         share, class_file = file_share
-        
+
         # Marquer comme vu
         share.mark_as_viewed()
-        
-        # Construire le chemin du fichier selon le type
-        if class_file.is_student_shared:
-            # Fichier partagé avec les élèves
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', 
-                                   str(class_file.classroom_id), class_file.filename)
-        else:
-            # Fichier normal de classe
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
-                                   str(class_file.classroom_id), class_file.filename)
-        
+
+        if not class_file.user_file:
+            flash('Fichier source introuvable.', 'error')
+            return redirect(url_for('student_auth.files'))
+
+        user_file = class_file.user_file
+
+        # Essayer d'abord le BLOB
+        if user_file.file_content:
+            from flask import Response
+            mimetype = user_file.mime_type or 'application/octet-stream'
+            return Response(
+                user_file.file_content,
+                mimetype=mimetype,
+                headers={
+                    'Content-Disposition': f'attachment; filename="{user_file.original_filename}"'
+                }
+            )
+
+        # Sinon, fichier physique
+        file_path = os.path.join(current_app.root_path, user_file.get_file_path())
+
         if not os.path.exists(file_path):
             flash('Fichier physique introuvable.', 'error')
             return redirect(url_for('student_auth.files'))
-        
+
         return send_file(
-            file_path, 
+            file_path,
             as_attachment=True,
-            download_name=class_file.original_filename
+            download_name=user_file.original_filename
         )
-        
+
     except Exception as e:
         flash(f'Erreur lors du téléchargement: {str(e)}', 'error')
         return redirect(url_for('student_auth.files'))
@@ -689,22 +700,22 @@ def preview_file(file_id):
 
     if not student.email_verified:
         return redirect(url_for('student_auth.verify_email_code'))
-    
+
     try:
         from flask import send_file, current_app
         from models.file_sharing import StudentFileShare
         from models.class_file import ClassFile
         import os
-        
+
         # Récupérer tous les élèves liés (classe originale + classes dérivées)
         all_student_ids = [student.id]
-        
+
         # Trouver les classes dérivées
         from models.class_collaboration import SharedClassroom
         shared_classrooms = SharedClassroom.query.filter_by(
             original_classroom_id=student.classroom_id
         ).all()
-        
+
         for shared in shared_classrooms:
             derived_student = Student.query.filter_by(
                 classroom_id=shared.derived_classroom_id,
@@ -714,7 +725,7 @@ def preview_file(file_id):
             ).first()
             if derived_student:
                 all_student_ids.append(derived_student.id)
-        
+
         # Vérifier que le fichier est partagé avec cet élève
         file_share = db.session.query(StudentFileShare, ClassFile).join(
             ClassFile, StudentFileShare.file_id == ClassFile.id
@@ -723,41 +734,41 @@ def preview_file(file_id):
             StudentFileShare.student_id.in_(all_student_ids),
             StudentFileShare.is_active == True
         ).first()
-        
+
         if not file_share:
             flash('Fichier introuvable ou non autorisé.', 'error')
             return redirect(url_for('student_auth.files'))
-        
+
         share, class_file = file_share
-        
+
         # Marquer comme vu
         share.mark_as_viewed()
-        
-        # Construire le chemin du fichier selon le type
-        if class_file.is_student_shared:
-            # Fichier partagé avec les élèves
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', 
-                                   str(class_file.classroom_id), class_file.filename)
-        else:
-            # Fichier normal de classe
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', 
-                                   str(class_file.classroom_id), class_file.filename)
-        
+
+        if not class_file.user_file:
+            flash('Fichier source introuvable.', 'error')
+            return redirect(url_for('student_auth.files'))
+
+        user_file = class_file.user_file
+        mimetype = user_file.mime_type or 'application/octet-stream'
+
+        # Essayer d'abord le BLOB
+        if user_file.file_content:
+            from flask import Response
+            return Response(
+                user_file.file_content,
+                mimetype=mimetype,
+                headers={
+                    'Content-Disposition': f'inline; filename="{user_file.original_filename}"'
+                }
+            )
+
+        # Sinon, fichier physique
+        file_path = os.path.join(current_app.root_path, user_file.get_file_path())
+
         if not os.path.exists(file_path):
             flash('Fichier physique introuvable.', 'error')
             return redirect(url_for('student_auth.files'))
-        
-        # Déterminer le type MIME
-        mimetype = 'application/octet-stream'
-        if class_file.file_type == 'pdf':
-            mimetype = 'application/pdf'
-        elif class_file.file_type in ['png', 'jpg', 'jpeg']:
-            mimetype = f'image/{class_file.file_type}'
-        elif class_file.file_type in ['txt']:
-            mimetype = 'text/plain'
-        elif class_file.file_type in ['doc', 'docx']:
-            mimetype = 'application/msword'
-        
+
         # Envoyer le fichier pour affichage dans le navigateur (pas en téléchargement)
         return send_file(file_path, mimetype=mimetype)
         

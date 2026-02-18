@@ -70,10 +70,30 @@ def send_pdf_to_students():
             if not is_authorized:
                 return jsonify({'success': False, 'message': 'Accès non autorisé à cette classe'}), 403
 
-        # Vérifier que tous les élèves appartiennent à la même classe
+        # Vérifier que tous les élèves appartiennent à la classe ou à une classe liée
+        from models.class_collaboration import SharedClassroom
+
+        # Collecter tous les classroom_ids liés (original + dérivés)
+        valid_classroom_ids = [classroom.id]
+        # Chercher les classes dérivées de cette classe
+        derived = SharedClassroom.query.filter_by(original_classroom_id=classroom.id).all()
+        for d in derived:
+            valid_classroom_ids.append(d.derived_classroom_id)
+        # Chercher si cette classe est une dérivée (pour trouver l'originale)
+        original = SharedClassroom.query.filter_by(derived_classroom_id=classroom.id).first()
+        if original:
+            valid_classroom_ids.append(original.original_classroom_id)
+            # Et aussi les autres dérivées de la même originale
+            siblings = SharedClassroom.query.filter_by(
+                original_classroom_id=original.original_classroom_id
+            ).all()
+            for s in siblings:
+                if s.derived_classroom_id not in valid_classroom_ids:
+                    valid_classroom_ids.append(s.derived_classroom_id)
+
         students = Student.query.filter(
             Student.id.in_(student_ids),
-            Student.classroom_id == classroom.id
+            Student.classroom_id.in_(valid_classroom_ids)
         ).all()
 
         if len(students) != len(student_ids):
