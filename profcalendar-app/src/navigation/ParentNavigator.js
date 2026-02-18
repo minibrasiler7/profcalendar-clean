@@ -10,6 +10,7 @@ import MoreScreen from '../screens/parent/MoreScreen';
 import TeachersScreen from '../screens/parent/TeachersScreen';
 import RemarksScreen from '../screens/parent/RemarksScreen';
 import JustifyAbsenceScreen from '../screens/parent/JustifyAbsenceScreen';
+import AddChildScreen from '../screens/parent/AddChildScreen';
 import colors from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -27,6 +28,7 @@ function MoreStack() {
       <Stack.Screen name="Teachers" component={TeachersScreen} options={{ title: 'Enseignants' }} />
       <Stack.Screen name="Remarks" component={RemarksScreen} options={{ title: 'Remarques' }} />
       <Stack.Screen name="JustifyAbsence" component={JustifyAbsenceScreen} options={{ title: 'Justifier absence' }} />
+      <Stack.Screen name="AddChild" component={AddChildScreen} options={{ title: 'Ajouter un enfant' }} />
     </Stack.Navigator>
   );
 }

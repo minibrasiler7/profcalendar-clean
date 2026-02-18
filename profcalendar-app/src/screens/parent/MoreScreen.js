@@ -8,6 +8,7 @@ export default function MoreScreen({ navigation }) {
   const { logout } = useAuth();
 
   const items = [
+    { icon: 'person-add', label: 'Ajouter un enfant', screen: 'AddChild', color: colors.success || '#22C55E' },
     { icon: 'chatbubble-ellipses', label: 'Remarques des enseignants', screen: 'Remarks', color: colors.info },
     { icon: 'people', label: 'Enseignants', screen: 'Teachers', color: colors.primary },
     { icon: 'document-text', label: 'Justifier une absence', screen: 'JustifyAbsence', color: colors.secondary },
