@@ -284,6 +284,36 @@ def create_app(config_name='development'):
         except Exception:
             db.session.rollback()
 
+        # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
+        try:
+            # Vérifier si la contrainte pointe encore vers class_files (legacy)
+            result = db.session.execute(db.text("""
+                SELECT tc.constraint_name
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.constraint_column_usage ccu
+                    ON tc.constraint_name = ccu.constraint_name
+                WHERE tc.table_name = 'student_file_shares'
+                    AND tc.constraint_type = 'FOREIGN KEY'
+                    AND ccu.table_name = 'class_files'
+                    AND ccu.column_name = 'id'
+            """))
+            old_fk = result.fetchone()
+            if old_fk:
+                constraint_name = old_fk[0]
+                db.session.execute(db.text(
+                    f"ALTER TABLE student_file_shares DROP CONSTRAINT {constraint_name}"
+                ))
+                db.session.execute(db.text(
+                    "ALTER TABLE student_file_shares ADD CONSTRAINT student_file_shares_file_id_fkey "
+                    "FOREIGN KEY (file_id) REFERENCES class_files_v2(id)"
+                ))
+                db.session.commit()
+                print("✅ Migration FK student_file_shares: class_files → class_files_v2")
+            else:
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     # Middleware : contrôle d'accès premium
     PREMIUM_ENDPOINTS = {
         'evaluations.', 'attendance.', 'sanctions.',
