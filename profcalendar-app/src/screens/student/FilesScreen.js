@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import api from '../../api/client';
 import FileCard from '../../components/FileCard';
 import colors from '../../theme/colors';
@@ -9,6 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 export default function FilesScreen() {
   const [files, setFiles] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [downloading, setDownloading] = useState(null);
 
   const fetchFiles = async () => {
     try {
@@ -29,19 +32,43 @@ export default function FilesScreen() {
 
   const handleDownload = async (file) => {
     try {
-      // Ouvrir le lien de téléchargement dans le navigateur
       const token = await SecureStore.getItemAsync('token');
       const url = `${api.defaults.baseURL}/student/files/${file.id}/download`;
-      // Note : le téléchargement via navigateur nécessite le token
-      // Pour une v2, on peut utiliser expo-file-system pour télécharger avec le header auth
+      const filename = file.filename || `fichier_${file.id}`;
+
       Alert.alert(
         'Téléchargement',
-        `Voulez-vous télécharger "${file.filename}" ?`,
+        `Voulez-vous télécharger "${filename}" ?`,
         [
           { text: 'Annuler', style: 'cancel' },
-          { text: 'Télécharger', onPress: () => {
-            // Pour le moment, notifier que le téléchargement sera fait via le navigateur
-            Alert.alert('Info', 'Le téléchargement de fichiers sera disponible dans une prochaine version.');
+          { text: 'Télécharger', onPress: async () => {
+            try {
+              setDownloading(file.id);
+              const fileUri = FileSystem.documentDirectory + filename;
+              const downloadResult = await FileSystem.downloadAsync(url, fileUri, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if (downloadResult.status === 200) {
+                // Proposer de partager/ouvrir le fichier
+                const canShare = await Sharing.isAvailableAsync();
+                if (canShare) {
+                  await Sharing.shareAsync(downloadResult.uri, {
+                    mimeType: downloadResult.headers['content-type'] || 'application/octet-stream',
+                    dialogTitle: `Ouvrir ${filename}`,
+                  });
+                } else {
+                  Alert.alert('Succès', `"${filename}" téléchargé avec succès.`);
+                }
+              } else {
+                Alert.alert('Erreur', 'Impossible de télécharger le fichier. Veuillez réessayer.');
+              }
+            } catch (dlErr) {
+              console.log('Download error:', dlErr);
+              Alert.alert('Erreur', 'Erreur lors du téléchargement du fichier.');
+            } finally {
+              setDownloading(null);
+            }
           }},
         ]
       );

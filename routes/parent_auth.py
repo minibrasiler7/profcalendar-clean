@@ -134,7 +134,21 @@ def login():
         # Rechercher le parent par hash d'email
         from utils.encryption import encryption_engine
         parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
-        
+
+        # Fallback : recherche par email en clair si le hash ne correspond pas
+        if not parent:
+            all_parents = Parent.query.all()
+            for p in all_parents:
+                if p.email and p.email.strip().lower() == email:
+                    parent = p
+                    # Mettre à jour le hash pour les prochaines connexions
+                    try:
+                        parent.email_hash = encryption_engine.hash_email(email)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                    break
+
         if parent and parent.check_password(password):
             # Vérifier si l'email est vérifié
             if not parent.email_verified:

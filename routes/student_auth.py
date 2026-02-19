@@ -112,8 +112,23 @@ def login():
     
     if form.validate_on_submit():
         from utils.encryption import encryption_engine
-        student = Student.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
-        
+        email_input = form.email.data.strip().lower()
+        student = Student.query.filter_by(email_hash=encryption_engine.hash_email(email_input)).first()
+
+        # Fallback : recherche par email en clair si le hash ne correspond pas
+        if not student:
+            all_students = Student.query.filter(Student.password_hash.isnot(None)).all()
+            for s in all_students:
+                if s.email and s.email.strip().lower() == email_input:
+                    student = s
+                    # Mettre à jour le hash pour les prochaines connexions
+                    try:
+                        student.email_hash = encryption_engine.hash_email(email_input)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                    break
+
         if student and student.password_hash and check_password_hash(student.password_hash, form.password.data):
             # Vérifier si l'élève a déjà validé un code d'accès
             if not student.is_authenticated:
