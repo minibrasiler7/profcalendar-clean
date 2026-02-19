@@ -451,6 +451,8 @@ def verify_email():
             db.session.commit()
 
             flash('Email vérifié avec succès !', 'success')
+            if parent.teacher_id:
+                return redirect(url_for('parent_auth.dashboard'))
             return redirect(url_for('parent_auth.link_teacher'))
         else:
             flash('Code invalide ou expiré.', 'error')

@@ -105,6 +105,19 @@ def student_login():
 
     student = Student.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
 
+    # Fallback : recherche par email en clair si le hash ne correspond pas
+    if not student:
+        all_students = Student.query.filter(Student.password_hash.isnot(None)).all()
+        for s in all_students:
+            if s.email and s.email.strip().lower() == email:
+                student = s
+                try:
+                    student.email_hash = encryption_engine.hash_email(email)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                break
+
     if not student or not student.password_hash:
         return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
 
@@ -319,6 +332,19 @@ def parent_login():
     from models.parent import Parent
 
     parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
+
+    # Fallback : recherche par email en clair si le hash ne correspond pas
+    if not parent:
+        all_parents = Parent.query.all()
+        for p in all_parents:
+            if p.email and p.email.strip().lower() == email:
+                parent = p
+                try:
+                    parent.email_hash = encryption_engine.hash_email(email)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                break
 
     if not parent or not parent.check_password(password):
         return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
