@@ -1312,6 +1312,12 @@ def parent_add_child():
     if tname != teacher.username.lower() and tname != teacher.email.lower():
         return jsonify({'error': 'Le nom de l\'enseignant ne correspond pas.'}), 400
 
+    # Mettre à jour le teacher_id si pas encore défini
+    if not parent.teacher_id:
+        parent.teacher_id = teacher.id
+        parent.teacher_name = teacher_name
+        parent.class_code = class_code
+
     children_linked = link_children_automatically(parent, code_obj.classroom_id)
     db.session.commit()
 

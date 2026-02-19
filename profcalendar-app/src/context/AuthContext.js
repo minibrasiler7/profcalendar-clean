@@ -77,6 +77,11 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
+  const updateUser = async (newUserData) => {
+    setUser(newUserData);
+    await SecureStore.setItemAsync('user', JSON.stringify(newUserData));
+  };
+
   const logout = async () => {
     await SecureStore.deleteItemAsync('token');
     await SecureStore.deleteItemAsync('user');
@@ -88,7 +93,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, userType, token, loading, login, register, verifyEmail, logout }}
+      value={{ user, userType, token, loading, login, register, verifyEmail, updateUser, logout }}
     >
       {children}
     </AuthContext.Provider>

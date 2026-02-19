@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import StudentNavigator from './src/navigation/StudentNavigator';
 import ParentNavigator from './src/navigation/ParentNavigator';
+import LinkTeacherScreen from './src/screens/parent/LinkTeacherScreen';
 import colors from './src/theme/colors';
 
 function RootNavigator() {
@@ -21,7 +22,10 @@ function RootNavigator() {
 
   if (!user) return <AuthNavigator />;
   if (userType === 'student') return <StudentNavigator />;
-  if (userType === 'parent') return <ParentNavigator />;
+  if (userType === 'parent') {
+    if (user.needs_link) return <LinkTeacherScreen />;
+    return <ParentNavigator />;
+  }
   return <AuthNavigator />;
 }
 

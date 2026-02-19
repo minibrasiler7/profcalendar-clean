@@ -564,14 +564,13 @@ def grades():
                          grades_by_subject=grades_by_subject)
 
 @student_auth_bp.route('/files')
+@login_required
 def files():
     """Affichage des fichiers partagés par les enseignants"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
 
-    student = Student.query.get(session['student_id'])
-    if not student:
-        return redirect(url_for('student_auth.login'))
+    student = current_user
 
     if not student.email_verified:
         return redirect(url_for('student_auth.verify_email_code'))
@@ -613,14 +612,13 @@ def files():
     return render_template('student/files.html', student=student, shared_files=shared_files)
 
 @student_auth_bp.route('/download/<int:file_id>')
+@login_required
 def download_file(file_id):
     """Télécharger un fichier partagé avec l'élève"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
 
-    student = Student.query.get(session['student_id'])
-    if not student:
-        return redirect(url_for('student_auth.login'))
+    student = current_user
 
     if not student.email_verified:
         return redirect(url_for('student_auth.verify_email_code'))
@@ -704,14 +702,13 @@ def download_file(file_id):
         return redirect(url_for('student_auth.files'))
 
 @student_auth_bp.route('/preview/<int:file_id>')
+@login_required
 def preview_file(file_id):
     """Prévisualiser un fichier partagé avec l'élève (affichage dans le navigateur)"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
 
-    student = Student.query.get(session['student_id'])
-    if not student:
-        return redirect(url_for('student_auth.login'))
+    student = current_user
 
     if not student.email_verified:
         return redirect(url_for('student_auth.verify_email_code'))
@@ -792,14 +789,13 @@ def preview_file(file_id):
         return redirect(url_for('student_auth.files'))
 
 @student_auth_bp.route('/teachers')
+@login_required
 def teachers():
     """Afficher la liste des enseignants de l'élève"""
-    if 'student_id' not in session or session.get('user_type') != 'student':
+    if not isinstance(current_user, Student):
         return redirect(url_for('student_auth.login'))
 
-    student = Student.query.get(session['student_id'])
-    if not student:
-        return redirect(url_for('student_auth.login'))
+    student = current_user
 
     if not student.email_verified:
         return redirect(url_for('student_auth.verify_email_code'))

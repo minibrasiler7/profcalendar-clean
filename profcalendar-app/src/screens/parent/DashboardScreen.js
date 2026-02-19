@@ -75,6 +75,15 @@ export default function DashboardScreen({ navigation }) {
         </View>
       )}
 
+      {/* Ajouter un enfant */}
+      <TouchableOpacity
+        style={styles.addChildBtn}
+        onPress={() => navigation.navigate('Plus', { screen: 'AddChild' })}
+      >
+        <Ionicons name="person-add" size={20} color="#FFF" />
+        <Text style={styles.addChildText}>Ajouter un enfant</Text>
+      </TouchableOpacity>
+
       {/* Navigation rapide */}
       <Text style={styles.sectionTitle}>Accès rapide</Text>
       <View style={styles.quickActions}>
@@ -140,4 +149,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
   quickLabel: { fontSize: 13, fontWeight: '600', color: colors.text },
+  addChildBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: colors.success, borderRadius: 14, paddingVertical: 14,
+    marginHorizontal: 16, marginBottom: 20,
+  },
+  addChildText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
 });
