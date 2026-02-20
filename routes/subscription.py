@@ -78,7 +78,54 @@ def checkout():
 @subscription_bp.route('/success')
 @login_required
 def success():
-    """Page de succès après abonnement"""
+    """Page de succès après abonnement - vérifie et active l'abonnement"""
+    session_id = request.args.get('session_id')
+
+    if session_id:
+        try:
+            stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+
+            # Vérifier que la session appartient bien à cet utilisateur
+            if checkout_session.client_reference_id == str(current_user.id):
+                subscription_id = checkout_session.subscription
+
+                if subscription_id and not current_user.has_premium_access():
+                    # Récupérer les détails de l'abonnement Stripe
+                    sub_data = stripe.Subscription.retrieve(subscription_id)
+
+                    # Mettre à jour l'utilisateur
+                    current_user.stripe_subscription_id = subscription_id
+                    current_user.subscription_tier = 'premium'
+                    current_user.premium_until = datetime.fromtimestamp(sub_data['current_period_end'])
+
+                    if not current_user.stripe_customer_id:
+                        current_user.stripe_customer_id = checkout_session.customer
+
+                    # Créer l'entrée Subscription si elle n'existe pas
+                    existing_sub = Subscription.query.filter_by(stripe_subscription_id=subscription_id).first()
+                    if not existing_sub:
+                        item = sub_data['items']['data'][0]
+                        interval = item['price']['recurring']['interval']
+                        subscription = Subscription(
+                            user_id=current_user.id,
+                            stripe_subscription_id=subscription_id,
+                            stripe_customer_id=checkout_session.customer,
+                            status=sub_data['status'],
+                            billing_cycle='annual' if interval == 'year' else 'monthly',
+                            price_id=item['price']['id'],
+                            amount=item['price']['unit_amount'] or 0,
+                            currency=item['price'].get('currency', 'chf'),
+                            current_period_start=datetime.fromtimestamp(sub_data['current_period_start']),
+                            current_period_end=datetime.fromtimestamp(sub_data['current_period_end']),
+                        )
+                        db.session.add(subscription)
+
+                    db.session.commit()
+                    current_app.logger.info(f"Subscription activated for user {current_user.id} via success page")
+        except Exception as e:
+            current_app.logger.error(f"Error verifying checkout session: {e}")
+
     return render_template('subscription/success.html')
 
 
@@ -178,7 +225,9 @@ def webhook():
     event_type = event['type']
     data_object = event['data']['object']
 
-    if event_type == 'customer.subscription.created':
+    if event_type == 'checkout.session.completed':
+        _handle_checkout_completed(data_object)
+    elif event_type == 'customer.subscription.created':
         _handle_subscription_created(data_object)
     elif event_type == 'customer.subscription.updated':
         _handle_subscription_updated(data_object)
@@ -188,6 +237,59 @@ def webhook():
         _handle_payment_failed(data_object)
 
     return jsonify({'success': True})
+
+
+def _handle_checkout_completed(session_data):
+    """Traiter la fin d'un checkout Stripe - activer l'abonnement immédiatement"""
+    user_id = session_data.get('client_reference_id')
+    subscription_id = session_data.get('subscription')
+    customer_id = session_data.get('customer')
+
+    if not user_id or not subscription_id:
+        return
+
+    user = User.query.get(int(user_id))
+    if not user:
+        return
+
+    # Mettre à jour le customer_id si nécessaire
+    if not user.stripe_customer_id and customer_id:
+        user.stripe_customer_id = customer_id
+
+    # Si l'utilisateur n'est pas encore premium, l'activer
+    if not user.has_premium_access():
+        try:
+            stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+            sub_data = stripe.Subscription.retrieve(subscription_id)
+
+            user.stripe_subscription_id = subscription_id
+            user.subscription_tier = 'premium'
+            user.premium_until = datetime.fromtimestamp(sub_data['current_period_end'])
+
+            # Créer l'entrée Subscription si elle n'existe pas encore
+            existing_sub = Subscription.query.filter_by(stripe_subscription_id=subscription_id).first()
+            if not existing_sub:
+                item = sub_data['items']['data'][0]
+                interval = item['price']['recurring']['interval']
+                subscription = Subscription(
+                    user_id=user.id,
+                    stripe_subscription_id=subscription_id,
+                    stripe_customer_id=customer_id,
+                    status=sub_data['status'],
+                    billing_cycle='annual' if interval == 'year' else 'monthly',
+                    price_id=item['price']['id'],
+                    amount=item['price']['unit_amount'] or 0,
+                    currency=item['price'].get('currency', 'chf'),
+                    current_period_start=datetime.fromtimestamp(sub_data['current_period_start']),
+                    current_period_end=datetime.fromtimestamp(sub_data['current_period_end']),
+                )
+                db.session.add(subscription)
+
+            db.session.commit()
+            current_app.logger.info(f"Checkout completed: user {user.id} upgraded to premium")
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error handling checkout.session.completed: {e}")
 
 
 def _handle_subscription_created(sub_data):

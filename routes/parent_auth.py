@@ -133,22 +133,17 @@ def login():
         
         # Rechercher le parent par hash d'email
         from utils.encryption import encryption_engine
-        import sys
 
         computed_hash = encryption_engine.hash_email(email)
         parent = Parent.query.filter_by(email_hash=computed_hash).first()
-        print(f"[PARENT LOGIN] email={email}, computed_hash={computed_hash}, found_by_hash={'YES id=' + str(parent.id) if parent else 'NO'}", flush=True)
 
         # Fallback : recherche par email en clair si le hash ne correspond pas
         if not parent:
             all_parents = Parent.query.all()
-            print(f"[PARENT LOGIN] Fallback: checking {len(all_parents)} parents", flush=True)
             for p in all_parents:
                 try:
                     decrypted = p.email.strip().lower() if p.email else ''
-                    print(f"[PARENT LOGIN] Checking parent id={p.id}, email_match={decrypted == email}, db_hash={p.email_hash}, teacher_id={p.teacher_id}", flush=True)
-                except Exception as e:
-                    print(f"[PARENT LOGIN] Error decrypting parent id={p.id}: {e}", flush=True)
+                except Exception:
                     continue
                 if decrypted == email:
                     parent = p
@@ -159,11 +154,6 @@ def login():
                     except Exception:
                         db.session.rollback()
                     break
-
-        if parent:
-            print(f"[PARENT LOGIN] FINAL: Parent id={parent.id}, teacher_id={parent.teacher_id}, email_verified={parent.email_verified}, is_verified={parent.is_verified}", flush=True)
-        else:
-            print(f"[PARENT LOGIN] FINAL: No parent found for email={email}", flush=True)
 
         if parent and parent.check_password(password):
             # Vérifier si l'email est vérifié

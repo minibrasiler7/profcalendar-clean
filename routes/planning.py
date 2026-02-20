@@ -3669,72 +3669,115 @@ def delete_student(student_id):
 @planning_bp.route('/generate-class-code/<int:classroom_id>', methods=['POST'])
 @login_required
 def generate_class_code(classroom_id):
-    """Générer un code d'accès pour toute une classe"""
-    
+    """Afficher le code d'accès existant ou en créer un s'il n'existe pas"""
+
     try:
-        print(f"Tentative de génération de code pour la classe ID: {classroom_id}")  # Debug
-        
-        # Vérifier que l'utilisateur a le droit de générer un code pour cette classe
-        # Soit il est maître de classe, soit il est le créateur et il n'y a pas de maître
         from models.class_collaboration import ClassMaster
-        
+
         classroom = Classroom.query.get(classroom_id)
         if not classroom:
-            print(f"Classe non trouvée pour ID: {classroom_id}")  # Debug
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
-        
-        # Vérifier si l'utilisateur est maître de classe
+
         class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
         is_class_master = class_master and class_master.master_teacher_id == current_user.id
-        
-        # Vérifier si l'utilisateur est le créateur et qu'il n'y a pas de maître
         is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
-        
+
         if not (is_class_master or is_creator_no_master):
-            print(f"Accès refusé - User {current_user.id} n'est ni maître ni créateur sans maître")  # Debug
-            return jsonify({'success': False, 'message': 'Seul le maître de classe peut générer les codes d\'accès'}), 403
-        
-        print(f"Classe trouvée: {classroom.name}")  # Debug
-        
-        # Générer un code unique de 6 caractères
-        def generate_code():
+            return jsonify({'success': False, 'message': 'Seul le maître de classe peut gérer les codes d\'accès'}), 403
+
+        # Chercher un code existant et valide
+        existing_code = ClassroomAccessCode.query.filter_by(classroom_id=classroom_id).first()
+
+        if existing_code and existing_code.expires_at and existing_code.expires_at > datetime.utcnow():
+            return jsonify({
+                'success': True,
+                'code': existing_code.code,
+                'classroom_name': f"{classroom.name} - {classroom.subject}",
+                'message': 'Code d\'accès existant'
+            })
+
+        # Pas de code valide : en créer un nouveau
+        def gen_code():
             return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        
-        # S'assurer que le code est unique
+
         while True:
-            code = generate_code()
-            existing = ClassroomAccessCode.query.filter_by(code=code).first()
-            if not existing:
+            code = gen_code()
+            if not ClassroomAccessCode.query.filter_by(code=code).first():
                 break
-        
-        # Supprimer l'ancien code s'il existe
-        old_code = ClassroomAccessCode.query.filter_by(classroom_id=classroom_id).first()
-        if old_code:
-            db.session.delete(old_code)
-        
-        # Créer le nouveau code d'accès
+
+        if existing_code:
+            db.session.delete(existing_code)
+
         access_code = ClassroomAccessCode(
             classroom_id=classroom_id,
             code=code,
             created_by_user_id=current_user.id,
-            expires_at=datetime.utcnow() + timedelta(days=30)  # Valide pendant 30 jours
+            expires_at=datetime.utcnow() + timedelta(days=365)
         )
-        
+
         db.session.add(access_code)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'code': code,
             'classroom_name': f"{classroom.name} - {classroom.subject}",
             'message': 'Code d\'accès généré avec succès'
         })
-        
+
     except Exception as e:
         db.session.rollback()
-        print(f"Erreur lors de la génération du code de classe: {e}")  # Debug
-        import traceback
-        traceback.print_exc()  # Debug
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/get-parent-code/<int:classroom_id>', methods=['POST'])
+@login_required
+def get_parent_code(classroom_id):
+    """Récupérer ou créer le code parent pour une classe"""
+    try:
+        from models.parent import ClassCode
+        from models.class_collaboration import ClassMaster
+
+        classroom = Classroom.query.get(classroom_id)
+        if not classroom:
+            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+        class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
+        is_class_master = class_master and class_master.master_teacher_id == current_user.id
+        is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
+
+        if not (is_class_master or is_creator_no_master):
+            return jsonify({'success': False, 'message': 'Seul le maître de classe peut voir les codes parents'}), 403
+
+        # Chercher un code existant
+        parent_code = ClassCode.query.filter_by(classroom_id=classroom_id).first()
+
+        if not parent_code:
+            # Créer un nouveau code
+            parent_code = ClassCode(
+                classroom_id=classroom_id,
+                user_id=current_user.id,
+                code=ClassCode.generate_code(),
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(parent_code)
+            db.session.commit()
+        elif parent_code.is_expired():
+            # Renouveler le code expiré
+            parent_code.code = ClassCode.generate_code()
+            parent_code.created_at = datetime.utcnow()
+            db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'code': parent_code.code,
+            'classroom_name': f"{classroom.name} - {classroom.subject}",
+            'teacher_name': current_user.username
+        })
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

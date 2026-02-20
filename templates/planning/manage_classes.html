@@ -3111,7 +3111,10 @@
                 <div class="header-actions">
                     {% if not is_mixed_group_class and can_manage_access_codes %}
                     <button class="btn btn-secondary" onclick="generateClassCode()">
-                        <i class="fas fa-key"></i> Code d'accès pour élèves
+                        <i class="fas fa-key"></i> Code élèves
+                    </button>
+                    <button class="btn btn-secondary" onclick="showParentCode()">
+                        <i class="fas fa-users"></i> Code parents
                     </button>
                     {% endif %}
                     {% if not is_mixed_group_class %}
@@ -7718,7 +7721,7 @@ function showClassCodeModal(code, classroomName) {
                     <h2 style="margin: 0; font-size: 2rem; letter-spacing: 0.5rem; color: #667eea;">${code}</h2>
                 </div>
                 <p style="color: #6b7280; font-size: 0.875rem;">
-                    Ce code est valide pendant 30 jours.<br>
+                    Ce code est valide pendant 1 an.<br>
                     Tous les élèves de la classe peuvent utiliser ce code pour créer leur compte.<br>
                     Ils doivent utiliser l'email que vous avez enregistré pour eux.
                 </p>
@@ -7732,6 +7735,58 @@ function showClassCodeModal(code, classroomName) {
     `;
     
     document.body.appendChild(modal);
+}
+
+// Fonction pour afficher le code parents
+async function showParentCode() {
+    const classroomId = "{{ primary_classroom.id }}";
+
+    try {
+        const response = await fetch(`{{ url_for("planning.get_parent_code", classroom_id=0) }}`.replace('0', classroomId), {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Code d'accès parents</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="margin-bottom: 1rem;">Code pour les parents de la classe <strong>${result.classroom_name}</strong> :</p>
+                        <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+                            <h2 style="margin: 0; font-size: 2rem; letter-spacing: 0.5rem; color: #667eea;">${result.code}</h2>
+                        </div>
+                        <p style="color: #6b7280; font-size: 0.875rem;">
+                            Les parents doivent utiliser ce code ainsi que le nom de l'enseignant (<strong>${result.teacher_name}</strong>) pour se lier à la classe.<br>
+                            Ce code est valide pendant 1 an.
+                        </p>
+                        <div style="margin-top: 1.5rem;">
+                            <button class="btn btn-secondary" onclick="copyToClipboard('${result.code}', this)">
+                                <i class="fas fa-copy"></i> Copier le code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la récupération du code parents');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la communication avec le serveur');
+    }
 }
 
 // Fonction pour copier dans le presse-papier
