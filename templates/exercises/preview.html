@@ -173,7 +173,7 @@
         <div class="exercise-meta">
             {% if exercise.subject %}<span><i class="fas fa-book"></i> {{ exercise.subject }}</span>{% endif %}
             {% if exercise.level %}<span><i class="fas fa-layer-group"></i> {{ exercise.level }}</span>{% endif %}
-            {% if exercise.estimated_duration %}<span><i class="fas fa-clock"></i> {{ exercise.estimated_duration }} min</span>{% endif %}
+            {% if exercise.accept_typos %}<span><i class="fas fa-spell-check"></i> Fautes tolérées</span>{% endif %}
             <span><i class="fas fa-star" style="color:#f59e0b;"></i> {{ exercise.total_points }} XP</span>
         </div>
     </div>

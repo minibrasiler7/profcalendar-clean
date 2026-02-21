@@ -591,27 +591,12 @@
                             <input type="text" id="ex-level" placeholder="6e, 5e..." value="{{ exercise.level if exercise else '' }}">
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Durée (min)</label>
-                            <input type="number" id="ex-duration" min="1" value="{{ exercise.estimated_duration if exercise else '' }}">
-                        </div>
-                        <div class="form-group">
-                            <label>Mode</label>
-                            <select id="ex-mode">
-                                <option value="individuel" {{ 'selected' if not exercise or exercise.mode == 'individuel' }}>Individuel</option>
-                                <option value="classe" {{ 'selected' if exercise and exercise.mode == 'classe' }}>Classe entière</option>
-                                <option value="devoir" {{ 'selected' if exercise and exercise.mode == 'devoir' }}>Devoir maison</option>
-                            </select>
-                        </div>
-                    </div>
                     <div class="form-group">
-                        <label>Date d'activation</label>
-                        <input type="datetime-local" id="ex-activation" value="{{ exercise.activation_date.strftime('%Y-%m-%dT%H:%M') if exercise and exercise.activation_date else '' }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Date limite</label>
-                        <input type="datetime-local" id="ex-deadline" value="{{ exercise.deadline.strftime('%Y-%m-%dT%H:%M') if exercise and exercise.deadline else '' }}">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="ex-accept-typos" {{ 'checked' if exercise and exercise.accept_typos }} style="width: auto;">
+                            Tolérer les fautes d'orthographe
+                        </label>
+                        <small style="color: #6b7280; font-size: 0.75rem;">Si activé, les réponses texte proches seront acceptées</small>
                     </div>
                 </div>
             </div>
@@ -626,10 +611,9 @@
                         <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne de l'or si son score dépasse ce seuil</small>
                     </div>
                     <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="ex-badge-perfect" {{ 'checked' if not exercise or exercise.badge_on_perfect }} style="width: auto;">
-                            Badge si 100%
-                        </label>
+                        <label>Seuil badge (%)</label>
+                        <input type="number" id="ex-badge-threshold" min="10" max="100" value="{{ exercise.badge_threshold if exercise else 100 }}">
+                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne un badge s'il atteint ce pourcentage</small>
                     </div>
                     <div style="padding: 0.75rem; background: #fffbeb; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
                         <i class="fas fa-star" style="color: #f59e0b;"></i>
@@ -756,6 +740,7 @@ function addBlock(type, existingData) {
         id: existingData ? existingData.id : null,
         block_type: type,
         title: existingData ? existingData.title : '',
+        duration: existingData ? existingData.duration : 60,
         points: existingData ? existingData.points : 10,
         config_json: existingData ? existingData.config_json : getDefaultConfig(type),
     };
@@ -795,12 +780,12 @@ function getDefaultConfig(type) {
         case 'sorting':
             return { mode: 'order', items: ['', ''], correct_order: [0, 1], categories: [] };
         case 'image_position':
-            return { image_file_id: null, image_url: '', zones: [] };
+            return { image_file_id: null, image_url: '', zones: [], default_radius: 30 };
         case 'graph':
             return { graph_type: 'cartesian', x_label: 'x', y_label: 'y',
                      x_min: -10, x_max: 10, y_min: -10, y_max: 10,
-                     grid: true, question_type: 'read_value',
-                     correct_answer: { x: 0, y: 0 }, tolerance: 0.5 };
+                     grid: true, question_type: 'draw_line',
+                     correct_answer: { a: 1, b: 0 }, tolerance: 0.5 };
         default: return {};
     }
 }
@@ -818,10 +803,17 @@ function renderBlock(block) {
                 value="${escapeHtml(block.title || '')}"
                 onclick="event.stopPropagation()"
                 onchange="updateBlockField('${block.uid}', 'title', this.value)">
-            <div class="block-points" onclick="event.stopPropagation()">
-                <i class="fas fa-star"></i>
-                <input type="number" min="0" value="${block.points}"
-                    onchange="updateBlockField('${block.uid}', 'points', parseInt(this.value))"> XP
+            <div class="block-points" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="display:flex;align-items:center;gap:0.2rem;color:#667eea;">
+                    <i class="fas fa-clock"></i>
+                    <input type="number" min="5" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:0.15rem 0.3rem;text-align:center;font-size:0.8rem;font-weight:600;" value="${block.duration || 60}"
+                        onchange="updateBlockField('${block.uid}', 'duration', parseInt(this.value))">s
+                </span>
+                <span style="display:flex;align-items:center;gap:0.2rem;">
+                    <i class="fas fa-star"></i>
+                    <input type="number" min="0" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:0.15rem 0.3rem;text-align:center;font-size:0.8rem;font-weight:600;" value="${block.points}"
+                        onchange="updateBlockField('${block.uid}', 'points', parseInt(this.value))"> XP
+                </span>
             </div>
             <div class="block-actions" onclick="event.stopPropagation()">
                 <button onclick="toggleBlockContent('${block.uid}')" title="Déplier"><i class="fas fa-chevron-down"></i></button>
@@ -1151,28 +1143,40 @@ function updateCategoryItem(uid, ci, ii, value) {
 function renderImagePositionEditor(block) {
     const c = block.config_json;
 
+    // zones = [{label: "Coeur", points: [{x,y}, ...], radius: 30}, ...]
     let zonesHtml = '';
     (c.zones || []).forEach((z, i) => {
-        zonesHtml += `<div class="item-row">
-            <span style="font-weight:700;color:#dc2626;">Zone ${i + 1}</span>
-            <input type="text" placeholder="Label" value="${escapeHtml(z.label || '')}"
-                onchange="updateZoneField('${block.uid}', ${i}, 'label', this.value)" style="width:100px;">
-            <span style="font-size:0.75rem;color:#6b7280;">r=${z.radius || 30}px</span>
-            <button class="remove-item" onclick="removeZone('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        const pointCount = (z.points || []).length;
+        zonesHtml += `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+            <div class="item-row" style="margin-bottom:0.3rem;">
+                <span style="font-weight:700;color:#dc2626;">${i + 1}.</span>
+                <input type="text" placeholder="Label (ex: Coeur)" value="${escapeHtml(z.label || '')}"
+                    onchange="updateZoneField('${block.uid}', ${i}, 'label', this.value)" style="flex:1;">
+                <span style="font-size:0.75rem;color:#6b7280;">${pointCount} point(s)</span>
+                <button class="remove-item" onclick="removeZone('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>
+            <small style="color:#6b7280;">Cliquez sur l'image pour ajouter des points à cette zone. <strong>Zone active</strong> = sélectionnée ci-dessous.</small>
         </div>`;
     });
 
     return `
         <div class="form-group">
+            <label>Zone active à placer</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                <select id="active-zone-${block.uid}" style="flex:1;padding:0.4rem;border:1px solid #d1d5db;border-radius:6px;">
+                    ${(c.zones || []).map((z, i) => `<option value="${i}">${z.label || 'Zone ' + (i+1)}</option>`).join('')}
+                </select>
+                <button class="add-item-btn" onclick="addNewZone('${block.uid}')">
+                    <i class="fas fa-plus"></i> Nouvelle zone
+                </button>
+            </div>
+        </div>
+        <div class="form-group">
             ${c.image_url ?
                 `<div class="image-preview-container" id="img-container-${block.uid}"
-                    onclick="addZoneOnImage(event, '${block.uid}')">
+                    onclick="addPointToZone(event, '${block.uid}')">
                     <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous">
-                    ${(c.zones || []).map((z, i) => `
-                        <div class="image-zone" style="left:${z.x}px;top:${z.y}px;width:${(z.radius||30)*2}px;height:${(z.radius||30)*2}px;">
-                            ${i + 1}
-                        </div>
-                    `).join('')}
+                    ${renderAllZonePoints(c)}
                 </div>
                 <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
                     <i class="fas fa-exchange-alt"></i> Changer l'image
@@ -1188,14 +1192,61 @@ function renderImagePositionEditor(block) {
         </div>
         ${c.image_url ? `
         <div class="form-group">
-            <label>Zones cliquables <small>(cliquez sur l'image pour ajouter une zone)</small></label>
+            <label>Zones et points</label>
             <div class="items-list">${zonesHtml}</div>
             <div class="form-group" style="margin-top:0.5rem;">
                 <label>Rayon de tolérance (px)</label>
-                <input type="number" value="${c.zones && c.zones.length > 0 ? (c.zones[0].radius || 30) : 30}" min="10" max="100"
-                    onchange="updateAllZonesRadius('${block.uid}', parseInt(this.value))">
+                <input type="number" value="${c.default_radius || 30}" min="10" max="100"
+                    onchange="updateDefaultRadius('${block.uid}', parseInt(this.value))">
             </div>
         </div>` : ''}`;
+}
+
+function renderAllZonePoints(config) {
+    const colors = ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#ec4899'];
+    let html = '';
+    (config.zones || []).forEach((zone, zi) => {
+        const color = colors[zi % colors.length];
+        (zone.points || []).forEach((pt, pi) => {
+            const r = zone.radius || config.default_radius || 30;
+            html += `<div class="image-zone" style="left:${pt.x}px;top:${pt.y}px;width:${r*2}px;height:${r*2}px;border-color:${color};background:${color}33;">
+                ${zi + 1}
+            </div>`;
+        });
+    });
+    return html;
+}
+
+function addNewZone(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const idx = (block.config_json.zones || []).length;
+    block.config_json.zones.push({ label: 'Zone ' + (idx + 1), points: [], radius: block.config_json.default_radius || 30 });
+    refreshBlockContent(uid);
+}
+
+function addPointToZone(event, uid) {
+    const container = document.getElementById('img-container-' + uid);
+    const img = document.getElementById('img-preview-' + uid);
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    const x = Math.round(event.clientX - rect.left);
+    const y = Math.round(event.clientY - rect.top);
+
+    const block = blocks.find(b => b.uid === uid);
+    const select = document.getElementById('active-zone-' + uid);
+    if (!select || block.config_json.zones.length === 0) return;
+    const zoneIdx = parseInt(select.value) || 0;
+    if (!block.config_json.zones[zoneIdx]) return;
+
+    block.config_json.zones[zoneIdx].points.push({ x, y });
+    refreshBlockContent(uid);
+}
+
+function updateDefaultRadius(uid, radius) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.default_radius = radius;
+    block.config_json.zones.forEach(z => z.radius = radius);
+    refreshBlockContent(uid);
 }
 
 function uploadBlockImage(uid) {
@@ -1234,20 +1285,6 @@ async function handleImageUpload(uid, input) {
     }
 }
 
-function addZoneOnImage(event, uid) {
-    const container = document.getElementById('img-container-' + uid);
-    const img = document.getElementById('img-preview-' + uid);
-    if (!img) return;
-
-    const rect = img.getBoundingClientRect();
-    const x = Math.round(event.clientX - rect.left);
-    const y = Math.round(event.clientY - rect.top);
-
-    const block = blocks.find(b => b.uid === uid);
-    block.config_json.zones.push({ x: x, y: y, radius: 30, label: `Zone ${block.config_json.zones.length + 1}` });
-    refreshBlockContent(uid);
-}
-
 function removeZone(uid, index) {
     const block = blocks.find(b => b.uid === uid);
     block.config_json.zones.splice(index, 1);
@@ -1259,24 +1296,20 @@ function updateZoneField(uid, index, field, value) {
     block.config_json.zones[index][field] = value;
 }
 
-function updateAllZonesRadius(uid, radius) {
-    const block = blocks.find(b => b.uid === uid);
-    block.config_json.zones.forEach(z => z.radius = radius);
-    refreshBlockContent(uid);
-}
-
 // ============================================================
 // GRAPH EDITOR
 // ============================================================
 function renderGraphEditor(block) {
     const c = block.config_json;
+    const isQuadratic = c.question_type === 'draw_quadratic';
+    const isLine = c.question_type === 'draw_line';
+
     return `
         <div class="form-group">
             <label>Type de question</label>
-            <select onchange="updateConfig('${block.uid}', 'question_type', this.value)">
-                <option value="read_value" ${c.question_type === 'read_value' ? 'selected' : ''}>Lire une valeur</option>
-                <option value="place_point" ${c.question_type === 'place_point' ? 'selected' : ''}>Placer un point</option>
-                <option value="draw_line" ${c.question_type === 'draw_line' ? 'selected' : ''}>Tracer une droite</option>
+            <select onchange="changeGraphType('${block.uid}', this.value)">
+                <option value="draw_line" ${isLine ? 'selected' : ''}>Tracer une droite (f(x) = ax + b)</option>
+                <option value="draw_quadratic" ${isQuadratic ? 'selected' : ''}>Tracer une courbe quadratique (f(x) = ax² + bx + c)</option>
             </select>
         </div>
         <div class="graph-config-grid">
@@ -1306,53 +1339,161 @@ function renderGraphEditor(block) {
             </div>
         </div>
         <div class="form-group">
-            <label>Réponse correcte</label>
-            ${c.question_type === 'draw_line' ? `
-                <div class="form-row">
+            <label>Expression fonctionnelle correcte</label>
+            ${isQuadratic ? `
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x² + <strong>b</strong>x + <strong>c</strong></p>
+                <div class="graph-config-grid" style="grid-template-columns:1fr 1fr 1fr;">
                     <div class="form-group">
-                        <label>Pente (a)</label>
-                        <input type="number" step="0.1" value="${c.correct_answer?.slope ?? 1}"
-                            onchange="updateGraphAnswer('${block.uid}', 'slope', parseFloat(this.value))">
+                        <label>a</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}"
+                            onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                     <div class="form-group">
-                        <label>Ordonnée à l'origine (b)</label>
-                        <input type="number" step="0.1" value="${c.correct_answer?.intercept ?? 0}"
-                            onchange="updateGraphAnswer('${block.uid}', 'intercept', parseFloat(this.value))">
+                        <label>b</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                    <div class="form-group">
+                        <label>c</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.c ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'c', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                 </div>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>3 points</strong> pour retrouver la courbe.</p>
             ` : `
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x + <strong>b</strong></p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>X</label>
-                        <input type="number" step="0.1" value="${c.correct_answer?.x ?? 0}"
-                            onchange="updateGraphAnswer('${block.uid}', 'x', parseFloat(this.value))">
+                        <label>a (pente)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}"
+                            onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                     <div class="form-group">
-                        <label>Y</label>
-                        <input type="number" step="0.1" value="${c.correct_answer?.y ?? 0}"
-                            onchange="updateGraphAnswer('${block.uid}', 'y', parseFloat(this.value))">
+                        <label>b (ordonnée à l'origine)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');">
                     </div>
                 </div>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>2 points</strong> pour retrouver la droite.</p>
             `}
         </div>
         <div class="form-group">
             <label>Tolérance</label>
             <input type="number" step="0.1" value="${c.tolerance ?? 0.5}"
                 onchange="updateConfig('${block.uid}', 'tolerance', parseFloat(this.value))">
+            <small style="color:#6b7280;">Écart accepté pour chaque coefficient</small>
         </div>
         <div class="form-group">
             <label style="display:flex;align-items:center;gap:0.5rem;">
-                <input type="checkbox" style="width:auto;" ${c.grid ? 'checked' : ''}
-                    onchange="updateConfig('${block.uid}', 'grid', this.checked)">
+                <input type="checkbox" style="width:auto;" ${c.grid !== false ? 'checked' : ''}
+                    onchange="updateConfig('${block.uid}', 'grid', this.checked); previewGraph('${block.uid}');">
                 Afficher la grille
             </label>
-        </div>`;
+        </div>
+        <div class="form-group">
+            <label>Aperçu du graphique</label>
+            <div style="border:2px solid #e5e7eb;border-radius:8px;overflow:hidden;text-align:center;">
+                <canvas id="graph-preview-${block.uid}" width="500" height="350"></canvas>
+            </div>
+        </div>
+        <script>previewGraph('${block.uid}');</script>`;
+}
+
+function changeGraphType(uid, type) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.question_type = type;
+    if (type === 'draw_quadratic') {
+        block.config_json.correct_answer = { a: 1, b: 0, c: 0 };
+    } else {
+        block.config_json.correct_answer = { a: 1, b: 0 };
+    }
+    refreshBlockContent(uid);
 }
 
 function updateGraphAnswer(uid, field, value) {
     const block = blocks.find(b => b.uid === uid);
     if (!block.config_json.correct_answer) block.config_json.correct_answer = {};
     block.config_json.correct_answer[field] = value;
+}
+
+function previewGraph(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block) return;
+    const canvas = document.getElementById('graph-preview-' + uid);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const c = block.config_json;
+    const w = canvas.width, h = canvas.height;
+    const margin = 40;
+    const gw = w - 2 * margin, gh = h - 2 * margin;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#fafbfc';
+    ctx.fillRect(0, 0, w, h);
+
+    function toPixelX(xVal) { return margin + ((xVal - c.x_min) / (c.x_max - c.x_min)) * gw; }
+    function toPixelY(yVal) { return h - margin - ((yVal - c.y_min) / (c.y_max - c.y_min)) * gh; }
+
+    // Grid
+    if (c.grid !== false) {
+        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
+        for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+            const px = toPixelX(x);
+            ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke();
+        }
+        for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+            const py = toPixelY(y);
+            ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke();
+        }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
+    const ox = toPixelX(0), oy = toPixelY(0);
+    ctx.beginPath(); ctx.moveTo(margin, oy); ctx.lineTo(w - margin, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, margin); ctx.lineTo(ox, h - margin); ctx.stroke();
+    ctx.fillStyle = '#4b5563'; ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(c.x_label || 'x', w - margin + 5, oy + 4);
+    ctx.fillText(c.y_label || 'y', ox + 5, margin - 8);
+
+    // Axis numbers
+    ctx.font = '10px Inter, sans-serif'; ctx.fillStyle = '#9ca3af';
+    for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+        if (x === 0) continue;
+        ctx.fillText(x, toPixelX(x) - 4, oy + 14);
+    }
+    for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+        if (y === 0) continue;
+        ctx.fillText(y, ox - 18, toPixelY(y) + 4);
+    }
+
+    // Draw function
+    const ans = c.correct_answer || {};
+    ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let started = false;
+    const step = (c.x_max - c.x_min) / 200;
+    for (let x = c.x_min; x <= c.x_max; x += step) {
+        let y;
+        if (c.question_type === 'draw_quadratic') {
+            y = (ans.a || 0) * x * x + (ans.b || 0) * x + (ans.c || 0);
+        } else {
+            y = (ans.a || 0) * x + (ans.b || 0);
+        }
+        const px = toPixelX(x), py = toPixelY(y);
+        if (py < margin || py > h - margin) { started = false; continue; }
+        if (!started) { ctx.moveTo(px, py); started = true; } else { ctx.lineTo(px, py); }
+    }
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#667eea'; ctx.font = 'bold 13px Inter, sans-serif';
+    if (c.question_type === 'draw_quadratic') {
+        ctx.fillText(`f(x) = ${ans.a || 0}x² + ${ans.b || 0}x + ${ans.c || 0}`, margin + 10, margin + 18);
+    } else {
+        ctx.fillText(`f(x) = ${ans.a || 0}x + ${ans.b || 0}`, margin + 10, margin + 18);
+    }
 }
 
 // ============================================================
@@ -1450,18 +1591,16 @@ async function saveExercise(asDraft) {
         description: document.getElementById('ex-description').value,
         subject: document.getElementById('ex-subject').value,
         level: document.getElementById('ex-level').value,
-        estimated_duration: parseInt(document.getElementById('ex-duration').value) || null,
-        mode: document.getElementById('ex-mode').value,
-        activation_date: document.getElementById('ex-activation').value || null,
-        deadline: document.getElementById('ex-deadline').value || null,
+        accept_typos: document.getElementById('ex-accept-typos').checked,
         bonus_gold_threshold: parseInt(document.getElementById('ex-gold-threshold').value) || 80,
-        badge_on_perfect: document.getElementById('ex-badge-perfect').checked,
+        badge_threshold: parseInt(document.getElementById('ex-badge-threshold').value) || 100,
         is_draft: asDraft,
         blocks: blocks.map((b, i) => ({
             id: b.id,
             block_type: b.block_type,
             position: i,
             title: b.title,
+            duration: b.duration,
             config_json: b.config_json,
             points: b.points,
         })),

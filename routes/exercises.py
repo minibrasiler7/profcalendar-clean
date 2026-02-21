@@ -82,15 +82,9 @@ def save():
         exercise.description = data.get('description', '')
         exercise.subject = data.get('subject', '')
         exercise.level = data.get('level', '')
-        exercise.estimated_duration = data.get('estimated_duration')
-        exercise.mode = data.get('mode', 'individuel')
+        exercise.accept_typos = data.get('accept_typos', False)
         exercise.bonus_gold_threshold = data.get('bonus_gold_threshold', 80)
-        exercise.badge_on_perfect = data.get('badge_on_perfect', True)
-
-        if data.get('activation_date'):
-            exercise.activation_date = datetime.fromisoformat(data['activation_date'])
-        if data.get('deadline'):
-            exercise.deadline = datetime.fromisoformat(data['deadline'])
+        exercise.badge_threshold = data.get('badge_threshold', 100)
 
         exercise.is_draft = data.get('is_draft', True)
         exercise.updated_at = datetime.utcnow()
@@ -120,6 +114,7 @@ def save():
             block.block_type = block_data.get('block_type', 'qcm')
             block.position = i
             block.title = block_data.get('title', '')
+            block.duration = block_data.get('duration')
             block.config_json = block_data.get('config_json', {})
             block.points = block_data.get('points', 10)
 
@@ -184,10 +179,9 @@ def duplicate(exercise_id):
             description=exercise.description,
             subject=exercise.subject,
             level=exercise.level,
-            estimated_duration=exercise.estimated_duration,
-            mode=exercise.mode,
+            accept_typos=exercise.accept_typos,
             bonus_gold_threshold=exercise.bonus_gold_threshold,
-            badge_on_perfect=exercise.badge_on_perfect,
+            badge_threshold=exercise.badge_threshold,
             is_draft=True,
             is_published=False,
         )

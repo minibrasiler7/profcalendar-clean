@@ -302,15 +302,12 @@ def create_app(config_name='development'):
                     description TEXT,
                     subject VARCHAR(100),
                     level VARCHAR(50),
-                    estimated_duration INTEGER,
-                    mode VARCHAR(20) DEFAULT 'individuel',
-                    activation_date TIMESTAMP,
-                    deadline TIMESTAMP,
+                    accept_typos BOOLEAN DEFAULT FALSE,
                     is_published BOOLEAN DEFAULT FALSE,
                     is_draft BOOLEAN DEFAULT TRUE,
                     total_points INTEGER DEFAULT 0,
                     bonus_gold_threshold INTEGER DEFAULT 80,
-                    badge_on_perfect BOOLEAN DEFAULT TRUE,
+                    badge_threshold INTEGER DEFAULT 100,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -322,6 +319,7 @@ def create_app(config_name='development'):
                     block_type VARCHAR(30) NOT NULL,
                     position INTEGER DEFAULT 0,
                     title VARCHAR(200),
+                    duration INTEGER,
                     config_json JSONB DEFAULT '{}',
                     points INTEGER DEFAULT 10,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -402,6 +400,15 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Tables exercices/RPG: {e}")
+
+        # Migrations colonnes exercices (v2: durée par question, typos, badge_threshold)
+        try:
+            db.session.execute(db.text("ALTER TABLE exercise_blocks ADD COLUMN IF NOT EXISTS duration INTEGER"))
+            db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS accept_typos BOOLEAN DEFAULT FALSE"))
+            db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_threshold INTEGER DEFAULT 100"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
         # Insérer les badges par défaut
         try:

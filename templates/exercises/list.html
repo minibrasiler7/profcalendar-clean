@@ -272,8 +272,8 @@
                     {% if ex.level %}
                     <span class="meta-tag"><i class="fas fa-layer-group"></i> {{ ex.level }}</span>
                     {% endif %}
-                    {% if ex.estimated_duration %}
-                    <span class="meta-tag"><i class="fas fa-clock"></i> {{ ex.estimated_duration }} min</span>
+                    {% if ex.accept_typos %}
+                    <span class="meta-tag"><i class="fas fa-spell-check"></i> Fautes tolérées</span>
                     {% endif %}
                     <span class="meta-tag"><i class="fas fa-star" style="color:#f59e0b;"></i> {{ ex.total_points }} XP</span>
                     <span class="meta-tag"><i class="fas fa-puzzle-piece"></i> {{ ex.blocks.count() }} blocs</span>

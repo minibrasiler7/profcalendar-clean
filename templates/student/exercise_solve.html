@@ -246,7 +246,6 @@
         {% if exercise.description %}<p>{{ exercise.description }}</p>{% endif %}
         <div class="exercise-meta">
             {% if exercise.subject %}<span><i class="fas fa-book"></i> {{ exercise.subject }}</span>{% endif %}
-            {% if exercise.estimated_duration %}<span><i class="fas fa-clock"></i> {{ exercise.estimated_duration }} min</span>{% endif %}
             <span><i class="fas fa-star" style="color:#f59e0b;"></i> {{ exercise.total_points }} XP</span>
         </div>
     </div>
@@ -339,45 +338,19 @@
 
         {% elif block.block_type == 'graph' %}
             <p style="color:#6b7280;font-size:0.85rem;">
-                {% if c.question_type == 'read_value' %}Lis la valeur demandée sur le graphique :
-                {% elif c.question_type == 'place_point' %}Clique sur le graphique pour placer un point :
-                {% else %}Indique la pente et l'ordonnée à l'origine :{% endif %}
+                {% if c.question_type == 'draw_quadratic' %}
+                    Déplace les <strong>3 points</strong> sur le graphique pour tracer la courbe quadratique demandée :
+                {% else %}
+                    Déplace les <strong>2 points</strong> sur le graphique pour tracer la droite demandée :
+                {% endif %}
             </p>
-            <div class="graph-wrapper">
-                <canvas id="graph-{{ block.id }}" width="500" height="400"
-                    {% if c.question_type == 'place_point' %}
-                    onclick="handleGraphClick(event, '{{ block.id }}')"
-                    style="cursor:crosshair;"
-                    {% endif %}></canvas>
+            <div class="graph-wrapper" style="position:relative;display:inline-block;">
+                <canvas id="graph-{{ block.id }}" width="500" height="400" style="display:block;"></canvas>
             </div>
-            {% if c.question_type in ('read_value', 'place_point') %}
-            <div style="display:flex;gap:1rem;margin-top:0.5rem;">
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem;font-weight:600;">X</label>
-                    <input class="answer-input" type="number" step="any" id="graph-x-{{ block.id }}" data-block="{{ block.id }}" data-axis="x">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem;font-weight:600;">Y</label>
-                    <input class="answer-input" type="number" step="any" id="graph-y-{{ block.id }}" data-block="{{ block.id }}" data-axis="y">
-                </div>
-            </div>
-            {% else %}
-            <div style="display:flex;gap:1rem;margin-top:0.5rem;">
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem;font-weight:600;">Pente (a)</label>
-                    <input class="answer-input" type="number" step="any" id="graph-slope-{{ block.id }}" data-block="{{ block.id }}">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:0.8rem;font-weight:600;">Ordonnée à l'origine (b)</label>
-                    <input class="answer-input" type="number" step="any" id="graph-intercept-{{ block.id }}" data-block="{{ block.id }}">
-                </div>
-            </div>
-            {% endif %}
+            <div id="graph-equation-{{ block.id }}" style="text-align:center;padding:0.5rem;font-weight:600;color:#667eea;font-size:0.95rem;"></div>
             <script>
                 (function() {
-                    const canvas = document.getElementById('graph-{{ block.id }}');
-                    const ctx = canvas.getContext('2d');
-                    drawGraph(ctx, canvas.width, canvas.height, {{ c|tojson }});
+                    initInteractiveGraph('{{ block.id }}', {{ c|tojson }});
                 })();
             </script>
         {% endif %}
@@ -417,37 +390,281 @@
 </div>
 
 <script>
-// Graph drawing
-function drawGraph(ctx, w, h, config) {
-    const margin = 40;
-    const gw = w - 2 * margin;
-    const gh = h - 2 * margin;
+// ============================================================
+// INTERACTIVE GRAPH — Drag points to trace line/quadratic
+// ============================================================
+let graphStates = {};  // blockId -> {config, points, dragging}
 
+function initInteractiveGraph(blockId, config) {
+    const canvas = document.getElementById('graph-' + blockId);
+    if (!canvas) return;
+    const isQuadratic = config.question_type === 'draw_quadratic';
+    const numPoints = isQuadratic ? 3 : 2;
+
+    // Initial points spread across the graph
+    const xRange = config.x_max - config.x_min;
+    const defaultPoints = [];
+    for (let i = 0; i < numPoints; i++) {
+        const x = config.x_min + xRange * (i + 1) / (numPoints + 1);
+        defaultPoints.push({ x: Math.round(x), y: 0 });
+    }
+
+    graphStates[blockId] = {
+        config: config,
+        points: defaultPoints,
+        dragging: -1,
+    };
+
+    drawInteractiveGraph(blockId);
+
+    // Mouse events
+    canvas.style.cursor = 'pointer';
+    canvas.addEventListener('mousedown', (e) => onGraphMouseDown(e, blockId));
+    canvas.addEventListener('mousemove', (e) => onGraphMouseMove(e, blockId));
+    canvas.addEventListener('mouseup', () => onGraphMouseUp(blockId));
+    canvas.addEventListener('mouseleave', () => onGraphMouseUp(blockId));
+
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onGraphTouchStart(e, blockId); }, {passive: false});
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); onGraphTouchMove(e, blockId); }, {passive: false});
+    canvas.addEventListener('touchend', () => onGraphMouseUp(blockId));
+
+    updateGraphEquation(blockId);
+}
+
+function graphToPixel(blockId, gx, gy) {
+    const s = graphStates[blockId];
+    const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const margin = 40;
+    const gw = canvas.width - 2 * margin;
+    const gh = canvas.height - 2 * margin;
+    return {
+        px: margin + ((gx - c.x_min) / (c.x_max - c.x_min)) * gw,
+        py: canvas.height - margin - ((gy - c.y_min) / (c.y_max - c.y_min)) * gh
+    };
+}
+
+function pixelToGraph(blockId, px, py) {
+    const s = graphStates[blockId];
+    const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const margin = 40;
+    const gw = canvas.width - 2 * margin;
+    const gh = canvas.height - 2 * margin;
+    return {
+        x: c.x_min + ((px - margin) / gw) * (c.x_max - c.x_min),
+        y: c.y_min + ((canvas.height - margin - py) / gh) * (c.y_max - c.y_min)
+    };
+}
+
+function drawInteractiveGraph(blockId) {
+    const s = graphStates[blockId];
+    const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const margin = 40;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#fafbfc';
     ctx.fillRect(0, 0, w, h);
 
-    if (config.grid) {
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.lineWidth = 0.5;
-        for (let x = config.x_min; x <= config.x_max; x++) {
-            const px = margin + ((x - config.x_min) / (config.x_max - config.x_min)) * gw;
-            ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke();
+    // Grid
+    if (c.grid !== false) {
+        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
+        for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+            const p = graphToPixel(blockId, x, 0);
+            ctx.beginPath(); ctx.moveTo(p.px, margin); ctx.lineTo(p.px, h - margin); ctx.stroke();
         }
-        for (let y = config.y_min; y <= config.y_max; y++) {
-            const py = h - margin - ((y - config.y_min) / (config.y_max - config.y_min)) * gh;
-            ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke();
+        for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+            const p = graphToPixel(blockId, 0, y);
+            ctx.beginPath(); ctx.moveTo(margin, p.py); ctx.lineTo(w - margin, p.py); ctx.stroke();
         }
     }
 
+    // Axes
     ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
-    const originX = margin + ((0 - config.x_min) / (config.x_max - config.x_min)) * gw;
-    const originY = h - margin - ((0 - config.y_min) / (config.y_max - config.y_min)) * gh;
-    ctx.beginPath(); ctx.moveTo(margin, originY); ctx.lineTo(w - margin, originY); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(originX, margin); ctx.lineTo(originX, h - margin); ctx.stroke();
+    const origin = graphToPixel(blockId, 0, 0);
+    ctx.beginPath(); ctx.moveTo(margin, origin.py); ctx.lineTo(w - margin, origin.py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(origin.px, margin); ctx.lineTo(origin.px, h - margin); ctx.stroke();
 
+    // Axis labels
     ctx.fillStyle = '#4b5563'; ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(config.x_label || 'x', w - margin + 5, originY + 4);
-    ctx.fillText(config.y_label || 'y', originX + 5, margin - 8);
+    ctx.fillText(c.x_label || 'x', w - margin + 5, origin.py + 4);
+    ctx.fillText(c.y_label || 'y', origin.px + 5, margin - 8);
+
+    // Axis numbers
+    ctx.font = '10px Inter, sans-serif'; ctx.fillStyle = '#9ca3af';
+    for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+        if (x === 0) continue;
+        const p = graphToPixel(blockId, x, 0);
+        ctx.fillText(x, p.px - 4, origin.py + 14);
+    }
+    for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+        if (y === 0) continue;
+        const p = graphToPixel(blockId, 0, y);
+        ctx.fillText(y, origin.px - 18, p.py + 4);
+    }
+
+    // Compute function from student's points
+    const pts = s.points;
+    let fn = null;
+    if (c.question_type === 'draw_quadratic' && pts.length >= 3) {
+        // Solve for ax²+bx+c through 3 points
+        const [p1, p2, p3] = pts;
+        const det = (p1.x**2*(p2.x - p3.x) - p2.x**2*(p1.x - p3.x) + p3.x**2*(p1.x - p2.x));
+        if (Math.abs(det) > 0.001) {
+            const a = (p1.y*(p2.x - p3.x) - p2.y*(p1.x - p3.x) + p3.y*(p1.x - p2.x)) / det;
+            const b = (p1.x**2*(p2.y - p3.y) - p2.x**2*(p1.y - p3.y) + p3.x**2*(p1.y - p2.y)) / det;
+            const cc = (p1.x**2*(p2.x*p3.y - p3.x*p2.y) - p2.x**2*(p1.x*p3.y - p3.x*p1.y) + p3.x**2*(p1.x*p2.y - p2.x*p1.y)) / det;
+            fn = (x) => a*x*x + b*x + cc;
+        }
+    } else if (pts.length >= 2) {
+        const dx = pts[1].x - pts[0].x;
+        if (Math.abs(dx) > 0.001) {
+            const a = (pts[1].y - pts[0].y) / dx;
+            const b = pts[0].y - a * pts[0].x;
+            fn = (x) => a*x + b;
+        }
+    }
+
+    // Draw the curve/line
+    if (fn) {
+        ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let started = false;
+        const step = (c.x_max - c.x_min) / 300;
+        for (let x = c.x_min; x <= c.x_max; x += step) {
+            const y = fn(x);
+            const p = graphToPixel(blockId, x, y);
+            if (p.py < margin || p.py > h - margin) { started = false; continue; }
+            if (!started) { ctx.moveTo(p.px, p.py); started = true; }
+            else { ctx.lineTo(p.px, p.py); }
+        }
+        ctx.stroke();
+    }
+
+    // Draw draggable points
+    pts.forEach((pt, i) => {
+        const p = graphToPixel(blockId, pt.x, pt.y);
+        ctx.fillStyle = i === s.dragging ? '#dc2626' : '#10b981';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.px, p.py, 10, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        // Point label
+        ctx.fillStyle = 'white'; ctx.font = 'bold 10px Inter, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(String.fromCharCode(65 + i), p.px, p.py + 4); // A, B, C
+        ctx.textAlign = 'left';
+        // Coordinates
+        ctx.fillStyle = '#374151'; ctx.font = '11px Inter, sans-serif';
+        ctx.fillText(`(${Math.round(pt.x*10)/10}, ${Math.round(pt.y*10)/10})`, p.px + 14, p.py - 4);
+    });
+}
+
+function getCanvasCoords(e, blockId) {
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+        px: (e.clientX - rect.left) * scaleX,
+        py: (e.clientY - rect.top) * scaleY
+    };
+}
+
+function onGraphMouseDown(e, blockId) {
+    const s = graphStates[blockId];
+    const {px, py} = getCanvasCoords(e, blockId);
+    // Find closest point
+    for (let i = 0; i < s.points.length; i++) {
+        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
+        const dist = Math.sqrt((px - p.px)**2 + (py - p.py)**2);
+        if (dist < 20) { s.dragging = i; break; }
+    }
+}
+
+function onGraphTouchStart(e, blockId) {
+    const touch = e.touches[0];
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (touch.clientX - rect.left) * scaleX;
+    const py = (touch.clientY - rect.top) * scaleY;
+    const s = graphStates[blockId];
+    for (let i = 0; i < s.points.length; i++) {
+        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
+        if (Math.sqrt((px - p.px)**2 + (py - p.py)**2) < 25) { s.dragging = i; break; }
+    }
+}
+
+function onGraphMouseMove(e, blockId) {
+    const s = graphStates[blockId];
+    if (s.dragging < 0) return;
+    const {px, py} = getCanvasCoords(e, blockId);
+    const gCoords = pixelToGraph(blockId, px, py);
+    // Snap to nearest 0.5
+    s.points[s.dragging].x = Math.round(gCoords.x * 2) / 2;
+    s.points[s.dragging].y = Math.round(gCoords.y * 2) / 2;
+    drawInteractiveGraph(blockId);
+    updateGraphEquation(blockId);
+}
+
+function onGraphTouchMove(e, blockId) {
+    const s = graphStates[blockId];
+    if (s.dragging < 0) return;
+    const touch = e.touches[0];
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (touch.clientX - rect.left) * scaleX;
+    const py = (touch.clientY - rect.top) * scaleY;
+    const gCoords = pixelToGraph(blockId, px, py);
+    s.points[s.dragging].x = Math.round(gCoords.x * 2) / 2;
+    s.points[s.dragging].y = Math.round(gCoords.y * 2) / 2;
+    drawInteractiveGraph(blockId);
+    updateGraphEquation(blockId);
+}
+
+function onGraphMouseUp(blockId) {
+    const s = graphStates[blockId];
+    if (!s) return;
+    s.dragging = -1;
+    drawInteractiveGraph(blockId);
+}
+
+function updateGraphEquation(blockId) {
+    const s = graphStates[blockId];
+    const el = document.getElementById('graph-equation-' + blockId);
+    if (!el) return;
+    const pts = s.points;
+    const c = s.config;
+
+    if (c.question_type === 'draw_quadratic' && pts.length >= 3) {
+        const det = (pts[0].x**2*(pts[1].x - pts[2].x) - pts[1].x**2*(pts[0].x - pts[2].x) + pts[2].x**2*(pts[0].x - pts[1].x));
+        if (Math.abs(det) > 0.001) {
+            const a = (pts[0].y*(pts[1].x - pts[2].x) - pts[1].y*(pts[0].x - pts[2].x) + pts[2].y*(pts[0].x - pts[1].x)) / det;
+            const b = (pts[0].x**2*(pts[1].y - pts[2].y) - pts[1].x**2*(pts[0].y - pts[2].y) + pts[2].x**2*(pts[0].y - pts[1].y)) / det;
+            const cc = (pts[0].x**2*(pts[1].x*pts[2].y - pts[2].x*pts[1].y) - pts[1].x**2*(pts[0].x*pts[2].y - pts[2].x*pts[0].y) + pts[2].x**2*(pts[0].x*pts[1].y - pts[1].x*pts[0].y)) / det;
+            el.textContent = `f(x) = ${Math.round(a*100)/100}x\u00B2 + ${Math.round(b*100)/100}x + ${Math.round(cc*100)/100}`;
+        } else {
+            el.textContent = 'Déplace les points (positions invalides)';
+        }
+    } else if (pts.length >= 2) {
+        const dx = pts[1].x - pts[0].x;
+        if (Math.abs(dx) > 0.001) {
+            const a = (pts[1].y - pts[0].y) / dx;
+            const b = pts[0].y - a * pts[0].x;
+            el.textContent = `f(x) = ${Math.round(a*100)/100}x + ${Math.round(b*100)/100}`;
+        } else {
+            el.textContent = 'Déplace les points (droite verticale)';
+        }
+    }
 }
 
 // QCM selection
@@ -490,26 +707,6 @@ function handleImageClick(event, blockId) {
     marker.style.left = x + 'px';
     marker.style.top = y + 'px';
     container.appendChild(marker);
-}
-
-// Graph click
-function handleGraphClick(event, blockId) {
-    const canvas = document.getElementById('graph-' + blockId);
-    const rect = canvas.getBoundingClientRect();
-    const margin = 40;
-    const gw = canvas.width - 2 * margin;
-    const gh = canvas.height - 2 * margin;
-
-    // We need the config — get from data attribute or global
-    // For simplicity, just map pixel to graph coords with default -10 to 10
-    const px = event.clientX - rect.left;
-    const py = event.clientY - rect.top;
-
-    const xVal = -10 + ((px - margin) / gw) * 20;
-    const yVal = 10 - ((py - margin) / gh) * 20;
-
-    document.getElementById('graph-x-' + blockId).value = Math.round(xVal * 10) / 10;
-    document.getElementById('graph-y-' + blockId).value = Math.round(yVal * 10) / 10;
 }
 
 // Sorting drag & drop
@@ -585,16 +782,9 @@ async function submitExercise() {
             answers[blockId] = { clicks: imageClicks[blockId] };
         }
 
-        // Graph
-        const graphX = document.getElementById('graph-x-' + blockId);
-        const graphY = document.getElementById('graph-y-' + blockId);
-        if (graphX && graphY) {
-            answers[blockId] = { x: parseFloat(graphX.value), y: parseFloat(graphY.value) };
-        }
-        const graphSlope = document.getElementById('graph-slope-' + blockId);
-        const graphIntercept = document.getElementById('graph-intercept-' + blockId);
-        if (graphSlope && graphIntercept) {
-            answers[blockId] = { slope: parseFloat(graphSlope.value), intercept: parseFloat(graphIntercept.value) };
+        // Graph (interactive points)
+        if (graphStates[blockId]) {
+            answers[blockId] = { points: graphStates[blockId].points };
         }
     });
 

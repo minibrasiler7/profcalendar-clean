@@ -12,15 +12,12 @@ class Exercise(db.Model):
     description = db.Column(db.Text)
     subject = db.Column(db.String(100))
     level = db.Column(db.String(50))
-    estimated_duration = db.Column(db.Integer)  # en minutes
-    mode = db.Column(db.String(20), default='individuel')  # individuel, classe, devoir
-    activation_date = db.Column(db.DateTime)
-    deadline = db.Column(db.DateTime)
+    accept_typos = db.Column(db.Boolean, default=False)  # tolérer les fautes d'orthographe
     is_published = db.Column(db.Boolean, default=False)
     is_draft = db.Column(db.Boolean, default=True)
     total_points = db.Column(db.Integer, default=0)  # XP total calculé
     bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
-    badge_on_perfect = db.Column(db.Boolean, default=True)  # badge si 100%
+    badge_threshold = db.Column(db.Integer, default=100)  # % minimum pour badge
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -42,15 +39,12 @@ class Exercise(db.Model):
             'description': self.description,
             'subject': self.subject,
             'level': self.level,
-            'estimated_duration': self.estimated_duration,
-            'mode': self.mode,
-            'activation_date': self.activation_date.isoformat() if self.activation_date else None,
-            'deadline': self.deadline.isoformat() if self.deadline else None,
+            'accept_typos': self.accept_typos,
             'is_published': self.is_published,
             'is_draft': self.is_draft,
             'total_points': self.total_points,
             'bonus_gold_threshold': self.bonus_gold_threshold,
-            'badge_on_perfect': self.badge_on_perfect,
+            'badge_threshold': self.badge_threshold,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
         if include_blocks:
@@ -71,6 +65,7 @@ class ExerciseBlock(db.Model):
     # Types: qcm, short_answer, fill_blank, sorting, image_position, graph
     position = db.Column(db.Integer, default=0)
     title = db.Column(db.String(200))  # Titre/question du bloc
+    duration = db.Column(db.Integer)  # durée en secondes pour cette question
     config_json = db.Column(db.JSON, default=dict)  # Configuration complète du bloc
     points = db.Column(db.Integer, default=10)  # XP pour ce bloc
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -111,7 +106,8 @@ class ExerciseBlock(db.Model):
     # {
     #   "image_file_id": 123,  (UserFile ID)
     #   "image_url": "/file_manager/preview/123",
-    #   "zones": [{"x": 100, "y": 200, "radius": 30, "label": "Zone 1"}]
+    #   "zones": [{"label": "Coeur", "points": [{"x":100,"y":200},{"x":150,"y":210}], "radius": 30}]
+    #   // Chaque zone a un label et peut avoir PLUSIEURS points valides
     # }
     #
     # GRAPH:
@@ -120,9 +116,11 @@ class ExerciseBlock(db.Model):
     #   "x_label": "x", "y_label": "y",
     #   "x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
     #   "grid": true,
-    #   "elements": [{"type": "point", "x": 3, "y": 5}],
-    #   "question_type": "read_value" | "place_point" | "draw_line",
-    #   "correct_answer": {"x": 3, "y": 5} | {"slope": 2, "intercept": 1},
+    #   "question_type": "draw_line" | "draw_quadratic",
+    #   // draw_line: l'enseignant donne f(x) = ax + b, l'élève déplace 2 points
+    #   "correct_answer": {"a": 2, "b": 1}
+    #   // draw_quadratic: l'enseignant donne f(x) = ax² + bx + c, l'élève déplace 3 points
+    #   "correct_answer": {"a": 1, "b": 0, "c": -2}
     #   "tolerance": 0.5
     # }
 
@@ -133,6 +131,7 @@ class ExerciseBlock(db.Model):
             'block_type': self.block_type,
             'position': self.position,
             'title': self.title,
+            'duration': self.duration,
             'config_json': self.config_json,
             'points': self.points,
         }

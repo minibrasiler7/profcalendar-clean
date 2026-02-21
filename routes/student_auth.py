@@ -870,9 +870,6 @@ def missions():
         exercise = pub.exercise
         if not exercise:
             continue
-        # Vérifier date d'activation
-        if exercise.activation_date and exercise.activation_date > datetime.utcnow():
-            continue
 
         attempt = StudentExerciseAttempt.query.filter_by(
             student_id=student.id,
@@ -916,11 +913,6 @@ def solve_exercise(exercise_id):
     ).first()
     if not pub:
         flash('Exercice non disponible.', 'error')
-        return redirect(url_for('student_auth.missions'))
-
-    # Vérifier deadline
-    if exercise.deadline and exercise.deadline < datetime.utcnow():
-        flash('La date limite est dépassée.', 'error')
         return redirect(url_for('student_auth.missions'))
 
     # Vérifier si déjà complété
@@ -976,11 +968,12 @@ def submit_exercise(exercise_id):
         total_score = 0
         total_max = 0
         answers_data = data.get('answers', {})
+        accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
 
         # Corriger chaque bloc
         for block in exercise.blocks:
             block_answer = answers_data.get(str(block.id), {})
-            is_correct, points = grade_block(block, block_answer)
+            is_correct, points = grade_block(block, block_answer, accept_typos=accept_typos)
 
             total_score += points
             total_max += block.points
@@ -1094,10 +1087,49 @@ def update_avatar():
 
 
 # ============================================================
+# FUZZY MATCHING (tolérance fautes d'orthographe)
+# ============================================================
+
+def levenshtein_distance(s1, s2):
+    """Calculer la distance de Levenshtein entre deux chaînes"""
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        curr_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = prev_row[j + 1] + 1
+            deletions = curr_row[j] + 1
+            substitutions = prev_row[j] + (c1 != c2)
+            curr_row.append(min(insertions, deletions, substitutions))
+        prev_row = curr_row
+    return prev_row[-1]
+
+
+def fuzzy_match(user_answer, correct_answer, threshold=0.75):
+    """Vérifier si user_answer est suffisamment proche de correct_answer.
+    threshold: ratio de similarité minimum (0.75 = 75% de similarité)"""
+    if not user_answer or not correct_answer:
+        return False
+    s1 = user_answer.strip().lower()
+    s2 = correct_answer.strip().lower()
+    if s1 == s2:
+        return True
+    max_len = max(len(s1), len(s2))
+    if max_len == 0:
+        return True
+    distance = levenshtein_distance(s1, s2)
+    similarity = 1 - (distance / max_len)
+    return similarity >= threshold
+
+
+# ============================================================
 # GRADING HELPERS
 # ============================================================
 
-def grade_block(block, answer):
+def grade_block(block, answer, accept_typos=False):
     """Corriger un bloc et retourner (is_correct, points_earned)"""
     c = block.config_json
     points = block.points or 0
@@ -1105,9 +1137,9 @@ def grade_block(block, answer):
     if block.block_type == 'qcm':
         return grade_qcm(c, answer, points)
     elif block.block_type == 'short_answer':
-        return grade_short_answer(c, answer, points)
+        return grade_short_answer(c, answer, points, accept_typos)
     elif block.block_type == 'fill_blank':
-        return grade_fill_blank(c, answer, points)
+        return grade_fill_blank(c, answer, points, accept_typos)
     elif block.block_type == 'sorting':
         return grade_sorting(c, answer, points)
     elif block.block_type == 'image_position':
@@ -1130,7 +1162,7 @@ def grade_qcm(config, answer, max_points):
     return is_correct, max_points if is_correct else 0
 
 
-def grade_short_answer(config, answer, max_points):
+def grade_short_answer(config, answer, max_points, accept_typos=False):
     user_answer = str(answer.get('value', '')).strip().lower()
     correct = str(config.get('correct_answer', '')).strip().lower()
 
@@ -1144,14 +1176,19 @@ def grade_short_answer(config, answer, max_points):
             is_correct = False
     else:
         is_correct = user_answer == correct
+        if not is_correct and accept_typos:
+            is_correct = fuzzy_match(user_answer, correct)
         if not is_correct:
             synonyms = [s.strip().lower() for s in config.get('synonyms', [])]
-            is_correct = user_answer in synonyms
+            if accept_typos:
+                is_correct = any(fuzzy_match(user_answer, s) for s in synonyms)
+            else:
+                is_correct = user_answer in synonyms
 
     return is_correct, max_points if is_correct else 0
 
 
-def grade_fill_blank(config, answer, max_points):
+def grade_fill_blank(config, answer, max_points, accept_typos=False):
     blanks = config.get('blanks', [])
     user_answers = answer.get('blanks', [])
     if not blanks:
@@ -1164,6 +1201,8 @@ def grade_fill_blank(config, answer, max_points):
         if i < len(user_answers):
             given = str(user_answers[i]).strip().lower()
         if given == expected:
+            correct_count += 1
+        elif accept_typos and fuzzy_match(given, expected):
             correct_count += 1
 
     ratio = correct_count / len(blanks) if blanks else 0
@@ -1195,50 +1234,87 @@ def grade_sorting(config, answer, max_points):
 
 
 def grade_image_position(config, answer, max_points):
+    """Corriger image interactive: chaque zone a un label et plusieurs points valides.
+    L'élève doit cliquer dans le rayon d'au moins un des points de chaque zone."""
     zones = config.get('zones', [])
     clicks = answer.get('clicks', [])
 
     if not zones:
         return True, max_points
 
+    default_radius = config.get('default_radius', 30)
     correct_count = 0
-    for i, zone in enumerate(zones):
-        zx, zy, zr = zone.get('x', 0), zone.get('y', 0), zone.get('radius', 30)
-        if i < len(clicks):
-            cx, cy = clicks[i].get('x', 0), clicks[i].get('y', 0)
-            distance = ((cx - zx) ** 2 + (cy - zy) ** 2) ** 0.5
-            if distance <= zr:
-                correct_count += 1
 
-    ratio = correct_count / len(zones)
+    for i, zone in enumerate(zones):
+        zone_radius = zone.get('radius', default_radius)
+        zone_points = zone.get('points', [])
+
+        # Rétro-compatibilité: ancien format avec x/y directement sur la zone
+        if not zone_points and 'x' in zone:
+            zone_points = [{'x': zone['x'], 'y': zone['y']}]
+
+        if i < len(clicks):
+            cx = clicks[i].get('x', 0)
+            cy = clicks[i].get('y', 0)
+            # Vérifier si le clic est dans le rayon d'au moins un des points de la zone
+            for pt in zone_points:
+                distance = ((cx - pt.get('x', 0)) ** 2 + (cy - pt.get('y', 0)) ** 2) ** 0.5
+                if distance <= zone_radius:
+                    correct_count += 1
+                    break
+
+    ratio = correct_count / len(zones) if zones else 0
     return ratio == 1.0, round(ratio * max_points)
 
 
 def grade_graph(config, answer, max_points):
+    """Corriger le graphique: l'élève envoie les points qu'il a placés.
+    On reconstitue la fonction à partir de ces points et on compare les coefficients."""
     tolerance = config.get('tolerance', 0.5)
     correct = config.get('correct_answer', {})
-    question_type = config.get('question_type', 'read_value')
+    question_type = config.get('question_type', 'draw_line')
 
-    if question_type in ('read_value', 'place_point'):
-        ux = answer.get('x', None)
-        uy = answer.get('y', None)
-        if ux is None or uy is None:
-            return False, 0
-        try:
-            distance = ((float(ux) - correct.get('x', 0)) ** 2 + (float(uy) - correct.get('y', 0)) ** 2) ** 0.5
-            is_correct = distance <= tolerance
-        except (ValueError, TypeError):
+    try:
+        if question_type == 'draw_line':
+            # L'élève envoie 2 points, on calcule a et b de y = ax + b
+            points = answer.get('points', [])
+            if len(points) < 2:
+                return False, 0
+            x1, y1 = float(points[0]['x']), float(points[0]['y'])
+            x2, y2 = float(points[1]['x']), float(points[1]['y'])
+            if abs(x2 - x1) < 0.001:
+                return False, 0  # droite verticale, pas un cas valide
+            user_a = (y2 - y1) / (x2 - x1)
+            user_b = y1 - user_a * x1
+            a_ok = abs(user_a - correct.get('a', 0)) <= tolerance
+            b_ok = abs(user_b - correct.get('b', 0)) <= tolerance
+            is_correct = a_ok and b_ok
+
+        elif question_type == 'draw_quadratic':
+            # L'élève envoie 3 points, on calcule a, b, c de y = ax² + bx + c
+            points = answer.get('points', [])
+            if len(points) < 3:
+                return False, 0
+            x1, y1 = float(points[0]['x']), float(points[0]['y'])
+            x2, y2 = float(points[1]['x']), float(points[1]['y'])
+            x3, y3 = float(points[2]['x']), float(points[2]['y'])
+
+            # Résolution du système 3x3 pour ax²+bx+c
+            # Utiliser la méthode de Cramer
+            det = (x1**2*(x2 - x3) - x2**2*(x1 - x3) + x3**2*(x1 - x2))
+            if abs(det) < 0.001:
+                return False, 0  # Points colinéaires ou identiques
+            user_a = (y1*(x2 - x3) - y2*(x1 - x3) + y3*(x1 - x2)) / det
+            user_b = (x1**2*(y2 - y3) - x2**2*(y1 - y3) + x3**2*(y1 - y2)) / det
+            user_c = (x1**2*(x2*y3 - x3*y2) - x2**2*(x1*y3 - x3*y1) + x3**2*(x1*y2 - x2*y1)) / det
+
+            a_ok = abs(user_a - correct.get('a', 0)) <= tolerance
+            b_ok = abs(user_b - correct.get('b', 0)) <= tolerance
+            c_ok = abs(user_c - correct.get('c', 0)) <= tolerance
+            is_correct = a_ok and b_ok and c_ok
+        else:
             is_correct = False
-    elif question_type == 'draw_line':
-        try:
-            user_slope = float(answer.get('slope', 0))
-            user_intercept = float(answer.get('intercept', 0))
-            slope_ok = abs(user_slope - correct.get('slope', 0)) <= tolerance
-            intercept_ok = abs(user_intercept - correct.get('intercept', 0)) <= tolerance
-            is_correct = slope_ok and intercept_ok
-        except (ValueError, TypeError):
-            is_correct = False
-    else:
+    except (ValueError, TypeError, ZeroDivisionError):
         is_correct = False
 
     return is_correct, max_points if is_correct else 0
@@ -1257,7 +1333,15 @@ def check_badges(student, rpg):
     ).filter(StudentExerciseAttempt.completed_at.isnot(None)).all()
 
     exercises_completed = len(completed_attempts)
-    perfect_scores = sum(1 for a in completed_attempts if a.max_score > 0 and a.score == a.max_score)
+    # Count perfect or above-threshold scores
+    perfect_scores = 0
+    for a in completed_attempts:
+        if a.max_score > 0 and a.score == a.max_score:
+            perfect_scores += 1
+        elif a.max_score > 0 and a.exercise:
+            threshold = getattr(a.exercise, 'badge_threshold', 100) or 100
+            if a.score_percentage >= threshold and threshold < 100:
+                perfect_scores += 1
 
     # Count block types completed correctly
     from models.exercise_progress import StudentBlockAnswer
