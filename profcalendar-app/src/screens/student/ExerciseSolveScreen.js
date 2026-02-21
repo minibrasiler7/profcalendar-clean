@@ -554,6 +554,11 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     }
   };
 
+  const handleResultClose = () => {
+    setResultModal(false);
+    navigation.goBack();
+  };
+
   if (loading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color={colors.primary} /></View>;
   if (!mission) return <View style={styles.centerContainer}><Text style={styles.errorText}>Mission non trouvée</Text></View>;
 

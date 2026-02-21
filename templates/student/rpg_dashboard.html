@@ -272,6 +272,57 @@
     margin-top: 0.3rem;
 }
 
+/* White bg for chihuahua images */
+.avatar-display img {
+    background: white;
+}
+.avatar-class-card .avatar-icon img {
+    background: white;
+    border-radius: 50%;
+}
+
+/* Navbar */
+.navbar-student {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 1rem 0;
+    margin-bottom: 0;
+}
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar-links {
+    display: flex;
+    gap: 2rem;
+}
+.navbar-links a {
+    color: #4a5568;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.navbar-links a:hover,
+.navbar-links a.active {
+    color: #667eea;
+}
+.logout-btn {
+    background-color: #f7fafc;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.logout-btn:hover {
+    background-color: #edf2f7;
+    color: #2d3748;
+}
+
 @media (max-width: 600px) {
     .avatar-classes { grid-template-columns: repeat(2, 1fr); }
     .stats-row { gap: 1rem; }
@@ -280,10 +331,36 @@
 {% endblock %}
 
 {% block content %}
+<!-- Navigation -->
+<nav class="navbar-student">
+    <div class="navbar-content">
+        <div class="navbar-links">
+            <a href="{{ url_for('student_auth.dashboard') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('student_auth.grades') }}">
+                <i class="fas fa-chart-line"></i> Notes
+            </a>
+            <a href="{{ url_for('student_auth.files') }}">
+                <i class="fas fa-folder"></i> Fichiers
+            </a>
+            <a href="{{ url_for('student_auth.teachers') }}">
+                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+            </a>
+            <a href="{{ url_for('student_auth.missions') }}">
+                <i class="fas fa-scroll"></i> Missions
+            </a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="active">
+                <i class="fas fa-gamepad"></i> RPG
+            </a>
+        </div>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</nav>
+
 <div class="rpg-container">
-    <a href="{{ url_for('student_auth.missions') }}" style="color:#667eea;font-size:0.85rem;display:inline-block;margin-bottom:1rem;">
-        <i class="fas fa-arrow-left"></i> Retour aux missions
-    </a>
 
     <!-- Hero card -->
     <div class="rpg-hero">

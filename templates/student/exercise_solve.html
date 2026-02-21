@@ -25,7 +25,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     width: 44px; height: 44px; border-radius: 50%;
     border: 2px solid #f59e0b; overflow: hidden; flex-shrink: 0;
 }
-.rpg-topbar-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.rpg-topbar-avatar img { width: 100%; height: 100%; object-fit: contain; background: white; border-radius: 50%; }
 .rpg-topbar-info { color: white; }
 .rpg-topbar-info .name { font-weight: 700; font-size: 0.95rem; }
 .rpg-topbar-info .level-xp { font-size: 0.75rem; opacity: 0.7; }
@@ -396,7 +396,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     width: 80px; height: 80px; margin: 1rem auto; border-radius: 50%;
     border: 3px solid #f59e0b; overflow: hidden;
 }
-.results-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.results-avatar img { width: 100%; height: 100%; object-fit: contain; background: white; border-radius: 50%; }
 .results-score { font-size: 3.5rem; font-weight: 900; margin: 0.5rem 0; }
 .results-score.good { color: #10b981; }
 .results-score.medium { color: #f59e0b; }
@@ -580,12 +580,18 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         {% elif block.block_type == 'image_position' %}
             {% if c.image_file_id or c.image_url %}
-            <p class="question-text" style="color:#6b7280;">
-                Clique sur {{ c.zones|length }} zone(s) sur l'image :
-                {% for z in c.zones %}<strong>{{ z.label }}</strong>{{ ', ' if not loop.last }}{% endfor %}
-            </p>
+            <div class="image-zone-prompt" id="zone-prompt-{{ block.id }}" style="text-align:center;margin-bottom:1rem;">
+                <p style="color:#6b7280;font-size:0.85rem;margin:0 0 0.3rem;">Clique sur la zone :</p>
+                <div style="font-size:1.6rem;font-weight:900;color:#667eea;" id="zone-current-label-{{ block.id }}">
+                    {{ c.zones[0].label if c.zones else '' }}
+                </div>
+                <p style="color:#9ca3af;font-size:0.8rem;margin:0.3rem 0 0;" id="zone-counter-{{ block.id }}">
+                    Zone 1 / {{ c.zones|length }}
+                </p>
+            </div>
             <div class="image-click-area" id="img-click-{{ block.id }}" data-block="{{ block.id }}"
                  data-expected="{{ c.zones|length }}"
+                 data-zones='{{ c.zones|tojson }}'
                  onclick="handleImageClick(event, '{{ block.id }}')">
                 {% if c.image_file_id %}
                 <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image">
@@ -1115,23 +1121,41 @@ function handleImageClick(event, blockId) {
     const x = Math.round(event.clientX - rect.left);
     const y = Math.round(event.clientY - rect.top);
     const expected = parseInt(container.dataset.expected) || 1;
+    const zones = JSON.parse(container.dataset.zones || '[]');
 
     if (!imageClicks[blockId]) imageClicks[blockId] = [];
     if (imageClicks[blockId].length >= expected) {
+        // Reset — remove all markers and restart
         container.querySelectorAll('.click-marker').forEach(m => m.remove());
         imageClicks[blockId] = [];
     }
     imageClicks[blockId].push({ x, y });
 
+    const clickIdx = imageClicks[blockId].length - 1;
     const marker = document.createElement('div');
     marker.className = 'click-marker';
     marker.style.left = x + 'px';
     marker.style.top = y + 'px';
     const label = document.createElement('div');
     label.className = 'marker-label';
-    label.textContent = imageClicks[blockId].length;
+    label.textContent = zones[clickIdx] ? zones[clickIdx].label : (clickIdx + 1);
     marker.appendChild(label);
     container.appendChild(marker);
+
+    // Update zone prompt to show next zone
+    const nextIdx = imageClicks[blockId].length;
+    const currentLabel = document.getElementById('zone-current-label-' + blockId);
+    const counter = document.getElementById('zone-counter-' + blockId);
+    if (currentLabel && counter) {
+        if (nextIdx < expected && zones[nextIdx]) {
+            currentLabel.textContent = zones[nextIdx].label;
+            counter.textContent = `Zone ${nextIdx + 1} / ${expected}`;
+        } else {
+            currentLabel.textContent = 'Toutes les zones placées !';
+            currentLabel.style.color = '#10b981';
+            counter.textContent = `${expected} / ${expected} — Prêt à valider`;
+        }
+    }
 }
 
 // ============================================================
@@ -1242,22 +1266,23 @@ function initInteractiveGraph(blockId, config) {
     canvas.addEventListener('touchend', () => onGraphMouseUp(blockId));
 }
 
+// Logical (CSS) dimensions for graph — stored after DPR scaling
+const GRAPH_W = 600, GRAPH_H = 500;
+
 function graphToPixel(blockId, gx, gy) {
     const s = graphStates[blockId]; const c = s.config;
-    const canvas = document.getElementById('graph-' + blockId);
-    const margin = 50; const gw = canvas.width - 2 * margin; const gh = canvas.height - 2 * margin;
+    const margin = 50; const gw = GRAPH_W - 2 * margin; const gh = GRAPH_H - 2 * margin;
     return {
         px: margin + ((gx - c.x_min) / (c.x_max - c.x_min)) * gw,
-        py: canvas.height - margin - ((gy - c.y_min) / (c.y_max - c.y_min)) * gh
+        py: GRAPH_H - margin - ((gy - c.y_min) / (c.y_max - c.y_min)) * gh
     };
 }
 function pixelToGraph(blockId, px, py) {
     const s = graphStates[blockId]; const c = s.config;
-    const canvas = document.getElementById('graph-' + blockId);
-    const margin = 50; const gw = canvas.width - 2 * margin; const gh = canvas.height - 2 * margin;
+    const margin = 50; const gw = GRAPH_W - 2 * margin; const gh = GRAPH_H - 2 * margin;
     return {
         x: c.x_min + ((px - margin) / gw) * (c.x_max - c.x_min),
-        y: c.y_min + ((canvas.height - margin - py) / gh) * (c.y_max - c.y_min)
+        y: c.y_min + ((GRAPH_H - margin - py) / gh) * (c.y_max - c.y_min)
     };
 }
 
@@ -1266,21 +1291,21 @@ function drawInteractiveGraph(blockId) {
     const canvas = document.getElementById('graph-' + blockId);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const w = canvas.width, h = canvas.height, margin = 50;
+    const margin = 50;
 
     // Use devicePixelRatio for sharp rendering
     const dpr = window.devicePixelRatio || 1;
     if (!canvas.dataset.scaled) {
         canvas.dataset.scaled = '1';
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
+        canvas.width = GRAPH_W * dpr;
+        canvas.height = GRAPH_H * dpr;
+        canvas.style.width = GRAPH_W + 'px';
+        canvas.style.height = GRAPH_H + 'px';
         ctx.scale(dpr, dpr);
     }
 
-    const cw = w, ch = h;
-    ctx.clearRect(0, 0, cw * dpr, ch * dpr);
+    const cw = GRAPH_W, ch = GRAPH_H;
+    ctx.clearRect(0, 0, GRAPH_W * dpr, GRAPH_H * dpr);
 
     // Background
     ctx.fillStyle = '#fafbfc';
@@ -1386,8 +1411,8 @@ function drawInteractiveGraph(blockId) {
 function getCanvasCoords(e, blockId) {
     const canvas = document.getElementById('graph-' + blockId);
     const rect = canvas.getBoundingClientRect();
-    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
-    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    const scaleX = GRAPH_W / rect.width;
+    const scaleY = GRAPH_H / rect.height;
     return { px: (e.clientX - rect.left) * scaleX, py: (e.clientY - rect.top) * scaleY };
 }
 function onGraphMouseDown(e, blockId) {
@@ -1403,8 +1428,8 @@ function onGraphTouchStart(e, blockId) {
     const touch = e.touches[0];
     const canvas = document.getElementById('graph-' + blockId);
     const rect = canvas.getBoundingClientRect();
-    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
-    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    const scaleX = GRAPH_W / rect.width;
+    const scaleY = GRAPH_H / rect.height;
     const px = (touch.clientX - rect.left) * scaleX;
     const py = (touch.clientY - rect.top) * scaleY;
     const s = graphStates[blockId];
@@ -1426,8 +1451,8 @@ function onGraphTouchMove(e, blockId) {
     const touch = e.touches[0];
     const canvas = document.getElementById('graph-' + blockId);
     const rect = canvas.getBoundingClientRect();
-    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
-    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    const scaleX = GRAPH_W / rect.width;
+    const scaleY = GRAPH_H / rect.height;
     const g = pixelToGraph(blockId, (touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
     s.points[s.dragging].x = Math.round(g.x * 2) / 2;
     s.points[s.dragging].y = Math.round(g.y * 2) / 2;

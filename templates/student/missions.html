@@ -218,23 +218,102 @@
     display: inline-flex; align-items: center; gap: 0.3rem;
 }
 .cooldown-timer { font-variant-numeric: tabular-nums; font-weight: 800; }
+
+/* Navbar */
+.navbar-student {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 1rem 0;
+    margin-bottom: 0;
+}
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar-links {
+    display: flex;
+    gap: 2rem;
+}
+.navbar-links a {
+    color: #4a5568;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.navbar-links a:hover,
+.navbar-links a.active {
+    color: #667eea;
+}
+.logout-btn {
+    background-color: #f7fafc;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.logout-btn:hover {
+    background-color: #edf2f7;
+    color: #2d3748;
+}
+
+/* White bg for chihuahua images */
+.avatar-mini img, .rpg-topbar-avatar img {
+    background: white;
+    border-radius: 50%;
+}
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Navigation -->
+<nav class="navbar-student">
+    <div class="navbar-content">
+        <div class="navbar-links">
+            <a href="{{ url_for('student_auth.dashboard') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('student_auth.grades') }}">
+                <i class="fas fa-chart-line"></i> Notes
+            </a>
+            <a href="{{ url_for('student_auth.files') }}">
+                <i class="fas fa-folder"></i> Fichiers
+            </a>
+            <a href="{{ url_for('student_auth.teachers') }}">
+                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+            </a>
+            <a href="{{ url_for('student_auth.missions') }}" class="active">
+                <i class="fas fa-scroll"></i> Missions
+            </a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}">
+                <i class="fas fa-gamepad"></i> RPG
+            </a>
+        </div>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</nav>
+
 <div class="missions-container">
     <div class="missions-header">
-        <h1><i class="fas fa-scroll"></i> Mes Missions</h1>
-        {% if rpg %}
-        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="rpg-mini" style="text-decoration:none;color:white;">
-            {% if rpg.avatar_class %}
-            <div class="avatar-mini">
-                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
+        <div style="display:flex;align-items:center;gap:1rem;">
+            {% if rpg and rpg.avatar_class %}
+            <div class="avatar-mini" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,0.4);flex-shrink:0;">
+                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}" style="width:100%;height:100%;object-fit:contain;background:white;border-radius:50%;">
             </div>
             {% endif %}
+            <h1><i class="fas fa-scroll"></i> Mes Missions</h1>
+        </div>
+        {% if rpg %}
+        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="rpg-mini" style="text-decoration:none;color:white;">
             <div class="level-badge">{{ rpg.level }}</div>
             <div class="rpg-mini-info">
-                <strong>{{ rpg.xp_total }} XP</strong>
+                <strong>Niveau {{ rpg.level }} — {{ rpg.xp_total }} XP</strong>
                 <div class="xp-bar"><div class="xp-bar-fill" style="width: {{ rpg.xp_progress }}%;"></div></div>
             </div>
             <div class="rpg-mini-info">
