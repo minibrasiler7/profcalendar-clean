@@ -220,7 +220,7 @@
         <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="rpg-mini" style="text-decoration:none;color:white;">
             {% if rpg.avatar_class %}
             <div class="avatar-mini">
-                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.svg') }}" alt="{{ rpg.avatar_class }}">
+                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
             </div>
             {% endif %}
             <div class="level-badge">{{ rpg.level }}</div>

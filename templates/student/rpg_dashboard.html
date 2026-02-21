@@ -288,7 +288,7 @@
     <div class="rpg-hero">
         <div class="avatar-display">
             {% if rpg.avatar_class %}
-            <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.svg') }}" alt="{{ rpg.avatar_class }}">
+            <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
             <span class="avatar-class-label">{{ rpg.avatar_class }}</span>
             {% else %}
             <span class="no-avatar">❓</span>
@@ -328,22 +328,22 @@
         {% endif %}
         <div class="avatar-classes">
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerrier' }}" onclick="selectAvatar('guerrier', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerrier.svg') }}" alt="Guerrier"></div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerrier.png') }}" alt="Guerrier"></div>
                 <div class="avatar-name">Guerrier</div>
                 <div class="avatar-desc">Force et courage</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'mage' }}" onclick="selectAvatar('mage', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/mage.svg') }}" alt="Mage"></div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/mage.png') }}" alt="Mage"></div>
                 <div class="avatar-name">Mage</div>
                 <div class="avatar-desc">Sagesse et savoir</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'archer' }}" onclick="selectAvatar('archer', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/archer.svg') }}" alt="Archer"></div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/archer.png') }}" alt="Archer"></div>
                 <div class="avatar-name">Archer</div>
                 <div class="avatar-desc">Précision et agilité</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerisseur' }}" onclick="selectAvatar('guerisseur', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerisseur.svg') }}" alt="Guérisseur"></div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerisseur.png') }}" alt="Guérisseur"></div>
                 <div class="avatar-name">Guérisseur</div>
                 <div class="avatar-desc">Soin et protection</div>
             </div>
