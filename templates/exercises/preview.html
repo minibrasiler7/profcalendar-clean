@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Prévisualisation - {{ exercise.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.preview-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.preview-banner {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-banner h2 { margin: 0; font-size: 1.1rem; }
+.preview-banner a { color: white; text-decoration: none; opacity: 0.8; }
+.preview-banner a:hover { opacity: 1; }
+
+.exercise-header-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
+
+.exercise-header-card h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+.exercise-header-card p { color: #6b7280; margin: 0 0 1rem; }
+
+.exercise-meta {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    font-size: 0.85rem; color: #4b5563;
+}
+
+.exercise-meta span {
+    display: flex; align-items: center; gap: 0.3rem;
+}
+
+.block-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1rem;
+    border-left: 4px solid #667eea;
+}
+
+.block-card h3 {
+    margin: 0 0 1rem;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.block-number {
+    width: 28px; height: 28px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* QCM */
+.qcm-options { list-style: none; padding: 0; }
+.qcm-options li {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.qcm-options li:hover { border-color: #667eea; background: #eef2ff; }
+.qcm-options li.selected { border-color: #667eea; background: #eef2ff; }
+
+/* Short answer */
+.answer-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+.answer-input:focus { outline: none; border-color: #667eea; }
+
+/* Fill blank */
+.fill-blank-text { line-height: 2.2; font-size: 1rem; }
+.fill-blank-text .blank-input {
+    display: inline-block;
+    width: 100px;
+    border: none;
+    border-bottom: 2px solid #667eea;
+    padding: 0.2rem 0.3rem;
+    font-size: 1rem;
+    font-family: inherit;
+    text-align: center;
+    background: #eef2ff;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Sorting */
+.sorting-items { list-style: none; padding: 0; }
+.sorting-items li {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+}
+.sorting-items li i { color: #9ca3af; }
+
+/* Graph canvas */
+.graph-canvas-wrapper {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+    background: white;
+}
+
+/* Submit */
+.submit-section {
+    text-align: center;
+    padding: 2rem;
+}
+
+.btn-submit {
+    padding: 0.75rem 2rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+.btn-submit:hover { background: #059669; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preview-container">
+    <div class="preview-banner">
+        <h2><i class="fas fa-eye"></i> Mode prévisualisation (vue élève)</h2>
+        <a href="{{ url_for('exercises.edit', exercise_id=exercise.id) }}"><i class="fas fa-arrow-left"></i> Retour à l'éditeur</a>
+    </div>
+
+    <div class="exercise-header-card">
+        <h1>{{ exercise.title }}</h1>
+        {% if exercise.description %}
+        <p>{{ exercise.description }}</p>
+        {% endif %}
+        <div class="exercise-meta">
+            {% if exercise.subject %}<span><i class="fas fa-book"></i> {{ exercise.subject }}</span>{% endif %}
+            {% if exercise.level %}<span><i class="fas fa-layer-group"></i> {{ exercise.level }}</span>{% endif %}
+            {% if exercise.estimated_duration %}<span><i class="fas fa-clock"></i> {{ exercise.estimated_duration }} min</span>{% endif %}
+            <span><i class="fas fa-star" style="color:#f59e0b;"></i> {{ exercise.total_points }} XP</span>
+        </div>
+    </div>
+
+    {% for block in exercise.blocks.order_by('position') %}
+    <div class="block-card">
+        <h3>
+            <span class="block-number">{{ loop.index }}</span>
+            {{ block.title or 'Question ' ~ loop.index }}
+        </h3>
+
+        {% set c = block.config_json %}
+
+        {% if block.block_type == 'qcm' %}
+            {% if c.question %}<p>{{ c.question }}</p>{% endif %}
+            <ul class="qcm-options">
+                {% for opt in c.options %}
+                <li onclick="this.classList.toggle('selected')">{{ opt.text }}</li>
+                {% endfor %}
+            </ul>
+
+        {% elif block.block_type == 'short_answer' %}
+            {% if c.question %}<p>{{ c.question }}</p>{% endif %}
+            <input class="answer-input" type="{{ 'number' if c.answer_type == 'number' else 'text' }}"
+                placeholder="Votre réponse..."
+                {{ 'step=0.01' if c.answer_type == 'number' else '' }}>
+
+        {% elif block.block_type == 'fill_blank' %}
+            <div class="fill-blank-text" id="fill-blank-{{ block.id }}"></div>
+            <script>
+                (function() {
+                    const template = {{ c.text_template|tojson }};
+                    const html = template.replace(/\{([^}]+)\}/g, '<input class="blank-input" type="text" placeholder="...">');
+                    document.getElementById('fill-blank-{{ block.id }}').innerHTML = html;
+                })();
+            </script>
+
+        {% elif block.block_type == 'sorting' %}
+            <p style="color:#6b7280;font-size:0.85rem;">
+                {% if c.mode == 'order' %}
+                Remettez ces éléments dans le bon ordre :
+                {% else %}
+                Classez ces éléments dans les bonnes catégories :
+                {% endif %}
+            </p>
+            <ul class="sorting-items">
+                {% for item in c.items %}
+                <li><i class="fas fa-grip-vertical"></i> {{ item }}</li>
+                {% endfor %}
+            </ul>
+
+        {% elif block.block_type == 'image_position' %}
+            {% if c.image_url %}
+            <p style="color:#6b7280;font-size:0.85rem;">Cliquez sur la zone correcte de l'image :</p>
+            <div class="graph-canvas-wrapper">
+                <img src="{{ c.image_url }}" style="max-width:100%;max-height:400px;">
+            </div>
+            {% endif %}
+
+        {% elif block.block_type == 'graph' %}
+            <p style="color:#6b7280;font-size:0.85rem;">
+                {% if c.question_type == 'read_value' %}Lisez la valeur demandée sur le graphique :
+                {% elif c.question_type == 'place_point' %}Placez le point au bon endroit :
+                {% else %}Tracez la droite demandée :{% endif %}
+            </p>
+            <div class="graph-canvas-wrapper">
+                <canvas id="graph-{{ block.id }}" width="500" height="400"></canvas>
+            </div>
+            <script>
+                (function() {
+                    const canvas = document.getElementById('graph-{{ block.id }}');
+                    const ctx = canvas.getContext('2d');
+                    const c = {{ c|tojson }};
+                    drawGraph(ctx, canvas.width, canvas.height, c);
+                })();
+            </script>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="submit-section">
+        <button class="btn-submit" onclick="alert('Mode prévisualisation — pas de soumission')">
+            <i class="fas fa-paper-plane"></i> Soumettre mes réponses
+        </button>
+    </div>
+</div>
+
+<script>
+function drawGraph(ctx, w, h, config) {
+    const margin = 40;
+    const gw = w - 2 * margin;
+    const gh = h - 2 * margin;
+
+    // Background
+    ctx.fillStyle = '#fafbfc';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid
+    if (config.grid) {
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 0.5;
+        for (let x = config.x_min; x <= config.x_max; x++) {
+            const px = margin + ((x - config.x_min) / (config.x_max - config.x_min)) * gw;
+            ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke();
+        }
+        for (let y = config.y_min; y <= config.y_max; y++) {
+            const py = h - margin - ((y - config.y_min) / (config.y_max - config.y_min)) * gh;
+            ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke();
+        }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#1f2937';
+    ctx.lineWidth = 2;
+    const originX = margin + ((0 - config.x_min) / (config.x_max - config.x_min)) * gw;
+    const originY = h - margin - ((0 - config.y_min) / (config.y_max - config.y_min)) * gh;
+
+    // X axis
+    ctx.beginPath(); ctx.moveTo(margin, originY); ctx.lineTo(w - margin, originY); ctx.stroke();
+    // Y axis
+    ctx.beginPath(); ctx.moveTo(originX, margin); ctx.lineTo(originX, h - margin); ctx.stroke();
+
+    // Labels
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(config.x_label || 'x', w - margin + 5, originY + 4);
+    ctx.fillText(config.y_label || 'y', originX + 5, margin - 8);
+
+    // Tick labels
+    ctx.font = '10px Inter, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+    for (let x = Math.ceil(config.x_min); x <= config.x_max; x++) {
+        if (x === 0) continue;
+        const px = margin + ((x - config.x_min) / (config.x_max - config.x_min)) * gw;
+        ctx.fillText(x, px - 4, originY + 14);
+    }
+    for (let y = Math.ceil(config.y_min); y <= config.y_max; y++) {
+        if (y === 0) continue;
+        const py = h - margin - ((y - config.y_min) / (config.y_max - config.y_min)) * gh;
+        ctx.fillText(y, originX - 16, py + 4);
+    }
+}
+</script>
+{% endblock %}

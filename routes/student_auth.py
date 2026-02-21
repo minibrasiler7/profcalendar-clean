@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from extensions import db
 from models.student import Student
@@ -842,3 +842,445 @@ def teachers():
     except Exception as e:
         flash(f'Erreur lors du chargement des enseignants: {str(e)}', 'error')
         return redirect(url_for('student_auth.dashboard'))
+
+
+# ============================================================
+# MISSIONS (Exercices interactifs)
+# ============================================================
+
+@student_auth_bp.route('/missions')
+@login_required
+def missions():
+    """Page 'Mes missions' — liste des exercices publiés pour l'élève"""
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+
+    student = current_user
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
+    from models.exercise import Exercise
+
+    # Récupérer les publications pour la classe de l'élève
+    publications = ExercisePublication.query.filter_by(
+        classroom_id=student.classroom_id
+    ).order_by(ExercisePublication.published_at.desc()).all()
+
+    # Enrichir avec les tentatives de l'élève
+    missions_data = []
+    for pub in publications:
+        exercise = pub.exercise
+        if not exercise:
+            continue
+        # Vérifier date d'activation
+        if exercise.activation_date and exercise.activation_date > datetime.utcnow():
+            continue
+
+        attempt = StudentExerciseAttempt.query.filter_by(
+            student_id=student.id,
+            exercise_id=exercise.id
+        ).order_by(StudentExerciseAttempt.started_at.desc()).first()
+
+        missions_data.append({
+            'exercise': exercise,
+            'publication': pub,
+            'attempt': attempt,
+            'status': 'completed' if (attempt and attempt.is_completed) else ('in_progress' if attempt else 'todo'),
+        })
+
+    # RPG profile
+    from models.rpg import StudentRPGProfile
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+
+    return render_template('student/missions.html',
+                           student=student,
+                           missions=missions_data,
+                           rpg=rpg)
+
+
+@student_auth_bp.route('/missions/<int:exercise_id>')
+@login_required
+def solve_exercise(exercise_id):
+    """Résoudre un exercice"""
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+
+    student = current_user
+    from models.exercise import Exercise
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
+
+    exercise = Exercise.query.get_or_404(exercise_id)
+
+    # Vérifier que l'exercice est publié pour la classe de l'élève
+    pub = ExercisePublication.query.filter_by(
+        exercise_id=exercise_id,
+        classroom_id=student.classroom_id
+    ).first()
+    if not pub:
+        flash('Exercice non disponible.', 'error')
+        return redirect(url_for('student_auth.missions'))
+
+    # Vérifier deadline
+    if exercise.deadline and exercise.deadline < datetime.utcnow():
+        flash('La date limite est dépassée.', 'error')
+        return redirect(url_for('student_auth.missions'))
+
+    # Vérifier si déjà complété
+    existing_attempt = StudentExerciseAttempt.query.filter_by(
+        student_id=student.id,
+        exercise_id=exercise_id,
+    ).filter(StudentExerciseAttempt.completed_at.isnot(None)).first()
+
+    return render_template('student/exercise_solve.html',
+                           student=student,
+                           exercise=exercise,
+                           already_completed=existing_attempt is not None,
+                           previous_attempt=existing_attempt)
+
+
+@student_auth_bp.route('/missions/<int:exercise_id>/submit', methods=['POST'])
+@login_required
+def submit_exercise(exercise_id):
+    """Soumettre les réponses d'un exercice"""
+    if not isinstance(current_user, Student):
+        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+
+    student = current_user
+    from models.exercise import Exercise, ExerciseBlock
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+
+    exercise = Exercise.query.get_or_404(exercise_id)
+
+    # Vérifier publication
+    pub = ExercisePublication.query.filter_by(
+        exercise_id=exercise_id,
+        classroom_id=student.classroom_id
+    ).first()
+    if not pub:
+        return jsonify({'success': False, 'message': 'Exercice non disponible'}), 403
+
+    try:
+        # Créer la tentative
+        attempt = StudentExerciseAttempt(
+            student_id=student.id,
+            exercise_id=exercise_id,
+            publication_id=pub.id,
+            started_at=datetime.utcnow(),
+        )
+        db.session.add(attempt)
+        db.session.flush()
+
+        total_score = 0
+        total_max = 0
+        answers_data = data.get('answers', {})
+
+        # Corriger chaque bloc
+        for block in exercise.blocks:
+            block_answer = answers_data.get(str(block.id), {})
+            is_correct, points = grade_block(block, block_answer)
+
+            total_score += points
+            total_max += block.points
+
+            answer = StudentBlockAnswer(
+                attempt_id=attempt.id,
+                block_id=block.id,
+                answer_json=block_answer,
+                is_correct=is_correct,
+                points_earned=points,
+            )
+            db.session.add(answer)
+
+        attempt.score = total_score
+        attempt.max_score = total_max
+        attempt.completed_at = datetime.utcnow()
+        attempt.calculate_rewards(exercise)
+
+        # Mettre à jour le profil RPG
+        rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+        if not rpg:
+            rpg = StudentRPGProfile(student_id=student.id)
+            db.session.add(rpg)
+            db.session.flush()
+
+        rpg.add_xp(attempt.xp_earned)
+        rpg.add_gold(attempt.gold_earned)
+
+        # Vérifier les badges
+        check_badges(student, rpg)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'score': total_score,
+            'max_score': total_max,
+            'percentage': attempt.score_percentage,
+            'xp_earned': attempt.xp_earned,
+            'gold_earned': attempt.gold_earned,
+            'new_level': rpg.level,
+            'results': [{
+                'block_id': a.block_id,
+                'is_correct': a.is_correct,
+                'points_earned': a.points_earned,
+            } for a in attempt.answers],
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@student_auth_bp.route('/rpg')
+@login_required
+def rpg_dashboard():
+    """Dashboard RPG de l'élève"""
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+
+    student = current_user
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg:
+        rpg = StudentRPGProfile(student_id=student.id)
+        db.session.add(rpg)
+        db.session.commit()
+
+    # Tous les badges (earned + locked)
+    all_badges = Badge.query.filter_by(is_active=True).all()
+    earned_badge_ids = {sb.badge_id for sb in StudentBadge.query.filter_by(student_id=student.id)}
+
+    badges_data = []
+    for badge in all_badges:
+        badges_data.append({
+            'badge': badge,
+            'earned': badge.id in earned_badge_ids,
+        })
+
+    return render_template('student/rpg_dashboard.html',
+                           student=student,
+                           rpg=rpg,
+                           badges=badges_data)
+
+
+@student_auth_bp.route('/rpg/avatar', methods=['POST'])
+@login_required
+def update_avatar():
+    """Choisir ou modifier l'avatar"""
+    if not isinstance(current_user, Student):
+        return jsonify({'success': False}), 403
+
+    data = request.get_json()
+    from models.rpg import StudentRPGProfile
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=current_user.id).first()
+    if not rpg:
+        rpg = StudentRPGProfile(student_id=current_user.id)
+        db.session.add(rpg)
+
+    if data.get('avatar_class'):
+        if data['avatar_class'] in ('mage', 'guerrier', 'archer', 'guerisseur'):
+            rpg.avatar_class = data['avatar_class']
+
+    if data.get('accessories'):
+        rpg.avatar_accessories_json = data['accessories']
+
+    db.session.commit()
+    return jsonify({'success': True, 'profile': rpg.to_dict()})
+
+
+# ============================================================
+# GRADING HELPERS
+# ============================================================
+
+def grade_block(block, answer):
+    """Corriger un bloc et retourner (is_correct, points_earned)"""
+    c = block.config_json
+    points = block.points or 0
+
+    if block.block_type == 'qcm':
+        return grade_qcm(c, answer, points)
+    elif block.block_type == 'short_answer':
+        return grade_short_answer(c, answer, points)
+    elif block.block_type == 'fill_blank':
+        return grade_fill_blank(c, answer, points)
+    elif block.block_type == 'sorting':
+        return grade_sorting(c, answer, points)
+    elif block.block_type == 'image_position':
+        return grade_image_position(c, answer, points)
+    elif block.block_type == 'graph':
+        return grade_graph(c, answer, points)
+
+    return False, 0
+
+
+def grade_qcm(config, answer, max_points):
+    selected = answer.get('selected', [])
+    if not isinstance(selected, list):
+        selected = [selected]
+
+    correct_indices = [i for i, opt in enumerate(config.get('options', [])) if opt.get('is_correct')]
+    selected_indices = [int(s) for s in selected if str(s).isdigit()]
+
+    is_correct = set(correct_indices) == set(selected_indices)
+    return is_correct, max_points if is_correct else 0
+
+
+def grade_short_answer(config, answer, max_points):
+    user_answer = str(answer.get('value', '')).strip().lower()
+    correct = str(config.get('correct_answer', '')).strip().lower()
+
+    if config.get('answer_type') == 'number':
+        try:
+            user_val = float(user_answer.replace(',', '.'))
+            correct_val = float(correct.replace(',', '.'))
+            tolerance = float(config.get('tolerance', 0))
+            is_correct = abs(user_val - correct_val) <= tolerance
+        except (ValueError, TypeError):
+            is_correct = False
+    else:
+        is_correct = user_answer == correct
+        if not is_correct:
+            synonyms = [s.strip().lower() for s in config.get('synonyms', [])]
+            is_correct = user_answer in synonyms
+
+    return is_correct, max_points if is_correct else 0
+
+
+def grade_fill_blank(config, answer, max_points):
+    blanks = config.get('blanks', [])
+    user_answers = answer.get('blanks', [])
+    if not blanks:
+        return True, max_points
+
+    correct_count = 0
+    for i, blank in enumerate(blanks):
+        expected = blank.get('word', '').strip().lower()
+        given = ''
+        if i < len(user_answers):
+            given = str(user_answers[i]).strip().lower()
+        if given == expected:
+            correct_count += 1
+
+    ratio = correct_count / len(blanks) if blanks else 0
+    points = round(ratio * max_points)
+    return ratio == 1.0, points
+
+
+def grade_sorting(config, answer, max_points):
+    if config.get('mode') == 'order':
+        user_order = answer.get('order', [])
+        correct_order = config.get('correct_order', [])
+        user_order = [int(x) for x in user_order if str(x).isdigit()]
+        is_correct = user_order == correct_order
+        return is_correct, max_points if is_correct else 0
+    else:
+        # Categories
+        user_cats = answer.get('categories', {})
+        categories = config.get('categories', [])
+        correct_count = 0
+        total = 0
+        for ci, cat in enumerate(categories):
+            expected = set(cat.get('items', []))
+            given = set(int(x) for x in user_cats.get(str(ci), []) if str(x).isdigit())
+            total += len(expected)
+            correct_count += len(expected & given)
+
+        ratio = correct_count / total if total else 0
+        return ratio == 1.0, round(ratio * max_points)
+
+
+def grade_image_position(config, answer, max_points):
+    zones = config.get('zones', [])
+    clicks = answer.get('clicks', [])
+
+    if not zones:
+        return True, max_points
+
+    correct_count = 0
+    for i, zone in enumerate(zones):
+        zx, zy, zr = zone.get('x', 0), zone.get('y', 0), zone.get('radius', 30)
+        if i < len(clicks):
+            cx, cy = clicks[i].get('x', 0), clicks[i].get('y', 0)
+            distance = ((cx - zx) ** 2 + (cy - zy) ** 2) ** 0.5
+            if distance <= zr:
+                correct_count += 1
+
+    ratio = correct_count / len(zones)
+    return ratio == 1.0, round(ratio * max_points)
+
+
+def grade_graph(config, answer, max_points):
+    tolerance = config.get('tolerance', 0.5)
+    correct = config.get('correct_answer', {})
+    question_type = config.get('question_type', 'read_value')
+
+    if question_type in ('read_value', 'place_point'):
+        ux = answer.get('x', None)
+        uy = answer.get('y', None)
+        if ux is None or uy is None:
+            return False, 0
+        try:
+            distance = ((float(ux) - correct.get('x', 0)) ** 2 + (float(uy) - correct.get('y', 0)) ** 2) ** 0.5
+            is_correct = distance <= tolerance
+        except (ValueError, TypeError):
+            is_correct = False
+    elif question_type == 'draw_line':
+        try:
+            user_slope = float(answer.get('slope', 0))
+            user_intercept = float(answer.get('intercept', 0))
+            slope_ok = abs(user_slope - correct.get('slope', 0)) <= tolerance
+            intercept_ok = abs(user_intercept - correct.get('intercept', 0)) <= tolerance
+            is_correct = slope_ok and intercept_ok
+        except (ValueError, TypeError):
+            is_correct = False
+    else:
+        is_correct = False
+
+    return is_correct, max_points if is_correct else 0
+
+
+def check_badges(student, rpg):
+    """Vérifier et attribuer les badges gagnés"""
+    from models.rpg import Badge, StudentBadge
+    from models.exercise_progress import StudentExerciseAttempt
+
+    all_badges = Badge.query.filter_by(is_active=True).all()
+    earned = {sb.badge_id for sb in StudentBadge.query.filter_by(student_id=student.id)}
+
+    completed_attempts = StudentExerciseAttempt.query.filter_by(
+        student_id=student.id
+    ).filter(StudentExerciseAttempt.completed_at.isnot(None)).all()
+
+    exercises_completed = len(completed_attempts)
+    perfect_scores = sum(1 for a in completed_attempts if a.max_score > 0 and a.score == a.max_score)
+
+    # Count block types completed correctly
+    from models.exercise_progress import StudentBlockAnswer
+    block_type_counts = {}
+    for attempt in completed_attempts:
+        for ans in attempt.answers:
+            if ans.is_correct and ans.block:
+                bt = ans.block.block_type
+                block_type_counts[bt] = block_type_counts.get(bt, 0) + 1
+
+    for badge in all_badges:
+        if badge.id in earned:
+            continue
+
+        should_earn = False
+        if badge.condition_type == 'exercises_completed':
+            should_earn = exercises_completed >= badge.condition_value
+        elif badge.condition_type == 'perfect_scores':
+            should_earn = perfect_scores >= badge.condition_value
+        elif badge.condition_type == 'block_type_completed':
+            bt = badge.condition_extra
+            should_earn = block_type_counts.get(bt, 0) >= badge.condition_value
+
+        if should_earn:
+            sb = StudentBadge(student_id=student.id, badge_id=badge.id)
+            db.session.add(sb)

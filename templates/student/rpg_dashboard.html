@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Chihuahua RPG{% endblock %}
+
+{% block extra_css %}
+<style>
+.rpg-container { max-width: 900px; margin: 0 auto; padding: 1rem; }
+
+.rpg-hero {
+    background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca);
+    border-radius: 20px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.rpg-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+}
+
+.avatar-display {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    border: 4px solid rgba(255,255,255,0.3);
+    position: relative;
+}
+
+.avatar-class-label {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    color: #1e1b4b;
+    padding: 0.1rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rpg-hero h1 {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.level-display {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #f59e0b;
+    margin: 0.5rem 0;
+}
+
+.xp-bar-large {
+    width: 80%;
+    max-width: 400px;
+    height: 12px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    margin: 0.5rem auto;
+    overflow: hidden;
+}
+
+.xp-bar-large .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 6px;
+    transition: width 1s ease;
+}
+
+.xp-label {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* Avatar selection */
+.avatar-select-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
+
+.avatar-select-section h2 {
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.avatar-classes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+}
+
+.avatar-class-card {
+    text-align: center;
+    padding: 1rem;
+    border: 3px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.avatar-class-card:hover { border-color: #667eea; transform: translateY(-2px); }
+.avatar-class-card.selected { border-color: #667eea; background: #eef2ff; }
+
+.avatar-class-card .avatar-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.avatar-class-card .avatar-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.avatar-class-card .avatar-desc {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-top: 0.2rem;
+}
+
+/* Badges */
+.badges-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.badges-section h2 {
+    margin: 0 0 1rem;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.badge-card {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 2px solid #e5e7eb;
+    transition: all 0.2s;
+}
+
+.badge-card.earned {
+    background: #fffbeb;
+    border-color: #fbbf24;
+}
+
+.badge-card.locked { opacity: 0.5; }
+
+.badge-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: white;
+}
+
+.badge-card.locked .badge-icon { background: #9ca3af !important; }
+
+.badge-name {
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 0.2rem;
+}
+
+.badge-desc {
+    font-size: 0.7rem;
+    color: #6b7280;
+}
+
+.badge-earned-date {
+    font-size: 0.65rem;
+    color: #f59e0b;
+    font-weight: 600;
+    margin-top: 0.3rem;
+}
+
+@media (max-width: 600px) {
+    .avatar-classes { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { gap: 1rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rpg-container">
+    <a href="{{ url_for('student_auth.missions') }}" style="color:#667eea;font-size:0.85rem;display:inline-block;margin-bottom:1rem;">
+        <i class="fas fa-arrow-left"></i> Retour aux missions
+    </a>
+
+    <!-- Hero card -->
+    <div class="rpg-hero">
+        <div class="avatar-display">
+            {% if rpg.avatar_class == 'mage' %}🧙{% elif rpg.avatar_class == 'archer' %}🏹{% elif rpg.avatar_class == 'guerisseur' %}💚{% else %}⚔️{% endif %}
+            <span class="avatar-class-label">{{ rpg.avatar_class }}</span>
+        </div>
+        <h1>{{ student.first_name or 'Aventurier' }}</h1>
+        <div class="level-display">Niveau {{ rpg.level }}</div>
+        <div class="xp-bar-large">
+            <div class="fill" style="width: {{ rpg.xp_progress }}%;"></div>
+        </div>
+        <div class="xp-label">{{ rpg.xp_total }} / {{ rpg.xp_for_next_level }} XP</div>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value" style="color:#f59e0b;">{{ rpg.xp_total }}</div>
+                <div class="stat-label">XP Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color:#fbbf24;">{{ rpg.gold }}</div>
+                <div class="stat-label">Or</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ rpg.level }}</div>
+                <div class="stat-label">Niveau</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avatar selection -->
+    <div class="avatar-select-section">
+        <h2><i class="fas fa-dog" style="color:#667eea;"></i> Choisis ta classe</h2>
+        <div class="avatar-classes">
+            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerrier' }}" onclick="selectAvatar('guerrier', this)">
+                <div class="avatar-icon">⚔️</div>
+                <div class="avatar-name">Guerrier</div>
+                <div class="avatar-desc">Force et courage</div>
+            </div>
+            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'mage' }}" onclick="selectAvatar('mage', this)">
+                <div class="avatar-icon">🧙</div>
+                <div class="avatar-name">Mage</div>
+                <div class="avatar-desc">Sagesse et savoir</div>
+            </div>
+            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'archer' }}" onclick="selectAvatar('archer', this)">
+                <div class="avatar-icon">🏹</div>
+                <div class="avatar-name">Archer</div>
+                <div class="avatar-desc">Précision et agilité</div>
+            </div>
+            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerisseur' }}" onclick="selectAvatar('guerisseur', this)">
+                <div class="avatar-icon">💚</div>
+                <div class="avatar-name">Guérisseur</div>
+                <div class="avatar-desc">Soin et protection</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="badges-section">
+        <h2><i class="fas fa-medal" style="color:#f59e0b;"></i> Badges ({{ badges|selectattr('earned')|list|length }}/{{ badges|length }})</h2>
+        <div class="badges-grid">
+            {% for b in badges %}
+            <div class="badge-card {{ 'earned' if b.earned else 'locked' }}">
+                <div class="badge-icon" style="background: {{ b.badge.color }};">
+                    <i class="fas fa-{{ b.badge.icon }}"></i>
+                </div>
+                <div class="badge-name">{{ b.badge.name }}</div>
+                <div class="badge-desc">{{ b.badge.description }}</div>
+                {% if b.earned %}
+                <div class="badge-earned-date"><i class="fas fa-check"></i> Obtenu</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function selectAvatar(avatarClass, el) {
+    document.querySelectorAll('.avatar-class-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+
+    try {
+        await fetch('{{ url_for("student_auth.update_avatar") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_class: avatarClass }),
+        });
+        location.reload();
+    } catch(e) {}
+}
+</script>
+{% endblock %}

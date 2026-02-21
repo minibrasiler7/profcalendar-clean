@@ -1,0 +1,141 @@
+from extensions import db
+from datetime import datetime
+
+
+class Exercise(db.Model):
+    """Modèle principal pour les exercices interactifs"""
+    __tablename__ = 'exercises'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    subject = db.Column(db.String(100))
+    level = db.Column(db.String(50))
+    estimated_duration = db.Column(db.Integer)  # en minutes
+    mode = db.Column(db.String(20), default='individuel')  # individuel, classe, devoir
+    activation_date = db.Column(db.DateTime)
+    deadline = db.Column(db.DateTime)
+    is_published = db.Column(db.Boolean, default=False)
+    is_draft = db.Column(db.Boolean, default=True)
+    total_points = db.Column(db.Integer, default=0)  # XP total calculé
+    bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
+    badge_on_perfect = db.Column(db.Boolean, default=True)  # badge si 100%
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    user = db.relationship('User', backref=db.backref('exercises', lazy='dynamic'))
+    blocks = db.relationship('ExerciseBlock', backref='exercise', lazy='dynamic',
+                             cascade='all, delete-orphan', order_by='ExerciseBlock.position')
+
+    def calculate_total_points(self):
+        """Recalculer le total de points XP"""
+        self.total_points = sum(b.points for b in self.blocks if b.points)
+        return self.total_points
+
+    def to_dict(self, include_blocks=False):
+        """Sérialiser en dictionnaire"""
+        data = {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'subject': self.subject,
+            'level': self.level,
+            'estimated_duration': self.estimated_duration,
+            'mode': self.mode,
+            'activation_date': self.activation_date.isoformat() if self.activation_date else None,
+            'deadline': self.deadline.isoformat() if self.deadline else None,
+            'is_published': self.is_published,
+            'is_draft': self.is_draft,
+            'total_points': self.total_points,
+            'bonus_gold_threshold': self.bonus_gold_threshold,
+            'badge_on_perfect': self.badge_on_perfect,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_blocks:
+            data['blocks'] = [b.to_dict() for b in self.blocks.order_by(ExerciseBlock.position)]
+        return data
+
+    def __repr__(self):
+        return f'<Exercise {self.id}: {self.title}>'
+
+
+class ExerciseBlock(db.Model):
+    """Bloc individuel dans un exercice (QCM, réponse courte, etc.)"""
+    __tablename__ = 'exercise_blocks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id', ondelete='CASCADE'), nullable=False)
+    block_type = db.Column(db.String(30), nullable=False)
+    # Types: qcm, short_answer, fill_blank, sorting, image_position, graph
+    position = db.Column(db.Integer, default=0)
+    title = db.Column(db.String(200))  # Titre/question du bloc
+    config_json = db.Column(db.JSON, default=dict)  # Configuration complète du bloc
+    points = db.Column(db.Integer, default=10)  # XP pour ce bloc
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Structures de config_json par type:
+    #
+    # QCM:
+    # {
+    #   "question": "...",
+    #   "options": [{"text": "...", "is_correct": true, "feedback": "..."}],
+    #   "multiple_answers": false
+    # }
+    #
+    # SHORT_ANSWER:
+    # {
+    #   "question": "...",
+    #   "answer_type": "text" | "number",
+    #   "correct_answer": "...",
+    #   "tolerance": 0.1,  (pour nombres)
+    #   "synonyms": ["mot1", "mot2"]
+    # }
+    #
+    # FILL_BLANK:
+    # {
+    #   "text_template": "Le {soleil} brille dans le {ciel}",
+    #   "blanks": [{"word": "soleil", "position": 0}, {"word": "ciel", "position": 1}]
+    # }
+    #
+    # SORTING:
+    # {
+    #   "mode": "order" | "categories",
+    #   "items": ["item1", "item2", "item3"],
+    #   "correct_order": [0, 1, 2],  (pour mode order)
+    #   "categories": [{"name": "Cat A", "items": [0, 1]}, {"name": "Cat B", "items": [2]}]
+    # }
+    #
+    # IMAGE_POSITION:
+    # {
+    #   "image_file_id": 123,  (UserFile ID)
+    #   "image_url": "/file_manager/preview/123",
+    #   "zones": [{"x": 100, "y": 200, "radius": 30, "label": "Zone 1"}]
+    # }
+    #
+    # GRAPH:
+    # {
+    #   "graph_type": "cartesian",
+    #   "x_label": "x", "y_label": "y",
+    #   "x_min": -10, "x_max": 10, "y_min": -10, "y_max": 10,
+    #   "grid": true,
+    #   "elements": [{"type": "point", "x": 3, "y": 5}],
+    #   "question_type": "read_value" | "place_point" | "draw_line",
+    #   "correct_answer": {"x": 3, "y": 5} | {"slope": 2, "intercept": 1},
+    #   "tolerance": 0.5
+    # }
+
+    def to_dict(self):
+        """Sérialiser en dictionnaire"""
+        return {
+            'id': self.id,
+            'block_type': self.block_type,
+            'position': self.position,
+            'title': self.title,
+            'config_json': self.config_json,
+            'points': self.points,
+        }
+
+    def __repr__(self):
+        return f'<ExerciseBlock {self.id}: {self.block_type} @pos{self.position}>'

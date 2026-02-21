@@ -1,0 +1,1553 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if exercise else 'Créer' }} un exercice - L'Atelier{% endblock %}
+
+{% block extra_css %}
+<style>
+.atelier-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.atelier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.atelier-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.atelier-header h1 i { color: #667eea; }
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Layout 3 zones */
+.atelier-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .atelier-layout {
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .zone-params { grid-column: 1; grid-row: 1; }
+    .zone-blocks { grid-column: 2; grid-row: 1 / span 2; }
+    .zone-gamification { grid-column: 1; grid-row: 2; }
+}
+
+/* Zones */
+.zone-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.zone-title {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zone-title.green { background: linear-gradient(135deg, #10b981, #059669); }
+.zone-title.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.zone-body { padding: 1.25rem; }
+
+/* Form fields */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.3rem;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+/* Boîte à outils */
+.toolbox {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 2px dashed #d1d5db;
+}
+
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #4b5563;
+    text-align: center;
+}
+
+.tool-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102,126,234,0.2);
+}
+
+.tool-btn i {
+    font-size: 1.3rem;
+    color: #667eea;
+}
+
+/* Zone de blocs */
+.blocks-area {
+    min-height: 300px;
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #fafbfc;
+    transition: border-color 0.2s;
+}
+
+.blocks-area.has-blocks {
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+
+.blocks-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.blocks-empty i { font-size: 3rem; margin-bottom: 1rem; }
+
+/* Bloc individuel */
+.exercise-block {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.exercise-block:hover { border-color: #667eea; }
+.exercise-block.dragging { opacity: 0.5; border-color: #667eea; border-style: dashed; }
+
+.block-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    cursor: pointer;
+    user-select: none;
+}
+
+.block-drag-handle {
+    cursor: grab;
+    color: #9ca3af;
+    font-size: 1.1rem;
+}
+
+.block-drag-handle:active { cursor: grabbing; }
+
+.block-type-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.block-type-badge.qcm { background: #dbeafe; color: #1d4ed8; }
+.block-type-badge.short_answer { background: #dcfce7; color: #166534; }
+.block-type-badge.fill_blank { background: #fef3c7; color: #92400e; }
+.block-type-badge.sorting { background: #ede9fe; color: #5b21b6; }
+.block-type-badge.image_position { background: #fce7f3; color: #9d174d; }
+.block-type-badge.graph { background: #cffafe; color: #155e75; }
+
+.block-title-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1f2937;
+    outline: none;
+}
+
+.block-title-input::placeholder { color: #9ca3af; }
+
+.block-points {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+.block-points input {
+    width: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0.15rem 0.3rem;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.block-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.block-actions button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.block-actions button:hover { background: #f3f4f6; color: #1f2937; }
+.block-actions button.delete:hover { background: #fef2f2; color: #dc2626; }
+
+.block-content {
+    padding: 1rem;
+    display: none;
+}
+
+.block-content.open { display: block; }
+
+/* QCM option */
+.qcm-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafbfc;
+}
+
+.qcm-option input[type="checkbox"],
+.qcm-option input[type="radio"] {
+    margin-top: 0.3rem;
+    width: auto;
+}
+
+.qcm-option .option-fields { flex: 1; }
+
+.qcm-option .option-fields input,
+.qcm-option .option-fields textarea {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.qcm-option .remove-option {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #dc2626;
+    padding: 0.25rem;
+}
+
+/* Synonymes / items list */
+.items-list .item-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.items-list .item-row input { flex: 1; }
+
+.items-list .remove-item {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #dc2626;
+    font-size: 0.9rem;
+}
+
+.add-item-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px dashed #667eea;
+    border-radius: 6px;
+    background: transparent;
+    color: #667eea;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+}
+
+.add-item-btn:hover { background: #eef2ff; }
+
+/* Categories for sorting */
+.category-box {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.category-box .cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.category-box .cat-header input {
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    outline: none;
+    background: transparent;
+}
+
+/* Image position bloc */
+.image-upload-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafbfc;
+}
+
+.image-upload-area:hover { border-color: #667eea; background: #eef2ff; }
+
+.image-preview-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.image-preview-container img {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+}
+
+.image-zone {
+    position: absolute;
+    border: 3px solid #dc2626;
+    border-radius: 50%;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(220,38,38,0.3);
+}
+
+/* Graph config */
+.graph-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+/* Fill blank preview */
+.fill-blank-preview {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    line-height: 2;
+    font-size: 0.95rem;
+}
+
+.fill-blank-preview .blank-slot {
+    display: inline-block;
+    min-width: 80px;
+    border-bottom: 2px solid #667eea;
+    text-align: center;
+    color: #667eea;
+    font-weight: 600;
+    padding: 0 0.3rem;
+    margin: 0 0.2rem;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5a67d8; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-secondary { background: #f3f4f6; color: #374151; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+
+/* Notification toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.toast.success { background: #10b981; }
+.toast.error { background: #ef4444; }
+
+@keyframes slideIn {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Publish modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+}
+
+.modal-box {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-box h3 { margin: 0 0 1rem; }
+
+.class-checkbox-list { list-style: none; padding: 0; margin: 1rem 0; }
+
+.class-checkbox-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+}
+
+.class-checkbox-list li:hover { background: #f3f4f6; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .toolbox { grid-template-columns: repeat(2, 1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    .atelier-header { flex-direction: column; gap: 1rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="atelier-container">
+    <!-- Header -->
+    <div class="atelier-header">
+        <h1><i class="fas fa-flask"></i> L'Atelier d'Exercices</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('exercises.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+            <button class="btn btn-secondary" onclick="saveExercise(true)">
+                <i class="fas fa-save"></i> Brouillon
+            </button>
+            <button class="btn btn-primary" onclick="saveExercise(false)">
+                <i class="fas fa-save"></i> Sauvegarder
+            </button>
+            {% if exercise and exercise.id %}
+            <button class="btn btn-success" onclick="showPublishModal()">
+                <i class="fas fa-paper-plane"></i> Publier
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="atelier-layout">
+        <!-- Zone 1 : Paramètres généraux -->
+        <div class="zone-params">
+            <div class="zone-card">
+                <div class="zone-title"><i class="fas fa-cog"></i> Paramètres</div>
+                <div class="zone-body">
+                    <div class="form-group">
+                        <label>Titre</label>
+                        <input type="text" id="ex-title" placeholder="Titre de l'exercice" value="{{ exercise.title if exercise else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="ex-description" rows="3" placeholder="Description...">{{ exercise.description if exercise else '' }}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Matière</label>
+                            <input type="text" id="ex-subject" placeholder="Maths, Sciences..." value="{{ exercise.subject if exercise else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Niveau</label>
+                            <input type="text" id="ex-level" placeholder="6e, 5e..." value="{{ exercise.level if exercise else '' }}">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Durée (min)</label>
+                            <input type="number" id="ex-duration" min="1" value="{{ exercise.estimated_duration if exercise else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Mode</label>
+                            <select id="ex-mode">
+                                <option value="individuel" {{ 'selected' if not exercise or exercise.mode == 'individuel' }}>Individuel</option>
+                                <option value="classe" {{ 'selected' if exercise and exercise.mode == 'classe' }}>Classe entière</option>
+                                <option value="devoir" {{ 'selected' if exercise and exercise.mode == 'devoir' }}>Devoir maison</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date d'activation</label>
+                        <input type="datetime-local" id="ex-activation" value="{{ exercise.activation_date.strftime('%Y-%m-%dT%H:%M') if exercise and exercise.activation_date else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Date limite</label>
+                        <input type="datetime-local" id="ex-deadline" value="{{ exercise.deadline.strftime('%Y-%m-%dT%H:%M') if exercise and exercise.deadline else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 3 : Gamification -->
+            <div class="zone-card" style="margin-top: 1rem;">
+                <div class="zone-title orange"><i class="fas fa-gamepad"></i> Gamification</div>
+                <div class="zone-body">
+                    <div class="form-group">
+                        <label>Seuil bonus or (%)</label>
+                        <input type="number" id="ex-gold-threshold" min="50" max="100" value="{{ exercise.bonus_gold_threshold if exercise else 80 }}">
+                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne de l'or si son score dépasse ce seuil</small>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="ex-badge-perfect" {{ 'checked' if not exercise or exercise.badge_on_perfect }} style="width: auto;">
+                            Badge si 100%
+                        </label>
+                    </div>
+                    <div style="padding: 0.75rem; background: #fffbeb; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
+                        <i class="fas fa-star" style="color: #f59e0b;"></i>
+                        <strong>XP total : <span id="total-xp">0</span></strong>
+                        <br><small>La somme des points de chaque bloc</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone 2 : Construction de l'exercice -->
+        <div class="zone-blocks">
+            <div class="zone-card">
+                <div class="zone-title green"><i class="fas fa-puzzle-piece"></i> Construction de l'exercice</div>
+                <div class="zone-body">
+                    <!-- Boîte à outils -->
+                    <div class="toolbox">
+                        <button class="tool-btn" onclick="addBlock('qcm')">
+                            <i class="fas fa-list-check"></i>
+                            QCM
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('short_answer')">
+                            <i class="fas fa-pen"></i>
+                            Réponse courte
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('fill_blank')">
+                            <i class="fas fa-paragraph"></i>
+                            Texte à trous
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('sorting')">
+                            <i class="fas fa-sort"></i>
+                            Classement
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('image_position')">
+                            <i class="fas fa-image"></i>
+                            Image interactive
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('graph')">
+                            <i class="fas fa-chart-line"></i>
+                            Graphique
+                        </button>
+                    </div>
+
+                    <!-- Zone des blocs -->
+                    <div class="blocks-area" id="blocks-area">
+                        <div class="blocks-empty" id="blocks-empty">
+                            <i class="fas fa-puzzle-piece"></i>
+                            <p>Cliquez sur un outil ci-dessus pour ajouter des blocs</p>
+                            <small>Chaque exercice est un assemblage de blocs interactifs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Publish modal -->
+<div class="modal-overlay" id="publish-modal" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fas fa-paper-plane"></i> Publier l'exercice</h3>
+        <p>Sélectionnez les classes pour lesquelles publier cet exercice :</p>
+        <ul class="class-checkbox-list" id="publish-class-list">
+            {% for classroom in classrooms %}
+            <li>
+                <input type="checkbox" id="pub-class-{{ classroom.id }}" value="{{ classroom.id }}">
+                <label for="pub-class-{{ classroom.id }}">{{ classroom.name }} - {{ classroom.subject }}</label>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closePublishModal()">Annuler</button>
+            <button class="btn btn-success" onclick="publishExercise()">
+                <i class="fas fa-paper-plane"></i> Publier
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let exerciseId = {{ exercise.id if exercise else 'null' }};
+let blocks = [];
+let blockCounter = 0;
+
+const BLOCK_TYPES = {
+    qcm: { label: 'QCM', icon: 'list-check' },
+    short_answer: { label: 'Réponse courte', icon: 'pen' },
+    fill_blank: { label: 'Texte à trous', icon: 'paragraph' },
+    sorting: { label: 'Classement', icon: 'sort' },
+    image_position: { label: 'Image interactive', icon: 'image' },
+    graph: { label: 'Graphique', icon: 'chart-line' },
+};
+
+// ============================================================
+// INIT : charger l'exercice existant
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    {% if exercise %}
+    fetch(`{{ url_for('exercises.get_exercise_data', exercise_id=exercise.id) }}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.exercise.blocks) {
+                data.exercise.blocks.forEach(b => {
+                    addBlock(b.block_type, b);
+                });
+            }
+            updateTotalXP();
+        });
+    {% endif %}
+    updateTotalXP();
+});
+
+// ============================================================
+// ADD BLOCK
+// ============================================================
+function addBlock(type, existingData) {
+    blockCounter++;
+    const uid = 'block_' + blockCounter;
+    const block = {
+        uid: uid,
+        id: existingData ? existingData.id : null,
+        block_type: type,
+        title: existingData ? existingData.title : '',
+        points: existingData ? existingData.points : 10,
+        config_json: existingData ? existingData.config_json : getDefaultConfig(type),
+    };
+    blocks.push(block);
+
+    document.getElementById('blocks-empty').style.display = 'none';
+    document.getElementById('blocks-area').classList.add('has-blocks');
+
+    const el = document.createElement('div');
+    el.className = 'exercise-block';
+    el.id = uid;
+    el.draggable = true;
+    el.dataset.uid = uid;
+    el.innerHTML = renderBlock(block);
+    document.getElementById('blocks-area').appendChild(el);
+
+    // Drag events
+    el.addEventListener('dragstart', onDragStart);
+    el.addEventListener('dragover', onDragOver);
+    el.addEventListener('drop', onDrop);
+    el.addEventListener('dragend', onDragEnd);
+
+    updateTotalXP();
+}
+
+function getDefaultConfig(type) {
+    switch(type) {
+        case 'qcm':
+            return { question: '', options: [
+                { text: '', is_correct: true, feedback: '' },
+                { text: '', is_correct: false, feedback: '' },
+            ], multiple_answers: false };
+        case 'short_answer':
+            return { question: '', answer_type: 'text', correct_answer: '', tolerance: 0, synonyms: [] };
+        case 'fill_blank':
+            return { text_template: '', blanks: [] };
+        case 'sorting':
+            return { mode: 'order', items: ['', ''], correct_order: [0, 1], categories: [] };
+        case 'image_position':
+            return { image_file_id: null, image_url: '', zones: [] };
+        case 'graph':
+            return { graph_type: 'cartesian', x_label: 'x', y_label: 'y',
+                     x_min: -10, x_max: 10, y_min: -10, y_max: 10,
+                     grid: true, question_type: 'read_value',
+                     correct_answer: { x: 0, y: 0 }, tolerance: 0.5 };
+        default: return {};
+    }
+}
+
+// ============================================================
+// RENDER BLOCK
+// ============================================================
+function renderBlock(block) {
+    const typeInfo = BLOCK_TYPES[block.block_type];
+    return `
+        <div class="block-header" onclick="toggleBlockContent('${block.uid}')">
+            <span class="block-drag-handle" onclick="event.stopPropagation()"><i class="fas fa-grip-vertical"></i></span>
+            <span class="block-type-badge ${block.block_type}">${typeInfo.label}</span>
+            <input class="block-title-input" type="text" placeholder="Titre / Question du bloc..."
+                value="${escapeHtml(block.title || '')}"
+                onclick="event.stopPropagation()"
+                onchange="updateBlockField('${block.uid}', 'title', this.value)">
+            <div class="block-points" onclick="event.stopPropagation()">
+                <i class="fas fa-star"></i>
+                <input type="number" min="0" value="${block.points}"
+                    onchange="updateBlockField('${block.uid}', 'points', parseInt(this.value))"> XP
+            </div>
+            <div class="block-actions" onclick="event.stopPropagation()">
+                <button onclick="toggleBlockContent('${block.uid}')" title="Déplier"><i class="fas fa-chevron-down"></i></button>
+                <button class="delete" onclick="removeBlock('${block.uid}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <div class="block-content" id="content-${block.uid}">
+            ${renderBlockEditor(block)}
+        </div>
+    `;
+}
+
+function renderBlockEditor(block) {
+    switch(block.block_type) {
+        case 'qcm': return renderQCMEditor(block);
+        case 'short_answer': return renderShortAnswerEditor(block);
+        case 'fill_blank': return renderFillBlankEditor(block);
+        case 'sorting': return renderSortingEditor(block);
+        case 'image_position': return renderImagePositionEditor(block);
+        case 'graph': return renderGraphEditor(block);
+        default: return '<p>Type de bloc inconnu</p>';
+    }
+}
+
+// ============================================================
+// QCM EDITOR
+// ============================================================
+function renderQCMEditor(block) {
+    const c = block.config_json;
+    let html = `
+        <div class="form-group">
+            <label>Question</label>
+            <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
+                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+        </div>
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:0.5rem;">
+                <input type="checkbox" style="width:auto;" ${c.multiple_answers ? 'checked' : ''}
+                    onchange="updateConfig('${block.uid}', 'multiple_answers', this.checked)">
+                Plusieurs bonnes réponses
+            </label>
+        </div>
+        <div id="qcm-options-${block.uid}">
+    `;
+    (c.options || []).forEach((opt, i) => {
+        html += renderQCMOption(block.uid, i, opt, c.multiple_answers);
+    });
+    html += `</div>
+        <button class="add-item-btn" onclick="addQCMOption('${block.uid}')">
+            <i class="fas fa-plus"></i> Ajouter une option
+        </button>`;
+    return html;
+}
+
+function renderQCMOption(uid, index, opt, isMultiple) {
+    const inputType = isMultiple ? 'checkbox' : 'radio';
+    return `
+        <div class="qcm-option" data-index="${index}">
+            <input type="${inputType}" name="qcm-correct-${uid}" ${opt.is_correct ? 'checked' : ''}
+                onchange="updateQCMCorrect('${uid}', ${index}, this.checked)">
+            <div class="option-fields">
+                <input type="text" placeholder="Texte de l'option" value="${escapeHtml(opt.text || '')}"
+                    onchange="updateQCMOptionField('${uid}', ${index}, 'text', this.value)">
+                <input type="text" placeholder="Feedback (optionnel)" value="${escapeHtml(opt.feedback || '')}"
+                    onchange="updateQCMOptionField('${uid}', ${index}, 'feedback', this.value)">
+            </div>
+            <button class="remove-option" onclick="removeQCMOption('${uid}', ${index})"><i class="fas fa-times"></i></button>
+        </div>`;
+}
+
+function addQCMOption(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options.push({ text: '', is_correct: false, feedback: '' });
+    refreshBlockContent(uid);
+}
+
+function removeQCMOption(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateQCMCorrect(uid, index, checked) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.multiple_answers) {
+        block.config_json.options.forEach((o, i) => o.is_correct = (i === index));
+    } else {
+        block.config_json.options[index].is_correct = checked;
+    }
+}
+
+function updateQCMOptionField(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options[index][field] = value;
+}
+
+// ============================================================
+// SHORT ANSWER EDITOR
+// ============================================================
+function renderShortAnswerEditor(block) {
+    const c = block.config_json;
+    let synHtml = '';
+    (c.synonyms || []).forEach((s, i) => {
+        synHtml += `<div class="item-row">
+            <input type="text" value="${escapeHtml(s)}" onchange="updateSynonym('${block.uid}', ${i}, this.value)">
+            <button class="remove-item" onclick="removeSynonym('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        </div>`;
+    });
+
+    return `
+        <div class="form-group">
+            <label>Question</label>
+            <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
+                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Type de réponse</label>
+                <select onchange="updateConfig('${block.uid}', 'answer_type', this.value)">
+                    <option value="text" ${c.answer_type === 'text' ? 'selected' : ''}>Texte exact</option>
+                    <option value="number" ${c.answer_type === 'number' ? 'selected' : ''}>Nombre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Réponse correcte</label>
+                <input type="text" value="${escapeHtml(c.correct_answer || '')}"
+                    onchange="updateConfig('${block.uid}', 'correct_answer', this.value)">
+            </div>
+        </div>
+        ${c.answer_type === 'number' ? `
+        <div class="form-group">
+            <label>Tolérance (±)</label>
+            <input type="number" step="0.01" value="${c.tolerance || 0}"
+                onchange="updateConfig('${block.uid}', 'tolerance', parseFloat(this.value))">
+        </div>` : ''}
+        <div class="form-group">
+            <label>Synonymes acceptés</label>
+            <div class="items-list" id="synonyms-${block.uid}">${synHtml}</div>
+            <button class="add-item-btn" onclick="addSynonym('${block.uid}')">
+                <i class="fas fa-plus"></i> Ajouter un synonyme
+            </button>
+        </div>`;
+}
+
+function addSynonym(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.synonyms) block.config_json.synonyms = [];
+    block.config_json.synonyms.push('');
+    refreshBlockContent(uid);
+}
+
+function removeSynonym(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.synonyms.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateSynonym(uid, index, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.synonyms[index] = value;
+}
+
+// ============================================================
+// FILL BLANK EDITOR
+// ============================================================
+function renderFillBlankEditor(block) {
+    const c = block.config_json;
+    const preview = parseFillBlank(c.text_template || '');
+
+    return `
+        <div class="form-group">
+            <label>Texte avec trous</label>
+            <textarea rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: Le {soleil} brille dans le {ciel}."
+                onchange="updateFillBlankTemplate('${block.uid}', this.value)">${escapeHtml(c.text_template || '')}</textarea>
+            <small style="color:#6b7280;">Syntaxe : entourez les mots à deviner avec des accolades {mot}</small>
+        </div>
+        <div class="form-group">
+            <label>Aperçu</label>
+            <div class="fill-blank-preview">${preview}</div>
+        </div>`;
+}
+
+function parseFillBlank(template) {
+    if (!template) return '<em style="color:#9ca3af;">Aucun texte</em>';
+    return template.replace(/\{([^}]+)\}/g, '<span class="blank-slot">____</span>');
+}
+
+function updateFillBlankTemplate(uid, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.text_template = value;
+    // Parse blanks
+    const matches = [...value.matchAll(/\{([^}]+)\}/g)];
+    block.config_json.blanks = matches.map((m, i) => ({ word: m[1], position: i }));
+    refreshBlockContent(uid);
+}
+
+// ============================================================
+// SORTING EDITOR
+// ============================================================
+function renderSortingEditor(block) {
+    const c = block.config_json;
+    let itemsHtml = '';
+
+    if (c.mode === 'order') {
+        (c.items || []).forEach((item, i) => {
+            itemsHtml += `<div class="item-row">
+                <span style="color:#9ca3af;font-weight:700;width:20px;">${i + 1}.</span>
+                <input type="text" value="${escapeHtml(item)}" placeholder="Élément ${i + 1}"
+                    onchange="updateSortingItem('${block.uid}', ${i}, this.value)">
+                <button class="remove-item" onclick="removeSortingItem('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>`;
+        });
+    } else {
+        // Categories mode
+        (c.categories || []).forEach((cat, ci) => {
+            let catItems = '';
+            (cat.items || []).forEach((itemIdx, ii) => {
+                const itemText = c.items[itemIdx] || '';
+                catItems += `<div class="item-row">
+                    <input type="text" value="${escapeHtml(itemText)}" onchange="updateCategoryItem('${block.uid}', ${ci}, ${ii}, this.value)">
+                    <button class="remove-item" onclick="removeCategoryItem('${block.uid}', ${ci}, ${ii})"><i class="fas fa-times"></i></button>
+                </div>`;
+            });
+            itemsHtml += `<div class="category-box">
+                <div class="cat-header">
+                    <input type="text" value="${escapeHtml(cat.name || '')}" placeholder="Nom de la catégorie"
+                        onchange="updateCategoryName('${block.uid}', ${ci}, this.value)">
+                    <button class="remove-item" onclick="removeCategory('${block.uid}', ${ci})"><i class="fas fa-times"></i></button>
+                </div>
+                ${catItems}
+                <button class="add-item-btn" onclick="addCategoryItem('${block.uid}', ${ci})">
+                    <i class="fas fa-plus"></i> Élément
+                </button>
+            </div>`;
+        });
+    }
+
+    return `
+        <div class="form-group">
+            <label>Mode de tri</label>
+            <select onchange="updateSortingMode('${block.uid}', this.value)">
+                <option value="order" ${c.mode === 'order' ? 'selected' : ''}>Ordre (chronologique, croissant...)</option>
+                <option value="categories" ${c.mode === 'categories' ? 'selected' : ''}>Catégories (trier dans des boîtes)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>${c.mode === 'order' ? 'Éléments (dans l\'ordre correct)' : 'Catégories'}</label>
+            <div class="items-list">${itemsHtml}</div>
+            ${c.mode === 'order' ?
+                `<button class="add-item-btn" onclick="addSortingItem('${block.uid}')"><i class="fas fa-plus"></i> Ajouter un élément</button>` :
+                `<button class="add-item-btn" onclick="addCategory('${block.uid}')"><i class="fas fa-plus"></i> Ajouter une catégorie</button>`
+            }
+        </div>
+        <p style="font-size:0.75rem;color:#6b7280;">
+            ${c.mode === 'order' ? 'Entrez les éléments dans l\'ordre correct. L\'élève les verra mélangés.' : 'Glissez les éléments dans les bonnes catégories.'}
+        </p>`;
+}
+
+function updateSortingMode(uid, mode) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.mode = mode;
+    if (mode === 'categories' && (!block.config_json.categories || block.config_json.categories.length === 0)) {
+        block.config_json.categories = [{ name: 'Catégorie 1', items: [] }];
+    }
+    refreshBlockContent(uid);
+}
+
+function addSortingItem(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items.push('');
+    block.config_json.correct_order = block.config_json.items.map((_, i) => i);
+    refreshBlockContent(uid);
+}
+
+function removeSortingItem(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items.splice(index, 1);
+    block.config_json.correct_order = block.config_json.items.map((_, i) => i);
+    refreshBlockContent(uid);
+}
+
+function updateSortingItem(uid, index, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items[index] = value;
+}
+
+function addCategory(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories.push({ name: '', items: [] });
+    refreshBlockContent(uid);
+}
+
+function removeCategory(uid, ci) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories.splice(ci, 1);
+    refreshBlockContent(uid);
+}
+
+function updateCategoryName(uid, ci, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories[ci].name = value;
+}
+
+function addCategoryItem(uid, ci) {
+    const block = blocks.find(b => b.uid === uid);
+    const newIdx = block.config_json.items.length;
+    block.config_json.items.push('');
+    block.config_json.categories[ci].items.push(newIdx);
+    refreshBlockContent(uid);
+}
+
+function removeCategoryItem(uid, ci, ii) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories[ci].items.splice(ii, 1);
+    refreshBlockContent(uid);
+}
+
+function updateCategoryItem(uid, ci, ii, value) {
+    const block = blocks.find(b => b.uid === uid);
+    const itemIdx = block.config_json.categories[ci].items[ii];
+    block.config_json.items[itemIdx] = value;
+}
+
+// ============================================================
+// IMAGE POSITION EDITOR
+// ============================================================
+function renderImagePositionEditor(block) {
+    const c = block.config_json;
+
+    let zonesHtml = '';
+    (c.zones || []).forEach((z, i) => {
+        zonesHtml += `<div class="item-row">
+            <span style="font-weight:700;color:#dc2626;">Zone ${i + 1}</span>
+            <input type="text" placeholder="Label" value="${escapeHtml(z.label || '')}"
+                onchange="updateZoneField('${block.uid}', ${i}, 'label', this.value)" style="width:100px;">
+            <span style="font-size:0.75rem;color:#6b7280;">r=${z.radius || 30}px</span>
+            <button class="remove-item" onclick="removeZone('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        </div>`;
+    });
+
+    return `
+        <div class="form-group">
+            ${c.image_url ?
+                `<div class="image-preview-container" id="img-container-${block.uid}"
+                    onclick="addZoneOnImage(event, '${block.uid}')">
+                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous">
+                    ${(c.zones || []).map((z, i) => `
+                        <div class="image-zone" style="left:${z.x}px;top:${z.y}px;width:${(z.radius||30)*2}px;height:${(z.radius||30)*2}px;">
+                            ${i + 1}
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
+                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                </button>` :
+                `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
+                    <p>Cliquez pour téléverser une image</p>
+                    <small>PNG, JPG, GIF</small>
+                </div>`
+            }
+            <input type="file" id="file-input-${block.uid}" accept="image/*" style="display:none;"
+                onchange="handleImageUpload('${block.uid}', this)">
+        </div>
+        ${c.image_url ? `
+        <div class="form-group">
+            <label>Zones cliquables <small>(cliquez sur l'image pour ajouter une zone)</small></label>
+            <div class="items-list">${zonesHtml}</div>
+            <div class="form-group" style="margin-top:0.5rem;">
+                <label>Rayon de tolérance (px)</label>
+                <input type="number" value="${c.zones && c.zones.length > 0 ? (c.zones[0].radius || 30) : 30}" min="10" max="100"
+                    onchange="updateAllZonesRadius('${block.uid}', parseInt(this.value))">
+            </div>
+        </div>` : ''}`;
+}
+
+function uploadBlockImage(uid) {
+    document.getElementById('file-input-' + uid).click();
+}
+
+function changeBlockImage(uid) {
+    document.getElementById('file-input-' + uid).click();
+}
+
+async function handleImageUpload(uid, input) {
+    if (!input.files || !input.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    try {
+        const res = await fetch('{{ url_for("exercises.upload_block_image") }}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            const block = blocks.find(b => b.uid === uid);
+            block.config_json.image_file_id = data.file_id;
+            block.config_json.image_url = data.url;
+            block.config_json.zones = [];
+            refreshBlockContent(uid);
+            showToast('Image téléversée', 'success');
+        } else {
+            showToast(data.message || 'Erreur upload', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur upload', 'error');
+    }
+}
+
+function addZoneOnImage(event, uid) {
+    const container = document.getElementById('img-container-' + uid);
+    const img = document.getElementById('img-preview-' + uid);
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const x = Math.round(event.clientX - rect.left);
+    const y = Math.round(event.clientY - rect.top);
+
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones.push({ x: x, y: y, radius: 30, label: `Zone ${block.config_json.zones.length + 1}` });
+    refreshBlockContent(uid);
+}
+
+function removeZone(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateZoneField(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones[index][field] = value;
+}
+
+function updateAllZonesRadius(uid, radius) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones.forEach(z => z.radius = radius);
+    refreshBlockContent(uid);
+}
+
+// ============================================================
+// GRAPH EDITOR
+// ============================================================
+function renderGraphEditor(block) {
+    const c = block.config_json;
+    return `
+        <div class="form-group">
+            <label>Type de question</label>
+            <select onchange="updateConfig('${block.uid}', 'question_type', this.value)">
+                <option value="read_value" ${c.question_type === 'read_value' ? 'selected' : ''}>Lire une valeur</option>
+                <option value="place_point" ${c.question_type === 'place_point' ? 'selected' : ''}>Placer un point</option>
+                <option value="draw_line" ${c.question_type === 'draw_line' ? 'selected' : ''}>Tracer une droite</option>
+            </select>
+        </div>
+        <div class="graph-config-grid">
+            <div class="form-group">
+                <label>Axe X : label</label>
+                <input type="text" value="${escapeHtml(c.x_label || 'x')}" onchange="updateConfig('${block.uid}', 'x_label', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Axe Y : label</label>
+                <input type="text" value="${escapeHtml(c.y_label || 'y')}" onchange="updateConfig('${block.uid}', 'y_label', this.value)">
+            </div>
+            <div class="form-group">
+                <label>X min</label>
+                <input type="number" value="${c.x_min ?? -10}" onchange="updateConfig('${block.uid}', 'x_min', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>X max</label>
+                <input type="number" value="${c.x_max ?? 10}" onchange="updateConfig('${block.uid}', 'x_max', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>Y min</label>
+                <input type="number" value="${c.y_min ?? -10}" onchange="updateConfig('${block.uid}', 'y_min', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>Y max</label>
+                <input type="number" value="${c.y_max ?? 10}" onchange="updateConfig('${block.uid}', 'y_max', parseFloat(this.value))">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Réponse correcte</label>
+            ${c.question_type === 'draw_line' ? `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Pente (a)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.slope ?? 1}"
+                            onchange="updateGraphAnswer('${block.uid}', 'slope', parseFloat(this.value))">
+                    </div>
+                    <div class="form-group">
+                        <label>Ordonnée à l'origine (b)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.intercept ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'intercept', parseFloat(this.value))">
+                    </div>
+                </div>
+            ` : `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>X</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.x ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'x', parseFloat(this.value))">
+                    </div>
+                    <div class="form-group">
+                        <label>Y</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.y ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'y', parseFloat(this.value))">
+                    </div>
+                </div>
+            `}
+        </div>
+        <div class="form-group">
+            <label>Tolérance</label>
+            <input type="number" step="0.1" value="${c.tolerance ?? 0.5}"
+                onchange="updateConfig('${block.uid}', 'tolerance', parseFloat(this.value))">
+        </div>
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:0.5rem;">
+                <input type="checkbox" style="width:auto;" ${c.grid ? 'checked' : ''}
+                    onchange="updateConfig('${block.uid}', 'grid', this.checked)">
+                Afficher la grille
+            </label>
+        </div>`;
+}
+
+function updateGraphAnswer(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.correct_answer) block.config_json.correct_answer = {};
+    block.config_json.correct_answer[field] = value;
+}
+
+// ============================================================
+// BLOCK UTILITIES
+// ============================================================
+function toggleBlockContent(uid) {
+    const el = document.getElementById('content-' + uid);
+    el.classList.toggle('open');
+}
+
+function updateBlockField(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (block) {
+        block[field] = value;
+        if (field === 'points') updateTotalXP();
+    }
+}
+
+function updateConfig(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (block) block.config_json[field] = value;
+}
+
+function refreshBlockContent(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const el = document.getElementById(uid);
+    if (block && el) {
+        el.innerHTML = renderBlock(block);
+        // Re-open the content
+        document.getElementById('content-' + uid).classList.add('open');
+    }
+}
+
+function removeBlock(uid) {
+    blocks = blocks.filter(b => b.uid !== uid);
+    const el = document.getElementById(uid);
+    if (el) el.remove();
+    if (blocks.length === 0) {
+        document.getElementById('blocks-empty').style.display = '';
+        document.getElementById('blocks-area').classList.remove('has-blocks');
+    }
+    updateTotalXP();
+}
+
+function updateTotalXP() {
+    const total = blocks.reduce((sum, b) => sum + (b.points || 0), 0);
+    document.getElementById('total-xp').textContent = total;
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+let draggedUid = null;
+
+function onDragStart(e) {
+    draggedUid = e.currentTarget.dataset.uid;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    const targetUid = e.currentTarget.dataset.uid;
+    if (draggedUid && draggedUid !== targetUid) {
+        const fromIdx = blocks.findIndex(b => b.uid === draggedUid);
+        const toIdx = blocks.findIndex(b => b.uid === targetUid);
+        const [moved] = blocks.splice(fromIdx, 1);
+        blocks.splice(toIdx, 0, moved);
+        // Reorder DOM
+        const area = document.getElementById('blocks-area');
+        blocks.forEach(b => {
+            const el = document.getElementById(b.uid);
+            if (el) area.appendChild(el);
+        });
+    }
+}
+
+function onDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    draggedUid = null;
+}
+
+// ============================================================
+// SAVE / PUBLISH
+// ============================================================
+async function saveExercise(asDraft) {
+    const data = {
+        id: exerciseId,
+        title: document.getElementById('ex-title').value || 'Sans titre',
+        description: document.getElementById('ex-description').value,
+        subject: document.getElementById('ex-subject').value,
+        level: document.getElementById('ex-level').value,
+        estimated_duration: parseInt(document.getElementById('ex-duration').value) || null,
+        mode: document.getElementById('ex-mode').value,
+        activation_date: document.getElementById('ex-activation').value || null,
+        deadline: document.getElementById('ex-deadline').value || null,
+        bonus_gold_threshold: parseInt(document.getElementById('ex-gold-threshold').value) || 80,
+        badge_on_perfect: document.getElementById('ex-badge-perfect').checked,
+        is_draft: asDraft,
+        blocks: blocks.map((b, i) => ({
+            id: b.id,
+            block_type: b.block_type,
+            position: i,
+            title: b.title,
+            config_json: b.config_json,
+            points: b.points,
+        })),
+    };
+
+    try {
+        const res = await fetch('{{ url_for("exercises.save") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+        if (result.success) {
+            exerciseId = result.exercise_id;
+            showToast(asDraft ? 'Brouillon sauvegardé' : 'Exercice sauvegardé', 'success');
+            // Update URL if new exercise
+            if (!data.id) {
+                history.replaceState(null, '', `{{ url_for('exercises.edit', exercise_id=0) }}`.replace('0', exerciseId));
+            }
+        } else {
+            showToast(result.message || 'Erreur', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+    }
+}
+
+function showPublishModal() {
+    document.getElementById('publish-modal').style.display = 'flex';
+}
+
+function closePublishModal() {
+    document.getElementById('publish-modal').style.display = 'none';
+}
+
+async function publishExercise() {
+    const checkboxes = document.querySelectorAll('#publish-class-list input:checked');
+    const classroomIds = [...checkboxes].map(cb => parseInt(cb.value));
+
+    if (classroomIds.length === 0) {
+        showToast('Sélectionnez au moins une classe', 'error');
+        return;
+    }
+
+    // Save first
+    await saveExercise(false);
+
+    try {
+        const res = await fetch(`/exercises/${exerciseId}/publish`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ classroom_ids: classroomIds }),
+        });
+        const result = await res.json();
+        if (result.success) {
+            showToast(result.message, 'success');
+            closePublishModal();
+        } else {
+            showToast(result.message || 'Erreur', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+    }
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

@@ -276,6 +276,19 @@
         {% endif %}
 
         {% if is_premium %}
+        <a href="{{ url_for('exercises.index') }}" class="action-button" style="background: linear-gradient(135deg, #FDF4FF 0%, #F3E8FF 100%); border-color: #A855F7;">
+            <i class="fas fa-flask" style="color: #A855F7;"></i>
+            <span>Exercices interactifs</span>
+        </a>
+        {% else %}
+        <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
+            <i class="fas fa-flask" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Exercices interactifs</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+        </a>
+        {% endif %}
+
+        {% if is_premium %}
         <a href="{{ url_for('sanctions.index') }}" class="action-button" style="background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%); border-color: var(--danger-color);">
             <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
             <span>Gestion des sanctions</span>

@@ -1349,3 +1349,295 @@ def parent_add_child():
 
     msg = f'{children_linked} enfant(s) lié(s).' if children_linked > 0 else 'Aucun enfant trouvé.'
     return jsonify({'success': True, 'message': msg, 'children_linked': children_linked})
+
+
+# ═══════════════════════════════════════════════════════════════════
+#                    MISSIONS / EXERCISES
+# ═══════════════════════════════════════════════════════════════════
+
+@api_bp.route('/student/missions', methods=['GET'])
+@jwt_required(user_type='student')
+def student_list_missions():
+    """Lister les missions/exercices publiés pour la classe de l'élève."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    if not student.classroom_id:
+        return jsonify({'missions': []})
+
+    from models.exercise import Exercise, ExercisePublication
+
+    publications = ExercisePublication.query.filter_by(
+        classroom_id=student.classroom_id,
+        is_published=True
+    ).order_by(ExercisePublication.created_at.desc()).all()
+
+    missions_data = []
+    for pub in publications:
+        exercise = pub.exercise
+        if not exercise:
+            continue
+
+        missions_data.append({
+            'id': pub.id,
+            'exercise_id': exercise.id,
+            'title': exercise.title,
+            'description': exercise.description or '',
+            'blocks_count': len(exercise.blocks) if exercise.blocks else 0,
+            'xp_reward': exercise.xp_reward or 0,
+            'difficulty': exercise.difficulty or 'normal',
+            'published_at': pub.created_at.isoformat()
+        })
+
+    return jsonify({'missions': missions_data})
+
+
+@api_bp.route('/student/missions/<int:mission_id>', methods=['GET'])
+@jwt_required(user_type='student')
+def student_get_mission(mission_id):
+    """Obtenir les détails d'une mission avec ses blocs."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    if not student.classroom_id:
+        return jsonify({'error': 'Accès non autorisé'}), 403
+
+    from models.exercise import Exercise, ExercisePublication, ExerciseBlock
+
+    publication = ExercisePublication.query.filter_by(
+        id=mission_id,
+        classroom_id=student.classroom_id,
+        is_published=True
+    ).first()
+
+    if not publication:
+        return jsonify({'error': 'Mission non trouvée'}), 404
+
+    exercise = publication.exercise
+    if not exercise:
+        return jsonify({'error': 'Exercice non trouvé'}), 404
+
+    blocks_data = []
+    for block in exercise.blocks or []:
+        blocks_data.append({
+            'id': block.id,
+            'order': block.order or 0,
+            'block_type': block.block_type or 'text',
+            'content': block.content or '',
+            'question': block.question or '',
+            'options': block.options or [],
+            'correct_answer': block.correct_answer or '',
+            'explanation': block.explanation or ''
+        })
+
+    return jsonify({
+        'mission': {
+            'id': publication.id,
+            'exercise_id': exercise.id,
+            'title': exercise.title,
+            'description': exercise.description or '',
+            'xp_reward': exercise.xp_reward or 0,
+            'difficulty': exercise.difficulty or 'normal',
+            'blocks': blocks_data
+        }
+    })
+
+
+@api_bp.route('/student/missions/<int:mission_id>/submit', methods=['POST'])
+@jwt_required(user_type='student')
+def student_submit_mission(mission_id):
+    """Soumettre les réponses à une mission et obtenir un score."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    if not student.classroom_id:
+        return jsonify({'error': 'Accès non autorisé'}), 403
+
+    from models.exercise import (
+        Exercise, ExercisePublication, ExerciseBlock,
+        StudentExerciseAttempt, StudentBlockAnswer
+    )
+    from routes.student_auth import grade_block, check_badges
+
+    publication = ExercisePublication.query.filter_by(
+        id=mission_id,
+        classroom_id=student.classroom_id,
+        is_published=True
+    ).first()
+
+    if not publication:
+        return jsonify({'error': 'Mission non trouvée'}), 404
+
+    exercise = publication.exercise
+    if not exercise:
+        return jsonify({'error': 'Exercice non trouvé'}), 404
+
+    data = request.get_json(silent=True) or {}
+    answers = data.get('answers', [])
+
+    # Créer une tentative
+    attempt = StudentExerciseAttempt(
+        student_id=student.id,
+        exercise_id=exercise.id,
+        publication_id=publication.id
+    )
+    db.session.add(attempt)
+    db.session.flush()
+
+    total_score = 0
+    total_blocks = 0
+    blocks_results = []
+
+    # Traiter chaque réponse
+    for answer_data in answers:
+        block_id = answer_data.get('block_id')
+        user_answer = answer_data.get('answer', '')
+
+        block = ExerciseBlock.query.get(block_id)
+        if not block or block.exercise_id != exercise.id:
+            continue
+
+        total_blocks += 1
+
+        # Grader le bloc
+        score, is_correct = grade_block(block, user_answer)
+        total_score += score
+
+        # Enregistrer la réponse
+        block_answer = StudentBlockAnswer(
+            attempt_id=attempt.id,
+            block_id=block_id,
+            student_answer=user_answer,
+            is_correct=is_correct,
+            score=score
+        )
+        db.session.add(block_answer)
+
+        blocks_results.append({
+            'block_id': block_id,
+            'is_correct': is_correct,
+            'score': score,
+            'explanation': block.explanation or ''
+        })
+
+    # Calculer le score final
+    final_score = (total_score / total_blocks * 100) if total_blocks > 0 else 0
+    attempt.score = round(final_score, 2)
+    attempt.completed_at = datetime.utcnow()
+
+    # Vérifier les badges
+    badges_earned = check_badges(student, exercise, final_score)
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'attempt_id': attempt.id,
+        'score': attempt.score,
+        'xp_earned': exercise.xp_reward or 0 if final_score >= 70 else 0,
+        'blocks_results': blocks_results,
+        'badges_earned': badges_earned
+    })
+
+
+@api_bp.route('/student/rpg/profile', methods=['GET'])
+@jwt_required(user_type='student')
+def student_rpg_profile():
+    """Obtenir le profil RPG de l'élève (XP, niveau, or, avatar, badges)."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.exercise import StudentRPGProfile, Badge, StudentBadge
+
+    rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+
+    if not rpg_profile:
+        # Créer un profil par défaut
+        rpg_profile = StudentRPGProfile(
+            student_id=student.id,
+            xp_total=0,
+            gold=0,
+            avatar_class='warrior'
+        )
+        db.session.add(rpg_profile)
+        db.session.commit()
+
+    # Calculer le niveau basé sur l'XP (exemple : 100 XP par niveau)
+    level = (rpg_profile.xp_total // 100) + 1
+    xp_for_next_level = (level * 100)
+    xp_progress = rpg_profile.xp_total % 100
+
+    # Récupérer les badges
+    student_badges = StudentBadge.query.filter_by(student_id=student.id).all()
+    badges_data = []
+    for sb in student_badges:
+        badge = Badge.query.get(sb.badge_id)
+        if badge:
+            badges_data.append({
+                'id': badge.id,
+                'name': badge.name,
+                'description': badge.description or '',
+                'icon': badge.icon or '',
+                'earned_at': sb.earned_at.isoformat()
+            })
+
+    return jsonify({
+        'rpg_profile': {
+            'student_id': student.id,
+            'xp_total': rpg_profile.xp_total,
+            'level': level,
+            'xp_for_next_level': xp_for_next_level,
+            'xp_progress': xp_progress,
+            'gold': rpg_profile.gold,
+            'avatar_class': rpg_profile.avatar_class or 'warrior',
+            'badges': badges_data
+        }
+    })
+
+
+@api_bp.route('/student/rpg/avatar', methods=['POST'])
+@jwt_required(user_type='student')
+def student_update_avatar():
+    """Mettre à jour la classe d'avatar de l'élève."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    data = request.get_json(silent=True) or {}
+    avatar_class = data.get('avatar_class', '').strip()
+
+    if not avatar_class:
+        return jsonify({'error': 'Classe d\'avatar requise'}), 400
+
+    # Valider la classe d'avatar (exemple de classes valides)
+    valid_classes = ['warrior', 'mage', 'rogue', 'paladin', 'archer']
+    if avatar_class not in valid_classes:
+        return jsonify({'error': f'Classe d\'avatar invalide. Valides: {", ".join(valid_classes)}'}), 400
+
+    from models.exercise import StudentRPGProfile
+
+    rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+
+    if not rpg_profile:
+        # Créer un profil par défaut
+        rpg_profile = StudentRPGProfile(
+            student_id=student.id,
+            xp_total=0,
+            gold=0,
+            avatar_class=avatar_class
+        )
+        db.session.add(rpg_profile)
+    else:
+        rpg_profile.avatar_class = avatar_class
+
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f'Avatar changé en {avatar_class}',
+        'avatar_class': rpg_profile.avatar_class
+    })

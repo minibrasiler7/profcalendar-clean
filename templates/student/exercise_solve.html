@@ -1,0 +1,639 @@
+{% extends "base.html" %}
+
+{% block title %}{{ exercise.title }} - Mission{% endblock %}
+
+{% block extra_css %}
+<style>
+.solve-container { max-width: 800px; margin: 0 auto; padding: 1rem; }
+
+.exercise-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
+
+.exercise-header h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
+.exercise-header p { color: #6b7280; margin: 0 0 0.75rem; }
+
+.exercise-meta {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    font-size: 0.85rem; color: #4b5563;
+}
+.exercise-meta span { display: flex; align-items: center; gap: 0.3rem; }
+
+.block-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 1rem;
+    border-left: 4px solid #667eea;
+}
+
+.block-card.correct { border-left-color: #10b981; background: #f0fdf4; }
+.block-card.incorrect { border-left-color: #ef4444; background: #fef2f2; }
+
+.block-card h3 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.block-number {
+    width: 28px; height: 28px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700;
+}
+
+/* QCM */
+.qcm-options { list-style: none; padding: 0; }
+.qcm-option {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.qcm-option:hover { border-color: #667eea; }
+.qcm-option.selected { border-color: #667eea; background: #eef2ff; }
+.qcm-option.correct-answer { border-color: #10b981; background: #dcfce7; }
+.qcm-option.wrong-answer { border-color: #ef4444; background: #fef2f2; }
+
+/* Answer input */
+.answer-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+.answer-input:focus { outline: none; border-color: #667eea; }
+
+/* Fill blank */
+.fill-blank-text { line-height: 2.5; font-size: 1rem; }
+.blank-input {
+    display: inline-block;
+    width: 100px;
+    border: none;
+    border-bottom: 2px solid #667eea;
+    padding: 0.2rem 0.3rem;
+    font-size: 1rem;
+    font-family: inherit;
+    text-align: center;
+    background: #eef2ff;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Sorting */
+.sorting-list { list-style: none; padding: 0; }
+.sorting-item {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    user-select: none;
+}
+.sorting-item:active { cursor: grabbing; }
+.sorting-item i { color: #9ca3af; }
+
+/* Category drop zones */
+.category-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    min-height: 60px;
+    transition: all 0.2s;
+}
+.category-zone.drag-over { border-color: #667eea; background: #eef2ff; }
+.category-zone h4 { margin: 0 0 0.5rem; font-size: 0.9rem; color: #4b5563; }
+
+/* Image interactive */
+.image-click-area {
+    position: relative;
+    display: inline-block;
+    cursor: crosshair;
+    max-width: 100%;
+}
+.image-click-area img { max-width: 100%; border-radius: 8px; }
+.click-marker {
+    position: absolute;
+    width: 20px; height: 20px;
+    background: #ef4444;
+    border: 3px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+/* Graph */
+.graph-wrapper {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+}
+
+/* Submit */
+.submit-section {
+    text-align: center;
+    padding: 2rem;
+}
+
+.btn-submit {
+    padding: 0.75rem 2rem;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.btn-submit:hover { background: #059669; transform: scale(1.02); }
+.btn-submit:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+/* Results overlay */
+.results-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9000;
+}
+
+.results-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 450px;
+    width: 90%;
+    text-align: center;
+}
+
+.results-score {
+    font-size: 3rem;
+    font-weight: 900;
+    margin: 1rem 0;
+}
+
+.results-score.good { color: #10b981; }
+.results-score.medium { color: #f59e0b; }
+.results-score.bad { color: #ef4444; }
+
+.results-rewards {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 1.5rem 0;
+}
+
+.reward-item {
+    text-align: center;
+}
+
+.reward-item .reward-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.reward-item .reward-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.btn-back {
+    display: inline-block;
+    padding: 0.6rem 1.5rem;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="solve-container">
+    <div class="exercise-header">
+        <a href="{{ url_for('student_auth.missions') }}" style="color:#667eea;font-size:0.85rem;">
+            <i class="fas fa-arrow-left"></i> Retour aux missions
+        </a>
+        <h1>{{ exercise.title }}</h1>
+        {% if exercise.description %}<p>{{ exercise.description }}</p>{% endif %}
+        <div class="exercise-meta">
+            {% if exercise.subject %}<span><i class="fas fa-book"></i> {{ exercise.subject }}</span>{% endif %}
+            {% if exercise.estimated_duration %}<span><i class="fas fa-clock"></i> {{ exercise.estimated_duration }} min</span>{% endif %}
+            <span><i class="fas fa-star" style="color:#f59e0b;"></i> {{ exercise.total_points }} XP</span>
+        </div>
+    </div>
+
+    {% if already_completed %}
+    <div style="background:#ecfdf5;border:2px solid #10b981;border-radius:12px;padding:1rem 1.5rem;margin-bottom:1rem;">
+        <strong style="color:#166534;"><i class="fas fa-check-circle"></i> Tu as déjà terminé cet exercice !</strong>
+        <span style="color:#166534;">Score : {{ previous_attempt.score_percentage }}% — {{ previous_attempt.xp_earned }} XP gagnés</span>
+    </div>
+    {% endif %}
+
+    <form id="exercise-form">
+    {% for block in exercise.blocks.order_by('position') %}
+    <div class="block-card" id="block-card-{{ block.id }}" data-block-id="{{ block.id }}">
+        <h3>
+            <span class="block-number">{{ loop.index }}</span>
+            {{ block.title or 'Question ' ~ loop.index }}
+        </h3>
+
+        {% set c = block.config_json %}
+
+        {% if block.block_type == 'qcm' %}
+            {% if c.question %}<p>{{ c.question }}</p>{% endif %}
+            <ul class="qcm-options" data-block="{{ block.id }}" data-multiple="{{ 'true' if c.multiple_answers else 'false' }}">
+                {% for opt in c.options %}
+                <li class="qcm-option" data-index="{{ loop.index0 }}" onclick="selectQCM(this)">
+                    <input type="{{ 'checkbox' if c.multiple_answers else 'radio' }}"
+                           name="qcm-{{ block.id }}" style="pointer-events:none;" {{ 'disabled' if already_completed }}>
+                    <span>{{ opt.text }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+
+        {% elif block.block_type == 'short_answer' %}
+            {% if c.question %}<p>{{ c.question }}</p>{% endif %}
+            <input class="answer-input" type="{{ 'number' if c.answer_type == 'number' else 'text' }}"
+                data-block="{{ block.id }}" placeholder="Ta réponse..."
+                {{ 'step=any' if c.answer_type == 'number' else '' }}
+                {{ 'disabled' if already_completed }}>
+
+        {% elif block.block_type == 'fill_blank' %}
+            <div class="fill-blank-text" id="fill-blank-{{ block.id }}"></div>
+            <script>
+                (function() {
+                    const template = {{ c.text_template|tojson }};
+                    let blankIdx = 0;
+                    const html = template.replace(/\{([^}]+)\}/g, function() {
+                        const i = blankIdx++;
+                        return `<input class="blank-input" type="text" data-block="{{ block.id }}" data-blank="${i}"
+                            placeholder="..." {{ 'disabled' if already_completed }}>`;
+                    });
+                    document.getElementById('fill-blank-{{ block.id }}').innerHTML = html;
+                })();
+            </script>
+
+        {% elif block.block_type == 'sorting' %}
+            {% if c.mode == 'order' %}
+                <p style="color:#6b7280;font-size:0.85rem;">Remets ces éléments dans le bon ordre (glisse pour réorganiser) :</p>
+                <ul class="sorting-list" id="sorting-{{ block.id }}" data-block="{{ block.id }}">
+                    {% for item in c.items %}
+                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}">
+                        <i class="fas fa-grip-vertical"></i> {{ item }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color:#6b7280;font-size:0.85rem;">Classe ces éléments dans les bonnes catégories :</p>
+                <!-- Simplified: just show categories with dropdowns -->
+                {% for cat in c.categories %}
+                <div class="category-zone" data-category="{{ loop.index0 }}">
+                    <h4>{{ cat.name }}</h4>
+                </div>
+                {% endfor %}
+                <div class="sorting-list" id="sorting-pool-{{ block.id }}">
+                    {% for item in c.items %}
+                    <div class="sorting-item" data-item-index="{{ loop.index0 }}">{{ item }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+        {% elif block.block_type == 'image_position' %}
+            {% if c.image_url %}
+            <p style="color:#6b7280;font-size:0.85rem;">Clique sur {{ c.zones|length }} zone(s) correcte(s) sur l'image :</p>
+            <div class="image-click-area" id="img-click-{{ block.id }}" data-block="{{ block.id }}"
+                 data-expected="{{ c.zones|length }}"
+                 onclick="handleImageClick(event, '{{ block.id }}')">
+                <img src="{{ c.image_url }}">
+            </div>
+            {% endif %}
+
+        {% elif block.block_type == 'graph' %}
+            <p style="color:#6b7280;font-size:0.85rem;">
+                {% if c.question_type == 'read_value' %}Lis la valeur demandée sur le graphique :
+                {% elif c.question_type == 'place_point' %}Clique sur le graphique pour placer un point :
+                {% else %}Indique la pente et l'ordonnée à l'origine :{% endif %}
+            </p>
+            <div class="graph-wrapper">
+                <canvas id="graph-{{ block.id }}" width="500" height="400"
+                    {% if c.question_type == 'place_point' %}
+                    onclick="handleGraphClick(event, '{{ block.id }}')"
+                    style="cursor:crosshair;"
+                    {% endif %}></canvas>
+            </div>
+            {% if c.question_type in ('read_value', 'place_point') %}
+            <div style="display:flex;gap:1rem;margin-top:0.5rem;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem;font-weight:600;">X</label>
+                    <input class="answer-input" type="number" step="any" id="graph-x-{{ block.id }}" data-block="{{ block.id }}" data-axis="x">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem;font-weight:600;">Y</label>
+                    <input class="answer-input" type="number" step="any" id="graph-y-{{ block.id }}" data-block="{{ block.id }}" data-axis="y">
+                </div>
+            </div>
+            {% else %}
+            <div style="display:flex;gap:1rem;margin-top:0.5rem;">
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem;font-weight:600;">Pente (a)</label>
+                    <input class="answer-input" type="number" step="any" id="graph-slope-{{ block.id }}" data-block="{{ block.id }}">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:0.8rem;font-weight:600;">Ordonnée à l'origine (b)</label>
+                    <input class="answer-input" type="number" step="any" id="graph-intercept-{{ block.id }}" data-block="{{ block.id }}">
+                </div>
+            </div>
+            {% endif %}
+            <script>
+                (function() {
+                    const canvas = document.getElementById('graph-{{ block.id }}');
+                    const ctx = canvas.getContext('2d');
+                    drawGraph(ctx, canvas.width, canvas.height, {{ c|tojson }});
+                })();
+            </script>
+        {% endif %}
+    </div>
+    {% endfor %}
+    </form>
+
+    {% if not already_completed %}
+    <div class="submit-section">
+        <button class="btn-submit" id="submit-btn" onclick="submitExercise()">
+            <i class="fas fa-paper-plane"></i> Soumettre mes réponses
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Results overlay (hidden) -->
+<div class="results-overlay" id="results-overlay" style="display:none;">
+    <div class="results-card">
+        <h2>Mission terminée !</h2>
+        <div class="results-score" id="results-score"></div>
+        <div class="results-rewards">
+            <div class="reward-item">
+                <div class="reward-value" style="color:#f59e0b;" id="results-xp">0</div>
+                <div class="reward-label">XP gagnés</div>
+            </div>
+            <div class="reward-item">
+                <div class="reward-value" style="color:#fbbf24;" id="results-gold">0</div>
+                <div class="reward-label">Or gagné</div>
+            </div>
+        </div>
+        <p id="results-level" style="font-weight:600;color:#667eea;"></p>
+        <a href="{{ url_for('student_auth.missions') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Retour aux missions
+        </a>
+    </div>
+</div>
+
+<script>
+// Graph drawing
+function drawGraph(ctx, w, h, config) {
+    const margin = 40;
+    const gw = w - 2 * margin;
+    const gh = h - 2 * margin;
+
+    ctx.fillStyle = '#fafbfc';
+    ctx.fillRect(0, 0, w, h);
+
+    if (config.grid) {
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 0.5;
+        for (let x = config.x_min; x <= config.x_max; x++) {
+            const px = margin + ((x - config.x_min) / (config.x_max - config.x_min)) * gw;
+            ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke();
+        }
+        for (let y = config.y_min; y <= config.y_max; y++) {
+            const py = h - margin - ((y - config.y_min) / (config.y_max - config.y_min)) * gh;
+            ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke();
+        }
+    }
+
+    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
+    const originX = margin + ((0 - config.x_min) / (config.x_max - config.x_min)) * gw;
+    const originY = h - margin - ((0 - config.y_min) / (config.y_max - config.y_min)) * gh;
+    ctx.beginPath(); ctx.moveTo(margin, originY); ctx.lineTo(w - margin, originY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(originX, margin); ctx.lineTo(originX, h - margin); ctx.stroke();
+
+    ctx.fillStyle = '#4b5563'; ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(config.x_label || 'x', w - margin + 5, originY + 4);
+    ctx.fillText(config.y_label || 'y', originX + 5, margin - 8);
+}
+
+// QCM selection
+function selectQCM(li) {
+    const list = li.parentElement;
+    const isMultiple = list.dataset.multiple === 'true';
+
+    if (!isMultiple) {
+        list.querySelectorAll('.qcm-option').forEach(o => {
+            o.classList.remove('selected');
+            o.querySelector('input').checked = false;
+        });
+    }
+    li.classList.toggle('selected');
+    li.querySelector('input').checked = li.classList.contains('selected');
+}
+
+// Image click
+let imageClicks = {};
+function handleImageClick(event, blockId) {
+    const container = document.getElementById('img-click-' + blockId);
+    const img = container.querySelector('img');
+    const rect = img.getBoundingClientRect();
+    const x = Math.round(event.clientX - rect.left);
+    const y = Math.round(event.clientY - rect.top);
+    const expected = parseInt(container.dataset.expected) || 1;
+
+    if (!imageClicks[blockId]) imageClicks[blockId] = [];
+
+    // Remove existing markers if at max
+    if (imageClicks[blockId].length >= expected) {
+        container.querySelectorAll('.click-marker').forEach(m => m.remove());
+        imageClicks[blockId] = [];
+    }
+
+    imageClicks[blockId].push({ x, y });
+
+    const marker = document.createElement('div');
+    marker.className = 'click-marker';
+    marker.style.left = x + 'px';
+    marker.style.top = y + 'px';
+    container.appendChild(marker);
+}
+
+// Graph click
+function handleGraphClick(event, blockId) {
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const margin = 40;
+    const gw = canvas.width - 2 * margin;
+    const gh = canvas.height - 2 * margin;
+
+    // We need the config — get from data attribute or global
+    // For simplicity, just map pixel to graph coords with default -10 to 10
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+
+    const xVal = -10 + ((px - margin) / gw) * 20;
+    const yVal = 10 - ((py - margin) / gh) * 20;
+
+    document.getElementById('graph-x-' + blockId).value = Math.round(xVal * 10) / 10;
+    document.getElementById('graph-y-' + blockId).value = Math.round(yVal * 10) / 10;
+}
+
+// Sorting drag & drop
+document.querySelectorAll('.sorting-list').forEach(list => {
+    let dragEl = null;
+    list.querySelectorAll('.sorting-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            dragEl = this;
+            this.style.opacity = '0.5';
+        });
+        item.addEventListener('dragend', function() {
+            this.style.opacity = '1';
+            dragEl = null;
+        });
+        item.addEventListener('dragover', function(e) { e.preventDefault(); });
+        item.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (dragEl && dragEl !== this) {
+                const parent = this.parentNode;
+                const allItems = [...parent.children];
+                const fromIdx = allItems.indexOf(dragEl);
+                const toIdx = allItems.indexOf(this);
+                if (fromIdx < toIdx) {
+                    parent.insertBefore(dragEl, this.nextSibling);
+                } else {
+                    parent.insertBefore(dragEl, this);
+                }
+            }
+        });
+    });
+});
+
+// Submit exercise
+async function submitExercise() {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+
+    const answers = {};
+
+    document.querySelectorAll('.block-card').forEach(card => {
+        const blockId = card.dataset.blockId;
+
+        // QCM
+        const qcmList = card.querySelector('.qcm-options');
+        if (qcmList) {
+            const selected = [...card.querySelectorAll('.qcm-option.selected')].map(o => parseInt(o.dataset.index));
+            answers[blockId] = { selected };
+        }
+
+        // Short answer
+        const ansInput = card.querySelector('.answer-input[data-block]');
+        if (ansInput && !ansInput.dataset.axis) {
+            answers[blockId] = { value: ansInput.value };
+        }
+
+        // Fill blank
+        const blankInputs = card.querySelectorAll('.blank-input');
+        if (blankInputs.length > 0) {
+            const blanks = [...blankInputs].map(input => input.value);
+            answers[blockId] = { blanks };
+        }
+
+        // Sorting
+        const sortingList = card.querySelector('.sorting-list');
+        if (sortingList) {
+            const order = [...sortingList.children].map(li => parseInt(li.dataset.originalIndex));
+            answers[blockId] = { order };
+        }
+
+        // Image clicks
+        if (imageClicks[blockId]) {
+            answers[blockId] = { clicks: imageClicks[blockId] };
+        }
+
+        // Graph
+        const graphX = document.getElementById('graph-x-' + blockId);
+        const graphY = document.getElementById('graph-y-' + blockId);
+        if (graphX && graphY) {
+            answers[blockId] = { x: parseFloat(graphX.value), y: parseFloat(graphY.value) };
+        }
+        const graphSlope = document.getElementById('graph-slope-' + blockId);
+        const graphIntercept = document.getElementById('graph-intercept-' + blockId);
+        if (graphSlope && graphIntercept) {
+            answers[blockId] = { slope: parseFloat(graphSlope.value), intercept: parseFloat(graphIntercept.value) };
+        }
+    });
+
+    try {
+        const res = await fetch(`/student/missions/{{ exercise.id }}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Show results
+            const pct = data.percentage;
+            const scoreEl = document.getElementById('results-score');
+            scoreEl.textContent = pct + '%';
+            scoreEl.className = 'results-score ' + (pct >= 80 ? 'good' : pct >= 50 ? 'medium' : 'bad');
+
+            document.getElementById('results-xp').textContent = '+' + data.xp_earned;
+            document.getElementById('results-gold').textContent = '+' + data.gold_earned;
+            document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;
+
+            // Highlight correct/incorrect blocks
+            (data.results || []).forEach(r => {
+                const card = document.getElementById('block-card-' + r.block_id);
+                if (card) card.classList.add(r.is_correct ? 'correct' : 'incorrect');
+            });
+
+            document.getElementById('results-overlay').style.display = 'flex';
+        } else {
+            alert(data.message || 'Erreur');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Soumettre mes réponses';
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Soumettre mes réponses';
+    }
+}
+</script>
+{% endblock %}

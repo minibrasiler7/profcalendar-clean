@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Exercices - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+.exercises-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.exercises-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.exercises-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.exercises-header h1 i { color: #667eea; }
+
+/* Filters */
+.filters-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-chip {
+    padding: 0.4rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.filter-chip:hover, .filter-chip.active {
+    border-color: #667eea;
+    background: #eef2ff;
+    color: #667eea;
+}
+
+/* Exercise grid */
+.exercises-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.exercise-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.exercise-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.card-top {
+    padding: 1.25rem;
+}
+
+.card-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.status-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.draft { background: #fef3c7; color: #92400e; }
+.status-badge.published { background: #dcfce7; color: #166534; }
+.status-badge.active { background: #dbeafe; color: #1d4ed8; }
+
+.card-date { font-size: 0.75rem; color: #9ca3af; }
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.card-description {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.meta-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #4b5563;
+}
+
+.meta-tag i { font-size: 0.7rem; }
+
+.card-blocks-preview {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.block-mini {
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.block-mini.qcm { background: #dbeafe; color: #1d4ed8; }
+.block-mini.short_answer { background: #dcfce7; color: #166534; }
+.block-mini.fill_blank { background: #fef3c7; color: #92400e; }
+.block-mini.sorting { background: #ede9fe; color: #5b21b6; }
+.block-mini.image_position { background: #fce7f3; color: #9d174d; }
+.block-mini.graph { background: #cffafe; color: #155e75; }
+
+.card-actions {
+    display: flex;
+    border-top: 1px solid #f3f4f6;
+}
+
+.card-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.75rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.card-action:hover { background: #f3f4f6; color: #1f2937; }
+.card-action.delete:hover { background: #fef2f2; color: #dc2626; }
+.card-action.publish:hover { background: #ecfdf5; color: #059669; }
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #9ca3af;
+}
+
+.empty-state i { font-size: 4rem; margin-bottom: 1rem; }
+.empty-state h2 { color: #4b5563; margin-bottom: 0.5rem; }
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5a67d8; }
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.toast.success { background: #10b981; }
+.toast.error { background: #ef4444; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="exercises-container">
+    <div class="exercises-header">
+        <h1><i class="fas fa-flask"></i> Mes Exercices</h1>
+        <a href="{{ url_for('exercises.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Créer un exercice
+        </a>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters-bar">
+        <button class="filter-chip active" onclick="filterExercises('all', this)">Tous</button>
+        <button class="filter-chip" onclick="filterExercises('draft', this)">Brouillons</button>
+        <button class="filter-chip" onclick="filterExercises('published', this)">Publiés</button>
+    </div>
+
+    {% if exercises %}
+    <div class="exercises-grid" id="exercises-grid">
+        {% for ex in exercises %}
+        <div class="exercise-card" data-status="{{ 'published' if ex.is_published else 'draft' }}" data-id="{{ ex.id }}">
+            <div class="card-top">
+                <div class="card-status">
+                    {% if ex.is_published %}
+                        <span class="status-badge published">Publié</span>
+                    {% else %}
+                        <span class="status-badge draft">Brouillon</span>
+                    {% endif %}
+                    <span class="card-date">{{ ex.updated_at.strftime('%d/%m/%Y') if ex.updated_at else '' }}</span>
+                </div>
+                <div class="card-title">{{ ex.title }}</div>
+                {% if ex.description %}
+                <div class="card-description">{{ ex.description }}</div>
+                {% endif %}
+                <div class="card-meta">
+                    {% if ex.subject %}
+                    <span class="meta-tag"><i class="fas fa-book"></i> {{ ex.subject }}</span>
+                    {% endif %}
+                    {% if ex.level %}
+                    <span class="meta-tag"><i class="fas fa-layer-group"></i> {{ ex.level }}</span>
+                    {% endif %}
+                    {% if ex.estimated_duration %}
+                    <span class="meta-tag"><i class="fas fa-clock"></i> {{ ex.estimated_duration }} min</span>
+                    {% endif %}
+                    <span class="meta-tag"><i class="fas fa-star" style="color:#f59e0b;"></i> {{ ex.total_points }} XP</span>
+                    <span class="meta-tag"><i class="fas fa-puzzle-piece"></i> {{ ex.blocks.count() }} blocs</span>
+                </div>
+                <div class="card-blocks-preview">
+                    {% for block in ex.blocks.order_by('position').limit(6) %}
+                    <span class="block-mini {{ block.block_type }}">{{ block.block_type|replace('_', ' ') }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-actions">
+                <a href="{{ url_for('exercises.edit', exercise_id=ex.id) }}" class="card-action">
+                    <i class="fas fa-edit"></i> Modifier
+                </a>
+                <button class="card-action" onclick="duplicateExercise({{ ex.id }})">
+                    <i class="fas fa-copy"></i> Dupliquer
+                </button>
+                {% if not ex.is_published %}
+                <button class="card-action publish" onclick="quickPublish({{ ex.id }})">
+                    <i class="fas fa-paper-plane"></i> Publier
+                </button>
+                {% endif %}
+                <button class="card-action delete" onclick="deleteExercise({{ ex.id }})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-flask"></i>
+        <h2>Aucun exercice encore</h2>
+        <p>Créez votre premier exercice interactif pour vos élèves !</p>
+        <a href="{{ url_for('exercises.create') }}" class="btn btn-primary" style="margin-top: 1rem;">
+            <i class="fas fa-plus"></i> Créer mon premier exercice
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterExercises(status, btn) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.querySelectorAll('.exercise-card').forEach(card => {
+        if (status === 'all' || card.dataset.status === status) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+async function deleteExercise(id) {
+    if (!confirm('Supprimer cet exercice ?')) return;
+    try {
+        const res = await fetch(`/exercises/${id}/delete`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.querySelector(`.exercise-card[data-id="${id}"]`).remove();
+            showToast('Exercice supprimé', 'success');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+async function duplicateExercise(id) {
+    try {
+        const res = await fetch(`/exercises/${id}/duplicate`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Exercice dupliqué', 'success');
+            setTimeout(() => location.reload(), 500);
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+function quickPublish(id) {
+    window.location.href = `/exercises/${id}/edit`;
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

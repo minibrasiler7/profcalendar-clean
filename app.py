@@ -177,6 +177,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ subscription blueprint non trouvé")
 
+    # Blueprint exercices interactifs
+    try:
+        from routes.exercises import exercises_bp
+        app.register_blueprint(exercises_bp)
+        print("✅ exercises blueprint ajouté")
+    except ImportError:
+        print("❌ exercises blueprint non trouvé")
+
     # Blueprint administration
     try:
         from routes.admin import admin_bp
@@ -284,6 +292,131 @@ def create_app(config_name='development'):
         except Exception:
             db.session.rollback()
 
+        # Tables exercices interactifs + RPG
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS exercises (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    subject VARCHAR(100),
+                    level VARCHAR(50),
+                    estimated_duration INTEGER,
+                    mode VARCHAR(20) DEFAULT 'individuel',
+                    activation_date TIMESTAMP,
+                    deadline TIMESTAMP,
+                    is_published BOOLEAN DEFAULT FALSE,
+                    is_draft BOOLEAN DEFAULT TRUE,
+                    total_points INTEGER DEFAULT 0,
+                    bonus_gold_threshold INTEGER DEFAULT 80,
+                    badge_on_perfect BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS exercise_blocks (
+                    id SERIAL PRIMARY KEY,
+                    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+                    block_type VARCHAR(30) NOT NULL,
+                    position INTEGER DEFAULT 0,
+                    title VARCHAR(200),
+                    config_json JSONB DEFAULT '{}',
+                    points INTEGER DEFAULT 10,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS exercise_publications (
+                    id SERIAL PRIMARY KEY,
+                    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+                    classroom_id INTEGER NOT NULL REFERENCES classrooms(id),
+                    planning_id INTEGER REFERENCES plannings(id),
+                    published_by INTEGER NOT NULL REFERENCES users(id),
+                    published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS student_exercise_attempts (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL REFERENCES students(id),
+                    exercise_id INTEGER NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+                    publication_id INTEGER REFERENCES exercise_publications(id),
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    score INTEGER DEFAULT 0,
+                    max_score INTEGER DEFAULT 0,
+                    xp_earned INTEGER DEFAULT 0,
+                    gold_earned INTEGER DEFAULT 0
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS student_block_answers (
+                    id SERIAL PRIMARY KEY,
+                    attempt_id INTEGER NOT NULL REFERENCES student_exercise_attempts(id) ON DELETE CASCADE,
+                    block_id INTEGER NOT NULL REFERENCES exercise_blocks(id) ON DELETE CASCADE,
+                    answer_json JSONB DEFAULT '{}',
+                    is_correct BOOLEAN DEFAULT FALSE,
+                    points_earned INTEGER DEFAULT 0,
+                    answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS student_rpg_profiles (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL UNIQUE REFERENCES students(id),
+                    avatar_class VARCHAR(20) DEFAULT 'guerrier',
+                    avatar_accessories_json JSONB DEFAULT '{}',
+                    xp_total INTEGER DEFAULT 0,
+                    level INTEGER DEFAULT 1,
+                    gold INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS badges (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    description VARCHAR(300),
+                    icon VARCHAR(50) DEFAULT 'trophy',
+                    color VARCHAR(7) DEFAULT '#FFD700',
+                    category VARCHAR(50),
+                    condition_type VARCHAR(50),
+                    condition_value INTEGER DEFAULT 1,
+                    condition_extra VARCHAR(100),
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS student_badges (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL REFERENCES students(id),
+                    badge_id INTEGER NOT NULL REFERENCES badges(id),
+                    earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(student_id, badge_id)
+                )
+            """))
+            db.session.commit()
+            print("✅ Tables exercices/RPG créées")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Tables exercices/RPG: {e}")
+
+        # Insérer les badges par défaut
+        try:
+            from models.rpg import Badge, DEFAULT_BADGES
+            existing_count = db.session.execute(db.text("SELECT COUNT(*) FROM badges")).scalar()
+            if existing_count == 0:
+                for badge_data in DEFAULT_BADGES:
+                    badge = Badge(**badge_data)
+                    db.session.add(badge)
+                db.session.commit()
+                print(f"✅ {len(DEFAULT_BADGES)} badges par défaut insérés")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Badges par défaut: {e}")
+
         # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
         try:
             # Vérifier si la contrainte pointe encore vers class_files (legacy)
@@ -317,7 +450,8 @@ def create_app(config_name='development'):
     # Middleware : contrôle d'accès premium
     PREMIUM_ENDPOINTS = {
         'evaluations.', 'attendance.', 'sanctions.',
-        'collaboration.', 'file_manager.', 'class_files.'
+        'collaboration.', 'file_manager.', 'class_files.',
+        'exercises.'
     }
     PREMIUM_EXACT = {'planning.manage_classes', 'planning.decoupage'}
 
