@@ -866,6 +866,7 @@ def missions():
 
     # Enrichir avec les tentatives de l'élève
     missions_data = []
+    now = datetime.utcnow()
     for pub in publications:
         exercise = pub.exercise
         if not exercise:
@@ -874,13 +875,27 @@ def missions():
         attempt = StudentExerciseAttempt.query.filter_by(
             student_id=student.id,
             exercise_id=exercise.id
-        ).order_by(StudentExerciseAttempt.started_at.desc()).first()
+        ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
+            StudentExerciseAttempt.completed_at.desc()
+        ).first()
+
+        # Cooldown 24h : calculer temps restant si déjà complété
+        cooldown_remaining = None
+        on_cooldown = False
+        if attempt and attempt.completed_at:
+            elapsed = (now - attempt.completed_at).total_seconds()
+            cooldown_secs = 24 * 3600  # 24 heures
+            if elapsed < cooldown_secs:
+                cooldown_remaining = int(cooldown_secs - elapsed)
+                on_cooldown = True
 
         missions_data.append({
             'exercise': exercise,
             'publication': pub,
             'attempt': attempt,
             'status': 'completed' if (attempt and attempt.is_completed) else ('in_progress' if attempt else 'todo'),
+            'on_cooldown': on_cooldown,
+            'cooldown_remaining': cooldown_remaining,
         })
 
     # RPG profile
@@ -926,7 +941,19 @@ def solve_exercise(exercise_id):
     existing_attempt = StudentExerciseAttempt.query.filter_by(
         student_id=student.id,
         exercise_id=exercise_id,
-    ).filter(StudentExerciseAttempt.completed_at.isnot(None)).first()
+    ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
+        StudentExerciseAttempt.completed_at.desc()
+    ).first()
+
+    # Cooldown 24h
+    if existing_attempt and existing_attempt.completed_at:
+        elapsed = (datetime.utcnow() - existing_attempt.completed_at).total_seconds()
+        if elapsed < 24 * 3600:
+            remaining = int(24 * 3600 - elapsed)
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            flash(f'Tu dois attendre encore {hours}h{minutes:02d} avant de refaire cette mission !', 'warning')
+            return redirect(url_for('student_auth.missions'))
 
     return render_template('student/exercise_solve.html',
                            student=student,

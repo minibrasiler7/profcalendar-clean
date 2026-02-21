@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, Alert, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import api from '../../api/client';
@@ -9,6 +10,7 @@ import colors from '../../theme/colors';
 import * as SecureStore from 'expo-secure-store';
 
 export default function FilesScreen() {
+  const insets = useSafeAreaInsets();
   const [files, setFiles] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState(null);
@@ -82,7 +84,7 @@ export default function FilesScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
     >
-      <Text style={styles.pageTitle}>Mes Fichiers</Text>
+      <Text style={[styles.pageTitle, { paddingTop: Math.max(insets.top + 8, 20) }]}>Mes Fichiers</Text>
       <Text style={styles.count}>{files.length} fichier{files.length > 1 ? 's' : ''} partagé{files.length > 1 ? 's' : ''}</Text>
 
       <View style={styles.list}>

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +11,7 @@ import colors from '../../theme/colors';
 
 export default function DashboardScreen({ navigation }) {
   const { user, logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,7 +49,7 @@ export default function DashboardScreen({ navigation }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
     >
       {/* En-tête */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 16) }]}>
         <View>
           <Text style={styles.greeting}>Bonjour, {user?.first_name} !</Text>
           <Text style={styles.classroom}>{data?.student?.classroom || ''}</Text>

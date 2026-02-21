@@ -1373,11 +1373,30 @@ def student_list_missions():
         classroom_id=student.classroom_id
     ).order_by(ExercisePublication.published_at.desc()).all()
 
+    from models.exercise_progress import StudentExerciseAttempt
+
+    now = datetime.utcnow()
     missions_data = []
     for pub in publications:
         exercise = pub.exercise
         if not exercise:
             continue
+
+        # Cooldown 24h : vérifier la dernière tentative complétée
+        last_attempt = StudentExerciseAttempt.query.filter_by(
+            student_id=student.id, exercise_id=exercise.id
+        ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
+            StudentExerciseAttempt.completed_at.desc()
+        ).first()
+
+        on_cooldown = False
+        cooldown_remaining = 0
+        if last_attempt and last_attempt.completed_at:
+            elapsed = (now - last_attempt.completed_at).total_seconds()
+            cooldown_secs = 24 * 3600
+            if elapsed < cooldown_secs:
+                on_cooldown = True
+                cooldown_remaining = int(cooldown_secs - elapsed)
 
         missions_data.append({
             'id': pub.id,
@@ -1387,7 +1406,9 @@ def student_list_missions():
             'subject': exercise.subject or '',
             'blocks_count': exercise.blocks.count() if exercise.blocks else 0,
             'xp_reward': exercise.total_points or 0,
-            'published_at': pub.published_at.isoformat() if pub.published_at else ''
+            'published_at': pub.published_at.isoformat() if pub.published_at else '',
+            'on_cooldown': on_cooldown,
+            'cooldown_remaining': cooldown_remaining,
         })
 
     return jsonify({'missions': missions_data})
@@ -1515,6 +1536,24 @@ def student_submit_mission(mission_id):
     exercise = publication.exercise
     if not exercise:
         return jsonify({'error': 'Exercice non trouvé'}), 404
+
+    # Cooldown 24h : vérifier avant de soumettre
+    last_attempt = StudentExerciseAttempt.query.filter_by(
+        student_id=student.id, exercise_id=exercise.id
+    ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
+        StudentExerciseAttempt.completed_at.desc()
+    ).first()
+    if last_attempt and last_attempt.completed_at:
+        elapsed = (datetime.utcnow() - last_attempt.completed_at).total_seconds()
+        if elapsed < 24 * 3600:
+            remaining = int(24 * 3600 - elapsed)
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            return jsonify({
+                'error': f'Cooldown actif. Réessaie dans {hours}h{minutes:02d}.',
+                'on_cooldown': True,
+                'cooldown_remaining': remaining
+            }), 429
 
     data = request.get_json(silent=True) or {}
     answers = data.get('answers', [])

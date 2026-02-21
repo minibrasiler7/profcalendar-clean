@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import colors from '../../theme/colors';
@@ -13,6 +14,7 @@ function gradeColor(points) {
 }
 
 export default function GradesScreen() {
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState(null);
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +43,7 @@ export default function GradesScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
     >
-      <Text style={styles.pageTitle}>Mes Notes</Text>
+      <Text style={[styles.pageTitle, { paddingTop: Math.max(insets.top + 8, 20) }]}>Mes Notes</Text>
 
       {subjects.length === 0 && (
         <Text style={styles.empty}>Aucune note pour le moment</Text>

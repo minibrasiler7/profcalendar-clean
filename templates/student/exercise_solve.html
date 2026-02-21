@@ -103,20 +103,24 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 .question-card.feedback-incorrect {
     border: 3px solid #ef4444;
     background: linear-gradient(135deg, #fef2f2, #fecaca);
-    animation: incorrectShake 0.5s ease;
+    animation: incorrectShake 0.6s ease;
 }
 @keyframes correctPulse {
-    0% { transform: scale(1); }
-    30% { transform: scale(1.02); }
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+    30% { transform: scale(1.03); box-shadow: 0 0 30px 10px rgba(16,185,129,0.3); }
     60% { transform: scale(0.99); }
-    100% { transform: scale(1); }
+    100% { transform: scale(1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
 }
 @keyframes incorrectShake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-5px); }
-    80% { transform: translateX(5px); }
+    0%, 100% { transform: translateX(0) rotate(0); }
+    10% { transform: translateX(-10px) rotate(-1deg); }
+    20% { transform: translateX(10px) rotate(1deg); }
+    30% { transform: translateX(-10px) rotate(-1deg); }
+    40% { transform: translateX(10px) rotate(1deg); }
+    50% { transform: translateX(-6px) rotate(0); }
+    60% { transform: translateX(6px) rotate(0); }
+    70% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
 }
 
 .feedback-banner {
@@ -124,10 +128,10 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     padding: 0.75rem 1rem; border-radius: 10px;
     margin-top: 1rem; font-weight: 700; font-size: 0.95rem;
 }
-.feedback-banner.show { display: flex; animation: fadeInUp 0.3s ease; }
+.feedback-banner.show { display: flex; animation: fadeInUp 0.4s cubic-bezier(0.34,1.56,0.64,1); }
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(20px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .feedback-correct-banner {
     background: #dcfce7; color: #166534; border: 2px solid #86efac;
@@ -137,6 +141,58 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 }
 .feedback-icon { font-size: 1.5rem; }
 
+/* ---- Screen flash ---- */
+.screen-flash {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+    animation: screenFlash 0.5s ease-out forwards;
+}
+.screen-flash.correct { background: radial-gradient(circle, rgba(16,185,129,0.4), transparent 70%); }
+.screen-flash.incorrect { background: radial-gradient(circle, rgba(239,68,68,0.35), transparent 70%); }
+@keyframes screenFlash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ---- XP Popup floating ---- */
+.xp-popup {
+    position: fixed; z-index: 10000; pointer-events: none;
+    font-size: 1.8rem; font-weight: 900; color: #f59e0b;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 20px rgba(245,158,11,0.5);
+    animation: xpFloat 1.5s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+@keyframes xpFloat {
+    0% { opacity: 1; transform: translateY(0) scale(0.5); }
+    20% { transform: translateY(-20px) scale(1.3); }
+    100% { opacity: 0; transform: translateY(-120px) scale(0.8); }
+}
+
+/* ---- Combo text ---- */
+.combo-popup {
+    position: fixed; z-index: 10000; pointer-events: none;
+    font-size: 2.5rem; font-weight: 900; color: white;
+    text-shadow: 0 0 20px rgba(102,126,234,0.8), 0 0 40px rgba(102,126,234,0.4);
+    left: 50%; top: 30%;
+    animation: comboZoom 1s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes comboZoom {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-10deg); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(3deg); }
+    60% { transform: translate(-50%, -50%) scale(0.95) rotate(-1deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8) translateY(-30px); }
+}
+
+/* ---- Star burst ---- */
+.star-burst {
+    position: fixed; pointer-events: none; z-index: 9999;
+    font-size: 1.5rem;
+    animation: starExplode 1s ease-out forwards;
+}
+@keyframes starExplode {
+    0% { opacity: 1; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.3) rotate(0deg); }
+    50% { opacity: 1; transform: translate(calc(var(--dx, 0) * 3), calc(var(--dy, 0) * 3)) scale(1.2) rotate(180deg); }
+    100% { opacity: 0; transform: translate(calc(var(--dx, 0) * 5), calc(var(--dy, 0) * 5)) scale(0.5) rotate(360deg); }
+}
+
 /* ---- Confetti ---- */
 .confetti-container {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -144,22 +200,64 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 }
 .confetti-piece {
     position: absolute; width: 10px; height: 10px;
-    animation: confettiFall 2s ease-in forwards;
+    animation: confettiFall 2.5s ease-in forwards;
 }
 @keyframes confettiFall {
-    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    0% { transform: translateY(-10vh) rotate(0deg) scaleX(1); opacity: 1; }
+    25% { transform: translateY(25vh) rotate(180deg) scaleX(-1); opacity: 1; }
+    50% { transform: translateY(55vh) rotate(360deg) scaleX(1); opacity: 0.8; }
+    100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
 }
 
 /* ---- Sad particles ---- */
 .sad-particle {
-    position: absolute; font-size: 1.5rem;
-    animation: sadFloat 1.5s ease-out forwards;
-    pointer-events: none;
+    position: fixed; pointer-events: none; z-index: 9999;
+}
+.sad-particle.type-emoji {
+    font-size: 2rem;
+    animation: sadFloat 2s ease-out forwards;
+}
+.sad-particle.type-crack {
+    width: 3px; height: 20px; background: #ef4444; border-radius: 2px;
+    animation: crackFall 1s ease-in forwards;
 }
 @keyframes sadFloat {
-    0% { transform: translateY(0) scale(1); opacity: 1; }
-    100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+    0% { opacity: 1; transform: translateY(0) scale(0.5) rotate(0deg); }
+    30% { opacity: 1; transform: translateY(-40px) scale(1.3) rotate(10deg); }
+    100% { opacity: 0; transform: translateY(-100px) scale(0.5) rotate(-20deg); }
+}
+@keyframes crackFall {
+    0% { opacity: 1; transform: translateY(0) rotate(var(--rot, 0deg)); }
+    100% { opacity: 0; transform: translateY(80px) rotate(calc(var(--rot, 0deg) + 90deg)); }
+}
+
+/* ---- Boom text (for wrong answer) ---- */
+.boom-text {
+    position: fixed; z-index: 10000; pointer-events: none;
+    font-size: 3rem; font-weight: 900; color: #ef4444;
+    text-shadow: 0 0 15px rgba(239,68,68,0.6);
+    left: 50%; top: 35%;
+    animation: boomPop 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes boomPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(3) rotate(-5deg); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(2deg); }
+    60% { transform: translate(-50%, -50%) scale(1.1) rotate(-1deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.7) translateY(20px); }
+}
+
+/* ---- Results overlay enhancements ---- */
+.results-overlay { backdrop-filter: blur(6px); }
+.results-card {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border-radius: 24px; padding: 2.5rem; max-width: 460px; width: 90%;
+    text-align: center; color: white;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(102,126,234,0.2);
+    animation: resultsAppear 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes resultsAppear {
+    from { transform: scale(0.5) rotate(-3deg); opacity: 0; }
+    to { transform: scale(1) rotate(0); opacity: 1; }
 }
 
 /* ---- QCM ---- */
@@ -293,14 +391,6 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     z-index: 9000; animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.results-card {
-    background: linear-gradient(135deg, #1e1b4b, #312e81);
-    border-radius: 24px; padding: 2.5rem; max-width: 460px; width: 90%;
-    text-align: center; color: white;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    animation: scaleIn 0.4s ease;
-}
-@keyframes scaleIn { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
 .results-card h2 { margin: 0; font-size: 1.4rem; color: #fbbf24; }
 .results-avatar {
     width: 80px; height: 80px; margin: 1rem auto; border-radius: 50%;
@@ -709,54 +799,192 @@ function hasAnswer(card, blockId, answer) {
 }
 
 // ============================================================
-// Show feedback animation
+// Combo streak tracking
+// ============================================================
+let comboStreak = 0;
+
+// ============================================================
+// Show feedback animation — full gaming experience
 // ============================================================
 function showFeedback(card, blockId, isCorrect, points, maxPoints) {
+    // Screen flash
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash ' + (isCorrect ? 'correct' : 'incorrect');
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
+
     if (isCorrect) {
+        comboStreak++;
         card.classList.add('feedback-correct');
         document.getElementById('feedback-correct-' + blockId).classList.add('show');
+
+        // Confetti burst
         spawnConfetti();
+
+        // Star burst from card center
+        spawnStarBurst(card);
+
+        // XP floating popup
+        spawnXPPopup(card, points);
+
+        // Combo popup if streak
+        if (comboStreak >= 2) {
+            spawnComboPopup(comboStreak);
+        }
     } else {
+        comboStreak = 0;
         card.classList.add('feedback-incorrect');
         document.getElementById('feedback-incorrect-' + blockId).classList.add('show');
+
+        // Sad particles + cracks
         spawnSadParticles(card);
+
+        // Boom text
+        spawnBoomText();
+
+        // Screen shake
+        document.body.style.animation = 'none';
+        document.body.offsetHeight; // force reflow
+        document.body.style.animation = 'screenShakeBody 0.4s ease';
+        setTimeout(() => { document.body.style.animation = ''; }, 500);
     }
 }
 
+// ============================================================
+// Confetti — enhanced with ribbons
+// ============================================================
 function spawnConfetti() {
     const container = document.getElementById('confetti-container');
-    const colors = ['#10b981', '#f59e0b', '#667eea', '#ec4899', '#8b5cf6', '#06b6d4'];
-    for (let i = 0; i < 40; i++) {
+    const confColors = ['#10b981', '#f59e0b', '#667eea', '#ec4899', '#8b5cf6', '#06b6d4', '#fbbf24', '#34d399'];
+    const shapes = ['circle', 'square', 'ribbon'];
+    for (let i = 0; i < 60; i++) {
         const piece = document.createElement('div');
         piece.className = 'confetti-piece';
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
         piece.style.left = Math.random() * 100 + '%';
-        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.animationDelay = Math.random() * 0.5 + 's';
-        piece.style.animationDuration = (1.5 + Math.random()) + 's';
-        piece.style.width = (6 + Math.random() * 8) + 'px';
-        piece.style.height = (6 + Math.random() * 8) + 'px';
-        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.background = confColors[Math.floor(Math.random() * confColors.length)];
+        piece.style.animationDelay = Math.random() * 0.7 + 's';
+        piece.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+        if (shape === 'ribbon') {
+            piece.style.width = (3 + Math.random() * 4) + 'px';
+            piece.style.height = (15 + Math.random() * 15) + 'px';
+            piece.style.borderRadius = '2px';
+        } else if (shape === 'circle') {
+            const size = (6 + Math.random() * 8) + 'px';
+            piece.style.width = size; piece.style.height = size;
+            piece.style.borderRadius = '50%';
+        } else {
+            const size = (6 + Math.random() * 8) + 'px';
+            piece.style.width = size; piece.style.height = size;
+            piece.style.borderRadius = '2px';
+        }
         piece.style.transform = `rotate(${Math.random() * 360}deg)`;
         container.appendChild(piece);
     }
-    setTimeout(() => { container.innerHTML = ''; }, 3000);
+    setTimeout(() => { container.innerHTML = ''; }, 4000);
 }
 
-function spawnSadParticles(card) {
+// ============================================================
+// Star burst from card center
+// ============================================================
+function spawnStarBurst(card) {
     const rect = card.getBoundingClientRect();
-    const emojis = ['😔', '💔', '😢'];
-    for (let i = 0; i < 5; i++) {
-        const p = document.createElement('div');
-        p.className = 'sad-particle';
-        p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        p.style.position = 'fixed';
-        p.style.left = (rect.left + Math.random() * rect.width) + 'px';
-        p.style.top = (rect.top + rect.height * 0.3 + Math.random() * rect.height * 0.4) + 'px';
-        p.style.zIndex = '9999';
-        document.body.appendChild(p);
-        setTimeout(() => p.remove(), 1500);
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const stars = ['⭐', '✨', '🌟', '💫'];
+    for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 * i) / 8;
+        const s = document.createElement('div');
+        s.className = 'star-burst';
+        s.textContent = stars[Math.floor(Math.random() * stars.length)];
+        s.style.left = cx + 'px';
+        s.style.top = cy + 'px';
+        s.style.setProperty('--dx', Math.cos(angle) * 30 + 'px');
+        s.style.setProperty('--dy', Math.sin(angle) * 30 + 'px');
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 1200);
     }
 }
+
+// ============================================================
+// XP floating popup
+// ============================================================
+function spawnXPPopup(card, points) {
+    const rect = card.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.className = 'xp-popup';
+    popup.textContent = `+${points} XP`;
+    popup.style.left = (rect.left + rect.width / 2 - 50) + 'px';
+    popup.style.top = (rect.top + 20) + 'px';
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1600);
+}
+
+// ============================================================
+// Combo popup
+// ============================================================
+function spawnComboPopup(streak) {
+    const popup = document.createElement('div');
+    popup.className = 'combo-popup';
+    const labels = { 2: 'DOUBLE !', 3: 'TRIPLE !', 4: 'INCROYABLE !', 5: 'LÉGENDAIRE !' };
+    popup.textContent = labels[Math.min(streak, 5)] || `x${streak} COMBO !`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1200);
+}
+
+// ============================================================
+// Sad particles — enhanced with cracks
+// ============================================================
+function spawnSadParticles(card) {
+    const rect = card.getBoundingClientRect();
+    const emojis = ['😔', '💔', '😢', '😓', '🥺'];
+    for (let i = 0; i < 6; i++) {
+        const p = document.createElement('div');
+        p.className = 'sad-particle type-emoji';
+        p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        p.style.left = (rect.left + Math.random() * rect.width) + 'px';
+        p.style.top = (rect.top + rect.height * 0.2 + Math.random() * rect.height * 0.5) + 'px';
+        p.style.animationDelay = (Math.random() * 0.3) + 's';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 2200);
+    }
+    // Crack fragments
+    for (let i = 0; i < 8; i++) {
+        const c = document.createElement('div');
+        c.className = 'sad-particle type-crack';
+        c.style.left = (rect.left + rect.width * 0.3 + Math.random() * rect.width * 0.4) + 'px';
+        c.style.top = (rect.top + rect.height / 2) + 'px';
+        c.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+        c.style.animationDelay = (Math.random() * 0.2) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 1200);
+    }
+}
+
+// ============================================================
+// Boom text for wrong answer
+// ============================================================
+function spawnBoomText() {
+    const texts = ['RATÉ !', 'OUPS !', 'DOMMAGE !', 'PRESQUE !'];
+    const boom = document.createElement('div');
+    boom.className = 'boom-text';
+    boom.textContent = texts[Math.floor(Math.random() * texts.length)];
+    document.body.appendChild(boom);
+    setTimeout(() => boom.remove(), 1000);
+}
+
+// Screen shake keyframes (added inline for body)
+const shakeStyle = document.createElement('style');
+shakeStyle.textContent = `
+@keyframes screenShakeBody {
+    0%, 100% { transform: translate(0); }
+    10% { transform: translate(-4px, 2px); }
+    20% { transform: translate(4px, -2px); }
+    30% { transform: translate(-3px, 3px); }
+    40% { transform: translate(3px, -1px); }
+    50% { transform: translate(-2px, 1px); }
+}`;
+document.head.appendChild(shakeStyle);
 
 // ============================================================
 // Lock question inputs after answering
@@ -844,7 +1072,14 @@ async function submitExercise() {
             document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;
 
             document.getElementById('results-overlay').style.display = 'flex';
-            if (pct >= 80) spawnConfetti();
+            // Big celebration for good scores
+            if (pct >= 80) {
+                spawnConfetti();
+                setTimeout(spawnConfetti, 800);
+                setTimeout(spawnConfetti, 1600);
+            } else if (pct >= 50) {
+                spawnConfetti();
+            }
         } else {
             alert(data.message || 'Erreur');
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission'; }

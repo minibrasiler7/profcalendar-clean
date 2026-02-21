@@ -209,6 +209,15 @@
 }
 
 .empty-missions i { font-size: 4rem; margin-bottom: 1rem; }
+
+/* Cooldown */
+.mission-card.cooldown { border-left-color: #f59e0b; opacity: 0.7; pointer-events: none; }
+.mission-icon.completed .fa-hourglass-half { color: #f59e0b; }
+.cooldown-tag {
+    background: #fef3c7 !important; color: #92400e !important;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.cooldown-timer { font-variant-numeric: tabular-nums; font-weight: 800; }
 </style>
 {% endblock %}
 
@@ -254,14 +263,18 @@
 
     {% if missions %}
         {% for m in missions %}
-        {% if rpg and rpg.avatar_class %}
+        {% if rpg and rpg.avatar_class and not m.on_cooldown %}
         <a href="{{ url_for('student_auth.solve_exercise', exercise_id=m.exercise.id) }}"
            class="mission-card {{ m.status }}" data-status="{{ m.status }}">
+        {% elif m.on_cooldown %}
+        <div class="mission-card {{ m.status }} cooldown" data-status="{{ m.status }}" data-cooldown="{{ m.cooldown_remaining }}">
         {% else %}
         <div class="mission-card {{ m.status }}" data-status="{{ m.status }}" style="pointer-events:none;opacity:0.5;">
         {% endif %}
             <div class="mission-icon {{ m.status }}">
-                {% if m.status == 'completed' %}
+                {% if m.on_cooldown %}
+                    <i class="fas fa-hourglass-half"></i>
+                {% elif m.status == 'completed' %}
                     <i class="fas fa-check"></i>
                 {% elif m.status == 'in_progress' %}
                     <i class="fas fa-spinner"></i>
@@ -273,9 +286,15 @@
                 <h3>{{ m.exercise.title }}</h3>
                 <div class="mission-meta">
                     {% if m.exercise.subject %}<span><i class="fas fa-book"></i> {{ m.exercise.subject }}</span>{% endif %}
+                    {% if m.on_cooldown %}
+                    <span class="status-tag cooldown-tag">
+                        <i class="fas fa-clock"></i> <span class="cooldown-timer" data-seconds="{{ m.cooldown_remaining }}">--:--:--</span>
+                    </span>
+                    {% else %}
                     <span class="status-tag {{ m.status }}">
                         {% if m.status == 'completed' %}Terminé{% elif m.status == 'in_progress' %}En cours{% else %}À faire{% endif %}
                     </span>
+                    {% endif %}
                 </div>
             </div>
             <div class="mission-reward">
@@ -286,7 +305,7 @@
                     <div class="mission-xp">{{ m.exercise.total_points }} XP</div>
                 {% endif %}
             </div>
-        {% if rpg and rpg.avatar_class %}
+        {% if rpg and rpg.avatar_class and not m.on_cooldown %}
         </a>
         {% else %}
         </div>
@@ -309,5 +328,25 @@ function filterMissions(status, btn) {
         c.style.display = (status === 'all' || c.dataset.status === status) ? '' : 'none';
     });
 }
+
+// Cooldown timers
+function updateCooldownTimers() {
+    document.querySelectorAll('.cooldown-timer').forEach(el => {
+        let secs = parseInt(el.dataset.seconds);
+        if (isNaN(secs) || secs <= 0) {
+            el.textContent = 'Prêt !';
+            const card = el.closest('.mission-card');
+            if (card) { card.classList.remove('cooldown'); card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
+            return;
+        }
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        el.textContent = `${h}h${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        el.dataset.seconds = secs - 1;
+    });
+}
+updateCooldownTimers();
+setInterval(updateCooldownTimers, 1000);
 </script>
 {% endblock %}

@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import colors from '../../theme/colors';
 
 export default function TeachersScreen() {
+  const insets = useSafeAreaInsets();
   const [teachers, setTeachers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -31,7 +33,7 @@ export default function TeachersScreen() {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
     >
-      <Text style={styles.pageTitle}>Mes Enseignants</Text>
+      <Text style={[styles.pageTitle, { paddingTop: Math.max(insets.top + 8, 20) }]}>Mes Enseignants</Text>
 
       <View style={styles.list}>
         {teachers.length === 0 ? (
