@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#dcfce7" stroke="#22c55e" stroke-width="3"/>
+  <!-- Body with tunic -->
+  <ellipse cx="100" cy="148" rx="35" ry="25" fill="#166534"/>
+  <path d="M 70 135 L 65 180 L 135 180 L 130 135" fill="#15803d"/>
+  <!-- Belt -->
+  <rect x="72" y="142" width="56" height="6" rx="3" fill="#78350f"/>
+  <rect x="96" y="140" width="8" height="10" rx="2" fill="#fbbf24"/>
+  <!-- Head -->
+  <circle cx="100" cy="95" r="35" fill="#e8c4a0"/>
+  <!-- Ears -->
+  <ellipse cx="68" cy="65" rx="15" ry="22" fill="#d4a574" transform="rotate(-15 68 65)"/>
+  <ellipse cx="132" cy="65" rx="15" ry="22" fill="#d4a574" transform="rotate(15 132 65)"/>
+  <ellipse cx="70" cy="65" rx="10" ry="16" fill="#f5d5b5" transform="rotate(-15 70 65)"/>
+  <ellipse cx="130" cy="65" rx="10" ry="16" fill="#f5d5b5" transform="rotate(15 130 65)"/>
+  <!-- Eyes -->
+  <circle cx="87" cy="90" r="6" fill="#1a1a2e"/>
+  <circle cx="113" cy="90" r="6" fill="#1a1a2e"/>
+  <circle cx="89" cy="88" r="2" fill="white"/>
+  <circle cx="115" cy="88" r="2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="100" cy="102" rx="5" ry="3.5" fill="#1a1a2e"/>
+  <!-- Mouth - slight smirk -->
+  <path d="M 93 108 Q 100 112 110 106" fill="none" stroke="#1a1a2e" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Hood -->
+  <path d="M 62 90 Q 60 55 100 45 Q 140 55 138 90" fill="#166534" stroke="#15803d" stroke-width="2"/>
+  <path d="M 65 88 Q 65 60 100 52 Q 135 60 135 88" fill="#15803d"/>
+  <!-- Bow -->
+  <path d="M 150 50 Q 165 100 150 150" fill="none" stroke="#78350f" stroke-width="4" stroke-linecap="round"/>
+  <line x1="150" y1="50" x2="150" y2="150" stroke="#d4a574" stroke-width="1.5"/>
+  <!-- Arrow -->
+  <line x1="100" y1="100" x2="148" y2="100" stroke="#78350f" stroke-width="2.5"/>
+  <polygon points="148,95 160,100 148,105" fill="#6b7280"/>
+  <!-- Feather on arrow -->
+  <path d="M 103 97 L 108 100 L 103 103" fill="#dc2626" stroke="none"/>
+  <!-- Quiver hint on back -->
+  <rect x="55" y="110" width="8" height="30" rx="3" fill="#92400e"/>
+</svg>

@@ -1551,25 +1551,24 @@ def student_rpg_profile():
     if not student:
         return jsonify({'error': 'Élève non trouvé'}), 404
 
-    from models.exercise import StudentRPGProfile, Badge, StudentBadge
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge
 
     rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
 
     if not rpg_profile:
-        # Créer un profil par défaut
+        # Créer un profil par défaut (sans avatar_class, l'élève doit choisir)
         rpg_profile = StudentRPGProfile(
             student_id=student.id,
             xp_total=0,
             gold=0,
-            avatar_class='warrior'
         )
         db.session.add(rpg_profile)
         db.session.commit()
 
-    # Calculer le niveau basé sur l'XP (exemple : 100 XP par niveau)
-    level = (rpg_profile.xp_total // 100) + 1
-    xp_for_next_level = (level * 100)
-    xp_progress = rpg_profile.xp_total % 100
+    # Calculer le niveau basé sur l'XP
+    level = rpg_profile.level
+    xp_for_next_level = rpg_profile.xp_for_next_level
+    xp_progress = rpg_profile.xp_progress
 
     # Récupérer les badges
     student_badges = StudentBadge.query.filter_by(student_id=student.id).all()
@@ -1614,11 +1613,11 @@ def student_update_avatar():
         return jsonify({'error': 'Classe d\'avatar requise'}), 400
 
     # Valider la classe d'avatar (exemple de classes valides)
-    valid_classes = ['warrior', 'mage', 'rogue', 'paladin', 'archer']
+    valid_classes = ['guerrier', 'mage', 'archer', 'guerisseur']
     if avatar_class not in valid_classes:
         return jsonify({'error': f'Classe d\'avatar invalide. Valides: {", ".join(valid_classes)}'}), 400
 
-    from models.exercise import StudentRPGProfile
+    from models.rpg import StudentRPGProfile
 
     rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
 

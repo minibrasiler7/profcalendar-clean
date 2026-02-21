@@ -903,6 +903,13 @@ def solve_exercise(exercise_id):
     student = current_user
     from models.exercise import Exercise
     from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
+    from models.rpg import StudentRPGProfile
+
+    # Vérifier que l'élève a choisi un personnage
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg or not rpg.avatar_class:
+        flash('Tu dois d\'abord choisir ton personnage avant de lancer une mission !', 'warning')
+        return redirect(url_for('student_auth.rpg_dashboard'))
 
     exercise = Exercise.query.get_or_404(exercise_id)
 

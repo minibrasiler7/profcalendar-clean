@@ -9,7 +9,7 @@ class StudentRPGProfile(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), unique=True, nullable=False)
-    avatar_class = db.Column(db.String(20), default='guerrier')  # mage, guerrier, archer, guerisseur
+    avatar_class = db.Column(db.String(20), nullable=True)  # mage, guerrier, archer, guerisseur (None = pas encore choisi)
     avatar_accessories_json = db.Column(db.JSON, default=dict)
     # Ex: {"hat": "wizard_hat", "weapon": "staff", "armor": "robe"}
     xp_total = db.Column(db.Integer, default=0)

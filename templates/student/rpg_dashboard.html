@@ -39,6 +39,39 @@
     font-size: 3.5rem;
     border: 4px solid rgba(255,255,255,0.3);
     position: relative;
+    overflow: hidden;
+}
+
+.avatar-display img {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-display .no-avatar {
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+.choose-alert {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: pulse-border 2s infinite;
+}
+
+.choose-alert i { color: #f59e0b; font-size: 1.5rem; }
+.choose-alert p { margin: 0; font-weight: 600; color: #92400e; }
+
+@keyframes pulse-border {
+    0%, 100% { border-color: #f59e0b; }
+    50% { border-color: #fbbf24; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3); }
 }
 
 .avatar-class-label {
@@ -147,8 +180,14 @@
 .avatar-class-card.selected { border-color: #667eea; background: #eef2ff; }
 
 .avatar-class-card .avatar-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 0.5rem;
+}
+
+.avatar-class-card .avatar-icon img {
+    width: 100%;
+    height: 100%;
 }
 
 .avatar-class-card .avatar-name {
@@ -248,8 +287,12 @@
     <!-- Hero card -->
     <div class="rpg-hero">
         <div class="avatar-display">
-            {% if rpg.avatar_class == 'mage' %}🧙{% elif rpg.avatar_class == 'archer' %}🏹{% elif rpg.avatar_class == 'guerisseur' %}💚{% else %}⚔️{% endif %}
+            {% if rpg.avatar_class %}
+            <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.svg') }}" alt="{{ rpg.avatar_class }}">
             <span class="avatar-class-label">{{ rpg.avatar_class }}</span>
+            {% else %}
+            <span class="no-avatar">❓</span>
+            {% endif %}
         </div>
         <h1>{{ student.first_name or 'Aventurier' }}</h1>
         <div class="level-display">Niveau {{ rpg.level }}</div>
@@ -277,24 +320,30 @@
     <!-- Avatar selection -->
     <div class="avatar-select-section">
         <h2><i class="fas fa-dog" style="color:#667eea;"></i> Choisis ta classe</h2>
+        {% if not rpg.avatar_class %}
+        <div class="choose-alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Tu dois choisir un personnage avant de pouvoir lancer des missions !</p>
+        </div>
+        {% endif %}
         <div class="avatar-classes">
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerrier' }}" onclick="selectAvatar('guerrier', this)">
-                <div class="avatar-icon">⚔️</div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerrier.svg') }}" alt="Guerrier"></div>
                 <div class="avatar-name">Guerrier</div>
                 <div class="avatar-desc">Force et courage</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'mage' }}" onclick="selectAvatar('mage', this)">
-                <div class="avatar-icon">🧙</div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/mage.svg') }}" alt="Mage"></div>
                 <div class="avatar-name">Mage</div>
                 <div class="avatar-desc">Sagesse et savoir</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'archer' }}" onclick="selectAvatar('archer', this)">
-                <div class="avatar-icon">🏹</div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/archer.svg') }}" alt="Archer"></div>
                 <div class="avatar-name">Archer</div>
                 <div class="avatar-desc">Précision et agilité</div>
             </div>
             <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerisseur' }}" onclick="selectAvatar('guerisseur', this)">
-                <div class="avatar-icon">💚</div>
+                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerisseur.svg') }}" alt="Guérisseur"></div>
                 <div class="avatar-name">Guérisseur</div>
                 <div class="avatar-desc">Soin et protection</div>
             </div>
