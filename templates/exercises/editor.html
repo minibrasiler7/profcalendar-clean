@@ -764,6 +764,11 @@ function addBlock(type, existingData) {
     el.addEventListener('dragend', onDragEnd);
 
     updateTotalXP();
+
+    // Auto-preview graph blocks after DOM insertion
+    if (block.block_type === 'graph') {
+        setTimeout(() => previewGraph(uid), 50);
+    }
 }
 
 function getDefaultConfig(type) {
@@ -1396,7 +1401,7 @@ function renderGraphEditor(block) {
                 <canvas id="graph-preview-${block.uid}" width="500" height="350"></canvas>
             </div>
         </div>
-        <script>previewGraph('${block.uid}');</script>`;
+        <div class="graph-auto-preview" data-uid="${block.uid}"></div>`;
 }
 
 function changeGraphType(uid, type) {
@@ -1524,6 +1529,10 @@ function refreshBlockContent(uid) {
         el.innerHTML = renderBlock(block);
         // Re-open the content
         document.getElementById('content-' + uid).classList.add('open');
+        // Auto-preview graph blocks
+        if (block.block_type === 'graph') {
+            setTimeout(() => previewGraph(uid), 50);
+        }
     }
 }
 
