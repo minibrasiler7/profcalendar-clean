@@ -604,6 +604,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% endif %}
 
         {% elif block.block_type == 'graph' %}
+            {% if c.question %}<p class="question-text">{{ c.question }}</p>{% endif %}
             <p class="question-text" style="color:#6b7280;">
                 {% if c.question_type == 'draw_quadratic' %}
                     Déplace les <strong>3 points</strong> pour tracer la courbe quadratique.
@@ -621,7 +622,13 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             <span class="feedback-icon">🎉</span> <span>Bravo ! Bonne réponse !</span>
         </div>
         <div class="feedback-banner feedback-incorrect-banner" id="feedback-incorrect-{{ block.id }}">
-            <span class="feedback-icon">😔</span> <span>Pas tout à fait... Essaie encore la prochaine fois !</span>
+            <span class="feedback-icon">😔</span>
+            <div>
+                <span>Pas tout à fait... Essaie encore la prochaine fois !</span>
+                <div id="correct-answer-{{ block.id }}" style="margin-top:0.4rem;font-size:0.85rem;font-weight:600;color:#166534;background:#dcfce7;padding:0.4rem 0.6rem;border-radius:6px;display:none;">
+                    <i class="fas fa-check-circle"></i> <span class="correct-text"></span>
+                </div>
+            </div>
         </div>
 
         <!-- Validate button (per question) -->
@@ -759,7 +766,7 @@ async function validateCurrentQuestion() {
             document.getElementById('xp-earned').textContent = totalXPEarned;
 
             // Show feedback
-            showFeedback(card, blockId, data.is_correct, data.points_earned, data.max_points);
+            showFeedback(card, blockId, data.is_correct, data.points_earned, data.max_points, data.correct_answer);
 
             // Lock inputs
             lockQuestion(card);
@@ -812,7 +819,7 @@ let comboStreak = 0;
 // ============================================================
 // Show feedback animation — full gaming experience
 // ============================================================
-function showFeedback(card, blockId, isCorrect, points, maxPoints) {
+function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer) {
     // Screen flash
     const flash = document.createElement('div');
     flash.className = 'screen-flash ' + (isCorrect ? 'correct' : 'incorrect');
@@ -841,6 +848,15 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints) {
         comboStreak = 0;
         card.classList.add('feedback-incorrect');
         document.getElementById('feedback-incorrect-' + blockId).classList.add('show');
+
+        // Show correct answer
+        if (correctAnswer) {
+            const caDiv = document.getElementById('correct-answer-' + blockId);
+            if (caDiv) {
+                caDiv.querySelector('.correct-text').textContent = 'Bonne réponse : ' + correctAnswer;
+                caDiv.style.display = 'block';
+            }
+        }
 
         // Sad particles + cracks
         spawnSadParticles(card);

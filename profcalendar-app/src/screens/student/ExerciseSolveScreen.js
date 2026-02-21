@@ -12,6 +12,7 @@ import {
   Image,
   Dimensions,
   Animated,
+  PanResponder,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,57 +34,104 @@ function shuffleArray(arr) {
 }
 
 // ============================================================
-// Drag & Drop Sorting — ORDER mode (tap to select, tap to place)
+// Drag & Drop Sorting — ORDER mode (real drag & drop)
 // ============================================================
 function DraggableOrderList({ items, order, onReorder, disabled }) {
-  const [selected, setSelected] = useState(null);
+  const ITEM_HEIGHT = 60;
+  const [draggingIdx, setDraggingIdx] = useState(-1);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const dragOpacity = useRef(new Animated.Value(0)).current;
+  const [dragText, setDragText] = useState('');
+  const itemPositions = useRef([]);
+  const currentOrder = useRef(order);
+  currentOrder.current = order;
 
-  const handlePress = (pos) => {
-    if (disabled) return;
-    if (selected === null) {
-      setSelected(pos);
-    } else {
-      if (selected !== pos) {
-        const newOrder = [...order];
-        const item = newOrder.splice(selected, 1)[0];
-        newOrder.splice(pos, 0, item);
-        onReorder(newOrder);
-      }
-      setSelected(null);
+  const panResponders = useRef({});
+
+  const getPanResponder = (pos) => {
+    if (!panResponders.current[pos]) {
+      panResponders.current[pos] = PanResponder.create({
+        onStartShouldSetPanResponder: () => !disabled,
+        onMoveShouldSetPanResponder: (_, g) => !disabled && Math.abs(g.dy) > 5,
+        onPanResponderGrant: (_, g) => {
+          setDraggingIdx(pos);
+          setDragText(items[currentOrder.current[pos]]);
+          dragY.setValue(g.y0 - ITEM_HEIGHT / 2);
+          Animated.timing(dragOpacity, { toValue: 1, duration: 100, useNativeDriver: true }).start();
+        },
+        onPanResponderMove: (_, g) => {
+          dragY.setValue(g.moveY - ITEM_HEIGHT / 2);
+        },
+        onPanResponderRelease: (_, g) => {
+          Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+          // Calculate drop position based on relative movement
+          const moveSlots = Math.round(g.dy / ITEM_HEIGHT);
+          const fromPos = pos;
+          let toPos = fromPos + moveSlots;
+          toPos = Math.max(0, Math.min(toPos, currentOrder.current.length - 1));
+          if (fromPos !== toPos) {
+            const newOrder = [...currentOrder.current];
+            const item = newOrder.splice(fromPos, 1)[0];
+            newOrder.splice(toPos, 0, item);
+            onReorder(newOrder);
+          }
+          setDraggingIdx(-1);
+        },
+        onPanResponderTerminate: () => {
+          Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+          setDraggingIdx(-1);
+        },
+      });
     }
+    return panResponders.current[pos];
   };
+
+  // Reset panResponders when order changes
+  useEffect(() => {
+    panResponders.current = {};
+  }, [order.length]);
 
   return (
     <View style={dndStyles.container}>
       <Text style={dndStyles.hint}>
-        {selected !== null ? 'Touche la position de destination' : 'Touche un élément pour le déplacer'}
+        Maintiens et glisse pour réordonner
       </Text>
-      {order.map((origIdx, pos) => (
-        <TouchableOpacity
-          key={`${origIdx}-${pos}`}
-          style={[
-            dndStyles.item,
-            selected === pos && dndStyles.itemSelected,
-            selected !== null && selected !== pos && dndStyles.itemTarget,
-          ]}
-          onPress={() => handlePress(pos)}
-          activeOpacity={0.7}
-          disabled={disabled}
-        >
-          <View style={[dndStyles.grip, selected === pos && dndStyles.gripSelected]}>
-            <Ionicons name="reorder-three" size={22} color={selected === pos ? '#FFF' : '#9ca3af'} />
-          </View>
-          <Text style={dndStyles.num}>{pos + 1}.</Text>
-          <Text style={[dndStyles.text, selected === pos && dndStyles.textSelected]}>
-            {items[origIdx]}
-          </Text>
-          {selected === pos && (
-            <View style={dndStyles.selectedBadge}>
-              <Ionicons name="move" size={16} color="#FFF" />
+      {order.map((origIdx, pos) => {
+        const pr = getPanResponder(pos);
+        return (
+          <Animated.View
+            key={`${origIdx}-${pos}`}
+            style={[
+              dndStyles.item,
+              draggingIdx === pos && dndStyles.itemSelected,
+              { height: ITEM_HEIGHT },
+            ]}
+            {...pr.panHandlers}
+          >
+            <View style={[dndStyles.grip, draggingIdx === pos && dndStyles.gripSelected]}>
+              <Ionicons name="reorder-three" size={22} color={draggingIdx === pos ? '#FFF' : '#9ca3af'} />
             </View>
-          )}
-        </TouchableOpacity>
-      ))}
+            <Text style={dndStyles.num}>{pos + 1}.</Text>
+            <Text style={[dndStyles.text, draggingIdx === pos && dndStyles.textSelected]}>
+              {items[origIdx]}
+            </Text>
+          </Animated.View>
+        );
+      })}
+      {/* Floating drag ghost */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          dndStyles.dragGhost,
+          {
+            transform: [{ translateY: dragY }],
+            opacity: dragOpacity,
+          },
+        ]}
+      >
+        <Ionicons name="reorder-three" size={22} color="#FFF" />
+        <Text style={dndStyles.dragGhostText}>{dragText}</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -333,6 +381,7 @@ cv.addEventListener('touchend',()=>{dr=-1;draw();sp()});draw();sp();
           ? 'Déplace les 3 points pour tracer la courbe.'
           : 'Déplace les 2 points pour tracer la droite.'}
       </Text>
+      {config.question ? <Text style={graphStyles.question}>{config.question}</Text> : null}
       <View style={graphStyles.webviewWrap}>
         <WebView
           ref={webviewRef}
@@ -521,7 +570,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       const data = res.data;
       if (data.success) {
         setQuestionLocked(true);
-        setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned } }));
+        setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer } }));
         if (data.is_correct) { setCorrectCount(prev => prev + 1); playCorrectAnimation(); }
         else { playIncorrectAnimation(); }
         setXpEarned(prev => prev + data.points_earned);
@@ -544,7 +593,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const res = await api.post(`/student/missions/${missionId}/submit`, { answers });
+      // Convert answers object to list format expected by API
+      const answersList = Object.entries(answers).map(([blockId, answerData]) => ({
+        block_id: parseInt(blockId, 10),
+        answer: answerData,
+      }));
+      const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList });
       setResult(res.data);
       setResultModal(true);
     } catch (err) {
@@ -644,7 +698,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })} disabled={isLocked} />;
       }
       case 'graph':
-        return <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />;
+        return (
+          <View>
+            {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
+            <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />
+          </View>
+        );
       default:
         return <Text style={styles.questionText}>Type non supporté</Text>;
     }
@@ -687,6 +746,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                   <Text style={[styles.feedbackText, { color: currentFeedback.is_correct ? '#166534' : '#991b1b' }]}>
                     {currentFeedback.is_correct ? 'Bravo ! Bonne réponse !' : 'Pas tout à fait...'}
                   </Text>
+                  {!currentFeedback.is_correct && currentFeedback.correct_answer ? (
+                    <View style={styles.correctAnswerBox}>
+                      <Ionicons name="checkmark-circle" size={14} color="#166534" />
+                      <Text style={styles.correctAnswerText}>Réponse : {currentFeedback.correct_answer}</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.feedbackPoints}>+{currentFeedback.points} XP</Text>
                 </View>
               </Animated.View>
@@ -783,6 +848,8 @@ const dndStyles = StyleSheet.create({
   poolItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   poolItemPicked: { backgroundColor: '#dbeafe', borderColor: '#3b82f6' },
   poolItemText: { fontSize: 14, color: '#374151' },
+  dragGhost: { position: 'absolute', left: 20, right: 20, height: 56, backgroundColor: '#667eea', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10, zIndex: 999 },
+  dragGhostText: { fontSize: 14, fontWeight: '700', color: '#FFF', flex: 1 },
 });
 
 const imgStyles = StyleSheet.create({
@@ -795,7 +862,8 @@ const imgStyles = StyleSheet.create({
 
 const graphStyles = StyleSheet.create({
   container: {},
-  hint: { fontSize: 14, color: '#374151', marginBottom: 10, lineHeight: 22 },
+  hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
+  question: { fontSize: 14, color: '#6b7280', marginBottom: 10, lineHeight: 22, fontStyle: 'italic' },
   webviewWrap: { width: '100%', height: 320, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
   webview: { flex: 1, backgroundColor: '#fafbfc' },
 });
@@ -828,6 +896,8 @@ const styles = StyleSheet.create({
   feedbackTextWrap: { flex: 1 },
   feedbackText: { fontSize: 15, fontWeight: '700' },
   feedbackPoints: { fontSize: 12, fontWeight: '600', color: '#f59e0b', marginTop: 2 },
+  correctAnswerBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#dcfce7', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginTop: 4 },
+  correctAnswerText: { fontSize: 13, fontWeight: '600', color: '#166534', flex: 1 },
   optionsContainer: { gap: 10 },
   optionButton: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 2, borderColor: '#e5e7eb' },
   optionButtonSelected: { borderColor: '#667eea', backgroundColor: '#eef2ff' },

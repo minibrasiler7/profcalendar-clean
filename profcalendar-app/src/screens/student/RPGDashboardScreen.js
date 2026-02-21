@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     borderColor: '#f59e0b',
     overflow: 'hidden',
   },
-  avatarImage: { width: 70, height: 70, resizeMode: 'contain' },
+  avatarImage: { width: 70, height: 70, resizeMode: 'contain', backgroundColor: 'white', borderRadius: 35 },
   heroInfo: { flex: 1 },
   heroName: { fontSize: 22, fontWeight: '800', color: '#FFF' },
   heroClass: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', marginTop: 2 },
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   classCardSelected: { borderColor: colors.primary },
-  classImage: { width: 56, height: 56, resizeMode: 'contain', marginBottom: 8 },
+  classImage: { width: 56, height: 56, resizeMode: 'contain', marginBottom: 8, backgroundColor: 'white', borderRadius: 28 },
   className: { fontSize: 12, fontWeight: '600', color: colors.text, textAlign: 'center' },
   statsGrid: {
     flexDirection: 'row',

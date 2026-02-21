@@ -28,8 +28,8 @@
 }
 
 .avatar-display {
-    width: 120px;
-    height: 120px;
+    width: 240px;
+    height: 240px;
     margin: 0 auto 1rem;
     border-radius: 50%;
     background: rgba(255,255,255,0.15);
@@ -43,8 +43,8 @@
 }
 
 .avatar-display img {
-    width: 110px;
-    height: 110px;
+    width: 220px;
+    height: 220px;
     border-radius: 50%;
     object-fit: contain;
 }
@@ -367,7 +367,6 @@
         <div class="avatar-display">
             {% if rpg.avatar_class %}
             <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
-            <span class="avatar-class-label">{{ rpg.avatar_class }}</span>
             {% else %}
             <span class="no-avatar">❓</span>
             {% endif %}

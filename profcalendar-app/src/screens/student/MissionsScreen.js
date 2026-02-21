@@ -7,12 +7,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import colors from '../../theme/colors';
+
+const BASE_URL = 'https://profcalendar-clean.onrender.com';
 
 export default function MissionsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -29,7 +32,7 @@ export default function MissionsScreen({ navigation }) {
         api.get('/student/rpg/profile'),
       ]);
       setMissions(missionsRes.data.missions || []);
-      setRpgData(rpgRes.data);
+      setRpgData(rpgRes.data.rpg_profile);
     } catch (err) {
       console.log('Missions error:', err.response?.data);
     } finally {
@@ -155,18 +158,24 @@ export default function MissionsScreen({ navigation }) {
       {/* RPG Mini Bar */}
       {rpgData && (
         <View style={[styles.rpgBar, { paddingTop: Math.max(insets.top, 12) }]}>
+          {rpgData.avatar_class ? (
+            <Image
+              source={{ uri: `${BASE_URL}/static/img/chihuahua/${rpgData.avatar_class}.png` }}
+              style={styles.rpgAvatar}
+            />
+          ) : null}
           <View style={styles.rpgInfo}>
             <Text style={styles.rpgLevel}>Niveau {rpgData.level}</Text>
             <View style={styles.xpBarContainer}>
               <View
                 style={[
                   styles.xpBarFill,
-                  { width: `${(rpgData.current_xp / rpgData.next_level_xp) * 100}%` },
+                  { width: `${rpgData.xp_progress || 0}%` },
                 ]}
               />
             </View>
             <Text style={styles.xpBarLabel}>
-              {rpgData.current_xp} / {rpgData.next_level_xp} XP
+              {rpgData.xp_total} / {rpgData.xp_for_next_level} XP
             </Text>
           </View>
           <TouchableOpacity style={styles.rpgButton} onPress={goToRPGDashboard}>
@@ -204,6 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  rpgAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'white', resizeMode: 'contain', borderWidth: 2, borderColor: '#f59e0b', marginRight: 10 },
   rpgInfo: { flex: 1 },
   rpgLevel: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 },
   xpBarContainer: {

@@ -987,11 +987,14 @@ def check_block_answer(exercise_id):
     accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
     is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
 
+    correct_answer_text = get_correct_answer_text(block) if not is_correct else None
+
     return jsonify({
         'success': True,
         'is_correct': is_correct,
         'points_earned': points_earned,
         'max_points': block.points or 0,
+        'correct_answer': correct_answer_text,
     })
 
 
@@ -1195,6 +1198,52 @@ def fuzzy_match(user_answer, correct_answer, threshold=0.75):
 # ============================================================
 # GRADING HELPERS
 # ============================================================
+
+def get_correct_answer_text(block):
+    """Extraire un texte lisible de la bonne réponse d'un bloc."""
+    c = block.config_json
+    try:
+        if block.block_type == 'qcm':
+            correct = [opt.get('text', '') for opt in c.get('options', []) if opt.get('is_correct')]
+            return ', '.join(correct) if correct else None
+        elif block.block_type == 'short_answer':
+            return str(c.get('correct_answer', ''))
+        elif block.block_type == 'fill_blank':
+            blanks = c.get('blanks', [])
+            return ', '.join(b.get('word', '') for b in blanks)
+        elif block.block_type == 'sorting':
+            if c.get('mode') == 'order':
+                items = c.get('items', [])
+                order = c.get('correct_order', [])
+                return ' → '.join(items[i] for i in order if i < len(items))
+            else:
+                cats = c.get('categories', [])
+                parts = []
+                items = c.get('items', [])
+                for cat in cats:
+                    name = cat.get('name', '')
+                    cat_items = [items[i] for i in cat.get('items', []) if i < len(items)]
+                    parts.append(f"{name}: {', '.join(cat_items)}")
+                return ' | '.join(parts)
+        elif block.block_type == 'graph':
+            correct = c.get('correct_answer', {})
+            qt = c.get('question_type', 'draw_line')
+            if qt == 'draw_line':
+                a = correct.get('a', 0)
+                b = correct.get('b', 0)
+                return f"y = {a}x + {b}" if b >= 0 else f"y = {a}x - {abs(b)}"
+            elif qt == 'draw_quadratic':
+                a = correct.get('a', 0)
+                b = correct.get('b', 0)
+                cc = correct.get('c', 0)
+                return f"y = {a}x² + {b}x + {cc}"
+        elif block.block_type == 'image_position':
+            zones = c.get('zones', [])
+            return ', '.join(z.get('label', '') for z in zones)
+    except Exception:
+        pass
+    return None
+
 
 def grade_block(block, answer, accept_typos=False):
     """Corriger un bloc et retourner (is_correct, points_earned)"""

@@ -1500,11 +1500,15 @@ def student_check_block(mission_id):
     accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
     is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
 
+    from routes.student_auth import get_correct_answer_text
+    correct_answer_text = get_correct_answer_text(block) if not is_correct else None
+
     return jsonify({
         'success': True,
         'is_correct': is_correct,
         'points_earned': points_earned,
         'max_points': block.points or 0,
+        'correct_answer': correct_answer_text,
     })
 
 
