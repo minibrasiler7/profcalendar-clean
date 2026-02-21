@@ -931,6 +931,7 @@ def solve_exercise(exercise_id):
     return render_template('student/exercise_solve.html',
                            student=student,
                            exercise=exercise,
+                           rpg=rpg,
                            already_completed=existing_attempt is not None,
                            previous_attempt=existing_attempt)
 

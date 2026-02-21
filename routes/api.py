@@ -1366,12 +1366,12 @@ def student_list_missions():
     if not student.classroom_id:
         return jsonify({'missions': []})
 
-    from models.exercise import Exercise, ExercisePublication
+    from models.exercise import Exercise
+    from models.exercise_progress import ExercisePublication
 
     publications = ExercisePublication.query.filter_by(
-        classroom_id=student.classroom_id,
-        is_published=True
-    ).order_by(ExercisePublication.created_at.desc()).all()
+        classroom_id=student.classroom_id
+    ).order_by(ExercisePublication.published_at.desc()).all()
 
     missions_data = []
     for pub in publications:
@@ -1384,10 +1384,10 @@ def student_list_missions():
             'exercise_id': exercise.id,
             'title': exercise.title,
             'description': exercise.description or '',
-            'blocks_count': len(exercise.blocks) if exercise.blocks else 0,
-            'xp_reward': exercise.xp_reward or 0,
-            'difficulty': exercise.difficulty or 'normal',
-            'published_at': pub.created_at.isoformat()
+            'subject': exercise.subject or '',
+            'blocks_count': exercise.blocks.count() if exercise.blocks else 0,
+            'xp_reward': exercise.total_points or 0,
+            'published_at': pub.published_at.isoformat() if pub.published_at else ''
         })
 
     return jsonify({'missions': missions_data})
@@ -1404,12 +1404,12 @@ def student_get_mission(mission_id):
     if not student.classroom_id:
         return jsonify({'error': 'Accès non autorisé'}), 403
 
-    from models.exercise import Exercise, ExercisePublication, ExerciseBlock
+    from models.exercise import Exercise, ExerciseBlock
+    from models.exercise_progress import ExercisePublication
 
     publication = ExercisePublication.query.filter_by(
         id=mission_id,
-        classroom_id=student.classroom_id,
-        is_published=True
+        classroom_id=student.classroom_id
     ).first()
 
     if not publication:
@@ -1420,16 +1420,15 @@ def student_get_mission(mission_id):
         return jsonify({'error': 'Exercice non trouvé'}), 404
 
     blocks_data = []
-    for block in exercise.blocks or []:
+    for block in exercise.blocks.order_by(ExerciseBlock.position).all():
         blocks_data.append({
             'id': block.id,
-            'order': block.order or 0,
-            'block_type': block.block_type or 'text',
-            'content': block.content or '',
-            'question': block.question or '',
-            'options': block.options or [],
-            'correct_answer': block.correct_answer or '',
-            'explanation': block.explanation or ''
+            'position': block.position or 0,
+            'block_type': block.block_type,
+            'title': block.title or '',
+            'duration': block.duration,
+            'config_json': block.config_json or {},
+            'points': block.points or 10
         })
 
     return jsonify({
@@ -1438,8 +1437,9 @@ def student_get_mission(mission_id):
             'exercise_id': exercise.id,
             'title': exercise.title,
             'description': exercise.description or '',
-            'xp_reward': exercise.xp_reward or 0,
-            'difficulty': exercise.difficulty or 'normal',
+            'subject': exercise.subject or '',
+            'total_points': exercise.total_points or 0,
+            'accept_typos': exercise.accept_typos or False,
             'blocks': blocks_data
         }
     })
@@ -1456,16 +1456,15 @@ def student_submit_mission(mission_id):
     if not student.classroom_id:
         return jsonify({'error': 'Accès non autorisé'}), 403
 
-    from models.exercise import (
-        Exercise, ExercisePublication, ExerciseBlock,
-        StudentExerciseAttempt, StudentBlockAnswer
+    from models.exercise import Exercise, ExerciseBlock
+    from models.exercise_progress import (
+        ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
     )
     from routes.student_auth import grade_block, check_badges
 
     publication = ExercisePublication.query.filter_by(
         id=mission_id,
-        classroom_id=student.classroom_id,
-        is_published=True
+        classroom_id=student.classroom_id
     ).first()
 
     if not publication:
@@ -1487,8 +1486,8 @@ def student_submit_mission(mission_id):
     db.session.add(attempt)
     db.session.flush()
 
-    total_score = 0
-    total_blocks = 0
+    total_points_earned = 0
+    max_points = 0
     blocks_results = []
 
     # Traiter chaque réponse
@@ -1500,36 +1499,54 @@ def student_submit_mission(mission_id):
         if not block or block.exercise_id != exercise.id:
             continue
 
-        total_blocks += 1
+        max_points += (block.points or 0)
 
-        # Grader le bloc
-        score, is_correct = grade_block(block, user_answer)
-        total_score += score
+        # Grader le bloc — returns (is_correct, points_earned)
+        is_correct, points_earned = grade_block(block, user_answer, exercise.accept_typos)
+        total_points_earned += points_earned
 
         # Enregistrer la réponse
         block_answer = StudentBlockAnswer(
             attempt_id=attempt.id,
             block_id=block_id,
-            student_answer=user_answer,
+            answer_json=user_answer,
             is_correct=is_correct,
-            score=score
+            points_earned=points_earned
         )
         db.session.add(block_answer)
 
         blocks_results.append({
             'block_id': block_id,
             'is_correct': is_correct,
-            'score': score,
-            'explanation': block.explanation or ''
+            'points_earned': points_earned
         })
 
     # Calculer le score final
-    final_score = (total_score / total_blocks * 100) if total_blocks > 0 else 0
-    attempt.score = round(final_score, 2)
+    attempt.score = total_points_earned
+    attempt.max_score = max_points
     attempt.completed_at = datetime.utcnow()
 
-    # Vérifier les badges
-    badges_earned = check_badges(student, exercise, final_score)
+    # XP et or via le profil RPG
+    from models.rpg import StudentRPGProfile
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    xp_earned = 0
+    gold_earned = 0
+
+    if rpg:
+        xp_earned = total_points_earned
+        rpg.add_xp(xp_earned)
+        attempt.xp_earned = xp_earned
+
+        # Bonus or si score >= seuil
+        score_pct = (total_points_earned / max_points * 100) if max_points > 0 else 0
+        gold_threshold = exercise.bonus_gold_threshold or 80
+        if score_pct >= gold_threshold:
+            gold_earned = max(1, total_points_earned // 10)
+            rpg.add_gold(gold_earned)
+            attempt.gold_earned = gold_earned
+
+        # Vérifier les badges (la fonction ajoute directement en DB)
+        check_badges(student, rpg)
 
     db.session.commit()
 
@@ -1537,9 +1554,11 @@ def student_submit_mission(mission_id):
         'success': True,
         'attempt_id': attempt.id,
         'score': attempt.score,
-        'xp_earned': exercise.xp_reward or 0 if final_score >= 70 else 0,
-        'blocks_results': blocks_results,
-        'badges_earned': badges_earned
+        'max_score': attempt.max_score,
+        'score_percentage': round((total_points_earned / max_points * 100) if max_points > 0 else 0, 1),
+        'xp_earned': xp_earned,
+        'gold_earned': gold_earned,
+        'blocks_results': blocks_results
     })
 
 
@@ -1592,7 +1611,7 @@ def student_rpg_profile():
             'xp_for_next_level': xp_for_next_level,
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
-            'avatar_class': rpg_profile.avatar_class or 'warrior',
+            'avatar_class': rpg_profile.avatar_class,
             'badges': badges_data
         }
     })
@@ -1607,7 +1626,8 @@ def student_update_avatar():
         return jsonify({'error': 'Élève non trouvé'}), 404
 
     data = request.get_json(silent=True) or {}
-    avatar_class = data.get('avatar_class', '').strip()
+    # Accepter 'avatar_class' ou 'class' (le mobile envoie 'class')
+    avatar_class = (data.get('avatar_class') or data.get('class') or '').strip()
 
     if not avatar_class:
         return jsonify({'error': 'Classe d\'avatar requise'}), 400

@@ -8,17 +8,20 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import colors from '../../theme/colors';
 
+const BASE_URL = 'https://profcalendar-clean.onrender.com';
+
 const AVATAR_CLASSES = [
-  { id: 'guerrier', name: 'Guerrier', emoji: '⚔️' },
-  { id: 'mage', name: 'Mage', emoji: '🧙' },
-  { id: 'archer', name: 'Archer', emoji: '🏹' },
-  { id: 'guerisseur', name: 'Guérisseur', emoji: '💚' },
+  { id: 'guerrier', name: 'Guerrier', image: `${BASE_URL}/static/img/chihuahua/guerrier.png` },
+  { id: 'mage', name: 'Mage', image: `${BASE_URL}/static/img/chihuahua/mage.png` },
+  { id: 'archer', name: 'Archer', image: `${BASE_URL}/static/img/chihuahua/archer.png` },
+  { id: 'guerisseur', name: 'Guérisseur', image: `${BASE_URL}/static/img/chihuahua/guerisseur.png` },
 ];
 
 export default function RPGDashboardScreen({ navigation }) {
@@ -30,7 +33,7 @@ export default function RPGDashboardScreen({ navigation }) {
   const fetchData = async () => {
     try {
       const res = await api.get('/student/rpg/profile');
-      setRpgData(res.data);
+      setRpgData(res.data.rpg_profile);
     } catch (err) {
       console.log('RPG error:', err.response?.data);
     } finally {
@@ -55,7 +58,7 @@ export default function RPGDashboardScreen({ navigation }) {
 
     setChangingAvatar(true);
     try {
-      await api.post('/student/rpg/avatar', { class: classId });
+      await api.post('/student/rpg/avatar', { avatar_class: classId });
       await fetchData();
     } catch (err) {
       console.log('Avatar change error:', err.response?.data);
@@ -81,7 +84,9 @@ export default function RPGDashboardScreen({ navigation }) {
     );
   }
 
-  const xpPercent = (rpgData.current_xp / rpgData.next_level_xp) * 100;
+  const xpPercent = rpgData.xp_for_next_level > 0
+    ? (rpgData.xp_progress || 0)
+    : 0;
   const currentAvatarClass = AVATAR_CLASSES.find((c) => c.id === rpgData.avatar_class);
 
   return (
@@ -94,11 +99,15 @@ export default function RPGDashboardScreen({ navigation }) {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <View style={styles.avatarContainer}>
-          <Text style={styles.avatarEmoji}>{currentAvatarClass?.emoji}</Text>
+          {currentAvatarClass ? (
+            <Image source={{ uri: currentAvatarClass.image }} style={styles.avatarImage} />
+          ) : (
+            <Ionicons name="help-circle-outline" size={40} color="rgba(255,255,255,0.5)" />
+          )}
         </View>
         <View style={styles.heroInfo}>
-          <Text style={styles.heroName}>{rpgData.student_name}</Text>
-          <Text style={styles.heroClass}>{currentAvatarClass?.name}</Text>
+          <Text style={styles.heroName}>{rpgData.student_name || 'Aventurier'}</Text>
+          <Text style={styles.heroClass}>{currentAvatarClass?.name || 'Aucune classe'}</Text>
         </View>
       </View>
 
@@ -113,7 +122,7 @@ export default function RPGDashboardScreen({ navigation }) {
             <View style={[styles.xpBarFill, { width: `${xpPercent}%` }]} />
           </View>
           <Text style={styles.xpText}>
-            {rpgData.current_xp} / {rpgData.next_level_xp} XP
+            {rpgData.xp_total} / {rpgData.xp_for_next_level} XP
           </Text>
         </View>
       </View>
@@ -121,6 +130,12 @@ export default function RPGDashboardScreen({ navigation }) {
       {/* Avatar Class Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Classe</Text>
+        {!rpgData.avatar_class && (
+          <View style={styles.chooseAlert}>
+            <Ionicons name="warning-outline" size={20} color="#f59e0b" />
+            <Text style={styles.chooseAlertText}>Choisis un personnage pour lancer des missions !</Text>
+          </View>
+        )}
         <View style={styles.classGrid}>
           {AVATAR_CLASSES.map((classItem) => (
             <TouchableOpacity
@@ -132,7 +147,7 @@ export default function RPGDashboardScreen({ navigation }) {
               onPress={() => handleAvatarChange(classItem.id)}
               disabled={changingAvatar}
             >
-              <Text style={styles.classEmoji}>{classItem.emoji}</Text>
+              <Image source={{ uri: classItem.image }} style={styles.classImage} />
               <Text style={styles.className}>{classItem.name}</Text>
             </TouchableOpacity>
           ))}
@@ -146,17 +161,17 @@ export default function RPGDashboardScreen({ navigation }) {
           <View style={styles.statItem}>
             <Ionicons name="star" size={24} color={colors.warning} />
             <Text style={styles.statLabel}>XP Total</Text>
-            <Text style={styles.statValue}>{rpgData.total_xp}</Text>
+            <Text style={styles.statValue}>{rpgData.xp_total}</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.goldIcon}>💰</Text>
+            <Ionicons name="cash-outline" size={24} color="#fbbf24" />
             <Text style={styles.statLabel}>Or</Text>
             <Text style={styles.statValue}>{rpgData.gold}</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-            <Text style={styles.statLabel}>Missions</Text>
-            <Text style={styles.statValue}>{rpgData.missions_completed}</Text>
+            <Ionicons name="trophy" size={24} color={colors.primary} />
+            <Text style={styles.statLabel}>Niveau</Text>
+            <Text style={styles.statValue}>{rpgData.level}</Text>
           </View>
         </View>
       </View>
@@ -168,15 +183,19 @@ export default function RPGDashboardScreen({ navigation }) {
           <View style={styles.badgesGrid}>
             {rpgData.badges.map((badge) => (
               <View
-                key={badge.id}
+                key={badge.badge?.id || badge.id}
                 style={[
                   styles.badgeItem,
-                  !badge.earned && styles.badgeItemLocked,
+                  !badge.earned_at && styles.badgeItemLocked,
                 ]}
               >
-                <Text style={styles.badgeEmoji}>{badge.earned ? badge.emoji : '🔒'}</Text>
-                <Text style={[styles.badgeName, !badge.earned && styles.badgeNameLocked]}>
-                  {badge.name}
+                <Ionicons
+                  name={badge.earned_at ? 'medal' : 'lock-closed'}
+                  size={28}
+                  color={badge.earned_at ? '#fbbf24' : colors.textLight}
+                />
+                <Text style={[styles.badgeName, !badge.earned_at && styles.badgeNameLocked]}>
+                  {badge.badge?.name || badge.name}
                 </Text>
               </View>
             ))}
@@ -214,9 +233,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: '#f59e0b',
+    overflow: 'hidden',
   },
-  avatarEmoji: { fontSize: 40 },
+  avatarImage: { width: 70, height: 70, resizeMode: 'contain' },
   heroInfo: { flex: 1 },
   heroName: { fontSize: 22, fontWeight: '800', color: '#FFF' },
   heroClass: { fontSize: 14, color: 'rgba(255, 255, 255, 0.8)', marginTop: 2 },
@@ -241,6 +261,18 @@ const styles = StyleSheet.create({
   xpText: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
   section: { paddingHorizontal: 16, paddingVertical: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 12 },
+  chooseAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef3c7',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  chooseAlertText: { fontSize: 13, fontWeight: '600', color: '#92400e', flex: 1 },
   classGrid: { flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
   classCard: {
     flex: 1,
@@ -251,8 +283,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
   },
-  classCardSelected: { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
-  classEmoji: { fontSize: 32, marginBottom: 8 },
+  classCardSelected: { borderColor: colors.primary },
+  classImage: { width: 56, height: 56, resizeMode: 'contain', marginBottom: 8 },
   className: { fontSize: 12, fontWeight: '600', color: colors.text, textAlign: 'center' },
   statsGrid: {
     flexDirection: 'row',
@@ -270,7 +302,6 @@ const styles = StyleSheet.create({
   },
   statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
   statValue: { fontSize: 18, fontWeight: '800', color: colors.text, marginTop: 4 },
-  goldIcon: { fontSize: 24, marginBottom: 4 },
   badgesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -288,12 +319,12 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
   },
   badgeItemLocked: { borderColor: colors.textLight, backgroundColor: colors.background },
-  badgeEmoji: { fontSize: 32, marginBottom: 8 },
   badgeName: {
     fontSize: 10,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
+    marginTop: 6,
   },
   badgeNameLocked: { color: colors.textLight },
 });
