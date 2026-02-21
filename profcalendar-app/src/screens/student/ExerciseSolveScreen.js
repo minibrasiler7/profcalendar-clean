@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Modal,
   Image,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,23 +19,40 @@ import api from '../../api/client';
 import colors from '../../theme/colors';
 
 const BASE_URL = 'https://profcalendar-clean.onrender.com';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export default function ExerciseSolveScreen({ route, navigation }) {
   const { missionId } = route.params;
   const [mission, setMission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [answers, setAnswers] = useState({});
   const [currentIdx, setCurrentIdx] = useState(0);
   const [resultModal, setResultModal] = useState(false);
   const [result, setResult] = useState(null);
+  const [feedbackMap, setFeedbackMap] = useState({}); // blockId -> { is_correct, points }
+  const [questionLocked, setQuestionLocked] = useState(false);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [xpEarned, setXpEarned] = useState(0);
+
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const fetchExercise = async () => {
     try {
       const res = await api.get(`/student/missions/${missionId}`);
-      setMission(res.data.mission);
-      initializeAnswers(res.data.mission);
+      const m = res.data.mission;
+      setMission(m);
+      initializeAnswers(m);
     } catch (err) {
       console.log('Exercise error:', err.response?.data);
       Alert.alert('Erreur', 'Impossible de charger l\'exercice');
@@ -43,23 +61,23 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     }
   };
 
-  const initializeAnswers = (missionData) => {
+  const initializeAnswers = (m) => {
     const initial = {};
-    (missionData.blocks || []).forEach((block) => {
+    (m.blocks || []).forEach((block) => {
       const c = block.config_json || {};
       if (block.block_type === 'qcm') {
         initial[block.id] = { selected: [] };
       } else if (block.block_type === 'short_answer') {
         initial[block.id] = { value: '' };
       } else if (block.block_type === 'fill_blank') {
-        const blanks = [];
         const template = c.text_template || '';
         const matches = template.match(/\{[^}]+\}/g) || [];
-        matches.forEach(() => blanks.push(''));
-        initial[block.id] = { blanks };
+        initial[block.id] = { blanks: matches.map(() => '') };
       } else if (block.block_type === 'sorting') {
         if (c.mode === 'order') {
-          initial[block.id] = { order: (c.items || []).map((_, i) => i) };
+          // Shuffle indices
+          const indices = (c.items || []).map((_, i) => i).filter(i => c.items[i]);
+          initial[block.id] = { order: shuffleArray(indices) };
         } else {
           initial[block.id] = { categories: {} };
         }
@@ -78,23 +96,98 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     }, [missionId])
   );
 
+  const blocks = mission?.blocks || [];
+  const totalBlocks = blocks.length;
+  const currentBlock = blocks[currentIdx];
+
+  const updateAnswer = (blockId, data) => {
+    setAnswers(prev => ({ ...prev, [blockId]: data }));
+  };
+
+  const hasAnswer = (block, answer) => {
+    const c = block.config_json || {};
+    if (block.block_type === 'qcm') return (answer?.selected || []).length > 0;
+    if (block.block_type === 'short_answer') return (answer?.value || '').trim().length > 0;
+    if (block.block_type === 'fill_blank') return (answer?.blanks || []).some(b => b.trim().length > 0);
+    if (block.block_type === 'sorting') {
+      if (c.mode !== 'order') {
+        return Object.values(answer?.categories || {}).flat().length > 0;
+      }
+      return true;
+    }
+    if (block.block_type === 'image_position') return true; // Limited on mobile
+    if (block.block_type === 'graph') return true; // Limited on mobile
+    return true;
+  };
+
+  const validateQuestion = async () => {
+    if (!currentBlock || questionLocked || checking) return;
+
+    const blockId = currentBlock.id;
+    const answer = answers[blockId];
+
+    if (!hasAnswer(currentBlock, answer)) {
+      Alert.alert('Attention', 'Tu dois répondre avant de valider !');
+      return;
+    }
+
+    setChecking(true);
+    try {
+      const res = await api.post(`/student/missions/${missionId}/check-block`, {
+        block_id: blockId,
+        answer: answer,
+      });
+      const data = res.data;
+      if (data.success) {
+        setQuestionLocked(true);
+        setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned } }));
+        if (data.is_correct) {
+          setCorrectCount(prev => prev + 1);
+          // Pulse animation
+          Animated.sequence([
+            Animated.timing(scaleAnim, { toValue: 1.05, duration: 200, useNativeDriver: true }),
+            Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+          ]).start();
+        } else {
+          // Shake animation
+          Animated.sequence([
+            Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 8, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -8, duration: 50, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+          ]).start();
+        }
+        setXpEarned(prev => prev + data.points_earned);
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible de vérifier');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const goToNext = () => {
+    if (currentIdx < totalBlocks - 1) {
+      setCurrentIdx(currentIdx + 1);
+      setQuestionLocked(false);
+      shakeAnim.setValue(0);
+      scaleAnim.setValue(1);
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      // Transform answers to match the API format
-      const formattedAnswers = [];
+      const formattedAnswers = {};
       Object.entries(answers).forEach(([blockId, answer]) => {
-        formattedAnswers.push({
-          block_id: parseInt(blockId),
-          answer: answer,
-        });
+        formattedAnswers[blockId] = answer;
       });
 
       const res = await api.post(`/student/missions/${missionId}/submit`, { answers: formattedAnswers });
       setResult(res.data);
       setResultModal(true);
     } catch (err) {
-      console.log('Submit error:', err.response?.data);
       Alert.alert('Erreur', 'Impossible de soumettre');
     } finally {
       setSubmitting(false);
@@ -107,34 +200,20 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   };
 
   if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <View style={styles.centerContainer}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
-
   if (!mission) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Mission non trouvée</Text>
-      </View>
-    );
+    return <View style={styles.centerContainer}><Text style={styles.errorText}>Mission non trouvée</Text></View>;
   }
 
-  const blocks = mission.blocks || [];
-  const totalBlocks = blocks.length;
-  const currentBlock = blocks[currentIdx];
-
-  const updateAnswer = (blockId, data) => {
-    setAnswers(prev => ({ ...prev, [blockId]: data }));
-  };
+  const currentFeedback = currentBlock ? feedbackMap[currentBlock.id] : null;
 
   const renderBlock = (block) => {
     if (!block) return null;
     const c = block.config_json || {};
     const blockId = block.id;
     const answer = answers[blockId] || {};
+    const isLocked = questionLocked;
 
     switch (block.block_type) {
       case 'qcm': {
@@ -145,22 +224,24 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
             <View style={styles.optionsContainer}>
               {(c.options || []).map((opt, i) => {
-                const isSelected = selected.includes(i);
+                const isSel = selected.includes(i);
                 return (
                   <TouchableOpacity
                     key={i}
-                    style={[styles.optionButton, isSelected && styles.optionButtonSelected]}
+                    style={[styles.optionButton, isSel && styles.optionButtonSelected]}
                     onPress={() => {
-                      let newSelected;
+                      if (isLocked) return;
+                      let newSel;
                       if (isMultiple) {
-                        newSelected = isSelected ? selected.filter(x => x !== i) : [...selected, i];
+                        newSel = isSel ? selected.filter(x => x !== i) : [...selected, i];
                       } else {
-                        newSelected = [i];
+                        newSel = [i];
                       }
-                      updateAnswer(blockId, { selected: newSelected });
+                      updateAnswer(blockId, { selected: newSel });
                     }}
+                    disabled={isLocked}
                   >
-                    <View style={[styles.optionRadio, isSelected && styles.optionRadioSelected]} />
+                    <View style={[styles.optionRadio, isSel && styles.optionRadioSelected]} />
                     <Text style={styles.optionText}>{opt.text}</Text>
                   </TouchableOpacity>
                 );
@@ -181,6 +262,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               value={answer.value || ''}
               onChangeText={(text) => updateAnswer(blockId, { value: text })}
               keyboardType={c.answer_type === 'number' ? 'decimal-pad' : 'default'}
+              editable={!isLocked}
             />
           </View>
         );
@@ -204,15 +286,14 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                       placeholderTextColor={colors.textLight}
                       value={blanks[bi] || ''}
                       onChangeText={(text) => {
-                        const newBlanks = [...blanks];
-                        newBlanks[bi] = text;
-                        updateAnswer(blockId, { blanks: newBlanks });
+                        const newB = [...blanks]; newB[bi] = text;
+                        updateAnswer(blockId, { blanks: newB });
                       }}
+                      editable={!isLocked}
                     />
                   );
-                } else {
-                  return <Text key={i} style={styles.fillBlankText}>{part}</Text>;
                 }
+                return <Text key={i} style={styles.fillBlankText}>{part}</Text>;
               })}
             </View>
           </View>
@@ -229,31 +310,30 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               <View style={styles.sortingContainer}>
                 {order.map((origIdx, pos) => (
                   <View key={pos} style={styles.sortingItem}>
+                    <Text style={styles.sortingNum}>{pos + 1}.</Text>
                     <Text style={styles.sortingText}>{items[origIdx]}</Text>
                     <View style={styles.sortingControls}>
                       <TouchableOpacity
                         onPress={() => {
-                          if (pos > 0) {
-                            const newOrder = [...order];
-                            [newOrder[pos], newOrder[pos - 1]] = [newOrder[pos - 1], newOrder[pos]];
-                            updateAnswer(blockId, { order: newOrder });
-                          }
+                          if (isLocked || pos === 0) return;
+                          const newOrder = [...order];
+                          [newOrder[pos], newOrder[pos - 1]] = [newOrder[pos - 1], newOrder[pos]];
+                          updateAnswer(blockId, { order: newOrder });
                         }}
-                        disabled={pos === 0}
+                        disabled={isLocked || pos === 0}
                       >
-                        <Ionicons name="chevron-up" size={22} color={pos === 0 ? colors.textLight : colors.primary} />
+                        <Ionicons name="chevron-up" size={24} color={pos === 0 || isLocked ? colors.textLight : colors.primary} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => {
-                          if (pos < order.length - 1) {
-                            const newOrder = [...order];
-                            [newOrder[pos], newOrder[pos + 1]] = [newOrder[pos + 1], newOrder[pos]];
-                            updateAnswer(blockId, { order: newOrder });
-                          }
+                          if (isLocked || pos === order.length - 1) return;
+                          const newOrder = [...order];
+                          [newOrder[pos], newOrder[pos + 1]] = [newOrder[pos + 1], newOrder[pos]];
+                          updateAnswer(blockId, { order: newOrder });
                         }}
-                        disabled={pos === order.length - 1}
+                        disabled={isLocked || pos === order.length - 1}
                       >
-                        <Ionicons name="chevron-down" size={22} color={pos === order.length - 1 ? colors.textLight : colors.primary} />
+                        <Ionicons name="chevron-down" size={24} color={pos === order.length - 1 || isLocked ? colors.textLight : colors.primary} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -262,7 +342,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             </View>
           );
         } else {
-          // Categories mode — simplified for mobile
+          // Categories mode
           const items = c.items || [];
           const categories = c.categories || [];
           const catAssignments = answer.categories || {};
@@ -275,21 +355,22 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                 const catItems = catAssignments[catIdx] || [];
                 return (
                   <View key={catIdx} style={styles.categoryZone}>
-                    <Text style={styles.categoryName}>{cat.name}</Text>
+                    <Text style={styles.categoryName}><Ionicons name="folder-open" size={14} /> {cat.name}</Text>
                     <View style={styles.categoryItems}>
                       {catItems.map((itemIdx) => (
                         <TouchableOpacity
                           key={itemIdx}
                           style={styles.categoryItem}
                           onPress={() => {
-                            // Remove from category
+                            if (isLocked) return;
                             const newCats = { ...catAssignments };
                             newCats[catIdx] = catItems.filter(x => x !== itemIdx);
                             updateAnswer(blockId, { categories: newCats });
                           }}
+                          disabled={isLocked}
                         >
                           <Text style={styles.categoryItemText}>{items[itemIdx]}</Text>
-                          <Ionicons name="close-circle" size={16} color={colors.error || '#ef4444'} />
+                          <Ionicons name="close-circle" size={16} color="#ef4444" />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -309,10 +390,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                             key={catIdx}
                             style={styles.assignButton}
                             onPress={() => {
+                              if (isLocked) return;
                               const newCats = { ...catAssignments };
                               newCats[catIdx] = [...(newCats[catIdx] || []), itemIdx];
                               updateAnswer(blockId, { categories: newCats });
                             }}
+                            disabled={isLocked}
                           >
                             <Text style={styles.assignButtonText}>{cat.name}</Text>
                           </TouchableOpacity>
@@ -329,7 +412,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
 
       case 'image_position': {
         const imageUrl = c.image_file_id
-          ? `${BASE_URL}/file_manager/preview/${c.image_file_id}`
+          ? `${BASE_URL}/exercises/block-image/${c.image_file_id}`
           : c.image_url
             ? (c.image_url.startsWith('http') ? c.image_url : `${BASE_URL}${c.image_url}`)
             : null;
@@ -337,8 +420,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return (
           <View>
             <Text style={styles.questionText}>
-              Touche l'image pour marquer les zones :
-              {zones.map(z => z.label).join(', ')}
+              Zones à identifier : {zones.map(z => z.label).join(', ')}
             </Text>
             {imageUrl ? (
               <Image source={{ uri: imageUrl }} style={styles.blockImage} resizeMode="contain" />
@@ -346,7 +428,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               <Text style={{ color: '#ef4444' }}>Image non disponible</Text>
             )}
             <Text style={styles.hintText}>
-              (La sélection de position sur l'image est limitée sur mobile. Utilisez le navigateur web pour une meilleure expérience.)
+              La sélection de position est limitée sur mobile. Utilisez le navigateur web.
             </Text>
           </View>
         );
@@ -361,13 +443,13 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                 : 'Tracez la droite demandée.'}
             </Text>
             <Text style={styles.hintText}>
-              (Le graphique interactif n'est pas disponible sur mobile. Utilisez le navigateur web pour cette question.)
+              Le graphique interactif n'est pas disponible sur mobile. Utilisez le navigateur web.
             </Text>
           </View>
         );
 
       default:
-        return <Text style={styles.questionText}>Type de question non supporté</Text>;
+        return <Text style={styles.questionText}>Type non supporté</Text>;
     }
   };
 
@@ -375,16 +457,24 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     <View style={styles.container}>
       {/* Progress */}
       <View style={styles.progressSection}>
-        <Text style={styles.progressText}>Question {currentIdx + 1} / {totalBlocks}</Text>
+        <Text style={styles.progressText}>Question {currentIdx + 1}/{totalBlocks}</Text>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${((currentIdx + 1) / totalBlocks) * 100}%` }]} />
         </View>
-        <Text style={styles.totalXP}>{mission.total_points} XP</Text>
+        <View style={styles.scoreTracker}>
+          <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+          <Text style={styles.scoreText}>{correctCount}/{Object.keys(feedbackMap).length}</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {currentBlock && (
-          <View style={styles.blockContainer}>
+          <Animated.View style={[
+            styles.blockContainer,
+            currentFeedback?.is_correct === true && styles.blockCorrect,
+            currentFeedback?.is_correct === false && styles.blockIncorrect,
+            { transform: [{ translateX: shakeAnim }, { scale: scaleAnim }] },
+          ]}>
             <View style={styles.blockHeader}>
               <Text style={styles.blockTypeBadge}>
                 {currentBlock.block_type === 'qcm' ? 'QCM' :
@@ -399,33 +489,47 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               </Text>
             </View>
             <Text style={styles.blockTitle}>{currentBlock.title || `Question ${currentIdx + 1}`}</Text>
+
             {renderBlock(currentBlock)}
-          </View>
+
+            {/* Feedback banner */}
+            {currentFeedback && (
+              <View style={[styles.feedbackBanner, currentFeedback.is_correct ? styles.feedbackCorrect : styles.feedbackIncorrect]}>
+                <Text style={styles.feedbackIcon}>{currentFeedback.is_correct ? '🎉' : '😔'}</Text>
+                <Text style={styles.feedbackText}>
+                  {currentFeedback.is_correct ? 'Bravo ! Bonne réponse !' : 'Pas tout à fait...'}
+                </Text>
+              </View>
+            )}
+          </Animated.View>
         )}
       </ScrollView>
 
-      {/* Navigation */}
-      <View style={styles.navButtons}>
-        <TouchableOpacity
-          style={[styles.navButton, styles.navPrev]}
-          onPress={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
-          disabled={currentIdx === 0}
-        >
-          <Ionicons name="chevron-back" size={20} color={currentIdx === 0 ? colors.textLight : '#FFF'} />
-          <Text style={[styles.navButtonText, currentIdx === 0 && { color: colors.textLight }]}>Précédent</Text>
-        </TouchableOpacity>
-
-        {currentIdx < totalBlocks - 1 ? (
+      {/* Bottom buttons */}
+      <View style={styles.bottomBar}>
+        {!questionLocked ? (
           <TouchableOpacity
-            style={[styles.navButton, styles.navNext]}
-            onPress={() => setCurrentIdx(currentIdx + 1)}
+            style={styles.validateButton}
+            onPress={validateQuestion}
+            disabled={checking}
           >
-            <Text style={styles.navButtonText}>Suivant</Text>
-            <Ionicons name="chevron-forward" size={20} color="#FFF" />
+            {checking ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={20} color="#FFF" />
+                <Text style={styles.validateText}>Valider</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : currentIdx < totalBlocks - 1 ? (
+          <TouchableOpacity style={[styles.validateButton, styles.nextButton]} onPress={goToNext}>
+            <Text style={styles.validateText}>Suivant</Text>
+            <Ionicons name="arrow-forward" size={20} color="#FFF" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.navButton, styles.navSubmit]}
+            style={[styles.validateButton, styles.submitButton]}
             onPress={handleSubmit}
             disabled={submitting}
           >
@@ -433,8 +537,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               <ActivityIndicator size="small" color="#FFF" />
             ) : (
               <>
-                <Ionicons name="send" size={18} color="#FFF" />
-                <Text style={styles.navButtonText}>Soumettre</Text>
+                <Ionicons name="flag" size={20} color="#FFF" />
+                <Text style={styles.validateText}>Terminer</Text>
               </>
             )}
           </TouchableOpacity>
@@ -447,14 +551,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           <View style={styles.modalContent}>
             <Ionicons name="trophy" size={48} color="#f59e0b" style={{ alignSelf: 'center', marginBottom: 12 }} />
             <Text style={styles.resultTitle}>Mission terminée !</Text>
-
             <Text style={[styles.resultScore, {
-              color: (result?.score_percentage || 0) >= 80 ? '#10b981' :
-                     (result?.score_percentage || 0) >= 50 ? '#f59e0b' : '#ef4444'
+              color: (result?.score_percentage || result?.percentage || 0) >= 80 ? '#10b981' :
+                     (result?.score_percentage || result?.percentage || 0) >= 50 ? '#f59e0b' : '#ef4444'
             }]}>
-              {result?.score_percentage || 0}%
+              {result?.score_percentage || result?.percentage || 0}%
             </Text>
-
             <View style={styles.resultRewards}>
               <View style={styles.rewardItem}>
                 <Ionicons name="star" size={24} color="#f59e0b" />
@@ -467,7 +569,6 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                 <Text style={styles.rewardLabel}>Or</Text>
               </View>
             </View>
-
             <TouchableOpacity style={styles.closeModalButton} onPress={handleResultClose}>
               <Text style={styles.closeModalButtonText}>Retour aux missions</Text>
             </TouchableOpacity>
@@ -490,30 +591,39 @@ const styles = StyleSheet.create({
   progressText: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600' },
   progressBar: { flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#667eea', borderRadius: 4 },
-  totalXP: { color: '#f59e0b', fontSize: 13, fontWeight: '700' },
+  scoreTracker: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  scoreText: { color: '#10b981', fontSize: 13, fontWeight: '700' },
   scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 24 },
   blockContainer: {
-    backgroundColor: '#FFF', borderRadius: 16,
-    padding: 20, shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: '#FFF', borderRadius: 16, padding: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15, shadowRadius: 12, elevation: 4,
   },
+  blockCorrect: { borderWidth: 3, borderColor: '#10b981', backgroundColor: '#ecfdf5' },
+  blockIncorrect: { borderWidth: 3, borderColor: '#ef4444', backgroundColor: '#fef2f2' },
   blockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   blockTypeBadge: {
     backgroundColor: '#eef2ff', color: '#667eea',
     paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 6, fontSize: 11, fontWeight: '700', textTransform: 'uppercase',
+    borderRadius: 6, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', overflow: 'hidden',
   },
   blockPoints: { fontSize: 13, fontWeight: '700', color: '#f59e0b' },
   blockTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 16 },
   questionText: { fontSize: 14, color: '#374151', marginBottom: 12, lineHeight: 22 },
   hintText: { fontSize: 12, color: colors.textSecondary, fontStyle: 'italic', marginTop: 8 },
+  feedbackBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 12, borderRadius: 10, marginTop: 16,
+  },
+  feedbackCorrect: { backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac' },
+  feedbackIncorrect: { backgroundColor: '#fef2f2', borderWidth: 2, borderColor: '#fca5a5' },
+  feedbackIcon: { fontSize: 24 },
+  feedbackText: { fontSize: 14, fontWeight: '700', flex: 1 },
   optionsContainer: { gap: 10 },
   optionButton: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: 14, borderRadius: 10,
-    borderWidth: 2, borderColor: '#e5e7eb',
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+    borderRadius: 10, borderWidth: 2, borderColor: '#e5e7eb',
   },
   optionButtonSelected: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
   optionRadio: {
@@ -535,10 +645,10 @@ const styles = StyleSheet.create({
   },
   sortingContainer: { gap: 8 },
   sortingItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, backgroundColor: '#f9fafb', borderRadius: 10,
-    borderWidth: 1, borderColor: '#e5e7eb',
+    flexDirection: 'row', alignItems: 'center', padding: 14,
+    backgroundColor: '#f9fafb', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb',
   },
+  sortingNum: { fontSize: 14, fontWeight: '800', color: '#667eea', marginRight: 10, width: 24 },
   sortingText: { fontSize: 14, color: colors.text, flex: 1 },
   sortingControls: { flexDirection: 'row', gap: 4 },
   categoryZone: {
@@ -561,37 +671,28 @@ const styles = StyleSheet.create({
   },
   poolItemText: { fontSize: 14, color: colors.text, marginBottom: 8 },
   poolItemButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  assignButton: {
-    backgroundColor: '#667eea', paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 6,
-  },
+  assignButton: { backgroundColor: '#667eea', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 },
   assignButtonText: { fontSize: 11, color: '#FFF', fontWeight: '600' },
   blockImage: { width: '100%', height: 220, borderRadius: 10, marginBottom: 12, backgroundColor: '#f1f5f9' },
-  navButtons: {
-    flexDirection: 'row', justifyContent: 'space-between',
+  bottomBar: {
     paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  navButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10,
+  validateButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 14,
   },
-  navPrev: { backgroundColor: 'rgba(255,255,255,0.12)' },
-  navNext: { backgroundColor: '#667eea' },
-  navSubmit: { backgroundColor: '#10b981' },
-  navButtonText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
+  nextButton: { backgroundColor: '#10b981' },
+  submitButton: { backgroundColor: '#f59e0b' },
+  validateText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15,12,41,0.9)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: {
-    backgroundColor: '#1e1b4b', borderRadius: 24, padding: 28, width: '85%',
-  },
+  modalContent: { backgroundColor: '#1e1b4b', borderRadius: 24, padding: 28, width: '85%' },
   resultTitle: { fontSize: 20, fontWeight: '800', color: '#fbbf24', textAlign: 'center', marginBottom: 8 },
   resultScore: { fontSize: 48, fontWeight: '900', textAlign: 'center', marginVertical: 8 },
   resultRewards: { flexDirection: 'row', justifyContent: 'center', gap: 40, marginVertical: 20 },
   rewardItem: { alignItems: 'center' },
   rewardValue: { fontSize: 20, fontWeight: '800', color: '#FFF', marginTop: 4 },
   rewardLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
-  closeModalButton: {
-    backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 14, alignItems: 'center',
-  },
+  closeModalButton: { backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   closeModalButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
 });

@@ -1227,9 +1227,20 @@ function addNewZone(uid) {
     const idx = (block.config_json.zones || []).length;
     block.config_json.zones.push({ label: 'Zone ' + (idx + 1), points: [], radius: block.config_json.default_radius || 30 });
     refreshBlockContent(uid);
+    // Auto-sélectionner la nouvelle zone
+    setTimeout(() => {
+        const select = document.getElementById('active-zone-' + uid);
+        if (select) select.value = String(idx);
+    }, 50);
 }
 
+// Stocke la zone active par bloc pour ne pas la perdre au refresh
+let activeZoneByBlock = {};
+
 function addPointToZone(event, uid) {
+    // Empêcher la propagation si clic sur un autre élément interactif
+    if (event.target.tagName === 'SELECT' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return;
+
     const container = document.getElementById('img-container-' + uid);
     const img = document.getElementById('img-preview-' + uid);
     if (!img) return;
@@ -1240,11 +1251,20 @@ function addPointToZone(event, uid) {
     const block = blocks.find(b => b.uid === uid);
     const select = document.getElementById('active-zone-' + uid);
     if (!select || block.config_json.zones.length === 0) return;
-    const zoneIdx = parseInt(select.value) || 0;
-    if (!block.config_json.zones[zoneIdx]) return;
+    const zoneIdx = parseInt(select.value);
+    if (isNaN(zoneIdx) || !block.config_json.zones[zoneIdx]) return;
+
+    // Mémoriser la zone active avant le refresh
+    activeZoneByBlock[uid] = zoneIdx;
 
     block.config_json.zones[zoneIdx].points.push({ x, y });
     refreshBlockContent(uid);
+
+    // Restaurer la zone active après le refresh
+    setTimeout(() => {
+        const sel = document.getElementById('active-zone-' + uid);
+        if (sel) sel.value = String(zoneIdx);
+    }, 50);
 }
 
 function updateDefaultRadius(uid, radius) {
@@ -1278,7 +1298,7 @@ async function handleImageUpload(uid, input) {
         if (data.success) {
             const block = blocks.find(b => b.uid === uid);
             block.config_json.image_file_id = data.file_id;
-            block.config_json.image_url = data.url;
+            block.config_json.image_url = data.url;  // URL publique via exercises.exercise_block_image
             block.config_json.zones = [];
             refreshBlockContent(uid);
             showToast('Image téléversée', 'success');
@@ -1526,12 +1546,27 @@ function refreshBlockContent(uid) {
     const block = blocks.find(b => b.uid === uid);
     const el = document.getElementById(uid);
     if (block && el) {
+        // Sauvegarder la zone active avant le re-render
+        const prevSelect = document.getElementById('active-zone-' + uid);
+        if (prevSelect) {
+            activeZoneByBlock[uid] = parseInt(prevSelect.value);
+        }
+
         el.innerHTML = renderBlock(block);
         // Re-open the content
         document.getElementById('content-' + uid).classList.add('open');
         // Auto-preview graph blocks
         if (block.block_type === 'graph') {
             setTimeout(() => previewGraph(uid), 50);
+        }
+        // Restaurer la zone active après le re-render
+        if (block.block_type === 'image_position' && activeZoneByBlock[uid] !== undefined) {
+            setTimeout(() => {
+                const sel = document.getElementById('active-zone-' + uid);
+                if (sel && activeZoneByBlock[uid] < sel.options.length) {
+                    sel.value = String(activeZoneByBlock[uid]);
+                }
+            }, 50);
         }
     }
 }

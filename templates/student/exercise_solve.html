@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
 /* ============================================================
-   RPG MISSION SOLVING — Step-by-step, game-like design
+   RPG MISSION SOLVING — Step-by-step with immediate feedback
    ============================================================ */
 body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important; min-height: 100vh; }
 
@@ -20,210 +20,200 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     margin-bottom: 1rem;
     backdrop-filter: blur(8px);
 }
-
-.rpg-topbar-left {
-    display: flex; align-items: center; gap: 0.75rem;
-}
-
+.rpg-topbar-left { display: flex; align-items: center; gap: 0.75rem; }
 .rpg-topbar-avatar {
-    width: 44px; height: 44px;
-    border-radius: 50%;
-    border: 2px solid #f59e0b;
-    overflow: hidden;
-    flex-shrink: 0;
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid #f59e0b; overflow: hidden; flex-shrink: 0;
 }
-
 .rpg-topbar-avatar img { width: 100%; height: 100%; object-fit: contain; }
-
 .rpg-topbar-info { color: white; }
 .rpg-topbar-info .name { font-weight: 700; font-size: 0.95rem; }
 .rpg-topbar-info .level-xp { font-size: 0.75rem; opacity: 0.7; }
-
 .rpg-topbar-right { display: flex; align-items: center; gap: 1rem; }
-
 .rpg-topbar-xp, .rpg-topbar-gold {
     color: white; font-weight: 700; font-size: 0.85rem;
     display: flex; align-items: center; gap: 0.3rem;
 }
-
 .back-link {
     color: rgba(255,255,255,0.6); text-decoration: none;
-    font-size: 0.8rem;
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    margin-bottom: 0.5rem;
-    transition: color 0.2s;
+    font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.3rem;
+    margin-bottom: 0.5rem; transition: color 0.2s;
 }
 .back-link:hover { color: white; }
 
-/* ---- Progress Bar ---- */
+/* ---- Progress ---- */
 .progress-section {
-    background: rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.06); border-radius: 12px;
+    padding: 0.75rem 1rem; margin-bottom: 1rem;
 }
-
 .progress-label {
     display: flex; justify-content: space-between;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.85rem; font-weight: 600;
-    margin-bottom: 0.4rem;
+    color: rgba(255,255,255,0.8); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;
 }
-
 .progress-bar-track {
-    width: 100%; height: 10px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 5px;
-    overflow: hidden;
+    width: 100%; height: 10px; background: rgba(255,255,255,0.15);
+    border-radius: 5px; overflow: hidden;
 }
-
 .progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 5px;
-    transition: width 0.5s ease;
+    height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 5px; transition: width 0.5s ease;
 }
 
-/* ---- Timer ---- */
-.timer-display {
-    color: white; font-weight: 700; font-size: 0.9rem;
+/* ---- Score tracker ---- */
+.score-tracker {
+    color: white; font-size: 0.85rem; font-weight: 700;
     display: flex; align-items: center; gap: 0.3rem;
 }
-.timer-display.warning { color: #f59e0b; animation: pulse 1s infinite; }
-.timer-display.danger { color: #ef4444; animation: pulse 0.5s infinite; }
-
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* ---- Question Card ---- */
 .question-card {
-    background: rgba(255,255,255,0.95);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.95); border-radius: 16px;
+    padding: 1.5rem; margin-bottom: 1rem;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    animation: slideIn 0.3s ease;
+    animation: slideIn 0.4s ease;
+    transition: all 0.3s;
 }
-
 @keyframes slideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 .question-card h3 {
     margin: 0 0 1rem; font-size: 1.1rem;
-    display: flex; align-items: center; gap: 0.5rem;
-    color: #1e1b4b;
+    display: flex; align-items: center; gap: 0.5rem; color: #1e1b4b;
 }
-
 .block-type-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    background: #eef2ff;
-    color: #667eea;
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px;
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    background: #eef2ff; color: #667eea;
 }
-
 .question-card .question-text {
-    font-size: 0.95rem; color: #374151;
-    margin-bottom: 1rem; line-height: 1.6;
+    font-size: 0.95rem; color: #374151; margin-bottom: 1rem; line-height: 1.6;
+}
+.question-points {
+    font-size: 0.8rem; font-weight: 700; color: #f59e0b;
+    display: flex; align-items: center; gap: 0.3rem;
 }
 
-.question-points {
-    font-size: 0.8rem; font-weight: 700;
-    color: #f59e0b;
-    display: flex; align-items: center; gap: 0.3rem;
+/* ---- Feedback overlays on card ---- */
+.question-card.feedback-correct {
+    border: 3px solid #10b981;
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    animation: correctPulse 0.6s ease;
+}
+.question-card.feedback-incorrect {
+    border: 3px solid #ef4444;
+    background: linear-gradient(135deg, #fef2f2, #fecaca);
+    animation: incorrectShake 0.5s ease;
+}
+@keyframes correctPulse {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.02); }
+    60% { transform: scale(0.99); }
+    100% { transform: scale(1); }
+}
+@keyframes incorrectShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}
+
+.feedback-banner {
+    display: none; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    margin-top: 1rem; font-weight: 700; font-size: 0.95rem;
+}
+.feedback-banner.show { display: flex; animation: fadeInUp 0.3s ease; }
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.feedback-correct-banner {
+    background: #dcfce7; color: #166534; border: 2px solid #86efac;
+}
+.feedback-incorrect-banner {
+    background: #fef2f2; color: #991b1b; border: 2px solid #fca5a5;
+}
+.feedback-icon { font-size: 1.5rem; }
+
+/* ---- Confetti ---- */
+.confetti-container {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 9999; overflow: hidden;
+}
+.confetti-piece {
+    position: absolute; width: 10px; height: 10px;
+    animation: confettiFall 2s ease-in forwards;
+}
+@keyframes confettiFall {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ---- Sad particles ---- */
+.sad-particle {
+    position: absolute; font-size: 1.5rem;
+    animation: sadFloat 1.5s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes sadFloat {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
 }
 
 /* ---- QCM ---- */
 .qcm-options { list-style: none; padding: 0; margin: 0; }
 .qcm-option {
-    padding: 0.85rem 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex; align-items: center; gap: 0.6rem;
-    font-size: 0.95rem;
+    padding: 0.85rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px;
+    margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem;
 }
 .qcm-option:hover { border-color: #667eea; background: #f5f3ff; }
 .qcm-option.selected { border-color: #667eea; background: #eef2ff; }
-.qcm-option.correct-answer { border-color: #10b981; background: #dcfce7; }
-.qcm-option.wrong-answer { border-color: #ef4444; background: #fef2f2; }
-
+.qcm-option.locked { pointer-events: none; opacity: 0.7; }
 .qcm-radio {
-    width: 20px; height: 20px;
-    border: 2px solid #d1d5db;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 50%;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
 }
-.qcm-option.selected .qcm-radio {
-    border-color: #667eea;
-    background: #667eea;
-}
+.qcm-option.selected .qcm-radio { border-color: #667eea; background: #667eea; }
 .qcm-option.selected .qcm-radio::after {
-    content: '';
-    width: 8px; height: 8px;
-    background: white;
-    border-radius: 50%;
+    content: ''; width: 8px; height: 8px; background: white; border-radius: 50%;
 }
-
 .qcm-checkbox {
-    width: 20px; height: 20px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 4px;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     transition: all 0.2s;
 }
-.qcm-option.selected .qcm-checkbox {
-    border-color: #667eea;
-    background: #667eea;
-}
+.qcm-option.selected .qcm-checkbox { border-color: #667eea; background: #667eea; }
 .qcm-option.selected .qcm-checkbox::after {
-    content: '\f00c';
-    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
-    font-weight: 900;
-    font-size: 0.7rem;
-    color: white;
+    content: '\f00c'; font-family: "Font Awesome 6 Free","Font Awesome 5 Free";
+    font-weight: 900; font-size: 0.7rem; color: white;
 }
 
 /* ---- Answer Input ---- */
 .answer-input {
-    width: 100%; padding: 0.85rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px; font-size: 1rem;
-    font-family: inherit;
-    transition: border-color 0.2s;
+    width: 100%; padding: 0.85rem; border: 2px solid #e5e7eb;
+    border-radius: 10px; font-size: 1rem; font-family: inherit; transition: border-color 0.2s;
 }
 .answer-input:focus { outline: none; border-color: #667eea; }
 
 /* ---- Fill Blank ---- */
 .fill-blank-text { line-height: 2.8; font-size: 1rem; }
 .blank-input {
-    display: inline-block; width: 110px;
-    border: none; border-bottom: 2px solid #667eea;
-    padding: 0.2rem 0.3rem; font-size: 1rem;
-    font-family: inherit; text-align: center;
+    display: inline-block; width: 110px; border: none;
+    border-bottom: 2px solid #667eea; padding: 0.2rem 0.3rem;
+    font-size: 1rem; font-family: inherit; text-align: center;
     background: #eef2ff; border-radius: 4px 4px 0 0;
 }
 
 /* ---- Sorting ---- */
 .sorting-list { list-style: none; padding: 0; margin: 0; }
 .sorting-item {
-    padding: 0.75rem 1rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    margin-bottom: 0.5rem;
-    cursor: grab;
-    display: flex; align-items: center; gap: 0.5rem;
-    background: white; user-select: none;
-    transition: all 0.2s;
+    padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px;
+    margin-bottom: 0.5rem; cursor: grab; display: flex; align-items: center;
+    gap: 0.5rem; background: white; user-select: none; transition: all 0.2s;
 }
 .sorting-item:active { cursor: grabbing; }
 .sorting-item.dragging { opacity: 0.5; border-style: dashed; }
@@ -231,58 +221,40 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
 /* ---- Category zones ---- */
 .categories-wrapper { display: flex; flex-direction: column; gap: 0.75rem; }
-
 .category-zone {
-    border: 2px dashed #d1d5db;
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    min-height: 60px;
-    transition: all 0.2s;
-    background: #fafafa;
+    border: 2px dashed #d1d5db; border-radius: 12px;
+    padding: 0.75rem 1rem; min-height: 60px; transition: all 0.2s; background: #fafafa;
 }
 .category-zone.drag-over { border-color: #667eea; background: #eef2ff; }
-.category-zone h4 {
-    margin: 0 0 0.5rem; font-size: 0.9rem;
-    color: #4b5563; font-weight: 700;
-}
+.category-zone h4 { margin: 0 0 0.5rem; font-size: 0.9rem; color: #4b5563; font-weight: 700; }
 .category-zone .zone-items { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-
 .category-zone .sorting-item {
-    display: inline-flex; padding: 0.4rem 0.75rem;
-    font-size: 0.85rem; margin-bottom: 0;
-    border-color: #667eea; background: #eef2ff;
+    display: inline-flex; padding: 0.4rem 0.75rem; font-size: 0.85rem;
+    margin-bottom: 0; border-color: #667eea; background: #eef2ff;
 }
-
 .category-pool {
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    background: white;
+    margin-top: 0.75rem; padding: 0.75rem; border: 2px solid #e5e7eb;
+    border-radius: 12px; background: white;
 }
-.category-pool h4 {
-    margin: 0 0 0.5rem; font-size: 0.85rem; color: #6b7280;
-}
+.category-pool h4 { margin: 0 0 0.5rem; font-size: 0.85rem; color: #6b7280; }
 .category-pool .pool-items { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
 /* ---- Image Interactive ---- */
 .image-click-area {
-    position: relative; display: inline-block;
-    cursor: crosshair; max-width: 100%;
+    position: relative; display: inline-block; cursor: crosshair; max-width: 100%;
 }
-.image-click-area img {
-    max-width: 100%; border-radius: 8px;
-    display: block;
-}
+.image-click-area img { max-width: 100%; border-radius: 8px; display: block; }
 .click-marker {
-    position: absolute;
-    width: 20px; height: 20px;
-    background: #ef4444; border: 3px solid white;
-    border-radius: 50%;
+    position: absolute; width: 24px; height: 24px;
+    background: #ef4444; border: 3px solid white; border-radius: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none;
     animation: markerPop 0.3s ease;
+}
+.click-marker .marker-label {
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    background: #1e1b4b; color: white; font-size: 0.65rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 4px; white-space: nowrap;
 }
 @keyframes markerPop {
     from { transform: translate(-50%,-50%) scale(0); }
@@ -291,137 +263,76 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
 /* ---- Graph ---- */
 .graph-wrapper {
-    border: 2px solid #e5e7eb;
-    border-radius: 10px;
-    overflow: hidden;
-    text-align: center;
-    background: white;
+    border: 2px solid #e5e7eb; border-radius: 10px;
+    overflow: hidden; text-align: center; background: white;
 }
 
-/* ---- Navigation Buttons ---- */
-.nav-buttons {
-    display: flex; justify-content: space-between; gap: 1rem;
-    margin-top: 1rem;
-}
-
-.btn-nav {
-    padding: 0.7rem 1.5rem;
-    border: none; border-radius: 10px;
-    font-size: 0.95rem; font-weight: 700;
-    cursor: pointer; font-family: inherit;
-    transition: all 0.2s;
-    display: flex; align-items: center; gap: 0.4rem;
-}
-
-.btn-prev {
-    background: rgba(255,255,255,0.12);
-    color: white;
-}
-.btn-prev:hover { background: rgba(255,255,255,0.2); }
-
-.btn-next {
+/* ---- Validate Button ---- */
+.btn-validate {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    width: 100%; padding: 0.8rem; margin-top: 1rem;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    margin-left: auto;
+    color: white; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all 0.2s;
 }
-.btn-next:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
-
-.btn-submit-final {
+.btn-validate:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+.btn-validate:disabled { background: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-validate.btn-next-q {
     background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    margin-left: auto;
-    font-size: 1rem;
 }
-.btn-submit-final:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
-.btn-submit-final:disabled { background: #6b7280; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-validate.btn-finish {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    font-size: 1.1rem;
+}
 
 /* ---- Results Overlay ---- */
 .results-overlay {
-    position: fixed; inset: 0;
-    background: rgba(15,12,41,0.9);
+    position: fixed; inset: 0; background: rgba(15,12,41,0.9);
     display: flex; align-items: center; justify-content: center;
-    z-index: 9000;
-    animation: fadeIn 0.3s ease;
+    z-index: 9000; animation: fadeIn 0.3s ease;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
 .results-card {
     background: linear-gradient(135deg, #1e1b4b, #312e81);
-    border-radius: 24px;
-    padding: 2.5rem;
-    max-width: 460px;
-    width: 90%;
-    text-align: center;
-    color: white;
+    border-radius: 24px; padding: 2.5rem; max-width: 460px; width: 90%;
+    text-align: center; color: white;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     animation: scaleIn 0.4s ease;
 }
 @keyframes scaleIn { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
-
-.results-card h2 {
-    margin: 0; font-size: 1.4rem;
-    color: #fbbf24;
-}
-
+.results-card h2 { margin: 0; font-size: 1.4rem; color: #fbbf24; }
 .results-avatar {
-    width: 80px; height: 80px;
-    margin: 1rem auto;
-    border-radius: 50%;
-    border: 3px solid #f59e0b;
-    overflow: hidden;
+    width: 80px; height: 80px; margin: 1rem auto; border-radius: 50%;
+    border: 3px solid #f59e0b; overflow: hidden;
 }
 .results-avatar img { width: 100%; height: 100%; object-fit: contain; }
-
-.results-score {
-    font-size: 3.5rem; font-weight: 900;
-    margin: 0.5rem 0;
-}
+.results-score { font-size: 3.5rem; font-weight: 900; margin: 0.5rem 0; }
 .results-score.good { color: #10b981; }
 .results-score.medium { color: #f59e0b; }
 .results-score.bad { color: #ef4444; }
-
-.results-rewards {
-    display: flex; justify-content: center;
-    gap: 2.5rem; margin: 1.5rem 0;
-}
+.results-rewards { display: flex; justify-content: center; gap: 2.5rem; margin: 1.5rem 0; }
 .reward-item { text-align: center; }
-.reward-item .reward-value {
-    font-size: 1.5rem; font-weight: 800;
-}
-.reward-item .reward-label {
-    font-size: 0.8rem; opacity: 0.6;
-}
-
-.results-level {
-    font-weight: 700; font-size: 1rem;
-    color: #a78bfa; margin-bottom: 1.5rem;
-}
-
+.reward-item .reward-value { font-size: 1.5rem; font-weight: 800; }
+.reward-item .reward-label { font-size: 0.8rem; opacity: 0.6; }
+.results-level { font-weight: 700; font-size: 1rem; color: #a78bfa; margin-bottom: 1.5rem; }
 .btn-back-missions {
     display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.7rem 1.5rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none; border-radius: 10px;
-    font-size: 1rem; font-weight: 700;
-    cursor: pointer; text-decoration: none;
-    font-family: inherit;
-    transition: all 0.2s;
+    padding: 0.7rem 1.5rem; background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; cursor: pointer; text-decoration: none;
+    font-family: inherit; transition: all 0.2s;
 }
 .btn-back-missions:hover { transform: translateY(-2px); }
-
-/* ---- Already completed banner ---- */
 .completed-banner {
-    background: rgba(16,185,129,0.15);
-    border: 2px solid rgba(16,185,129,0.4);
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1rem;
-    color: #a7f3d0;
-    display: flex; align-items: center; gap: 0.75rem;
+    background: rgba(16,185,129,0.15); border: 2px solid rgba(16,185,129,0.4);
+    border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem;
+    color: #a7f3d0; display: flex; align-items: center; gap: 0.75rem;
+}
+.results-detail {
+    font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-top: 0.5rem;
 }
 
-/* ---- Responsive ---- */
 @media (max-width: 600px) {
     .rpg-topbar { flex-direction: column; gap: 0.5rem; }
     .results-rewards { gap: 1.5rem; }
@@ -436,7 +347,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <i class="fas fa-arrow-left"></i> Retour aux missions
     </a>
 
-    <!-- Top Bar with avatar -->
+    <!-- Top Bar -->
     <div class="rpg-topbar">
         <div class="rpg-topbar-left">
             {% if rpg and rpg.avatar_class %}
@@ -450,14 +361,11 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             </div>
         </div>
         <div class="rpg-topbar-right">
+            <div class="score-tracker" id="score-tracker">
+                <i class="fas fa-check-circle" style="color:#10b981;"></i> <span id="correct-count">0</span>/<span id="total-answered">0</span>
+            </div>
             <div class="rpg-topbar-xp">
-                <i class="fas fa-star" style="color:#f59e0b;"></i> {{ exercise.total_points }} XP
-            </div>
-            <div class="rpg-topbar-gold">
-                <i class="fas fa-coins" style="color:#fbbf24;"></i> {{ rpg.gold }}
-            </div>
-            <div class="timer-display" id="timer-display" style="display:none;">
-                <i class="fas fa-clock"></i> <span id="timer-text">--:--</span>
+                <i class="fas fa-star" style="color:#f59e0b;"></i> <span id="xp-earned">0</span> XP
             </div>
         </div>
     </div>
@@ -465,10 +373,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     {% if already_completed %}
     <div class="completed-banner">
         <i class="fas fa-check-circle" style="font-size:1.3rem;color:#10b981;"></i>
-        <span>
-            <strong>Mission déjà complétée !</strong>
-            Score : {{ previous_attempt.score_percentage }}% — {{ previous_attempt.xp_earned }} XP gagnés
-        </span>
+        <span><strong>Mission déjà complétée !</strong> Score : {{ previous_attempt.score_percentage }}% — {{ previous_attempt.xp_earned }} XP gagnés</span>
     </div>
     {% endif %}
 
@@ -476,20 +381,20 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     <div class="progress-section">
         <div class="progress-label">
             <span id="progress-text">Question 1 / {{ exercise.blocks.count() }}</span>
-            <span id="progress-title">{{ exercise.title }}</span>
+            <span>{{ exercise.title }}</span>
         </div>
         <div class="progress-bar-track">
             <div class="progress-bar-fill" id="progress-fill" style="width: 0%;"></div>
         </div>
     </div>
 
-    <!-- Questions — one at a time -->
+    <!-- Questions -->
     <form id="exercise-form">
     {% set blocks_list = exercise.blocks.order_by('position').all() %}
     {% for block in blocks_list %}
     <div class="question-card" id="question-{{ block.id }}"
          data-block-id="{{ block.id }}" data-index="{{ loop.index0 }}"
-         data-duration="{{ block.duration or 0 }}"
+         data-block-type="{{ block.block_type }}"
          style="{{ '' if loop.index0 == 0 else 'display:none;' }}">
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
@@ -505,9 +410,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 </span>
                 {{ block.title or 'Question ' ~ loop.index }}
             </h3>
-            <div class="question-points">
-                <i class="fas fa-star"></i> {{ block.points }} XP
-            </div>
+            <div class="question-points"><i class="fas fa-star"></i> {{ block.points }} XP</div>
         </div>
 
         {% set c = block.config_json %}
@@ -546,12 +449,13 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         {% elif block.block_type == 'sorting' %}
             {% if c.mode == 'order' %}
-                <p class="question-text" style="color:#6b7280;">Remets ces éléments dans le bon ordre (glisse pour réorganiser) :</p>
+                <p class="question-text" style="color:#6b7280;">Remets ces éléments dans le bon ordre :</p>
                 <ul class="sorting-list" id="sorting-{{ block.id }}" data-block="{{ block.id }}" data-mode="order">
+                    {# Les items seront mélangés par JavaScript #}
                     {% for item in c['items'] %}
                     {% if item %}
-                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}">
-                        <i class="fas fa-grip-vertical"></i> {{ item }}
+                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}" data-text="{{ item }}">
+                        <i class="fas fa-grip-vertical"></i> <span class="item-text">{{ item }}</span>
                     </li>
                     {% endif %}
                     {% endfor %}
@@ -570,12 +474,13 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 <div class="category-pool" id="pool-{{ block.id }}">
                     <h4><i class="fas fa-hand-pointer"></i> Éléments à classer :</h4>
                     <div class="pool-items">
+                        {# Les items seront mélangés par JavaScript #}
                         {% for item in c['items'] %}
                         {% if item %}
                         <div class="sorting-item" draggable="true" data-item-index="{{ loop.index0 }}"
-                             data-block-id="{{ block.id }}"
+                             data-block-id="{{ block.id }}" data-text="{{ item }}"
                              ondragstart="catDragStart(event)">
-                            <i class="fas fa-grip-vertical"></i> {{ item }}
+                            <i class="fas fa-grip-vertical"></i> <span class="item-text">{{ item }}</span>
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -584,7 +489,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% endif %}
 
         {% elif block.block_type == 'image_position' %}
-            {% if c.image_url or c.image_file_id %}
+            {% if c.image_file_id or c.image_url %}
             <p class="question-text" style="color:#6b7280;">
                 Clique sur {{ c.zones|length }} zone(s) sur l'image :
                 {% for z in c.zones %}<strong>{{ z.label }}</strong>{{ ', ' if not loop.last }}{% endfor %}
@@ -593,7 +498,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                  data-expected="{{ c.zones|length }}"
                  onclick="handleImageClick(event, '{{ block.id }}')">
                 {% if c.image_file_id %}
-                <img src="{{ url_for('file_manager.preview_file', file_id=c.image_file_id) }}" alt="Image">
+                <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image">
                 {% elif c.image_url %}
                 <img src="{{ c.image_url }}" alt="Image">
                 {% endif %}
@@ -605,35 +510,37 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         {% elif block.block_type == 'graph' %}
             <p class="question-text" style="color:#6b7280;">
                 {% if c.question_type == 'draw_quadratic' %}
-                    Déplace les <strong>3 points</strong> pour tracer la courbe quadratique demandée.
+                    Déplace les <strong>3 points</strong> pour tracer la courbe quadratique.
                 {% else %}
-                    Déplace les <strong>2 points</strong> pour tracer la droite demandée.
+                    Déplace les <strong>2 points</strong> pour tracer la droite.
                 {% endif %}
             </p>
-            <div class="graph-wrapper" style="position:relative;display:inline-block;">
-                <canvas id="graph-{{ block.id }}" width="500" height="400" style="display:block;"></canvas>
+            <div class="graph-wrapper" style="position:relative;display:inline-block;width:100%;">
+                <canvas id="graph-{{ block.id }}" width="600" height="500" style="display:block;width:100%;"></canvas>
             </div>
-            <div id="graph-equation-{{ block.id }}" style="text-align:center;padding:0.5rem;font-weight:600;color:#667eea;font-size:0.95rem;"></div>
+        {% endif %}
+
+        <!-- Feedback banner (hidden initially) -->
+        <div class="feedback-banner feedback-correct-banner" id="feedback-correct-{{ block.id }}">
+            <span class="feedback-icon">🎉</span> <span>Bravo ! Bonne réponse !</span>
+        </div>
+        <div class="feedback-banner feedback-incorrect-banner" id="feedback-incorrect-{{ block.id }}">
+            <span class="feedback-icon">😔</span> <span>Pas tout à fait... Essaie encore la prochaine fois !</span>
+        </div>
+
+        <!-- Validate button (per question) -->
+        {% if not already_completed %}
+        <button type="button" class="btn-validate" id="btn-validate-{{ block.id }}" onclick="validateCurrentQuestion()">
+            <i class="fas fa-check"></i> Valider ma réponse
+        </button>
         {% endif %}
     </div>
     {% endfor %}
     </form>
-
-    <!-- Navigation -->
-    {% if not already_completed %}
-    <div class="nav-buttons" id="nav-buttons">
-        <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQuestion()" style="display:none;">
-            <i class="fas fa-chevron-left"></i> Précédent
-        </button>
-        <button class="btn-nav btn-next" id="btn-next" onclick="nextQuestion()">
-            Suivant <i class="fas fa-chevron-right"></i>
-        </button>
-        <button class="btn-nav btn-submit-final" id="btn-submit" onclick="submitExercise()" style="display:none;">
-            <i class="fas fa-paper-plane"></i> Soumettre
-        </button>
-    </div>
-    {% endif %}
 </div>
+
+<!-- Confetti container -->
+<div class="confetti-container" id="confetti-container"></div>
 
 <!-- Results overlay (hidden) -->
 <div class="results-overlay" id="results-overlay" style="display:none;">
@@ -645,6 +552,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         </div>
         {% endif %}
         <div class="results-score" id="results-score"></div>
+        <div class="results-detail" id="results-detail"></div>
         <div class="results-rewards">
             <div class="reward-item">
                 <div class="reward-value" style="color:#f59e0b;" id="results-xp">0</div>
@@ -664,368 +572,286 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
 <script>
 // ============================================================
-// Step-by-step navigation
+// State
 // ============================================================
 const totalQuestions = {{ blocks_list|length }};
 let currentQuestion = 0;
-let questionTimers = {};
+let answeredBlocks = {};  // blockId -> {is_correct, points_earned}
+let totalCorrect = 0;
+let totalXPEarned = 0;
+let questionLocked = false;  // true after validating current question
 
 const allCards = document.querySelectorAll('.question-card');
 
+// ============================================================
+// Shuffle sorting items on load
+// ============================================================
+function shuffleChildren(parent) {
+    const children = [...parent.children];
+    for (let i = children.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        parent.appendChild(children[j]);
+        [children[i], children[j]] = [children[j], children[i]];
+    }
+}
+
+document.querySelectorAll('.sorting-list[data-mode="order"]').forEach(list => {
+    shuffleChildren(list);
+});
+document.querySelectorAll('.category-pool .pool-items').forEach(pool => {
+    shuffleChildren(pool);
+});
+
+// ============================================================
+// Show question
+// ============================================================
 function showQuestion(idx) {
     allCards.forEach((card, i) => {
         card.style.display = i === idx ? '' : 'none';
     });
     currentQuestion = idx;
+    questionLocked = false;
 
-    // Update progress
     document.getElementById('progress-text').textContent = `Question ${idx + 1} / ${totalQuestions}`;
     document.getElementById('progress-fill').style.width = ((idx + 1) / totalQuestions * 100) + '%';
 
-    // Nav buttons
-    document.getElementById('btn-prev').style.display = idx > 0 ? '' : 'none';
-    const isLast = idx === totalQuestions - 1;
-    document.getElementById('btn-next').style.display = isLast ? 'none' : '';
-    document.getElementById('btn-submit').style.display = isLast ? '' : 'none';
-
-    // Timer for this question
+    // Init graph if needed
     const card = allCards[idx];
-    const duration = parseInt(card.dataset.duration) || 0;
-    startTimer(duration);
-
-    // Init graph if needed (lazy)
-    const graphCanvas = card.querySelector('canvas[id^="graph-"]');
-    if (graphCanvas && !graphStates[card.dataset.blockId]) {
-        const blockId = card.dataset.blockId;
-        const configEl = graphCanvas.closest('.question-card');
-        // Config is embedded via data attribute approach
-        initGraphForBlock(blockId);
+    const blockId = card.dataset.blockId;
+    if (card.dataset.blockType === 'graph' && graphConfigs[blockId] && !graphStates[blockId]) {
+        initInteractiveGraph(blockId, graphConfigs[blockId]);
     }
 }
 
-function nextQuestion() {
-    if (currentQuestion < totalQuestions - 1) showQuestion(currentQuestion + 1);
-}
+// ============================================================
+// Validate current question — sends to server for grading
+// ============================================================
+async function validateCurrentQuestion() {
+    if (questionLocked) return;
 
-function prevQuestion() {
-    if (currentQuestion > 0) showQuestion(currentQuestion - 1);
-}
+    const card = allCards[currentQuestion];
+    const blockId = card.dataset.blockId;
+    const answer = collectAnswer(card, blockId);
 
-// Timer
-let timerInterval = null;
-function startTimer(seconds) {
-    clearInterval(timerInterval);
-    const timerEl = document.getElementById('timer-display');
-    const timerText = document.getElementById('timer-text');
-
-    if (!seconds || seconds <= 0) {
-        timerEl.style.display = 'none';
+    // Check if answered
+    if (!hasAnswer(card, blockId, answer)) {
+        alert('Tu dois répondre à la question avant de valider !');
         return;
     }
 
-    timerEl.style.display = '';
-    let remaining = seconds;
+    const btn = document.getElementById('btn-validate-' + blockId);
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
 
-    function updateTimer() {
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        timerText.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    try {
+        const res = await fetch(`/student/missions/{{ exercise.id }}/check-block`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ block_id: parseInt(blockId), answer }),
+        });
+        const data = await res.json();
 
-        timerEl.className = 'timer-display' +
-            (remaining <= 10 ? ' danger' : remaining <= 30 ? ' warning' : '');
+        if (data.success) {
+            questionLocked = true;
+            answeredBlocks[blockId] = { is_correct: data.is_correct, points_earned: data.points_earned };
 
-        if (remaining <= 0) {
-            clearInterval(timerInterval);
-            // Auto-advance
-            if (currentQuestion < totalQuestions - 1) nextQuestion();
+            // Update counters
+            totalCorrect += data.is_correct ? 1 : 0;
+            totalXPEarned += data.points_earned;
+            document.getElementById('correct-count').textContent = totalCorrect;
+            document.getElementById('total-answered').textContent = Object.keys(answeredBlocks).length;
+            document.getElementById('xp-earned').textContent = totalXPEarned;
+
+            // Show feedback
+            showFeedback(card, blockId, data.is_correct, data.points_earned, data.max_points);
+
+            // Lock inputs
+            lockQuestion(card);
+
+            // Show next button or submit
+            const isLast = currentQuestion === totalQuestions - 1;
+            btn.disabled = false;
+            if (isLast) {
+                btn.className = 'btn-validate btn-finish';
+                btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission';
+                btn.onclick = submitExercise;
+            } else {
+                btn.className = 'btn-validate btn-next-q';
+                btn.innerHTML = 'Question suivante <i class="fas fa-arrow-right"></i>';
+                btn.onclick = () => showQuestion(currentQuestion + 1);
+            }
         }
-        remaining--;
+    } catch(e) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Valider ma réponse';
+        alert('Erreur de connexion');
     }
-
-    updateTimer();
-    timerInterval = setInterval(updateTimer, 1000);
 }
 
 // ============================================================
-// INTERACTIVE GRAPH
+// Check if a question has been answered
 // ============================================================
-let graphStates = {};
-
-// Store graph configs from Jinja
-const graphConfigs = {};
-{% for block in blocks_list %}
-{% if block.block_type == 'graph' %}
-graphConfigs['{{ block.id }}'] = {{ block.config_json|tojson }};
-{% endif %}
-{% endfor %}
-
-function initGraphForBlock(blockId) {
-    const config = graphConfigs[blockId];
-    if (!config) return;
-    initInteractiveGraph(blockId, config);
+function hasAnswer(card, blockId, answer) {
+    const type = card.dataset.blockType;
+    if (type === 'qcm') return (answer.selected || []).length > 0;
+    if (type === 'short_answer') return (answer.value || '').trim().length > 0;
+    if (type === 'fill_blank') return (answer.blanks || []).some(b => b.trim().length > 0);
+    if (type === 'sorting') {
+        if (answer.categories) {
+            const totalItems = Object.values(answer.categories).flat().length;
+            return totalItems > 0;
+        }
+        return true;  // order mode always has an answer
+    }
+    if (type === 'image_position') return (imageClicks[blockId] || []).length > 0;
+    if (type === 'graph') return !!graphStates[blockId];
+    return true;
 }
 
-function initInteractiveGraph(blockId, config) {
-    const canvas = document.getElementById('graph-' + blockId);
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const isQuadratic = config.question_type === 'draw_quadratic';
-    const numPoints = isQuadratic ? 3 : 2;
-
-    const xRange = config.x_max - config.x_min;
-    const defaultPoints = [];
-    for (let i = 0; i < numPoints; i++) {
-        const x = config.x_min + xRange * (i + 1) / (numPoints + 1);
-        defaultPoints.push({ x: Math.round(x), y: 0 });
+// ============================================================
+// Show feedback animation
+// ============================================================
+function showFeedback(card, blockId, isCorrect, points, maxPoints) {
+    if (isCorrect) {
+        card.classList.add('feedback-correct');
+        document.getElementById('feedback-correct-' + blockId).classList.add('show');
+        spawnConfetti();
+    } else {
+        card.classList.add('feedback-incorrect');
+        document.getElementById('feedback-incorrect-' + blockId).classList.add('show');
+        spawnSadParticles(card);
     }
-
-    graphStates[blockId] = {
-        config: config,
-        points: defaultPoints,
-        dragging: -1,
-    };
-
-    drawInteractiveGraph(blockId);
-
-    canvas.style.cursor = 'pointer';
-    canvas.addEventListener('mousedown', (e) => onGraphMouseDown(e, blockId));
-    canvas.addEventListener('mousemove', (e) => onGraphMouseMove(e, blockId));
-    canvas.addEventListener('mouseup', () => onGraphMouseUp(blockId));
-    canvas.addEventListener('mouseleave', () => onGraphMouseUp(blockId));
-
-    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onGraphTouchStart(e, blockId); }, {passive: false});
-    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); onGraphTouchMove(e, blockId); }, {passive: false});
-    canvas.addEventListener('touchend', () => onGraphMouseUp(blockId));
-
-    updateGraphEquation(blockId);
 }
 
-function graphToPixel(blockId, gx, gy) {
-    const s = graphStates[blockId];
-    const c = s.config;
-    const canvas = document.getElementById('graph-' + blockId);
-    const margin = 40;
-    const gw = canvas.width - 2 * margin;
-    const gh = canvas.height - 2 * margin;
-    return {
-        px: margin + ((gx - c.x_min) / (c.x_max - c.x_min)) * gw,
-        py: canvas.height - margin - ((gy - c.y_min) / (c.y_max - c.y_min)) * gh
-    };
+function spawnConfetti() {
+    const container = document.getElementById('confetti-container');
+    const colors = ['#10b981', '#f59e0b', '#667eea', '#ec4899', '#8b5cf6', '#06b6d4'];
+    for (let i = 0; i < 40; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = Math.random() * 0.5 + 's';
+        piece.style.animationDuration = (1.5 + Math.random()) + 's';
+        piece.style.width = (6 + Math.random() * 8) + 'px';
+        piece.style.height = (6 + Math.random() * 8) + 'px';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+        container.appendChild(piece);
+    }
+    setTimeout(() => { container.innerHTML = ''; }, 3000);
 }
 
-function pixelToGraph(blockId, px, py) {
-    const s = graphStates[blockId];
-    const c = s.config;
-    const canvas = document.getElementById('graph-' + blockId);
-    const margin = 40;
-    const gw = canvas.width - 2 * margin;
-    const gh = canvas.height - 2 * margin;
-    return {
-        x: c.x_min + ((px - margin) / gw) * (c.x_max - c.x_min),
-        y: c.y_min + ((canvas.height - margin - py) / gh) * (c.y_max - c.y_min)
-    };
+function spawnSadParticles(card) {
+    const rect = card.getBoundingClientRect();
+    const emojis = ['😔', '💔', '😢'];
+    for (let i = 0; i < 5; i++) {
+        const p = document.createElement('div');
+        p.className = 'sad-particle';
+        p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        p.style.position = 'fixed';
+        p.style.left = (rect.left + Math.random() * rect.width) + 'px';
+        p.style.top = (rect.top + rect.height * 0.3 + Math.random() * rect.height * 0.4) + 'px';
+        p.style.zIndex = '9999';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 1500);
+    }
 }
 
-function drawInteractiveGraph(blockId) {
-    const s = graphStates[blockId];
-    const c = s.config;
-    const canvas = document.getElementById('graph-' + blockId);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const w = canvas.width, h = canvas.height;
-    const margin = 40;
+// ============================================================
+// Lock question inputs after answering
+// ============================================================
+function lockQuestion(card) {
+    card.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+    card.querySelectorAll('.qcm-option').forEach(el => el.classList.add('locked'));
+    card.querySelectorAll('.sorting-item').forEach(el => el.setAttribute('draggable', 'false'));
+}
 
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#fafbfc';
-    ctx.fillRect(0, 0, w, h);
+// ============================================================
+// Collect answer from a question card
+// ============================================================
+function collectAnswer(card, blockId) {
+    const type = card.dataset.blockType;
 
-    // Grid
-    if (c.grid !== false) {
-        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
-        for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
-            const p = graphToPixel(blockId, x, 0);
-            ctx.beginPath(); ctx.moveTo(p.px, margin); ctx.lineTo(p.px, h - margin); ctx.stroke();
-        }
-        for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
-            const p = graphToPixel(blockId, 0, y);
-            ctx.beginPath(); ctx.moveTo(margin, p.py); ctx.lineTo(w - margin, p.py); ctx.stroke();
-        }
+    if (type === 'qcm') {
+        const selected = [...card.querySelectorAll('.qcm-option.selected')].map(o => parseInt(o.dataset.index));
+        return { selected };
     }
-
-    // Axes
-    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
-    const origin = graphToPixel(blockId, 0, 0);
-    ctx.beginPath(); ctx.moveTo(margin, origin.py); ctx.lineTo(w - margin, origin.py); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(origin.px, margin); ctx.lineTo(origin.px, h - margin); ctx.stroke();
-
-    // Axis labels
-    ctx.fillStyle = '#4b5563'; ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(c.x_label || 'x', w - margin + 5, origin.py + 4);
-    ctx.fillText(c.y_label || 'y', origin.px + 5, margin - 8);
-
-    // Axis numbers
-    ctx.font = '10px Inter, sans-serif'; ctx.fillStyle = '#9ca3af';
-    for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
-        if (x === 0) continue;
-        const p = graphToPixel(blockId, x, 0);
-        ctx.fillText(x, p.px - 4, origin.py + 14);
+    if (type === 'short_answer') {
+        const input = card.querySelector('.answer-input');
+        return { value: input ? input.value : '' };
     }
-    for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
-        if (y === 0) continue;
-        const p = graphToPixel(blockId, 0, y);
-        ctx.fillText(y, origin.px - 18, p.py + 4);
+    if (type === 'fill_blank') {
+        const blanks = [...card.querySelectorAll('.blank-input')].map(i => i.value);
+        return { blanks };
     }
-
-    // Compute function
-    const pts = s.points;
-    let fn = null;
-    if (c.question_type === 'draw_quadratic' && pts.length >= 3) {
-        const [p1, p2, p3] = pts;
-        const det = (p1.x**2*(p2.x - p3.x) - p2.x**2*(p1.x - p3.x) + p3.x**2*(p1.x - p2.x));
-        if (Math.abs(det) > 0.001) {
-            const a = (p1.y*(p2.x - p3.x) - p2.y*(p1.x - p3.x) + p3.y*(p1.x - p2.x)) / det;
-            const b = (p1.x**2*(p2.y - p3.y) - p2.x**2*(p1.y - p3.y) + p3.x**2*(p1.y - p2.y)) / det;
-            const cc = (p1.x**2*(p2.x*p3.y - p3.x*p2.y) - p2.x**2*(p1.x*p3.y - p3.x*p1.y) + p3.x**2*(p1.x*p2.y - p2.x*p1.y)) / det;
-            fn = (x) => a*x*x + b*x + cc;
+    if (type === 'sorting') {
+        const sortingList = card.querySelector('.sorting-list[data-mode="order"]');
+        if (sortingList) {
+            return { order: [...sortingList.children].map(li => parseInt(li.dataset.originalIndex)) };
         }
-    } else if (pts.length >= 2) {
-        const dx = pts[1].x - pts[0].x;
-        if (Math.abs(dx) > 0.001) {
-            const a = (pts[1].y - pts[0].y) / dx;
-            const b = pts[0].y - a * pts[0].x;
-            fn = (x) => a*x + b;
+        const catWrapper = card.querySelector('.categories-wrapper');
+        if (catWrapper) {
+            const categories = {};
+            catWrapper.querySelectorAll('.category-zone').forEach(zone => {
+                const catIdx = zone.dataset.category;
+                categories[catIdx] = [...zone.querySelectorAll('.sorting-item')].map(el => parseInt(el.dataset.itemIndex));
+            });
+            return { categories };
         }
     }
-
-    // Draw curve
-    if (fn) {
-        ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        let started = false;
-        const step = (c.x_max - c.x_min) / 300;
-        for (let x = c.x_min; x <= c.x_max; x += step) {
-            const y = fn(x);
-            const p = graphToPixel(blockId, x, y);
-            if (p.py < margin || p.py > h - margin) { started = false; continue; }
-            if (!started) { ctx.moveTo(p.px, p.py); started = true; }
-            else { ctx.lineTo(p.px, p.py); }
-        }
-        ctx.stroke();
+    if (type === 'image_position') {
+        return { clicks: imageClicks[blockId] || [] };
     }
+    if (type === 'graph' && graphStates[blockId]) {
+        return { points: graphStates[blockId].points };
+    }
+    return {};
+}
 
-    // Draggable points
-    pts.forEach((pt, i) => {
-        const p = graphToPixel(blockId, pt.x, pt.y);
-        ctx.fillStyle = i === s.dragging ? '#dc2626' : '#10b981';
-        ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(p.px, p.py, 10, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = 'white'; ctx.font = 'bold 10px Inter, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(String.fromCharCode(65 + i), p.px, p.py + 4);
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#374151'; ctx.font = '11px Inter, sans-serif';
-        ctx.fillText(`(${Math.round(pt.x*10)/10}, ${Math.round(pt.y*10)/10})`, p.px + 14, p.py - 4);
+// ============================================================
+// Submit entire exercise (final)
+// ============================================================
+async function submitExercise() {
+    const btn = allCards[currentQuestion].querySelector('.btn-validate, .btn-finish');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...'; }
+
+    // Collect all answers
+    const answers = {};
+    allCards.forEach(card => {
+        const blockId = card.dataset.blockId;
+        answers[blockId] = collectAnswer(card, blockId);
     });
-}
 
-function getCanvasCoords(e, blockId) {
-    const canvas = document.getElementById('graph-' + blockId);
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-        px: (e.clientX - rect.left) * scaleX,
-        py: (e.clientY - rect.top) * scaleY
-    };
-}
+    try {
+        const res = await fetch(`/student/missions/{{ exercise.id }}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers }),
+        });
+        const data = await res.json();
 
-function onGraphMouseDown(e, blockId) {
-    const s = graphStates[blockId];
-    const {px, py} = getCanvasCoords(e, blockId);
-    for (let i = 0; i < s.points.length; i++) {
-        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
-        if (Math.sqrt((px - p.px)**2 + (py - p.py)**2) < 20) { s.dragging = i; break; }
-    }
-}
+        if (data.success) {
+            const pct = data.percentage;
+            const scoreEl = document.getElementById('results-score');
+            scoreEl.textContent = pct + '%';
+            scoreEl.className = 'results-score ' + (pct >= 80 ? 'good' : pct >= 50 ? 'medium' : 'bad');
 
-function onGraphTouchStart(e, blockId) {
-    const touch = e.touches[0];
-    const canvas = document.getElementById('graph-' + blockId);
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const px = (touch.clientX - rect.left) * scaleX;
-    const py = (touch.clientY - rect.top) * scaleY;
-    const s = graphStates[blockId];
-    for (let i = 0; i < s.points.length; i++) {
-        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
-        if (Math.sqrt((px - p.px)**2 + (py - p.py)**2) < 25) { s.dragging = i; break; }
-    }
-}
+            document.getElementById('results-detail').textContent =
+                `${data.score}/${data.max_score} points — ${totalCorrect}/${totalQuestions} bonnes réponses`;
+            document.getElementById('results-xp').textContent = '+' + data.xp_earned;
+            document.getElementById('results-gold').textContent = '+' + data.gold_earned;
+            document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;
 
-function onGraphMouseMove(e, blockId) {
-    const s = graphStates[blockId];
-    if (s.dragging < 0) return;
-    const {px, py} = getCanvasCoords(e, blockId);
-    const gCoords = pixelToGraph(blockId, px, py);
-    s.points[s.dragging].x = Math.round(gCoords.x * 2) / 2;
-    s.points[s.dragging].y = Math.round(gCoords.y * 2) / 2;
-    drawInteractiveGraph(blockId);
-    updateGraphEquation(blockId);
-}
-
-function onGraphTouchMove(e, blockId) {
-    const s = graphStates[blockId];
-    if (s.dragging < 0) return;
-    const touch = e.touches[0];
-    const canvas = document.getElementById('graph-' + blockId);
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const px = (touch.clientX - rect.left) * scaleX;
-    const py = (touch.clientY - rect.top) * scaleY;
-    const gCoords = pixelToGraph(blockId, px, py);
-    s.points[s.dragging].x = Math.round(gCoords.x * 2) / 2;
-    s.points[s.dragging].y = Math.round(gCoords.y * 2) / 2;
-    drawInteractiveGraph(blockId);
-    updateGraphEquation(blockId);
-}
-
-function onGraphMouseUp(blockId) {
-    const s = graphStates[blockId];
-    if (!s) return;
-    s.dragging = -1;
-    drawInteractiveGraph(blockId);
-}
-
-function updateGraphEquation(blockId) {
-    const s = graphStates[blockId];
-    const el = document.getElementById('graph-equation-' + blockId);
-    if (!el) return;
-    const pts = s.points;
-    const c = s.config;
-
-    if (c.question_type === 'draw_quadratic' && pts.length >= 3) {
-        const det = (pts[0].x**2*(pts[1].x - pts[2].x) - pts[1].x**2*(pts[0].x - pts[2].x) + pts[2].x**2*(pts[0].x - pts[1].x));
-        if (Math.abs(det) > 0.001) {
-            const a = (pts[0].y*(pts[1].x - pts[2].x) - pts[1].y*(pts[0].x - pts[2].x) + pts[2].y*(pts[0].x - pts[1].x)) / det;
-            const b = (pts[0].x**2*(pts[1].y - pts[2].y) - pts[1].x**2*(pts[0].y - pts[2].y) + pts[2].x**2*(pts[0].y - pts[1].y)) / det;
-            const cc = (pts[0].x**2*(pts[1].x*pts[2].y - pts[2].x*pts[1].y) - pts[1].x**2*(pts[0].x*pts[2].y - pts[2].x*pts[0].y) + pts[2].x**2*(pts[0].x*pts[1].y - pts[1].x*pts[0].y)) / det;
-            el.textContent = `f(x) = ${Math.round(a*100)/100}x\u00B2 + ${Math.round(b*100)/100}x + ${Math.round(cc*100)/100}`;
+            document.getElementById('results-overlay').style.display = 'flex';
+            if (pct >= 80) spawnConfetti();
         } else {
-            el.textContent = 'Déplace les points (positions invalides)';
+            alert(data.message || 'Erreur');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission'; }
         }
-    } else if (pts.length >= 2) {
-        const dx = pts[1].x - pts[0].x;
-        if (Math.abs(dx) > 0.001) {
-            const a = (pts[1].y - pts[0].y) / dx;
-            const b = pts[0].y - a * pts[0].x;
-            el.textContent = `f(x) = ${Math.round(a*100)/100}x + ${Math.round(b*100)/100}`;
-        } else {
-            el.textContent = 'Déplace les points (droite verticale)';
-        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission'; }
     }
 }
 
@@ -1033,6 +859,7 @@ function updateGraphEquation(blockId) {
 // QCM selection
 // ============================================================
 function selectQCM(li) {
+    if (li.classList.contains('locked')) return;
     const list = li.parentElement;
     const isMultiple = list.dataset.multiple === 'true';
     if (!isMultiple) {
@@ -1046,6 +873,7 @@ function selectQCM(li) {
 // ============================================================
 let imageClicks = {};
 function handleImageClick(event, blockId) {
+    if (questionLocked) return;
     const container = document.getElementById('img-click-' + blockId);
     const img = container.querySelector('img');
     const rect = img.getBoundingClientRect();
@@ -1054,18 +882,20 @@ function handleImageClick(event, blockId) {
     const expected = parseInt(container.dataset.expected) || 1;
 
     if (!imageClicks[blockId]) imageClicks[blockId] = [];
-
     if (imageClicks[blockId].length >= expected) {
         container.querySelectorAll('.click-marker').forEach(m => m.remove());
         imageClicks[blockId] = [];
     }
-
     imageClicks[blockId].push({ x, y });
 
     const marker = document.createElement('div');
     marker.className = 'click-marker';
     marker.style.left = x + 'px';
     marker.style.top = y + 'px';
+    const label = document.createElement('div');
+    label.className = 'marker-label';
+    label.textContent = imageClicks[blockId].length;
+    marker.appendChild(label);
     container.appendChild(marker);
 }
 
@@ -1076,27 +906,22 @@ document.querySelectorAll('.sorting-list[data-mode="order"]').forEach(list => {
     let dragEl = null;
     list.querySelectorAll('.sorting-item').forEach(item => {
         item.addEventListener('dragstart', function(e) {
-            dragEl = this;
-            this.classList.add('dragging');
+            dragEl = this; this.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
         item.addEventListener('dragend', function() {
-            this.classList.remove('dragging');
-            dragEl = null;
+            this.classList.remove('dragging'); dragEl = null;
         });
         item.addEventListener('dragover', function(e) { e.preventDefault(); });
         item.addEventListener('drop', function(e) {
             e.preventDefault();
             if (dragEl && dragEl !== this) {
                 const parent = this.parentNode;
-                const allItems = [...parent.children];
-                const fromIdx = allItems.indexOf(dragEl);
-                const toIdx = allItems.indexOf(this);
-                if (fromIdx < toIdx) {
-                    parent.insertBefore(dragEl, this.nextSibling);
-                } else {
-                    parent.insertBefore(dragEl, this);
-                }
+                const all = [...parent.children];
+                const from = all.indexOf(dragEl);
+                const to = all.indexOf(this);
+                if (from < to) parent.insertBefore(dragEl, this.nextSibling);
+                else parent.insertBefore(dragEl, this);
             }
         });
     });
@@ -1115,24 +940,14 @@ function catDragStart(event) {
         event.dataTransfer.setData('text/plain', '');
     }
 }
-
-function catDragOver(event) {
-    event.preventDefault();
-    event.currentTarget.classList.add('drag-over');
-}
-
-function catDragLeave(event) {
-    event.currentTarget.classList.remove('drag-over');
-}
-
+function catDragOver(event) { event.preventDefault(); event.currentTarget.classList.add('drag-over'); }
+function catDragLeave(event) { event.currentTarget.classList.remove('drag-over'); }
 function catDrop(event, blockId) {
     event.preventDefault();
     const zone = event.currentTarget;
     zone.classList.remove('drag-over');
-
     if (draggedCatItem) {
         const zoneItems = zone.querySelector('.zone-items');
-        // Re-attach drag events
         draggedCatItem.setAttribute('draggable', 'true');
         draggedCatItem.ondragstart = catDragStart;
         zoneItems.appendChild(draggedCatItem);
@@ -1140,22 +955,13 @@ function catDrop(event, blockId) {
         draggedCatItem = null;
     }
 }
-
-// Also allow dropping back to pool
 document.querySelectorAll('.category-pool').forEach(pool => {
-    pool.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        pool.style.borderColor = '#667eea';
-    });
-    pool.addEventListener('dragleave', () => {
-        pool.style.borderColor = '#e5e7eb';
-    });
+    pool.addEventListener('dragover', (e) => { e.preventDefault(); pool.style.borderColor = '#667eea'; });
+    pool.addEventListener('dragleave', () => { pool.style.borderColor = '#e5e7eb'; });
     pool.addEventListener('drop', (e) => {
-        e.preventDefault();
-        pool.style.borderColor = '#e5e7eb';
+        e.preventDefault(); pool.style.borderColor = '#e5e7eb';
         if (draggedCatItem) {
-            const poolItems = pool.querySelector('.pool-items');
-            poolItems.appendChild(draggedCatItem);
+            pool.querySelector('.pool-items').appendChild(draggedCatItem);
             draggedCatItem.classList.remove('dragging');
             draggedCatItem = null;
         }
@@ -1163,123 +969,245 @@ document.querySelectorAll('.category-pool').forEach(pool => {
 });
 
 // ============================================================
-// Submit exercise
+// INTERACTIVE GRAPH — improved rendering, no equation display
 // ============================================================
-async function submitExercise() {
-    const btn = document.getElementById('btn-submit');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+let graphStates = {};
+const graphConfigs = {};
+{% for block in blocks_list %}
+{% if block.block_type == 'graph' %}
+graphConfigs['{{ block.id }}'] = {{ block.config_json|tojson }};
+{% endif %}
+{% endfor %}
 
-    const answers = {};
+function initInteractiveGraph(blockId, config) {
+    const canvas = document.getElementById('graph-' + blockId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    document.querySelectorAll('.question-card').forEach(card => {
-        const blockId = card.dataset.blockId;
-
-        // QCM
-        const qcmList = card.querySelector('.qcm-options');
-        if (qcmList) {
-            const selected = [...card.querySelectorAll('.qcm-option.selected')].map(o => parseInt(o.dataset.index));
-            answers[blockId] = { selected };
-        }
-
-        // Short answer
-        const ansInput = card.querySelector('.answer-input[data-block]');
-        if (ansInput) {
-            answers[blockId] = { value: ansInput.value };
-        }
-
-        // Fill blank
-        const blankInputs = card.querySelectorAll('.blank-input');
-        if (blankInputs.length > 0) {
-            const blanks = [...blankInputs].map(input => input.value);
-            answers[blockId] = { blanks };
-        }
-
-        // Sorting (order mode)
-        const sortingList = card.querySelector('.sorting-list[data-mode="order"]');
-        if (sortingList) {
-            const order = [...sortingList.children].map(li => parseInt(li.dataset.originalIndex));
-            answers[blockId] = { order };
-        }
-
-        // Sorting (categories mode)
-        const catWrapper = card.querySelector('.categories-wrapper');
-        if (catWrapper) {
-            const catBlockId = catWrapper.dataset.block;
-            const categoryAssignments = {};
-            catWrapper.querySelectorAll('.category-zone').forEach(zone => {
-                const catIdx = zone.dataset.category;
-                const items = [...zone.querySelectorAll('.sorting-item')].map(el => parseInt(el.dataset.itemIndex));
-                categoryAssignments[catIdx] = items;
-            });
-            answers[catBlockId] = { categories: categoryAssignments };
-        }
-
-        // Image clicks
-        if (imageClicks[blockId] && imageClicks[blockId].length > 0) {
-            answers[blockId] = { clicks: imageClicks[blockId] };
-        }
-
-        // Graph
-        if (graphStates[blockId]) {
-            answers[blockId] = { points: graphStates[blockId].points };
-        }
-    });
-
-    try {
-        const res = await fetch(`/student/missions/{{ exercise.id }}/submit`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers }),
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            const pct = data.percentage;
-            const scoreEl = document.getElementById('results-score');
-            scoreEl.textContent = pct + '%';
-            scoreEl.className = 'results-score ' + (pct >= 80 ? 'good' : pct >= 50 ? 'medium' : 'bad');
-
-            document.getElementById('results-xp').textContent = '+' + data.xp_earned;
-            document.getElementById('results-gold').textContent = '+' + data.gold_earned;
-            document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;
-
-            // Highlight correct/incorrect
-            (data.results || []).forEach(r => {
-                const card = document.getElementById('question-' + r.block_id);
-                if (card) {
-                    card.style.borderLeft = '4px solid ' + (r.is_correct ? '#10b981' : '#ef4444');
-                }
-            });
-
-            document.getElementById('results-overlay').style.display = 'flex';
-        } else {
-            alert(data.message || 'Erreur');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Soumettre';
-        }
-    } catch(e) {
-        alert('Erreur de connexion');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Soumettre';
+    const isQuadratic = config.question_type === 'draw_quadratic';
+    const numPoints = isQuadratic ? 3 : 2;
+    const xRange = config.x_max - config.x_min;
+    const defaultPoints = [];
+    for (let i = 0; i < numPoints; i++) {
+        const x = config.x_min + xRange * (i + 1) / (numPoints + 1);
+        defaultPoints.push({ x: Math.round(x), y: 0 });
     }
+
+    graphStates[blockId] = { config, points: defaultPoints, dragging: -1 };
+    drawInteractiveGraph(blockId);
+
+    canvas.style.cursor = 'pointer';
+    canvas.addEventListener('mousedown', (e) => onGraphMouseDown(e, blockId));
+    canvas.addEventListener('mousemove', (e) => onGraphMouseMove(e, blockId));
+    canvas.addEventListener('mouseup', () => onGraphMouseUp(blockId));
+    canvas.addEventListener('mouseleave', () => onGraphMouseUp(blockId));
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onGraphTouchStart(e, blockId); }, {passive: false});
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); onGraphTouchMove(e, blockId); }, {passive: false});
+    canvas.addEventListener('touchend', () => onGraphMouseUp(blockId));
+}
+
+function graphToPixel(blockId, gx, gy) {
+    const s = graphStates[blockId]; const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const margin = 50; const gw = canvas.width - 2 * margin; const gh = canvas.height - 2 * margin;
+    return {
+        px: margin + ((gx - c.x_min) / (c.x_max - c.x_min)) * gw,
+        py: canvas.height - margin - ((gy - c.y_min) / (c.y_max - c.y_min)) * gh
+    };
+}
+function pixelToGraph(blockId, px, py) {
+    const s = graphStates[blockId]; const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const margin = 50; const gw = canvas.width - 2 * margin; const gh = canvas.height - 2 * margin;
+    return {
+        x: c.x_min + ((px - margin) / gw) * (c.x_max - c.x_min),
+        y: c.y_min + ((canvas.height - margin - py) / gh) * (c.y_max - c.y_min)
+    };
+}
+
+function drawInteractiveGraph(blockId) {
+    const s = graphStates[blockId]; const c = s.config;
+    const canvas = document.getElementById('graph-' + blockId);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width, h = canvas.height, margin = 50;
+
+    // Use devicePixelRatio for sharp rendering
+    const dpr = window.devicePixelRatio || 1;
+    if (!canvas.dataset.scaled) {
+        canvas.dataset.scaled = '1';
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.scale(dpr, dpr);
+    }
+
+    const cw = w, ch = h;
+    ctx.clearRect(0, 0, cw * dpr, ch * dpr);
+
+    // Background
+    ctx.fillStyle = '#fafbfc';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Grid
+    if (c.grid !== false) {
+        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+        for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+            const p = graphToPixel(blockId, x, 0);
+            ctx.beginPath(); ctx.moveTo(p.px, margin); ctx.lineTo(p.px, ch - margin); ctx.stroke();
+        }
+        for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+            const p = graphToPixel(blockId, 0, y);
+            ctx.beginPath(); ctx.moveTo(margin, p.py); ctx.lineTo(cw - margin, p.py); ctx.stroke();
+        }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
+    const origin = graphToPixel(blockId, 0, 0);
+    ctx.beginPath(); ctx.moveTo(margin, origin.py); ctx.lineTo(cw - margin, origin.py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(origin.px, margin); ctx.lineTo(origin.px, ch - margin); ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = '#374151'; ctx.font = 'bold 14px Inter, system-ui, sans-serif';
+    ctx.fillText(c.x_label || 'x', cw - margin + 8, origin.py + 5);
+    ctx.fillText(c.y_label || 'y', origin.px + 8, margin - 12);
+
+    // Axis numbers
+    ctx.font = '12px Inter, system-ui, sans-serif'; ctx.fillStyle = '#6b7280';
+    for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+        if (x === 0) continue;
+        const p = graphToPixel(blockId, x, 0);
+        ctx.textAlign = 'center';
+        ctx.fillText(x, p.px, origin.py + 18);
+    }
+    ctx.textAlign = 'right';
+    for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+        if (y === 0) continue;
+        const p = graphToPixel(blockId, 0, y);
+        ctx.fillText(y, origin.px - 8, p.py + 4);
+    }
+    ctx.textAlign = 'left';
+
+    // Compute function
+    const pts = s.points; let fn = null;
+    if (c.question_type === 'draw_quadratic' && pts.length >= 3) {
+        const [p1, p2, p3] = pts;
+        const det = (p1.x**2*(p2.x-p3.x) - p2.x**2*(p1.x-p3.x) + p3.x**2*(p1.x-p2.x));
+        if (Math.abs(det) > 0.001) {
+            const a = (p1.y*(p2.x-p3.x) - p2.y*(p1.x-p3.x) + p3.y*(p1.x-p2.x)) / det;
+            const b = (p1.x**2*(p2.y-p3.y) - p2.x**2*(p1.y-p3.y) + p3.x**2*(p1.y-p2.y)) / det;
+            const cc = (p1.x**2*(p2.x*p3.y-p3.x*p2.y) - p2.x**2*(p1.x*p3.y-p3.x*p1.y) + p3.x**2*(p1.x*p2.y-p2.x*p1.y)) / det;
+            fn = (x) => a*x*x + b*x + cc;
+        }
+    } else if (pts.length >= 2) {
+        const dx = pts[1].x - pts[0].x;
+        if (Math.abs(dx) > 0.001) {
+            const a = (pts[1].y - pts[0].y) / dx;
+            const b = pts[0].y - a * pts[0].x;
+            fn = (x) => a*x + b;
+        }
+    }
+
+    // Draw curve (thicker, smoother)
+    if (fn) {
+        ctx.strokeStyle = '#667eea'; ctx.lineWidth = 3;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); let started = false;
+        const step = (c.x_max - c.x_min) / 400;
+        for (let x = c.x_min; x <= c.x_max; x += step) {
+            const y = fn(x);
+            const p = graphToPixel(blockId, x, y);
+            if (p.py < margin - 5 || p.py > ch - margin + 5) { started = false; continue; }
+            if (!started) { ctx.moveTo(p.px, p.py); started = true; }
+            else ctx.lineTo(p.px, p.py);
+        }
+        ctx.stroke();
+    }
+
+    // Draw draggable points (bigger, more visible)
+    pts.forEach((pt, i) => {
+        const p = graphToPixel(blockId, pt.x, pt.y);
+        // Glow
+        ctx.fillStyle = (i === s.dragging ? 'rgba(220,38,38,0.2)' : 'rgba(16,185,129,0.2)');
+        ctx.beginPath(); ctx.arc(p.px, p.py, 18, 0, Math.PI * 2); ctx.fill();
+        // Point
+        ctx.fillStyle = i === s.dragging ? '#dc2626' : '#10b981';
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(p.px, p.py, 12, 0, Math.PI * 2);
+        ctx.fill(); ctx.stroke();
+        // Letter
+        ctx.fillStyle = 'white'; ctx.font = 'bold 12px Inter, system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(String.fromCharCode(65 + i), p.px, p.py + 4);
+        ctx.textAlign = 'left';
+        // Coordinates
+        ctx.fillStyle = '#1e1b4b'; ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.fillText(`(${Math.round(pt.x*10)/10}, ${Math.round(pt.y*10)/10})`, p.px + 18, p.py - 6);
+    });
+}
+
+function getCanvasCoords(e, blockId) {
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
+    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    return { px: (e.clientX - rect.left) * scaleX, py: (e.clientY - rect.top) * scaleY };
+}
+function onGraphMouseDown(e, blockId) {
+    if (questionLocked) return;
+    const s = graphStates[blockId]; const {px, py} = getCanvasCoords(e, blockId);
+    for (let i = 0; i < s.points.length; i++) {
+        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
+        if (Math.sqrt((px - p.px)**2 + (py - p.py)**2) < 25) { s.dragging = i; break; }
+    }
+}
+function onGraphTouchStart(e, blockId) {
+    if (questionLocked) return;
+    const touch = e.touches[0];
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
+    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    const px = (touch.clientX - rect.left) * scaleX;
+    const py = (touch.clientY - rect.top) * scaleY;
+    const s = graphStates[blockId];
+    for (let i = 0; i < s.points.length; i++) {
+        const p = graphToPixel(blockId, s.points[i].x, s.points[i].y);
+        if (Math.sqrt((px - p.px)**2 + (py - p.py)**2) < 30) { s.dragging = i; break; }
+    }
+}
+function onGraphMouseMove(e, blockId) {
+    const s = graphStates[blockId]; if (s.dragging < 0) return;
+    const {px, py} = getCanvasCoords(e, blockId);
+    const g = pixelToGraph(blockId, px, py);
+    s.points[s.dragging].x = Math.round(g.x * 2) / 2;
+    s.points[s.dragging].y = Math.round(g.y * 2) / 2;
+    drawInteractiveGraph(blockId);
+}
+function onGraphTouchMove(e, blockId) {
+    const s = graphStates[blockId]; if (s.dragging < 0) return;
+    const touch = e.touches[0];
+    const canvas = document.getElementById('graph-' + blockId);
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = (canvas.width / (window.devicePixelRatio || 1)) / rect.width;
+    const scaleY = (canvas.height / (window.devicePixelRatio || 1)) / rect.height;
+    const g = pixelToGraph(blockId, (touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+    s.points[s.dragging].x = Math.round(g.x * 2) / 2;
+    s.points[s.dragging].y = Math.round(g.y * 2) / 2;
+    drawInteractiveGraph(blockId);
+}
+function onGraphMouseUp(blockId) {
+    const s = graphStates[blockId]; if (!s) return;
+    s.dragging = -1; drawInteractiveGraph(blockId);
 }
 
 // ============================================================
-// Init: show first question & init first graph if needed
+// Init
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    if (totalQuestions > 0) {
-        showQuestion(0);
-    }
-
-    // Init all graphs that are currently visible (first question)
-    Object.keys(graphConfigs).forEach(blockId => {
-        const card = document.getElementById('question-' + blockId);
-        if (card && card.style.display !== 'none') {
-            initGraphForBlock(blockId);
-        }
-    });
+    if (totalQuestions > 0) showQuestion(0);
 });
 </script>
 {% endblock %}

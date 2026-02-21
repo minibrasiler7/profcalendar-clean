@@ -936,6 +936,38 @@ def solve_exercise(exercise_id):
                            previous_attempt=existing_attempt)
 
 
+@student_auth_bp.route('/missions/<int:exercise_id>/check-block', methods=['POST'])
+@login_required
+def check_block_answer(exercise_id):
+    """Vérifier la réponse d'un seul bloc (feedback immédiat)"""
+    if not isinstance(current_user, Student):
+        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+
+    from models.exercise import Exercise, ExerciseBlock
+
+    exercise = Exercise.query.get_or_404(exercise_id)
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Données manquantes'}), 400
+
+    block_id = data.get('block_id')
+    answer = data.get('answer', {})
+
+    block = ExerciseBlock.query.get(block_id)
+    if not block or block.exercise_id != exercise.id:
+        return jsonify({'success': False, 'message': 'Bloc non trouvé'}), 404
+
+    accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
+    is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
+
+    return jsonify({
+        'success': True,
+        'is_correct': is_correct,
+        'points_earned': points_earned,
+        'max_points': block.points or 0,
+    })
+
+
 @student_auth_bp.route('/missions/<int:exercise_id>/submit', methods=['POST'])
 @login_required
 def submit_exercise(exercise_id):

@@ -1445,6 +1445,48 @@ def student_get_mission(mission_id):
     })
 
 
+@api_bp.route('/student/missions/<int:mission_id>/check-block', methods=['POST'])
+@jwt_required(user_type='student')
+def student_check_block(mission_id):
+    """Vérifier la réponse d'un seul bloc (feedback immédiat)."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.exercise import Exercise, ExerciseBlock
+    from models.exercise_progress import ExercisePublication
+    from routes.student_auth import grade_block
+
+    publication = ExercisePublication.query.filter_by(
+        id=mission_id,
+        classroom_id=student.classroom_id
+    ).first()
+    if not publication:
+        return jsonify({'error': 'Mission non trouvée'}), 404
+
+    exercise = publication.exercise
+    if not exercise:
+        return jsonify({'error': 'Exercice non trouvé'}), 404
+
+    data = request.get_json(silent=True) or {}
+    block_id = data.get('block_id')
+    answer = data.get('answer', {})
+
+    block = ExerciseBlock.query.get(block_id)
+    if not block or block.exercise_id != exercise.id:
+        return jsonify({'error': 'Bloc non trouvé'}), 404
+
+    accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
+    is_correct, points_earned = grade_block(block, answer, accept_typos=accept_typos)
+
+    return jsonify({
+        'success': True,
+        'is_correct': is_correct,
+        'points_earned': points_earned,
+        'max_points': block.points or 0,
+    })
+
+
 @api_bp.route('/student/missions/<int:mission_id>/submit', methods=['POST'])
 @jwt_required(user_type='student')
 def student_submit_mission(mission_id):

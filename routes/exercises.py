@@ -357,8 +357,28 @@ def upload_block_image():
         return jsonify({
             'success': True,
             'file_id': user_file.id,
-            'url': url_for('file_manager.preview_file', file_id=user_file.id),
+            'url': url_for('exercises.exercise_block_image', file_id=user_file.id),
         })
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@exercises_bp.route('/block-image/<int:file_id>')
+def exercise_block_image(file_id):
+    """Servir une image de bloc d'exercice (accessible aux élèves et enseignants)"""
+    from models.file_manager import UserFile
+    from flask import Response
+
+    user_file = UserFile.query.get_or_404(file_id)
+
+    if user_file.file_content:
+        return Response(
+            user_file.file_content,
+            mimetype=user_file.mime_type or 'image/png',
+            headers={
+                'Content-Disposition': f'inline; filename="{user_file.original_filename}"',
+                'Cache-Control': 'public, max-age=3600',
+            }
+        )
+    return 'Image non trouvée', 404
