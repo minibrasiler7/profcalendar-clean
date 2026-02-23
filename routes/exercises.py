@@ -87,8 +87,8 @@ def save():
         exercise.badge_threshold = data.get('badge_threshold', 100)
 
         exercise.is_draft = data.get('is_draft', True)
-        if data.get('folder_id') is not None:
-            exercise.folder_id = data.get('folder_id') or None
+        if 'folder_id' in data:
+            exercise.folder_id = data['folder_id'] if data['folder_id'] else None
         exercise.updated_at = datetime.utcnow()
 
         # Sauvegarder d'abord pour obtenir l'ID
@@ -153,7 +153,7 @@ def save():
 def list_folders():
     """Lister les dossiers du gestionnaire de fichiers de l'utilisateur"""
     try:
-        from routes.file_manager import FileFolder
+        from models.file_manager import FileFolder
         folders = FileFolder.query.filter_by(user_id=current_user.id).order_by(FileFolder.name).all()
         return jsonify({
             'success': True,
@@ -166,6 +166,51 @@ def list_folders():
         })
     except Exception as e:
         return jsonify({'success': True, 'folders': []})
+
+
+@exercises_bp.route('/publish-to-class', methods=['POST'])
+@login_required
+@teacher_required
+def publish_to_class():
+    """Publier un exercice dans une classe (via drag & drop du file manager)"""
+    data = request.get_json(silent=True) or {}
+    exercise_id = data.get('exercise_id')
+    classroom_id = data.get('classroom_id')
+
+    if not exercise_id or not classroom_id:
+        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+
+    from models.exercise_progress import ExercisePublication
+    from datetime import datetime
+
+    # Vérifier si déjà publié
+    existing = ExercisePublication.query.filter_by(
+        exercise_id=exercise.id,
+        classroom_id=classroom_id
+    ).first()
+
+    if existing:
+        return jsonify({'success': False, 'error': 'Déjà publié dans cette classe'})
+
+    pub = ExercisePublication(
+        exercise_id=exercise.id,
+        classroom_id=classroom_id,
+        published_by=current_user.id,
+        published_at=datetime.utcnow(),
+        mode='classique',
+    )
+    db.session.add(pub)
+
+    # Marquer comme publié
+    exercise.is_published = True
+    exercise.is_draft = False
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Exercice publié'})
 
 
 @exercises_bp.route('/<int:exercise_id>/delete', methods=['DELETE'])
@@ -270,6 +315,7 @@ def publish(exercise_id):
                 classroom_id=cid,
                 planning_id=planning_id,
                 published_by=current_user.id,
+                mode=data.get('mode', 'classique'),
             )
             db.session.add(pub)
 
@@ -334,6 +380,162 @@ def get_exercise_data(exercise_id):
     return jsonify({
         'success': True,
         'exercise': exercise.to_dict(include_blocks=True)
+    })
+
+
+# ============================================================
+# Endpoints pour le lancement et suivi live
+# ============================================================
+
+@exercises_bp.route('/launch', methods=['POST'])
+@login_required
+@teacher_required
+def launch_exercise():
+    """Publier et lancer un exercice pour une classe avec un mode (classique/combat)"""
+    data = request.get_json(silent=True) or {}
+    exercise_id = data.get('exercise_id')
+    classroom_id = data.get('classroom_id')
+    mode = data.get('mode', 'classique')  # 'classique' ou 'combat'
+
+    if not exercise_id or not classroom_id:
+        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+
+    # Vérifier si déjà publié pour cette classe
+    existing = ExercisePublication.query.filter_by(
+        exercise_id=exercise.id,
+        classroom_id=classroom_id
+    ).first()
+
+    if existing:
+        # Mettre à jour le mode et activer
+        existing.mode = mode
+        existing.is_active = (mode == 'combat')
+    else:
+        pub = ExercisePublication(
+            exercise_id=exercise.id,
+            classroom_id=classroom_id,
+            published_by=current_user.id,
+            published_at=datetime.utcnow(),
+            mode=mode,
+            is_active=(mode == 'combat'),
+        )
+        db.session.add(pub)
+
+    exercise.is_published = True
+    exercise.is_draft = False
+    db.session.commit()
+
+    pub_obj = existing or pub
+    return jsonify({
+        'success': True,
+        'publication_id': pub_obj.id,
+        'mode': mode,
+        'message': f'Exercice lancé en mode {mode}'
+    })
+
+
+@exercises_bp.route('/publication/<int:pub_id>/toggle-active', methods=['POST'])
+@login_required
+@teacher_required
+def toggle_active(pub_id):
+    """Activer/désactiver une mission live (mode combat)"""
+    pub = ExercisePublication.query.get_or_404(pub_id)
+    exercise = Exercise.query.get(pub.exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+    pub.is_active = not pub.is_active
+    db.session.commit()
+    return jsonify({'success': True, 'is_active': pub.is_active})
+
+
+@exercises_bp.route('/publication/<int:pub_id>/live-tracking')
+@login_required
+@teacher_required
+def live_tracking(pub_id):
+    """Suivi en direct des élèves pendant une mission"""
+    pub = ExercisePublication.query.get_or_404(pub_id)
+    exercise = Exercise.query.get(pub.exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+    from models.student import Student
+
+    # Tous les élèves de la classe
+    students = Student.query.filter_by(classroom_id=pub.classroom_id).all()
+    blocks_count = exercise.blocks.count() if exercise.blocks else 0
+
+    tracking_data = []
+    for student in students:
+        # Tentative en cours ou la plus récente
+        attempt = StudentExerciseAttempt.query.filter_by(
+            student_id=student.id,
+            exercise_id=exercise.id
+        ).order_by(StudentExerciseAttempt.started_at.desc()).first()
+
+        if attempt:
+            # Compter les réponses données
+            answers_count = StudentBlockAnswer.query.filter_by(
+                attempt_id=attempt.id
+            ).count()
+            correct_count = StudentBlockAnswer.query.filter_by(
+                attempt_id=attempt.id, is_correct=True
+            ).count()
+
+            status = 'completed' if attempt.is_completed else 'in_progress'
+            tracking_data.append({
+                'student_id': student.id,
+                'name': f"{student.first_name} {student.last_name}",
+                'status': status,
+                'answers_count': answers_count,
+                'correct_count': correct_count,
+                'blocks_count': blocks_count,
+                'score': attempt.score if attempt.is_completed else None,
+                'max_score': attempt.max_score if attempt.is_completed else None,
+                'score_percentage': attempt.score_percentage if attempt.is_completed else None,
+                'xp_earned': attempt.xp_earned if attempt.is_completed else 0,
+                'started_at': attempt.started_at.isoformat() if attempt.started_at else None,
+                'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,
+            })
+        else:
+            tracking_data.append({
+                'student_id': student.id,
+                'name': f"{student.first_name} {student.last_name}",
+                'status': 'not_started',
+                'answers_count': 0,
+                'correct_count': 0,
+                'blocks_count': blocks_count,
+                'score': None,
+                'max_score': None,
+                'score_percentage': None,
+                'xp_earned': 0,
+                'started_at': None,
+                'completed_at': None,
+            })
+
+    # Résumé
+    started = sum(1 for t in tracking_data if t['status'] != 'not_started')
+    completed = sum(1 for t in tracking_data if t['status'] == 'completed')
+    avg_score = 0
+    completed_items = [t for t in tracking_data if t['status'] == 'completed' and t['score_percentage'] is not None]
+    if completed_items:
+        avg_score = round(sum(t['score_percentage'] for t in completed_items) / len(completed_items))
+
+    return jsonify({
+        'success': True,
+        'exercise_title': exercise.title,
+        'blocks_count': blocks_count,
+        'total_students': len(students),
+        'started': started,
+        'completed': completed,
+        'average_score': avg_score,
+        'is_active': pub.is_active,
+        'mode': pub.mode or 'classique',
+        'students': tracking_data,
     })
 
 

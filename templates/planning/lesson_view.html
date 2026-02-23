@@ -1241,8 +1241,8 @@ input, textarea, select {
                     <i class="fas fa-clipboard-list"></i> Planification du cours
                 </h2>
                 <div style="display:flex;gap:0.5rem;">
-                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un fichier ou exercice" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
-                        <i class="fas fa-plus"></i>
+                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un fichier ou exercice" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                        <i class="fas fa-file-upload"></i> Ajout de fichiers
                     </button>
                     <button class="edit-planning-btn" onclick="togglePlanningEdit()">
                         <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
@@ -9695,13 +9695,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-gamepad"></i> Exercices interactifs
             </h4>
             {% for ex in user_exercises %}
-            <div class="resource-item" onclick="addExerciseToPlanning({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
+            <div class="resource-item" onclick="showModeModal({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
                 <i class="fas fa-gamepad" style="color:#667eea;"></i>
                 <div style="flex:1;">
                     <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
                     <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
                 </div>
-                <i class="fas fa-plus-circle" style="color:#10b981;font-size:1.1rem;"></i>
+                <i class="fas fa-chevron-right" style="color:#9ca3af;font-size:0.8rem;"></i>
             </div>
             {% endfor %}
         </div>
@@ -9721,7 +9721,106 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<!-- Modal choix du mode (classique vs combat) -->
+<div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
+
+        <!-- Option Classique -->
+        <div id="mode-classique-btn" onclick="selectMode('classique')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:0.75rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
+                        Les élèves font l'exercice à leur rythme. Pas de suivi en direct.
+                    </div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <!-- Option Combat -->
+        <div id="mode-combat-btn" onclick="selectMode('combat')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
+                        Mission en direct ! Suivez la progression de chaque élève en temps réel.
+                    </div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <button id="launch-exercise-btn" onclick="launchExercise()" disabled
+                style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
+            <i class="fas fa-play"></i> Lancer la mission
+        </button>
+    </div>
+</div>
+
+<!-- Modal suivi en direct (combat) -->
+<div id="tracking-modal" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(15,12,41,0.95);backdrop-filter:blur(8px);overflow-y:auto;">
+    <div style="max-width:700px;margin:1rem auto;padding:1rem;">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div>
+                <h2 id="tracking-title" style="margin:0;color:white;font-size:1.2rem;"></h2>
+                <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
+            </div>
+            <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-times"></i> Fermer
+            </button>
+        </div>
+
+        <!-- Stats résumé -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+            </div>
+        </div>
+
+        <!-- Liste des élèves -->
+        <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+
+        <!-- Bouton arrêter -->
+        <div style="text-align:center;margin-top:1.5rem;">
+            <button id="stop-mission-btn" onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-stop-circle"></i> Arrêter la mission
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+// ============================================================
+// Ajout ressource
+// ============================================================
 function showAddResourceModal() {
     document.getElementById('add-resource-modal').style.display = 'flex';
     {% if lesson_classroom %}
@@ -9758,32 +9857,6 @@ async function loadClassFiles(classroomId) {
 }
 {% endif %}
 
-async function addExerciseToPlanning(exerciseId, title) {
-    {% if lesson_classroom %}
-    // Auto-publier l'exercice pour cette classe
-    try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        await fetch(`/exercises/${exerciseId}/publish`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({ classroom_ids: [{{ lesson_classroom.id }}] }),
-        });
-    } catch(e) {}
-    {% endif %}
-
-    // Ajouter le lien dans la description de planification
-    const descEl = document.getElementById('planningDescriptionDisplay');
-    if (descEl) {
-        const link = document.createElement('div');
-        link.style.cssText = 'margin-top:0.5rem;padding:0.5rem 0.8rem;background:#eef2ff;border-radius:8px;border:1px solid #c7d2fe;';
-        link.innerHTML = `<i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${title}</strong> <span style="font-size:0.75rem;color:#10b981;">(publié)</span>`;
-        descEl.appendChild(link);
-    }
-
-    closeAddResourceModal();
-    alert(`Exercice "${title}" ajouté et publié !`);
-}
-
 function addFileToPlanning(filename, fileType) {
     const descEl = document.getElementById('planningDescriptionDisplay');
     if (descEl) {
@@ -9793,6 +9866,215 @@ function addFileToPlanning(filename, fileType) {
         descEl.appendChild(link);
     }
     closeAddResourceModal();
+}
+
+// ============================================================
+// Mode selection (classique vs combat)
+// ============================================================
+let selectedExerciseId = null;
+let selectedExerciseTitle = '';
+let selectedMode = null;
+
+function showModeModal(exerciseId, title) {
+    selectedExerciseId = exerciseId;
+    selectedExerciseTitle = title;
+    selectedMode = null;
+    document.getElementById('mode-exercise-title').textContent = title;
+    document.getElementById('mode-classique-check').style.display = 'none';
+    document.getElementById('mode-combat-check').style.display = 'none';
+    document.getElementById('mode-classique-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-combat-btn').style.borderColor = '#e5e7eb';
+    const btn = document.getElementById('launch-exercise-btn');
+    btn.disabled = true;
+    btn.style.background = '#d1d5db';
+    document.getElementById('mode-modal').style.display = 'flex';
+}
+
+function closeModeModal() {
+    document.getElementById('mode-modal').style.display = 'none';
+}
+
+function selectMode(mode) {
+    selectedMode = mode;
+    const classiqueCheck = document.getElementById('mode-classique-check');
+    const combatCheck = document.getElementById('mode-combat-check');
+    const classiqueBtn = document.getElementById('mode-classique-btn');
+    const combatBtn = document.getElementById('mode-combat-btn');
+    const launchBtn = document.getElementById('launch-exercise-btn');
+
+    classiqueCheck.style.display = 'none';
+    combatCheck.style.display = 'none';
+    classiqueBtn.style.borderColor = '#e5e7eb';
+    combatBtn.style.borderColor = '#e5e7eb';
+
+    if (mode === 'classique') {
+        classiqueCheck.style.display = 'inline';
+        classiqueBtn.style.borderColor = '#10b981';
+        classiqueBtn.style.background = '#f0fdf4';
+        combatBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Publier en mode classique';
+    } else {
+        combatCheck.style.display = 'inline';
+        combatBtn.style.borderColor = '#ef4444';
+        combatBtn.style.background = '#fef2f2';
+        classiqueBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+    }
+    launchBtn.disabled = false;
+}
+
+async function launchExercise() {
+    if (!selectedExerciseId || !selectedMode) return;
+
+    const launchBtn = document.getElementById('launch-exercise-btn');
+    launchBtn.disabled = true;
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/exercises/launch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                exercise_id: selectedExerciseId,
+                classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
+                mode: selectedMode,
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Ajouter le lien dans la description
+            const descEl = document.getElementById('planningDescriptionDisplay');
+            if (descEl) {
+                const link = document.createElement('div');
+                const modeLabel = selectedMode === 'combat' ? '⚔️ Combat' : '📖 Classique';
+                const modeColor = selectedMode === 'combat' ? '#fef2f2;border:1px solid #fecaca' : '#eef2ff;border:1px solid #c7d2fe';
+                link.style.cssText = `margin-top:0.5rem;padding:0.5rem 0.8rem;background:${modeColor};border-radius:8px;display:flex;align-items:center;justify-content:space-between;`;
+                link.innerHTML = `
+                    <span><i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${selectedExerciseTitle}</strong>
+                    <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:6px;background:${selectedMode==='combat'?'#ef4444':'#10b981'};color:white;margin-left:0.3rem;">${modeLabel}</span></span>
+                    ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> Suivi live</button>` : ''}
+                `;
+                descEl.appendChild(link);
+            }
+
+            closeModeModal();
+            closeAddResourceModal();
+
+            if (selectedMode === 'combat') {
+                // Ouvrir directement le suivi live
+                openTracking(data.publication_id);
+            } else {
+                alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
+            }
+        } else {
+            alert(data.error || data.message || 'Erreur lors du lancement');
+            launchBtn.disabled = false;
+            launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        launchBtn.disabled = false;
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+    }
+}
+
+// ============================================================
+// Suivi en direct (tracking modal)
+// ============================================================
+let trackingInterval = null;
+let currentPubId = null;
+
+function openTracking(pubId) {
+    currentPubId = pubId;
+    document.getElementById('tracking-modal').style.display = 'block';
+    refreshTracking();
+    // Rafraîchir toutes les 4 secondes
+    trackingInterval = setInterval(refreshTracking, 4000);
+}
+
+function closeTrackingModal() {
+    document.getElementById('tracking-modal').style.display = 'none';
+    if (trackingInterval) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+    }
+}
+
+async function refreshTracking() {
+    if (!currentPubId) return;
+    try {
+        const res = await fetch(`/exercises/publication/${currentPubId}/live-tracking`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('tracking-title').textContent = data.exercise_title;
+        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('track-total').textContent = data.total_students;
+        document.getElementById('track-started').textContent = data.started;
+        document.getElementById('track-completed').textContent = data.completed;
+        document.getElementById('track-avg').textContent = data.completed > 0 ? data.average_score + '%' : '—';
+
+        const container = document.getElementById('tracking-students');
+        container.innerHTML = data.students.map(s => {
+            let statusIcon, statusColor, statusText, progressWidth;
+            if (s.status === 'completed') {
+                statusIcon = 'check-circle';
+                statusColor = '#10b981';
+                statusText = `${s.score_percentage}%`;
+                progressWidth = 100;
+            } else if (s.status === 'in_progress') {
+                statusIcon = 'spinner fa-pulse';
+                statusColor = '#f59e0b';
+                const pct = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
+                statusText = `${s.answers_count}/${s.blocks_count}`;
+                progressWidth = pct;
+            } else {
+                statusIcon = 'clock';
+                statusColor = '#6b7280';
+                statusText = 'En attente';
+                progressWidth = 0;
+            }
+
+            return `
+                <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:0.65rem 0.8rem;display:flex;align-items:center;gap:0.6rem;">
+                    <i class="fas fa-${statusIcon}" style="color:${statusColor};font-size:1rem;width:20px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">
+                            <span style="color:white;font-weight:600;font-size:0.85rem;">${s.name}</span>
+                            <span style="color:${statusColor};font-weight:700;font-size:0.8rem;">${statusText}</span>
+                        </div>
+                        <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                            <div style="width:${progressWidth}%;height:100%;background:${statusColor};border-radius:2px;transition:width 0.5s ease;"></div>
+                        </div>
+                        ${s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch(e) {
+        console.error('Erreur tracking:', e);
+    }
+}
+
+async function stopMission() {
+    if (!currentPubId) return;
+    if (!confirm('Arrêter la mission en direct ?')) return;
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        await fetch(`/exercises/publication/${currentPubId}/toggle-active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        });
+        closeTrackingModal();
+    } catch(e) {
+        alert('Erreur');
+    }
 }
 </script>
 {% endblock %}

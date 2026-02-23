@@ -140,7 +140,8 @@
 
                 <!-- Exercices rangés dans ce dossier -->
                 {% for ex in exercises %}
-                <div class="file-item file" data-id="{{ ex.id }}" data-type="exercise">
+                <div class="file-item file" data-id="{{ ex.id }}" data-type="exercise"
+                     draggable="true" ondragstart="event.dataTransfer.setData('text/plain', 'exercise:{{ ex.id }}')">
                     <div class="item-icon">
                         <i class="fas fa-gamepad" style="color: #667eea;"></i>
                     </div>

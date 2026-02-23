@@ -1409,6 +1409,7 @@ def student_list_missions():
             'published_at': pub.published_at.isoformat() if pub.published_at else '',
             'on_cooldown': on_cooldown,
             'cooldown_remaining': cooldown_remaining,
+            'mode': pub.mode or 'classique',
         })
 
     return jsonify({'missions': missions_data})
@@ -1640,14 +1641,17 @@ def student_submit_mission(mission_id):
 
     db.session.commit()
 
+    score_pct_result = round((total_points_earned / max_points * 100) if max_points > 0 else 0, 1)
     result = {
         'success': True,
         'attempt_id': attempt.id,
         'score': attempt.score,
         'max_score': attempt.max_score,
-        'score_percentage': round((total_points_earned / max_points * 100) if max_points > 0 else 0, 1),
+        'score_percentage': score_pct_result,
+        'percentage': score_pct_result,
         'xp_earned': xp_earned,
         'gold_earned': gold_earned,
+        'new_level': rpg.level if rpg else 1,
         'blocks_results': blocks_results
     }
     if rpg and item_won:
@@ -1664,7 +1668,7 @@ def student_rpg_profile():
     if not student:
         return jsonify({'error': 'Élève non trouvé'}), 404
 
-    from models.rpg import StudentRPGProfile, Badge, StudentBadge, StudentItem
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge, StudentItem, CLASS_DESCRIPTIONS, CLASS_BASE_STATS
 
     rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
 
@@ -1699,47 +1703,65 @@ def student_rpg_profile():
     student_items = StudentItem.query.filter_by(student_id=student.id).all()
     items_data = [si.to_dict() for si in student_items]
 
+    # Stats, skills, evolutions
+    stats = {
+        'force': rpg_profile.stat_force or 5,
+        'defense': rpg_profile.stat_defense or 5,
+        'defense_magique': rpg_profile.stat_defense_magique or 5,
+        'vie': rpg_profile.stat_vie or 5,
+        'intelligence': rpg_profile.stat_intelligence or 5,
+    }
+    all_skills = rpg_profile.get_all_skills()
+    active_skills = rpg_profile.get_active_skills()
+    available_evolutions = rpg_profile.get_available_evolutions()
+
     return jsonify({
         'rpg_profile': {
             'student_id': student.id,
+            'student_name': f'{student.first_name} {student.last_name}',
             'xp_total': rpg_profile.xp_total,
             'level': level,
             'xp_for_next_level': xp_for_next_level,
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
             'avatar_class': rpg_profile.avatar_class,
+            'stats': stats,
+            'evolutions': rpg_profile.evolutions_json or [],
+            'available_evolutions': available_evolutions,
+            'skills': all_skills,
+            'active_skills': active_skills,
+            'equipment': rpg_profile.equipment_json or {},
             'badges': badges_data,
             'items': items_data,
-        }
+        },
+        'class_descriptions': CLASS_DESCRIPTIONS,
     })
 
 
 @api_bp.route('/student/rpg/avatar', methods=['POST'])
 @jwt_required(user_type='student')
 def student_update_avatar():
-    """Mettre à jour la classe d'avatar de l'élève."""
+    """Mettre à jour la classe d'avatar de l'élève (reset si changement)."""
     student = _get_current_student()
     if not student:
         return jsonify({'error': 'Élève non trouvé'}), 404
 
     data = request.get_json(silent=True) or {}
-    # Accepter 'avatar_class' ou 'class' (le mobile envoie 'class')
     avatar_class = (data.get('avatar_class') or data.get('class') or '').strip()
+    confirm_reset = data.get('confirm_reset', False)
 
     if not avatar_class:
         return jsonify({'error': 'Classe d\'avatar requise'}), 400
 
-    # Valider la classe d'avatar (exemple de classes valides)
     valid_classes = ['guerrier', 'mage', 'archer', 'guerisseur']
     if avatar_class not in valid_classes:
         return jsonify({'error': f'Classe d\'avatar invalide. Valides: {", ".join(valid_classes)}'}), 400
 
-    from models.rpg import StudentRPGProfile
+    from models.rpg import StudentRPGProfile, CLASS_BASE_STATS
 
     rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
 
     if not rpg_profile:
-        # Créer un profil par défaut
         rpg_profile = StudentRPGProfile(
             student_id=student.id,
             xp_total=0,
@@ -1747,13 +1769,163 @@ def student_update_avatar():
             avatar_class=avatar_class
         )
         db.session.add(rpg_profile)
+        db.session.flush()
+        rpg_profile.recalculate_stats()
     else:
+        # Si changement de classe → reset complet (nécessite confirmation)
+        if rpg_profile.avatar_class and rpg_profile.avatar_class != avatar_class:
+            if not confirm_reset:
+                return jsonify({
+                    'success': False,
+                    'needs_confirmation': True,
+                    'message': 'Changer de classe réinitialisera ton niveau à 1, tu perdras tout ton équipement et ton or. Confirme pour continuer.',
+                    'current_class': rpg_profile.avatar_class,
+                    'new_class': avatar_class,
+                })
+            # Reset complet
+            rpg_profile.reset_for_class_change()
+
         rpg_profile.avatar_class = avatar_class
+        rpg_profile.recalculate_stats()
 
     db.session.commit()
 
     return jsonify({
         'success': True,
         'message': f'Avatar changé en {avatar_class}',
-        'avatar_class': rpg_profile.avatar_class
+        'avatar_class': rpg_profile.avatar_class,
+        'profile': rpg_profile.to_dict(),
     })
+
+
+@api_bp.route('/student/rpg/class-info', methods=['GET'])
+@jwt_required(user_type='student')
+def student_rpg_class_info():
+    """Obtenir les descriptions détaillées des classes."""
+    from models.rpg import CLASS_DESCRIPTIONS, CLASS_BASE_STATS
+    return jsonify({'classes': CLASS_DESCRIPTIONS, 'base_stats': CLASS_BASE_STATS})
+
+
+@api_bp.route('/student/rpg/evolve', methods=['POST'])
+@jwt_required(user_type='student')
+def student_rpg_evolve():
+    """Choisir une évolution de classe."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.rpg import StudentRPGProfile, CLASS_EVOLUTIONS
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg or not rpg.avatar_class:
+        return jsonify({'error': 'Profil RPG non trouvé ou classe non choisie'}), 400
+
+    data = request.get_json(silent=True) or {}
+    evolution_id = data.get('evolution_id', '').strip()
+    evolution_level = data.get('level')
+
+    if not evolution_id or not evolution_level:
+        return jsonify({'error': 'ID d\'évolution et niveau requis'}), 400
+
+    # Vérifier que l'évolution est disponible
+    available = rpg.get_available_evolutions()
+    valid = False
+    for evo_group in available:
+        if evo_group['level'] == evolution_level:
+            for choice in evo_group['choices']:
+                if choice['id'] == evolution_id:
+                    valid = True
+                    break
+
+    if not valid:
+        return jsonify({'error': 'Évolution non disponible'}), 400
+
+    evolutions = rpg.evolutions_json or []
+    evolutions.append({'level': evolution_level, 'evolution_id': evolution_id})
+    rpg.evolutions_json = evolutions
+    rpg.recalculate_stats()
+
+    db.session.commit()
+    return jsonify({'success': True, 'profile': rpg.to_dict()})
+
+
+@api_bp.route('/student/rpg/equip', methods=['POST'])
+@jwt_required(user_type='student')
+def student_rpg_equip():
+    """Équiper un objet."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.rpg import StudentRPGProfile, RPGItem, StudentItem
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg:
+        return jsonify({'error': 'Profil RPG non trouvé'}), 400
+
+    data = request.get_json(silent=True) or {}
+    item_id = data.get('item_id')
+    unequip = data.get('unequip', False)
+
+    if unequip:
+        slot = data.get('slot')
+        if slot:
+            equipment = rpg.equipment_json or {}
+            equipment.pop(slot, None)
+            rpg.equipment_json = equipment
+            rpg.recalculate_stats()
+            db.session.commit()
+            return jsonify({'success': True, 'profile': rpg.to_dict()})
+        return jsonify({'error': 'Slot requis pour déséquiper'}), 400
+
+    if not item_id:
+        return jsonify({'error': 'ID d\'objet requis'}), 400
+
+    # Vérifier que l'élève possède l'objet
+    student_item = StudentItem.query.filter_by(student_id=student.id, item_id=item_id).first()
+    if not student_item:
+        return jsonify({'error': 'Objet non possédé'}), 400
+
+    item = RPGItem.query.get(item_id)
+    if not item or not item.equip_slot:
+        return jsonify({'error': 'Cet objet ne peut pas être équipé'}), 400
+
+    equipment = rpg.equipment_json or {}
+    equipment[item.equip_slot] = item_id
+    rpg.equipment_json = equipment
+    rpg.recalculate_stats()
+
+    db.session.commit()
+    return jsonify({'success': True, 'profile': rpg.to_dict()})
+
+
+@api_bp.route('/student/rpg/skills', methods=['POST'])
+@jwt_required(user_type='student')
+def student_rpg_skills():
+    """Modifier les compétences actives (max 6)."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.rpg import StudentRPGProfile
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg:
+        return jsonify({'error': 'Profil RPG non trouvé'}), 400
+
+    data = request.get_json(silent=True) or {}
+    skill_ids = data.get('skill_ids', [])
+
+    if len(skill_ids) > 6:
+        return jsonify({'error': 'Maximum 6 compétences actives'}), 400
+
+    # Vérifier que toutes les compétences sont débloquées
+    all_skills = rpg.get_all_skills()
+    all_skill_ids = {s['id'] for s in all_skills}
+    for sid in skill_ids:
+        if sid not in all_skill_ids:
+            return jsonify({'error': f'Compétence {sid} non débloquée'}), 400
+
+    rpg.active_skills_json = skill_ids
+    db.session.commit()
+    return jsonify({'success': True, 'profile': rpg.to_dict()})

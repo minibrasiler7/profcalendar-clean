@@ -20,52 +20,73 @@
 .rpg-hero::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
     background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
 }
 
 .avatar-display {
-    width: 240px;
-    height: 240px;
+    width: 200px; height: 200px;
     margin: 0 auto 1rem;
     border-radius: 50%;
     background: rgba(255,255,255,0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     font-size: 3.5rem;
     border: 4px solid rgba(255,255,255,0.3);
-    position: relative;
     overflow: hidden;
 }
 
 .avatar-display img {
-    width: 220px;
-    height: 220px;
+    width: 180px; height: 180px;
     border-radius: 50%;
     object-fit: contain;
+    background: white;
 }
 
-.avatar-display .no-avatar {
-    font-size: 2.5rem;
-    opacity: 0.5;
+.avatar-display .no-avatar { font-size: 2.5rem; opacity: 0.5; }
+
+.level-display { font-size: 2.5rem; font-weight: 900; color: #f59e0b; margin: 0.5rem 0; }
+
+.xp-bar-large {
+    width: 80%; max-width: 400px; height: 12px;
+    background: rgba(255,255,255,0.2); border-radius: 6px;
+    margin: 0.5rem auto; overflow: hidden;
+}
+
+.xp-bar-large .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 6px; transition: width 1s ease;
+}
+
+.xp-label { font-size: 0.85rem; opacity: 0.8; }
+
+.stats-row {
+    display: flex; justify-content: center;
+    gap: 2rem; margin-top: 1.5rem;
+}
+
+.stat-item { text-align: center; }
+.stat-value { font-size: 1.5rem; font-weight: 800; }
+.stat-label { font-size: 0.75rem; opacity: 0.7; }
+
+.section-card {
+    background: white; border-radius: 16px; padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;
+}
+
+.section-card h2 {
+    margin: 0 0 1rem; font-size: 1.2rem;
+    display: flex; align-items: center; gap: 0.5rem;
 }
 
 .choose-alert {
     background: linear-gradient(135deg, #fef3c7, #fffbeb);
-    border: 2px solid #f59e0b;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    border: 2px solid #f59e0b; border-radius: 12px;
+    padding: 1rem 1.5rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.75rem;
     animation: pulse-border 2s infinite;
 }
-
 .choose-alert i { color: #f59e0b; font-size: 1.5rem; }
 .choose-alert p { margin: 0; font-weight: 600; color: #92400e; }
 
@@ -74,366 +95,228 @@
     50% { border-color: #fbbf24; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3); }
 }
 
-.avatar-class-label {
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #f59e0b;
-    color: #1e1b4b;
-    padding: 0.1rem 0.6rem;
-    border-radius: 10px;
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.rpg-hero h1 {
-    margin: 0.5rem 0;
-    font-size: 1.5rem;
-}
-
-.level-display {
-    font-size: 2.5rem;
-    font-weight: 900;
-    color: #f59e0b;
-    margin: 0.5rem 0;
-}
-
-.xp-bar-large {
-    width: 80%;
-    max-width: 400px;
-    height: 12px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 6px;
-    margin: 0.5rem auto;
-    overflow: hidden;
-}
-
-.xp-bar-large .fill {
-    height: 100%;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
-    border-radius: 6px;
-    transition: width 1s ease;
-}
-
-.xp-label {
-    font-size: 0.85rem;
-    opacity: 0.8;
-}
-
-.stats-row {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 1.5rem;
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 800;
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    opacity: 0.7;
-}
-
-/* Avatar selection */
-.avatar-select-section {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 1.5rem;
-}
-
-.avatar-select-section h2 {
-    margin: 0 0 1rem;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.avatar-classes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-}
-
-.avatar-class-card {
-    text-align: center;
-    padding: 1rem;
-    border: 3px solid #e5e7eb;
-    border-radius: 12px;
-    cursor: pointer;
+/* Class cards with expandable descriptions */
+.class-card {
+    border: 3px solid #e5e7eb; border-radius: 14px;
+    margin-bottom: 0.75rem; overflow: hidden; cursor: pointer;
     transition: all 0.2s;
 }
+.class-card:hover { border-color: #a5b4fc; }
+.class-card.selected { border-color: #667eea; background: #eef2ff; }
 
-.avatar-class-card:hover { border-color: #667eea; transform: translateY(-2px); }
-.avatar-class-card.selected { border-color: #667eea; }
+.class-card-header {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem;
+}
+.class-card-header img {
+    width: 60px; height: 60px; border-radius: 50%;
+    object-fit: contain; background: white;
+}
+.class-card-info { flex: 1; }
+.class-card-name { font-weight: 700; font-size: 1rem; }
+.class-card-subtitle { font-size: 0.8rem; color: #6b7280; }
 
-.avatar-class-card .avatar-icon {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 0.5rem;
+.class-card-badge {
+    background: #667eea; color: white; font-size: 0.7rem;
+    font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 8px;
 }
 
-.avatar-class-card .avatar-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+.class-card-expand {
+    background: #f8fafc; padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb;
+    display: none;
 }
+.class-card.expanded .class-card-expand { display: block; }
 
-.avatar-class-card .avatar-name {
-    font-weight: 700;
-    font-size: 0.85rem;
+.class-desc-text { font-size: 0.85rem; color: #374151; line-height: 1.5; margin-bottom: 0.75rem; }
+
+.pros-cons { display: flex; gap: 1.5rem; margin-bottom: 0.75rem; }
+.pros-cons > div { flex: 1; }
+.pros-title { font-size: 0.8rem; font-weight: 700; color: #10b981; margin-bottom: 0.3rem; }
+.cons-title { font-size: 0.8rem; font-weight: 700; color: #ef4444; margin-bottom: 0.3rem; }
+.pros-item { font-size: 0.75rem; color: #065f46; line-height: 1.4; }
+.cons-item { font-size: 0.75rem; color: #991b1b; line-height: 1.4; }
+
+.playstyle { font-size: 0.8rem; font-weight: 600; color: #667eea; font-style: italic; }
+
+.choose-btn {
+    display: inline-block; background: #667eea; color: white;
+    padding: 0.5rem 1.5rem; border-radius: 10px; border: none;
+    font-weight: 700; cursor: pointer; margin-top: 0.75rem;
+    transition: background 0.2s;
 }
+.choose-btn:hover { background: #4338ca; }
 
-.avatar-class-card .avatar-desc {
-    font-size: 0.7rem;
-    color: #6b7280;
-    margin-top: 0.2rem;
+/* Character stats bars */
+.char-stats { display: flex; flex-direction: column; gap: 0.6rem; }
+.char-stat-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: #f8fafc; border-radius: 10px; padding: 0.6rem 1rem;
+    border: 1px solid #e5e7eb;
 }
+.char-stat-icon { width: 28px; text-align: center; }
+.char-stat-label { width: 100px; font-size: 0.8rem; font-weight: 600; }
+.char-stat-bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.char-stat-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+.char-stat-val { width: 30px; font-size: 0.9rem; font-weight: 800; text-align: right; }
 
-/* Badges */
-.badges-section {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.badges-section h2 {
-    margin: 0 0 1rem;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.badges-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+/* Skills */
+.skills-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 0.75rem;
 }
+.skill-card {
+    text-align: center; padding: 0.8rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb; transition: all 0.2s;
+}
+.skill-card.active { border-color: #667eea; background: #eef2ff; }
+.skill-icon-wrap {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.4rem; color: white; font-size: 1.1rem;
+}
+.skill-name { font-weight: 700; font-size: 0.8rem; }
+.skill-type { font-size: 0.65rem; color: #6b7280; margin-top: 0.15rem; }
+.skill-dmg { font-size: 0.7rem; color: #ef4444; font-weight: 700; margin-top: 0.2rem; }
+.skill-heal { font-size: 0.7rem; color: #10b981; font-weight: 700; margin-top: 0.2rem; }
 
-.badge-card {
-    text-align: center;
-    padding: 1rem;
-    border-radius: 12px;
-    background: #f8fafc;
+/* Equipment */
+.equip-slots { display: flex; flex-direction: column; gap: 0.75rem; }
+.equip-slot {
+    display: flex; align-items: center; gap: 1rem;
+    background: #f8fafc; border-radius: 12px; padding: 1rem;
     border: 2px solid #e5e7eb;
-    transition: all 0.2s;
 }
-
-.badge-card.earned {
-    background: #fffbeb;
-    border-color: #fbbf24;
+.equip-slot-label {
+    font-size: 0.7rem; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 1px; width: 80px;
 }
-
-.badge-card.locked { opacity: 0.5; }
-
-.badge-icon {
-    width: 50px;
-    height: 50px;
-    margin: 0 auto 0.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    color: white;
+.equip-slot-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem;
 }
-
-.badge-card.locked .badge-icon { background: #9ca3af !important; }
-
-.badge-name {
-    font-weight: 700;
-    font-size: 0.8rem;
-    margin-bottom: 0.2rem;
-}
-
-.badge-desc {
-    font-size: 0.7rem;
-    color: #6b7280;
-}
-
-.badge-earned-date {
-    font-size: 0.65rem;
-    color: #f59e0b;
-    font-weight: 600;
-    margin-top: 0.3rem;
-}
-
-/* White bg for chihuahua images */
-.avatar-display img {
-    background: white;
-}
-.avatar-class-card .avatar-icon img {
-    background: white;
-    border-radius: 50%;
-}
-
-/* Navbar */
-.navbar-student {
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    padding: 1rem 0;
-    margin-bottom: 0;
-}
-.navbar-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.navbar-links {
-    display: flex;
-    gap: 2rem;
-}
-.navbar-links a {
-    color: #4a5568;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-}
-.navbar-links a:hover,
-.navbar-links a.active {
-    color: #667eea;
-}
-.logout-btn {
-    background-color: #f7fafc;
-    color: #4a5568;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-.logout-btn:hover {
-    background-color: #edf2f7;
-    color: #2d3748;
-}
+.equip-slot-name { font-weight: 700; font-size: 0.85rem; flex: 1; }
+.equip-bonus { font-size: 0.7rem; color: #10b981; font-weight: 600; }
+.equip-empty { color: #9ca3af; font-style: italic; font-size: 0.85rem; }
 
 /* Inventory */
-.inventory-section {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 1.5rem;
-}
-.inventory-section h2 {
-    margin: 0 0 1rem;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
 .inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 0.75rem;
 }
 .item-card {
-    text-align: center;
-    padding: 0.8rem;
-    border-radius: 12px;
-    background: #f8fafc;
-    border: 2px solid #e5e7eb;
-    position: relative;
-    transition: all 0.2s;
+    text-align: center; padding: 0.8rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb;
+    position: relative; transition: all 0.2s; cursor: pointer;
 }
 .item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.item-card.equipable { border-style: dashed; border-color: #3b82f6; }
 .item-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 0.4rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: white;
+    width: 48px; height: 48px; margin: 0 auto 0.4rem;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.2rem; color: white;
 }
 .item-name { font-weight: 700; font-size: 0.8rem; margin-bottom: 0.15rem; }
 .item-desc { font-size: 0.65rem; color: #6b7280; }
-.item-rarity {
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 0.3rem;
-}
+.item-rarity { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
 .item-quantity {
-    position: absolute;
-    top: 4px;
-    right: 6px;
-    background: #1e1b4b;
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 0.1rem 0.4rem;
-    border-radius: 8px;
-    min-width: 18px;
-    text-align: center;
+    position: absolute; top: 4px; right: 6px;
+    background: #1e1b4b; color: white; font-size: 0.65rem;
+    font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 8px;
 }
-.empty-inventory {
-    text-align: center;
-    padding: 2rem;
-    color: #9ca3af;
-    font-style: italic;
+.item-equip-tag {
+    background: #dbeafe; color: #1d4ed8; font-size: 0.6rem;
+    font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;
+    display: inline-block; margin-top: 0.3rem;
 }
+.empty-inventory { text-align: center; padding: 2rem; color: #9ca3af; font-style: italic; }
+
+/* Badges */
+.badges-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+.badge-card {
+    text-align: center; padding: 1rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb; transition: all 0.2s;
+}
+.badge-card.earned { background: #fffbeb; border-color: #fbbf24; }
+.badge-card.locked { opacity: 0.5; }
+.badge-icon {
+    width: 50px; height: 50px; margin: 0 auto 0.5rem;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.3rem; color: white;
+}
+.badge-card.locked .badge-icon { background: #9ca3af !important; }
+.badge-name { font-weight: 700; font-size: 0.8rem; margin-bottom: 0.2rem; }
+.badge-desc { font-size: 0.7rem; color: #6b7280; }
+.badge-earned-date { font-size: 0.65rem; color: #f59e0b; font-weight: 600; margin-top: 0.3rem; }
+
+/* Navbar */
+.navbar-student { background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem 0; }
+.navbar-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+.navbar-links { display: flex; gap: 2rem; }
+.navbar-links a { color: #4a5568; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+.navbar-links a:hover, .navbar-links a.active { color: #667eea; }
+.logout-btn { background-color: #f7fafc; color: #4a5568; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
+.logout-btn:hover { background-color: #edf2f7; color: #2d3748; }
+
+/* Evolution alert */
+.evolution-alert {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border: 2px solid #f59e0b; border-radius: 12px;
+    padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    animation: pulse-border 2s infinite;
+}
+.evolution-alert:hover { transform: translateY(-1px); }
+
+.evo-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    justify-content: center; align-items: center;
+}
+.evo-modal-overlay.active { display: flex; }
+.evo-modal {
+    background: white; border-radius: 16px; padding: 2rem;
+    max-width: 500px; width: 90%;
+}
+.evo-choice {
+    background: #f0f9ff; border: 2px solid #bae6fd;
+    border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem;
+    cursor: pointer; transition: all 0.2s;
+}
+.evo-choice:hover { border-color: #667eea; background: #eef2ff; }
+.evo-choice-name { font-size: 1.1rem; font-weight: 800; color: #667eea; }
+.evo-choice-desc { font-size: 0.85rem; color: #374151; margin: 0.3rem 0; }
+.evo-choice-bonus { font-size: 0.8rem; font-weight: 700; color: #10b981; }
 
 @media (max-width: 600px) {
-    .avatar-classes { grid-template-columns: repeat(2, 1fr); }
     .stats-row { gap: 1rem; }
     .inventory-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .skills-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .pros-cons { flex-direction: column; gap: 0.5rem; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Navigation -->
 <nav class="navbar-student">
     <div class="navbar-content">
         <div class="navbar-links">
-            <a href="{{ url_for('student_auth.dashboard') }}">
-                <i class="fas fa-home"></i> Accueil
-            </a>
-            <a href="{{ url_for('student_auth.grades') }}">
-                <i class="fas fa-chart-line"></i> Notes
-            </a>
-            <a href="{{ url_for('student_auth.files') }}">
-                <i class="fas fa-folder"></i> Fichiers
-            </a>
-            <a href="{{ url_for('student_auth.teachers') }}">
-                <i class="fas fa-chalkboard-teacher"></i> Enseignants
-            </a>
-            <a href="{{ url_for('student_auth.missions') }}">
-                <i class="fas fa-scroll"></i> Missions
-            </a>
-            <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="active">
-                <i class="fas fa-gamepad"></i> RPG
-            </a>
+            <a href="{{ url_for('student_auth.dashboard') }}"><i class="fas fa-home"></i> Accueil</a>
+            <a href="{{ url_for('student_auth.grades') }}"><i class="fas fa-chart-line"></i> Notes</a>
+            <a href="{{ url_for('student_auth.files') }}"><i class="fas fa-folder"></i> Fichiers</a>
+            <a href="{{ url_for('student_auth.teachers') }}"><i class="fas fa-chalkboard-teacher"></i> Enseignants</a>
+            <a href="{{ url_for('student_auth.missions') }}"><i class="fas fa-scroll"></i> Missions</a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="active"><i class="fas fa-gamepad"></i> RPG</a>
         </div>
-        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
-        </a>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
     </div>
 </nav>
 
 <div class="rpg-container">
 
-    <!-- Hero card -->
+    <!-- Hero -->
     <div class="rpg-hero">
         <div class="avatar-display">
             {% if rpg.avatar_class %}
@@ -448,7 +331,6 @@
             <div class="fill" style="width: {{ rpg.xp_progress }}%;"></div>
         </div>
         <div class="xp-label">{{ rpg.xp_total }} / {{ rpg.xp_for_next_level }} XP</div>
-
         <div class="stats-row">
             <div class="stat-item">
                 <div class="stat-value" style="color:#f59e0b;">{{ rpg.xp_total }}</div>
@@ -465,53 +347,159 @@
         </div>
     </div>
 
-    <!-- Avatar selection -->
-    <div class="avatar-select-section">
-        <h2><i class="fas fa-dog" style="color:#667eea;"></i> Choisis ta classe</h2>
+    <!-- Class Selection -->
+    <div class="section-card">
+        <h2><i class="fas fa-dog" style="color:#667eea;"></i> Classe</h2>
         {% if not rpg.avatar_class %}
         <div class="choose-alert">
             <i class="fas fa-exclamation-triangle"></i>
             <p>Tu dois choisir un personnage avant de pouvoir lancer des missions !</p>
         </div>
         {% endif %}
-        <div class="avatar-classes">
-            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerrier' }}" onclick="selectAvatar('guerrier', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerrier.png') }}" alt="Guerrier"></div>
-                <div class="avatar-name">Guerrier</div>
-                <div class="avatar-desc">Force et courage</div>
+        {% set classes_info = [
+            ('guerrier', 'Guerrier', 'Maître du combat rapproché', 'Le Guerrier est un combattant redoutable au corps à corps.', 'Force élevée, Grande résistance, Bonne défense', 'Faible déf. magique, Intelligence basse, Lent', 'Tank / DPS mêlée'),
+            ('mage', 'Mage', 'Maître des éléments', 'Le Mage contrôle les forces élémentaires avec des sorts dévastateurs.', 'Intelligence max, Dégâts de zone, Forte déf. magique', 'Très fragile, Peu de vie, Force très basse', 'DPS magique / Contrôle'),
+            ('archer', 'Archer', 'Tireur d\'élite agile', 'L\'Archer frappe de loin avec précision et agilité.', 'Attaques à distance, Stats équilibrées, Bonne agilité', 'Défense moyenne, Fragile au CaC, Vie moyenne', 'DPS distance / Support'),
+            ('guerisseur', 'Moine', 'Gardien sacré', 'Le Moine soigne et protège ses alliés avec la magie sacrée.', 'Soins puissants, Buffs d\'équipe, Bonne déf. magique', 'Force faible, Dégâts limités, Déf. physique moyenne', 'Healer / Support'),
+        ] %}
+        {% for cls_id, cls_name, cls_sub, cls_desc, cls_pros, cls_cons, cls_play in classes_info %}
+        <div class="class-card {{ 'selected' if rpg.avatar_class == cls_id }}" onclick="toggleClassExpand(this)" data-class-id="{{ cls_id }}">
+            <div class="class-card-header">
+                <img src="{{ url_for('static', filename='img/chihuahua/' ~ cls_id ~ '.png') }}" alt="{{ cls_name }}">
+                <div class="class-card-info">
+                    <div class="class-card-name">{{ cls_name }}</div>
+                    <div class="class-card-subtitle">{{ cls_sub }}</div>
+                </div>
+                {% if rpg.avatar_class == cls_id %}
+                <span class="class-card-badge">Actif</span>
+                {% endif %}
+                <i class="fas fa-chevron-down" style="color:#9ca3af;"></i>
             </div>
-            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'mage' }}" onclick="selectAvatar('mage', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/mage.png') }}" alt="Mage"></div>
-                <div class="avatar-name">Mage</div>
-                <div class="avatar-desc">Sagesse et savoir</div>
+            <div class="class-card-expand">
+                <p class="class-desc-text">{{ cls_desc }}</p>
+                <div class="pros-cons">
+                    <div>
+                        <div class="pros-title">✓ Forces</div>
+                        {% for p in cls_pros.split(', ') %}
+                        <div class="pros-item">✓ {{ p }}</div>
+                        {% endfor %}
+                    </div>
+                    <div>
+                        <div class="cons-title">✗ Faiblesses</div>
+                        {% for c in cls_cons.split(', ') %}
+                        <div class="cons-item">✗ {{ c }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="playstyle">Style : {{ cls_play }}</div>
+                {% if rpg.avatar_class != cls_id %}
+                <button class="choose-btn" onclick="event.stopPropagation(); selectAvatar('{{ cls_id }}')">
+                    Choisir cette classe
+                </button>
+                {% endif %}
             </div>
-            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'archer' }}" onclick="selectAvatar('archer', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/archer.png') }}" alt="Archer"></div>
-                <div class="avatar-name">Archer</div>
-                <div class="avatar-desc">Précision et agilité</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Character Stats -->
+    {% if rpg.avatar_class %}
+    <div class="section-card">
+        <h2><i class="fas fa-chart-bar" style="color:#667eea;"></i> Caractéristiques</h2>
+        <div class="char-stats">
+            {% set char_stats = [
+                ('Force', rpg.stat_force or 5, '#ef4444', 'fist-raised'),
+                ('Défense', rpg.stat_defense or 5, '#3b82f6', 'shield-alt'),
+                ('Déf. Magique', rpg.stat_defense_magique or 5, '#a855f7', 'magic'),
+                ('Vie', rpg.stat_vie or 5, '#10b981', 'heart'),
+                ('Intelligence', rpg.stat_intelligence or 5, '#f59e0b', 'brain'),
+            ] %}
+            {% for name, val, color, icon in char_stats %}
+            <div class="char-stat-row">
+                <div class="char-stat-icon"><i class="fas fa-{{ icon }}" style="color:{{ color }};"></i></div>
+                <div class="char-stat-label">{{ name }}</div>
+                <div class="char-stat-bar">
+                    <div class="char-stat-fill" style="width: {{ [val * 2, 100]|min }}%; background: {{ color }};"></div>
+                </div>
+                <div class="char-stat-val">{{ val }}</div>
             </div>
-            <div class="avatar-class-card {{ 'selected' if rpg.avatar_class == 'guerisseur' }}" onclick="selectAvatar('guerisseur', this)">
-                <div class="avatar-icon"><img src="{{ url_for('static', filename='img/chihuahua/guerisseur.png') }}" alt="Guérisseur"></div>
-                <div class="avatar-name">Guérisseur</div>
-                <div class="avatar-desc">Soin et protection</div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Inventaire d'objets -->
-    <div class="inventory-section">
+    <!-- Skills -->
+    {% set all_skills = rpg.get_all_skills() %}
+    {% if all_skills %}
+    <div class="section-card">
+        <h2><i class="fas fa-bolt" style="color:#f59e0b;"></i> Compétences ({{ all_skills|length }})</h2>
+        <div class="skills-grid">
+            {% set active_ids = rpg.active_skills_json or [] %}
+            {% for skill in all_skills %}
+            <div class="skill-card {{ 'active' if skill.id in active_ids or loop.index <= 3 }}">
+                <div class="skill-icon-wrap" style="background: {{ '#ef4444' if skill.type == 'attack' else '#10b981' if skill.type == 'heal' else '#3b82f6' if skill.type == 'defense' else '#f59e0b' }};">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="skill-name">{{ skill.name }}</div>
+                <div class="skill-type">{{ 'Attaque' if skill.type == 'attack' else 'Soin' if skill.type == 'heal' else 'Défense' if skill.type == 'defense' else 'Utilitaire' }}</div>
+                {% if skill.damage > 0 %}<div class="skill-dmg">{{ skill.damage }} dég.</div>{% endif %}
+                {% if skill.get('heal', 0) > 0 %}<div class="skill-heal">+{{ skill.heal }} PV</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Equipment -->
+    <div class="section-card">
+        <h2><i class="fas fa-tshirt" style="color:#667eea;"></i> Équipement</h2>
+        <div class="equip-slots">
+            {% set equip = rpg.equipment_json or {} %}
+            {% for slot_name, slot_label in [('arme', 'Arme'), ('bouclier', 'Bouclier'), ('accessoire', 'Accessoire')] %}
+            <div class="equip-slot">
+                <div class="equip-slot-label">{{ slot_label }}</div>
+                {% set equipped_id = equip.get(slot_name) %}
+                {% if equipped_id %}
+                    {% set eq_item = none %}
+                    {% for si in inventory %}
+                        {% if si.item and si.item.id == equipped_id %}
+                            {% set eq_item = si.item %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if eq_item %}
+                    <div class="equip-slot-icon" style="background: {{ eq_item.color }};"><i class="fas fa-{{ eq_item.icon }}"></i></div>
+                    <div class="equip-slot-name">{{ eq_item.name }}</div>
+                    {% if eq_item.stat_bonus_json %}
+                    <div class="equip-bonus">
+                        {% for k, v in eq_item.stat_bonus_json.items() %}+{{ v }} {{ k }}{% if not loop.last %}, {% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <span class="equip-empty">Équipé (objet #{{ equipped_id }})</span>
+                    {% endif %}
+                {% else %}
+                <span class="equip-empty">— Vide —</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Inventaire -->
+    <div class="section-card">
         <h2><i class="fas fa-box-open" style="color:#667eea;"></i> Inventaire ({{ inventory|length }} objets)</h2>
         {% if inventory %}
         <div class="inventory-grid">
             {% for si in inventory %}
-            <div class="item-card">
+            <div class="item-card {{ 'equipable' if si.item.equip_slot }}" onclick="{% if si.item.equip_slot %}equipItem({{ si.item.id }}, '{{ si.item.name }}'){% endif %}">
                 {% if si.quantity > 1 %}<span class="item-quantity">x{{ si.quantity }}</span>{% endif %}
-                <div class="item-icon" style="background: {{ si.item.color }};">
-                    <i class="fas fa-{{ si.item.icon }}"></i>
-                </div>
+                <div class="item-icon" style="background: {{ si.item.color }};"><i class="fas fa-{{ si.item.icon }}"></i></div>
                 <div class="item-name">{{ si.item.name }}</div>
                 <div class="item-desc">{{ si.item.description }}</div>
                 <div class="item-rarity" style="color: {{ si.item.rarity_color }};">{{ si.item.rarity_label }}</div>
+                {% if si.item.equip_slot %}
+                <span class="item-equip-tag">Équipable</span>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -524,14 +512,12 @@
     </div>
 
     <!-- Badges -->
-    <div class="badges-section">
+    <div class="section-card">
         <h2><i class="fas fa-medal" style="color:#f59e0b;"></i> Badges ({{ badges|selectattr('earned')|list|length }}/{{ badges|length }})</h2>
         <div class="badges-grid">
             {% for b in badges %}
             <div class="badge-card {{ 'earned' if b.earned else 'locked' }}">
-                <div class="badge-icon" style="background: {{ b.badge.color }};">
-                    <i class="fas fa-{{ b.badge.icon }}"></i>
-                </div>
+                <div class="badge-icon" style="background: {{ b.badge.color }};"><i class="fas fa-{{ b.badge.icon }}"></i></div>
                 <div class="badge-name">{{ b.badge.name }}</div>
                 <div class="badge-desc">{{ b.badge.description }}</div>
                 {% if b.earned %}
@@ -544,15 +530,46 @@
 </div>
 
 <script>
-async function selectAvatar(avatarClass, el) {
-    document.querySelectorAll('.avatar-class-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
+function toggleClassExpand(el) {
+    el.classList.toggle('expanded');
+}
 
+async function selectAvatar(avatarClass) {
+    const currentClass = '{{ rpg.avatar_class or "" }}';
+    let confirmReset = false;
+
+    if (currentClass && currentClass !== avatarClass) {
+        if (!confirm('Changer de classe réinitialisera ton niveau, équipement et or. Continuer ?')) return;
+        confirmReset = true;
+    }
+
+    try {
+        const res = await fetch('{{ url_for("student_auth.update_avatar") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_class: avatarClass, confirm_reset: confirmReset }),
+        });
+        const data = await res.json();
+        if (data.needs_confirmation) {
+            if (confirm(data.message)) {
+                await fetch('{{ url_for("student_auth.update_avatar") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar_class: avatarClass, confirm_reset: true }),
+                });
+            } else return;
+        }
+        location.reload();
+    } catch(e) { alert('Erreur lors du changement de classe'); }
+}
+
+async function equipItem(itemId, itemName) {
+    if (!confirm('Équiper ' + itemName + ' ?')) return;
     try {
         await fetch('{{ url_for("student_auth.update_avatar") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ avatar_class: avatarClass }),
+            body: JSON.stringify({ equip_item_id: itemId }),
         });
         location.reload();
     } catch(e) {}

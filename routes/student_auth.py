@@ -1158,8 +1158,19 @@ def update_avatar():
         db.session.add(rpg)
 
     if data.get('avatar_class'):
-        if data['avatar_class'] in ('mage', 'guerrier', 'archer', 'guerisseur'):
-            rpg.avatar_class = data['avatar_class']
+        new_class = data['avatar_class']
+        if new_class in ('mage', 'guerrier', 'archer', 'guerisseur'):
+            # Si changement de classe → reset complet (sauf première sélection)
+            if rpg.avatar_class and rpg.avatar_class != new_class:
+                if not data.get('confirm_reset'):
+                    return jsonify({
+                        'success': False,
+                        'needs_confirmation': True,
+                        'message': 'Changer de classe réinitialisera ton niveau, équipement et or.',
+                    })
+                rpg.reset_for_class_change()
+            rpg.avatar_class = new_class
+            rpg.recalculate_stats()
 
     if data.get('accessories'):
         rpg.avatar_accessories_json = data['accessories']

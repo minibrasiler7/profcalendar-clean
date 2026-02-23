@@ -145,10 +145,8 @@ async function toggleClassTree(classId) {
     const toggle = document.getElementById(`toggle-${classId}`);
 
     if (tree.style.display === 'none') {
-        // Charger l'arborescence si pas encore fait
-        if (tree.innerHTML.trim() === '') {
-            await loadClassTree(classId);
-        }
+        // Toujours recharger l'arborescence pour avoir les données à jour
+        await loadClassTree(classId);
         tree.style.display = 'block';
         toggle.classList.add('expanded');
     } else {
@@ -718,7 +716,30 @@ async function handleClassDrop(e) {
         } else if (dragData.startsWith('folder:')) {
             const folderId = dragData.replace('folder:', '');
             await copyFolderToClass(folderId, classId);
+        } else if (dragData.startsWith('exercise:')) {
+            const exerciseId = dragData.replace('exercise:', '');
+            await publishExerciseToClass(exerciseId, classId);
         }
+    }
+}
+
+// Publier un exercice dans une classe via drag & drop
+async function publishExerciseToClass(exerciseId, classId) {
+    try {
+        const response = await fetch('/exercises/publish-to-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_id: exerciseId, classroom_id: classId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('Exercice publié dans la classe !', 'success');
+            await loadClassTree(classId);
+        } else {
+            showNotification(result.error || 'Erreur', 'error');
+        }
+    } catch (error) {
+        showNotification('Erreur lors de la publication', 'error');
     }
 }
 

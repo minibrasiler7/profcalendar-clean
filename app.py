@@ -453,6 +453,48 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Tables RPG items: {e}")
 
+        # Migration: ajouter colonnes stats, évolutions, compétences, équipement au profil RPG
+        try:
+            for col_name, col_type, col_default in [
+                ('stat_force', 'INTEGER', '5'),
+                ('stat_defense', 'INTEGER', '5'),
+                ('stat_defense_magique', 'INTEGER', '5'),
+                ('stat_vie', 'INTEGER', '5'),
+                ('stat_intelligence', 'INTEGER', '5'),
+                ('evolutions_json', 'TEXT', "'[]'"),
+                ('active_skills_json', 'TEXT', "'[]'"),
+                ('equipment_json', 'TEXT', "'{}'"),
+            ]:
+                try:
+                    db.session.execute(db.text(
+                        f"ALTER TABLE student_rpg_profiles ADD COLUMN IF NOT EXISTS {col_name} {col_type} DEFAULT {col_default}"
+                    ))
+                except Exception:
+                    pass
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Migration stats RPG: {e}")
+
+        # Migration: ajouter colonnes stat_bonus_json, special_ability, equip_slot aux rpg_items
+        try:
+            for col_name, col_type in [
+                ('stat_bonus_json', 'TEXT'),
+                ('special_ability', 'VARCHAR(200)'),
+                ('equip_slot', 'VARCHAR(20)'),
+            ]:
+                try:
+                    db.session.execute(db.text(
+                        f"ALTER TABLE rpg_items ADD COLUMN IF NOT EXISTS {col_name} {col_type}"
+                    ))
+                except Exception:
+                    pass
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Migration rpg_items: {e}")
+
+        # Re-seed RPG items si les nouveaux champs sont vides (mise à jour avec stat_bonus)
         try:
             from models.rpg import RPGItem, DEFAULT_ITEMS
             existing_items = db.session.execute(db.text("SELECT COUNT(*) FROM rpg_items")).scalar()
@@ -462,9 +504,37 @@ def create_app(config_name='development'):
                     db.session.add(item)
                 db.session.commit()
                 print(f"✅ {len(DEFAULT_ITEMS)} objets RPG par défaut insérés")
+            else:
+                # Mettre à jour les items existants avec les nouveaux champs
+                for item_data in DEFAULT_ITEMS:
+                    existing = RPGItem.query.filter_by(name=item_data['name']).first()
+                    if existing:
+                        if 'stat_bonus_json' in item_data and not existing.stat_bonus_json:
+                            existing.stat_bonus_json = item_data.get('stat_bonus_json')
+                        if 'special_ability' in item_data and not existing.special_ability:
+                            existing.special_ability = item_data.get('special_ability')
+                        if 'equip_slot' in item_data and not existing.equip_slot:
+                            existing.equip_slot = item_data.get('equip_slot')
+                    else:
+                        item = RPGItem(**item_data)
+                        db.session.add(item)
+                db.session.commit()
+                print("✅ Objets RPG mis à jour avec bonus stats")
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Objets RPG par défaut: {e}")
+
+        # Migration: ajouter mode et is_active sur exercise_publications
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE exercise_publications ADD COLUMN IF NOT EXISTS mode VARCHAR(20) DEFAULT 'classique'"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE exercise_publications ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
         # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
         try:

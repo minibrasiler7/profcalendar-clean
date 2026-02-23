@@ -12,6 +12,8 @@ class ExercisePublication(db.Model):
     planning_id = db.Column(db.Integer, db.ForeignKey('plannings.id'), nullable=True)
     published_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     published_at = db.Column(db.DateTime, default=datetime.utcnow)
+    mode = db.Column(db.String(20), default='classique')  # 'classique' ou 'combat'
+    is_active = db.Column(db.Boolean, default=False)  # True = mission lancée en live
 
     # Relations
     exercise = db.relationship('Exercise', backref=db.backref('publications', lazy='dynamic'))
@@ -25,6 +27,8 @@ class ExercisePublication(db.Model):
             'classroom_id': self.classroom_id,
             'planning_id': self.planning_id,
             'published_at': self.published_at.isoformat() if self.published_at else None,
+            'mode': self.mode or 'classique',
+            'is_active': self.is_active or False,
         }
 
     def __repr__(self):
