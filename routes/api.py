@@ -1366,53 +1366,67 @@ def student_list_missions():
     if not student.classroom_id:
         return jsonify({'missions': []})
 
-    from models.exercise import Exercise
-    from models.exercise_progress import ExercisePublication
+    try:
+        from models.exercise import Exercise
+        from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
 
-    publications = ExercisePublication.query.filter_by(
-        classroom_id=student.classroom_id
-    ).order_by(ExercisePublication.published_at.desc()).all()
+        # Requête brute pour éviter les crashs si colonnes manquantes
+        publications = db.session.execute(db.text(
+            "SELECT id, exercise_id, published_at, "
+            "COALESCE(mode, 'classique') as mode "
+            "FROM exercise_publications "
+            "WHERE classroom_id = :cid "
+            "ORDER BY published_at DESC"
+        ), {'cid': student.classroom_id}).fetchall()
 
-    from models.exercise_progress import StudentExerciseAttempt
+        now = datetime.utcnow()
+        missions_data = []
+        for pub_row in publications:
+            exercise = Exercise.query.get(pub_row.exercise_id)
+            if not exercise:
+                continue
 
-    now = datetime.utcnow()
-    missions_data = []
-    for pub in publications:
-        exercise = pub.exercise
-        if not exercise:
-            continue
+            # Cooldown 24h
+            last_attempt = StudentExerciseAttempt.query.filter_by(
+                student_id=student.id, exercise_id=exercise.id
+            ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
+                StudentExerciseAttempt.completed_at.desc()
+            ).first()
 
-        # Cooldown 24h : vérifier la dernière tentative complétée
-        last_attempt = StudentExerciseAttempt.query.filter_by(
-            student_id=student.id, exercise_id=exercise.id
-        ).filter(StudentExerciseAttempt.completed_at.isnot(None)).order_by(
-            StudentExerciseAttempt.completed_at.desc()
-        ).first()
+            on_cooldown = False
+            cooldown_remaining = 0
+            if last_attempt and last_attempt.completed_at:
+                elapsed = (now - last_attempt.completed_at).total_seconds()
+                cooldown_secs = 24 * 3600
+                if elapsed < cooldown_secs:
+                    on_cooldown = True
+                    cooldown_remaining = int(cooldown_secs - elapsed)
 
-        on_cooldown = False
-        cooldown_remaining = 0
-        if last_attempt and last_attempt.completed_at:
-            elapsed = (now - last_attempt.completed_at).total_seconds()
-            cooldown_secs = 24 * 3600
-            if elapsed < cooldown_secs:
-                on_cooldown = True
-                cooldown_remaining = int(cooldown_secs - elapsed)
+            try:
+                blocks_count = exercise.blocks.count()
+            except Exception:
+                blocks_count = 0
 
-        missions_data.append({
-            'id': pub.id,
-            'exercise_id': exercise.id,
-            'title': exercise.title,
-            'description': exercise.description or '',
-            'subject': exercise.subject or '',
-            'blocks_count': exercise.blocks.count() if exercise.blocks else 0,
-            'xp_reward': exercise.total_points or 0,
-            'published_at': pub.published_at.isoformat() if pub.published_at else '',
-            'on_cooldown': on_cooldown,
-            'cooldown_remaining': cooldown_remaining,
-            'mode': getattr(pub, 'mode', 'classique') or 'classique',
-        })
+            missions_data.append({
+                'id': pub_row.id,
+                'exercise_id': exercise.id,
+                'title': exercise.title,
+                'description': exercise.description or '',
+                'subject': exercise.subject or '',
+                'blocks_count': blocks_count,
+                'xp_reward': exercise.total_points or 0,
+                'published_at': pub_row.published_at.isoformat() if pub_row.published_at else '',
+                'on_cooldown': on_cooldown,
+                'cooldown_remaining': cooldown_remaining,
+                'mode': pub_row.mode or 'classique',
+            })
 
-    return jsonify({'missions': missions_data})
+        return jsonify({'missions': missions_data})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'missions': [], 'error': str(e)}), 200
 
 
 @api_bp.route('/student/missions/<int:mission_id>', methods=['GET'])
@@ -1685,35 +1699,74 @@ def student_rpg_profile():
     xp_for_next_level = rpg_profile.xp_for_next_level
     xp_progress = rpg_profile.xp_progress
 
-    # Récupérer les badges
-    student_badges = StudentBadge.query.filter_by(student_id=student.id).all()
+    # Récupérer les badges (safe)
     badges_data = []
-    for sb in student_badges:
-        badge = Badge.query.get(sb.badge_id)
-        if badge:
-            badges_data.append({
-                'id': badge.id,
-                'name': badge.name,
-                'description': badge.description or '',
-                'icon': badge.icon or '',
-                'earned_at': sb.earned_at.isoformat()
-            })
+    try:
+        student_badges = StudentBadge.query.filter_by(student_id=student.id).all()
+        for sb in student_badges:
+            badge = Badge.query.get(sb.badge_id)
+            if badge:
+                badges_data.append({
+                    'id': badge.id,
+                    'name': badge.name,
+                    'description': badge.description or '',
+                    'icon': badge.icon or '',
+                    'earned_at': sb.earned_at.isoformat() if sb.earned_at else None
+                })
+    except Exception:
+        pass
 
-    # Récupérer l'inventaire d'objets
-    student_items = StudentItem.query.filter_by(student_id=student.id).all()
-    items_data = [si.to_dict() for si in student_items]
+    # Récupérer l'inventaire d'objets (safe)
+    items_data = []
+    try:
+        student_items = StudentItem.query.filter_by(student_id=student.id).all()
+        items_data = [si.to_dict() for si in student_items]
+    except Exception:
+        pass
 
-    # Stats, skills, evolutions
-    stats = {
-        'force': rpg_profile.stat_force or 5,
-        'defense': rpg_profile.stat_defense or 5,
-        'defense_magique': rpg_profile.stat_defense_magique or 5,
-        'vie': rpg_profile.stat_vie or 5,
-        'intelligence': rpg_profile.stat_intelligence or 5,
-    }
-    all_skills = rpg_profile.get_all_skills()
-    active_skills = rpg_profile.get_active_skills()
-    available_evolutions = rpg_profile.get_available_evolutions()
+    # Stats, skills, evolutions (safe)
+    try:
+        stats = {
+            'force': getattr(rpg_profile, 'stat_force', 5) or 5,
+            'defense': getattr(rpg_profile, 'stat_defense', 5) or 5,
+            'defense_magique': getattr(rpg_profile, 'stat_defense_magique', 5) or 5,
+            'vie': getattr(rpg_profile, 'stat_vie', 5) or 5,
+            'intelligence': getattr(rpg_profile, 'stat_intelligence', 5) or 5,
+        }
+    except Exception:
+        stats = {'force': 5, 'defense': 5, 'defense_magique': 5, 'vie': 5, 'intelligence': 5}
+
+    try:
+        all_skills = rpg_profile.get_all_skills()
+    except Exception:
+        all_skills = []
+
+    try:
+        active_skills = rpg_profile.get_active_skills()
+    except Exception:
+        active_skills = []
+
+    try:
+        available_evolutions = rpg_profile.get_available_evolutions()
+    except Exception:
+        available_evolutions = []
+
+    try:
+        evolutions_data = rpg_profile._safe_json_list(rpg_profile.evolutions_json)
+    except Exception:
+        evolutions_data = []
+
+    try:
+        equipment_data = rpg_profile._safe_json_dict(rpg_profile.equipment_json)
+    except Exception:
+        equipment_data = {}
+
+    try:
+        sprite_name = rpg_profile.sprite_name if rpg_profile.avatar_class else None
+        sprite_path = rpg_profile.sprite_path if rpg_profile.avatar_class else None
+    except Exception:
+        sprite_name = rpg_profile.avatar_class
+        sprite_path = f"img/chihuahua/{rpg_profile.avatar_class or 'guerrier'}.png"
 
     return jsonify({
         'rpg_profile': {
@@ -1725,14 +1778,14 @@ def student_rpg_profile():
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
             'avatar_class': rpg_profile.avatar_class,
-            'sprite_name': rpg_profile.sprite_name if rpg_profile.avatar_class else None,
-            'sprite_path': rpg_profile.sprite_path if rpg_profile.avatar_class else None,
+            'sprite_name': sprite_name,
+            'sprite_path': sprite_path,
             'stats': stats,
-            'evolutions': rpg_profile.evolutions_json or [],
+            'evolutions': evolutions_data,
             'available_evolutions': available_evolutions,
             'skills': all_skills,
             'active_skills': active_skills,
-            'equipment': rpg_profile.equipment_json or {},
+            'equipment': equipment_data,
             'badges': badges_data,
             'items': items_data,
         },

@@ -10,7 +10,7 @@ class ExercisePublication(db.Model):
     exercise_id = db.Column(db.Integer, db.ForeignKey('exercises.id', ondelete='CASCADE'), nullable=False)
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
     planning_id = db.Column(db.Integer, db.ForeignKey('plannings.id'), nullable=True)
-    published_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    published_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     published_at = db.Column(db.DateTime, default=datetime.utcnow)
     mode = db.Column(db.String(20), default='classique')  # 'classique' ou 'combat'
     is_active = db.Column(db.Boolean, default=False)  # True = mission lancée en live

@@ -189,29 +189,63 @@ class StudentRPGProfile(db.Model):
                              primaryjoin='StudentRPGProfile.student_id == StudentBadge.student_id',
                              foreign_keys='StudentBadge.student_id')
 
+    def _safe_json_list(self, val):
+        """Retourne une liste valide à partir d'une valeur JSON (gère str, None, list)."""
+        if isinstance(val, list):
+            return val
+        if isinstance(val, str):
+            try:
+                import json as _json
+                parsed = _json.loads(val)
+                if isinstance(parsed, list):
+                    return parsed
+            except (ValueError, TypeError):
+                pass
+        return []
+
+    def _safe_json_dict(self, val):
+        """Retourne un dict valide à partir d'une valeur JSON (gère str, None, dict)."""
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, str):
+            try:
+                import json as _json
+                parsed = _json.loads(val)
+                if isinstance(parsed, dict):
+                    return parsed
+            except (ValueError, TypeError):
+                pass
+        return {}
+
     @property
     def sprite_name(self):
         """Retourne le nom du sprite à afficher (évolution la plus haute ou classe de base)."""
-        evolutions = self.evolutions_json or []
-        if evolutions:
-            latest = max(evolutions, key=lambda e: e.get('level', 0))
-            return latest.get('evolution_id', self.avatar_class or 'guerrier')
+        try:
+            evolutions = self._safe_json_list(self.evolutions_json)
+            if evolutions:
+                latest = max(evolutions, key=lambda e: e.get('level', 0) if isinstance(e, dict) else 0)
+                if isinstance(latest, dict):
+                    return latest.get('evolution_id', self.avatar_class or 'guerrier')
+        except Exception:
+            pass
         return self.avatar_class or 'guerrier'
 
     @property
     def sprite_path(self):
         """Retourne le chemin relatif du sprite (avec fallback sur la classe de base)."""
-        import os
-        from flask import current_app
-        sprite_file = f"img/chihuahua/{self.sprite_name}.png"
+        fallback = f"img/chihuahua/{self.avatar_class or 'guerrier'}.png"
         try:
+            import os
+            from flask import current_app
+            sprite_file = f"img/chihuahua/{self.sprite_name}.png"
             static_folder = current_app.static_folder
-            full_path = os.path.join(static_folder, sprite_file)
-            if os.path.exists(full_path):
-                return sprite_file
-        except RuntimeError:
+            if static_folder:
+                full_path = os.path.join(static_folder, sprite_file)
+                if os.path.exists(full_path):
+                    return sprite_file
+        except Exception:
             pass
-        return f"img/chihuahua/{self.avatar_class or 'guerrier'}.png"
+        return fallback
 
     @staticmethod
     def calculate_level(xp):
@@ -267,8 +301,10 @@ class StudentRPGProfile(db.Model):
         self.stat_intelligence = base['intelligence'] + int(per_level.get('intelligence', 1) * lvl)
 
         # Ajouter bonus des évolutions
-        evolutions = self.evolutions_json or []
+        evolutions = self._safe_json_list(self.evolutions_json)
         for evo in evolutions:
+            if not isinstance(evo, dict):
+                continue
             evo_data = self._find_evolution(evo.get('evolution_id'))
             if evo_data:
                 bonus = evo_data.get('stat_bonus', {})
@@ -279,17 +315,20 @@ class StudentRPGProfile(db.Model):
                 self.stat_intelligence += bonus.get('intelligence', 0)
 
         # Ajouter bonus de l'équipement
-        equipment = self.equipment_json or {}
+        equipment = self._safe_json_dict(self.equipment_json)
         for slot, item_id in equipment.items():
             if item_id:
-                item = RPGItem.query.get(item_id)
-                if item and item.stat_bonus_json:
-                    bonus = item.stat_bonus_json
-                    self.stat_force += bonus.get('force', 0)
-                    self.stat_defense += bonus.get('defense', 0)
-                    self.stat_defense_magique += bonus.get('defense_magique', 0)
-                    self.stat_vie += bonus.get('vie', 0)
-                    self.stat_intelligence += bonus.get('intelligence', 0)
+                try:
+                    item = RPGItem.query.get(item_id)
+                    if item and item.stat_bonus_json:
+                        bonus = self._safe_json_dict(item.stat_bonus_json)
+                        self.stat_force += bonus.get('force', 0)
+                        self.stat_defense += bonus.get('defense', 0)
+                        self.stat_defense_magique += bonus.get('defense_magique', 0)
+                        self.stat_vie += bonus.get('vie', 0)
+                        self.stat_intelligence += bonus.get('intelligence', 0)
+                except Exception:
+                    pass
 
     def _find_evolution(self, evolution_id):
         """Trouver les données d'une évolution par son ID"""
@@ -307,8 +346,9 @@ class StudentRPGProfile(db.Model):
         if not self.avatar_class:
             return []
         evos = CLASS_EVOLUTIONS.get(self.avatar_class, {})
-        chosen_ids = {e.get('evolution_id') for e in (self.evolutions_json or [])}
-        chosen_levels = {e.get('level') for e in (self.evolutions_json or [])}
+        safe_evolutions = [e for e in self._safe_json_list(self.evolutions_json) if isinstance(e, dict)]
+        chosen_ids = {e.get('evolution_id') for e in safe_evolutions}
+        chosen_levels = {e.get('level') for e in safe_evolutions}
         available = []
         for level, choices in sorted(evos.items()):
             if self.level >= level and level not in chosen_levels:
@@ -332,20 +372,19 @@ class StudentRPGProfile(db.Model):
     def get_active_skills(self):
         """Retourne les compétences actives (max 6)"""
         all_skills = self.get_all_skills()
-        active_ids = self.active_skills_json or []
+        active_ids = self._safe_json_list(self.active_skills_json)
         if not active_ids:
-            # Par défaut : les 3 premières compétences
             return all_skills[:3]
-        return [s for s in all_skills if s['id'] in active_ids][:6]
+        return [s for s in all_skills if s.get('id') in active_ids][:6]
 
     def reset_for_class_change(self):
         """Reset complet pour changement de classe"""
         self.xp_total = 0
         self.level = 1
         self.gold = 0
-        self.evolutions_json = []
-        self.active_skills_json = []
-        self.equipment_json = {}
+        self.evolutions_json = list()
+        self.active_skills_json = list()
+        self.equipment_json = dict()
         self.stat_force = 5
         self.stat_defense = 5
         self.stat_defense_magique = 5

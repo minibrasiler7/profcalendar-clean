@@ -479,7 +479,7 @@ def create_app(config_name='development'):
         # Migration: ajouter colonnes stat_bonus_json, special_ability, equip_slot aux rpg_items
         try:
             for col_name, col_type in [
-                ('stat_bonus_json', 'TEXT'),
+                ('stat_bonus_json', 'JSONB'),
                 ('special_ability', 'VARCHAR(200)'),
                 ('equip_slot', 'VARCHAR(20)'),
             ]:
@@ -524,13 +524,21 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Objets RPG par défaut: {e}")
 
-        # Migration: ajouter mode et is_active sur exercise_publications
+        # Migration: ajouter mode et is_active sur exercise_publications + fix NULL published_by
         try:
             db.session.execute(db.text(
                 "ALTER TABLE exercise_publications ADD COLUMN IF NOT EXISTS mode VARCHAR(20) DEFAULT 'classique'"
             ))
             db.session.execute(db.text(
                 "ALTER TABLE exercise_publications ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT FALSE"
+            ))
+            # Fix NULL published_by : mettre le premier user trouvé
+            db.session.execute(db.text(
+                "UPDATE exercise_publications SET published_by = (SELECT id FROM users LIMIT 1) WHERE published_by IS NULL"
+            ))
+            # Rendre published_by nullable pour éviter les crashs futurs
+            db.session.execute(db.text(
+                "ALTER TABLE exercise_publications ALTER COLUMN published_by DROP NOT NULL"
             ))
             db.session.commit()
         except Exception:
