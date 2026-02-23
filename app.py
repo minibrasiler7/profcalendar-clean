@@ -461,9 +461,9 @@ def create_app(config_name='development'):
                 ('stat_defense_magique', 'INTEGER', '5'),
                 ('stat_vie', 'INTEGER', '5'),
                 ('stat_intelligence', 'INTEGER', '5'),
-                ('evolutions_json', 'TEXT', "'[]'"),
-                ('active_skills_json', 'TEXT', "'[]'"),
-                ('equipment_json', 'TEXT', "'{}'"),
+                ('evolutions_json', 'JSONB', "'[]'"),
+                ('active_skills_json', 'JSONB', "'[]'"),
+                ('equipment_json', 'JSONB', "'{}'"),
             ]:
                 try:
                     db.session.execute(db.text(

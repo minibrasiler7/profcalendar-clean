@@ -184,12 +184,16 @@ class StudentRPGProfile(db.Model):
     # Relations
     student = db.relationship('Student', backref=db.backref('rpg_profile', uselist=False))
 
+    badges = db.relationship('StudentBadge', backref='profile', lazy='dynamic',
+                             cascade='all, delete-orphan',
+                             primaryjoin='StudentRPGProfile.student_id == StudentBadge.student_id',
+                             foreign_keys='StudentBadge.student_id')
+
     @property
     def sprite_name(self):
         """Retourne le nom du sprite à afficher (évolution la plus haute ou classe de base)."""
         evolutions = self.evolutions_json or []
         if evolutions:
-            # Prendre l'évolution du niveau le plus haut
             latest = max(evolutions, key=lambda e: e.get('level', 0))
             return latest.get('evolution_id', self.avatar_class or 'guerrier')
         return self.avatar_class or 'guerrier'
@@ -198,16 +202,16 @@ class StudentRPGProfile(db.Model):
     def sprite_path(self):
         """Retourne le chemin relatif du sprite (avec fallback sur la classe de base)."""
         import os
+        from flask import current_app
         sprite_file = f"img/chihuahua/{self.sprite_name}.png"
-        # Vérifier si le fichier d'évolution existe, sinon fallback sur la classe de base
-        full_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', sprite_file)
-        if os.path.exists(full_path):
-            return sprite_file
+        try:
+            static_folder = current_app.static_folder
+            full_path = os.path.join(static_folder, sprite_file)
+            if os.path.exists(full_path):
+                return sprite_file
+        except RuntimeError:
+            pass
         return f"img/chihuahua/{self.avatar_class or 'guerrier'}.png"
-    badges = db.relationship('StudentBadge', backref='profile', lazy='dynamic',
-                             cascade='all, delete-orphan',
-                             primaryjoin='StudentRPGProfile.student_id == StudentBadge.student_id',
-                             foreign_keys='StudentBadge.student_id')
 
     @staticmethod
     def calculate_level(xp):

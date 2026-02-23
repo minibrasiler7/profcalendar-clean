@@ -1409,7 +1409,7 @@ def student_list_missions():
             'published_at': pub.published_at.isoformat() if pub.published_at else '',
             'on_cooldown': on_cooldown,
             'cooldown_remaining': cooldown_remaining,
-            'mode': pub.mode or 'classique',
+            'mode': getattr(pub, 'mode', 'classique') or 'classique',
         })
 
     return jsonify({'missions': missions_data})
@@ -1725,8 +1725,8 @@ def student_rpg_profile():
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
             'avatar_class': rpg_profile.avatar_class,
-            'sprite_name': rpg_profile.sprite_name,
-            'sprite_path': rpg_profile.sprite_path,
+            'sprite_name': rpg_profile.sprite_name if rpg_profile.avatar_class else None,
+            'sprite_path': rpg_profile.sprite_path if rpg_profile.avatar_class else None,
             'stats': stats,
             'evolutions': rpg_profile.evolutions_json or [],
             'available_evolutions': available_evolutions,
