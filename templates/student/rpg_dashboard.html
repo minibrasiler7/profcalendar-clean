@@ -320,7 +320,7 @@
     <div class="rpg-hero">
         <div class="avatar-display">
             {% if rpg.avatar_class %}
-            <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
+            <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}">
             {% else %}
             <span class="no-avatar">❓</span>
             {% endif %}

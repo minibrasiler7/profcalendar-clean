@@ -304,7 +304,7 @@
         <div style="display:flex;align-items:center;gap:1rem;">
             {% if rpg and rpg.avatar_class %}
             <div class="avatar-mini" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,0.4);flex-shrink:0;">
-                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}" style="width:100%;height:100%;object-fit:contain;background:white;border-radius:50%;">
+                <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}" style="width:100%;height:100%;object-fit:contain;background:white;border-radius:50%;">
             </div>
             {% endif %}
             <h1><i class="fas fa-scroll"></i> Mes Missions</h1>

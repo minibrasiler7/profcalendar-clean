@@ -160,7 +160,7 @@ export default function MissionsScreen({ navigation }) {
         <View style={[styles.rpgBar, { paddingTop: Math.max(insets.top, 12) }]}>
           {rpgData.avatar_class ? (
             <Image
-              source={{ uri: `${BASE_URL}/static/img/chihuahua/${rpgData.avatar_class}.png` }}
+              source={{ uri: `${BASE_URL}/static/${rpgData.sprite_path || ('img/chihuahua/' + rpgData.avatar_class + '.png')}` }}
               style={styles.rpgAvatar}
             />
           ) : null}

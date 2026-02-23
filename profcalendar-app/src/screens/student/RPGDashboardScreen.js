@@ -181,6 +181,9 @@ export default function RPGDashboardScreen({ navigation }) {
 
   const xpPercent = rpgData.xp_for_next_level > 0 ? (rpgData.xp_progress || 0) : 0;
   const currentAvatarClass = AVATAR_CLASSES.find((c) => c.id === rpgData.avatar_class);
+  const spriteUri = rpgData.sprite_path
+    ? `${BASE_URL}/static/${rpgData.sprite_path}`
+    : currentAvatarClass?.image;
   const stats = rpgData.stats || {};
   const skills = rpgData.skills || [];
   const activeSkills = rpgData.active_skills || [];
@@ -197,8 +200,8 @@ export default function RPGDashboardScreen({ navigation }) {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <View style={styles.avatarContainer}>
-          {currentAvatarClass ? (
-            <Image source={{ uri: currentAvatarClass.image }} style={styles.avatarImage} />
+          {spriteUri ? (
+            <Image source={{ uri: spriteUri }} style={styles.avatarImage} />
           ) : (
             <Ionicons name="help-circle-outline" size={40} color="rgba(255,255,255,0.5)" />
           )}

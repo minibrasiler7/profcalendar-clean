@@ -447,7 +447,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <div class="rpg-topbar-left">
             {% if rpg and rpg.avatar_class %}
             <div class="rpg-topbar-avatar">
-                <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
+                <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}">
             </div>
             {% endif %}
             <div class="rpg-topbar-info">
@@ -693,7 +693,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <h2><i class="fas fa-trophy"></i> Mission terminée !</h2>
         {% if rpg and rpg.avatar_class %}
         <div class="results-avatar">
-            <img src="{{ url_for('static', filename='img/chihuahua/' ~ rpg.avatar_class ~ '.png') }}" alt="{{ rpg.avatar_class }}">
+            <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}">
         </div>
         {% endif %}
         <div class="results-score" id="results-score"></div>

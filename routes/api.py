@@ -1725,6 +1725,8 @@ def student_rpg_profile():
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
             'avatar_class': rpg_profile.avatar_class,
+            'sprite_name': rpg_profile.sprite_name,
+            'sprite_path': rpg_profile.sprite_path,
             'stats': stats,
             'evolutions': rpg_profile.evolutions_json or [],
             'available_evolutions': available_evolutions,
