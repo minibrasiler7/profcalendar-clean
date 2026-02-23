@@ -1075,9 +1075,13 @@ def submit_exercise(exercise_id):
         # Vérifier les badges
         check_badges(student, rpg)
 
+        # Attribuer un objet RPG aléatoire
+        from models.rpg import award_random_item
+        item_won = award_random_item(student.id, attempt.score_percentage or 0)
+
         db.session.commit()
 
-        return jsonify({
+        result = {
             'success': True,
             'score': total_score,
             'max_score': total_max,
@@ -1090,7 +1094,11 @@ def submit_exercise(exercise_id):
                 'is_correct': a.is_correct,
                 'points_earned': a.points_earned,
             } for a in attempt.answers],
-        })
+        }
+        if item_won:
+            result['item_won'] = item_won.to_dict()
+
+        return jsonify(result)
 
     except Exception as e:
         db.session.rollback()
@@ -1105,7 +1113,7 @@ def rpg_dashboard():
         return redirect(url_for('student_auth.login'))
 
     student = current_user
-    from models.rpg import StudentRPGProfile, Badge, StudentBadge
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge, StudentItem
 
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     if not rpg:
@@ -1124,10 +1132,14 @@ def rpg_dashboard():
             'earned': badge.id in earned_badge_ids,
         })
 
+    # Inventaire d'objets
+    inventory = StudentItem.query.filter_by(student_id=student.id).all()
+
     return render_template('student/rpg_dashboard.html',
                            student=student,
                            rpg=rpg,
-                           badges=badges_data)
+                           badges=badges_data,
+                           inventory=inventory)
 
 
 @student_auth_bp.route('/rpg/avatar', methods=['POST'])
@@ -1428,6 +1440,18 @@ def grade_graph(config, answer, max_points):
             b_ok = abs(user_b - correct.get('b', 0)) <= tolerance
             c_ok = abs(user_c - correct.get('c', 0)) <= tolerance
             is_correct = a_ok and b_ok and c_ok
+
+        elif question_type == 'find_expression':
+            # L'élève saisit les coefficients directement
+            coeffs = answer.get('coefficients', {})
+            find_type = config.get('find_type', 'linear')
+            a_ok = abs(float(coeffs.get('a', 0)) - float(correct.get('a', 0))) <= tolerance
+            b_ok = abs(float(coeffs.get('b', 0)) - float(correct.get('b', 0))) <= tolerance
+            if find_type == 'quadratic':
+                c_ok = abs(float(coeffs.get('c', 0)) - float(correct.get('c', 0))) <= tolerance
+                is_correct = a_ok and b_ok and c_ok
+            else:
+                is_correct = a_ok and b_ok
         else:
             is_correct = False
     except (ValueError, TypeError, ZeroDivisionError):

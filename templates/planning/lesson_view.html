@@ -1240,9 +1240,14 @@ input, textarea, select {
                 <h2 class="section-title">
                     <i class="fas fa-clipboard-list"></i> Planification du cours
                 </h2>
-                <button class="edit-planning-btn" onclick="togglePlanningEdit()">
-                    <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
-                </button>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un fichier ou exercice" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="edit-planning-btn" onclick="togglePlanningEdit()">
+                        <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
+                    </button>
+                </div>
             </div>
 
             <div class="planning-content">
@@ -9674,4 +9679,120 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<!-- Modal ajout ressource -->
+<div id="add-resource-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:16px;padding:1.5rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h3 style="margin:0;font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#10b981;"></i> Ajouter une ressource</h3>
+            <button onclick="closeAddResourceModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Exercices -->
+        {% if user_exercises %}
+        <div style="margin-bottom:1rem;">
+            <h4 style="font-size:0.85rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">
+                <i class="fas fa-gamepad"></i> Exercices interactifs
+            </h4>
+            {% for ex in user_exercises %}
+            <div class="resource-item" onclick="addExerciseToPlanning({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
+                <i class="fas fa-gamepad" style="color:#667eea;"></i>
+                <div style="flex:1;">
+                    <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
+                    <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
+                </div>
+                <i class="fas fa-plus-circle" style="color:#10b981;font-size:1.1rem;"></i>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Fichiers de la classe -->
+        {% if lesson_classroom %}
+        <div>
+            <h4 style="font-size:0.85rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">
+                <i class="fas fa-folder"></i> Fichiers de la classe
+            </h4>
+            <div id="class-files-list" style="color:#9ca3af;font-size:0.85rem;">
+                <i class="fas fa-spinner fa-spin"></i> Chargement...
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function showAddResourceModal() {
+    document.getElementById('add-resource-modal').style.display = 'flex';
+    {% if lesson_classroom %}
+    loadClassFiles({{ lesson_classroom.id }});
+    {% endif %}
+}
+
+function closeAddResourceModal() {
+    document.getElementById('add-resource-modal').style.display = 'none';
+}
+
+{% if lesson_classroom %}
+async function loadClassFiles(classroomId) {
+    const container = document.getElementById('class-files-list');
+    try {
+        const res = await fetch(`/planning/get-class-resources/${classroomId}`);
+        const data = await res.json();
+        if (data.success && data.resources && data.resources.length > 0) {
+            container.innerHTML = data.resources.map(r =>
+                `<div onclick="addFileToPlanning('${r.name.replace(/'/g, "\\'")}', '${r.file_type || ''}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
+                    <i class="fas fa-${r.file_type === 'pdf' ? 'file-pdf' : r.file_type && r.file_type.match(/png|jpg|jpeg/) ? 'file-image' : 'file'}" style="color:${r.file_type === 'pdf' ? '#DC2626' : '#6B7280'};"></i>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;font-size:0.85rem;">${r.name}</div>
+                    </div>
+                    <i class="fas fa-plus-circle" style="color:#10b981;font-size:1.1rem;"></i>
+                </div>`
+            ).join('');
+        } else {
+            container.innerHTML = '<p style="color:#9ca3af;font-style:italic;">Aucun fichier dans cette classe</p>';
+        }
+    } catch(e) {
+        container.innerHTML = '<p style="color:#ef4444;">Erreur de chargement</p>';
+    }
+}
+{% endif %}
+
+async function addExerciseToPlanning(exerciseId, title) {
+    {% if lesson_classroom %}
+    // Auto-publier l'exercice pour cette classe
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        await fetch(`/exercises/${exerciseId}/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ classroom_ids: [{{ lesson_classroom.id }}] }),
+        });
+    } catch(e) {}
+    {% endif %}
+
+    // Ajouter le lien dans la description de planification
+    const descEl = document.getElementById('planningDescriptionDisplay');
+    if (descEl) {
+        const link = document.createElement('div');
+        link.style.cssText = 'margin-top:0.5rem;padding:0.5rem 0.8rem;background:#eef2ff;border-radius:8px;border:1px solid #c7d2fe;';
+        link.innerHTML = `<i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${title}</strong> <span style="font-size:0.75rem;color:#10b981;">(publié)</span>`;
+        descEl.appendChild(link);
+    }
+
+    closeAddResourceModal();
+    alert(`Exercice "${title}" ajouté et publié !`);
+}
+
+function addFileToPlanning(filename, fileType) {
+    const descEl = document.getElementById('planningDescriptionDisplay');
+    if (descEl) {
+        const link = document.createElement('div');
+        link.style.cssText = 'margin-top:0.5rem;padding:0.5rem 0.8rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;';
+        link.innerHTML = `<i class="fas fa-${fileType === 'pdf' ? 'file-pdf' : 'file'}" style="color:${fileType === 'pdf' ? '#DC2626' : '#6B7280'};"></i> <strong>${filename}</strong>`;
+        descEl.appendChild(link);
+    }
+    closeAddResourceModal();
+}
+</script>
 {% endblock %}

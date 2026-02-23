@@ -2011,6 +2011,14 @@ def lesson_view():
     # Importer la fonction de rendu des checkboxes
     from utils.jinja_filters import render_planning_with_checkboxes
 
+    # Exercices de l'enseignant pour le bouton +
+    user_exercises = []
+    try:
+        from models.exercise import Exercise
+        user_exercises = Exercise.query.filter_by(user_id=current_user.id, is_draft=False).order_by(Exercise.title).all()
+    except Exception:
+        pass
+
     return render_template('planning/lesson_view.html',
                          lesson=lesson,
                          planning=planning,
@@ -2027,7 +2035,8 @@ def lesson_view():
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
                          accommodation_display=accommodation_display,
-                         render_planning_with_checkboxes=render_planning_with_checkboxes)
+                         render_planning_with_checkboxes=render_planning_with_checkboxes,
+                         user_exercises=user_exercises)
 
 @planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required

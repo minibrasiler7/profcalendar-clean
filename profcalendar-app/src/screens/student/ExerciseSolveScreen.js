@@ -36,7 +36,7 @@ function shuffleArray(arr) {
 // ============================================================
 // Drag & Drop Sorting — ORDER mode (real drag & drop)
 // ============================================================
-function DraggableOrderList({ items, order, onReorder, disabled }) {
+function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, onDragEnd }) {
   const ITEM_HEIGHT = 60;
   const [draggingIdx, setDraggingIdx] = useState(-1);
   const dragY = useRef(new Animated.Value(0)).current;
@@ -58,6 +58,7 @@ function DraggableOrderList({ items, order, onReorder, disabled }) {
           setDragText(items[currentOrder.current[pos]]);
           dragY.setValue(g.y0 - ITEM_HEIGHT / 2);
           Animated.timing(dragOpacity, { toValue: 1, duration: 100, useNativeDriver: true }).start();
+          if (onDragStart) onDragStart();
         },
         onPanResponderMove: (_, g) => {
           dragY.setValue(g.moveY - ITEM_HEIGHT / 2);
@@ -76,10 +77,12 @@ function DraggableOrderList({ items, order, onReorder, disabled }) {
             onReorder(newOrder);
           }
           setDraggingIdx(-1);
+          if (onDragEnd) onDragEnd();
         },
         onPanResponderTerminate: () => {
           Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
           setDraggingIdx(-1);
+          if (onDragEnd) onDragEnd();
         },
       });
     }
@@ -414,6 +417,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const [result, setResult] = useState(null);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [questionLocked, setQuestionLocked] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
 
@@ -685,7 +689,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       case 'sorting':
         if (c.mode === 'order') {
           return <DraggableOrderList items={c.items || []} order={answer.order || []}
-            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked} />;
+            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked}
+            onDragStart={() => setIsDragging(true)} onDragEnd={() => setIsDragging(false)} />;
         }
         return <DraggableCategoryList items={c.items || []} categories={c.categories || []}
           catAssignments={answer.categories || {}} onUpdate={(cats) => updateAnswer(blockId, { categories: cats })} disabled={isLocked} />;
@@ -697,13 +702,67 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return <ImageInteractive imageUrl={imageUrl} zones={c.zones || []} clicks={answer.clicks || []}
           onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })} disabled={isLocked} />;
       }
-      case 'graph':
+      case 'graph': {
+        const ca = c.correct_answer || {};
+
+        // find_expression: show static graph + coefficient inputs
+        if (c.question_type === 'find_expression') {
+          const findType = c.find_type || 'linear';
+          const coeffAnswer = answer.coefficients || {};
+          return (
+            <View>
+              <Text style={styles.graphExpression}>Trouve l'expression de la fonction :</Text>
+              <GraphInteractive config={{...c, question_type: findType === 'quadratic' ? 'draw_quadratic' : 'draw_line', static_mode: true}} disabled={true} />
+              <View style={styles.findExprContainer}>
+                <Text style={styles.findExprLabel}>
+                  {findType === 'quadratic' ? 'f(x) = ax² + bx + c' : 'f(x) = ax + b'}
+                </Text>
+                <View style={styles.findExprRow}>
+                  <Text style={styles.findExprCoeffLabel}>a =</Text>
+                  <TextInput style={styles.findExprInput} keyboardType="numeric"
+                    value={coeffAnswer.a != null ? String(coeffAnswer.a) : ''}
+                    onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, a: parseFloat(t) || 0 }})}
+                    editable={!isLocked} placeholder="0" />
+                  <Text style={styles.findExprCoeffLabel}>b =</Text>
+                  <TextInput style={styles.findExprInput} keyboardType="numeric"
+                    value={coeffAnswer.b != null ? String(coeffAnswer.b) : ''}
+                    onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, b: parseFloat(t) || 0 }})}
+                    editable={!isLocked} placeholder="0" />
+                  {findType === 'quadratic' && (
+                    <>
+                      <Text style={styles.findExprCoeffLabel}>c =</Text>
+                      <TextInput style={styles.findExprInput} keyboardType="numeric"
+                        value={coeffAnswer.c != null ? String(coeffAnswer.c) : ''}
+                        onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, c: parseFloat(t) || 0 }})}
+                        editable={!isLocked} placeholder="0" />
+                    </>
+                  )}
+                </View>
+              </View>
+            </View>
+          );
+        }
+
+        // Auto-generate expression text from correct_answer
+        let exprText = '';
+        if (c.question_type === 'draw_quadratic') {
+          const aStr = ca.a === 1 ? '' : ca.a === -1 ? '-' : (ca.a != null ? String(ca.a) : '');
+          const bPart = ca.b > 0 ? ` + ${ca.b}x` : ca.b < 0 ? ` - ${-ca.b}x` : '';
+          const cPart = ca.c > 0 ? ` + ${ca.c}` : ca.c < 0 ? ` - ${-ca.c}` : '';
+          exprText = `f(x) = ${aStr}x² ${bPart}${cPart}`;
+        } else {
+          const aStr = ca.a === 1 ? '' : ca.a === -1 ? '-' : (ca.a != null ? String(ca.a) : '');
+          const bPart = ca.b > 0 ? ` + ${ca.b}` : ca.b < 0 ? ` - ${-ca.b}` : '';
+          exprText = `f(x) = ${aStr}x${bPart}`;
+        }
         return (
           <View>
             {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
+            {exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
             <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />
           </View>
         );
+      }
       default:
         return <Text style={styles.questionText}>Type non supporté</Text>;
     }
@@ -723,7 +782,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} scrollEnabled={!isDragging}>
         {currentBlock && (
           <Animated.View style={[styles.blockContainer,
             currentFeedback?.is_correct === true && styles.blockCorrect,
@@ -889,6 +948,12 @@ const styles = StyleSheet.create({
   blockPoints: { fontSize: 13, fontWeight: '700', color: '#f59e0b' },
   blockTitle: { fontSize: 17, fontWeight: '700', color: '#1e1b4b', marginBottom: 16 },
   questionText: { fontSize: 14, color: '#374151', marginBottom: 12, lineHeight: 22 },
+  graphExpression: { fontSize: 18, fontWeight: '800', color: '#1e1b4b', marginBottom: 12, fontStyle: 'italic', textAlign: 'center' },
+  findExprContainer: { backgroundColor: '#f0f4ff', borderRadius: 12, padding: 16, marginTop: 12, borderWidth: 2, borderColor: '#c7d2fe' },
+  findExprLabel: { fontWeight: '600', color: '#4338ca', fontSize: 16, marginBottom: 12, textAlign: 'center' },
+  findExprRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
+  findExprCoeffLabel: { fontWeight: '500', fontSize: 16, color: '#374151' },
+  findExprInput: { width: 65, padding: 8, borderWidth: 2, borderColor: '#a5b4fc', borderRadius: 8, fontSize: 16, textAlign: 'center', backgroundColor: '#fff' },
   feedbackBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, marginTop: 16 },
   feedbackCorrect: { backgroundColor: '#dcfce7', borderWidth: 2, borderColor: '#86efac' },
   feedbackIncorrect: { backgroundColor: '#fef2f2', borderWidth: 2, borderColor: '#fca5a5' },

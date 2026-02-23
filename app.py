@@ -406,6 +406,7 @@ def create_app(config_name='development'):
             db.session.execute(db.text("ALTER TABLE exercise_blocks ADD COLUMN IF NOT EXISTS duration INTEGER"))
             db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS accept_typos BOOLEAN DEFAULT FALSE"))
             db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_threshold INTEGER DEFAULT 100"))
+            db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS folder_id INTEGER"))
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -423,6 +424,47 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Badges par défaut: {e}")
+
+        # Créer les tables RPG items + insérer les objets par défaut
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS rpg_items (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    description VARCHAR(300),
+                    icon VARCHAR(50) DEFAULT 'box',
+                    color VARCHAR(7) DEFAULT '#6b7280',
+                    category VARCHAR(50),
+                    rarity VARCHAR(20) DEFAULT 'common',
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS student_items (
+                    id SERIAL PRIMARY KEY,
+                    student_id INTEGER NOT NULL REFERENCES students(id),
+                    item_id INTEGER NOT NULL REFERENCES rpg_items(id),
+                    quantity INTEGER DEFAULT 1,
+                    obtained_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Tables RPG items: {e}")
+
+        try:
+            from models.rpg import RPGItem, DEFAULT_ITEMS
+            existing_items = db.session.execute(db.text("SELECT COUNT(*) FROM rpg_items")).scalar()
+            if existing_items == 0:
+                for item_data in DEFAULT_ITEMS:
+                    item = RPGItem(**item_data)
+                    db.session.add(item)
+                db.session.commit()
+                print(f"✅ {len(DEFAULT_ITEMS)} objets RPG par défaut insérés")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Objets RPG par défaut: {e}")
 
         # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
         try:

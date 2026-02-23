@@ -176,6 +176,56 @@ export default function RPGDashboardScreen({ navigation }) {
         </View>
       </View>
 
+      {/* Inventaire */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>
+          Inventaire ({rpgData.items?.length || 0} objets)
+        </Text>
+        {rpgData.items && rpgData.items.length > 0 ? (
+          <View style={styles.inventoryGrid}>
+            {rpgData.items.map((si) => (
+              <View key={si.id} style={styles.inventoryItem}>
+                {si.quantity > 1 && (
+                  <View style={styles.itemQuantityBadge}>
+                    <Text style={styles.itemQuantityText}>x{si.quantity}</Text>
+                  </View>
+                )}
+                <View style={[styles.itemIcon, { backgroundColor: si.item?.color || '#6b7280' }]}>
+                  <Ionicons
+                    name={
+                      si.item?.icon === 'flask' ? 'flask' :
+                      si.item?.icon === 'gavel' ? 'hammer' :
+                      si.item?.icon === 'shield-alt' ? 'shield' :
+                      si.item?.icon === 'scroll' ? 'document-text' :
+                      si.item?.icon === 'gem' ? 'diamond' :
+                      si.item?.icon === 'coins' ? 'cash' :
+                      si.item?.icon === 'crown' ? 'ribbon' :
+                      si.item?.icon === 'hat-wizard' ? 'sparkles' :
+                      si.item?.icon === 'user-secret' ? 'eye-off' :
+                      si.item?.icon === 'ring' ? 'ellipse' :
+                      'cube'
+                    }
+                    size={22}
+                    color="white"
+                  />
+                </View>
+                <Text style={styles.itemName} numberOfLines={1}>{si.item?.name}</Text>
+                <Text style={[styles.itemRarity, { color: si.item?.rarity_color || '#9ca3af' }]}>
+                  {si.item?.rarity_label || 'Commun'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyInventory}>
+            <Ionicons name="cube-outline" size={36} color={colors.textLight} />
+            <Text style={styles.emptyInventoryText}>
+              Ton inventaire est vide ! Complète des missions pour gagner des objets.
+            </Text>
+          </View>
+        )}
+      </View>
+
       {/* Badges */}
       {rpgData.badges && rpgData.badges.length > 0 && (
         <View style={styles.section}>
@@ -327,4 +377,38 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   badgeNameLocked: { color: colors.textLight },
+  inventoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  inventoryItem: {
+    width: '31%',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    position: 'relative',
+  },
+  itemQuantityBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    backgroundColor: '#1e1b4b',
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    zIndex: 1,
+  },
+  itemQuantityText: { color: 'white', fontSize: 10, fontWeight: '800' },
+  itemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  itemName: { fontSize: 11, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  itemRarity: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  emptyInventory: { alignItems: 'center', padding: 24, gap: 8 },
+  emptyInventoryText: { fontSize: 13, color: colors.textLight, textAlign: 'center', fontStyle: 'italic' },
 });

@@ -87,6 +87,8 @@ def save():
         exercise.badge_threshold = data.get('badge_threshold', 100)
 
         exercise.is_draft = data.get('is_draft', True)
+        if data.get('folder_id') is not None:
+            exercise.folder_id = data.get('folder_id') or None
         exercise.updated_at = datetime.utcnow()
 
         # Sauvegarder d'abord pour obtenir l'ID
@@ -143,6 +145,27 @@ def save():
         db.session.rollback()
         current_app.logger.error(f"Erreur sauvegarde exercice: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@exercises_bp.route('/folders', methods=['GET'])
+@login_required
+@teacher_required
+def list_folders():
+    """Lister les dossiers du gestionnaire de fichiers de l'utilisateur"""
+    try:
+        from routes.file_manager import FileFolder
+        folders = FileFolder.query.filter_by(user_id=current_user.id).order_by(FileFolder.name).all()
+        return jsonify({
+            'success': True,
+            'folders': [{
+                'id': f.id,
+                'name': f.name,
+                'parent_id': f.parent_id,
+                'color': f.color,
+            } for f in folders]
+        })
+    except Exception as e:
+        return jsonify({'success': True, 'folders': []})
 
 
 @exercises_bp.route('/<int:exercise_id>/delete', methods=['DELETE'])

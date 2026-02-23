@@ -1633,9 +1633,14 @@ def student_submit_mission(mission_id):
         # Vérifier les badges (la fonction ajoute directement en DB)
         check_badges(student, rpg)
 
+        # Attribuer un objet RPG aléatoire
+        from models.rpg import award_random_item
+        score_pct_val = (total_points_earned / max_points * 100) if max_points > 0 else 0
+        item_won = award_random_item(student.id, score_pct_val)
+
     db.session.commit()
 
-    return jsonify({
+    result = {
         'success': True,
         'attempt_id': attempt.id,
         'score': attempt.score,
@@ -1644,7 +1649,11 @@ def student_submit_mission(mission_id):
         'xp_earned': xp_earned,
         'gold_earned': gold_earned,
         'blocks_results': blocks_results
-    })
+    }
+    if rpg and item_won:
+        result['item_won'] = item_won.to_dict()
+
+    return jsonify(result)
 
 
 @api_bp.route('/student/rpg/profile', methods=['GET'])
@@ -1655,12 +1664,11 @@ def student_rpg_profile():
     if not student:
         return jsonify({'error': 'Élève non trouvé'}), 404
 
-    from models.rpg import StudentRPGProfile, Badge, StudentBadge
+    from models.rpg import StudentRPGProfile, Badge, StudentBadge, StudentItem
 
     rpg_profile = StudentRPGProfile.query.filter_by(student_id=student.id).first()
 
     if not rpg_profile:
-        # Créer un profil par défaut (sans avatar_class, l'élève doit choisir)
         rpg_profile = StudentRPGProfile(
             student_id=student.id,
             xp_total=0,
@@ -1669,7 +1677,6 @@ def student_rpg_profile():
         db.session.add(rpg_profile)
         db.session.commit()
 
-    # Calculer le niveau basé sur l'XP
     level = rpg_profile.level
     xp_for_next_level = rpg_profile.xp_for_next_level
     xp_progress = rpg_profile.xp_progress
@@ -1688,6 +1695,10 @@ def student_rpg_profile():
                 'earned_at': sb.earned_at.isoformat()
             })
 
+    # Récupérer l'inventaire d'objets
+    student_items = StudentItem.query.filter_by(student_id=student.id).all()
+    items_data = [si.to_dict() for si in student_items]
+
     return jsonify({
         'rpg_profile': {
             'student_id': student.id,
@@ -1697,7 +1708,8 @@ def student_rpg_profile():
             'xp_progress': xp_progress,
             'gold': rpg_profile.gold,
             'avatar_class': rpg_profile.avatar_class,
-            'badges': badges_data
+            'badges': badges_data,
+            'items': items_data,
         }
     })
 

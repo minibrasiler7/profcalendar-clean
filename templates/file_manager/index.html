@@ -137,10 +137,29 @@
                     </div>
                 </div>
                 {% endfor %}
+
+                <!-- Exercices rangés dans ce dossier -->
+                {% for ex in exercises %}
+                <div class="file-item file" data-id="{{ ex.id }}" data-type="exercise">
+                    <div class="item-icon">
+                        <i class="fas fa-gamepad" style="color: #667eea;"></i>
+                    </div>
+                    <div class="item-name" title="{{ ex.title }}">
+                        <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                        {{ ex.title }}
+                    </div>
+                    <div class="item-info">{{ ex.total_points }} XP — {{ ex.blocks.count() }} questions</div>
+                    <div class="item-actions">
+                        <a href="{{ url_for('exercises.edit', exercise_id=ex.id) }}" class="action-btn" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
 
             <!-- État vide -->
-            {% if not folders and not files %}
+            {% if not folders and not files and not exercises %}
             <div class="empty-state">
                 <i class="fas fa-folder-open"></i>
                 <p>Ce dossier est vide</p>

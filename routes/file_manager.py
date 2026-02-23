@@ -106,12 +106,24 @@ def index():
             breadcrumb.insert(0, folder)
             folder = folder.parent
 
+    # Exercices rangés dans ce dossier
+    folder_exercises = []
+    try:
+        from models.exercise import Exercise
+        folder_exercises = Exercise.query.filter_by(
+            user_id=current_user.id,
+            folder_id=folder_id
+        ).order_by(Exercise.title).all()
+    except Exception:
+        pass
+
     # Calculer l'espace utilisé
     total_size = sum(f.file_size or 0 for f in current_user.files.all())
 
     return render_template('file_manager/index.html',
                          folders=folders,
                          files=files,
+                         exercises=folder_exercises,
                          current_folder=current_folder,
                          breadcrumb=breadcrumb,
                          total_size=total_size)

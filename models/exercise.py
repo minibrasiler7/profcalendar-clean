@@ -18,6 +18,7 @@ class Exercise(db.Model):
     total_points = db.Column(db.Integer, default=0)  # XP total calculé
     bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
     badge_threshold = db.Column(db.Integer, default=100)  # % minimum pour badge
+    folder_id = db.Column(db.Integer, nullable=True)  # Lien vers FileFolder du gestionnaire de fichiers
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

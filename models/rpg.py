@@ -1,6 +1,7 @@
 from extensions import db
 from datetime import datetime
 import math
+import random
 
 
 class StudentRPGProfile(db.Model):
@@ -65,6 +66,11 @@ class StudentRPGProfile(db.Model):
         self.gold += amount
 
     def to_dict(self):
+        items_list = []
+        try:
+            items_list = [si.to_dict() for si in StudentItem.query.filter_by(student_id=self.student_id).all()]
+        except Exception:
+            pass
         return {
             'id': self.id,
             'student_id': self.student_id,
@@ -76,6 +82,7 @@ class StudentRPGProfile(db.Model):
             'xp_for_next_level': self.xp_for_next_level,
             'xp_progress': self.xp_progress,
             'badges': [sb.to_dict() for sb in self.badges] if self.badges else [],
+            'items': items_list,
         }
 
     def __repr__(self):
@@ -237,4 +244,142 @@ DEFAULT_BADGES = [
         'condition_value': 5,
         'condition_extra': 'image_position',
     },
+]
+
+
+class RPGItem(db.Model):
+    """Définition d'un objet RPG (potion, arme, etc.)"""
+    __tablename__ = 'rpg_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(300))
+    icon = db.Column(db.String(50), default='box')  # FontAwesome icon
+    color = db.Column(db.String(7), default='#6b7280')
+    category = db.Column(db.String(50))  # potion, arme, bouclier, parchemin, tresor
+    rarity = db.Column(db.String(20), default='common')  # common, rare, epic, legendary
+    is_active = db.Column(db.Boolean, default=True)
+
+    @property
+    def rarity_color(self):
+        return {
+            'common': '#9ca3af',
+            'rare': '#3b82f6',
+            'epic': '#a855f7',
+            'legendary': '#f59e0b',
+        }.get(self.rarity, '#9ca3af')
+
+    @property
+    def rarity_label(self):
+        return {
+            'common': 'Commun',
+            'rare': 'Rare',
+            'epic': 'Épique',
+            'legendary': 'Légendaire',
+        }.get(self.rarity, 'Commun')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'icon': self.icon,
+            'color': self.color,
+            'category': self.category,
+            'rarity': self.rarity,
+            'rarity_color': self.rarity_color,
+            'rarity_label': self.rarity_label,
+        }
+
+    def __repr__(self):
+        return f'<RPGItem {self.name} ({self.rarity})>'
+
+
+class StudentItem(db.Model):
+    """Objet RPG possédé par un élève"""
+    __tablename__ = 'student_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('rpg_items.id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    obtained_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    student = db.relationship('Student', backref=db.backref('student_items', lazy='dynamic'))
+    item = db.relationship('RPGItem', backref=db.backref('student_items', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'item': self.item.to_dict() if self.item else None,
+            'quantity': self.quantity,
+            'obtained_at': self.obtained_at.isoformat() if self.obtained_at else None,
+        }
+
+    def __repr__(self):
+        return f'<StudentItem student={self.student_id} item={self.item_id} x{self.quantity}>'
+
+
+def award_random_item(student_id, score_percentage):
+    """Attribuer un objet aléatoire en fonction du score. Retourne l'objet gagné ou None."""
+    items = RPGItem.query.filter_by(is_active=True).all()
+    if not items:
+        return None
+
+    # Pondération par rareté — meilleur score = plus de chance d'objet rare
+    weights = {
+        'common': 60,
+        'rare': 25 + (score_percentage / 10),
+        'epic': 10 + (score_percentage / 5),
+        'legendary': 5 + (score_percentage / 4),
+    }
+
+    weighted_items = []
+    for item in items:
+        w = weights.get(item.rarity, 10)
+        weighted_items.append((item, w))
+
+    chosen = random.choices([i[0] for i in weighted_items],
+                            weights=[i[1] for i in weighted_items], k=1)[0]
+
+    # Vérifier si l'élève a déjà cet objet → incrémenter quantity
+    existing = StudentItem.query.filter_by(student_id=student_id, item_id=chosen.id).first()
+    if existing:
+        existing.quantity += 1
+    else:
+        si = StudentItem(student_id=student_id, item_id=chosen.id)
+        db.session.add(si)
+
+    return chosen
+
+
+DEFAULT_ITEMS = [
+    # Potions
+    {'name': 'Potion de vie', 'description': 'Restaure l\'énergie du chihuahua', 'icon': 'flask', 'color': '#ef4444', 'category': 'potion', 'rarity': 'common'},
+    {'name': 'Potion de mana', 'description': 'Recharge les pouvoirs magiques', 'icon': 'flask', 'color': '#3b82f6', 'category': 'potion', 'rarity': 'common'},
+    {'name': 'Potion dorée', 'description': 'Un élixir précieux et brillant', 'icon': 'flask', 'color': '#f59e0b', 'category': 'potion', 'rarity': 'rare'},
+    {'name': 'Potion légendaire', 'description': 'La potion ultime des anciens', 'icon': 'flask', 'color': '#a855f7', 'category': 'potion', 'rarity': 'legendary'},
+    # Armes
+    {'name': 'Épée en bois', 'description': 'Une épée d\'entraînement basique', 'icon': 'gavel', 'color': '#92400e', 'category': 'arme', 'rarity': 'common'},
+    {'name': 'Épée en fer', 'description': 'Solide et fiable', 'icon': 'gavel', 'color': '#6b7280', 'category': 'arme', 'rarity': 'common'},
+    {'name': 'Épée enchantée', 'description': 'Brille d\'une lumière mystérieuse', 'icon': 'gavel', 'color': '#667eea', 'category': 'arme', 'rarity': 'rare'},
+    {'name': 'Excalibur', 'description': 'L\'épée légendaire des rois', 'icon': 'gavel', 'color': '#f59e0b', 'category': 'arme', 'rarity': 'legendary'},
+    # Boucliers
+    {'name': 'Bouclier en bois', 'description': 'Protection basique mais efficace', 'icon': 'shield-alt', 'color': '#92400e', 'category': 'bouclier', 'rarity': 'common'},
+    {'name': 'Bouclier en acier', 'description': 'Résistant aux coups puissants', 'icon': 'shield-alt', 'color': '#6b7280', 'category': 'bouclier', 'rarity': 'rare'},
+    {'name': 'Bouclier du dragon', 'description': 'Forgé dans le feu d\'un dragon', 'icon': 'shield-alt', 'color': '#ef4444', 'category': 'bouclier', 'rarity': 'epic'},
+    # Parchemins
+    {'name': 'Parchemin de sagesse', 'description': 'Contient un savoir ancien', 'icon': 'scroll', 'color': '#d4a574', 'category': 'parchemin', 'rarity': 'common'},
+    {'name': 'Parchemin magique', 'description': 'Écrit dans une langue oubliée', 'icon': 'scroll', 'color': '#a855f7', 'category': 'parchemin', 'rarity': 'rare'},
+    {'name': 'Parchemin du destin', 'description': 'Révèle les secrets de l\'avenir', 'icon': 'scroll', 'color': '#f59e0b', 'category': 'parchemin', 'rarity': 'epic'},
+    # Trésors
+    {'name': 'Pièce d\'or', 'description': 'Une pièce brillante', 'icon': 'coins', 'color': '#f59e0b', 'category': 'tresor', 'rarity': 'common'},
+    {'name': 'Rubis', 'description': 'Une pierre précieuse rouge sang', 'icon': 'gem', 'color': '#ef4444', 'category': 'tresor', 'rarity': 'rare'},
+    {'name': 'Saphir', 'description': 'Un joyau d\'un bleu profond', 'icon': 'gem', 'color': '#3b82f6', 'category': 'tresor', 'rarity': 'rare'},
+    {'name': 'Diamant', 'description': 'La gemme la plus rare et précieuse', 'icon': 'gem', 'color': '#e0e7ff', 'category': 'tresor', 'rarity': 'epic'},
+    {'name': 'Couronne du roi', 'description': 'La couronne légendaire perdue', 'icon': 'crown', 'color': '#f59e0b', 'category': 'tresor', 'rarity': 'legendary'},
+    # Accessoires
+    {'name': 'Chapeau de sorcier', 'description': 'Pointu et mystérieux', 'icon': 'hat-wizard', 'color': '#4338ca', 'category': 'accessoire', 'rarity': 'common'},
+    {'name': 'Cape d\'invisibilité', 'description': 'Se fondre dans l\'ombre', 'icon': 'user-secret', 'color': '#1e1b4b', 'category': 'accessoire', 'rarity': 'epic'},
+    {'name': 'Anneau de pouvoir', 'description': 'Un anneau qui renforce son porteur', 'icon': 'ring', 'color': '#f59e0b', 'category': 'accessoire', 'rarity': 'legendary'},
 ]
