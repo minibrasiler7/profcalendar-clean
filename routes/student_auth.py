@@ -1135,11 +1135,52 @@ def rpg_dashboard():
     # Inventaire d'objets
     inventory = StudentItem.query.filter_by(student_id=student.id).all()
 
+    # Parser les JSON pour éviter les crashs si stockés en TEXT
+    import json as _json
+    def _safe_dict(val):
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, str):
+            try:
+                parsed = _json.loads(val)
+                if isinstance(parsed, dict):
+                    return parsed
+            except (ValueError, TypeError):
+                pass
+        return {}
+
+    def _safe_list(val):
+        if isinstance(val, list):
+            return val
+        if isinstance(val, str):
+            try:
+                parsed = _json.loads(val)
+                if isinstance(parsed, list):
+                    return parsed
+            except (ValueError, TypeError):
+                pass
+        return []
+
+    equipment_dict = _safe_dict(rpg.equipment_json)
+    evolutions_list = _safe_list(rpg.evolutions_json)
+    active_skills_list = _safe_list(rpg.active_skills_json)
+
+    # Parser stat_bonus_json pour chaque item de l'inventaire
+    for si in inventory:
+        if si.item and si.item.stat_bonus_json and isinstance(si.item.stat_bonus_json, str):
+            try:
+                si.item.stat_bonus_json = _json.loads(si.item.stat_bonus_json)
+            except (ValueError, TypeError):
+                si.item.stat_bonus_json = {}
+
     return render_template('student/rpg_dashboard.html',
                            student=student,
                            rpg=rpg,
                            badges=badges_data,
-                           inventory=inventory)
+                           inventory=inventory,
+                           equipment_dict=equipment_dict,
+                           evolutions_list=evolutions_list,
+                           active_skills_list=active_skills_list)
 
 
 @student_auth_bp.route('/rpg/avatar', methods=['POST'])

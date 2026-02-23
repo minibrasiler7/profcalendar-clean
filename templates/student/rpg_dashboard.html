@@ -433,7 +433,7 @@
     <div class="section-card">
         <h2><i class="fas fa-bolt" style="color:#f59e0b;"></i> Compétences ({{ all_skills|length }})</h2>
         <div class="skills-grid">
-            {% set active_ids = rpg.active_skills_json or [] %}
+            {% set active_ids = active_skills_list or [] %}
             {% for skill in all_skills %}
             <div class="skill-card {{ 'active' if skill.id in active_ids or loop.index <= 3 }}">
                 <div class="skill-icon-wrap" style="background: {{ '#ef4444' if skill.type == 'attack' else '#10b981' if skill.type == 'heal' else '#3b82f6' if skill.type == 'defense' else '#f59e0b' }};">
@@ -453,7 +453,7 @@
     <div class="section-card">
         <h2><i class="fas fa-tshirt" style="color:#667eea;"></i> Équipement</h2>
         <div class="equip-slots">
-            {% set equip = rpg.equipment_json or {} %}
+            {% set equip = equipment_dict or {} %}
             {% for slot_name, slot_label in [('arme', 'Arme'), ('bouclier', 'Bouclier'), ('accessoire', 'Accessoire')] %}
             <div class="equip-slot">
                 <div class="equip-slot-label">{{ slot_label }}</div>
