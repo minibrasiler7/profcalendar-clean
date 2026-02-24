@@ -66,6 +66,8 @@ export default function RPGDashboardScreen({ navigation }) {
   const [expandedClass, setExpandedClass] = useState(null);
   const [showEvolutionModal, setShowEvolutionModal] = useState(false);
   const [selectedEvolution, setSelectedEvolution] = useState(null);
+  const [showEvolutionTree, setShowEvolutionTree] = useState(false);
+  const [evolutionTree, setEvolutionTree] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -78,6 +80,19 @@ export default function RPGDashboardScreen({ navigation }) {
       console.log('RPG error:', err.response?.data);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEvolutionTree = async () => {
+    try {
+      const res = await api.get('/student/rpg/evolution-tree');
+      if (res.data.evolution_tree) {
+        setEvolutionTree(res.data.evolution_tree);
+        setShowEvolutionTree(true);
+      }
+    } catch (err) {
+      console.log('Evolution tree error:', err.response?.data);
+      Alert.alert('Erreur', 'Impossible de charger l\'arbre d\'évolution');
     }
   };
 
@@ -178,6 +193,78 @@ export default function RPGDashboardScreen({ navigation }) {
       </View>
     );
   }
+
+  const renderEvolutionTree = (tree) => {
+    if (!tree || !tree.base_class) {
+      return <Text style={styles.errorText}>Pas de données disponibles</Text>;
+    }
+
+    const base = tree.base_class;
+    return (
+      <View style={styles.evolutionTreeInner}>
+        {/* Base Class */}
+        <View style={styles.evolutionTreeNode}>
+          <Text style={styles.evolutionNodeTitle}>{base.name}</Text>
+          <Text style={styles.evolutionNodeSubtitle}>{base.subtitle}</Text>
+          <View style={styles.evolutionBadge}>
+            <Text style={styles.evolutionBadgeText}>Niveau 1 (classe de base)</Text>
+          </View>
+          <Text style={styles.evolutionNodeDescription}>{base.description}</Text>
+          <View style={styles.evolutionNodeStats}>
+            <Text style={styles.evolutionStatsTitle}>Forces :</Text>
+            {base.strengths?.map((s, i) => (
+              <Text key={i} style={styles.evolutionStatItem}>✓ {s}</Text>
+            ))}
+            <Text style={[styles.evolutionStatsTitle, { marginTop: 8 }]}>Faiblesses :</Text>
+            {base.weaknesses?.map((w, i) => (
+              <Text key={i} style={[styles.evolutionStatItem, { color: '#ef4444' }]}>✗ {w}</Text>
+            ))}
+          </View>
+        </View>
+
+        {tree.evolution_levels && tree.evolution_levels.length > 0 && (
+          <>
+            <Text style={styles.evolutionSeparator}>↓</Text>
+            {tree.evolution_levels.map((group, idx) => (
+              <View key={idx}>
+                <View style={[styles.evolutionTreeNode, group.is_chosen && styles.evolutionNodeChosen, group.is_unlocked && !group.is_chosen && styles.evolutionNodeUnlocked, !group.is_unlocked && styles.evolutionNodeLocked]}>
+                  <View style={[styles.evolutionBadge, !group.is_unlocked && styles.evolutionBadgeLocked, group.is_available && styles.evolutionBadgeAvailable]}>
+                    <Text style={styles.evolutionBadgeText}>Niveau {group.level} {group.is_chosen ? '✓ Choisi' : ''}</Text>
+                  </View>
+                  <Text style={styles.evolutionNodeHint}>
+                    {!group.is_unlocked ? `Déverrouille au niveau ${group.level}` : group.is_chosen ? 'Tu as évolué ici' : 'Choisis une spécialisation'}
+                  </Text>
+                  <View style={styles.evolutionChoicesGroup}>
+                    {group.evolutions?.map((evo, jdx) => (
+                      <View key={jdx} style={[styles.evolutionChoiceCard, evo.is_chosen && styles.evolutionChoiceChosen, evo.is_available && styles.evolutionChoiceAvailable, !evo.is_available && !evo.is_chosen && styles.evolutionChoiceLocked]}>
+                        <Text style={styles.evolutionChoiceName}>{evo.name}</Text>
+                        <Text style={styles.evolutionChoiceDesc}>{evo.description}</Text>
+                        {evo.stat_bonus && Object.keys(evo.stat_bonus).length > 0 && (
+                          <View style={styles.evolutionChoiceStats}>
+                            {Object.entries(evo.stat_bonus).map(([stat, val], kidx) => (
+                              <Text key={kidx} style={[styles.evolutionChoiceStat, val > 0 ? { color: '#10b981' } : { color: '#ef4444' }]}>
+                                {val > 0 ? '+' : ''}{val} {stat}
+                              </Text>
+                            ))}
+                          </View>
+                        )}
+                        {evo.is_chosen && (
+                          <Text style={styles.evolutionChoiceChosen}>✓ Évolution choisie</Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                {idx < tree.evolution_levels.length - 1 && (
+                  <Text style={styles.evolutionSeparator}>↓</Text>
+                )}
+              </View>
+            ))}
+          </>
+        )}
+      </View>
+    );
+  };
 
   const xpPercent = rpgData.xp_for_next_level > 0 ? (rpgData.xp_progress || 0) : 0;
   const currentAvatarClass = AVATAR_CLASSES.find((c) => c.id === rpgData.avatar_class);
@@ -367,6 +454,17 @@ export default function RPGDashboardScreen({ navigation }) {
         </View>
       )}
 
+      {/* Evolution Tree Button */}
+      {rpgData.avatar_class && (
+        <TouchableOpacity
+          style={styles.evolutionTreeBtn}
+          onPress={loadEvolutionTree}
+        >
+          <Ionicons name="sitemap" size={20} color="white" />
+          <Text style={styles.evolutionTreeBtnText}>Arbre d'évolution</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Equipment */}
       {rpgData.avatar_class && (
         <View style={styles.section}>
@@ -495,6 +593,26 @@ export default function RPGDashboardScreen({ navigation }) {
       )}
 
       <View style={{ height: 32 }} />
+
+      {/* Evolution Tree Modal */}
+      <Modal visible={showEvolutionTree} transparent animationType="slide">
+        <View style={styles.evolutionTreeModalOverlay}>
+          <View style={styles.evolutionTreeModalContent}>
+            <View style={styles.evolutionTreeModalHeader}>
+              <Text style={styles.evolutionTreeModalTitle}>Arbre d'évolution</Text>
+              <TouchableOpacity
+                style={styles.evolutionTreeCloseBtn}
+                onPress={() => setShowEvolutionTree(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.evolutionTreeContent}>
+              {evolutionTree && renderEvolutionTree(evolutionTree)}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Evolution Modal */}
       <Modal visible={showEvolutionModal} transparent animationType="fade">
@@ -698,4 +816,80 @@ const styles = StyleSheet.create({
   evoChoiceBonus: { fontSize: 12, fontWeight: '700', color: '#10b981' },
   modalCloseBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
   modalCloseBtnText: { fontSize: 14, color: colors.textSecondary, fontWeight: '600' },
+  // Evolution Tree Button
+  evolutionTreeBtn: {
+    backgroundColor: '#a855f7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  evolutionTreeBtnText: { fontSize: 14, fontWeight: '700', color: 'white' },
+  // Evolution Tree Modal
+  evolutionTreeModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  evolutionTreeModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    paddingTop: 20,
+  },
+  evolutionTreeModalHeader: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  evolutionTreeModalTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+  evolutionTreeCloseBtn: { padding: 8 },
+  evolutionTreeContent: { padding: 16 },
+  evolutionTreeInner: { gap: 12 },
+  evolutionTreeNode: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  evolutionNodeTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  evolutionNodeSubtitle: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+  evolutionNodeDescription: { fontSize: 12, color: colors.text, lineHeight: 18, marginBottom: 10 },
+  evolutionNodeHint: { fontSize: 11, color: colors.textSecondary, marginBottom: 10, fontStyle: 'italic' },
+  evolutionNodeStats: { backgroundColor: '#f9fafb', borderRadius: 8, padding: 10 },
+  evolutionStatsTitle: { fontSize: 11, fontWeight: '700', color: colors.text, marginTop: 6 },
+  evolutionStatItem: { fontSize: 10, color: '#10b981', marginTop: 3 },
+  evolutionNodeChosen: { borderColor: '#f59e0b', backgroundColor: '#fef3c7' },
+  evolutionNodeUnlocked: { borderColor: '#10b981' },
+  evolutionNodeLocked: { opacity: 0.5, borderColor: '#d1d5db', borderStyle: 'dashed' },
+  evolutionBadge: { backgroundColor: colors.primary, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16, alignSelf: 'flex-start', marginBottom: 8 },
+  evolutionBadgeText: { fontSize: 10, fontWeight: '700', color: 'white' },
+  evolutionBadgeLocked: { backgroundColor: '#9ca3af' },
+  evolutionBadgeAvailable: { backgroundColor: '#10b981' },
+  evolutionChoicesGroup: { gap: 10 },
+  evolutionChoiceCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  evolutionChoiceAvailable: { borderColor: '#3b82f6', borderWidth: 2, backgroundColor: '#eff6ff' },
+  evolutionChoiceChosen: { borderColor: '#f59e0b', borderWidth: 2, backgroundColor: '#fef3c7' },
+  evolutionChoiceLocked: { opacity: 0.5 },
+  evolutionChoiceName: { fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 4 },
+  evolutionChoiceDesc: { fontSize: 11, color: colors.text, marginBottom: 6, lineHeight: 16 },
+  evolutionChoiceStats: { gap: 3, marginBottom: 6 },
+  evolutionChoiceStat: { fontSize: 10, fontWeight: '600' },
+  evolutionSeparator: { textAlign: 'center', fontSize: 18, color: '#d1d5db', marginVertical: 4 },
 });

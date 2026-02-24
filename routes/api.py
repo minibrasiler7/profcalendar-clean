@@ -1574,8 +1574,20 @@ def student_submit_mission(mission_id):
                 'cooldown_remaining': remaining
             }), 429
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if data is None:
+        # JSON parsing failed — try force-parsing
+        data = request.get_json(force=True, silent=True) or {}
     answers = data.get('answers', [])
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"[SUBMIT] mission_id={mission_id}, student={student.id}, "
+                f"exercise={exercise.id}, answers_count={len(answers)}")
+
+    # Si aucune réponse envoyée, tenter de récupérer depuis le body brut
+    if not answers:
+        logger.warning(f"[SUBMIT] Empty answers! raw body: {request.data[:500] if request.data else 'None'}")
 
     # Créer une tentative
     attempt = StudentExerciseAttempt(
@@ -1593,23 +1605,36 @@ def student_submit_mission(mission_id):
     # Traiter chaque réponse
     for answer_data in answers:
         block_id = answer_data.get('block_id')
-        user_answer = answer_data.get('answer', '')
+        user_answer = answer_data.get('answer', {})  # {} au lieu de '' pour éviter les crashes .get()
+
+        if not block_id:
+            logger.warning(f"[SUBMIT] Skipping answer with no block_id: {answer_data}")
+            continue
 
         block = ExerciseBlock.query.get(block_id)
         if not block or block.exercise_id != exercise.id:
+            logger.warning(f"[SUBMIT] Block {block_id} not found or wrong exercise "
+                           f"(block.exercise_id={block.exercise_id if block else 'N/A'}, "
+                           f"expected={exercise.id})")
             continue
 
         max_points += (block.points or 0)
 
         # Grader le bloc — returns (is_correct, points_earned)
-        is_correct, points_earned = grade_block(block, user_answer, exercise.accept_typos)
+        try:
+            accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
+            is_correct, points_earned = grade_block(block, user_answer, accept_typos)
+        except Exception as e:
+            logger.error(f"[SUBMIT] grade_block error block={block_id} type={block.block_type}: {e}")
+            is_correct, points_earned = False, 0
+
         total_points_earned += points_earned
 
         # Enregistrer la réponse
         block_answer = StudentBlockAnswer(
             attempt_id=attempt.id,
             block_id=block_id,
-            answer_json=user_answer,
+            answer_json=user_answer if isinstance(user_answer, (dict, list)) else {'raw': user_answer},
             is_correct=is_correct,
             points_earned=points_earned
         )
@@ -1620,6 +1645,9 @@ def student_submit_mission(mission_id):
             'is_correct': is_correct,
             'points_earned': points_earned
         })
+
+    logger.info(f"[SUBMIT] Results: {total_points_earned}/{max_points} points, "
+                f"{len(blocks_results)} blocks graded")
 
     # Calculer le score final
     attempt.score = total_points_earned
@@ -1859,6 +1887,75 @@ def student_rpg_class_info():
     """Obtenir les descriptions détaillées des classes."""
     from models.rpg import CLASS_DESCRIPTIONS, CLASS_BASE_STATS
     return jsonify({'classes': CLASS_DESCRIPTIONS, 'base_stats': CLASS_BASE_STATS})
+
+
+@api_bp.route('/student/rpg/evolution-tree', methods=['GET'])
+@jwt_required(user_type='student')
+def student_rpg_evolution_tree():
+    """Obtenir l'arbre d'évolution avec les états de déverrouillage."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.rpg import StudentRPGProfile, CLASS_EVOLUTIONS, CLASS_DESCRIPTIONS
+
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg or not rpg.avatar_class:
+        return jsonify({'evolution_tree': {}, 'current_level': 1})
+
+    avatar_class = rpg.avatar_class
+    evolution_tree = CLASS_EVOLUTIONS.get(avatar_class, {})
+    class_desc = CLASS_DESCRIPTIONS.get(avatar_class, {})
+
+    # Parse des évolutions choisies pour connaître celles qui sont déverrouillées
+    chosen_evolutions = rpg.evolutions_json or []
+    chosen_evolution_ids = {e.get('evolution_id') for e in chosen_evolutions if isinstance(e, dict)}
+    chosen_levels = {e.get('level') for e in chosen_evolutions if isinstance(e, dict)}
+
+    # Construire l'arbre
+    tree_data = {
+        'base_class': {
+            'id': avatar_class,
+            'name': class_desc.get('name', avatar_class),
+            'subtitle': class_desc.get('subtitle', ''),
+            'description': class_desc.get('description', ''),
+            'strengths': class_desc.get('strengths', []),
+            'weaknesses': class_desc.get('weaknesses', []),
+            'playstyle': class_desc.get('playstyle', ''),
+            'level': 1,
+        },
+        'evolution_levels': []
+    }
+
+    # Organiser les évolutions par niveau
+    for level in sorted(evolution_tree.keys()):
+        choices = evolution_tree[level]
+        level_group = {
+            'level': level,
+            'is_unlocked': rpg.level >= level,
+            'is_chosen': level in chosen_levels,
+            'evolutions': []
+        }
+
+        for choice in choices:
+            evo_id = choice.get('id')
+            is_chosen = evo_id in chosen_evolution_ids
+            level_group['evolutions'].append({
+                'id': evo_id,
+                'name': choice.get('name', evo_id),
+                'description': choice.get('description', ''),
+                'stat_bonus': choice.get('stat_bonus', {}),
+                'is_chosen': is_chosen,
+                'is_available': (rpg.level >= level) and (level not in chosen_levels),
+            })
+
+        tree_data['evolution_levels'].append(level_group)
+
+    return jsonify({
+        'evolution_tree': tree_data,
+        'current_level': rpg.level,
+        'current_class': avatar_class,
+    })
 
 
 @api_bp.route('/student/rpg/evolve', methods=['POST'])

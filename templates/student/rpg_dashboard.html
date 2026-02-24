@@ -290,11 +290,250 @@
 .evo-choice-desc { font-size: 0.85rem; color: #374151; margin: 0.3rem 0; }
 .evo-choice-bonus { font-size: 0.8rem; font-weight: 700; color: #10b981; }
 
+/* Evolution Tree */
+.evolution-tree-btn {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.evolution-tree-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.3);
+}
+
+.evolution-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+.evolution-modal-overlay.active {
+    display: flex;
+}
+
+.evolution-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 900px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.evolution-modal-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.evolution-modal-header h2 {
+    font-size: 1.8rem;
+    margin: 0 0 0.5rem;
+    color: #1e1b4b;
+}
+.evolution-modal-header p {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.evolution-close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.evolution-close-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.evolution-tree-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1rem 0;
+}
+
+.evolution-tree-node {
+    text-align: center;
+    padding: 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    background: #f9fafb;
+    transition: all 0.3s;
+    cursor: default;
+}
+.evolution-tree-node.base {
+    border: 3px solid #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(102, 126, 234, 0.02));
+}
+.evolution-tree-node.unlocked {
+    border: 2px solid #10b981;
+}
+.evolution-tree-node.locked {
+    opacity: 0.5;
+    border: 2px dashed #9ca3af;
+}
+.evolution-tree-node.chosen {
+    border: 3px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.04));
+}
+
+.evolution-node-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin-bottom: 0.3rem;
+}
+.evolution-node-subtitle {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.8rem;
+}
+.evolution-node-description {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    text-align: left;
+}
+
+.evolution-node-level-badge {
+    display: inline-block;
+    background: #667eea;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+.evolution-node-level-badge.locked {
+    background: #9ca3af;
+}
+.evolution-node-level-badge.available {
+    background: #10b981;
+}
+
+.evolution-node-stats {
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    text-align: left;
+}
+.evolution-stat-item {
+    font-size: 0.8rem;
+    color: #374151;
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.evolution-stat-item.bonus {
+    color: #10b981;
+    font-weight: 600;
+}
+.evolution-stat-item.negative {
+    color: #ef4444;
+}
+
+.evolution-choices-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.evolution-choice-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.3s;
+}
+.evolution-choice-card.available {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    cursor: pointer;
+}
+.evolution-choice-card.available:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.evolution-choice-card.chosen {
+    border: 2px solid #f59e0b;
+    background: #fef3c7;
+}
+.evolution-choice-card.locked {
+    opacity: 0.6;
+}
+
+.evolution-choice-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #667eea;
+    margin-bottom: 0.3rem;
+}
+.evolution-choice-desc {
+    font-size: 0.8rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+.evolution-choice-bonus-list {
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+}
+.evolution-choice-bonus-list .bonus-item {
+    display: block;
+    padding: 0.15rem 0;
+}
+
+.evolution-tree-arrow {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #d1d5db;
+    margin: 0.5rem 0;
+}
+
 @media (max-width: 600px) {
     .stats-row { gap: 1rem; }
     .inventory-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
     .skills-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
     .pros-cons { flex-direction: column; gap: 0.5rem; }
+    .evolution-modal { padding: 1.5rem; }
+    .evolution-choices-group { grid-template-columns: 1fr; }
 }
 </style>
 {% endblock %}
@@ -343,6 +582,27 @@
             <div class="stat-item">
                 <div class="stat-value">{{ rpg.level }}</div>
                 <div class="stat-label">Niveau</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evolution Tree Button -->
+    {% if rpg.avatar_class %}
+    <button class="evolution-tree-btn" onclick="openEvolutionTree()">
+        <i class="fas fa-sitemap"></i> Arbre d'évolution
+    </button>
+    {% endif %}
+
+    <!-- Evolution Tree Modal -->
+    <div id="evolutionTreeModal" class="evolution-modal-overlay">
+        <div class="evolution-modal">
+            <div class="evolution-modal-header">
+                <button class="evolution-close-btn" onclick="closeEvolutionTree()"><i class="fas fa-times"></i></button>
+                <h2>Arbre d'évolution</h2>
+                <p>Voir ta progression et tes possibilités d'évolution</p>
+            </div>
+            <div class="evolution-tree-container" id="evolutionTreeContent">
+                <!-- Will be populated by JavaScript -->
             </div>
         </div>
     </div>
@@ -574,5 +834,105 @@ async function equipItem(itemId, itemName) {
         location.reload();
     } catch(e) {}
 }
+
+// Evolution Tree Modal Functions
+function openEvolutionTree() {
+    const modal = document.getElementById('evolutionTreeModal');
+    modal.classList.add('active');
+    loadEvolutionTree();
+}
+
+function closeEvolutionTree() {
+    const modal = document.getElementById('evolutionTreeModal');
+    modal.classList.remove('active');
+}
+
+function loadEvolutionTree() {
+    const treeData = {{ evolution_tree | tojson if evolution_tree else 'null' }};
+    if (treeData) {
+        renderEvolutionTree(treeData);
+    }
+}
+
+function renderEvolutionTree(tree) {
+    const container = document.getElementById('evolutionTreeContent');
+    let html = '';
+
+    if (!tree.base_class) {
+        container.innerHTML = '<p>Pas de données disponibles</p>';
+        return;
+    }
+
+    const base = tree.base_class;
+    html += `
+        <div class="evolution-tree-node base">
+            <div class="evolution-node-title">${base.name}</div>
+            <div class="evolution-node-subtitle">${base.subtitle}</div>
+            <div class="evolution-node-level-badge" style="background: #667eea;">Niveau 1 (classe de base)</div>
+            <div class="evolution-node-description">${base.description}</div>
+            <div class="evolution-node-stats">
+                <strong style="font-size: 0.9rem;">Forces :</strong>
+                ${base.strengths.map(s => `<div class="evolution-stat-item bonus">✓ ${s}</div>`).join('')}
+                <strong style="font-size: 0.9rem; margin-top: 0.5rem;">Faiblesses :</strong>
+                ${base.weaknesses.map(w => `<div class="evolution-stat-item negative">✗ ${w}</div>`).join('')}
+            </div>
+        </div>
+        <div class="evolution-tree-arrow">↓</div>
+    `;
+
+    if (tree.evolution_levels && tree.evolution_levels.length > 0) {
+        tree.evolution_levels.forEach((group, idx) => {
+            const isUnlocked = group.is_unlocked;
+            const isChosen = group.is_chosen;
+
+            html += `
+                <div class="evolution-tree-node ${isChosen ? 'chosen' : isUnlocked ? 'unlocked' : 'locked'}">
+                    <div class="evolution-node-level-badge ${!isUnlocked ? 'locked' : isUnlocked && !isChosen ? 'available' : ''}">
+                        Niveau ${group.level} ${isChosen ? '✓ Choisi' : ''}
+                    </div>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin: 0.5rem 0;">
+                        ${!isUnlocked ? `Déverrouille au niveau ${group.level}` : isChosen ? 'Tu as évolué ici' : 'Choisis une spécialisation'}
+                    </p>
+                    <div class="evolution-choices-group">
+                        ${group.evolutions.map(evo => `
+                            <div class="evolution-choice-card ${evo.is_chosen ? 'chosen' : evo.is_available ? 'available' : 'locked'}">
+                                <div class="evolution-choice-name">${evo.name}</div>
+                                <div class="evolution-choice-desc">${evo.description}</div>
+                                ${evo.stat_bonus && Object.keys(evo.stat_bonus).length > 0 ? `
+                                    <div class="evolution-choice-bonus-list">
+                                        ${Object.entries(evo.stat_bonus).map(([stat, val]) => {
+                                            const sign = val > 0 ? '+' : '';
+                                            const color = val > 0 ? '#10b981' : '#ef4444';
+                                            return `<span class="bonus-item" style="color: ${color};">${sign}${val} ${stat}</span>`;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+                                ${evo.is_chosen ? '<p style="margin: 0.5rem 0; color: #f59e0b; font-weight: 700;">✓ Évolution choisie</p>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (idx < tree.evolution_levels.length - 1) {
+                html += '<div class="evolution-tree-arrow">↓</div>';
+            }
+        });
+    }
+
+    container.innerHTML = html;
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('evolutionTreeModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeEvolutionTree();
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

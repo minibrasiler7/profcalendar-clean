@@ -38,11 +38,14 @@ function shuffleArray(arr) {
 // ============================================================
 function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, onDragEnd }) {
   const ITEM_HEIGHT = 60;
+  const GAP = 8;
+  const SLOT = ITEM_HEIGHT + GAP;
   const [draggingIdx, setDraggingIdx] = useState(-1);
   const dragY = useRef(new Animated.Value(0)).current;
   const dragOpacity = useRef(new Animated.Value(0)).current;
   const [dragText, setDragText] = useState('');
-  const itemPositions = useRef([]);
+  const containerRef = useRef(null);
+  const containerY = useRef(0);
   const currentOrder = useRef(order);
   currentOrder.current = order;
 
@@ -56,17 +59,26 @@ function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, on
         onPanResponderGrant: (_, g) => {
           setDraggingIdx(pos);
           setDragText(items[currentOrder.current[pos]]);
-          dragY.setValue(g.y0 - ITEM_HEIGHT / 2);
+          // Measure container position to correctly place ghost
+          if (containerRef.current) {
+            containerRef.current.measureInWindow((x, y) => {
+              containerY.current = y;
+            });
+          }
+          // Position ghost at finger location relative to container top
+          const offsetInContainer = g.y0 - containerY.current - ITEM_HEIGHT / 2;
+          dragY.setValue(offsetInContainer);
           Animated.timing(dragOpacity, { toValue: 1, duration: 100, useNativeDriver: true }).start();
           if (onDragStart) onDragStart();
         },
         onPanResponderMove: (_, g) => {
-          dragY.setValue(g.moveY - ITEM_HEIGHT / 2);
+          // Position ghost relative to container top
+          const offsetInContainer = g.moveY - containerY.current - ITEM_HEIGHT / 2;
+          dragY.setValue(offsetInContainer);
         },
         onPanResponderRelease: (_, g) => {
           Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
-          // Calculate drop position based on relative movement
-          const moveSlots = Math.round(g.dy / ITEM_HEIGHT);
+          const moveSlots = Math.round(g.dy / SLOT);
           const fromPos = pos;
           let toPos = fromPos + moveSlots;
           toPos = Math.max(0, Math.min(toPos, currentOrder.current.length - 1));
@@ -95,7 +107,12 @@ function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, on
   }, [order.length]);
 
   return (
-    <View style={dndStyles.container}>
+    <View ref={containerRef} style={dndStyles.container}
+      onLayout={() => {
+        if (containerRef.current) {
+          containerRef.current.measureInWindow((x, y) => { containerY.current = y; });
+        }
+      }}>
       <Text style={dndStyles.hint}>
         Maintiens et glisse pour réordonner
       </Text>
@@ -121,12 +138,13 @@ function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, on
           </Animated.View>
         );
       })}
-      {/* Floating drag ghost */}
+      {/* Floating drag ghost — anchored to top:0 of container */}
       <Animated.View
         pointerEvents="none"
         style={[
           dndStyles.dragGhost,
           {
+            top: 0,
             transform: [{ translateY: dragY }],
             opacity: dragOpacity,
           },
@@ -270,7 +288,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
 // ============================================================
 // Image Interactive — touch to select zones
 // ============================================================
-function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled }) {
+function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, correctZones }) {
   const [imgLayout, setImgLayout] = useState(null);
   const [imgNatural, setImgNatural] = useState(null);
 
@@ -300,6 +318,38 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled })
   const imgWidth = SCREEN_WIDTH - 48;
   const imgHeight = imgNatural ? (imgWidth / imgNatural.w) * imgNatural.h : 300;
 
+  const renderCorrectZones = () => {
+    if (!correctZones || !imgLayout || !imgNatural) return null;
+    return correctZones.map((zone, zIdx) => {
+      const zonePoints = zone.get ? zone.get('points', []) : zone.points || [];
+      const zoneLabel = zone.get ? zone.get('label', '') : zone.label || '';
+      const radius = zone.get ? zone.get('radius', 30) : zone.radius || 30;
+
+      return zonePoints.map((pt, pIdx) => {
+        const ptX = pt.get ? pt.get('x', 0) : pt.x || 0;
+        const ptY = pt.get ? pt.get('y', 0) : pt.y || 0;
+        const dispX = (ptX / imgNatural.w) * imgLayout.width;
+        const dispY = (ptY / imgNatural.h) * imgLayout.height;
+        const dispRadius = (radius / imgNatural.w) * imgLayout.width;
+
+        return (
+          <View
+            key={`correct-${zIdx}-${pIdx}`}
+            style={[
+              imgStyles.correctZone,
+              {
+                left: dispX - dispRadius,
+                top: dispY - dispRadius,
+                width: dispRadius * 2,
+                height: dispRadius * 2,
+              },
+            ]}
+          />
+        );
+      });
+    });
+  };
+
   return (
     <View>
       <Text style={imgStyles.hint}>
@@ -319,6 +369,7 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled })
           resizeMode="contain"
           onLayout={(e) => setImgLayout(e.nativeEvent.layout)}
         />
+        {renderCorrectZones()}
         {clicks.map((click, i) => {
           if (!imgLayout || !imgNatural) return null;
           const dispX = (click.x / imgNatural.w) * imgLayout.width;
@@ -343,31 +394,58 @@ function GraphInteractive({ config, onPointsChange, disabled }) {
   const htmlContent = `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;justify-content:center;align-items:center;height:100vh;touch-action:none}canvas{display:block;width:100%;height:auto}</style>
-</head><body><canvas id="g"></canvas><script>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;flex-direction:column;align-items:center;height:100vh;touch-action:none;overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+.zoom-bar{display:flex;gap:8px;padding:6px 0;justify-content:center}
+.zoom-btn{width:40px;height:36px;border:2px solid #d1d5db;border-radius:10px;background:#fff;font-size:20px;font-weight:700;color:#374151;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zoom-btn:active{background:#eef2ff;border-color:#667eea}
+.zoom-label{font-size:12px;color:#9ca3af;display:flex;align-items:center;font-weight:600}</style>
+</head><body>
+<div class="zoom-bar">
+  <div class="zoom-btn" id="zout">-</div>
+  <div class="zoom-label" id="zlbl">x1</div>
+  <div class="zoom-btn" id="zin">+</div>
+  <div class="zoom-btn" id="zrst" style="font-size:14px;width:50px">Reset</div>
+</div>
+<canvas id="g"></canvas>
+<script>
 const c=${JSON.stringify(config)};const cv=document.getElementById('g');const x=cv.getContext('2d');
-const W=600,H=500,M=50,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
-const isQ=c.question_type==='draw_quadratic',nP=isQ?3:2,xR=c.x_max-c.x_min,pts=[];
+const W=600,H=480,M=50,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
+const isQ=c.question_type==='draw_quadratic',nP=isQ?3:2;
+const origXMin=c.x_min,origXMax=c.x_max,origYMin=c.y_min,origYMax=c.y_max;
+let zXMin=c.x_min,zXMax=c.x_max,zYMin=c.y_min,zYMax=c.y_max,zLvl=1;
+const xR=c.x_max-c.x_min,pts=[];
 for(let i=0;i<nP;i++)pts.push({x:Math.round(c.x_min+xR*(i+1)/(nP+1)),y:0});let dr=-1;
-function g2p(gx,gy){const gw=W-2*M,gh=H-2*M;return{px:M+((gx-c.x_min)/(c.x_max-c.x_min))*gw,py:H-M-((gy-c.y_min)/(c.y_max-c.y_min))*gh}}
-function p2g(px,py){const gw=W-2*M,gh=H-2*M;return{x:c.x_min+((px-M)/gw)*(c.x_max-c.x_min),y:c.y_min+((H-M-py)/gh)*(c.y_max-c.y_min)}}
+let pinchDist=0,isPinch=false;
+function g2p(gx,gy){const gw=W-2*M,gh=H-2*M;return{px:M+((gx-zXMin)/(zXMax-zXMin))*gw,py:H-M-((gy-zYMin)/(zYMax-zYMin))*gh}}
+function p2g(px,py){const gw=W-2*M,gh=H-2*M;return{x:zXMin+((px-M)/gw)*(zXMax-zXMin),y:zYMin+((H-M-py)/gh)*(zYMax-zYMin)}}
+function setZoom(lvl){zLvl=Math.max(1,Math.min(lvl,5));const cx=(origXMin+origXMax)/2,cy=(origYMin+origYMax)/2;const hw=(origXMax-origXMin)/(2*zLvl),hh=(origYMax-origYMin)/(2*zLvl);zXMin=cx-hw;zXMax=cx+hw;zYMin=cy-hh;zYMax=cy+hh;document.getElementById('zlbl').textContent='x'+zLvl;draw()}
+document.getElementById('zin').onclick=()=>setZoom(zLvl+1);
+document.getElementById('zout').onclick=()=>setZoom(zLvl-1);
+document.getElementById('zrst').onclick=()=>setZoom(1);
+function stepForRange(range){if(range<=4)return 0.5;if(range<=10)return 1;if(range<=20)return 2;return 5}
 function draw(){x.clearRect(0,0,W,H);x.fillStyle='#fafbfc';x.fillRect(0,0,W,H);
-x.strokeStyle='#e5e7eb';x.lineWidth=1;for(let i=Math.ceil(c.x_min);i<=c.x_max;i++){const p=g2p(i,0);x.beginPath();x.moveTo(p.px,M);x.lineTo(p.px,H-M);x.stroke()}
-for(let i=Math.ceil(c.y_min);i<=c.y_max;i++){const p=g2p(0,i);x.beginPath();x.moveTo(M,p.py);x.lineTo(W-M,p.py);x.stroke()}
-const o=g2p(0,0);x.strokeStyle='#1f2937';x.lineWidth=2;x.beginPath();x.moveTo(M,o.py);x.lineTo(W-M,o.py);x.stroke();x.beginPath();x.moveTo(o.px,M);x.lineTo(o.px,H-M);x.stroke();
-x.fillStyle='#374151';x.font='bold 14px sans-serif';x.fillText(c.x_label||'x',W-M+8,o.py+5);x.fillText(c.y_label||'y',o.px+8,M-12);
-x.font='12px sans-serif';x.fillStyle='#6b7280';for(let i=Math.ceil(c.x_min);i<=c.x_max;i++){if(i===0)continue;const p=g2p(i,0);x.textAlign='center';x.fillText(i,p.px,o.py+18)}
-x.textAlign='right';for(let i=Math.ceil(c.y_min);i<=c.y_max;i++){if(i===0)continue;const p=g2p(0,i);x.fillText(i,o.px-8,p.py+4)}x.textAlign='left';
+const xStep=stepForRange(zXMax-zXMin),yStep=stepForRange(zYMax-zYMin);
+x.strokeStyle='#e5e7eb';x.lineWidth=1;
+for(let i=Math.ceil(zXMin/xStep)*xStep;i<=zXMax;i+=xStep){const p=g2p(i,0);x.beginPath();x.moveTo(p.px,M);x.lineTo(p.px,H-M);x.stroke()}
+for(let i=Math.ceil(zYMin/yStep)*yStep;i<=zYMax;i+=yStep){const p=g2p(0,i);x.beginPath();x.moveTo(M,p.py);x.lineTo(W-M,p.py);x.stroke()}
+const o=g2p(0,0);x.strokeStyle='#1f2937';x.lineWidth=2;x.beginPath();x.moveTo(M,Math.max(M,Math.min(H-M,o.py)));x.lineTo(W-M,Math.max(M,Math.min(H-M,o.py)));x.stroke();x.beginPath();x.moveTo(Math.max(M,Math.min(W-M,o.px)),M);x.lineTo(Math.max(M,Math.min(W-M,o.px)),H-M);x.stroke();
+x.fillStyle='#374151';x.font='bold 14px sans-serif';x.fillText(c.x_label||'x',W-M+8,Math.max(M,Math.min(H-M,o.py))+5);x.fillText(c.y_label||'y',Math.max(M,Math.min(W-M,o.px))+8,M-12);
+x.font='12px sans-serif';x.fillStyle='#6b7280';
+for(let i=Math.ceil(zXMin/xStep)*xStep;i<=zXMax;i+=xStep){if(Math.abs(i)<0.001)continue;const p=g2p(i,0);x.textAlign='center';x.fillText(xStep<1?i.toFixed(1):Math.round(i),p.px,Math.min(H-M+18,o.py+18))}
+x.textAlign='right';for(let i=Math.ceil(zYMin/yStep)*yStep;i<=zYMax;i+=yStep){if(Math.abs(i)<0.001)continue;const p=g2p(0,i);x.fillText(yStep<1?i.toFixed(1):Math.round(i),Math.max(M-2,o.px-8),p.py+4)}x.textAlign='left';
 let fn=null;if(isQ&&pts.length>=3){const[a,b,e]=pts;const dt=(a.x**2*(b.x-e.x)-b.x**2*(a.x-e.x)+e.x**2*(a.x-b.x));if(Math.abs(dt)>0.001){const ca=(a.y*(b.x-e.x)-b.y*(a.x-e.x)+e.y*(a.x-b.x))/dt;const cb=(a.x**2*(b.y-e.y)-b.x**2*(a.y-e.y)+e.x**2*(a.y-b.y))/dt;const cc=(a.x**2*(b.x*e.y-e.x*b.y)-b.x**2*(a.x*e.y-e.x*a.y)+e.x**2*(a.x*b.y-b.x*a.y))/dt;fn=v=>ca*v*v+cb*v+cc}}
 else if(pts.length>=2){const dx=pts[1].x-pts[0].x;if(Math.abs(dx)>0.001){const a=(pts[1].y-pts[0].y)/dx;const b=pts[0].y-a*pts[0].x;fn=v=>a*v+b}}
-if(fn){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(c.x_max-c.x_min)/400;for(let i=c.x_min;i<=c.x_max;i+=st){const y=fn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}
-pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);x.fillStyle=(i===dr)?'rgba(220,38,38,0.2)':'rgba(16,185,129,0.2)';x.beginPath();x.arc(p.px,p.py,18,0,Math.PI*2);x.fill();x.fillStyle=i===dr?'#dc2626':'#10b981';x.strokeStyle='white';x.lineWidth=3;x.beginPath();x.arc(p.px,p.py,12,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='white';x.font='bold 12px sans-serif';x.textAlign='center';x.fillText(String.fromCharCode(65+i),p.px,p.py+4);x.textAlign='left';x.fillStyle='#1e1b4b';x.font='bold 12px sans-serif';x.fillText('('+Math.round(pt.x*10)/10+', '+Math.round(pt.y*10)/10+')',p.px+18,p.py-6)})}
+if(fn&&!c.static_mode){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(zXMax-zXMin)/400;for(let i=zXMin;i<=zXMax;i+=st){const y=fn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}
+if(c.static_mode&&c.correct_answer){let sfn=null;const ca=c.correct_answer;if(c.question_type==='draw_quadratic'){sfn=v=>(ca.a||0)*v*v+(ca.b||0)*v+(ca.c||0)}else{sfn=v=>(ca.a||0)*v+(ca.b||0)}if(sfn){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(zXMax-zXMin)/400;for(let i=zXMin;i<=zXMax;i+=st){const y=sfn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}}
+if(!c.static_mode){pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);if(p.px<M-5||p.px>W-M+5||p.py<M-5||p.py>H-M+5)return;x.fillStyle=(i===dr)?'rgba(220,38,38,0.2)':'rgba(16,185,129,0.2)';x.beginPath();x.arc(p.px,p.py,18,0,Math.PI*2);x.fill();x.fillStyle=i===dr?'#dc2626':'#10b981';x.strokeStyle='white';x.lineWidth=3;x.beginPath();x.arc(p.px,p.py,12,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='white';x.font='bold 12px sans-serif';x.textAlign='center';x.fillText(String.fromCharCode(65+i),p.px,p.py+4);x.textAlign='left';x.fillStyle='#1e1b4b';x.font='bold 12px sans-serif';x.fillText('('+Math.round(pt.x*10)/10+', '+Math.round(pt.y*10)/10+')',p.px+18,p.py-6)})}}
 function gXY(e){const r=cv.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const t=e.touches?e.touches[0]:e;return{px:(t.clientX-r.left)*sx,py:(t.clientY-r.top)*sy}}
 function sp(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'points',points:pts.map(p=>({x:p.x,y:p.y}))}))}
 const dis=${disabled ? 'true' : 'false'};
-cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<30){dr=i;break}}},{passive:false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);pts[dr].x=Math.round(g.x*2)/2;pts[dr].y=Math.round(g.y*2)/2;draw()},{passive:false});
-cv.addEventListener('touchend',()=>{dr=-1;draw();sp()});draw();sp();
+function getDist(e){if(e.touches.length<2)return 0;const a=e.touches[0],b=e.touches[1];return Math.sqrt((a.clientX-b.clientX)**2+(a.clientY-b.clientY)**2)}
+cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;if(e.touches.length===2){isPinch=true;pinchDist=getDist(e);dr=-1;return}isPinch=false;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<30){dr=i;break}}},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(isPinch&&e.touches.length===2){const nd=getDist(e);if(pinchDist>0){const ratio=nd/pinchDist;if(ratio>1.15)setZoom(zLvl+1);else if(ratio<0.85)setZoom(zLvl-1);pinchDist=nd}return}if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);const snap=zLvl>=3?0.25:0.5;pts[dr].x=Math.round(g.x/snap)*snap;pts[dr].y=Math.round(g.y/snap)*snap;draw()},{passive:false});
+cv.addEventListener('touchend',e=>{if(isPinch){isPinch=e.touches.length>=2;pinchDist=0;return}dr=-1;draw();sp()});draw();sp();
 </script></body></html>`;
 
   const handleMessage = (event) => {
@@ -501,7 +579,14 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       return true;
     }
     if (block.block_type === 'image_position') return (answer?.clicks || []).length > 0;
-    if (block.block_type === 'graph') return (answer?.points || []).length > 0;
+    if (block.block_type === 'graph') {
+      const gc = block.config_json || {};
+      if (gc.question_type === 'find_expression') {
+        const coeffs = answer?.coefficients || {};
+        return coeffs.a != null || coeffs.b != null;
+      }
+      return (answer?.points || []).length > 0;
+    }
     return true;
   };
 
@@ -699,8 +784,18 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         const imageUrl = c.image_file_id ? `${BASE_URL}/exercises/block-image/${c.image_file_id}`
           : c.image_url ? (c.image_url.startsWith('http') ? c.image_url : `${BASE_URL}${c.image_url}`) : null;
         if (!imageUrl) return <Text style={{ color: '#ef4444' }}>Image non disponible</Text>;
+
+        // Extract correct zones from feedback if available
+        let correctZones = null;
+        if (!currentFeedback?.is_correct && currentFeedback?.correct_answer) {
+          const feedbackData = currentFeedback.correct_answer;
+          if (feedbackData && typeof feedbackData === 'object' && feedbackData.zones) {
+            correctZones = feedbackData.zones;
+          }
+        }
+
         return <ImageInteractive imageUrl={imageUrl} zones={c.zones || []} clicks={answer.clicks || []}
-          onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })} disabled={isLocked} />;
+          onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })} disabled={isLocked} correctZones={correctZones} />;
       }
       case 'graph': {
         const ca = c.correct_answer || {};
@@ -758,7 +853,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return (
           <View>
             {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
-            {exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
+            {c.show_expression !== false && exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
             <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />
           </View>
         );
@@ -808,7 +903,9 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                   {!currentFeedback.is_correct && currentFeedback.correct_answer ? (
                     <View style={styles.correctAnswerBox}>
                       <Ionicons name="checkmark-circle" size={14} color="#166534" />
-                      <Text style={styles.correctAnswerText}>Réponse : {currentFeedback.correct_answer}</Text>
+                      <Text style={styles.correctAnswerText}>
+                        Réponse : {typeof currentFeedback.correct_answer === 'object' && currentFeedback.correct_answer.text ? currentFeedback.correct_answer.text : currentFeedback.correct_answer}
+                      </Text>
                     </View>
                   ) : null}
                   <Text style={styles.feedbackPoints}>+{currentFeedback.points} XP</Text>
@@ -917,6 +1014,7 @@ const imgStyles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   marker: { position: 'absolute', width: 28, height: 28, backgroundColor: '#ef4444', borderRadius: 14, borderWidth: 3, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   markerLabel: { fontSize: 8, fontWeight: '800', color: '#FFF' },
+  correctZone: { position: 'absolute', borderWidth: 2, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.1)' },
 });
 
 const graphStyles = StyleSheet.create({

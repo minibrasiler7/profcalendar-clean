@@ -1262,6 +1262,51 @@ input, textarea, select {
                                 Aucune description
                             {% endif %}
                         </div>
+
+                        <!-- Section des ressources de planification -->
+                        {% if planning and planning.resources.count() > 0 %}
+                        <div id="planning-resources-section" style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
+                            <h4 style="margin:0 0 1rem 0;font-size:0.95rem;color:#374151;"><i class="fas fa-file-alt" style="margin-right:0.5rem;color:#10b981;"></i> Ressources du cours</h4>
+                            <div id="planning-resources-list" style="display:flex;flex-direction:column;gap:0.5rem;">
+                                {% for resource in planning.resources.all() %}
+                                <div class="planning-resource-item"
+                                     data-resource-id="{{ resource.id }}"
+                                     data-resource-type="{{ resource.resource_type }}"
+                                     style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.6rem;"
+                                     {% if resource.resource_type == 'file' %}
+                                     onclick="openResourceFile({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
+                                     {% elif resource.resource_type == 'exercise' %}
+                                     onclick="showModeModal({{ resource.resource_id }}, '{{ resource.display_name|e }}', 'publish', {{ resource.id }})"
+                                     {% endif %}>
+
+                                    {% if resource.resource_type == 'file' %}
+                                        <i class="fas fa-{{ resource.display_icon or 'file' }}" style="color:{{ '#dc2626' if resource.display_icon == 'file-pdf' else '#3b82f6' if resource.display_icon == 'file-image' else '#6b7280' }};font-size:1.1rem;"></i>
+                                        <div style="flex:1;">
+                                            <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
+                                            <div style="font-size:0.75rem;color:#9ca3af;">PDF/Document</div>
+                                        </div>
+                                        <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
+                                    {% elif resource.resource_type == 'exercise' %}
+                                        <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
+                                        <div style="flex:1;">
+                                            <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
+                                            <div style="font-size:0.75rem;color:#9ca3af;">
+                                                {% if resource.status == 'published' %}
+                                                    <span style="background:{{ '#fef2f2' if resource.mode == 'combat' else '#eef2ff' }};color:{{ '#ef4444' if resource.mode == 'combat' else '#10b981' }};padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">
+                                                        {{ '⚔️ Combat' if resource.mode == 'combat' else '📖 Classique' }}
+                                                    </span>
+                                                {% else %}
+                                                    <span style="background:#f0fdf4;color:#10b981;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Non publié</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-play-circle" style="color:#667eea;font-size:0.9rem;"></i>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -9682,42 +9727,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Modal ajout ressource -->
 <div id="add-resource-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);justify-content:center;align-items:center;">
-    <div style="background:white;border-radius:16px;padding:1.5rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="background:white;border-radius:16px;padding:1.5rem;max-width:600px;width:90%;max-height:85vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
             <h3 style="margin:0;font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#10b981;"></i> Ajouter une ressource</h3>
             <button onclick="closeAddResourceModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
         </div>
 
-        <!-- Exercices -->
-        {% if user_exercises %}
-        <div style="margin-bottom:1rem;">
-            <h4 style="font-size:0.85rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">
-                <i class="fas fa-gamepad"></i> Exercices interactifs
-            </h4>
-            {% for ex in user_exercises %}
-            <div class="resource-item" onclick="showModeModal({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
-                <i class="fas fa-gamepad" style="color:#667eea;"></i>
-                <div style="flex:1;">
-                    <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
-                    <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
-                </div>
-                <i class="fas fa-chevron-right" style="color:#9ca3af;font-size:0.8rem;"></i>
-            </div>
-            {% endfor %}
+        <!-- Onglets -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;">
+            <button id="tab-files-btn" onclick="switchResourceTab('files')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid #10b981;color:#10b981;transition:all 0.2s;">
+                <i class="fas fa-folder-open"></i> Fichiers de classe
+            </button>
+            <button id="tab-exercises-btn" onclick="switchResourceTab('exercises')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;color:#9ca3af;transition:all 0.2s;">
+                <i class="fas fa-gamepad"></i> Exercices
+            </button>
         </div>
-        {% endif %}
 
-        <!-- Fichiers de la classe -->
-        {% if lesson_classroom %}
-        <div>
-            <h4 style="font-size:0.85rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">
-                <i class="fas fa-folder"></i> Fichiers de la classe
-            </h4>
-            <div id="class-files-list" style="color:#9ca3af;font-size:0.85rem;">
-                <i class="fas fa-spinner fa-spin"></i> Chargement...
+        <!-- Contenu des onglets (scrollable) -->
+        <div style="flex:1;overflow-y:auto;padding-right:0.5rem;">
+            <!-- Onglet Fichiers -->
+            <div id="resource-files-tab" style="display:block;">
+                {% if lesson_classroom %}
+                <div id="class-files-tree-container" style="min-height:100px;">
+                    <div style="text-align:center;padding:2rem;color:#9ca3af;">
+                        <i class="fas fa-spinner fa-spin"></i> Chargement des fichiers...
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
+                    Aucune classe sélectionnée
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Onglet Exercices -->
+            <div id="resource-exercises-tab" style="display:none;">
+                {% if user_exercises %}
+                <div id="exercises-list-container">
+                    {% for ex in user_exercises %}
+                    <div class="resource-item" onclick="addExerciseToPlanning({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
+                        <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
+                            <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
+                        </div>
+                        <span style="background:#f0fdf4;color:#10b981;padding:0.3rem 0.6rem;border-radius:6px;font-size:0.7rem;font-weight:600;">Non publié</span>
+                        <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;"></i>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
+                    Aucun exercice disponible
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -9819,12 +9884,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // ============================================================
-// Ajout ressource
+// Ajout ressource (NOUVEAU SYSTÈME)
 // ============================================================
 function showAddResourceModal() {
     document.getElementById('add-resource-modal').style.display = 'flex';
+    // Initialiser sur l'onglet des fichiers
+    switchResourceTab('files');
     {% if lesson_classroom %}
-    loadClassFiles({{ lesson_classroom.id }});
+    loadClassFilesTree({{ lesson_classroom.id }});
     {% endif %}
 }
 
@@ -9832,40 +9899,169 @@ function closeAddResourceModal() {
     document.getElementById('add-resource-modal').style.display = 'none';
 }
 
+function switchResourceTab(tabName) {
+    // Masquer tous les onglets
+    document.getElementById('resource-files-tab').style.display = 'none';
+    document.getElementById('resource-exercises-tab').style.display = 'none';
+
+    // Réinitialiser les styles des boutons
+    document.getElementById('tab-files-btn').style.borderBottomColor = 'transparent';
+    document.getElementById('tab-files-btn').style.color = '#9ca3af';
+    document.getElementById('tab-exercises-btn').style.borderBottomColor = 'transparent';
+    document.getElementById('tab-exercises-btn').style.color = '#9ca3af';
+
+    // Afficher l'onglet demandé et modifier le style du bouton
+    if (tabName === 'files') {
+        document.getElementById('resource-files-tab').style.display = 'block';
+        document.getElementById('tab-files-btn').style.borderBottomColor = '#10b981';
+        document.getElementById('tab-files-btn').style.color = '#10b981';
+    } else {
+        document.getElementById('resource-exercises-tab').style.display = 'block';
+        document.getElementById('tab-exercises-btn').style.borderBottomColor = '#667eea';
+        document.getElementById('tab-exercises-btn').style.color = '#667eea';
+    }
+}
+
 {% if lesson_classroom %}
-async function loadClassFiles(classroomId) {
-    const container = document.getElementById('class-files-list');
+async function loadClassFilesTree(classroomId) {
+    const container = document.getElementById('class-files-tree-container');
     try {
         const res = await fetch(`/planning/get-class-resources/${classroomId}`);
         const data = await res.json();
-        if (data.success && data.resources && data.resources.length > 0) {
-            container.innerHTML = data.resources.map(r =>
-                `<div onclick="addFileToPlanning('${r.name.replace(/'/g, "\\'")}', '${r.file_type || ''}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
-                    <i class="fas fa-${r.file_type === 'pdf' ? 'file-pdf' : r.file_type && r.file_type.match(/png|jpg|jpeg/) ? 'file-image' : 'file'}" style="color:${r.file_type === 'pdf' ? '#DC2626' : '#6B7280'};"></i>
-                    <div style="flex:1;">
-                        <div style="font-weight:600;font-size:0.85rem;">${r.name}</div>
-                    </div>
-                    <i class="fas fa-plus-circle" style="color:#10b981;font-size:1.1rem;"></i>
-                </div>`
-            ).join('');
+
+        if (data.success) {
+            // Combiner fichiers épinglés et normaux
+            const allFiles = [...(data.pinned_files || []), ...(data.files || [])];
+
+            if (allFiles.length > 0) {
+                // Organiser par dossiers
+                const filesByFolder = {};
+                allFiles.forEach(file => {
+                    const folder = file.folder_path || 'Racine';
+                    if (!filesByFolder[folder]) {
+                        filesByFolder[folder] = [];
+                    }
+                    filesByFolder[folder].push(file);
+                });
+
+                // Créer l'HTML de l'arborescence
+                let html = '';
+                Object.keys(filesByFolder).sort().forEach(folder => {
+                    html += `<div style="margin-bottom:1rem;">
+                        <div style="font-weight:600;font-size:0.85rem;color:#374151;padding:0.5rem 0;border-bottom:1px solid #e5e7eb;margin-bottom:0.5rem;">
+                            <i class="fas fa-folder" style="color:#f59e0b;margin-right:0.3rem;"></i> ${folder}
+                        </div>`;
+
+                    filesByFolder[folder].forEach(file => {
+                        const icon = getFileIcon(file.file_type);
+                        const iconColor = getFileIconColor(file.file_type);
+                        html += `<div onclick="addFileResourceToPlanning(${file.id}, '${file.original_filename.replace(/'/g, "\\'")}', '${file.file_type}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;hover:background:#f9fafb;">
+                            <i class="fas fa-${icon}" style="color:${iconColor};"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
+                            </div>
+                            <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
+                        </div>`;
+                    });
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">Aucun fichier dans cette classe</div>';
+            }
         } else {
-            container.innerHTML = '<p style="color:#9ca3af;font-style:italic;">Aucun fichier dans cette classe</p>';
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement</div>';
         }
     } catch(e) {
-        container.innerHTML = '<p style="color:#ef4444;">Erreur de chargement</p>';
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement: ' + e.message + '</div>';
+        console.error('Erreur loadClassFilesTree:', e);
+    }
+}
+
+function getFileIcon(fileType) {
+    if (!fileType) return 'file';
+    if (fileType === 'pdf') return 'file-pdf';
+    if (fileType.match(/png|jpg|jpeg|gif/)) return 'file-image';
+    if (fileType.match(/doc|docx|txt/)) return 'file-word';
+    return 'file';
+}
+
+function getFileIconColor(fileType) {
+    if (!fileType) return '#6b7280';
+    if (fileType === 'pdf') return '#dc2626';
+    if (fileType.match(/png|jpg|jpeg|gif/)) return '#3b82f6';
+    if (fileType.match(/doc|docx|txt/)) return '#2563eb';
+    return '#6b7280';
+}
+
+async function addFileResourceToPlanning(fileId, fileName, fileType) {
+    const planningId = {{ planning.id if planning else 'null' }};
+
+    if (!planningId) {
+        alert('Veuillez d\'abord créer une planification');
+        return;
+    }
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/planning/add-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                planning_id: planningId,
+                resource_type: 'file',
+                resource_id: fileId,
+                display_name: fileName,
+                file_type: fileType
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Recharger la vue de planification
+            location.reload();
+        } else {
+            alert(data.error || data.message || 'Erreur lors de l\'ajout du fichier');
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        console.error('Erreur addFileResourceToPlanning:', e);
     }
 }
 {% endif %}
 
-function addFileToPlanning(filename, fileType) {
-    const descEl = document.getElementById('planningDescriptionDisplay');
-    if (descEl) {
-        const link = document.createElement('div');
-        link.style.cssText = 'margin-top:0.5rem;padding:0.5rem 0.8rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;';
-        link.innerHTML = `<i class="fas fa-${fileType === 'pdf' ? 'file-pdf' : 'file'}" style="color:${fileType === 'pdf' ? '#DC2626' : '#6B7280'};"></i> <strong>${filename}</strong>`;
-        descEl.appendChild(link);
+async function addExerciseToPlanning(exerciseId, exerciseTitle) {
+    const planningId = {{ planning.id if planning else 'null' }};
+
+    if (!planningId) {
+        alert('Veuillez d\'abord créer une planification');
+        return;
     }
-    closeAddResourceModal();
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/planning/add-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                planning_id: planningId,
+                resource_type: 'exercise',
+                resource_id: exerciseId,
+                display_name: exerciseTitle
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Recharger la vue de planification
+            location.reload();
+        } else {
+            alert(data.error || data.message || 'Erreur lors de l\'ajout de l\'exercice');
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        console.error('Erreur addExerciseToPlanning:', e);
+    }
 }
 
 // ============================================================
@@ -9874,11 +10070,15 @@ function addFileToPlanning(filename, fileType) {
 let selectedExerciseId = null;
 let selectedExerciseTitle = '';
 let selectedMode = null;
+let selectedPlanningResourceId = null;  // Pour tracker si on publie depuis la planification
+let modeModalContext = 'add';  // 'add' (ajout via modal) ou 'publish' (depuis la planification)
 
-function showModeModal(exerciseId, title) {
+function showModeModal(exerciseId, title, context = 'add', resourceId = null) {
     selectedExerciseId = exerciseId;
     selectedExerciseTitle = title;
     selectedMode = null;
+    modeModalContext = context;
+    selectedPlanningResourceId = resourceId;
     document.getElementById('mode-exercise-title').textContent = title;
     document.getElementById('mode-classique-check').style.display = 'none';
     document.getElementById('mode-combat-check').style.display = 'none';
@@ -9913,7 +10113,7 @@ function selectMode(mode) {
         classiqueBtn.style.background = '#f0fdf4';
         combatBtn.style.background = 'white';
         launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
-        launchBtn.innerHTML = '<i class="fas fa-play"></i> Publier en mode classique';
+        launchBtn.innerHTML = modeModalContext === 'publish' ? '<i class="fas fa-play"></i> Publier et lancer' : '<i class="fas fa-plus"></i> Ajouter en mode classique';
     } else {
         combatCheck.style.display = 'inline';
         combatBtn.style.borderColor = '#ef4444';
@@ -9934,52 +10134,94 @@ async function launchExercise() {
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-        const res = await fetch('/exercises/launch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify({
-                exercise_id: selectedExerciseId,
-                classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
-                mode: selectedMode,
-            }),
-        });
-        const data = await res.json();
 
-        if (data.success) {
-            // Ajouter le lien dans la description
-            const descEl = document.getElementById('planningDescriptionDisplay');
-            if (descEl) {
-                const link = document.createElement('div');
-                const modeLabel = selectedMode === 'combat' ? '⚔️ Combat' : '📖 Classique';
-                const modeColor = selectedMode === 'combat' ? '#fef2f2;border:1px solid #fecaca' : '#eef2ff;border:1px solid #c7d2fe';
-                link.style.cssText = `margin-top:0.5rem;padding:0.5rem 0.8rem;background:${modeColor};border-radius:8px;display:flex;align-items:center;justify-content:space-between;`;
-                link.innerHTML = `
-                    <span><i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${selectedExerciseTitle}</strong>
-                    <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:6px;background:${selectedMode==='combat'?'#ef4444':'#10b981'};color:white;margin-left:0.3rem;">${modeLabel}</span></span>
-                    ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> Suivi live</button>` : ''}
-                `;
-                descEl.appendChild(link);
-            }
+        // Si on publie depuis la planification (exercice déjà lié)
+        if (modeModalContext === 'publish' && selectedPlanningResourceId) {
+            const res = await fetch('/planning/publish-resource', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    resource_id: selectedPlanningResourceId,
+                    exercise_id: selectedExerciseId,
+                    classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
+                    mode: selectedMode,
+                }),
+            });
+            const data = await res.json();
 
-            closeModeModal();
-            closeAddResourceModal();
+            if (data.success) {
+                closeModeModal();
 
-            if (selectedMode === 'combat') {
-                // Ouvrir directement le suivi live
-                openTracking(data.publication_id);
+                if (selectedMode === 'combat') {
+                    openTracking(data.publication_id);
+                } else {
+                    alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
+                    location.reload();
+                }
             } else {
-                alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
+                alert(data.error || data.message || 'Erreur lors de la publication');
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
             }
         } else {
-            alert(data.error || data.message || 'Erreur lors du lancement');
-            launchBtn.disabled = false;
-            launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+            // Ancien comportement: ajouter et publier immédiatement (via add-resource modal)
+            const res = await fetch('/exercises/launch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    exercise_id: selectedExerciseId,
+                    classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
+                    mode: selectedMode,
+                }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Ajouter le lien dans la description
+                const descEl = document.getElementById('planningDescriptionDisplay');
+                if (descEl) {
+                    const link = document.createElement('div');
+                    const modeLabel = selectedMode === 'combat' ? '⚔️ Combat' : '📖 Classique';
+                    const modeColor = selectedMode === 'combat' ? '#fef2f2;border:1px solid #fecaca' : '#eef2ff;border:1px solid #c7d2fe';
+                    link.style.cssText = `margin-top:0.5rem;padding:0.5rem 0.8rem;background:${modeColor};border-radius:8px;display:flex;align-items:center;justify-content:space-between;`;
+                    link.innerHTML = `
+                        <span><i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${selectedExerciseTitle}</strong>
+                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:6px;background:${selectedMode==='combat'?'#ef4444':'#10b981'};color:white;margin-left:0.3rem;">${modeLabel}</span></span>
+                        ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> Suivi live</button>` : ''}
+                    `;
+                    descEl.appendChild(link);
+                }
+
+                closeModeModal();
+                closeAddResourceModal();
+
+                if (selectedMode === 'combat') {
+                    // Ouvrir directement le suivi live
+                    openTracking(data.publication_id);
+                } else {
+                    alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
+                }
+            } else {
+                alert(data.error || data.message || 'Erreur lors du lancement');
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+            }
         }
     } catch(e) {
         alert('Erreur de connexion');
         launchBtn.disabled = false;
         launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        console.error('Erreur launchExercise:', e);
     }
+}
+
+// ============================================================
+// Ouverture des ressources de fichier
+// ============================================================
+function openResourceFile(fileId, fileName) {
+    // Ouvrir le fichier dans le visualiseur PDF
+    // En attendant, on peut utiliser la route existante ou ouvrir dans un nouvel onglet
+    window.open(`/file-manager/view/${fileId}`, '_blank');
 }
 
 // ============================================================

@@ -1173,6 +1173,54 @@ def rpg_dashboard():
             except (ValueError, TypeError):
                 si.item.stat_bonus_json = {}
 
+    # Construire l'arbre d'évolution
+    evolution_tree = None
+    if rpg.avatar_class:
+        from models.rpg import CLASS_EVOLUTIONS, CLASS_DESCRIPTIONS
+        avatar_class = rpg.avatar_class
+        evolution_data = CLASS_EVOLUTIONS.get(avatar_class, {})
+        class_desc = CLASS_DESCRIPTIONS.get(avatar_class, {})
+
+        chosen_evolutions = evolutions_list or []
+        chosen_evolution_ids = {e.get('evolution_id') for e in chosen_evolutions if isinstance(e, dict)}
+        chosen_levels = {e.get('level') for e in chosen_evolutions if isinstance(e, dict)}
+
+        evolution_tree = {
+            'base_class': {
+                'id': avatar_class,
+                'name': class_desc.get('name', avatar_class),
+                'subtitle': class_desc.get('subtitle', ''),
+                'description': class_desc.get('description', ''),
+                'strengths': class_desc.get('strengths', []),
+                'weaknesses': class_desc.get('weaknesses', []),
+                'playstyle': class_desc.get('playstyle', ''),
+            },
+            'evolution_levels': []
+        }
+
+        for level in sorted(evolution_data.keys()):
+            choices = evolution_data[level]
+            level_group = {
+                'level': level,
+                'is_unlocked': rpg.level >= level,
+                'is_chosen': level in chosen_levels,
+                'evolutions': []
+            }
+
+            for choice in choices:
+                evo_id = choice.get('id')
+                is_chosen = evo_id in chosen_evolution_ids
+                level_group['evolutions'].append({
+                    'id': evo_id,
+                    'name': choice.get('name', evo_id),
+                    'description': choice.get('description', ''),
+                    'stat_bonus': choice.get('stat_bonus', {}),
+                    'is_chosen': is_chosen,
+                    'is_available': (rpg.level >= level) and (level not in chosen_levels),
+                })
+
+            evolution_tree['evolution_levels'].append(level_group)
+
     return render_template('student/rpg_dashboard.html',
                            student=student,
                            rpg=rpg,
@@ -1180,7 +1228,8 @@ def rpg_dashboard():
                            inventory=inventory,
                            equipment_dict=equipment_dict,
                            evolutions_list=evolutions_list,
-                           active_skills_list=active_skills_list)
+                           active_skills_list=active_skills_list,
+                           evolution_tree=evolution_tree)
 
 
 @student_auth_bp.route('/rpg/avatar', methods=['POST'])
@@ -1302,8 +1351,14 @@ def get_correct_answer_text(block):
                 cc = correct.get('c', 0)
                 return f"y = {a}x² + {b}x + {cc}"
         elif block.block_type == 'image_position':
+            # For image_position, return a dict with zones so mobile can display them
             zones = c.get('zones', [])
-            return ', '.join(z.get('label', '') for z in zones)
+            if zones:
+                return {
+                    'text': ', '.join(z.get('label', '') for z in zones),
+                    'zones': zones
+                }
+            return None
     except Exception:
         pass
     return None
@@ -1422,7 +1477,11 @@ def grade_image_position(config, answer, max_points):
     if not zones:
         return True, max_points
 
-    default_radius = config.get('default_radius', 30)
+    # Default radius is 3% of image width, minimum 30px
+    # This scales better across different image sizes
+    image_width = config.get('image_width', 1000)
+    default_radius = max(config.get('default_radius', 30), int(image_width * 0.03))
+
     correct_count = 0
 
     for i, zone in enumerate(zones):

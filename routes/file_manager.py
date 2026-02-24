@@ -372,6 +372,13 @@ def copy_to_class_folder():
         class_id = data.get('class_id')
         folder_path = data.get('folder_name')  # Gardons 'folder_name' pour la compatibilité
 
+        # Convertir en int pour éviter les erreurs SQL de type cast (VARCHAR vs INTEGER)
+        try:
+            file_id = int(file_id) if file_id is not None else None
+            class_id = int(class_id) if class_id is not None else None
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
+
         if not file_id or not class_id or not folder_path:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
 

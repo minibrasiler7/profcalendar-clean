@@ -180,3 +180,42 @@ class Planning(db.Model):
     def __repr__(self):
         name = self.get_display_name()
         return f'<Planning {self.date} P{self.period_number} - {name}>'
+
+
+class PlanningResource(db.Model):
+    """Modèle pour les ressources (fichiers ou exercices) ajoutées à la planification"""
+    __tablename__ = 'planning_resources'
+
+    id = db.Column(db.Integer, primary_key=True)
+    planning_id = db.Column(db.Integer, db.ForeignKey('plannings.id', ondelete='CASCADE'), nullable=False)
+
+    # Type de ressource: 'file' (PDF/document) ou 'exercise'
+    resource_type = db.Column(db.String(20), nullable=False)  # 'file' ou 'exercise'
+
+    # Pour les fichiers: stocke l'ID du UserFile ou ClassFile
+    # Pour les exercices: stocke l'ID de l'Exercise
+    resource_id = db.Column(db.Integer, nullable=False)
+
+    # Métadonnées stockées pour affichage rapide
+    display_name = db.Column(db.String(255), nullable=False)
+    display_icon = db.Column(db.String(50))  # p.ex. 'file-pdf', 'file-image', 'gamepad'
+
+    # Status: 'linked' (ajouté mais pas publié) ou 'published' (exercice lancé)
+    status = db.Column(db.String(20), default='linked')  # 'linked' ou 'published'
+
+    # Pour les exercices publiés, stocke les informations de lancement
+    mode = db.Column(db.String(20))  # 'classique' ou 'combat'
+    publication_id = db.Column(db.Integer)  # ID de la publication de l'exercice
+
+    # Position dans la planification (pour tri)
+    position = db.Column(db.Integer, default=0)
+
+    # Métadonnées
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    planning = db.relationship('Planning', backref=db.backref('resources', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<PlanningResource {self.resource_type}:{self.resource_id} - {self.display_name}>'

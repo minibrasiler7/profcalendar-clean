@@ -560,11 +560,183 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-top: 1.5rem;
 }
 
+/* KaTeX Math Toolbar */
+.katex-toolbar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    padding: 1rem;
+    z-index: 8000;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    min-width: 280px;
+}
+
+.katex-toolbar.collapsed {
+    min-width: auto;
+    width: auto;
+}
+
+.katex-toolbar.collapsed .katex-toolbar-content {
+    display: none;
+}
+
+.katex-toolbar.collapsed .katex-toolbar-header {
+    margin: 0;
+}
+
+.katex-toolbar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.katex-toolbar-title {
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.katex-toolbar-title i {
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+.katex-toolbar-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.katex-toolbar-toggle:hover {
+    background: #f3f4f6;
+    color: #667eea;
+}
+
+.katex-toolbar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.katex-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.katex-button-group-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.katex-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+}
+
+.katex-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4b5563;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.katex-btn:hover {
+    border-color: #667eea;
+    background: #eef2ff;
+    color: #667eea;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102,126,234,0.2);
+}
+
+.katex-btn i {
+    font-size: 0.9rem;
+}
+
+.katex-preview-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+.katex-preview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+}
+
+.katex-preview-box {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.katex-formula-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    margin-top: 0.3rem;
+}
+
+.katex-formula-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .toolbox { grid-template-columns: repeat(2, 1fr); }
     .form-row { grid-template-columns: 1fr; }
     .atelier-header { flex-direction: column; gap: 1rem; }
+    .katex-toolbar {
+        bottom: 10px;
+        right: 10px;
+        max-width: calc(100vw - 20px);
+        min-width: 250px;
+    }
 }
 </style>
 {% endblock %}
@@ -729,6 +901,112 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn btn-primary" id="folder-confirm-btn" onclick="confirmFolder()" disabled>
                 <i class="fas fa-check"></i> Ranger ici
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- KaTeX Math Toolbar -->
+<div class="katex-toolbar" id="katex-toolbar">
+    <div class="katex-toolbar-header">
+        <div class="katex-toolbar-title">
+            <i class="fas fa-calculator"></i>
+            <span>Formules Mathématiques</span>
+        </div>
+        <button class="katex-toolbar-toggle" onclick="toggleKaTeXToolbar()" title="Réduire/Agrandir">
+            <i class="fas fa-chevron-down" id="toolbar-toggle-icon"></i>
+        </button>
+    </div>
+
+    <div class="katex-toolbar-content">
+        <!-- Symbols -->
+        <div class="katex-button-group">
+            <div class="katex-button-group-title"><i class="fas fa-icons"></i> Symboles</div>
+            <div class="katex-buttons-grid">
+                <button class="katex-btn" onclick="insertKaTeX('\\\\frac{}{}')" title="Fraction">
+                    <i class="fas fa-divide"></i>
+                    <span>Fraction</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('^{}')" title="Exposant">
+                    <i class="fas fa-superscript"></i>
+                    <span>Exposant</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('_{}')" title="Indice">
+                    <i class="fas fa-subscript"></i>
+                    <span>Indice</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\sqrt{}')" title="Racine carrée">
+                    <i class="fas fa-square-root-alt"></i>
+                    <span>Racine</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\pi')" title="Pi">
+                    <span>π</span>
+                    <span>Pi</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\times')" title="Multiplication">
+                    <span>×</span>
+                    <span>Mult.</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\div')" title="Division">
+                    <span>÷</span>
+                    <span>Div.</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\pm')" title="Plus ou moins">
+                    <span>±</span>
+                    <span>±</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\infty')" title="Infini">
+                    <span>∞</span>
+                    <span>Infini</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\leq')" title="Inférieur ou égal">
+                    <span>≤</span>
+                    <span>≤</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\geq')" title="Supérieur ou égal">
+                    <span>≥</span>
+                    <span>≥</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\neq')" title="Différent de">
+                    <span>≠</span>
+                    <span>≠</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\rightarrow')" title="Flèche">
+                    <span>→</span>
+                    <span>Flèche</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Structures -->
+        <div class="katex-button-group">
+            <div class="katex-button-group-title"><i class="fas fa-building"></i> Structures</div>
+            <div class="katex-buttons-grid">
+                <button class="katex-btn" onclick="insertKaTeX('\\\\int')" title="Intégrale">
+                    <span>∫</span>
+                    <span>Intégrale</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\sum')" title="Somme">
+                    <span>∑</span>
+                    <span>Somme</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\lim')" title="Limite">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Limite</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\\\begin{pmatrix}\\\\end{pmatrix}')" title="Matrice">
+                    <i class="fas fa-border-all"></i>
+                    <span>Matrice</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="katex-preview-section">
+            <div class="katex-preview-label">Aperçu en temps réel</div>
+            <input type="text" id="katex-formula-input" class="katex-formula-input" placeholder="Entrez la formule KaTeX..." oninput="updateKaTeXPreview()">
+            <div class="katex-preview-box" id="katex-preview-box">
+                <span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>
+            </div>
         </div>
     </div>
 </div>
@@ -1880,6 +2158,153 @@ async function confirmFolder() {
 
 function closeFolderModal() {
     document.getElementById('folder-modal').style.display = 'none';
+}
+
+// ============================================================
+// KaTeX MATH TOOLBAR
+// ============================================================
+
+// Track which textarea is currently focused for math insertion
+let activeTextArea = null;
+
+// Initialize toolbar: attach focus listeners to all textareas in exercise blocks
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach listeners to existing textareas
+    attachKaTeXListeners();
+
+    // Also monitor for new textareas added dynamically
+    const observer = new MutationObserver(function(mutations) {
+        attachKaTeXListeners();
+    });
+    observer.observe(document.getElementById('blocks-area'), {
+        childList: true,
+        subtree: true,
+        attributes: false,
+        characterData: false
+    });
+});
+
+function attachKaTeXListeners() {
+    // Find all textareas in block content and add focus/blur listeners
+    document.querySelectorAll('.block-content textarea').forEach(textarea => {
+        if (!textarea.hasAttribute('data-katex-listener')) {
+            textarea.setAttribute('data-katex-listener', 'true');
+            textarea.addEventListener('focus', function() {
+                activeTextArea = this;
+            });
+            textarea.addEventListener('blur', function() {
+                // Delay blur handler to avoid issues with button clicks
+                setTimeout(() => {
+                    if (activeTextArea === this) {
+                        activeTextArea = null;
+                    }
+                }, 50);
+            });
+        }
+    });
+}
+
+function insertKaTeX(latexCode) {
+    if (!activeTextArea) {
+        // Show warning if no textarea focused
+        showToast('Veuillez cliquer dans un champ de texte d\'abord', 'error');
+        return;
+    }
+
+    const textarea = activeTextArea;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    // If text is selected, wrap it in the KaTeX command
+    let newText;
+    if (start !== end) {
+        const selectedText = text.substring(start, end);
+        if (latexCode === '\\\\frac{}{}') {
+            newText = text.substring(0, start) + '\\\\frac{' + selectedText + '}{}' + text.substring(end);
+        } else if (latexCode === '^{}') {
+            newText = text.substring(0, start) + selectedText + '^{}' + text.substring(end);
+        } else if (latexCode === '_{}') {
+            newText = text.substring(0, start) + selectedText + '_{}' + text.substring(end);
+        } else {
+            newText = text.substring(0, start) + latexCode + text.substring(end);
+        }
+    } else {
+        // Insert at cursor position
+        newText = text.substring(0, start) + latexCode + text.substring(start);
+    }
+
+    // Update textarea and trigger change event
+    textarea.value = newText;
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Place cursor inside the command (after opening brace/parenthesis)
+    let newCursorPos = start + latexCode.length;
+
+    // For commands with placeholders, position cursor inside first placeholder
+    if (latexCode === '\\\\frac{}{}') {
+        newCursorPos = start + 6; // Position inside first {}
+    } else if (latexCode === '^{}' || latexCode === '_{}') {
+        newCursorPos = start + latexCode.length - 1; // Inside {}
+    } else if (latexCode === '\\\\sqrt{}') {
+        newCursorPos = start + 7; // Inside {}
+    } else if (latexCode === '\\\\begin{pmatrix}\\\\end{pmatrix}') {
+        newCursorPos = start + 16; // Inside pmatrix
+    }
+
+    setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+
+    // Update preview
+    updateKaTeXPreview();
+}
+
+function toggleKaTeXToolbar() {
+    const toolbar = document.getElementById('katex-toolbar');
+    const icon = document.getElementById('toolbar-toggle-icon');
+
+    toolbar.classList.toggle('collapsed');
+
+    if (toolbar.classList.contains('collapsed')) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+function updateKaTeXPreview() {
+    const input = document.getElementById('katex-formula-input');
+    const previewBox = document.getElementById('katex-preview-box');
+    const formula = input.value.trim();
+
+    if (!formula) {
+        previewBox.innerHTML = '<span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>';
+        return;
+    }
+
+    try {
+        previewBox.innerHTML = '';
+        // Wrap in $ delimiters for KaTeX rendering
+        const element = document.createElement('div');
+        element.innerHTML = '$' + formula + '$';
+        previewBox.appendChild(element);
+
+        // Render KaTeX if available
+        if (window.renderMathInElement) {
+            renderMathInElement(previewBox, {
+                delimiters: [
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
+    } catch (error) {
+        previewBox.innerHTML = '<span style="color:#dc2626; font-size: 0.75rem;">Erreur: formule invalide</span>';
+    }
 }
 </script>
 {% endblock %}

@@ -230,6 +230,10 @@ def create_app(config_name='development'):
             db.session.execute(db.text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_until TIMESTAMP"
             ))
+            # Colonne préférence de tri des élèves
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS student_sort_pref VARCHAR(20) DEFAULT 'last_name'"
+            ))
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -476,12 +480,13 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Migration stats RPG: {e}")
 
-        # Migration: ajouter colonnes stat_bonus_json, special_ability, equip_slot aux rpg_items
+        # Migration: ajouter colonnes stat_bonus_json, special_ability, equip_slot, class_restriction aux rpg_items
         try:
             for col_name, col_type in [
                 ('stat_bonus_json', 'JSONB'),
                 ('special_ability', 'VARCHAR(200)'),
                 ('equip_slot', 'VARCHAR(20)'),
+                ('class_restriction', 'VARCHAR(50)'),
             ]:
                 try:
                     db.session.execute(db.text(
@@ -523,6 +528,15 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Objets RPG par défaut: {e}")
+
+        # Seed équipements de classe de base et évolutions
+        try:
+            from models.rpg import seed_class_equipment
+            msg = seed_class_equipment(db.session)
+            print(msg)
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Équipements de classe: {e}")
 
         # Migration: ajouter mode et is_active sur exercise_publications + fix NULL published_by
         try:

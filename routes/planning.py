@@ -14,6 +14,7 @@ from routes import teacher_required
 import secrets
 import string
 from models.classroom_access_code import ClassroomAccessCode
+import re
 
 planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
 
@@ -1860,9 +1861,13 @@ def lesson_view():
             # Aucun pattern trouvé, utiliser tous les élèves de la classe
             current_app.logger.error(f"=== STUDENTS DEBUG === No group pattern found, using all students")
             students = lesson_classroom.get_students()
-    
+
     if students:
-        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+        # Appliquer la préférence de tri de l'utilisateur
+        if current_user.student_sort_pref == 'first_name':
+            students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+        else:
+            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
 
     # Récupérer les présences existantes pour ce cours
     attendance_records = {}
@@ -2509,9 +2514,12 @@ def manage_classes():
             # Pour les classes avec une seule discipline
             students = primary_classroom.get_students()
             print(f"DEBUG: Single subject class - found {len(students)} students")
-    
-    # Trier les élèves par nom
-    students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+
+    # Trier les élèves selon la préférence de l'utilisateur
+    if current_user.student_sort_pref == 'first_name':
+        students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+    else:
+        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
     
     # Convertir les étudiants en dictionnaires pour le JSON (utilisé en JavaScript)
     students_json = []
@@ -2672,7 +2680,11 @@ def manage_classes():
         
         # Récupérer les élèves de la classe du maître
         students = primary_classroom.get_students()
-        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+        # Appliquer la préférence de tri de l'utilisateur
+        if current_user.student_sort_pref == 'first_name':
+            students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+        else:
+            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         print(f"DEBUG: Retrieved {len(students)} students from master's classroom")
         
         # Redéfinir students_json avec les nouveaux élèves
@@ -5551,7 +5563,11 @@ def get_student_accommodations(classroom_param):
                 
             # Pour les groupes mixtes, récupérer les élèves via get_students()
             students = mixed_group.get_students()
-            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+            # Appliquer la préférence de tri de l'utilisateur
+            if current_user.student_sort_pref == 'first_name':
+                students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+            else:
+                students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         else:
             # Format numérique ou nom de classe normale
             try:
@@ -5560,7 +5576,11 @@ def get_student_accommodations(classroom_param):
                 classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
                 if not classroom:
                     return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
-                students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.last_name, Student.first_name).all()
+                # Appliquer la préférence de tri de l'utilisateur
+                if current_user.student_sort_pref == 'first_name':
+                    students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.first_name, Student.last_name).all()
+                else:
+                    students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.last_name, Student.first_name).all()
             except ValueError:
                 # Format nom de classe normale - chercher par nom
                 print(f"DEBUG: Searching for classrooms with class_group='{classroom_param}' for user {current_user.id}")
@@ -5595,7 +5615,11 @@ def get_student_accommodations(classroom_param):
                         else:
                             print(f"DEBUG: Skipped duplicate student {student.full_name}")
                 print(f"DEBUG: Final student count after deduplication: {len(students)}")
-                students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+                # Appliquer la préférence de tri de l'utilisateur
+                if current_user.student_sort_pref == 'first_name':
+                    students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+                else:
+                    students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         
         students_data = []
         for student in students:
@@ -8495,3 +8519,137 @@ def get_classroom_decoupages(classroom_id):
         'success': True,
         'data': result
     })
+
+
+# ============================================================
+# Nouvelles routes pour la gestion des ressources de planification
+# ============================================================
+
+@planning_bp.route('/add-resource', methods=['POST'])
+@login_required
+def add_resource():
+    """Ajouter une ressource (fichier ou exercice) à une planification"""
+    from models.planning import PlanningResource
+    from models.class_file import ClassFile
+
+    data = request.get_json()
+    planning_id = data.get('planning_id')
+    resource_type = data.get('resource_type')  # 'file' ou 'exercise'
+    resource_id = data.get('resource_id')
+    display_name = data.get('display_name')
+    file_type = data.get('file_type')  # Pour les fichiers
+
+    # Vérifier que la planification existe et appartient à l'utilisateur
+    planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
+    if not planning:
+        return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
+
+    try:
+        # Déterminer l'icône en fonction du type
+        display_icon = None
+        if resource_type == 'file':
+            if file_type == 'pdf':
+                display_icon = 'file-pdf'
+            elif file_type and re.match(r'png|jpg|jpeg|gif', file_type):
+                display_icon = 'file-image'
+            else:
+                display_icon = 'file'
+        elif resource_type == 'exercise':
+            display_icon = 'gamepad'
+
+        # Créer la ressource
+        resource = PlanningResource(
+            planning_id=planning_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            display_name=display_name,
+            display_icon=display_icon,
+            status='linked',  # Par défaut: lié mais pas publié
+            position=planning.resources.count()
+        )
+
+        db.session.add(resource)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Ressource "{display_name}" ajoutée',
+            'resource_id': resource.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur add-resource: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/publish-resource', methods=['POST'])
+@login_required
+def publish_resource():
+    """Publier un exercice lié à une planification"""
+    from models.planning import PlanningResource
+    from models.exercise import Exercise
+    from models.exercise import ExercisePublication
+
+    data = request.get_json()
+    resource_id = data.get('resource_id')
+    exercise_id = data.get('exercise_id')
+    classroom_id = data.get('classroom_id')
+    mode = data.get('mode')  # 'classique' ou 'combat'
+
+    # Vérifier la ressource
+    resource = PlanningResource.query.get(resource_id)
+    if not resource:
+        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+
+    # Vérifier que la planification appartient à l'utilisateur
+    if resource.planning.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+
+    # Vérifier l'exercice
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Exercice introuvable'}), 404
+
+    try:
+        # Publier l'exercice (logique similaire à launch_exercise)
+        existing = ExercisePublication.query.filter_by(
+            exercise_id=exercise.id,
+            classroom_id=classroom_id
+        ).first()
+
+        if existing:
+            # Mettre à jour le mode et activer
+            existing.mode = mode
+            existing.is_active = (mode == 'combat')
+            pub_obj = existing
+        else:
+            pub = ExercisePublication(
+                exercise_id=exercise.id,
+                classroom_id=classroom_id,
+                published_by=current_user.id,
+                published_at=datetime.utcnow(),
+                mode=mode,
+                is_active=(mode == 'combat'),
+            )
+            db.session.add(pub)
+            pub_obj = pub
+
+        exercise.is_published = True
+        exercise.is_draft = False
+
+        # Mettre à jour la ressource
+        resource.status = 'published'
+        resource.mode = mode
+        resource.publication_id = pub_obj.id
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Exercice publié en mode {mode}',
+            'publication_id': pub_obj.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur publish-resource: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

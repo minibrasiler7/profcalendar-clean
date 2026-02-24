@@ -53,6 +53,35 @@ def update_accommodations_display():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@settings_bp.route('/update-student-sort-preference', methods=['POST'])
+@login_required
+def update_student_sort_preference():
+    """Mettre à jour la préférence de tri des élèves"""
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    student_sort_pref = data.get('student_sort_pref')
+
+    if student_sort_pref not in ['first_name', 'last_name']:
+        return jsonify({'success': False, 'message': 'Valeur invalide'}), 400
+
+    try:
+        # Mettre à jour la préférence de l'utilisateur
+        current_user.student_sort_pref = student_sort_pref
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Préférence de tri mise à jour avec succès'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @settings_bp.route('/class-codes')
 @login_required
 def class_codes():

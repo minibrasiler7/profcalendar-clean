@@ -517,6 +517,8 @@ class RPGItem(db.Model):
     special_ability = db.Column(db.String(200), nullable=True)
     # Slot d'équipement (arme, bouclier, accessoire, None = consommable)
     equip_slot = db.Column(db.String(20), nullable=True)
+    # Restriction de classe (guerrier, mage, archer, guerisseur, ou NULL = universal)
+    class_restriction = db.Column(db.String(50), nullable=True)
 
     @property
     def rarity_color(self):
@@ -546,6 +548,7 @@ class RPGItem(db.Model):
             'stat_bonus': self.stat_bonus_json or {},
             'special_ability': self.special_ability,
             'equip_slot': self.equip_slot,
+            'class_restriction': self.class_restriction,
         }
 
     def __repr__(self):
@@ -575,6 +578,30 @@ class StudentItem(db.Model):
 
     def __repr__(self):
         return f'<StudentItem student={self.student_id} item={self.item_id} x{self.quantity}>'
+
+
+def seed_class_equipment(db_session):
+    """
+    Ajouter les équipements de base et d'évolution des classes si n'existent pas.
+    Appelé depuis app.py pendant les migrations.
+    """
+    try:
+        all_equipment = BASE_CLASS_EQUIPMENT + EVOLUTION_EQUIPMENT
+
+        for item_data in all_equipment:
+            # Vérifier si l'item existe déjà
+            existing = db_session.query(RPGItem).filter_by(name=item_data['name']).first()
+            if not existing:
+                item = RPGItem(**item_data)
+                db_session.add(item)
+
+        db_session.commit()
+        equipment_count = len(all_equipment)
+        existing_count = db_session.query(RPGItem).filter_by(is_active=True).count()
+        return f"✅ {len(all_equipment)} équipements de classe insérés"
+    except Exception as e:
+        db_session.rollback()
+        return f"⚠️ Erreur équipements de classe: {e}"
 
 
 def award_random_item(student_id, score_percentage):
@@ -640,4 +667,278 @@ DEFAULT_ITEMS = [
     {'name': 'Cape d\'invisibilité', 'description': 'Se fondre dans l\'ombre', 'icon': 'user-secret', 'color': '#1e1b4b', 'category': 'accessoire', 'rarity': 'epic', 'equip_slot': 'accessoire', 'stat_bonus_json': {'defense': 3, 'defense_magique': 3}, 'special_ability': 'Esquive +20%'},
     {'name': 'Anneau de pouvoir', 'description': 'Un anneau qui renforce son porteur', 'icon': 'ring', 'color': '#f59e0b', 'category': 'accessoire', 'rarity': 'legendary', 'equip_slot': 'accessoire', 'stat_bonus_json': {'force': 3, 'intelligence': 3, 'vie': 2}, 'special_ability': 'Tous les stats +10%'},
     {'name': 'Amulette de sagesse', 'description': 'Amplifie la concentration', 'icon': 'diamond', 'color': '#06b6d4', 'category': 'accessoire', 'rarity': 'rare', 'equip_slot': 'accessoire', 'stat_bonus_json': {'intelligence': 3, 'defense_magique': 1}},
+]
+
+# ═══════════════════════════════════════════════════════════════════
+#  ÉQUIPEMENT DE BASE PAR CLASSE
+# ═══════════════════════════════════════════════════════════════════
+
+BASE_CLASS_EQUIPMENT = [
+    # Guerrier - Épée, Armure de plate, Bouclier guerrier
+    {
+        'name': 'Épée du guerrier',
+        'description': 'Arme de base pour un combattant au corps à corps',
+        'icon': '⚔️',
+        'color': '#92400e',
+        'category': 'arme',
+        'rarity': 'common',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'force': 2},
+    },
+    {
+        'name': 'Armure de plate',
+        'description': 'Protection robuste et lourde pour le guerrier',
+        'icon': '🛡️',
+        'color': '#6b7280',
+        'category': 'armure',
+        'rarity': 'common',
+        'equip_slot': 'armor',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'defense': 3},
+    },
+    {
+        'name': 'Bouclier guerrier',
+        'description': 'Bouclier solide pour renforcer la défense',
+        'icon': '🛡️',
+        'color': '#8b4513',
+        'category': 'bouclier',
+        'rarity': 'common',
+        'equip_slot': 'bouclier',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'defense': 2, 'vie': 1},
+    },
+
+    # Mage - Bâton, Robe, Orbe de cristal
+    {
+        'name': 'Bâton du mage',
+        'description': 'Canalise les énergies magiques',
+        'icon': '🔱',
+        'color': '#7c3aed',
+        'category': 'arme',
+        'rarity': 'common',
+        'equip_slot': 'arme',
+        'class_restriction': 'mage',
+        'stat_bonus_json': {'intelligence': 3},
+    },
+    {
+        'name': 'Robe mystique',
+        'description': 'Vêtement qui amplifie la défense magique',
+        'icon': '👗',
+        'color': '#4c1d95',
+        'category': 'armure',
+        'rarity': 'common',
+        'equip_slot': 'armor',
+        'class_restriction': 'mage',
+        'stat_bonus_json': {'defense_magique': 3},
+    },
+    {
+        'name': 'Orbe de cristal',
+        'description': 'Cristal brillant qui amplifie la puissance magique',
+        'icon': '🔮',
+        'color': '#667eea',
+        'category': 'accessoire',
+        'rarity': 'common',
+        'equip_slot': 'accessoire',
+        'class_restriction': 'mage',
+        'stat_bonus_json': {'intelligence': 3},
+    },
+
+    # Archer - Arc, Armure de cuir, Carquois
+    {
+        'name': 'Arc de chasseur',
+        'description': 'Arc léger et précis pour les attaques à distance',
+        'icon': '🏹',
+        'color': '#854d0e',
+        'category': 'arme',
+        'rarity': 'common',
+        'equip_slot': 'arme',
+        'class_restriction': 'archer',
+        'stat_bonus_json': {'force': 2, 'intelligence': 1},
+    },
+    {
+        'name': 'Armure de cuir',
+        'description': 'Vêtement léger mais protecteur',
+        'icon': '🧥',
+        'color': '#92400e',
+        'category': 'armure',
+        'rarity': 'common',
+        'equip_slot': 'armor',
+        'class_restriction': 'archer',
+        'stat_bonus_json': {'defense': 2},
+    },
+    {
+        'name': 'Carquois du chasseur',
+        'description': 'Contient les flèches de l\'archer',
+        'icon': '🗃️',
+        'color': '#7c2d12',
+        'category': 'accessoire',
+        'rarity': 'common',
+        'equip_slot': 'accessoire',
+        'class_restriction': 'archer',
+        'stat_bonus_json': {'force': 1},
+    },
+
+    # Guérisseur - Sceptre sacré, Robe blanche, Amulette de guérison
+    {
+        'name': 'Sceptre sacré',
+        'description': 'Bâton de guérison qui canalise les pouvoirs divins',
+        'icon': '✨',
+        'color': '#fbbf24',
+        'category': 'arme',
+        'rarity': 'common',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerisseur',
+        'stat_bonus_json': {'intelligence': 3},
+    },
+    {
+        'name': 'Robe blanche',
+        'description': 'Robe sacrée du guérisseur',
+        'icon': '👗',
+        'color': '#f3f4f6',
+        'category': 'armure',
+        'rarity': 'common',
+        'equip_slot': 'armor',
+        'class_restriction': 'guerisseur',
+        'stat_bonus_json': {'defense_magique': 2, 'vie': 1},
+    },
+    {
+        'name': 'Amulette de guérison',
+        'description': 'Pendentif qui amplifie les pouvoirs de guérison',
+        'icon': '💎',
+        'color': '#fbbf24',
+        'category': 'accessoire',
+        'rarity': 'common',
+        'equip_slot': 'accessoire',
+        'class_restriction': 'guerisseur',
+        'stat_bonus_json': {'vie': 2, 'intelligence': 1},
+    },
+]
+
+# ═══════════════════════════════════════════════════════════════════
+#  ÉQUIPEMENT D'ÉVOLUTION (RARE/ÉPIQUE)
+# ═══════════════════════════════════════════════════════════════════
+
+EVOLUTION_EQUIPMENT = [
+    # Chevalier - Tank ultime
+    {
+        'name': 'Épée du chevalier',
+        'description': 'Arme légendaire du chevalier sacré',
+        'icon': '⚔️',
+        'color': '#f59e0b',
+        'category': 'arme',
+        'rarity': 'rare',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'force': 4, 'defense': 2},
+    },
+    {
+        'name': 'Armure chevalier',
+        'description': 'Armure sacrée du chevalier protecteur',
+        'icon': '🛡️',
+        'color': '#fbbf24',
+        'category': 'armure',
+        'rarity': 'rare',
+        'equip_slot': 'armor',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'defense': 5, 'vie': 3},
+        'special_ability': 'Protection +15%',
+    },
+
+    # Berserker - Attaquant dévastateur
+    {
+        'name': 'Hache du berserker',
+        'description': 'Arme dévastrice qui amplifie la rage',
+        'icon': '🪓',
+        'color': '#ef4444',
+        'category': 'arme',
+        'rarity': 'epic',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerrier',
+        'stat_bonus_json': {'force': 7, 'defense': -1},
+        'special_ability': 'Attaque +20%',
+    },
+
+    # Pyromancien - Maître du feu
+    {
+        'name': 'Bâton de feu',
+        'description': 'Bâton qui brûle d\'une flamme éternelle',
+        'icon': '🔥',
+        'color': '#ef4444',
+        'category': 'arme',
+        'rarity': 'epic',
+        'equip_slot': 'arme',
+        'class_restriction': 'mage',
+        'stat_bonus_json': {'intelligence': 5, 'force': 1},
+        'special_ability': 'Dégâts feu +25%',
+    },
+
+    # Enchanteur - Contrôle et buffs
+    {
+        'name': 'Bâton de l\'enchanteur',
+        'description': 'Bâton qui contrôle les énergies magiques',
+        'icon': '🔱',
+        'color': '#a855f7',
+        'category': 'arme',
+        'rarity': 'rare',
+        'equip_slot': 'arme',
+        'class_restriction': 'mage',
+        'stat_bonus_json': {'intelligence': 4, 'defense_magique': 2},
+        'special_ability': 'Magie +15%',
+    },
+
+    # Ranger - Expert de la survie
+    {
+        'name': 'Arc du ranger',
+        'description': 'Arc perfectionné pour le tir précis',
+        'icon': '🏹',
+        'color': '#059669',
+        'category': 'arme',
+        'rarity': 'rare',
+        'equip_slot': 'arme',
+        'class_restriction': 'archer',
+        'stat_bonus_json': {'force': 3, 'defense': 2, 'vie': 1},
+    },
+
+    # Sniper - Tirs critiques
+    {
+        'name': 'Arc du sniper',
+        'description': 'Arc de précision pour les tirs critiques',
+        'icon': '🎯',
+        'color': '#0f172a',
+        'category': 'arme',
+        'rarity': 'epic',
+        'equip_slot': 'arme',
+        'class_restriction': 'archer',
+        'stat_bonus_json': {'force': 5, 'intelligence': 2},
+        'special_ability': 'Critique +30%',
+    },
+
+    # Prêtre - Soins surpuissants
+    {
+        'name': 'Sceptre du prêtre',
+        'description': 'Sceptre sacré du prêtre guérisseur',
+        'icon': '✨',
+        'color': '#fbbf24',
+        'category': 'arme',
+        'rarity': 'rare',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerisseur',
+        'stat_bonus_json': {'intelligence': 4, 'vie': 2},
+        'special_ability': 'Soins +20%',
+    },
+
+    # Druide - Magie de la nature
+    {
+        'name': 'Bâton du druide',
+        'description': 'Bâton vivant de la nature',
+        'icon': '🌿',
+        'color': '#10b981',
+        'category': 'arme',
+        'rarity': 'rare',
+        'equip_slot': 'arme',
+        'class_restriction': 'guerisseur',
+        'stat_bonus_json': {'intelligence': 3, 'defense_magique': 2, 'force': 1},
+        'special_ability': 'Nature +15%',
+    },
 ]

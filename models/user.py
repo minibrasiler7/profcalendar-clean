@@ -32,6 +32,9 @@ class User(UserMixin, db.Model):
     school_year_end = db.Column(db.Date)
     timezone_offset = db.Column(db.Integer, default=0)  # Décalage horaire en heures par rapport à UTC
 
+    # Préférences d'affichage
+    student_sort_pref = db.Column(db.String(20), default='last_name')  # 'first_name' ou 'last_name'
+
     # Horaires
     day_start_time = db.Column(db.Time)
     day_end_time = db.Column(db.Time)
