@@ -904,7 +904,9 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                     <View style={styles.correctAnswerBox}>
                       <Ionicons name="checkmark-circle" size={14} color="#166534" />
                       <Text style={styles.correctAnswerText}>
-                        Réponse : {typeof currentFeedback.correct_answer === 'object' && currentFeedback.correct_answer.text ? currentFeedback.correct_answer.text : currentFeedback.correct_answer}
+                        Réponse : {typeof currentFeedback.correct_answer === 'object'
+                          ? (currentFeedback.correct_answer.text || JSON.stringify(currentFeedback.correct_answer))
+                          : String(currentFeedback.correct_answer)}
                       </Text>
                     </View>
                   ) : null}

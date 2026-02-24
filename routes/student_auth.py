@@ -1351,14 +1351,8 @@ def get_correct_answer_text(block):
                 cc = correct.get('c', 0)
                 return f"y = {a}x² + {b}x + {cc}"
         elif block.block_type == 'image_position':
-            # For image_position, return a dict with zones so mobile can display them
             zones = c.get('zones', [])
-            if zones:
-                return {
-                    'text': ', '.join(z.get('label', '') for z in zones),
-                    'zones': zones
-                }
-            return None
+            return ', '.join(z.get('label', '') for z in zones) if zones else None
     except Exception:
         pass
     return None
