@@ -1286,6 +1286,7 @@ input, textarea, select {
                                             <div style="font-size:0.75rem;color:#9ca3af;">PDF/Document</div>
                                         </div>
                                         <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
+                                        <button onclick="event.stopPropagation(); deleteResource({{ resource.id }}, this)" class="btn-icon" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% elif resource.resource_type == 'exercise' %}
                                         <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
                                         <div style="flex:1;">
@@ -1301,6 +1302,7 @@ input, textarea, select {
                                             </div>
                                         </div>
                                         <i class="fas fa-play-circle" style="color:#667eea;font-size:0.9rem;"></i>
+                                        <button onclick="event.stopPropagation(); deleteResource({{ resource.id }}, this)" class="btn-icon" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% endif %}
                                 </div>
                                 {% endfor %}
@@ -10219,9 +10221,34 @@ async function launchExercise() {
 // Ouverture des ressources de fichier
 // ============================================================
 function openResourceFile(fileId, fileName) {
-    // Ouvrir le fichier dans le visualiseur PDF
-    // En attendant, on peut utiliser la route existante ou ouvrir dans un nouvel onglet
-    window.open(`/file-manager/view/${fileId}`, '_blank');
+    // Ouvrir le fichier dans le visualiseur PDF intégré ou dans un nouvel onglet
+    window.open(`/file_manager/preview/${fileId}`, '_blank');
+}
+
+async function deleteResource(resourceId, btn) {
+    if (!confirm('Supprimer cette ressource de la planification ?')) return;
+    try {
+        const res = await fetch('/planning/delete-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resource_id: resourceId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const item = btn.closest('.planning-resource-item');
+            if (item) item.remove();
+            // Si plus de ressources, masquer la section
+            const list = document.getElementById('planning-resources-list');
+            if (list && list.children.length === 0) {
+                const section = document.getElementById('planning-resources-section');
+                if (section) section.remove();
+            }
+        } else {
+            alert(data.error || 'Erreur lors de la suppression');
+        }
+    } catch (e) {
+        alert('Erreur de connexion');
+    }
 }
 
 // ============================================================

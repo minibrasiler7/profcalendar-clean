@@ -37,75 +37,111 @@ function shuffleArray(arr) {
 // Drag & Drop Sorting — ORDER mode (tap-to-select, tap-to-place)
 // ============================================================
 function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, onDragEnd }) {
-  const [selectedPos, setSelectedPos] = useState(null);
+  const ITEM_H = 56;
+  const GAP = 6;
+  const SLOT = ITEM_H + GAP;
+  const [dragIdx, setDragIdx] = useState(-1);
+  const [hoverIdx, setHoverIdx] = useState(-1);
+  const dragYAnim = useRef(new Animated.Value(0)).current;
+  const containerRef = useRef(null);
+  const containerTop = useRef(0);
+  const orderRef = useRef(order);
+  orderRef.current = order;
 
-  const handleTapItem = (pos) => {
-    if (disabled) return;
-
-    // If same item is tapped again, deselect it
-    if (selectedPos === pos) {
-      setSelectedPos(null);
-      if (onDragEnd) onDragEnd();
-      return;
+  // Measure container position once and on layout changes
+  const measureContainer = () => {
+    if (containerRef.current) {
+      containerRef.current.measureInWindow((x, y) => { containerTop.current = y; });
     }
-
-    // If no item is selected, select this one
-    if (selectedPos === null) {
-      setSelectedPos(pos);
-      if (onDragStart) onDragStart();
-      return;
-    }
-
-    // If a different item is selected, move the selected item to this position
-    const newOrder = [...order];
-    const itemToMove = newOrder[selectedPos];
-    // Remove from old position
-    newOrder.splice(selectedPos, 1);
-    // Insert at new position
-    newOrder.splice(pos, 0, itemToMove);
-
-    onReorder(newOrder);
-    setSelectedPos(null);
-    if (onDragEnd) onDragEnd();
   };
 
+  // Single PanResponder for the whole list — detect which item based on Y coordinate
+  const panResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => !disabled,
+    onMoveShouldSetPanResponder: (_, g) => !disabled && Math.abs(g.dy) > 8,
+    onPanResponderGrant: (evt, g) => {
+      // Calculate which item was pressed based on touch Y within container
+      // Account for the hint text height (~30px)
+      const hintOffset = 30;
+      const touchInContainer = g.y0 - containerTop.current - hintOffset;
+      const idx = Math.floor(touchInContainer / SLOT);
+      const clampedIdx = Math.max(0, Math.min(idx, orderRef.current.length - 1));
+      setDragIdx(clampedIdx);
+      setHoverIdx(clampedIdx);
+      // Position the ghost at the item's position
+      dragYAnim.setValue(hintOffset + clampedIdx * SLOT);
+      if (onDragStart) onDragStart();
+    },
+    onPanResponderMove: (evt, g) => {
+      // Move ghost to follow finger
+      const hintOffset = 30;
+      const fingerInContainer = g.moveY - containerTop.current - ITEM_H / 2;
+      dragYAnim.setValue(Math.max(0, fingerInContainer));
+      // Compute which slot the finger is over
+      const slotIdx = Math.floor((fingerInContainer - hintOffset + ITEM_H / 2) / SLOT);
+      const clamped = Math.max(0, Math.min(slotIdx, orderRef.current.length - 1));
+      setHoverIdx(clamped);
+    },
+    onPanResponderRelease: () => {
+      if (dragIdx >= 0 && hoverIdx >= 0 && dragIdx !== hoverIdx) {
+        const newOrder = [...orderRef.current];
+        const moved = newOrder.splice(dragIdx, 1)[0];
+        newOrder.splice(hoverIdx, 0, moved);
+        onReorder(newOrder);
+      }
+      setDragIdx(-1);
+      setHoverIdx(-1);
+      if (onDragEnd) onDragEnd();
+    },
+    onPanResponderTerminate: () => {
+      setDragIdx(-1);
+      setHoverIdx(-1);
+      if (onDragEnd) onDragEnd();
+    },
+  })).current;
+
   return (
-    <View style={dndStyles.container}>
+    <View ref={containerRef} style={dndStyles.container} onLayout={measureContainer}
+      {...panResponder.panHandlers}>
       <Text style={dndStyles.hint}>
-        Touche un élément pour le sélectionner, puis touche sa nouvelle position
+        Maintiens et glisse pour réordonner
       </Text>
       {order.map((origIdx, pos) => {
-        const isSelected = selectedPos === pos;
+        const isDragged = dragIdx === pos;
+        const isTarget = hoverIdx === pos && dragIdx >= 0 && dragIdx !== pos;
         return (
-          <TouchableOpacity
+          <View
             key={`${origIdx}-${pos}`}
             style={[
               dndStyles.item,
-              isSelected && dndStyles.itemSelected,
+              { height: ITEM_H, marginBottom: GAP },
+              isDragged && { opacity: 0.3 },
+              isTarget && dndStyles.itemTarget,
             ]}
-            onPress={() => handleTapItem(pos)}
-            disabled={disabled}
-            activeOpacity={0.7}
           >
-            <View style={[dndStyles.grip, isSelected && dndStyles.gripSelected]}>
-              <Ionicons
-                name="reorder-three"
-                size={22}
-                color={isSelected ? '#FFF' : '#9ca3af'}
-              />
+            <View style={[dndStyles.grip, isDragged && dndStyles.gripSelected]}>
+              <Ionicons name="reorder-three" size={22} color={isDragged ? '#FFF' : '#9ca3af'} />
             </View>
             <Text style={dndStyles.num}>{pos + 1}.</Text>
-            <Text style={[dndStyles.text, isSelected && dndStyles.textSelected]}>
+            <Text style={[dndStyles.text, isDragged && dndStyles.textSelected]}>
               {items[origIdx]}
             </Text>
-            {isSelected && (
-              <View style={dndStyles.selectedCheckmark}>
-                <Ionicons name="checkmark-circle" size={20} color="#667eea" />
-              </View>
-            )}
-          </TouchableOpacity>
+          </View>
         );
       })}
+      {/* Ghost item that follows the finger */}
+      {dragIdx >= 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            dndStyles.dragGhost,
+            { top: 0, transform: [{ translateY: dragYAnim }] },
+          ]}
+        >
+          <Ionicons name="reorder-three" size={22} color="#FFF" />
+          <Text style={dndStyles.dragGhostText}>{items[order[dragIdx]]}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -283,30 +319,43 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
   const renderCorrectZones = () => {
     if (!correctZones || !imgLayout || !imgNatural) return null;
     return correctZones.map((zone, zIdx) => {
-      const zonePoints = zone.get ? zone.get('points', []) : zone.points || [];
-      const zoneLabel = zone.get ? zone.get('label', '') : zone.label || '';
-      const radius = zone.get ? zone.get('radius', 30) : zone.radius || 30;
+      let zonePoints = zone.points || [];
+      const zoneLabel = zone.label || '';
+      const radius = zone.radius || 30;
+
+      // Backward compatibility: zone with direct x/y instead of points array
+      if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
+        zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
+      }
+
+      if (zonePoints.length === 0) return null;
 
       return zonePoints.map((pt, pIdx) => {
-        const ptX = pt.get ? pt.get('x', 0) : pt.x || 0;
-        const ptY = pt.get ? pt.get('y', 0) : pt.y || 0;
+        const ptX = pt.x || 0;
+        const ptY = pt.y || 0;
         const dispX = (ptX / imgNatural.w) * imgLayout.width;
         const dispY = (ptY / imgNatural.h) * imgLayout.height;
         const dispRadius = (radius / imgNatural.w) * imgLayout.width;
 
         return (
-          <View
-            key={`correct-${zIdx}-${pIdx}`}
-            style={[
-              imgStyles.correctZone,
-              {
-                left: dispX - dispRadius,
-                top: dispY - dispRadius,
-                width: dispRadius * 2,
-                height: dispRadius * 2,
-              },
-            ]}
-          />
+          <View key={`correct-${zIdx}-${pIdx}`}>
+            <View
+              style={[
+                imgStyles.correctZone,
+                {
+                  left: dispX - dispRadius,
+                  top: dispY - dispRadius,
+                  width: dispRadius * 2,
+                  height: dispRadius * 2,
+                },
+              ]}
+            />
+            {pIdx === 0 && zoneLabel ? (
+              <View style={[imgStyles.correctLabel, { left: dispX - 30, top: dispY + dispRadius + 2 }]}>
+                <Text style={imgStyles.correctLabelText}>{zoneLabel}</Text>
+              </View>
+            ) : null}
+          </View>
         );
       });
     });
@@ -357,7 +406,7 @@ function GraphInteractive({ config, onPointsChange, disabled }) {
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;flex-direction:column;align-items:center;height:100vh;touch-action:none;overflow:hidden}
-canvas{display:block;width:100%;height:auto}
+canvas{display:block}
 .zoom-bar{display:flex;gap:8px;padding:6px 0;justify-content:center}
 .zoom-btn{width:40px;height:36px;border:2px solid #d1d5db;border-radius:10px;background:#fff;font-size:20px;font-weight:700;color:#374151;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .zoom-btn:active{background:#eef2ff;border-color:#667eea}
@@ -372,7 +421,7 @@ canvas{display:block;width:100%;height:auto}
 <canvas id="g"></canvas>
 <script>
 const c=${JSON.stringify(config)};const cv=document.getElementById('g');const x=cv.getContext('2d');
-const W=600,H=480,M=50,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
+const W=Math.min(window.innerWidth,600),H=Math.round(W*0.8),M=40,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
 const isQ=c.question_type==='draw_quadratic',nP=isQ?3:2;
 const origXMin=c.x_min,origXMax=c.x_max,origYMin=c.y_min,origYMax=c.y_max;
 let zXMin=c.x_min,zXMax=c.x_max,zYMin=c.y_min,zYMax=c.y_max,zLvl=1;
@@ -751,10 +800,9 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           : c.image_url ? (c.image_url.startsWith('http') ? c.image_url : `${BASE_URL}${c.image_url}`) : null;
         if (!imageUrl) return <Text style={{ color: '#ef4444' }}>Image non disponible</Text>;
 
-        // Show correct zones only when answer is wrong and feedback is shown
+        // Show correct zones when feedback is shown (both correct and incorrect)
         let correctZones = null;
-        if (currentFeedback && !currentFeedback.is_correct) {
-          // Pass the zones from config to show where student should have clicked
+        if (currentFeedback) {
           correctZones = c.zones || [];
         }
 
@@ -1003,14 +1051,16 @@ const imgStyles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   marker: { position: 'absolute', width: 28, height: 28, backgroundColor: '#ef4444', borderRadius: 14, borderWidth: 3, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   markerLabel: { fontSize: 8, fontWeight: '800', color: '#FFF' },
-  correctZone: { position: 'absolute', borderWidth: 2, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.1)' },
+  correctZone: { position: 'absolute', borderWidth: 2, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+  correctLabel: { position: 'absolute', backgroundColor: '#10b981', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, zIndex: 10 },
+  correctLabelText: { fontSize: 10, fontWeight: '700', color: '#FFF' },
 });
 
 const graphStyles = StyleSheet.create({
   container: {},
   hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
   question: { fontSize: 14, color: '#6b7280', marginBottom: 10, lineHeight: 22, fontStyle: 'italic' },
-  webviewWrap: { width: '100%', height: 380, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  webviewWrap: { width: '100%', height: Math.round(SCREEN_WIDTH * 0.8) + 60, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
   webview: { flex: 1, backgroundColor: '#fafbfc' },
 });
 

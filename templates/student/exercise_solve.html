@@ -1307,8 +1307,13 @@ function drawCorrectZones(blockId, zones) {
 
     // Draw new correct zones
     zones.forEach((zone) => {
-        const zonePoints = zone.points || [];
+        let zonePoints = zone.points || [];
         const zoneRadius = zone.radius || 30;
+
+        // Backward compat: zone with direct x/y instead of points array
+        if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
+            zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
+        }
 
         zonePoints.forEach((pt) => {
             const displayX = (pt.x / scaleX);
@@ -1329,6 +1334,17 @@ function drawCorrectZones(blockId, zones) {
             zoneCircle.style.zIndex = '10';
 
             container.appendChild(zoneCircle);
+
+            // Add label below first point of each zone
+            if (zone.label) {
+                const label = document.createElement('div');
+                label.className = 'correct-zone-label';
+                label.style.cssText = 'position:absolute;z-index:11;pointer-events:none;background:#10b981;color:#fff;font-size:0.7rem;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;';
+                label.style.left = (displayX - 20) + 'px';
+                label.style.top = (displayY + displayRadius + 2) + 'px';
+                label.textContent = zone.label;
+                container.appendChild(label);
+            }
         });
     });
 }

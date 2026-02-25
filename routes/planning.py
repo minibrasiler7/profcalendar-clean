@@ -8588,7 +8588,7 @@ def publish_resource():
     """Publier un exercice lié à une planification"""
     from models.planning import PlanningResource
     from models.exercise import Exercise
-    from models.exercise import ExercisePublication
+    from models.exercise_progress import ExercisePublication
 
     data = request.get_json()
     resource_id = data.get('resource_id')
@@ -8652,4 +8652,29 @@ def publish_resource():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Erreur publish-resource: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete-resource', methods=['POST'])
+@login_required
+def delete_resource():
+    """Supprimer une ressource d'une planification"""
+    from models.planning import PlanningResource
+
+    data = request.get_json()
+    resource_id = data.get('resource_id')
+
+    resource = PlanningResource.query.get(resource_id)
+    if not resource:
+        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+
+    if resource.planning.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+
+    try:
+        db.session.delete(resource)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

@@ -1070,16 +1070,21 @@ function addBlock(type, existingData) {
     const el = document.createElement('div');
     el.className = 'exercise-block';
     el.id = uid;
-    el.draggable = true;
+    el.draggable = false;
     el.dataset.uid = uid;
     el.innerHTML = renderBlock(block);
     document.getElementById('blocks-area').appendChild(el);
 
-    // Drag events
+    // Drag events — only the grip handle initiates drag
+    const handle = el.querySelector('.block-drag-handle');
+    if (handle) {
+        handle.addEventListener('mousedown', () => { el.draggable = true; });
+        handle.addEventListener('touchstart', () => { el.draggable = true; }, { passive: true });
+    }
     el.addEventListener('dragstart', onDragStart);
     el.addEventListener('dragover', onDragOver);
     el.addEventListener('drop', onDrop);
-    el.addEventListener('dragend', onDragEnd);
+    el.addEventListener('dragend', (e) => { el.draggable = false; onDragEnd(e); });
 
     updateTotalXP();
 
@@ -2199,11 +2204,9 @@ function attachKaTeXListeners() {
             field.setAttribute('data-katex-listener', 'true');
             field.addEventListener('focusin', function() {
                 activeTextArea = this;
-                console.log('Field focused:', this.name || this.className);
             });
             field.addEventListener('focusout', function() {
                 // Don't clear activeTextArea immediately - keep it for button clicks
-                // Only clear if we're moving away from all inputs
                 setTimeout(() => {
                     if (document.activeElement !== this &&
                         !document.activeElement.closest('.katex-toolbar') &&
@@ -2214,8 +2217,42 @@ function attachKaTeXListeners() {
                     }
                 }, 100);
             });
+            // Live math preview below fields containing $...$
+            field.addEventListener('input', function() {
+                updateInlineMathPreview(this);
+            });
+            // Initial preview on attach
+            if (field.value && field.value.includes('$')) {
+                setTimeout(() => updateInlineMathPreview(field), 50);
+            }
         }
     });
+}
+
+function updateInlineMathPreview(field) {
+    // Show/update a rendered math preview below the field if it contains LaTeX ($...$)
+    let preview = field.nextElementSibling;
+    if (!preview || !preview.classList.contains('inline-math-preview')) {
+        preview = document.createElement('div');
+        preview.className = 'inline-math-preview';
+        preview.style.cssText = 'padding:6px 10px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;margin-top:4px;min-height:28px;font-size:0.9rem;color:#1e1b4b;';
+        field.parentNode.insertBefore(preview, field.nextSibling);
+    }
+    const val = field.value || '';
+    if (!val.includes('$')) {
+        preview.style.display = 'none';
+        return;
+    }
+    preview.style.display = 'block';
+    // Replace $...$ with rendered KaTeX
+    const html = val.replace(/\$([^$]+)\$/g, (m, latex) => {
+        try {
+            return katex.renderToString(latex, { throwOnError: false, displayMode: false });
+        } catch(e) {
+            return '<span style="color:#ef4444">' + latex + '</span>';
+        }
+    }).replace(/\n/g, '<br>');
+    preview.innerHTML = html;
 }
 
 function insertKaTeX(latexCode) {
