@@ -2269,20 +2269,23 @@ function insertKaTeX(latexCode) {
 
     // If text is selected, wrap it in the KaTeX command
     let newText;
+    let insertedLatex;
     if (start !== end) {
         const selectedText = text.substring(start, end);
         if (latexCode === '\\\\frac{}{}') {
-            newText = text.substring(0, start) + '\\\\frac{' + selectedText + '}{}' + text.substring(end);
+            insertedLatex = '\\\\frac{' + selectedText + '}{}';
         } else if (latexCode === '^{}') {
-            newText = text.substring(0, start) + selectedText + '^{}' + text.substring(end);
+            insertedLatex = selectedText + '^{}';
         } else if (latexCode === '_{}') {
-            newText = text.substring(0, start) + selectedText + '_{}' + text.substring(end);
+            insertedLatex = selectedText + '_{}';
         } else {
-            newText = text.substring(0, start) + latexCode + text.substring(end);
+            insertedLatex = latexCode;
         }
+        newText = text.substring(0, start) + '$' + insertedLatex + '$' + text.substring(end);
     } else {
-        // Insert at cursor position
-        newText = text.substring(0, start) + latexCode + text.substring(start);
+        // Insert at cursor position - wrap in $ delimiters
+        insertedLatex = latexCode;
+        newText = text.substring(0, start) + '$' + insertedLatex + '$' + text.substring(start);
     }
 
     // Update textarea and trigger change event
@@ -2290,17 +2293,17 @@ function insertKaTeX(latexCode) {
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
 
     // Place cursor inside the command (after opening brace/parenthesis)
-    let newCursorPos = start + latexCode.length;
+    let newCursorPos = start + 1 + insertedLatex.length; // +1 for opening $
 
     // For commands with placeholders, position cursor inside first placeholder
     if (latexCode === '\\\\frac{}{}') {
-        newCursorPos = start + 6; // Position inside first {}
+        newCursorPos = start + 1 + 6; // Position inside first {} (+1 for opening $)
     } else if (latexCode === '^{}' || latexCode === '_{}') {
-        newCursorPos = start + latexCode.length - 1; // Inside {}
+        newCursorPos = start + 1 + insertedLatex.length - 1; // Inside {} (+1 for opening $)
     } else if (latexCode === '\\\\sqrt{}') {
-        newCursorPos = start + 7; // Inside {}
+        newCursorPos = start + 1 + 7; // Inside {} (+1 for opening $)
     } else if (latexCode === '\\\\begin{pmatrix}\\\\end{pmatrix}') {
-        newCursorPos = start + 16; // Inside pmatrix
+        newCursorPos = start + 1 + 16; // Inside pmatrix (+1 for opening $)
     }
 
     setTimeout(() => {
@@ -2309,6 +2312,7 @@ function insertKaTeX(latexCode) {
     }, 0);
 
     // Update preview
+    updateInlineMathPreview(textarea);
     updateKaTeXPreview();
 }
 

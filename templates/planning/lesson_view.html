@@ -1286,7 +1286,7 @@ input, textarea, select {
                                             <div style="font-size:0.75rem;color:#9ca3af;">PDF/Document</div>
                                         </div>
                                         <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
-                                        <button onclick="event.stopPropagation(); deleteResource({{ resource.id }}, this)" class="btn-icon" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% elif resource.resource_type == 'exercise' %}
                                         <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
                                         <div style="flex:1;">
@@ -1302,7 +1302,7 @@ input, textarea, select {
                                             </div>
                                         </div>
                                         <i class="fas fa-play-circle" style="color:#667eea;font-size:0.9rem;"></i>
-                                        <button onclick="event.stopPropagation(); deleteResource({{ resource.id }}, this)" class="btn-icon" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
                                     {% endif %}
                                 </div>
                                 {% endfor %}
@@ -10154,12 +10154,8 @@ async function launchExercise() {
             if (data.success) {
                 closeModeModal();
 
-                if (selectedMode === 'combat') {
-                    openTracking(data.publication_id);
-                } else {
-                    alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
-                    location.reload();
-                }
+                // Ouvrir le suivi live pour tous les modes
+                openTracking(data.publication_id);
             } else {
                 alert(data.error || data.message || 'Erreur lors de la publication');
                 launchBtn.disabled = false;
@@ -10197,12 +10193,8 @@ async function launchExercise() {
                 closeModeModal();
                 closeAddResourceModal();
 
-                if (selectedMode === 'combat') {
-                    // Ouvrir directement le suivi live
-                    openTracking(data.publication_id);
-                } else {
-                    alert(`Exercice "${selectedExerciseTitle}" publié en mode classique !`);
-                }
+                // Ouvrir le suivi live pour tous les modes
+                openTracking(data.publication_id);
             } else {
                 alert(data.error || data.message || 'Erreur lors du lancement');
                 launchBtn.disabled = false;
@@ -10247,9 +10239,21 @@ async function deleteResource(resourceId, btn) {
             alert(data.error || 'Erreur lors de la suppression');
         }
     } catch (e) {
+        console.error('Erreur lors de la suppression:', e);
         alert('Erreur de connexion');
     }
 }
+
+// Attachez les event listeners aux boutons de suppression
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-delete-resource').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const resourceId = parseInt(this.dataset.resourceId);
+            deleteResource(resourceId, this);
+        });
+    });
+});
 
 // ============================================================
 // Suivi en direct (tracking modal)

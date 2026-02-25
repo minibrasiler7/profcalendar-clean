@@ -792,7 +792,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked}
             onDragStart={() => setIsDragging(true)} onDragEnd={() => setIsDragging(false)} />;
         }
-        return <DraggableCategoryList items={c.items || []} categories={c.categories || []}
+        return <DraggableCategoryList key={blockId} items={c.items || []} categories={c.categories || []}
           catAssignments={answer.categories || {}} onUpdate={(cats) => updateAnswer(blockId, { categories: cats })} disabled={isLocked} />;
 
       case 'image_position': {

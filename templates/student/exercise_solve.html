@@ -630,9 +630,15 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% if c.question_type == 'draw_quadratic' %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
                     Trace la courbe : <span style="font-family:serif;font-style:italic;">f(x) =
-                    {% if ca.a and ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}x²
-                    {% if ca.b and ca.b > 0 %} + {{ ca.b }}x{% elif ca.b and ca.b < 0 %} - {{ (-ca.b)|round(2) }}x{% endif %}
-                    {% if ca.c and ca.c > 0 %} + {{ ca.c }}{% elif ca.c and ca.c < 0 %} - {{ (-ca.c)|round(2) }}{% endif %}
+                    {% if ca.a is defined and ca.a is not none %}
+                        {% if ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}x²
+                    {% endif %}
+                    {% if ca.b is defined and ca.b is not none and ca.b != 0 %}
+                        {% if ca.b > 0 %} + {{ ca.b }}x{% else %} - {{ (-ca.b)|round(2) }}x{% endif %}
+                    {% endif %}
+                    {% if ca.c is defined and ca.c is not none and ca.c != 0 %}
+                        {% if ca.c > 0 %} + {{ ca.c }}{% else %} - {{ (-ca.c)|round(2) }}{% endif %}
+                    {% endif %}
                     </span>
                 </p>
                 <p class="question-text" style="color:#6b7280;">
@@ -662,8 +668,12 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% else %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
                     Trace la droite : <span style="font-family:serif;font-style:italic;">f(x) =
-                    {% if ca.a and ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}{% if ca.a %}x{% endif %}
-                    {% if ca.b and ca.b > 0 %} + {{ ca.b }}{% elif ca.b and ca.b < 0 %} - {{ (-ca.b)|round(2) }}{% endif %}
+                    {% if ca.a is defined and ca.a is not none %}
+                        {% if ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}x
+                    {% endif %}
+                    {% if ca.b is defined and ca.b is not none and ca.b != 0 %}
+                        {% if ca.b > 0 %} + {{ ca.b }}{% else %} - {{ (-ca.b)|round(2) }}{% endif %}
+                    {% endif %}
                     </span>
                 </p>
                 <p class="question-text" style="color:#6b7280;">
@@ -1234,12 +1244,13 @@ function handleImageClick(event, blockId) {
     if (questionLocked) return;
     const container = document.getElementById('img-click-' + blockId);
     const img = container.querySelector('img');
-    const rect = img.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const imgRect = img.getBoundingClientRect();
     // Convert to natural image dimensions for consistent validation
-    const scaleX = (img.naturalWidth || rect.width) / rect.width;
-    const scaleY = (img.naturalHeight || rect.height) / rect.height;
-    const x = Math.round((event.clientX - rect.left) * scaleX);
-    const y = Math.round((event.clientY - rect.top) * scaleY);
+    const scaleX = (img.naturalWidth || imgRect.width) / imgRect.width;
+    const scaleY = (img.naturalHeight || imgRect.height) / imgRect.height;
+    const x = Math.round((event.clientX - imgRect.left) * scaleX);
+    const y = Math.round((event.clientY - imgRect.top) * scaleY);
     const expected = parseInt(container.dataset.expected) || 1;
     const zones = JSON.parse(container.dataset.zones || '[]');
 
@@ -1298,9 +1309,10 @@ function drawCorrectZones(blockId, zones) {
     const img = container.querySelector('img');
     if (!img) return;
 
-    const rect = img.getBoundingClientRect();
-    const scaleX = (img.naturalWidth || rect.width) / rect.width;
-    const scaleY = (img.naturalHeight || rect.height) / rect.height;
+    const imgRect = img.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const scaleX = (img.naturalWidth || imgRect.width) / imgRect.width;
+    const scaleY = (img.naturalHeight || imgRect.height) / imgRect.height;
 
     // Remove old correct zones
     container.querySelectorAll('.correct-zone-circle').forEach(c => c.remove());

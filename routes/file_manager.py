@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from extensions import db
@@ -1200,12 +1200,30 @@ def download_file(file_id):
 def preview_file(file_id):
     """Aperçu d'un fichier"""
     from models.file_manager import UserFile
+    from models.class_file import ClassFile
     from flask import Response
 
+    # D'abord essayer de trouver un UserFile appartenant à l'utilisateur
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
-    ).first_or_404()
+    ).first()
+
+    # Sinon chercher un ClassFile de ses classes
+    if not file:
+        from models.classroom import Classroom
+        class_file = ClassFile.query.filter_by(id=file_id).first()
+        if class_file:
+            # Vérifier que l'utilisateur appartient à cette classe (en tant que professeur)
+            classroom = Classroom.query.filter_by(
+                id=class_file.classroom_id,
+                teacher_id=current_user.id
+            ).first()
+            if classroom:
+                file = class_file.user_file
+
+    if not file:
+        return abort(404)
 
     # Pour les images, utiliser la miniature BLOB si disponible
     if file.thumbnail_content and request.args.get('thumbnail'):
