@@ -1503,7 +1503,8 @@ function renderImagePositionEditor(block) {
             ${c.image_url ?
                 `<div class="image-preview-container" id="img-container-${block.uid}"
                     onclick="addPointToZone(event, '${block.uid}')">
-                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous">
+                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous"
+                        onload="repositionZones('${block.uid}')">
                     ${renderAllZonePoints(c)}
                 </div>
                 <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
@@ -1534,13 +1535,12 @@ function renderAllZonePoints(config) {
     const colors = ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#ec4899'];
     let html = '';
     // Zone points are stored in natural image dimensions
-    // They'll be scaled to display size via CSS percentage positioning
+    // Initially hidden; repositionZones() will scale them to display coordinates on image load
     (config.zones || []).forEach((zone, zi) => {
         const color = colors[zi % colors.length];
         (zone.points || []).forEach((pt, pi) => {
             const r = zone.radius || config.default_radius || 30;
-            // Use percentage-based positioning for correct display at any size
-            html += `<div class="image-zone" style="left:${pt.x}px;top:${pt.y}px;width:${r*2}px;height:${r*2}px;border-color:${color};background:${color}33;" data-natural-x="${pt.x}" data-natural-y="${pt.y}" data-radius="${r}">
+            html += `<div class="image-zone" style="display:none;border-color:${color};background:${color}33;" data-natural-x="${pt.x}" data-natural-y="${pt.y}" data-radius="${r}" data-zone-idx="${zi}">
                 ${zi + 1}
             </div>`;
         });
@@ -1548,16 +1548,50 @@ function renderAllZonePoints(config) {
     return html;
 }
 
+function repositionZones(uid) {
+    const img = document.getElementById('img-preview-' + uid);
+    const container = document.getElementById('img-container-' + uid);
+    if (!img || !container) return;
+
+    const natW = img.naturalWidth || img.clientWidth;
+    const natH = img.naturalHeight || img.clientHeight;
+    const dispW = img.clientWidth;
+    const dispH = img.clientHeight;
+    const scaleX = dispW / natW;
+    const scaleY = dispH / natH;
+
+    console.log('repositionZones:', uid, 'natural:', natW, 'x', natH, 'display:', dispW, 'x', dispH, 'scale:', scaleX, scaleY);
+
+    const zones = container.querySelectorAll('.image-zone');
+    zones.forEach(zone => {
+        const natX = parseFloat(zone.dataset.naturalX);
+        const natY = parseFloat(zone.dataset.naturalY);
+        const natR = parseFloat(zone.dataset.radius);
+
+        // Convert natural coordinates to display coordinates
+        const dispX = natX * scaleX;
+        const dispY = natY * scaleY;
+        const dispR = natR * Math.min(scaleX, scaleY);
+
+        zone.style.left = dispX + 'px';
+        zone.style.top = dispY + 'px';
+        zone.style.width = (dispR * 2) + 'px';
+        zone.style.height = (dispR * 2) + 'px';
+        zone.style.display = 'flex';
+    });
+}
+
 function addNewZone(uid) {
     const block = blocks.find(b => b.uid === uid);
     const idx = (block.config_json.zones || []).length;
     block.config_json.zones.push({ label: 'Zone ' + (idx + 1), points: [], radius: block.config_json.default_radius || 30 });
     refreshBlockContent(uid);
-    // Auto-sélectionner la nouvelle zone
+    // Auto-sélectionner la nouvelle zone et repositionner
     setTimeout(() => {
         const select = document.getElementById('active-zone-' + uid);
         if (select) select.value = String(idx);
-    }, 50);
+        repositionZones(uid);
+    }, 100);
 }
 
 // Stocke la zone active par bloc pour ne pas la perdre au refresh
@@ -1589,11 +1623,12 @@ function addPointToZone(event, uid) {
     block.config_json.zones[zoneIdx].points.push({ x, y });
     refreshBlockContent(uid);
 
-    // Restaurer la zone active après le refresh
+    // Restaurer la zone active et repositionner les zones après le refresh
     setTimeout(() => {
         const sel = document.getElementById('active-zone-' + uid);
         if (sel) sel.value = String(zoneIdx);
-    }, 50);
+        repositionZones(uid);
+    }, 100);
 }
 
 function updateDefaultRadius(uid, radius) {
@@ -1601,6 +1636,7 @@ function updateDefaultRadius(uid, radius) {
     block.config_json.default_radius = radius;
     block.config_json.zones.forEach(z => z.radius = radius);
     refreshBlockContent(uid);
+    setTimeout(() => repositionZones(uid), 100);
 }
 
 function uploadBlockImage(uid) {

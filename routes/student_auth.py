@@ -1523,10 +1523,10 @@ def grade_image_position(config, answer, max_points):
     if not zones:
         return True, max_points
 
-    # Default radius: use config value or 5% of image width, minimum 50px
-    # More forgiving for touch-based interactions on mobile
-    image_width = config.get('image_width', 1000)
-    default_radius = max(config.get('default_radius', 50), int(image_width * 0.05), 50)
+    # Default radius: use config value, minimum 40px
+    # Enforce a minimum to be forgiving for touch-based interactions on mobile
+    config_radius = config.get('default_radius', 50)
+    default_radius = max(config_radius, 40)
 
     logger.info(f"[GRADE] image_position: image_width={image_width}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
     logger.info(f"[GRADE] image_position: full config zones={zones}")
@@ -1535,7 +1535,7 @@ def grade_image_position(config, answer, max_points):
     correct_count = 0
 
     for i, zone in enumerate(zones):
-        zone_radius = zone.get('radius', default_radius)
+        zone_radius = max(zone.get('radius', default_radius), 40)  # Minimum 40px for mobile touch
         zone_points = zone.get('points', [])
 
         # Rétro-compatibilité: ancien format avec x/y directement sur la zone
