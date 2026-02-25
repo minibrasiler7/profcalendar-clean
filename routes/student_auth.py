@@ -1442,9 +1442,19 @@ def _normalize_text(text):
     return text
 
 
+def _strip_accents(text):
+    """Retire les accents d'un texte pour comparaison plus souple."""
+    import unicodedata
+    nfkd = unicodedata.normalize('NFKD', text)
+    return ''.join(c for c in nfkd if not unicodedata.combining(c))
+
+
 def grade_fill_blank(config, answer, max_points, accept_typos=False):
     blanks = config.get('blanks', [])
     user_answers = answer.get('blanks', [])
+
+    logger.info(f"[GRADE] fill_blank: config blanks={blanks}, user_answers={user_answers}")
+
     if not blanks:
         return True, max_points
 
@@ -1455,14 +1465,22 @@ def grade_fill_blank(config, answer, max_points, accept_typos=False):
         if i < len(user_answers):
             given = _normalize_text(user_answers[i])
 
+        is_match = False
         if given == expected:
-            correct_count += 1
-            logger.info(f"[GRADE] fill_blank blank #{i} CORRECT: expected='{expected}', given='{given}'")
+            is_match = True
+            logger.info(f"[GRADE] fill_blank blank #{i} EXACT MATCH: expected='{expected}', given='{given}'")
+        elif _strip_accents(given) == _strip_accents(expected):
+            # Accept answers without accents (common on mobile keyboards)
+            is_match = True
+            logger.info(f"[GRADE] fill_blank blank #{i} ACCENT-STRIPPED MATCH: expected='{expected}', given='{given}'")
         elif accept_typos and fuzzy_match(given, expected):
-            correct_count += 1
+            is_match = True
             logger.info(f"[GRADE] fill_blank blank #{i} FUZZY MATCH: expected='{expected}', given='{given}'")
+
+        if is_match:
+            correct_count += 1
         else:
-            logger.warning(f"[GRADE] fill_blank blank #{i} INCORRECT: expected='{expected}', given='{given}'")
+            logger.warning(f"[GRADE] fill_blank blank #{i} INCORRECT: expected='{expected}', given='{given}', expected_stripped='{_strip_accents(expected)}', given_stripped='{_strip_accents(given)}'")
 
     ratio = correct_count / len(blanks) if blanks else 0
     points = round(ratio * max_points)
@@ -1511,6 +1529,8 @@ def grade_image_position(config, answer, max_points):
     default_radius = max(config.get('default_radius', 50), int(image_width * 0.05), 50)
 
     logger.info(f"[GRADE] image_position: image_width={image_width}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
+    logger.info(f"[GRADE] image_position: full config zones={zones}")
+    logger.info(f"[GRADE] image_position: full clicks={clicks}")
 
     correct_count = 0
 

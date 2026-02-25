@@ -22,6 +22,7 @@ import colors from '../../theme/colors';
 
 const BASE_URL = 'https://profcalendar-clean.onrender.com';
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const CODE_VERSION = 'v5-2026-02-25'; // Version marker to verify code is loaded
 
 function shuffleArray(arr) {
   const a = [...arr];
@@ -244,18 +245,42 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
   const [imgLayout, setImgLayout] = useState(null);
   const [imgNatural, setImgNatural] = useState(null);
 
+  console.log(`[ImageInteractive] RENDER: url=${imageUrl}, imgNatural=${JSON.stringify(imgNatural)}, imgLayout=${JSON.stringify(imgLayout)}, clicks=${clicks.length}, correctZones=${correctZones ? correctZones.length : 'null'}, disabled=${disabled}`);
+
+  // Use both Image.getSize AND onLoad for maximum reliability
   useEffect(() => {
     if (imageUrl) {
+      console.log(`[ImageInteractive] Calling Image.getSize for: ${imageUrl}`);
       Image.getSize(
         imageUrl,
         (w, h) => {
-          console.log(`[ImageInteractive] Image loaded: natural=${w}x${h}, url=${imageUrl}`);
+          console.log(`[ImageInteractive] Image.getSize SUCCESS: ${w}x${h}`);
           setImgNatural({ w, h });
         },
-        (err) => console.log(`[ImageInteractive] Image.getSize FAILED: ${err}`)
+        (err) => {
+          console.log(`[ImageInteractive] Image.getSize FAILED: ${err}`);
+        }
       );
     }
   }, [imageUrl]);
+
+  const onImageLoad = (e) => {
+    // Fallback: get natural dimensions from the onLoad event
+    const source = e.nativeEvent?.source;
+    if (source && source.width && source.height) {
+      console.log(`[ImageInteractive] onLoad source: ${source.width}x${source.height}`);
+      if (!imgNatural) {
+        console.log(`[ImageInteractive] Setting imgNatural from onLoad (getSize hadn't resolved)`);
+        setImgNatural({ w: source.width, h: source.height });
+      }
+    } else {
+      console.log(`[ImageInteractive] onLoad fired but no source dimensions: ${JSON.stringify(e.nativeEvent)}`);
+    }
+  };
+
+  const onImageError = (e) => {
+    console.log(`[ImageInteractive] Image LOAD ERROR: ${JSON.stringify(e.nativeEvent)}`);
+  };
 
   const handleTouch = (evt) => {
     if (disabled) { console.log('[ImageInteractive] Touch ignored: disabled'); return; }
@@ -268,7 +293,7 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
     const y = Math.round(locationY * scaleY);
 
     console.log(`[ImageInteractive] Touch: display=(${locationX.toFixed(1)}, ${locationY.toFixed(1)}), natural=(${x}, ${y}), scale=(${scaleX.toFixed(2)}, ${scaleY.toFixed(2)})`);
-    console.log(`[ImageInteractive] Zones:`, JSON.stringify(zones));
+    console.log(`[ImageInteractive] Zones config:`, JSON.stringify(zones));
 
     const expected = zones.length || 1;
     let newClicks = [...clicks];
@@ -284,64 +309,95 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
 
   const onImgLayout = (e) => {
     const layout = e.nativeEvent.layout;
-    console.log(`[ImageInteractive] Image onLayout: width=${layout.width}, height=${layout.height}`);
+    console.log(`[ImageInteractive] onLayout: width=${layout.width}, height=${layout.height}`);
     setImgLayout(layout);
   };
 
   // Render correct zone overlays after feedback
   const renderOverlays = () => {
     const overlays = [];
+    const hasNatural = !!imgNatural;
+    const hasLayout = !!imgLayout;
 
     // Render correct zones (green circles) when feedback shown
-    if (correctZones && imgLayout && imgNatural) {
-      console.log(`[ImageInteractive] Rendering ${correctZones.length} correct zones`);
-      correctZones.forEach((zone, zIdx) => {
-        let zonePoints = zone.points || [];
-        const zoneLabel = zone.label || '';
-        const radius = zone.radius || 50;
+    if (correctZones && correctZones.length > 0) {
+      console.log(`[ImageInteractive] renderOverlays: ${correctZones.length} correct zones, hasLayout=${hasLayout}, hasNatural=${hasNatural}`);
+      console.log(`[ImageInteractive] correctZones data:`, JSON.stringify(correctZones));
 
-        // Backward compatibility
-        if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
-          zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
-        }
+      if (hasLayout && hasNatural) {
+        correctZones.forEach((zone, zIdx) => {
+          let zonePoints = zone.points || [];
+          const zoneLabel = zone.label || '';
+          const radius = zone.radius || 50;
 
-        console.log(`[ImageInteractive] Zone ${zIdx} "${zoneLabel}": ${zonePoints.length} points, radius=${radius}`);
-
-        zonePoints.forEach((pt, pIdx) => {
-          const ptX = typeof pt.x === 'number' ? pt.x : 0;
-          const ptY = typeof pt.y === 'number' ? pt.y : 0;
-          const dispX = (ptX / imgNatural.w) * imgLayout.width;
-          const dispY = (ptY / imgNatural.h) * imgLayout.height;
-          const dispRadius = Math.max((radius / Math.max(imgNatural.w, imgNatural.h)) * imgLayout.width, 20);
-
-          console.log(`[ImageInteractive] Zone ${zIdx} point ${pIdx}: natural=(${ptX},${ptY}) -> display=(${dispX.toFixed(1)},${dispY.toFixed(1)}), dispRadius=${dispRadius.toFixed(1)}`);
-
-          overlays.push(
-            <View key={`cz-${zIdx}-${pIdx}`} style={[imgStyles.correctZone, {
-              left: dispX - dispRadius, top: dispY - dispRadius,
-              width: dispRadius * 2, height: dispRadius * 2,
-            }]} />
-          );
-          if (pIdx === 0 && zoneLabel) {
-            overlays.push(
-              <View key={`cl-${zIdx}`} style={[imgStyles.correctLabel, { left: dispX - 30, top: dispY + dispRadius + 4 }]}>
-                <Text style={imgStyles.correctLabelText}>{zoneLabel}</Text>
-              </View>
-            );
+          // Backward compatibility: old format with x/y directly on zone
+          if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
+            zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
           }
+
+          console.log(`[ImageInteractive] Zone ${zIdx} "${zoneLabel}": ${zonePoints.length} points, radius=${radius}, raw=${JSON.stringify(zone)}`);
+
+          zonePoints.forEach((pt, pIdx) => {
+            const ptX = typeof pt.x === 'number' ? pt.x : parseFloat(pt.x) || 0;
+            const ptY = typeof pt.y === 'number' ? pt.y : parseFloat(pt.y) || 0;
+            const dispX = (ptX / imgNatural.w) * imgLayout.width;
+            const dispY = (ptY / imgNatural.h) * imgLayout.height;
+            const dispRadius = Math.max((radius / Math.max(imgNatural.w, imgNatural.h)) * Math.max(imgLayout.width, imgLayout.height), 25);
+
+            console.log(`[ImageInteractive] Zone ${zIdx} pt ${pIdx}: natural=(${ptX},${ptY}) -> display=(${dispX.toFixed(1)},${dispY.toFixed(1)}), dispR=${dispRadius.toFixed(1)}`);
+
+            overlays.push(
+              <View key={`cz-${zIdx}-${pIdx}`} style={{
+                position: 'absolute',
+                left: dispX - dispRadius,
+                top: dispY - dispRadius,
+                width: dispRadius * 2,
+                height: dispRadius * 2,
+                borderWidth: 4,
+                borderColor: '#10b981',
+                borderRadius: dispRadius,
+                backgroundColor: 'rgba(16, 185, 129, 0.3)',
+                zIndex: 100,
+              }} />
+            );
+            if (pIdx === 0 && zoneLabel) {
+              overlays.push(
+                <View key={`cl-${zIdx}`} style={{
+                  position: 'absolute',
+                  left: Math.max(0, dispX - 40),
+                  top: dispY + dispRadius + 4,
+                  backgroundColor: '#10b981',
+                  borderRadius: 6,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  zIndex: 101,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFF' }}>{zoneLabel}</Text>
+                </View>
+              );
+            }
+          });
         });
-      });
-    } else if (correctZones) {
-      console.log(`[ImageInteractive] correctZones present but can't render: imgLayout=${!!imgLayout}, imgNatural=${!!imgNatural}`);
+      } else {
+        console.log(`[ImageInteractive] CAN'T render zones: imgLayout=${JSON.stringify(imgLayout)}, imgNatural=${JSON.stringify(imgNatural)}`);
+        // Fallback: show a text message that zones exist but we can't position them
+        overlays.push(
+          <View key="fallback-msg" style={{ position: 'absolute', top: 10, left: 10, right: 10, backgroundColor: 'rgba(16,185,129,0.9)', borderRadius: 8, padding: 8, zIndex: 200 }}>
+            <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600', textAlign: 'center' }}>
+              {correctZones.length} zone(s) correcte(s) - voir le détail ci-dessous
+            </Text>
+          </View>
+        );
+      }
     }
 
     // Render user click markers (red dots)
-    if (imgLayout && imgNatural) {
+    if (hasLayout && hasNatural) {
       clicks.forEach((click, i) => {
         const dispX = (click.x / imgNatural.w) * imgLayout.width;
         const dispY = (click.y / imgNatural.h) * imgLayout.height;
         overlays.push(
-          <View key={`mk-${i}`} style={[imgStyles.marker, { left: dispX - 14, top: dispY - 14 }]}>
+          <View key={`mk-${i}`} style={[imgStyles.marker, { left: dispX - 14, top: dispY - 14, zIndex: 150 }]}>
             <Text style={imgStyles.markerLabel}>{zones[i]?.label || (i + 1)}</Text>
           </View>
         );
@@ -360,7 +416,7 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
         {clicks.length}/{zones.length} zone(s) placée(s)
       </Text>
       <View
-        style={[imgStyles.container, { width: imgWidth, height: imgHeight }]}
+        style={[imgStyles.container, { width: imgWidth, height: imgHeight, overflow: 'visible' }]}
         onStartShouldSetResponder={() => true}
         onResponderRelease={handleTouch}
       >
@@ -369,13 +425,22 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
           style={{ width: imgWidth, height: imgHeight }}
           resizeMode="contain"
           onLayout={onImgLayout}
+          onLoad={onImageLoad}
+          onError={onImageError}
         />
         {renderOverlays()}
       </View>
       {correctZones && correctZones.length > 0 && (
-        <Text style={{ fontSize: 12, color: '#10b981', fontWeight: '600', marginTop: 6, textAlign: 'center' }}>
-          Les cercles verts indiquent les zones correctes
-        </Text>
+        <View style={{ marginTop: 8, padding: 10, backgroundColor: '#ecfdf5', borderRadius: 10, borderWidth: 2, borderColor: '#10b981' }}>
+          <Text style={{ fontSize: 13, color: '#065f46', fontWeight: '700', textAlign: 'center', marginBottom: 4 }}>
+            Zones correctes :
+          </Text>
+          {correctZones.map((z, i) => (
+            <Text key={i} style={{ fontSize: 12, color: '#047857', textAlign: 'center' }}>
+              {z.label || `Zone ${i + 1}`} : ({(z.points || [{ x: z.x, y: z.y }]).map(p => `${p.x}, ${p.y}`).join(' | ')})
+            </Text>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -506,7 +571,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     try {
       const res = await api.get(`/student/missions/${missionId}`);
       const m = res.data.mission;
-      console.log('[ExerciseSolveScreen] Mission loaded:', { id: m.id, title: m.title, blocks_count: m.blocks?.length });
+      console.log(`[ExerciseSolveScreen] CODE_VERSION=${CODE_VERSION} Mission loaded:`, { id: m.id, title: m.title, blocks_count: m.blocks?.length });
       console.log('[ExerciseSolveScreen] Mission blocks:', m.blocks?.map(b => ({ id: b.id, type: b.block_type, config: b.config_json })));
       setMission(m);
       initializeAnswers(m);
@@ -642,12 +707,25 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       Alert.alert('Attention', 'Tu dois répondre avant de valider !');
       return;
     }
-    console.log(`[ExerciseSolveScreen] Validating block ${blockId} (${currentBlock.block_type}):`, answer);
+    console.log(`[ExerciseSolveScreen] Validating block ${blockId} (${currentBlock.block_type}):`, JSON.stringify(answer));
+    if (currentBlock.block_type === 'fill_blank') {
+      const tpl = (currentBlock.config_json || {}).text_template || '';
+      const blanksConfig = (currentBlock.config_json || {}).blanks || [];
+      console.log(`[ExerciseSolveScreen] fill_blank template: "${tpl}"`);
+      console.log(`[ExerciseSolveScreen] fill_blank config blanks:`, JSON.stringify(blanksConfig));
+      console.log(`[ExerciseSolveScreen] fill_blank user answers:`, JSON.stringify(answer.blanks));
+    }
+    if (currentBlock.block_type === 'image_position') {
+      const zones = (currentBlock.config_json || {}).zones || [];
+      console.log(`[ExerciseSolveScreen] image_position zones config:`, JSON.stringify(zones));
+      console.log(`[ExerciseSolveScreen] image_position user clicks:`, JSON.stringify(answer.clicks));
+      console.log(`[ExerciseSolveScreen] image_position image_file_id:`, (currentBlock.config_json || {}).image_file_id);
+    }
     setChecking(true);
     try {
       const res = await api.post(`/student/missions/${missionId}/check-block`, { block_id: blockId, answer });
       const data = res.data;
-      console.log(`[ExerciseSolveScreen] Block check response for block ${blockId}:`, { is_correct: data.is_correct, points: data.points_earned });
+      console.log(`[ExerciseSolveScreen] Block check response for block ${blockId}:`, JSON.stringify({ is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer }));
       if (data.success) {
         setQuestionLocked(true);
         setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer } }));
@@ -1027,7 +1105,7 @@ const dndStyles = StyleSheet.create({
 const imgStyles = StyleSheet.create({
   hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
   subHint: { fontSize: 12, color: '#667eea', fontWeight: '600', marginBottom: 10 },
-  container: { position: 'relative', overflow: 'hidden', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
+  container: { position: 'relative', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   marker: { position: 'absolute', width: 28, height: 28, backgroundColor: '#ef4444', borderRadius: 14, borderWidth: 3, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   markerLabel: { fontSize: 8, fontWeight: '800', color: '#FFF' },
   correctZone: { position: 'absolute', borderWidth: 3, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.25)' },
