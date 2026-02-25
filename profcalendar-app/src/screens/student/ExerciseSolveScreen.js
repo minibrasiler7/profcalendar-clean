@@ -34,125 +34,78 @@ function shuffleArray(arr) {
 }
 
 // ============================================================
-// Drag & Drop Sorting — ORDER mode (real drag & drop)
+// Drag & Drop Sorting — ORDER mode (tap-to-select, tap-to-place)
 // ============================================================
 function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, onDragEnd }) {
-  const ITEM_HEIGHT = 60;
-  const GAP = 8;
-  const SLOT = ITEM_HEIGHT + GAP;
-  const [draggingIdx, setDraggingIdx] = useState(-1);
-  const dragY = useRef(new Animated.Value(0)).current;
-  const dragOpacity = useRef(new Animated.Value(0)).current;
-  const [dragText, setDragText] = useState('');
-  const containerRef = useRef(null);
-  const containerY = useRef(0);
-  const currentOrder = useRef(order);
-  currentOrder.current = order;
+  const [selectedPos, setSelectedPos] = useState(null);
 
-  const panResponders = useRef({});
+  const handleTapItem = (pos) => {
+    if (disabled) return;
 
-  const getPanResponder = (pos) => {
-    if (!panResponders.current[pos]) {
-      panResponders.current[pos] = PanResponder.create({
-        onStartShouldSetPanResponder: () => !disabled,
-        onMoveShouldSetPanResponder: (_, g) => !disabled && Math.abs(g.dy) > 5,
-        onPanResponderGrant: (_, g) => {
-          setDraggingIdx(pos);
-          setDragText(items[currentOrder.current[pos]]);
-          // Measure container position to correctly place ghost
-          if (containerRef.current) {
-            containerRef.current.measureInWindow((x, y) => {
-              containerY.current = y;
-            });
-          }
-          // Position ghost at finger location relative to container top
-          const offsetInContainer = g.y0 - containerY.current - ITEM_HEIGHT / 2;
-          dragY.setValue(offsetInContainer);
-          Animated.timing(dragOpacity, { toValue: 1, duration: 100, useNativeDriver: true }).start();
-          if (onDragStart) onDragStart();
-        },
-        onPanResponderMove: (_, g) => {
-          // Position ghost relative to container top
-          const offsetInContainer = g.moveY - containerY.current - ITEM_HEIGHT / 2;
-          dragY.setValue(offsetInContainer);
-        },
-        onPanResponderRelease: (_, g) => {
-          Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
-          const moveSlots = Math.round(g.dy / SLOT);
-          const fromPos = pos;
-          let toPos = fromPos + moveSlots;
-          toPos = Math.max(0, Math.min(toPos, currentOrder.current.length - 1));
-          if (fromPos !== toPos) {
-            const newOrder = [...currentOrder.current];
-            const item = newOrder.splice(fromPos, 1)[0];
-            newOrder.splice(toPos, 0, item);
-            onReorder(newOrder);
-          }
-          setDraggingIdx(-1);
-          if (onDragEnd) onDragEnd();
-        },
-        onPanResponderTerminate: () => {
-          Animated.timing(dragOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
-          setDraggingIdx(-1);
-          if (onDragEnd) onDragEnd();
-        },
-      });
+    // If same item is tapped again, deselect it
+    if (selectedPos === pos) {
+      setSelectedPos(null);
+      if (onDragEnd) onDragEnd();
+      return;
     }
-    return panResponders.current[pos];
+
+    // If no item is selected, select this one
+    if (selectedPos === null) {
+      setSelectedPos(pos);
+      if (onDragStart) onDragStart();
+      return;
+    }
+
+    // If a different item is selected, move the selected item to this position
+    const newOrder = [...order];
+    const itemToMove = newOrder[selectedPos];
+    // Remove from old position
+    newOrder.splice(selectedPos, 1);
+    // Insert at new position
+    newOrder.splice(pos, 0, itemToMove);
+
+    onReorder(newOrder);
+    setSelectedPos(null);
+    if (onDragEnd) onDragEnd();
   };
 
-  // Reset panResponders when order changes
-  useEffect(() => {
-    panResponders.current = {};
-  }, [order.length]);
-
   return (
-    <View ref={containerRef} style={dndStyles.container}
-      onLayout={() => {
-        if (containerRef.current) {
-          containerRef.current.measureInWindow((x, y) => { containerY.current = y; });
-        }
-      }}>
+    <View style={dndStyles.container}>
       <Text style={dndStyles.hint}>
-        Maintiens et glisse pour réordonner
+        Touche un élément pour le sélectionner, puis touche sa nouvelle position
       </Text>
       {order.map((origIdx, pos) => {
-        const pr = getPanResponder(pos);
+        const isSelected = selectedPos === pos;
         return (
-          <Animated.View
+          <TouchableOpacity
             key={`${origIdx}-${pos}`}
             style={[
               dndStyles.item,
-              draggingIdx === pos && dndStyles.itemSelected,
-              { height: ITEM_HEIGHT },
+              isSelected && dndStyles.itemSelected,
             ]}
-            {...pr.panHandlers}
+            onPress={() => handleTapItem(pos)}
+            disabled={disabled}
+            activeOpacity={0.7}
           >
-            <View style={[dndStyles.grip, draggingIdx === pos && dndStyles.gripSelected]}>
-              <Ionicons name="reorder-three" size={22} color={draggingIdx === pos ? '#FFF' : '#9ca3af'} />
+            <View style={[dndStyles.grip, isSelected && dndStyles.gripSelected]}>
+              <Ionicons
+                name="reorder-three"
+                size={22}
+                color={isSelected ? '#FFF' : '#9ca3af'}
+              />
             </View>
             <Text style={dndStyles.num}>{pos + 1}.</Text>
-            <Text style={[dndStyles.text, draggingIdx === pos && dndStyles.textSelected]}>
+            <Text style={[dndStyles.text, isSelected && dndStyles.textSelected]}>
               {items[origIdx]}
             </Text>
-          </Animated.View>
+            {isSelected && (
+              <View style={dndStyles.selectedCheckmark}>
+                <Ionicons name="checkmark-circle" size={20} color="#667eea" />
+              </View>
+            )}
+          </TouchableOpacity>
         );
       })}
-      {/* Floating drag ghost — anchored to top:0 of container */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          dndStyles.dragGhost,
-          {
-            top: 0,
-            transform: [{ translateY: dragY }],
-            opacity: dragOpacity,
-          },
-        ]}
-      >
-        <Ionicons name="reorder-three" size={22} color="#FFF" />
-        <Text style={dndStyles.dragGhostText}>{dragText}</Text>
-      </Animated.View>
     </View>
   );
 }
@@ -162,6 +115,14 @@ function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, on
 // ============================================================
 function DraggableCategoryList({ items, categories, catAssignments, onUpdate, disabled }) {
   const [pickedItem, setPickedItem] = useState(null);
+  // Shuffle unassigned items in the pool for display
+  const [poolItemOrder, setPoolItemOrder] = useState(() => {
+    const assignedItems = new Set(Object.values(catAssignments).flat());
+    const unassignedIndices = items
+      .map((_, idx) => idx)
+      .filter(idx => items[idx] && !assignedItems.has(idx));
+    return shuffleArray(unassignedIndices);
+  });
 
   const pickFromPool = (itemIdx) => {
     if (disabled) return;
@@ -262,7 +223,8 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
           <Ionicons name="hand-left" size={14} color="#6b7280" /> Éléments à classer :
         </Text>
         <View style={dndStyles.poolItems}>
-          {items.map((item, itemIdx) => {
+          {poolItemOrder.map((itemIdx) => {
+            const item = items[itemIdx];
             if (!item || assignedItems.has(itemIdx)) return null;
             return (
               <TouchableOpacity
@@ -469,10 +431,12 @@ cv.addEventListener('touchend',e=>{if(isPinch){isPinch=e.touches.length>=2;pinch
           source={{ html: htmlContent }}
           style={graphStyles.webview}
           scrollEnabled={false}
+          scrollEventThrottle={16}
           bounces={false}
           onMessage={handleMessage}
           javaScriptEnabled={true}
           originWhitelist={['*']}
+          pointerEvents="box-none"
         />
       </View>
     </View>
@@ -548,6 +512,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           const indices = (c.items || []).map((_, i) => i).filter(i => c.items[i]);
           initial[block.id] = { order: shuffleArray(indices) };
         } else {
+          // Category mode: items start unassigned, so we initialize with empty categories
+          // The pool items will be shuffled dynamically when rendered (see DraggableCategoryList)
           initial[block.id] = { categories: {} };
         }
       } else if (block.block_type === 'image_position') {
@@ -785,17 +751,37 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           : c.image_url ? (c.image_url.startsWith('http') ? c.image_url : `${BASE_URL}${c.image_url}`) : null;
         if (!imageUrl) return <Text style={{ color: '#ef4444' }}>Image non disponible</Text>;
 
-        // Extract correct zones from feedback if available
+        // Show correct zones only when answer is wrong and feedback is shown
         let correctZones = null;
-        if (!currentFeedback?.is_correct && currentFeedback?.correct_answer) {
-          const feedbackData = currentFeedback.correct_answer;
-          if (feedbackData && typeof feedbackData === 'object' && feedbackData.zones) {
-            correctZones = feedbackData.zones;
-          }
+        if (currentFeedback && !currentFeedback.is_correct) {
+          // Pass the zones from config to show where student should have clicked
+          correctZones = c.zones || [];
         }
 
-        return <ImageInteractive imageUrl={imageUrl} zones={c.zones || []} clicks={answer.clicks || []}
-          onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })} disabled={isLocked} correctZones={correctZones} />;
+        return (
+          <View>
+            <ImageInteractive
+              imageUrl={imageUrl}
+              zones={c.zones || []}
+              clicks={answer.clicks || []}
+              onClicksChange={(cl) => updateAnswer(blockId, { clicks: cl })}
+              disabled={isLocked}
+              correctZones={correctZones}
+            />
+            {!isLocked && answer.clicks && answer.clicks.length > 0 && (
+              <TouchableOpacity
+                style={styles.undoButton}
+                onPress={() => {
+                  const newClicks = answer.clicks.slice(0, -1);
+                  updateAnswer(blockId, { clicks: newClicks });
+                }}
+              >
+                <Ionicons name="arrow-undo" size={18} color="#FFF" />
+                <Text style={styles.undoButtonText}>Annuler le dernier clic</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
       }
       case 'graph': {
         const ca = c.correct_answer || {};
@@ -990,6 +976,7 @@ const dndStyles = StyleSheet.create({
   num: { fontSize: 15, fontWeight: '800', color: '#667eea', marginRight: 10, width: 28 },
   text: { fontSize: 14, color: '#374151', flex: 1 },
   textSelected: { fontWeight: '700', color: '#1e1b4b' },
+  selectedCheckmark: { marginLeft: 8 },
   selectedBadge: { backgroundColor: '#667eea', borderRadius: 12, padding: 4 },
   catZone: { borderWidth: 2, borderColor: '#d1d5db', borderStyle: 'dashed', borderRadius: 14, padding: 12, marginBottom: 10, minHeight: 60, backgroundColor: '#fafafa' },
   catZoneTarget: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
@@ -1023,7 +1010,7 @@ const graphStyles = StyleSheet.create({
   container: {},
   hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
   question: { fontSize: 14, color: '#6b7280', marginBottom: 10, lineHeight: 22, fontStyle: 'italic' },
-  webviewWrap: { width: '100%', height: 320, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  webviewWrap: { width: '100%', height: 380, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
   webview: { flex: 1, backgroundColor: '#fafbfc' },
 });
 
@@ -1094,4 +1081,6 @@ const styles = StyleSheet.create({
   resultLevel: { fontSize: 16, fontWeight: '700', color: '#a78bfa', marginBottom: 20 },
   closeModalButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24 },
   closeModalButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  undoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 12, marginTop: 12 },
+  undoButtonText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
 });

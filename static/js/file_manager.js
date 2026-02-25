@@ -733,13 +733,38 @@ async function publishExerciseToClass(exerciseId, classId) {
         });
         const result = await response.json();
         if (result.success) {
-            showNotification('Exercice publié dans la classe !', 'success');
+            showNotification('success', 'Exercice publié dans la classe !');
             await loadClassTree(classId);
         } else {
-            showNotification(result.error || 'Erreur', 'error');
+            showNotification('error', result.error || 'Erreur');
         }
     } catch (error) {
-        showNotification('Erreur lors de la publication', 'error');
+        showNotification('error', 'Erreur lors de la publication');
+    }
+}
+
+// Publier un exercice dans un dossier spécifique d'une classe via drag & drop
+async function publishExerciseToClassFolder(exerciseId, classId, folderPath) {
+    try {
+        // Note: Les exercices sont publiés au niveau de la classe, pas dans des dossiers spécifiques
+        // On utilise la même endpoint que publishExerciseToClass
+        const response = await fetch('/exercises/publish-to-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                exercise_id: exerciseId,
+                classroom_id: classId
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('success', `Exercice publié dans la classe`);
+            await loadClassTree(classId);
+        } else {
+            showNotification('error', result.error || 'Erreur');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la publication');
     }
 }
 
@@ -783,6 +808,9 @@ async function handleTreeFolderDrop(e) {
             } else if (dragData.startsWith('folder:')) {
                 const folderId = dragData.replace('folder:', '');
                 await copyFolderToClassFolder(folderId, classId, folderPath);
+            } else if (dragData.startsWith('exercise:')) {
+                const exerciseId = dragData.replace('exercise:', '');
+                await publishExerciseToClassFolder(exerciseId, classId, folderPath);
             }
         }
     }

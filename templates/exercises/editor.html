@@ -906,14 +906,14 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- KaTeX Math Toolbar -->
-<div class="katex-toolbar" id="katex-toolbar">
+<div class="katex-toolbar collapsed" id="katex-toolbar">
     <div class="katex-toolbar-header">
         <div class="katex-toolbar-title">
             <i class="fas fa-calculator"></i>
             <span>Formules Mathématiques</span>
         </div>
         <button class="katex-toolbar-toggle" onclick="toggleKaTeXToolbar()" title="Réduire/Agrandir">
-            <i class="fas fa-chevron-down" id="toolbar-toggle-icon"></i>
+            <i class="fas fa-chevron-up" id="toolbar-toggle-icon"></i>
         </button>
     </div>
 
@@ -2169,7 +2169,7 @@ let activeTextArea = null;
 
 // Initialize toolbar: attach focus listeners to all textareas in exercise blocks
 document.addEventListener('DOMContentLoaded', function() {
-    // Attach listeners to existing textareas
+    // Attach listeners to existing textareas and other input fields
     attachKaTeXListeners();
 
     // Also monitor for new textareas added dynamically
@@ -2182,23 +2182,37 @@ document.addEventListener('DOMContentLoaded', function() {
         attributes: false,
         characterData: false
     });
+
+    // Attach focus listeners to toolbar buttons to prevent focus stealing
+    const toolbarButtons = document.querySelectorAll('.katex-btn');
+    toolbarButtons.forEach(button => {
+        button.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // Prevent button from stealing focus
+        });
+    });
 });
 
 function attachKaTeXListeners() {
-    // Find all textareas in block content and add focus/blur listeners
-    document.querySelectorAll('.block-content textarea').forEach(textarea => {
-        if (!textarea.hasAttribute('data-katex-listener')) {
-            textarea.setAttribute('data-katex-listener', 'true');
-            textarea.addEventListener('focus', function() {
+    // Find all textareas and text inputs in block content and add focus/blur listeners
+    document.querySelectorAll('.block-content textarea, .block-content input[type="text"]').forEach(field => {
+        if (!field.hasAttribute('data-katex-listener')) {
+            field.setAttribute('data-katex-listener', 'true');
+            field.addEventListener('focusin', function() {
                 activeTextArea = this;
+                console.log('Field focused:', this.name || this.className);
             });
-            textarea.addEventListener('blur', function() {
-                // Delay blur handler to avoid issues with button clicks
+            field.addEventListener('focusout', function() {
+                // Don't clear activeTextArea immediately - keep it for button clicks
+                // Only clear if we're moving away from all inputs
                 setTimeout(() => {
-                    if (activeTextArea === this) {
-                        activeTextArea = null;
+                    if (document.activeElement !== this &&
+                        !document.activeElement.closest('.katex-toolbar') &&
+                        !document.activeElement.classList.contains('katex-btn')) {
+                        if (activeTextArea === this) {
+                            activeTextArea = null;
+                        }
                     }
-                }, 50);
+                }, 100);
             });
         }
     });

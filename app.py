@@ -538,6 +538,28 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Équipements de classe: {e}")
 
+        # Table planning_resources (pour les ressources ajoutées aux planifications)
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS planning_resources (
+                    id SERIAL PRIMARY KEY,
+                    planning_id INTEGER NOT NULL REFERENCES plannings(id) ON DELETE CASCADE,
+                    resource_type VARCHAR(20) NOT NULL,
+                    resource_id INTEGER NOT NULL,
+                    display_name VARCHAR(255) NOT NULL,
+                    display_icon VARCHAR(50),
+                    status VARCHAR(20) DEFAULT 'linked',
+                    mode VARCHAR(20),
+                    publication_id INTEGER,
+                    position INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         # Migration: ajouter mode et is_active sur exercise_publications + fix NULL published_by
         try:
             db.session.execute(db.text(

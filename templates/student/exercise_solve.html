@@ -365,6 +365,17 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     overflow: hidden; text-align: center; background: white;
 }
 
+/* ---- Image undo button ---- */
+.btn-undo-image {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    width: 100%; padding: 0.6rem; margin-top: 0.5rem;
+    background: #667eea; color: white; border: none;
+    border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.btn-undo-image:hover { background: #5568d3; }
+.btn-undo-image:disabled { background: #9ca3af; cursor: not-allowed; }
+
 /* ---- Validate Button ---- */
 .btn-validate {
     display: flex; align-items: center; justify-content: center; gap: 0.4rem;
@@ -604,6 +615,11 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 <img src="{{ c.image_url }}" alt="Image">
                 {% endif %}
             </div>
+            {% if not already_completed %}
+            <button type="button" class="btn-undo-image" id="btn-undo-{{ block.id }}" style="display:none;margin-top:0.5rem;" onclick="undoLastClick('{{ block.id }}')">
+                <i class="fas fa-undo"></i> Annuler le dernier clic
+            </button>
+            {% endif %}
             {% else %}
             <p style="color:#ef4444;">Image non disponible.</p>
             {% endif %}
@@ -751,6 +767,8 @@ function shuffleChildren(parent) {
 document.querySelectorAll('.sorting-list[data-mode="order"]').forEach(list => {
     shuffleChildren(list);
 });
+
+// Shuffle category pool items
 document.querySelectorAll('.category-pool .pool-items').forEach(pool => {
     shuffleChildren(pool);
 });
@@ -905,6 +923,16 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
             if (caDiv) {
                 caDiv.querySelector('.correct-text').textContent = 'Bonne réponse : ' + correctAnswer;
                 caDiv.style.display = 'block';
+            }
+        }
+
+        // For image_position, show correct zones
+        const cardType = card.dataset.blockType;
+        if (cardType === 'image_position') {
+            const zonesStr = document.getElementById('img-click-' + blockId)?.dataset.zones;
+            if (zonesStr) {
+                const zones = JSON.parse(zonesStr);
+                drawCorrectZones(blockId, zones);
             }
         }
 
@@ -1241,6 +1269,8 @@ function handleImageClick(event, blockId) {
     const nextIdx = imageClicks[blockId].length;
     const currentLabel = document.getElementById('zone-current-label-' + blockId);
     const counter = document.getElementById('zone-counter-' + blockId);
+    const undoBtn = document.getElementById('btn-undo-' + blockId);
+
     if (currentLabel && counter) {
         if (nextIdx < expected && zones[nextIdx]) {
             currentLabel.textContent = zones[nextIdx].label;
@@ -1250,6 +1280,101 @@ function handleImageClick(event, blockId) {
             currentLabel.style.color = '#10b981';
             counter.textContent = `${expected} / ${expected} — Prêt à valider`;
         }
+    }
+
+    // Show undo button if there are clicks
+    if (undoBtn && imageClicks[blockId].length > 0) {
+        undoBtn.style.display = 'flex';
+    }
+}
+
+// ============================================================
+// Draw correct zones on image
+// ============================================================
+function drawCorrectZones(blockId, zones) {
+    const container = document.getElementById('img-click-' + blockId);
+    if (!container) return;
+
+    const img = container.querySelector('img');
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const scaleX = (img.naturalWidth || rect.width) / rect.width;
+    const scaleY = (img.naturalHeight || rect.height) / rect.height;
+
+    // Remove old correct zones
+    container.querySelectorAll('.correct-zone-circle').forEach(c => c.remove());
+
+    // Draw new correct zones
+    zones.forEach((zone) => {
+        const zonePoints = zone.points || [];
+        const zoneRadius = zone.radius || 30;
+
+        zonePoints.forEach((pt) => {
+            const displayX = (pt.x / scaleX);
+            const displayY = (pt.y / scaleY);
+            const displayRadius = (zoneRadius / scaleX);
+
+            const zoneCircle = document.createElement('div');
+            zoneCircle.className = 'correct-zone-circle';
+            zoneCircle.style.position = 'absolute';
+            zoneCircle.style.left = (displayX - displayRadius) + 'px';
+            zoneCircle.style.top = (displayY - displayRadius) + 'px';
+            zoneCircle.style.width = (displayRadius * 2) + 'px';
+            zoneCircle.style.height = (displayRadius * 2) + 'px';
+            zoneCircle.style.border = '2px solid #10b981';
+            zoneCircle.style.borderRadius = '50%';
+            zoneCircle.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            zoneCircle.style.pointerEvents = 'none';
+            zoneCircle.style.zIndex = '10';
+
+            container.appendChild(zoneCircle);
+        });
+    });
+}
+
+// ============================================================
+// Undo last click on image_position
+// ============================================================
+function undoLastClick(blockId) {
+    const container = document.getElementById('img-click-' + blockId);
+    if (!container) return;
+
+    if (!imageClicks[blockId] || imageClicks[blockId].length === 0) return;
+
+    // Remove last click
+    imageClicks[blockId].pop();
+
+    // Remove last marker
+    const markers = container.querySelectorAll('.click-marker');
+    if (markers.length > 0) {
+        markers[markers.length - 1].remove();
+    }
+
+    // Update zone prompt
+    const nextIdx = imageClicks[blockId].length;
+    const expected = parseInt(container.dataset.expected) || 1;
+    const zones = JSON.parse(container.dataset.zones || '[]');
+    const currentLabel = document.getElementById('zone-current-label-' + blockId);
+    const counter = document.getElementById('zone-counter-' + blockId);
+    const undoBtn = document.getElementById('btn-undo-' + blockId);
+
+    if (currentLabel && counter) {
+        if (nextIdx < expected && zones[nextIdx]) {
+            currentLabel.textContent = zones[nextIdx].label;
+            counter.textContent = `Zone ${nextIdx + 1} / ${expected}`;
+        } else if (nextIdx > 0) {
+            currentLabel.textContent = zones[nextIdx - 1].label;
+            counter.textContent = `Zone ${nextIdx} / ${expected}`;
+        } else {
+            currentLabel.textContent = zones[0] ? zones[0].label : '';
+            counter.textContent = `Zone 1 / ${expected}`;
+        }
+    }
+
+    // Hide undo button if no clicks left
+    if (undoBtn && imageClicks[blockId].length === 0) {
+        undoBtn.style.display = 'none';
     }
 }
 

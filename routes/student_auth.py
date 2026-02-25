@@ -1395,6 +1395,12 @@ def grade_short_answer(config, answer, max_points, accept_typos=False):
     user_answer = str(answer.get('value', '')).strip().lower()
     correct = str(config.get('correct_answer', '')).strip().lower()
 
+    # Debug: ensure both are lowercase before comparison
+    if not isinstance(user_answer, str):
+        user_answer = str(user_answer).lower()
+    if not isinstance(correct, str):
+        correct = str(correct).lower()
+
     if config.get('answer_type') == 'number':
         try:
             user_val = float(user_answer.replace(',', '.'))
@@ -1429,6 +1435,13 @@ def grade_fill_blank(config, answer, max_points, accept_typos=False):
         given = ''
         if i < len(user_answers):
             given = str(user_answers[i]).strip().lower()
+
+        # Ensure both are lowercase strings before comparison
+        if not isinstance(expected, str):
+            expected = str(expected).lower()
+        if not isinstance(given, str):
+            given = str(given).lower()
+
         if given == expected:
             correct_count += 1
         elif accept_typos and fuzzy_match(given, expected):
