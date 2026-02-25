@@ -258,6 +258,9 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
     const x = Math.round(locationX * scaleX);
     const y = Math.round(locationY * scaleY);
 
+    console.log(`[ImageInteractive] Touch: display=(${locationX.toFixed(1)}, ${locationY.toFixed(1)}), natural=(${x}, ${y}), imgNatural=(${imgNatural.w}, ${imgNatural.h}), imgLayout=(${imgLayout.width.toFixed(1)}, ${imgLayout.height.toFixed(1)})`);
+    console.log(`[ImageInteractive] Zones config:`, JSON.stringify(zones));
+
     const expected = zones.length || 1;
     let newClicks = [...clicks];
     if (newClicks.length >= expected) {
@@ -271,7 +274,11 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
   const imgHeight = imgNatural ? (imgWidth / imgNatural.w) * imgNatural.h : 300;
 
   const renderCorrectZones = () => {
-    if (!correctZones || !imgLayout || !imgNatural) return null;
+    if (!correctZones || !imgLayout || !imgNatural) {
+      console.log(`[ImageInteractive] renderCorrectZones skipped: correctZones=${!!correctZones}, imgLayout=${!!imgLayout}, imgNatural=${!!imgNatural}`);
+      return null;
+    }
+    console.log(`[ImageInteractive] Rendering ${correctZones.length} correct zones:`, JSON.stringify(correctZones));
     return correctZones.map((zone, zIdx) => {
       let zonePoints = zone.points || [];
       const zoneLabel = zone.label || '';
@@ -375,7 +382,7 @@ canvas{display:block}
 <canvas id="g"></canvas>
 <script>
 const c=${JSON.stringify(config)};const cv=document.getElementById('g');const x=cv.getContext('2d');
-const W=Math.min(window.innerWidth,600),H=Math.round(W*0.8),M=40,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
+const W=Math.min(window.innerWidth,600),H=Math.round(W*1.0),M=40,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
 const isQ=c.question_type==='draw_quadratic',nP=isQ?3:2;
 const origXMin=c.x_min,origXMax=c.x_max,origYMin=c.y_min,origYMax=c.y_max;
 let zXMin=c.x_min,zXMax=c.x_max,zYMin=c.y_min,zYMax=c.y_max,zLvl=1;
@@ -409,14 +416,17 @@ function sp(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'points
 const dis=${disabled ? 'true' : 'false'};
 function getDist(e){if(e.touches.length<2)return 0;const a=e.touches[0],b=e.touches[1];return Math.sqrt((a.clientX-b.clientX)**2+(a.clientY-b.clientY)**2)}
 cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;if(e.touches.length===2){isPinch=true;pinchDist=getDist(e);dr=-1;return}isPinch=false;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<30){dr=i;break}}},{passive:false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();if(isPinch&&e.touches.length===2){const nd=getDist(e);if(pinchDist>0){const ratio=nd/pinchDist;if(ratio>1.15)setZoom(zLvl+1);else if(ratio<0.85)setZoom(zLvl-1);pinchDist=nd}return}if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);const snap=zLvl>=3?0.25:0.5;pts[dr].x=Math.round(g.x/snap)*snap;pts[dr].y=Math.round(g.y/snap)*snap;draw()},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(isPinch&&e.touches.length===2){const nd=getDist(e);if(pinchDist>0){const ratio=nd/pinchDist;if(ratio>1.15)setZoom(zLvl+1);else if(ratio<0.85)setZoom(zLvl-1);pinchDist=nd}return}if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);const snap=1;pts[dr].x=Math.round(g.x/snap)*snap;pts[dr].y=Math.round(g.y/snap)*snap;draw()},{passive:false});
 cv.addEventListener('touchend',e=>{if(isPinch){isPinch=e.touches.length>=2;pinchDist=0;return}dr=-1;draw();sp()});draw();sp();
 </script></body></html>`;
 
   const handleMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'points') onPointsChange(data.points);
+      if (data.type === 'points') {
+        console.log('[GraphInteractive] Points updated:', JSON.stringify(data.points));
+        onPointsChange(data.points);
+      }
     } catch (e) {}
   };
 
@@ -1011,7 +1021,7 @@ const imgStyles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden', borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
   marker: { position: 'absolute', width: 28, height: 28, backgroundColor: '#ef4444', borderRadius: 14, borderWidth: 3, borderColor: '#FFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 },
   markerLabel: { fontSize: 8, fontWeight: '800', color: '#FFF' },
-  correctZone: { position: 'absolute', borderWidth: 2, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+  correctZone: { position: 'absolute', borderWidth: 3, borderColor: '#10b981', borderRadius: 100, backgroundColor: 'rgba(16, 185, 129, 0.25)' },
   correctLabel: { position: 'absolute', backgroundColor: '#10b981', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, zIndex: 10 },
   correctLabelText: { fontSize: 10, fontWeight: '700', color: '#FFF' },
 });
@@ -1020,7 +1030,7 @@ const graphStyles = StyleSheet.create({
   container: {},
   hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
   question: { fontSize: 14, color: '#6b7280', marginBottom: 10, lineHeight: 22, fontStyle: 'italic' },
-  webviewWrap: { width: '100%', height: Math.round(SCREEN_WIDTH * 0.8) + 60, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  webviewWrap: { width: '100%', height: Math.round(SCREEN_WIDTH * 1.0) + 60, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
   webview: { flex: 1, backgroundColor: '#fafbfc' },
 });
 

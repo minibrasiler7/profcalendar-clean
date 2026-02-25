@@ -1395,14 +1395,8 @@ def grade_qcm(config, answer, max_points):
 
 
 def grade_short_answer(config, answer, max_points, accept_typos=False):
-    user_answer = str(answer.get('value', '')).strip().lower()
-    correct = str(config.get('correct_answer', '')).strip().lower()
-
-    # Debug: ensure both are lowercase before comparison
-    if not isinstance(user_answer, str):
-        user_answer = str(user_answer).lower()
-    if not isinstance(correct, str):
-        correct = str(correct).lower()
+    user_answer = _normalize_text(answer.get('value', ''))
+    correct = _normalize_text(config.get('correct_answer', ''))
 
     if config.get('answer_type') == 'number':
         try:
@@ -1417,13 +1411,35 @@ def grade_short_answer(config, answer, max_points, accept_typos=False):
         if not is_correct and accept_typos:
             is_correct = fuzzy_match(user_answer, correct)
         if not is_correct:
-            synonyms = [s.strip().lower() for s in config.get('synonyms', [])]
+            synonyms = [_normalize_text(s) for s in config.get('synonyms', [])]
             if accept_typos:
                 is_correct = any(fuzzy_match(user_answer, s) for s in synonyms)
             else:
                 is_correct = user_answer in synonyms
 
+    logger.info(f"[GRADE] short_answer: given='{user_answer}', expected='{correct}', is_correct={is_correct}")
     return is_correct, max_points if is_correct else 0
+
+
+def _normalize_text(text):
+    """Normalise le texte pour la comparaison : apostrophes, tirets, espaces, accents cohérents."""
+    import unicodedata
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.strip().lower()
+    # Normaliser les apostrophes typographiques → apostrophe standard
+    text = text.replace('\u2019', "'")  # RIGHT SINGLE QUOTATION MARK
+    text = text.replace('\u2018', "'")  # LEFT SINGLE QUOTATION MARK
+    text = text.replace('\u02BC', "'")  # MODIFIER LETTER APOSTROPHE
+    text = text.replace('\u2032', "'")  # PRIME
+    text = text.replace('\u00B4', "'")  # ACUTE ACCENT
+    text = text.replace('\u0060', "'")  # GRAVE ACCENT
+    # Normaliser les tirets
+    text = text.replace('\u2013', '-')  # EN DASH
+    text = text.replace('\u2014', '-')  # EM DASH
+    # Normaliser les espaces multiples
+    text = ' '.join(text.split())
+    return text
 
 
 def grade_fill_blank(config, answer, max_points, accept_typos=False):
@@ -1434,16 +1450,10 @@ def grade_fill_blank(config, answer, max_points, accept_typos=False):
 
     correct_count = 0
     for i, blank in enumerate(blanks):
-        expected = blank.get('word', '').strip().lower()
+        expected = _normalize_text(blank.get('word', ''))
         given = ''
         if i < len(user_answers):
-            given = str(user_answers[i]).strip().lower()
-
-        # Ensure both are lowercase strings before comparison
-        if not isinstance(expected, str):
-            expected = str(expected).lower()
-        if not isinstance(given, str):
-            given = str(given).lower()
+            given = _normalize_text(user_answers[i])
 
         if given == expected:
             correct_count += 1
@@ -1536,35 +1546,42 @@ def grade_image_position(config, answer, max_points):
     return ratio == 1.0, round(ratio * max_points)
 
 
+def _grade_line_from_points(points, correct, tolerance):
+    """Grade a line (y=ax+b) from 2 user-placed points."""
+    if len(points) < 2:
+        logger.warning(f"[GRADE] graph (line): insufficient points ({len(points)} < 2)")
+        return False
+    x1, y1 = float(points[0]['x']), float(points[0]['y'])
+    x2, y2 = float(points[1]['x']), float(points[1]['y'])
+    if abs(x2 - x1) < 0.001:
+        logger.warning(f"[GRADE] graph (line): vertical line not valid")
+        return False
+    user_a = (y2 - y1) / (x2 - x1)
+    user_b = y1 - user_a * x1
+    expected_a = float(correct.get('a', 0))
+    expected_b = float(correct.get('b', 0))
+    a_ok = abs(user_a - expected_a) <= tolerance
+    b_ok = abs(user_b - expected_b) <= tolerance
+    logger.info(f"[GRADE] graph (line): points=({x1},{y1}),({x2},{y2}) => user_a={user_a:.4f} (expected {expected_a}, ok={a_ok}), user_b={user_b:.4f} (expected {expected_b}, ok={b_ok})")
+    return a_ok and b_ok
+
+
 def grade_graph(config, answer, max_points):
     """Corriger le graphique: l'élève envoie les points qu'il a placés.
     On reconstitue la fonction à partir de ces points et on compare les coefficients."""
-    tolerance = config.get('tolerance', 0.5)
+    raw_tolerance = config.get('tolerance', 0.5)
+    # Tolerance de 0 est trop stricte pour des coordonnées, on met un minimum de 0.5
+    tolerance = max(float(raw_tolerance), 0.5)
     correct = config.get('correct_answer', {})
     question_type = config.get('question_type', 'draw_line')
 
-    logger.info(f"[GRADE] graph: question_type={question_type}, tolerance={tolerance}, expected={correct}")
+    logger.info(f"[GRADE] graph: question_type={question_type}, raw_tolerance={raw_tolerance}, effective_tolerance={tolerance}, expected={correct}, user_answer={answer}")
 
     try:
-        if question_type == 'draw_line':
-            # L'élève envoie 2 points, on calcule a et b de y = ax + b
+        if question_type in ('draw_line', 'place_point'):
+            # draw_line et place_point: l'élève envoie 2 points, on calcule a et b
             points = answer.get('points', [])
-            if len(points) < 2:
-                logger.warning(f"[GRADE] graph (draw_line): insufficient points ({len(points)} < 2)")
-                return False, 0
-            x1, y1 = float(points[0]['x']), float(points[0]['y'])
-            x2, y2 = float(points[1]['x']), float(points[1]['y'])
-            if abs(x2 - x1) < 0.001:
-                logger.warning(f"[GRADE] graph (draw_line): vertical line not valid")
-                return False, 0  # droite verticale, pas un cas valide
-            user_a = (y2 - y1) / (x2 - x1)
-            user_b = y1 - user_a * x1
-            expected_a = correct.get('a', 0)
-            expected_b = correct.get('b', 0)
-            a_ok = abs(user_a - expected_a) <= tolerance
-            b_ok = abs(user_b - expected_b) <= tolerance
-            logger.info(f"[GRADE] graph (draw_line): user_a={user_a:.4f} (expected {expected_a}, ok={a_ok}), user_b={user_b:.4f} (expected {expected_b}, ok={b_ok})")
-            is_correct = a_ok and b_ok
+            is_correct = _grade_line_from_points(points, correct, tolerance)
 
         elif question_type == 'draw_quadratic':
             # L'élève envoie 3 points, on calcule a, b, c de y = ax² + bx + c
@@ -1576,19 +1593,17 @@ def grade_graph(config, answer, max_points):
             x2, y2 = float(points[1]['x']), float(points[1]['y'])
             x3, y3 = float(points[2]['x']), float(points[2]['y'])
 
-            # Résolution du système 3x3 pour ax²+bx+c
-            # Utiliser la méthode de Cramer
             det = (x1**2*(x2 - x3) - x2**2*(x1 - x3) + x3**2*(x1 - x2))
             if abs(det) < 0.001:
                 logger.warning(f"[GRADE] graph (draw_quadratic): colinear or identical points")
-                return False, 0  # Points colinéaires ou identiques
+                return False, 0
             user_a = (y1*(x2 - x3) - y2*(x1 - x3) + y3*(x1 - x2)) / det
             user_b = (x1**2*(y2 - y3) - x2**2*(y1 - y3) + x3**2*(y1 - y2)) / det
             user_c = (x1**2*(x2*y3 - x3*y2) - x2**2*(x1*y3 - x3*y1) + x3**2*(x1*y2 - x2*y1)) / det
 
-            expected_a = correct.get('a', 0)
-            expected_b = correct.get('b', 0)
-            expected_c = correct.get('c', 0)
+            expected_a = float(correct.get('a', 0))
+            expected_b = float(correct.get('b', 0))
+            expected_c = float(correct.get('c', 0))
             a_ok = abs(user_a - expected_a) <= tolerance
             b_ok = abs(user_b - expected_b) <= tolerance
             c_ok = abs(user_c - expected_c) <= tolerance
@@ -1596,7 +1611,6 @@ def grade_graph(config, answer, max_points):
             is_correct = a_ok and b_ok and c_ok
 
         elif question_type == 'find_expression':
-            # L'élève saisit les coefficients directement
             coeffs = answer.get('coefficients', {})
             find_type = config.get('find_type', 'linear')
             user_a = float(coeffs.get('a', 0))
@@ -1609,10 +1623,10 @@ def grade_graph(config, answer, max_points):
                 user_c = float(coeffs.get('c', 0))
                 expected_c = float(correct.get('c', 0))
                 c_ok = abs(user_c - expected_c) <= tolerance
-                logger.info(f"[GRADE] graph (find_expression quadratic): user=[a={user_a:.4f}, b={user_b:.4f}, c={user_c:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}, c={expected_c:.4f}], ok=[a={a_ok}, b={b_ok}, c={c_ok}]")
+                logger.info(f"[GRADE] graph (find_expression quadratic): user=[a={user_a:.4f}, b={user_b:.4f}, c={user_c:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}, c={expected_c:.4f}]")
                 is_correct = a_ok and b_ok and c_ok
             else:
-                logger.info(f"[GRADE] graph (find_expression linear): user=[a={user_a:.4f}, b={user_b:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}], ok=[a={a_ok}, b={b_ok}]")
+                logger.info(f"[GRADE] graph (find_expression linear): user=[a={user_a:.4f}, b={user_b:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}]")
                 is_correct = a_ok and b_ok
         else:
             logger.error(f"[GRADE] graph: unknown question_type '{question_type}'")
