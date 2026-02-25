@@ -1505,10 +1505,10 @@ def grade_image_position(config, answer, max_points):
     if not zones:
         return True, max_points
 
-    # Default radius is 3% of image width, minimum 30px
-    # This scales better across different image sizes
+    # Default radius: use config value or 5% of image width, minimum 50px
+    # More forgiving for touch-based interactions on mobile
     image_width = config.get('image_width', 1000)
-    default_radius = max(config.get('default_radius', 30), int(image_width * 0.03))
+    default_radius = max(config.get('default_radius', 50), int(image_width * 0.05), 50)
 
     logger.info(f"[GRADE] image_position: image_width={image_width}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
 

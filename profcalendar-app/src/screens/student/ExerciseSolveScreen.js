@@ -246,20 +246,29 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
 
   useEffect(() => {
     if (imageUrl) {
-      Image.getSize(imageUrl, (w, h) => setImgNatural({ w, h }), () => {});
+      Image.getSize(
+        imageUrl,
+        (w, h) => {
+          console.log(`[ImageInteractive] Image loaded: natural=${w}x${h}, url=${imageUrl}`);
+          setImgNatural({ w, h });
+        },
+        (err) => console.log(`[ImageInteractive] Image.getSize FAILED: ${err}`)
+      );
     }
   }, [imageUrl]);
 
   const handleTouch = (evt) => {
-    if (disabled || !imgLayout || !imgNatural) return;
+    if (disabled) { console.log('[ImageInteractive] Touch ignored: disabled'); return; }
+    if (!imgLayout) { console.log('[ImageInteractive] Touch ignored: no imgLayout'); return; }
+    if (!imgNatural) { console.log('[ImageInteractive] Touch ignored: no imgNatural'); return; }
     const { locationX, locationY } = evt.nativeEvent;
     const scaleX = imgNatural.w / imgLayout.width;
     const scaleY = imgNatural.h / imgLayout.height;
     const x = Math.round(locationX * scaleX);
     const y = Math.round(locationY * scaleY);
 
-    console.log(`[ImageInteractive] Touch: display=(${locationX.toFixed(1)}, ${locationY.toFixed(1)}), natural=(${x}, ${y}), imgNatural=(${imgNatural.w}, ${imgNatural.h}), imgLayout=(${imgLayout.width.toFixed(1)}, ${imgLayout.height.toFixed(1)})`);
-    console.log(`[ImageInteractive] Zones config:`, JSON.stringify(zones));
+    console.log(`[ImageInteractive] Touch: display=(${locationX.toFixed(1)}, ${locationY.toFixed(1)}), natural=(${x}, ${y}), scale=(${scaleX.toFixed(2)}, ${scaleY.toFixed(2)})`);
+    console.log(`[ImageInteractive] Zones:`, JSON.stringify(zones));
 
     const expected = zones.length || 1;
     let newClicks = [...clicks];
@@ -270,56 +279,76 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
     onClicksChange(newClicks);
   };
 
-  const imgWidth = SCREEN_WIDTH - 48;
+  const imgWidth = SCREEN_WIDTH - 32;
   const imgHeight = imgNatural ? (imgWidth / imgNatural.w) * imgNatural.h : 300;
 
-  const renderCorrectZones = () => {
-    if (!correctZones || !imgLayout || !imgNatural) {
-      console.log(`[ImageInteractive] renderCorrectZones skipped: correctZones=${!!correctZones}, imgLayout=${!!imgLayout}, imgNatural=${!!imgNatural}`);
-      return null;
-    }
-    console.log(`[ImageInteractive] Rendering ${correctZones.length} correct zones:`, JSON.stringify(correctZones));
-    return correctZones.map((zone, zIdx) => {
-      let zonePoints = zone.points || [];
-      const zoneLabel = zone.label || '';
-      const radius = zone.radius || 30;
+  const onImgLayout = (e) => {
+    const layout = e.nativeEvent.layout;
+    console.log(`[ImageInteractive] Image onLayout: width=${layout.width}, height=${layout.height}`);
+    setImgLayout(layout);
+  };
 
-      // Backward compatibility: zone with direct x/y instead of points array
-      if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
-        zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
-      }
+  // Render correct zone overlays after feedback
+  const renderOverlays = () => {
+    const overlays = [];
 
-      if (zonePoints.length === 0) return null;
+    // Render correct zones (green circles) when feedback shown
+    if (correctZones && imgLayout && imgNatural) {
+      console.log(`[ImageInteractive] Rendering ${correctZones.length} correct zones`);
+      correctZones.forEach((zone, zIdx) => {
+        let zonePoints = zone.points || [];
+        const zoneLabel = zone.label || '';
+        const radius = zone.radius || 50;
 
-      return zonePoints.map((pt, pIdx) => {
-        const ptX = pt.x || 0;
-        const ptY = pt.y || 0;
-        const dispX = (ptX / imgNatural.w) * imgLayout.width;
-        const dispY = (ptY / imgNatural.h) * imgLayout.height;
-        const dispRadius = (radius / imgNatural.w) * imgLayout.width;
+        // Backward compatibility
+        if (zonePoints.length === 0 && (zone.x != null || zone.y != null)) {
+          zonePoints = [{ x: zone.x || 0, y: zone.y || 0 }];
+        }
 
-        return (
-          <View key={`correct-${zIdx}-${pIdx}`}>
-            <View
-              style={[
-                imgStyles.correctZone,
-                {
-                  left: dispX - dispRadius,
-                  top: dispY - dispRadius,
-                  width: dispRadius * 2,
-                  height: dispRadius * 2,
-                },
-              ]}
-            />
-            {pIdx === 0 && zoneLabel ? (
-              <View style={[imgStyles.correctLabel, { left: dispX - 30, top: dispY + dispRadius + 2 }]}>
+        console.log(`[ImageInteractive] Zone ${zIdx} "${zoneLabel}": ${zonePoints.length} points, radius=${radius}`);
+
+        zonePoints.forEach((pt, pIdx) => {
+          const ptX = typeof pt.x === 'number' ? pt.x : 0;
+          const ptY = typeof pt.y === 'number' ? pt.y : 0;
+          const dispX = (ptX / imgNatural.w) * imgLayout.width;
+          const dispY = (ptY / imgNatural.h) * imgLayout.height;
+          const dispRadius = Math.max((radius / Math.max(imgNatural.w, imgNatural.h)) * imgLayout.width, 20);
+
+          console.log(`[ImageInteractive] Zone ${zIdx} point ${pIdx}: natural=(${ptX},${ptY}) -> display=(${dispX.toFixed(1)},${dispY.toFixed(1)}), dispRadius=${dispRadius.toFixed(1)}`);
+
+          overlays.push(
+            <View key={`cz-${zIdx}-${pIdx}`} style={[imgStyles.correctZone, {
+              left: dispX - dispRadius, top: dispY - dispRadius,
+              width: dispRadius * 2, height: dispRadius * 2,
+            }]} />
+          );
+          if (pIdx === 0 && zoneLabel) {
+            overlays.push(
+              <View key={`cl-${zIdx}`} style={[imgStyles.correctLabel, { left: dispX - 30, top: dispY + dispRadius + 4 }]}>
                 <Text style={imgStyles.correctLabelText}>{zoneLabel}</Text>
               </View>
-            ) : null}
+            );
+          }
+        });
+      });
+    } else if (correctZones) {
+      console.log(`[ImageInteractive] correctZones present but can't render: imgLayout=${!!imgLayout}, imgNatural=${!!imgNatural}`);
+    }
+
+    // Render user click markers (red dots)
+    if (imgLayout && imgNatural) {
+      clicks.forEach((click, i) => {
+        const dispX = (click.x / imgNatural.w) * imgLayout.width;
+        const dispY = (click.y / imgNatural.h) * imgLayout.height;
+        overlays.push(
+          <View key={`mk-${i}`} style={[imgStyles.marker, { left: dispX - 14, top: dispY - 14 }]}>
+            <Text style={imgStyles.markerLabel}>{zones[i]?.label || (i + 1)}</Text>
           </View>
         );
       });
-    });
+    }
+
+    return overlays;
   };
 
   return (
@@ -339,20 +368,15 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
           source={{ uri: imageUrl }}
           style={{ width: imgWidth, height: imgHeight }}
           resizeMode="contain"
-          onLayout={(e) => setImgLayout(e.nativeEvent.layout)}
+          onLayout={onImgLayout}
         />
-        {renderCorrectZones()}
-        {clicks.map((click, i) => {
-          if (!imgLayout || !imgNatural) return null;
-          const dispX = (click.x / imgNatural.w) * imgLayout.width;
-          const dispY = (click.y / imgNatural.h) * imgLayout.height;
-          return (
-            <View key={i} style={[imgStyles.marker, { left: dispX - 14, top: dispY - 14 }]}>
-              <Text style={imgStyles.markerLabel}>{zones[i]?.label || (i + 1)}</Text>
-            </View>
-          );
-        })}
+        {renderOverlays()}
       </View>
+      {correctZones && correctZones.length > 0 && (
+        <Text style={{ fontSize: 12, color: '#10b981', fontWeight: '600', marginTop: 6, textAlign: 'center' }}>
+          Les cercles verts indiquent les zones correctes
+        </Text>
+      )}
     </View>
   );
 }
@@ -366,58 +390,44 @@ function GraphInteractive({ config, onPointsChange, disabled }) {
   const htmlContent = `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;flex-direction:column;align-items:center;height:100vh;touch-action:none;overflow:hidden}
-canvas{display:block}
-.zoom-bar{display:flex;gap:8px;padding:6px 0;justify-content:center}
-.zoom-btn{width:40px;height:36px;border:2px solid #d1d5db;border-radius:10px;background:#fff;font-size:20px;font-weight:700;color:#374151;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.zoom-btn:active{background:#eef2ff;border-color:#667eea}
-.zoom-label{font-size:12px;color:#9ca3af;display:flex;align-items:center;font-weight:600}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;align-items:center;justify-content:center;height:100vh;touch-action:none;overflow:hidden}canvas{display:block}</style>
 </head><body>
-<div class="zoom-bar">
-  <div class="zoom-btn" id="zout">-</div>
-  <div class="zoom-label" id="zlbl">x1</div>
-  <div class="zoom-btn" id="zin">+</div>
-  <div class="zoom-btn" id="zrst" style="font-size:14px;width:50px">Reset</div>
-</div>
 <canvas id="g"></canvas>
 <script>
 const c=${JSON.stringify(config)};const cv=document.getElementById('g');const x=cv.getContext('2d');
-const W=Math.min(window.innerWidth,600),H=Math.round(W*1.0),M=40,d=window.devicePixelRatio||2;cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
+const W=window.innerWidth,H=window.innerHeight,M=44,d=window.devicePixelRatio||2;
+cv.width=W*d;cv.height=H*d;cv.style.width=W+'px';cv.style.height=H+'px';x.scale(d,d);
 const isQ=c.question_type==='draw_quadratic',nP=isQ?3:2;
-const origXMin=c.x_min,origXMax=c.x_max,origYMin=c.y_min,origYMax=c.y_max;
-let zXMin=c.x_min,zXMax=c.x_max,zYMin=c.y_min,zYMax=c.y_max,zLvl=1;
-const xR=c.x_max-c.x_min,pts=[];
-for(let i=0;i<nP;i++)pts.push({x:Math.round(c.x_min+xR*(i+1)/(nP+1)),y:0});let dr=-1;
-let pinchDist=0,isPinch=false;
-function g2p(gx,gy){const gw=W-2*M,gh=H-2*M;return{px:M+((gx-zXMin)/(zXMax-zXMin))*gw,py:H-M-((gy-zYMin)/(zYMax-zYMin))*gh}}
-function p2g(px,py){const gw=W-2*M,gh=H-2*M;return{x:zXMin+((px-M)/gw)*(zXMax-zXMin),y:zYMin+((H-M-py)/gh)*(zYMax-zYMin)}}
-function setZoom(lvl){zLvl=Math.max(1,Math.min(lvl,5));const cx=(origXMin+origXMax)/2,cy=(origYMin+origYMax)/2;const hw=(origXMax-origXMin)/(2*zLvl),hh=(origYMax-origYMin)/(2*zLvl);zXMin=cx-hw;zXMax=cx+hw;zYMin=cy-hh;zYMax=cy+hh;document.getElementById('zlbl').textContent='x'+zLvl;draw()}
-document.getElementById('zin').onclick=()=>setZoom(zLvl+1);
-document.getElementById('zout').onclick=()=>setZoom(zLvl-1);
-document.getElementById('zrst').onclick=()=>setZoom(1);
-function stepForRange(range){if(range<=4)return 0.5;if(range<=10)return 1;if(range<=20)return 2;return 5}
+const xMin=c.x_min,xMax=c.x_max,yMin=c.y_min,yMax=c.y_max;
+const xR=xMax-xMin,pts=[];
+for(let i=0;i<nP;i++)pts.push({x:Math.round(xMin+xR*(i+1)/(nP+1)),y:0});
+let dr=-1;
+function g2p(gx,gy){const gw=W-2*M,gh=H-2*M;return{px:M+((gx-xMin)/(xMax-xMin))*gw,py:H-M-((gy-yMin)/(yMax-yMin))*gh}}
+function p2g(px,py){const gw=W-2*M,gh=H-2*M;return{x:xMin+((px-M)/gw)*(xMax-xMin),y:yMin+((H-M-py)/gh)*(yMax-yMin)}}
 function draw(){x.clearRect(0,0,W,H);x.fillStyle='#fafbfc';x.fillRect(0,0,W,H);
-const xStep=stepForRange(zXMax-zXMin),yStep=stepForRange(zYMax-zYMin);
 x.strokeStyle='#e5e7eb';x.lineWidth=1;
-for(let i=Math.ceil(zXMin/xStep)*xStep;i<=zXMax;i+=xStep){const p=g2p(i,0);x.beginPath();x.moveTo(p.px,M);x.lineTo(p.px,H-M);x.stroke()}
-for(let i=Math.ceil(zYMin/yStep)*yStep;i<=zYMax;i+=yStep){const p=g2p(0,i);x.beginPath();x.moveTo(M,p.py);x.lineTo(W-M,p.py);x.stroke()}
-const o=g2p(0,0);x.strokeStyle='#1f2937';x.lineWidth=2;x.beginPath();x.moveTo(M,Math.max(M,Math.min(H-M,o.py)));x.lineTo(W-M,Math.max(M,Math.min(H-M,o.py)));x.stroke();x.beginPath();x.moveTo(Math.max(M,Math.min(W-M,o.px)),M);x.lineTo(Math.max(M,Math.min(W-M,o.px)),H-M);x.stroke();
-x.fillStyle='#374151';x.font='bold 14px sans-serif';x.fillText(c.x_label||'x',W-M+8,Math.max(M,Math.min(H-M,o.py))+5);x.fillText(c.y_label||'y',Math.max(M,Math.min(W-M,o.px))+8,M-12);
-x.font='12px sans-serif';x.fillStyle='#6b7280';
-for(let i=Math.ceil(zXMin/xStep)*xStep;i<=zXMax;i+=xStep){if(Math.abs(i)<0.001)continue;const p=g2p(i,0);x.textAlign='center';x.fillText(xStep<1?i.toFixed(1):Math.round(i),p.px,Math.min(H-M+18,o.py+18))}
-x.textAlign='right';for(let i=Math.ceil(zYMin/yStep)*yStep;i<=zYMax;i+=yStep){if(Math.abs(i)<0.001)continue;const p=g2p(0,i);x.fillText(yStep<1?i.toFixed(1):Math.round(i),Math.max(M-2,o.px-8),p.py+4)}x.textAlign='left';
+for(let i=Math.ceil(xMin);i<=xMax;i++){const p=g2p(i,0);x.beginPath();x.moveTo(p.px,M);x.lineTo(p.px,H-M);x.stroke()}
+for(let i=Math.ceil(yMin);i<=yMax;i++){const p=g2p(0,i);x.beginPath();x.moveTo(M,p.py);x.lineTo(W-M,p.py);x.stroke()}
+const o=g2p(0,0);x.strokeStyle='#1f2937';x.lineWidth=2.5;
+x.beginPath();x.moveTo(M,Math.max(M,Math.min(H-M,o.py)));x.lineTo(W-M,Math.max(M,Math.min(H-M,o.py)));x.stroke();
+x.beginPath();x.moveTo(Math.max(M,Math.min(W-M,o.px)),M);x.lineTo(Math.max(M,Math.min(W-M,o.px)),H-M);x.stroke();
+x.fillStyle='#374151';x.font='bold 14px sans-serif';
+x.fillText(c.x_label||'x',W-M+6,Math.max(M,Math.min(H-M,o.py))+5);
+x.fillText(c.y_label||'y',Math.max(M,Math.min(W-M,o.px))+6,M-10);
+x.font='13px sans-serif';x.fillStyle='#6b7280';
+for(let i=Math.ceil(xMin);i<=xMax;i++){if(i===0)continue;const p=g2p(i,0);x.textAlign='center';x.fillText(i,p.px,Math.min(H-M+16,o.py+16))}
+x.textAlign='right';for(let i=Math.ceil(yMin);i<=yMax;i++){if(i===0)continue;const p=g2p(0,i);x.fillText(i,Math.max(M-4,o.px-6),p.py+4)}x.textAlign='left';
 let fn=null;if(isQ&&pts.length>=3){const[a,b,e]=pts;const dt=(a.x**2*(b.x-e.x)-b.x**2*(a.x-e.x)+e.x**2*(a.x-b.x));if(Math.abs(dt)>0.001){const ca=(a.y*(b.x-e.x)-b.y*(a.x-e.x)+e.y*(a.x-b.x))/dt;const cb=(a.x**2*(b.y-e.y)-b.x**2*(a.y-e.y)+e.x**2*(a.y-b.y))/dt;const cc=(a.x**2*(b.x*e.y-e.x*b.y)-b.x**2*(a.x*e.y-e.x*a.y)+e.x**2*(a.x*b.y-b.x*a.y))/dt;fn=v=>ca*v*v+cb*v+cc}}
 else if(pts.length>=2){const dx=pts[1].x-pts[0].x;if(Math.abs(dx)>0.001){const a=(pts[1].y-pts[0].y)/dx;const b=pts[0].y-a*pts[0].x;fn=v=>a*v+b}}
-if(fn&&!c.static_mode){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(zXMax-zXMin)/400;for(let i=zXMin;i<=zXMax;i+=st){const y=fn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}
-if(c.static_mode&&c.correct_answer){let sfn=null;const ca=c.correct_answer;if(c.question_type==='draw_quadratic'){sfn=v=>(ca.a||0)*v*v+(ca.b||0)*v+(ca.c||0)}else{sfn=v=>(ca.a||0)*v+(ca.b||0)}if(sfn){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(zXMax-zXMin)/400;for(let i=zXMin;i<=zXMax;i+=st){const y=sfn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}}
-if(!c.static_mode){pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);if(p.px<M-5||p.px>W-M+5||p.py<M-5||p.py>H-M+5)return;x.fillStyle=(i===dr)?'rgba(220,38,38,0.2)':'rgba(16,185,129,0.2)';x.beginPath();x.arc(p.px,p.py,18,0,Math.PI*2);x.fill();x.fillStyle=i===dr?'#dc2626':'#10b981';x.strokeStyle='white';x.lineWidth=3;x.beginPath();x.arc(p.px,p.py,12,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='white';x.font='bold 12px sans-serif';x.textAlign='center';x.fillText(String.fromCharCode(65+i),p.px,p.py+4);x.textAlign='left';x.fillStyle='#1e1b4b';x.font='bold 12px sans-serif';x.fillText('('+Math.round(pt.x*10)/10+', '+Math.round(pt.y*10)/10+')',p.px+18,p.py-6)})}}
+if(fn&&!c.static_mode){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(xMax-xMin)/400;for(let i=xMin;i<=xMax;i+=st){const y=fn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}
+if(c.static_mode&&c.correct_answer){let sfn=null;const ca=c.correct_answer;if(c.question_type==='draw_quadratic'){sfn=v=>(ca.a||0)*v*v+(ca.b||0)*v+(ca.c||0)}else{sfn=v=>(ca.a||0)*v+(ca.b||0)}if(sfn){x.strokeStyle='#667eea';x.lineWidth=3;x.lineCap='round';x.beginPath();let s=false;const st=(xMax-xMin)/400;for(let i=xMin;i<=xMax;i+=st){const y=sfn(i);const p=g2p(i,y);if(p.py<M-5||p.py>H-M+5){s=false;continue}if(!s){x.moveTo(p.px,p.py);s=true}else x.lineTo(p.px,p.py)}x.stroke()}}
+if(!c.static_mode){pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);if(p.px<M-5||p.px>W-M+5||p.py<M-5||p.py>H-M+5)return;x.fillStyle=(i===dr)?'rgba(220,38,38,0.2)':'rgba(16,185,129,0.2)';x.beginPath();x.arc(p.px,p.py,22,0,Math.PI*2);x.fill();x.fillStyle=i===dr?'#dc2626':'#10b981';x.strokeStyle='white';x.lineWidth=3;x.beginPath();x.arc(p.px,p.py,14,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='white';x.font='bold 13px sans-serif';x.textAlign='center';x.fillText(String.fromCharCode(65+i),p.px,p.py+5);x.textAlign='left';x.fillStyle='#1e1b4b';x.font='bold 13px sans-serif';x.fillText('('+pt.x+', '+pt.y+')',p.px+20,p.py-8)})}}
 function gXY(e){const r=cv.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const t=e.touches?e.touches[0]:e;return{px:(t.clientX-r.left)*sx,py:(t.clientY-r.top)*sy}}
 function sp(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'points',points:pts.map(p=>({x:p.x,y:p.y}))}))}
 const dis=${disabled ? 'true' : 'false'};
-function getDist(e){if(e.touches.length<2)return 0;const a=e.touches[0],b=e.touches[1];return Math.sqrt((a.clientX-b.clientX)**2+(a.clientY-b.clientY)**2)}
-cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;if(e.touches.length===2){isPinch=true;pinchDist=getDist(e);dr=-1;return}isPinch=false;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<30){dr=i;break}}},{passive:false});
-cv.addEventListener('touchmove',e=>{e.preventDefault();if(isPinch&&e.touches.length===2){const nd=getDist(e);if(pinchDist>0){const ratio=nd/pinchDist;if(ratio>1.15)setZoom(zLvl+1);else if(ratio<0.85)setZoom(zLvl-1);pinchDist=nd}return}if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);const snap=1;pts[dr].x=Math.round(g.x/snap)*snap;pts[dr].y=Math.round(g.y/snap)*snap;draw()},{passive:false});
-cv.addEventListener('touchend',e=>{if(isPinch){isPinch=e.touches.length>=2;pinchDist=0;return}dr=-1;draw();sp()});draw();sp();
+cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<40){dr=i;break}}},{passive:false});
+cv.addEventListener('touchmove',e=>{e.preventDefault();if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);pts[dr].x=Math.round(g.x);pts[dr].y=Math.round(g.y);draw()},{passive:false});
+cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});draw();sp();
 </script></body></html>`;
 
   const handleMessage = (event) => {
@@ -444,7 +454,6 @@ cv.addEventListener('touchend',e=>{if(isPinch){isPinch=e.touches.length>=2;pinch
           source={{ html: htmlContent }}
           style={graphStyles.webview}
           scrollEnabled={false}
-          scrollEventThrottle={16}
           bounces={false}
           onMessage={handleMessage}
           javaScriptEnabled={true}
@@ -1030,7 +1039,7 @@ const graphStyles = StyleSheet.create({
   container: {},
   hint: { fontSize: 14, color: '#374151', marginBottom: 4, lineHeight: 22 },
   question: { fontSize: 14, color: '#6b7280', marginBottom: 10, lineHeight: 22, fontStyle: 'italic' },
-  webviewWrap: { width: '100%', height: Math.round(SCREEN_WIDTH * 1.0) + 60, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  webviewWrap: { width: '100%', height: Math.round(SCREEN_WIDTH * 1.1), borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
   webview: { flex: 1, backgroundColor: '#fafbfc' },
 });
 
