@@ -12,7 +12,6 @@ import {
   Image,
   Dimensions,
   Animated,
-  PanResponder,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,112 +35,67 @@ function shuffleArray(arr) {
 // ============================================================
 // Drag & Drop Sorting — ORDER mode (tap-to-select, tap-to-place)
 // ============================================================
-function DraggableOrderList({ items, order, onReorder, disabled, onDragStart, onDragEnd }) {
-  const ITEM_H = 56;
-  const GAP = 6;
-  const SLOT = ITEM_H + GAP;
-  const [dragIdx, setDragIdx] = useState(-1);
-  const [hoverIdx, setHoverIdx] = useState(-1);
-  const dragYAnim = useRef(new Animated.Value(0)).current;
-  const containerRef = useRef(null);
-  const containerTop = useRef(0);
-  const orderRef = useRef(order);
-  orderRef.current = order;
+function DraggableOrderList({ items, order, onReorder, disabled }) {
+  const [selectedIdx, setSelectedIdx] = useState(-1);
 
-  // Measure container position once and on layout changes
-  const measureContainer = () => {
-    if (containerRef.current) {
-      containerRef.current.measureInWindow((x, y) => { containerTop.current = y; });
+  const handleTap = (pos) => {
+    if (disabled) return;
+    console.log(`[DragOrder] tap at position ${pos}, selectedIdx=${selectedIdx}`);
+    if (selectedIdx === -1) {
+      // First tap: select this item
+      setSelectedIdx(pos);
+      console.log(`[DragOrder] selected item at position ${pos}`);
+    } else if (selectedIdx === pos) {
+      // Tap same item: deselect
+      setSelectedIdx(-1);
+      console.log(`[DragOrder] deselected item at position ${pos}`);
+    } else {
+      // Second tap: move selected item to this position
+      const newOrder = [...order];
+      const moved = newOrder.splice(selectedIdx, 1)[0];
+      newOrder.splice(pos, 0, moved);
+      console.log(`[DragOrder] moved item from position ${selectedIdx} to ${pos}, new order=${newOrder}`);
+      onReorder(newOrder);
+      setSelectedIdx(-1);
     }
   };
 
-  // Single PanResponder for the whole list — detect which item based on Y coordinate
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => !disabled,
-    onMoveShouldSetPanResponder: (_, g) => !disabled && Math.abs(g.dy) > 8,
-    onPanResponderGrant: (evt, g) => {
-      // Calculate which item was pressed based on touch Y within container
-      // Account for the hint text height (~30px)
-      const hintOffset = 30;
-      const touchInContainer = g.y0 - containerTop.current - hintOffset;
-      const idx = Math.floor(touchInContainer / SLOT);
-      const clampedIdx = Math.max(0, Math.min(idx, orderRef.current.length - 1));
-      setDragIdx(clampedIdx);
-      setHoverIdx(clampedIdx);
-      // Position the ghost at the item's position
-      dragYAnim.setValue(hintOffset + clampedIdx * SLOT);
-      if (onDragStart) onDragStart();
-    },
-    onPanResponderMove: (evt, g) => {
-      // Move ghost to follow finger
-      const hintOffset = 30;
-      const fingerInContainer = g.moveY - containerTop.current - ITEM_H / 2;
-      dragYAnim.setValue(Math.max(0, fingerInContainer));
-      // Compute which slot the finger is over
-      const slotIdx = Math.floor((fingerInContainer - hintOffset + ITEM_H / 2) / SLOT);
-      const clamped = Math.max(0, Math.min(slotIdx, orderRef.current.length - 1));
-      setHoverIdx(clamped);
-    },
-    onPanResponderRelease: () => {
-      if (dragIdx >= 0 && hoverIdx >= 0 && dragIdx !== hoverIdx) {
-        const newOrder = [...orderRef.current];
-        const moved = newOrder.splice(dragIdx, 1)[0];
-        newOrder.splice(hoverIdx, 0, moved);
-        onReorder(newOrder);
-      }
-      setDragIdx(-1);
-      setHoverIdx(-1);
-      if (onDragEnd) onDragEnd();
-    },
-    onPanResponderTerminate: () => {
-      setDragIdx(-1);
-      setHoverIdx(-1);
-      if (onDragEnd) onDragEnd();
-    },
-  })).current;
-
   return (
-    <View ref={containerRef} style={dndStyles.container} onLayout={measureContainer}
-      {...panResponder.panHandlers}>
+    <View style={dndStyles.container}>
       <Text style={dndStyles.hint}>
-        Maintiens et glisse pour réordonner
+        Touche un élément pour le sélectionner, puis touche sa destination
       </Text>
       {order.map((origIdx, pos) => {
-        const isDragged = dragIdx === pos;
-        const isTarget = hoverIdx === pos && dragIdx >= 0 && dragIdx !== pos;
+        const isSelected = selectedIdx === pos;
+        const isTarget = selectedIdx >= 0 && selectedIdx !== pos;
         return (
-          <View
+          <TouchableOpacity
             key={`${origIdx}-${pos}`}
             style={[
               dndStyles.item,
-              { height: ITEM_H, marginBottom: GAP },
-              isDragged && { opacity: 0.3 },
+              { height: 56, marginBottom: 6 },
+              isSelected && dndStyles.itemSelected,
               isTarget && dndStyles.itemTarget,
             ]}
+            onPress={() => handleTap(pos)}
+            activeOpacity={0.7}
+            disabled={disabled}
           >
-            <View style={[dndStyles.grip, isDragged && dndStyles.gripSelected]}>
-              <Ionicons name="reorder-three" size={22} color={isDragged ? '#FFF' : '#9ca3af'} />
+            <View style={[dndStyles.grip, isSelected && dndStyles.gripSelected]}>
+              <Ionicons name="reorder-three" size={22} color={isSelected ? '#FFF' : '#9ca3af'} />
             </View>
             <Text style={dndStyles.num}>{pos + 1}.</Text>
-            <Text style={[dndStyles.text, isDragged && dndStyles.textSelected]}>
+            <Text style={[dndStyles.text, isSelected && dndStyles.textSelected]}>
               {items[origIdx]}
             </Text>
-          </View>
+            {isSelected && (
+              <View style={dndStyles.selectedBadge}>
+                <Ionicons name="checkmark" size={14} color="#FFF" />
+              </View>
+            )}
+          </TouchableOpacity>
         );
       })}
-      {/* Ghost item that follows the finger */}
-      {dragIdx >= 0 && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            dndStyles.dragGhost,
-            { top: 0, transform: [{ translateY: dragYAnim }] },
-          ]}
-        >
-          <Ionicons name="reorder-three" size={22} color="#FFF" />
-          <Text style={dndStyles.dragGhostText}>{items[order[dragIdx]]}</Text>
-        </Animated.View>
-      )}
     </View>
   );
 }
@@ -508,7 +462,6 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const [result, setResult] = useState(null);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [questionLocked, setQuestionLocked] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
 
@@ -534,6 +487,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     try {
       const res = await api.get(`/student/missions/${missionId}`);
       const m = res.data.mission;
+      console.log('[ExerciseSolveScreen] Mission loaded:', { id: m.id, title: m.title, blocks_count: m.blocks?.length });
+      console.log('[ExerciseSolveScreen] Mission blocks:', m.blocks?.map(b => ({ id: b.id, type: b.block_type, config: b.config_json })));
       setMission(m);
       initializeAnswers(m);
     } catch (err) {
@@ -668,10 +623,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       Alert.alert('Attention', 'Tu dois répondre avant de valider !');
       return;
     }
+    console.log(`[ExerciseSolveScreen] Validating block ${blockId} (${currentBlock.block_type}):`, answer);
     setChecking(true);
     try {
       const res = await api.post(`/student/missions/${missionId}/check-block`, { block_id: blockId, answer });
       const data = res.data;
+      console.log(`[ExerciseSolveScreen] Block check response for block ${blockId}:`, { is_correct: data.is_correct, points: data.points_earned });
       if (data.success) {
         setQuestionLocked(true);
         setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer } }));
@@ -680,6 +637,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         setXpEarned(prev => prev + data.points_earned);
       }
     } catch (err) {
+      console.log(`[ExerciseSolveScreen] Check block error for block ${blockId}:`, err.response?.data || err.message);
       Alert.alert('Erreur', 'Impossible de vérifier');
     } finally {
       setChecking(false);
@@ -702,10 +660,13 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         block_id: parseInt(blockId, 10),
         answer: answerData,
       }));
+      console.log('[ExerciseSolveScreen] Submitting all answers:', answersList);
       const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList });
+      console.log('[ExerciseSolveScreen] Submit response:', { score: res.data.score, max_score: res.data.max_score, percentage: res.data.percentage });
       setResult(res.data);
       setResultModal(true);
     } catch (err) {
+      console.log('[ExerciseSolveScreen] Submit error:', err.response?.data || err.message);
       Alert.alert('Erreur', 'Impossible de soumettre');
     } finally {
       setSubmitting(false);
@@ -789,8 +750,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       case 'sorting':
         if (c.mode === 'order') {
           return <DraggableOrderList items={c.items || []} order={answer.order || []}
-            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked}
-            onDragStart={() => setIsDragging(true)} onDragEnd={() => setIsDragging(false)} />;
+            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked} />;
         }
         return <DraggableCategoryList key={blockId} items={c.items || []} categories={c.categories || []}
           catAssignments={answer.categories || {}} onUpdate={(cats) => updateAnswer(blockId, { categories: cats })} disabled={isLocked} />;
@@ -911,7 +871,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} scrollEnabled={!isDragging}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {currentBlock && (
           <Animated.View style={[styles.blockContainer,
             currentFeedback?.is_correct === true && styles.blockCorrect,

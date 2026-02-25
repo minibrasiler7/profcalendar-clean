@@ -9,7 +9,6 @@ from functools import wraps
 from datetime import datetime, timedelta
 import jwt
 import os
-import random
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
@@ -1459,12 +1458,6 @@ def student_get_mission(mission_id):
     blocks_data = []
     for block in exercise.blocks.order_by(ExerciseBlock.position).all():
         config = block.config_json or {}
-
-        # Shuffle items for category sorting blocks
-        if config.get('mode') == 'categories' and 'items' in config and isinstance(config['items'], list):
-            shuffled_items = config['items'].copy()
-            random.shuffle(shuffled_items)
-            config = {**config, 'items': shuffled_items}
 
         blocks_data.append({
             'id': block.id,

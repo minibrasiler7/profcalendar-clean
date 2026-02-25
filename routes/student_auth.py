@@ -10,9 +10,12 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime, timedelta
 import string
 import random
+import logging
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+
+logger = logging.getLogger(__name__)
 
 student_auth_bp = Blueprint('student_auth', __name__, url_prefix='/student')
 
@@ -1444,11 +1447,16 @@ def grade_fill_blank(config, answer, max_points, accept_typos=False):
 
         if given == expected:
             correct_count += 1
+            logger.info(f"[GRADE] fill_blank blank #{i} CORRECT: expected='{expected}', given='{given}'")
         elif accept_typos and fuzzy_match(given, expected):
             correct_count += 1
+            logger.info(f"[GRADE] fill_blank blank #{i} FUZZY MATCH: expected='{expected}', given='{given}'")
+        else:
+            logger.warning(f"[GRADE] fill_blank blank #{i} INCORRECT: expected='{expected}', given='{given}'")
 
     ratio = correct_count / len(blanks) if blanks else 0
     points = round(ratio * max_points)
+    logger.info(f"[GRADE] fill_blank result: {correct_count}/{len(blanks)} correct, ratio={ratio}, points={points}")
     return ratio == 1.0, points
 
 
@@ -1458,6 +1466,7 @@ def grade_sorting(config, answer, max_points):
         correct_order = config.get('correct_order', [])
         user_order = [int(x) for x in user_order if str(x).isdigit()]
         is_correct = user_order == correct_order
+        logger.info(f"[GRADE] sorting (order mode) user_order={user_order}, correct_order={correct_order}, is_correct={is_correct}")
         return is_correct, max_points if is_correct else 0
     else:
         # Categories
@@ -1470,8 +1479,10 @@ def grade_sorting(config, answer, max_points):
             given = set(int(x) for x in user_cats.get(str(ci), []) if str(x).isdigit())
             total += len(expected)
             correct_count += len(expected & given)
+            logger.info(f"[GRADE] sorting (categories) category #{ci}: expected items={expected}, given items={given}, match count={len(expected & given)}")
 
         ratio = correct_count / total if total else 0
+        logger.info(f"[GRADE] sorting (categories) result: {correct_count}/{total} correct, ratio={ratio}")
         return ratio == 1.0, round(ratio * max_points)
 
 
@@ -1489,6 +1500,8 @@ def grade_image_position(config, answer, max_points):
     image_width = config.get('image_width', 1000)
     default_radius = max(config.get('default_radius', 30), int(image_width * 0.03))
 
+    logger.info(f"[GRADE] image_position: image_width={image_width}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
+
     correct_count = 0
 
     for i, zone in enumerate(zones):
@@ -1499,17 +1512,27 @@ def grade_image_position(config, answer, max_points):
         if not zone_points and 'x' in zone:
             zone_points = [{'x': zone['x'], 'y': zone['y']}]
 
+        logger.info(f"[GRADE] image_position zone #{i}: radius={zone_radius}, valid_points={zone_points}")
+
         if i < len(clicks):
             cx = clicks[i].get('x', 0)
             cy = clicks[i].get('y', 0)
+            logger.info(f"[GRADE] image_position zone #{i}: user_click=({cx}, {cy})")
             # Vérifier si le clic est dans le rayon d'au moins un des points de la zone
             for pt in zone_points:
                 distance = ((cx - pt.get('x', 0)) ** 2 + (cy - pt.get('y', 0)) ** 2) ** 0.5
+                logger.info(f"[GRADE] image_position zone #{i}: testing point={pt}, distance={distance:.2f}")
                 if distance <= zone_radius:
                     correct_count += 1
+                    logger.info(f"[GRADE] image_position zone #{i}: CORRECT (distance {distance:.2f} <= radius {zone_radius})")
                     break
+            else:
+                logger.warning(f"[GRADE] image_position zone #{i}: INCORRECT (all distances > radius {zone_radius})")
+        else:
+            logger.warning(f"[GRADE] image_position zone #{i}: NO CLICK provided")
 
     ratio = correct_count / len(zones) if zones else 0
+    logger.info(f"[GRADE] image_position result: {correct_count}/{len(zones)} correct, ratio={ratio}")
     return ratio == 1.0, round(ratio * max_points)
 
 
@@ -1520,26 +1543,34 @@ def grade_graph(config, answer, max_points):
     correct = config.get('correct_answer', {})
     question_type = config.get('question_type', 'draw_line')
 
+    logger.info(f"[GRADE] graph: question_type={question_type}, tolerance={tolerance}, expected={correct}")
+
     try:
         if question_type == 'draw_line':
             # L'élève envoie 2 points, on calcule a et b de y = ax + b
             points = answer.get('points', [])
             if len(points) < 2:
+                logger.warning(f"[GRADE] graph (draw_line): insufficient points ({len(points)} < 2)")
                 return False, 0
             x1, y1 = float(points[0]['x']), float(points[0]['y'])
             x2, y2 = float(points[1]['x']), float(points[1]['y'])
             if abs(x2 - x1) < 0.001:
+                logger.warning(f"[GRADE] graph (draw_line): vertical line not valid")
                 return False, 0  # droite verticale, pas un cas valide
             user_a = (y2 - y1) / (x2 - x1)
             user_b = y1 - user_a * x1
-            a_ok = abs(user_a - correct.get('a', 0)) <= tolerance
-            b_ok = abs(user_b - correct.get('b', 0)) <= tolerance
+            expected_a = correct.get('a', 0)
+            expected_b = correct.get('b', 0)
+            a_ok = abs(user_a - expected_a) <= tolerance
+            b_ok = abs(user_b - expected_b) <= tolerance
+            logger.info(f"[GRADE] graph (draw_line): user_a={user_a:.4f} (expected {expected_a}, ok={a_ok}), user_b={user_b:.4f} (expected {expected_b}, ok={b_ok})")
             is_correct = a_ok and b_ok
 
         elif question_type == 'draw_quadratic':
             # L'élève envoie 3 points, on calcule a, b, c de y = ax² + bx + c
             points = answer.get('points', [])
             if len(points) < 3:
+                logger.warning(f"[GRADE] graph (draw_quadratic): insufficient points ({len(points)} < 3)")
                 return False, 0
             x1, y1 = float(points[0]['x']), float(points[0]['y'])
             x2, y2 = float(points[1]['x']), float(points[1]['y'])
@@ -1549,32 +1580,48 @@ def grade_graph(config, answer, max_points):
             # Utiliser la méthode de Cramer
             det = (x1**2*(x2 - x3) - x2**2*(x1 - x3) + x3**2*(x1 - x2))
             if abs(det) < 0.001:
+                logger.warning(f"[GRADE] graph (draw_quadratic): colinear or identical points")
                 return False, 0  # Points colinéaires ou identiques
             user_a = (y1*(x2 - x3) - y2*(x1 - x3) + y3*(x1 - x2)) / det
             user_b = (x1**2*(y2 - y3) - x2**2*(y1 - y3) + x3**2*(y1 - y2)) / det
             user_c = (x1**2*(x2*y3 - x3*y2) - x2**2*(x1*y3 - x3*y1) + x3**2*(x1*y2 - x2*y1)) / det
 
-            a_ok = abs(user_a - correct.get('a', 0)) <= tolerance
-            b_ok = abs(user_b - correct.get('b', 0)) <= tolerance
-            c_ok = abs(user_c - correct.get('c', 0)) <= tolerance
+            expected_a = correct.get('a', 0)
+            expected_b = correct.get('b', 0)
+            expected_c = correct.get('c', 0)
+            a_ok = abs(user_a - expected_a) <= tolerance
+            b_ok = abs(user_b - expected_b) <= tolerance
+            c_ok = abs(user_c - expected_c) <= tolerance
+            logger.info(f"[GRADE] graph (draw_quadratic): user_a={user_a:.4f} (expected {expected_a}, ok={a_ok}), user_b={user_b:.4f} (expected {expected_b}, ok={b_ok}), user_c={user_c:.4f} (expected {expected_c}, ok={c_ok})")
             is_correct = a_ok and b_ok and c_ok
 
         elif question_type == 'find_expression':
             # L'élève saisit les coefficients directement
             coeffs = answer.get('coefficients', {})
             find_type = config.get('find_type', 'linear')
-            a_ok = abs(float(coeffs.get('a', 0)) - float(correct.get('a', 0))) <= tolerance
-            b_ok = abs(float(coeffs.get('b', 0)) - float(correct.get('b', 0))) <= tolerance
+            user_a = float(coeffs.get('a', 0))
+            user_b = float(coeffs.get('b', 0))
+            expected_a = float(correct.get('a', 0))
+            expected_b = float(correct.get('b', 0))
+            a_ok = abs(user_a - expected_a) <= tolerance
+            b_ok = abs(user_b - expected_b) <= tolerance
             if find_type == 'quadratic':
-                c_ok = abs(float(coeffs.get('c', 0)) - float(correct.get('c', 0))) <= tolerance
+                user_c = float(coeffs.get('c', 0))
+                expected_c = float(correct.get('c', 0))
+                c_ok = abs(user_c - expected_c) <= tolerance
+                logger.info(f"[GRADE] graph (find_expression quadratic): user=[a={user_a:.4f}, b={user_b:.4f}, c={user_c:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}, c={expected_c:.4f}], ok=[a={a_ok}, b={b_ok}, c={c_ok}]")
                 is_correct = a_ok and b_ok and c_ok
             else:
+                logger.info(f"[GRADE] graph (find_expression linear): user=[a={user_a:.4f}, b={user_b:.4f}], expected=[a={expected_a:.4f}, b={expected_b:.4f}], ok=[a={a_ok}, b={b_ok}]")
                 is_correct = a_ok and b_ok
         else:
+            logger.error(f"[GRADE] graph: unknown question_type '{question_type}'")
             is_correct = False
-    except (ValueError, TypeError, ZeroDivisionError):
+    except (ValueError, TypeError, ZeroDivisionError) as e:
+        logger.error(f"[GRADE] graph: exception {type(e).__name__}: {e}")
         is_correct = False
 
+    logger.info(f"[GRADE] graph result: is_correct={is_correct}, points={max_points if is_correct else 0}")
     return is_correct, max_points if is_correct else 0
 
 
