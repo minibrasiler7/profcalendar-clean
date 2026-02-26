@@ -278,17 +278,27 @@ function renderFileStructure(structure, classId, level = 0) {
         if (file.file_type === 'folder' && file.original_filename.startsWith('[Dossier vide:')) {
             return; // Ignorer ce fichier marqueur
         }
-        
-        const icon = getFileIcon(file.file_type);
-        html += `
-            <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
-                <i class="${icon} tree-item-icon"></i>
-                <span class="tree-item-name">${file.original_filename}</span>
-                <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId})" title="Supprimer">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
+
+        if (file.is_exercise) {
+            html += `
+                <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
+                    <i class="fas fa-gamepad tree-item-icon" style="color:#667eea;"></i>
+                    <span class="tree-item-name" style="color:#4338ca;font-weight:600;">${file.original_filename}</span>
+                    <span style="font-size:0.65rem;color:#6b7280;margin-left:0.3rem;">${file.total_points || 0} XP</span>
+                </div>
+            `;
+        } else {
+            const icon = getFileIcon(file.file_type);
+            html += `
+                <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
+                    <i class="${icon} tree-item-icon"></i>
+                    <span class="tree-item-name">${file.original_filename}</span>
+                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId})" title="Supprimer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }
     });
 
     return html;

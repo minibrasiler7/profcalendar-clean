@@ -216,7 +216,7 @@ def get_class_files(class_id):
             if not file.user_file:
                 # Fichier source supprimé, on ignore
                 continue
-                
+
             files_data.append({
                 'id': file.id,
                 'original_filename': file.user_file.original_filename,
@@ -225,6 +225,28 @@ def get_class_files(class_id):
                 'folder_name': file.folder_path,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             })
+
+        # Ajouter les exercices liés à cette classe
+        try:
+            from models.exercise import Exercise
+            class_exercises = Exercise.query.filter_by(
+                classroom_id=class_id
+            ).all()
+            for ex in class_exercises:
+                files_data.append({
+                    'id': f'exercise-{ex.id}',
+                    'exercise_id': ex.id,
+                    'original_filename': ex.title or 'Exercice sans titre',
+                    'file_type': 'exercise',
+                    'file_size': 0,
+                    'folder_name': None,
+                    'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
+                    'is_exercise': True,
+                    'total_points': ex.total_points,
+                    'block_count': ex.blocks.count() if ex.blocks else 0
+                })
+        except Exception:
+            pass
 
         return jsonify({
             'success': True,
