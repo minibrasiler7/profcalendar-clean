@@ -893,9 +893,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Folder picker modal -->
 <div class="modal-overlay" id="folder-modal" style="display: none;">
     <div class="modal-box">
-        <h3><i class="fas fa-folder-open"></i> Ranger dans un dossier</h3>
-        <p style="color:#6b7280;font-size:0.9rem;">Choisissez un dossier du gestionnaire de fichiers pour y ranger cet exercice :</p>
-        <div id="folder-list" style="max-height:300px;overflow-y:auto;margin:1rem 0;"></div>
+        <h3><i class="fas fa-folder-open"></i> Ranger dans un dossier ou une classe</h3>
+        <p style="color:#6b7280;font-size:0.9rem;">Choisissez une classe ou un dossier pour y ranger cet exercice :</p>
+        <div id="folder-list" style="max-height:350px;overflow-y:auto;margin:1rem 0;"></div>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeFolderModal()">Passer</button>
             <button class="btn btn-primary" id="folder-confirm-btn" onclick="confirmFolder()" disabled>
@@ -2123,74 +2123,117 @@ function showToast(message, type) {
 // FOLDER PICKER
 // ============================================================
 let selectedFolderId = null;
+let selectedClassroomId = null;
 
 async function showFolderModal() {
     const listEl = document.getElementById('folder-list');
     listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
     document.getElementById('folder-modal').style.display = 'flex';
     selectedFolderId = null;
+    selectedClassroomId = null;
     document.getElementById('folder-confirm-btn').disabled = true;
 
     try {
         const res = await fetch('{{ url_for("exercises.list_folders") }}');
         const data = await res.json();
         const folders = data.folders || [];
+        const classrooms = data.classrooms || [];
 
-        if (folders.length === 0) {
-            listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier. Créez un dossier dans le gestionnaire de fichiers d\'abord.</p>';
-            return;
+        let html = '';
+
+        // Section Classes
+        if (classrooms.length > 0) {
+            html += '<div style="font-weight:700;font-size:0.85rem;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-bottom:0.2rem;"><i class="fas fa-chalkboard-teacher"></i> Mes classes</div>';
+            classrooms.forEach(c => {
+                html += `<div class="folder-pick-item" data-classroom-id="${c.id}" onclick="pickClassroom(${c.id}, this)" style="padding:0.6rem 0.8rem;padding-left:1.6rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
+                    <i class="fas fa-users" style="color:#10b981;"></i>
+                    <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(c.name)}</span>
+                    ${c.subject ? `<span style="color:#9ca3af;font-size:0.8rem;">— ${escapeHtml(c.subject)}</span>` : ''}
+                </div>`;
+            });
         }
 
-        // Build tree: root folders then children
-        const rootFolders = folders.filter(f => !f.parent_id);
-        const childMap = {};
-        folders.forEach(f => {
-            if (f.parent_id) {
-                if (!childMap[f.parent_id]) childMap[f.parent_id] = [];
-                childMap[f.parent_id].push(f);
-            }
-        });
+        // Section Dossiers personnels
+        if (folders.length > 0) {
+            html += '<div style="font-weight:700;font-size:0.85rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-top:0.8rem;margin-bottom:0.2rem;border-top:1px solid #e5e7eb;padding-top:0.8rem;"><i class="fas fa-folder"></i> Mes dossiers</div>';
 
-        function renderFolder(f, depth) {
-            let html = `<div class="folder-pick-item" data-folder-id="${f.id}" onclick="pickFolder(${f.id}, this)" style="padding:0.6rem 0.8rem;padding-left:${0.8 + depth * 1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
-                <i class="fas fa-folder" style="color:${f.color || '#4F46E5'};"></i>
-                <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.name)}</span>
-            </div>`;
-            if (childMap[f.id]) {
-                childMap[f.id].forEach(child => { html += renderFolder(child, depth + 1); });
+            const rootFolders = folders.filter(f => !f.parent_id);
+            const childMap = {};
+            folders.forEach(f => {
+                if (f.parent_id) {
+                    if (!childMap[f.parent_id]) childMap[f.parent_id] = [];
+                    childMap[f.parent_id].push(f);
+                }
+            });
+
+            function renderFolder(f, depth) {
+                let h = `<div class="folder-pick-item" data-folder-id="${f.id}" onclick="pickFolder(${f.id}, this)" style="padding:0.6rem 0.8rem;padding-left:${1.6 + depth * 1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
+                    <i class="fas fa-folder" style="color:${f.color || '#4F46E5'};"></i>
+                    <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.name)}</span>
+                </div>`;
+                if (childMap[f.id]) {
+                    childMap[f.id].forEach(child => { h += renderFolder(child, depth + 1); });
+                }
+                return h;
             }
-            return html;
+
+            html += rootFolders.map(f => renderFolder(f, 0)).join('');
         }
 
-        listEl.innerHTML = rootFolders.map(f => renderFolder(f, 0)).join('');
+        if (!html) {
+            html = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier ni classe. Créez une classe ou un dossier d\'abord.</p>';
+        }
+
+        listEl.innerHTML = html;
     } catch(e) {
         listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>';
     }
 }
 
-function pickFolder(folderId, el) {
+function clearPickSelection() {
     document.querySelectorAll('.folder-pick-item').forEach(item => {
         item.style.background = '';
         item.style.color = '';
     });
+    selectedFolderId = null;
+    selectedClassroomId = null;
+}
+
+function pickFolder(folderId, el) {
+    clearPickSelection();
     el.style.background = '#eef2ff';
     el.style.color = '#4338ca';
     selectedFolderId = folderId;
     document.getElementById('folder-confirm-btn').disabled = false;
 }
 
+function pickClassroom(classroomId, el) {
+    clearPickSelection();
+    el.style.background = '#ecfdf5';
+    el.style.color = '#065f46';
+    selectedClassroomId = classroomId;
+    document.getElementById('folder-confirm-btn').disabled = false;
+}
+
 async function confirmFolder() {
-    if (!selectedFolderId || !exerciseId) return;
+    if ((!selectedFolderId && !selectedClassroomId) || !exerciseId) return;
     try {
+        const payload = { id: exerciseId };
+        if (selectedClassroomId) {
+            payload.classroom_id = selectedClassroomId;
+        }
+        if (selectedFolderId) {
+            payload.folder_id = selectedFolderId;
+        }
         await fetch('{{ url_for("exercises.save") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token() }}',
             },
-            body: JSON.stringify({ id: exerciseId, folder_id: selectedFolderId }),
+            body: JSON.stringify(payload),
         });
-        showToast('Exercice rangé dans le dossier', 'success');
+        showToast(selectedClassroomId ? 'Exercice ajouté à la classe' : 'Exercice rangé dans le dossier', 'success');
         closeFolderModal();
     } catch(e) {
         showToast('Erreur', 'error');

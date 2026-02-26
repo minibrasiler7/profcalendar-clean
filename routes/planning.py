@@ -2051,22 +2051,26 @@ def get_class_resources(classroom_id):
         from models.class_file import ClassFile
         from models.student import LegacyClassFile
         from models.classroom import Classroom
-        
+        from models.exercise import Exercise
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=classroom_id,
             user_id=current_user.id
         ).first()
-        
+
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-        
+
         # Récupérer les fichiers des DEUX systèmes
         new_class_files = ClassFile.query.filter_by(classroom_id=classroom_id).all()
         legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=classroom_id).all()
-        
-        total_files = len(new_class_files) + len(legacy_class_files)
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files = {total_files} total for classroom {classroom_id}")
+
+        # Récupérer les exercices liés à cette classe
+        class_exercises = Exercise.query.filter_by(classroom_id=classroom_id).all()
+
+        total_files = len(new_class_files) + len(legacy_class_files) + len(class_exercises)
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {classroom_id}")
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
         
         # Organiser les fichiers par structure hiérarchique
@@ -2116,9 +2120,27 @@ def get_class_resources(classroom_id):
             else:
                 files_data.append(file_data)
         
+        # Ajouter les exercices comme des fichiers spéciaux
+        for ex in class_exercises:
+            ex_data = {
+                'id': f'exercise-{ex.id}',
+                'exercise_id': ex.id,
+                'original_filename': ex.title or 'Exercice sans titre',
+                'file_type': 'exercise',
+                'file_size': 0,
+                'folder_path': '',
+                'is_pinned': False,
+                'pin_order': 0,
+                'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
+                'total_points': ex.total_points,
+                'block_count': ex.blocks.count() if ex.blocks else 0,
+                'is_exercise': True
+            }
+            files_data.append(ex_data)
+
         # Trier les fichiers épinglés par pin_order
         pinned_files.sort(key=lambda x: x['pin_order'])
-        
+
         return jsonify({
             'success': True,
             'pinned_files': pinned_files,

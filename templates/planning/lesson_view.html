@@ -2724,9 +2724,34 @@ function renderResourceTree(files) {
     
     // Afficher les fichiers
     regularFiles.forEach(file => {
+        // Exercice interactif
+        if (file.is_exercise) {
+            html += `
+                <div class="resource-item" data-file-id="${file.id}" style="border-left:3px solid #667eea;">
+                    <div class="resource-icon" style="background:#eef2ff;color:#667eea;">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="resource-info">
+                        <div class="resource-main">
+                            <div class="resource-name clickable-file" onclick="window.location.href='/exercises/edit/${file.exercise_id}'">
+                                <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                                ${file.original_filename}
+                            </div>
+                            <div class="resource-meta">
+                                <span>${file.total_points || 0} XP</span>
+                                <span>${file.block_count || 0} questions</span>
+                                ${file.uploaded_at ? `<span>${formatDate(file.uploaded_at)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         const isPinned = file.is_pinned;
         const isAnnotatable = ['pdf', 'png', 'jpg', 'jpeg'].includes(file.file_type.toLowerCase());
-        
+
         html += `
             <div class="resource-item ${isPinned ? 'pinned' : ''}" data-file-id="${file.id}">
                 <div class="resource-icon ${getResourceIconClass(file.file_type)}">
@@ -2734,7 +2759,7 @@ function renderResourceTree(files) {
                 </div>
                 <div class="resource-info">
                     <div class="resource-main">
-                        <div class="resource-name ${isAnnotatable ? 'clickable-file' : ''}" 
+                        <div class="resource-name ${isAnnotatable ? 'clickable-file' : ''}"
                              ${isAnnotatable ? `onclick="openFileViewer(${file.id}, '${file.original_filename}', '${file.file_type}')"` : ''}>
                             ${file.original_filename}
                         </div>
@@ -9955,15 +9980,28 @@ async function loadClassFilesTree(classroomId) {
                         </div>`;
 
                     filesByFolder[folder].forEach(file => {
-                        const icon = getFileIcon(file.file_type);
-                        const iconColor = getFileIconColor(file.file_type);
-                        html += `<div onclick="addFileResourceToPlanning(${file.id}, '${file.original_filename.replace(/'/g, "\\'")}', '${file.file_type}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;hover:background:#f9fafb;">
-                            <i class="fas fa-${icon}" style="color:${iconColor};"></i>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
-                            </div>
-                            <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
-                        </div>`;
+                        if (file.is_exercise) {
+                            html += `<div style="padding:0.6rem 0.8rem;border:1px solid #c7d2fe;border-left:3px solid #667eea;border-radius:8px;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.6rem;background:#f5f3ff;">
+                                <i class="fas fa-gamepad" style="color:#667eea;"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                        <span style="background:#eef2ff;color:#4338ca;font-size:0.55rem;font-weight:700;padding:0.1rem 0.2rem;border-radius:3px;margin-right:0.2rem;">EXERCICE</span>
+                                        ${file.original_filename}
+                                    </div>
+                                    <div style="font-size:0.7rem;color:#6b7280;">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
+                                </div>
+                            </div>`;
+                        } else {
+                            const icon = getFileIcon(file.file_type);
+                            const iconColor = getFileIconColor(file.file_type);
+                            html += `<div onclick="addFileResourceToPlanning(${file.id}, '${file.original_filename.replace(/'/g, "\\'")}', '${file.file_type}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;hover:background:#f9fafb;">
+                                <i class="fas fa-${icon}" style="color:${iconColor};"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
+                                </div>
+                                <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
+                            </div>`;
+                        }
                     });
                     html += '</div>';
                 });

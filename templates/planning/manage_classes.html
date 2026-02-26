@@ -8330,38 +8330,59 @@ function renderClassFiles(currentPath, classroomId = null) {
     
     // Afficher les fichiers
     filesToShow.forEach(file => {
-        const icon = getFileIcon(file.file_type);
-        const iconColor = getFileIconColor(file.file_type);
-        
-        html += `
-            <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}')">
-                <div class="item-icon">
-                    ${file.thumbnail 
-                        ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1" alt="${file.original_filename}" class="thumbnail">`
-                        : `<i class="${icon}" style="color: ${iconColor};"></i>`
-                    }
+        if (file.is_exercise) {
+            // Afficher les exercices avec un style spécial
+            html += `
+                <div class="file-item file" data-id="${file.exercise_id}" data-type="exercise" ondblclick="window.location.href='/exercises/edit/${file.exercise_id}'" style="border-left:3px solid #667eea;">
+                    <div class="item-icon">
+                        <i class="fas fa-gamepad" style="color: #667eea;"></i>
+                    </div>
+                    <div class="item-name" title="${file.original_filename}">
+                        <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                        ${file.original_filename}
+                    </div>
+                    <div class="item-info">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
+                    <div class="item-actions">
+                        <a href="/exercises/edit/${file.exercise_id}" class="action-btn" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
-                <div class="item-info">${formatFileSize(file.file_size)}</div>
-                <div class="item-actions">
-                    <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}')" title="Aperçu">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <a href="/api/class-files/download/${file.id}" class="action-btn" title="Télécharger">
-                        <i class="fas fa-download"></i>
-                    </a>
-                    <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
-                        <i class="fas fa-share"></i>
-                    </button>
-                    <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId})" title="Supprimer">
-                        <i class="fas fa-trash"></i>
-                    </button>
+            `;
+        } else {
+            const icon = getFileIcon(file.file_type);
+            const iconColor = getFileIconColor(file.file_type);
+
+            html += `
+                <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}')">
+                    <div class="item-icon">
+                        ${file.thumbnail
+                            ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1" alt="${file.original_filename}" class="thumbnail">`
+                            : `<i class="${icon}" style="color: ${iconColor};"></i>`
+                        }
+                    </div>
+                    <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
+                    <div class="item-info">${formatFileSize(file.file_size)}</div>
+                    <div class="item-actions">
+                        <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}')" title="Aperçu">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <a href="/api/class-files/download/${file.id}" class="action-btn" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
+                            <i class="fas fa-share"></i>
+                        </button>
+                        <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId})" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     });
     
     fileGrid.innerHTML = html;

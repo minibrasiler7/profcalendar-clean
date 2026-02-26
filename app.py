@@ -411,6 +411,7 @@ def create_app(config_name='development'):
             db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS accept_typos BOOLEAN DEFAULT FALSE"))
             db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_threshold INTEGER DEFAULT 100"))
             db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS folder_id INTEGER"))
+            db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS classroom_id INTEGER REFERENCES classrooms(id)"))
             db.session.commit()
         except Exception:
             db.session.rollback()

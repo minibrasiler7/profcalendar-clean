@@ -19,11 +19,13 @@ class Exercise(db.Model):
     bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
     badge_threshold = db.Column(db.Integer, default=100)  # % minimum pour badge
     folder_id = db.Column(db.Integer, nullable=True)  # Lien vers FileFolder du gestionnaire de fichiers
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=True)  # Lien vers une classe
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relations
     user = db.relationship('User', backref=db.backref('exercises', lazy='dynamic'))
+    classroom = db.relationship('Classroom', backref=db.backref('exercises', lazy='dynamic'), foreign_keys=[classroom_id])
     blocks = db.relationship('ExerciseBlock', backref='exercise', lazy='dynamic',
                              cascade='all, delete-orphan', order_by='ExerciseBlock.position')
 
