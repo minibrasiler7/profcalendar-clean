@@ -77,61 +77,69 @@ def save():
             exercise = Exercise(user_id=current_user.id)
             db.session.add(exercise)
 
-        # Mettre à jour les champs
-        exercise.title = data.get('title', 'Sans titre')
-        exercise.description = data.get('description', '')
-        exercise.subject = data.get('subject', '')
-        exercise.level = data.get('level', '')
-        exercise.accept_typos = data.get('accept_typos', False)
-        exercise.bonus_gold_threshold = data.get('bonus_gold_threshold', 80)
-        exercise.badge_threshold = data.get('badge_threshold', 100)
+        # Check if this is a folder-only update (only id + folder_id provided)
+        is_folder_only_update = exercise_id and 'folder_id' in data and 'blocks' not in data and 'title' not in data
 
-        exercise.is_draft = data.get('is_draft', True)
-        if 'folder_id' in data:
+        if is_folder_only_update:
+            # Only update folder association, don't touch anything else
             exercise.folder_id = data['folder_id'] if data['folder_id'] else None
-        exercise.updated_at = datetime.utcnow()
+            exercise.updated_at = datetime.utcnow()
+        else:
+            # Full update: update all fields
+            exercise.title = data.get('title', exercise.title if exercise_id else 'Sans titre')
+            exercise.description = data.get('description', exercise.description if exercise_id else '')
+            exercise.subject = data.get('subject', exercise.subject if exercise_id else '')
+            exercise.level = data.get('level', exercise.level if exercise_id else '')
+            exercise.accept_typos = data.get('accept_typos', exercise.accept_typos if exercise_id else False)
+            exercise.bonus_gold_threshold = data.get('bonus_gold_threshold', exercise.bonus_gold_threshold if exercise_id else 80)
+            exercise.badge_threshold = data.get('badge_threshold', exercise.badge_threshold if exercise_id else 100)
 
-        # Sauvegarder d'abord pour obtenir l'ID
-        db.session.flush()
+            exercise.is_draft = data.get('is_draft', True)
+            if 'folder_id' in data:
+                exercise.folder_id = data['folder_id'] if data['folder_id'] else None
+            exercise.updated_at = datetime.utcnow()
 
-        # Gérer les blocs
-        blocks_data = data.get('blocks', [])
-        existing_block_ids = set()
+            # Sauvegarder d'abord pour obtenir l'ID
+            db.session.flush()
 
-        for i, block_data in enumerate(blocks_data):
-            block_id = block_data.get('id')
-            if block_id:
-                # Mise à jour du bloc existant
-                block = ExerciseBlock.query.get(block_id)
-                if block and block.exercise_id == exercise.id:
-                    existing_block_ids.add(block_id)
-                else:
-                    block = None
+            # Gérer les blocs
+            blocks_data = data.get('blocks', [])
+            existing_block_ids = set()
 
-            if not block_id or not block:
-                # Nouveau bloc
-                block = ExerciseBlock(exercise_id=exercise.id)
-                db.session.add(block)
+            for i, block_data in enumerate(blocks_data):
+                block_id = block_data.get('id')
+                if block_id:
+                    # Mise à jour du bloc existant
+                    block = ExerciseBlock.query.get(block_id)
+                    if block and block.exercise_id == exercise.id:
+                        existing_block_ids.add(block_id)
+                    else:
+                        block = None
 
-            block.block_type = block_data.get('block_type', 'qcm')
-            block.position = i
-            block.title = block_data.get('title', '')
-            block.duration = block_data.get('duration')
-            block.config_json = block_data.get('config_json', {})
-            block.points = block_data.get('points', 10)
+                if not block_id or not block:
+                    # Nouveau bloc
+                    block = ExerciseBlock(exercise_id=exercise.id)
+                    db.session.add(block)
 
-            if not block_id:
-                db.session.flush()
-                existing_block_ids.add(block.id)
+                block.block_type = block_data.get('block_type', 'qcm')
+                block.position = i
+                block.title = block_data.get('title', '')
+                block.duration = block_data.get('duration')
+                block.config_json = block_data.get('config_json', {})
+                block.points = block_data.get('points', 10)
 
-        # Supprimer les blocs qui ne sont plus dans la liste
-        if exercise_id:
-            for old_block in exercise.blocks:
-                if old_block.id not in existing_block_ids:
-                    db.session.delete(old_block)
+                if not block_id:
+                    db.session.flush()
+                    existing_block_ids.add(block.id)
 
-        # Recalculer les points totaux
-        exercise.calculate_total_points()
+            # Supprimer les blocs qui ne sont plus dans la liste
+            if exercise_id:
+                for old_block in exercise.blocks:
+                    if old_block.id not in existing_block_ids:
+                        db.session.delete(old_block)
+
+            # Recalculer les points totaux
+            exercise.calculate_total_points()
 
         db.session.commit()
 
