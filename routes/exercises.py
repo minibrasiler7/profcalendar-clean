@@ -188,6 +188,13 @@ def publish_to_class():
     if not exercise_id or not classroom_id:
         return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
 
+    # Convertir en int pour éviter les erreurs SQL de type cast (VARCHAR vs INTEGER)
+    try:
+        exercise_id = int(exercise_id)
+        classroom_id = int(classroom_id)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'IDs invalides'}), 400
+
     exercise = Exercise.query.get(exercise_id)
     if not exercise or exercise.user_id != current_user.id:
         return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
