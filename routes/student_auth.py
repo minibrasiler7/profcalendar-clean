@@ -1528,7 +1528,7 @@ def grade_image_position(config, answer, max_points):
     config_radius = config.get('default_radius', 50)
     default_radius = max(config_radius, 40)
 
-    logger.info(f"[GRADE] image_position: image_width={image_width}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
+    logger.info(f"[GRADE] image_position: config_radius={config_radius}, default_radius={default_radius}, zones_count={len(zones)}, clicks_count={len(clicks)}")
     logger.info(f"[GRADE] image_position: full config zones={zones}")
     logger.info(f"[GRADE] image_position: full clicks={clicks}")
 
