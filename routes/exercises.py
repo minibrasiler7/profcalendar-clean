@@ -294,12 +294,20 @@ def unlink_from_class():
 @login_required
 @teacher_required
 def delete(exercise_id):
-    """Supprimer un exercice"""
+    """Supprimer un exercice et toutes ses publications/tentatives élèves"""
     exercise = Exercise.query.get_or_404(exercise_id)
     if exercise.user_id != current_user.id:
         return jsonify({'success': False, 'message': 'Non autorisé'}), 403
 
     try:
+        # Nettoyer explicitement les publications (retire des missions élèves)
+        try:
+            from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
+            ExercisePublication.query.filter_by(exercise_id=exercise_id).delete()
+            StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).delete()
+        except Exception:
+            pass
+
         db.session.delete(exercise)
         db.session.commit()
         return jsonify({'success': True, 'message': 'Exercice supprimé'})

@@ -297,8 +297,8 @@
                 <button class="card-action" onclick="openFolderPicker({{ ex.id }})" title="Ranger dans un dossier ou une classe">
                     <i class="fas fa-folder-plus" style="color:#667eea;"></i> Ranger
                 </button>
-                <button class="card-action delete" onclick="deleteExercise({{ ex.id }})">
-                    <i class="fas fa-trash"></i>
+                <button class="card-action delete" onclick="deleteExercise({{ ex.id }}, {{ 'true' if ex.is_published else 'false' }})">
+                    <i class="fas fa-trash"></i> Supprimer
                 </button>
             </div>
         </div>
@@ -345,8 +345,12 @@ function filterExercises(status, btn) {
     });
 }
 
-async function deleteExercise(id) {
-    if (!confirm('Supprimer cet exercice ?')) return;
+async function deleteExercise(id, isPublished) {
+    let msg = 'Supprimer cet exercice ?';
+    if (isPublished) {
+        msg = 'Cet exercice a été publié dans une ou plusieurs classes.\n\nLe supprimer le retirera aussi des missions des élèves (web et mobile).\n\nÊtes-vous sûr de vouloir le supprimer ?';
+    }
+    if (!confirm(msg)) return;
     try {
         const res = await fetch(`/exercises/${id}/delete`, {
             method: 'DELETE',
@@ -356,8 +360,10 @@ async function deleteExercise(id) {
         if (data.success) {
             document.querySelector(`.exercise-card[data-id="${id}"]`).remove();
             showToast('Exercice supprimé', 'success');
+        } else {
+            showToast(data.message || 'Erreur lors de la suppression', 'error');
         }
-    } catch(e) { showToast('Erreur', 'error'); }
+    } catch(e) { showToast('Erreur lors de la suppression', 'error'); }
 }
 
 async function duplicateExercise(id) {
