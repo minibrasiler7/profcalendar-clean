@@ -300,13 +300,13 @@ def delete(exercise_id):
         return jsonify({'success': False, 'message': 'Non autorisé'}), 403
 
     try:
-        # Nettoyer explicitement les publications (retire des missions élèves)
-        try:
-            from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
-            ExercisePublication.query.filter_by(exercise_id=exercise_id).delete()
-            StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).delete()
-        except Exception:
-            pass
+        # Nettoyer dans l'ordre inverse des FK:
+        # StudentBlockAnswer → StudentExerciseAttempt → ExercisePublication → Exercise
+        attempts = StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).all()
+        for attempt in attempts:
+            StudentBlockAnswer.query.filter_by(attempt_id=attempt.id).delete()
+        StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).delete()
+        ExercisePublication.query.filter_by(exercise_id=exercise_id).delete()
 
         db.session.delete(exercise)
         db.session.commit()
