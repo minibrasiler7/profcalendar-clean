@@ -229,6 +229,48 @@ def publish_to_class():
     return jsonify({'success': True, 'message': 'Exercice publié'})
 
 
+@exercises_bp.route('/unlink-from-class', methods=['POST'])
+@login_required
+@teacher_required
+def unlink_from_class():
+    """Retirer un exercice d'une classe (sans le supprimer)"""
+    data = request.get_json(silent=True) or {}
+    exercise_id = data.get('exercise_id')
+    classroom_id = data.get('classroom_id')
+
+    if not exercise_id or not classroom_id:
+        return jsonify({'success': False, 'error': 'exercise_id et classroom_id requis'}), 400
+
+    try:
+        exercise_id = int(exercise_id)
+        classroom_id = int(classroom_id)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'IDs invalides'}), 400
+
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Exercice non trouvé'}), 404
+
+    # Retirer le lien avec la classe
+    if exercise.classroom_id == classroom_id:
+        exercise.classroom_id = None
+
+    # Supprimer aussi l'ExercisePublication si elle existe
+    try:
+        from models.exercise_progress import ExercisePublication
+        pub = ExercisePublication.query.filter_by(
+            exercise_id=exercise_id,
+            classroom_id=classroom_id
+        ).first()
+        if pub:
+            db.session.delete(pub)
+    except Exception:
+        pass
+
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Exercice retiré de la classe'})
+
+
 @exercises_bp.route('/<int:exercise_id>/delete', methods=['DELETE'])
 @login_required
 @teacher_required

@@ -285,6 +285,9 @@ function renderFileStructure(structure, classId, level = 0) {
                     <i class="fas fa-gamepad tree-item-icon" style="color:#667eea;"></i>
                     <span class="tree-item-name" style="color:#4338ca;font-weight:600;">${file.original_filename}</span>
                     <span style="font-size:0.65rem;color:#6b7280;margin-left:0.3rem;">${file.total_points || 0} XP</span>
+                    <button class="tree-file-delete" onclick="unlinkExerciseFromClass(${file.exercise_id}, ${classId})" title="Retirer de la classe">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
             `;
         } else {
@@ -782,6 +785,27 @@ async function publishExerciseToClassFolder(exerciseId, classId, folderPath) {
         }
     } catch (error) {
         showNotification('error', 'Erreur lors de la publication');
+    }
+}
+
+// Retirer un exercice d'une classe (sans le supprimer)
+async function unlinkExerciseFromClass(exerciseId, classId) {
+    if (!confirm('Retirer cet exercice de la classe ? (L\'exercice ne sera pas supprimé)')) return;
+    try {
+        const response = await fetch('/exercises/unlink-from-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_id: exerciseId, classroom_id: classId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('success', 'Exercice retiré de la classe');
+            await loadClassTree(classId);
+        } else {
+            showNotification('error', result.error || 'Erreur');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors du retrait');
     }
 }
 
