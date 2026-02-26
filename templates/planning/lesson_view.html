@@ -2452,9 +2452,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Escape pour annuler l'édition
+        // Escape pour annuler l'édition (sauf si le viewer PDF est ouvert)
         if (e.key === 'Escape' && isEditingPlanning) {
-            cancelPlanningEdit();
+            const pdfModal = document.getElementById('fileViewerModal');
+            const pdfModalVisible = pdfModal && (pdfModal.style.display === 'flex' || pdfModal.classList.contains('show'));
+            if (!pdfModalVisible) {
+                cancelPlanningEdit();
+            }
         }
     });
 });
@@ -3108,19 +3112,20 @@ if (typeof pdfjsLib === 'undefined') {
 // Fonction openFileViewer redirigée vers le nouveau lecteur unifié
 async function openFileViewer(fileId, filename, fileType) {
     console.log('🔄 Redirection vers le lecteur unifié:', filename, fileType);
-    
-    // Si l'éditeur de planification est actif, ouvrir en vue split
-    if (isEditingPlanning) {
-        openSplitView(fileId, filename, fileType);
-        return;
-    }
-    
-    // Pour les PDF, utiliser le nouveau lecteur unifié
+
+    // Pour les PDF, toujours utiliser le lecteur unifié en modal overlay
+    // (fonctionne aussi pendant l'édition de la planification)
     if (fileType.toLowerCase() === 'pdf') {
         openFileWithUnifiedViewer(fileId, filename);
         return;
     }
-    
+
+    // Pour les images annotables, ouvrir aussi avec le viewer unifié
+    if (['png', 'jpg', 'jpeg'].includes(fileType.toLowerCase())) {
+        openFileWithUnifiedViewer(fileId, filename);
+        return;
+    }
+
     // Pour les autres types de fichiers, rediriger vers l'ouverture simple
     window.open(`/file_manager/serve_file/${encodeURIComponent(fileId)}`, '_blank');
 }
@@ -9205,6 +9210,12 @@ function openFileWithUnifiedViewer(filePath, fileName) {
                     if (viewerContainer) {
                         viewerContainer.style.display = 'none';
                     }
+                    // Masquer la modal parente
+                    const modalToClose = document.getElementById('fileViewerModal');
+                    if (modalToClose) {
+                        modalToClose.style.display = 'none';
+                    }
+                    document.body.style.overflow = '';
                     cleanPDFViewer = null;
                     currentPDFUrl = null;
                 }
