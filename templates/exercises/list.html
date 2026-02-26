@@ -291,11 +291,12 @@
                 <button class="card-action" onclick="duplicateExercise({{ ex.id }})">
                     <i class="fas fa-copy"></i> Dupliquer
                 </button>
-                {% if not ex.is_published %}
                 <button class="card-action publish" onclick="quickPublish({{ ex.id }})">
                     <i class="fas fa-paper-plane"></i> Publier
                 </button>
-                {% endif %}
+                <button class="card-action" onclick="openFolderPicker({{ ex.id }})" title="Ranger dans un dossier ou une classe">
+                    <i class="fas fa-folder-plus" style="color:#667eea;"></i> Ranger
+                </button>
                 <button class="card-action delete" onclick="deleteExercise({{ ex.id }})">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -313,6 +314,21 @@
         </a>
     </div>
     {% endif %}
+</div>
+
+<!-- Folder/Class picker modal -->
+<div id="folder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-folder-open"></i> Ranger dans un dossier ou une classe</h3>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Choisissez où placer cet exercice :</p>
+        <div id="folder-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button class="btn" onclick="closeFolderModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
+            <button class="btn btn-primary" id="folder-confirm-btn" onclick="confirmFolderPick()" disabled>
+                <i class="fas fa-check"></i> Ranger ici
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -360,6 +376,105 @@ async function duplicateExercise(id) {
 
 function quickPublish(id) {
     window.location.href = `/exercises/${id}/edit`;
+}
+
+// === Folder/Class picker ===
+let pickerExerciseId = null;
+let pickerSelectedFolderId = null;
+let pickerSelectedClassroomId = null;
+
+function openFolderPicker(exerciseId) {
+    pickerExerciseId = exerciseId;
+    pickerSelectedFolderId = null;
+    pickerSelectedClassroomId = null;
+    document.getElementById('folder-confirm-btn').disabled = true;
+    const modal = document.getElementById('folder-modal');
+    modal.style.display = 'flex';
+    const listEl = document.getElementById('folder-list');
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+
+    fetch('/exercises/folders-and-classes')
+        .then(r => r.json())
+        .then(data => {
+            const folders = data.folders || [];
+            const classrooms = data.classrooms || [];
+            let html = '';
+
+            if (classrooms.length > 0) {
+                html += '<div style="font-weight:700;font-size:0.8rem;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-bottom:0.2rem;"><i class="fas fa-chalkboard-teacher"></i> Mes classes</div>';
+                classrooms.forEach(c => {
+                    html += `<div class="pick-item" data-type="class" data-id="${c.id}" onclick="pickItem('class',${c.id},this)" style="padding:0.5rem 0.8rem;padding-left:1.6rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-users" style="color:#10b981;"></i>
+                        <span style="font-weight:600;font-size:0.85rem;">${c.name}</span>
+                        ${c.subject ? `<span style="color:#9ca3af;font-size:0.75rem;">— ${c.subject}</span>` : ''}
+                    </div>`;
+                });
+            }
+
+            if (folders.length > 0) {
+                html += '<div style="font-weight:700;font-size:0.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-top:0.6rem;margin-bottom:0.2rem;border-top:1px solid #e5e7eb;padding-top:0.6rem;"><i class="fas fa-folder"></i> Mes dossiers</div>';
+                const roots = folders.filter(f => !f.parent_id);
+                const childMap = {};
+                folders.forEach(f => { if (f.parent_id) { (childMap[f.parent_id] = childMap[f.parent_id] || []).push(f); } });
+
+                function renderF(f, d) {
+                    let h = `<div class="pick-item" data-type="folder" data-id="${f.id}" onclick="pickItem('folder',${f.id},this)" style="padding:0.5rem 0.8rem;padding-left:${1.6+d*1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;display:flex;align-items:center;gap:0.5rem;">
+                        <i class="fas fa-folder" style="color:${f.color||'#4F46E5'};"></i>
+                        <span style="font-weight:600;font-size:0.85rem;">${f.name}</span>
+                    </div>`;
+                    if (childMap[f.id]) childMap[f.id].forEach(c => { h += renderF(c, d+1); });
+                    return h;
+                }
+                html += roots.map(f => renderF(f, 0)).join('');
+            }
+
+            if (!html) html = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier ni classe.</p>';
+            listEl.innerHTML = html;
+        })
+        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>'; });
+}
+
+function pickItem(type, id, el) {
+    document.querySelectorAll('.pick-item').forEach(i => { i.style.background = ''; i.style.color = ''; });
+    pickerSelectedFolderId = null;
+    pickerSelectedClassroomId = null;
+    if (type === 'class') {
+        el.style.background = '#ecfdf5'; el.style.color = '#065f46';
+        pickerSelectedClassroomId = id;
+    } else {
+        el.style.background = '#eef2ff'; el.style.color = '#4338ca';
+        pickerSelectedFolderId = id;
+    }
+    document.getElementById('folder-confirm-btn').disabled = false;
+}
+
+async function confirmFolderPick() {
+    if (!pickerExerciseId || (!pickerSelectedFolderId && !pickerSelectedClassroomId)) return;
+    try {
+        if (pickerSelectedClassroomId) {
+            const res = await fetch('/exercises/publish-to-class', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify({ exercise_id: pickerExerciseId, classroom_id: pickerSelectedClassroomId })
+            });
+            const data = await res.json();
+            if (data.success) { showToast('Exercice ajouté à la classe', 'success'); }
+            else { showToast(data.error || 'Erreur', 'error'); }
+        }
+        if (pickerSelectedFolderId) {
+            await fetch('/exercises/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify({ id: pickerExerciseId, folder_id: pickerSelectedFolderId })
+            });
+            showToast('Exercice rangé dans le dossier', 'success');
+        }
+        closeFolderModal();
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+function closeFolderModal() {
+    document.getElementById('folder-modal').style.display = 'none';
 }
 
 function showToast(message, type) {

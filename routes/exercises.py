@@ -176,6 +176,25 @@ def list_folders():
         return jsonify({'success': True, 'folders': []})
 
 
+@exercises_bp.route('/folders-and-classes', methods=['GET'])
+@login_required
+@teacher_required
+def list_folders_and_classes():
+    """Lister les dossiers ET les classes de l'utilisateur (pour le picker de la page liste)"""
+    try:
+        from models.file_manager import FileFolder
+        from models.classroom import Classroom
+        folders = FileFolder.query.filter_by(user_id=current_user.id).order_by(FileFolder.name).all()
+        classrooms = Classroom.query.filter_by(user_id=current_user.id).order_by(Classroom.name).all()
+        return jsonify({
+            'success': True,
+            'folders': [{'id': f.id, 'name': f.name, 'parent_id': f.parent_id, 'color': f.color} for f in folders],
+            'classrooms': [{'id': c.id, 'name': c.name, 'subject': c.subject} for c in classrooms]
+        })
+    except Exception:
+        return jsonify({'success': True, 'folders': [], 'classrooms': []})
+
+
 @exercises_bp.route('/publish-to-class', methods=['POST'])
 @login_required
 @teacher_required
@@ -209,7 +228,7 @@ def publish_to_class():
     ).first()
 
     if existing:
-        return jsonify({'success': False, 'error': 'Déjà publié dans cette classe'})
+        return jsonify({'success': True, 'message': 'Exercice déjà dans cette classe'})
 
     pub = ExercisePublication(
         exercise_id=exercise.id,
