@@ -922,7 +922,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="katex-button-group">
             <div class="katex-button-group-title"><i class="fas fa-icons"></i> Symboles</div>
             <div class="katex-buttons-grid">
-                <button class="katex-btn" onclick="insertKaTeX('\\\\frac{}{}')" title="Fraction">
+                <button class="katex-btn" onclick="insertKaTeX('\\frac{}{}')" title="Fraction">
                     <i class="fas fa-divide"></i>
                     <span>Fraction</span>
                 </button>
@@ -934,43 +934,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-subscript"></i>
                     <span>Indice</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\sqrt{}')" title="Racine carrée">
+                <button class="katex-btn" onclick="insertKaTeX('\\sqrt{}')" title="Racine carrée">
                     <i class="fas fa-square-root-alt"></i>
                     <span>Racine</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\pi')" title="Pi">
+                <button class="katex-btn" onclick="insertKaTeX('\\pi')" title="Pi">
                     <span>π</span>
                     <span>Pi</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\times')" title="Multiplication">
+                <button class="katex-btn" onclick="insertKaTeX('\\times')" title="Multiplication">
                     <span>×</span>
                     <span>Mult.</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\div')" title="Division">
+                <button class="katex-btn" onclick="insertKaTeX('\\div')" title="Division">
                     <span>÷</span>
                     <span>Div.</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\pm')" title="Plus ou moins">
+                <button class="katex-btn" onclick="insertKaTeX('\\pm')" title="Plus ou moins">
                     <span>±</span>
                     <span>±</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\infty')" title="Infini">
+                <button class="katex-btn" onclick="insertKaTeX('\\infty')" title="Infini">
                     <span>∞</span>
                     <span>Infini</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\leq')" title="Inférieur ou égal">
+                <button class="katex-btn" onclick="insertKaTeX('\\leq')" title="Inférieur ou égal">
                     <span>≤</span>
                     <span>≤</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\geq')" title="Supérieur ou égal">
+                <button class="katex-btn" onclick="insertKaTeX('\\geq')" title="Supérieur ou égal">
                     <span>≥</span>
                     <span>≥</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\neq')" title="Différent de">
+                <button class="katex-btn" onclick="insertKaTeX('\\neq')" title="Différent de">
                     <span>≠</span>
                     <span>≠</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\rightarrow')" title="Flèche">
+                <button class="katex-btn" onclick="insertKaTeX('\\rightarrow')" title="Flèche">
                     <span>→</span>
                     <span>Flèche</span>
                 </button>
@@ -981,19 +981,19 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="katex-button-group">
             <div class="katex-button-group-title"><i class="fas fa-building"></i> Structures</div>
             <div class="katex-buttons-grid">
-                <button class="katex-btn" onclick="insertKaTeX('\\\\int')" title="Intégrale">
+                <button class="katex-btn" onclick="insertKaTeX('\\int')" title="Intégrale">
                     <span>∫</span>
                     <span>Intégrale</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\sum')" title="Somme">
+                <button class="katex-btn" onclick="insertKaTeX('\\sum')" title="Somme">
                     <span>∑</span>
                     <span>Somme</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\lim')" title="Limite">
+                <button class="katex-btn" onclick="insertKaTeX('\\lim')" title="Limite">
                     <i class="fas fa-arrow-right"></i>
                     <span>Limite</span>
                 </button>
-                <button class="katex-btn" onclick="insertKaTeX('\\\\begin{pmatrix}\\\\end{pmatrix}')" title="Matrice">
+                <button class="katex-btn" onclick="insertKaTeX('\\begin{pmatrix}\\end{pmatrix}')" title="Matrice">
                     <i class="fas fa-border-all"></i>
                     <span>Matrice</span>
                 </button>
@@ -2308,8 +2308,8 @@ function insertKaTeX(latexCode) {
     let insertedLatex;
     if (start !== end) {
         const selectedText = text.substring(start, end);
-        if (latexCode === '\\\\frac{}{}') {
-            insertedLatex = '\\\\frac{' + selectedText + '}{}';
+        if (latexCode === '\\frac{}{}') {
+            insertedLatex = '\\frac{' + selectedText + '}{}';
         } else if (latexCode === '^{}') {
             insertedLatex = selectedText + '^{}';
         } else if (latexCode === '_{}') {
@@ -2332,14 +2332,14 @@ function insertKaTeX(latexCode) {
     let newCursorPos = start + 1 + insertedLatex.length; // +1 for opening $
 
     // For commands with placeholders, position cursor inside first placeholder
-    if (latexCode === '\\\\frac{}{}') {
-        newCursorPos = start + 1 + 6; // Position inside first {} (+1 for opening $)
+    if (latexCode === '\\frac{}{}') {
+        newCursorPos = start + 1 + latexCode.indexOf('{') + 1; // Inside first {} (+1 for opening $)
     } else if (latexCode === '^{}' || latexCode === '_{}') {
         newCursorPos = start + 1 + insertedLatex.length - 1; // Inside {} (+1 for opening $)
-    } else if (latexCode === '\\\\sqrt{}') {
-        newCursorPos = start + 1 + 7; // Inside {} (+1 for opening $)
-    } else if (latexCode === '\\\\begin{pmatrix}\\\\end{pmatrix}') {
-        newCursorPos = start + 1 + 16; // Inside pmatrix (+1 for opening $)
+    } else if (latexCode === '\\sqrt{}') {
+        newCursorPos = start + 1 + latexCode.indexOf('{') + 1; // Inside {} (+1 for opening $)
+    } else if (latexCode === '\\begin{pmatrix}\\end{pmatrix}') {
+        newCursorPos = start + 1 + latexCode.indexOf('}') + 1; // After first pmatrix (+1 for opening $)
     }
 
     setTimeout(() => {
