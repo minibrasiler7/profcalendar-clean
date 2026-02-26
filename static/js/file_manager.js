@@ -672,15 +672,22 @@ function handleFolderDragStart(e) {
     e.target.classList.add('dragging');
 }
 
-// Gestion du début de drag d'un fichier
+// Gestion du début de drag d'un fichier ou exercice
 function handleFileDragStart(e) {
     if (isDeleteMode) {
         e.preventDefault();
         return;
     }
 
-    const fileId = e.target.dataset.id;
-    e.dataTransfer.setData('text/plain', `file:${fileId}`);
+    const item = e.target.closest('.file-item');
+    const itemId = item ? item.dataset.id : e.target.dataset.id;
+    const itemType = item ? item.dataset.type : 'file';
+
+    if (itemType === 'exercise') {
+        e.dataTransfer.setData('text/plain', `exercise:${itemId}`);
+    } else {
+        e.dataTransfer.setData('text/plain', `file:${itemId}`);
+    }
     e.target.classList.add('dragging');
 }
 

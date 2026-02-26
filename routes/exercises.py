@@ -77,15 +77,12 @@ def save():
             exercise = Exercise(user_id=current_user.id)
             db.session.add(exercise)
 
-        # Check if this is a folder/classroom-only update (only id + folder_id/classroom_id provided)
-        is_folder_only_update = exercise_id and ('folder_id' in data or 'classroom_id' in data) and 'blocks' not in data and 'title' not in data
+        # Check if this is a folder-only update (only id + folder_id provided)
+        is_folder_only_update = exercise_id and 'folder_id' in data and 'blocks' not in data and 'title' not in data
 
         if is_folder_only_update:
-            # Only update folder/classroom association, don't touch anything else
-            if 'folder_id' in data:
-                exercise.folder_id = data['folder_id'] if data['folder_id'] else None
-            if 'classroom_id' in data:
-                exercise.classroom_id = data['classroom_id'] if data['classroom_id'] else None
+            # Only update folder association, don't touch anything else
+            exercise.folder_id = data['folder_id'] if data['folder_id'] else None
             exercise.updated_at = datetime.utcnow()
         else:
             # Full update: update all fields
@@ -162,12 +159,10 @@ def save():
 @login_required
 @teacher_required
 def list_folders():
-    """Lister les dossiers du gestionnaire de fichiers ET les classes de l'utilisateur"""
+    """Lister les dossiers du gestionnaire de fichiers de l'utilisateur"""
     try:
         from models.file_manager import FileFolder
-        from models.classroom import Classroom
         folders = FileFolder.query.filter_by(user_id=current_user.id).order_by(FileFolder.name).all()
-        classrooms = Classroom.query.filter_by(user_id=current_user.id).order_by(Classroom.name).all()
         return jsonify({
             'success': True,
             'folders': [{
@@ -175,15 +170,10 @@ def list_folders():
                 'name': f.name,
                 'parent_id': f.parent_id,
                 'color': f.color,
-            } for f in folders],
-            'classrooms': [{
-                'id': c.id,
-                'name': c.name,
-                'subject': c.subject,
-            } for c in classrooms]
+            } for f in folders]
         })
     except Exception as e:
-        return jsonify({'success': True, 'folders': [], 'classrooms': []})
+        return jsonify({'success': True, 'folders': []})
 
 
 @exercises_bp.route('/publish-to-class', methods=['POST'])
@@ -223,9 +213,10 @@ def publish_to_class():
     )
     db.session.add(pub)
 
-    # Marquer comme publié
+    # Marquer comme publié et lier à la classe
     exercise.is_published = True
     exercise.is_draft = False
+    exercise.classroom_id = int(classroom_id)
 
     db.session.commit()
     return jsonify({'success': True, 'message': 'Exercice publié'})
