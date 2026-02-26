@@ -1111,7 +1111,7 @@ function getDefaultConfig(type) {
             return { image_file_id: null, image_url: '', zones: [], default_radius: 50 };
         case 'graph':
             return { graph_type: 'cartesian', x_label: 'x', y_label: 'y',
-                     x_min: -10, x_max: 10, y_min: -10, y_max: 10,
+                     x_min: -7, x_max: 7, y_min: -7, y_max: 7,
                      grid: true, question_type: 'draw_line',
                      correct_answer: { a: 1, b: 0 }, tolerance: 0 };
         default: return {};
@@ -1714,19 +1714,19 @@ function renderGraphEditor(block) {
             </div>
             <div class="form-group">
                 <label>X min</label>
-                <input type="number" value="${c.x_min ?? -10}" onchange="updateConfig('${block.uid}', 'x_min', parseFloat(this.value))">
+                <input type="number" value="${c.x_min ?? -7}" onchange="updateConfig('${block.uid}', 'x_min', parseFloat(this.value))">
             </div>
             <div class="form-group">
                 <label>X max</label>
-                <input type="number" value="${c.x_max ?? 10}" onchange="updateConfig('${block.uid}', 'x_max', parseFloat(this.value))">
+                <input type="number" value="${c.x_max ?? 7}" onchange="updateConfig('${block.uid}', 'x_max', parseFloat(this.value))">
             </div>
             <div class="form-group">
                 <label>Y min</label>
-                <input type="number" value="${c.y_min ?? -10}" onchange="updateConfig('${block.uid}', 'y_min', parseFloat(this.value))">
+                <input type="number" value="${c.y_min ?? -7}" onchange="updateConfig('${block.uid}', 'y_min', parseFloat(this.value))">
             </div>
             <div class="form-group">
                 <label>Y max</label>
-                <input type="number" value="${c.y_max ?? 10}" onchange="updateConfig('${block.uid}', 'y_max', parseFloat(this.value))">
+                <input type="number" value="${c.y_max ?? 7}" onchange="updateConfig('${block.uid}', 'y_max', parseFloat(this.value))">
             </div>
         </div>
         <div class="form-group">
