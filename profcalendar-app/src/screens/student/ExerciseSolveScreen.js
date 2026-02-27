@@ -550,11 +550,13 @@ cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});draw();sp();
 
   return (
     <View style={graphStyles.container}>
-      <Text style={graphStyles.hint}>
-        {config.question_type === 'draw_quadratic'
-          ? 'Déplace les 3 points pour tracer la courbe.'
-          : 'Déplace les 2 points pour tracer la droite.'}
-      </Text>
+      {!config.static_mode && (
+        <Text style={graphStyles.hint}>
+          {config.question_type === 'draw_quadratic'
+            ? 'Déplace les 3 points pour tracer la courbe.'
+            : 'Déplace les 2 points pour tracer la droite.'}
+        </Text>
+      )}
       {config.question ? <MathText text={config.question} style={graphStyles.question} /> : null}
       <View style={graphStyles.webviewWrap}>
         <WebView
@@ -967,21 +969,30 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                 </Text>
                 <View style={styles.findExprRow}>
                   <Text style={styles.findExprCoeffLabel}>a =</Text>
-                  <TextInput style={styles.findExprInput} keyboardType="numeric"
+                  <TextInput style={styles.findExprInput} keyboardType="numbers-and-punctuation"
                     value={coeffAnswer.a != null ? String(coeffAnswer.a) : ''}
-                    onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, a: parseFloat(t) || 0 }})}
+                    onChangeText={(t) => {
+                      const cleaned = t.replace(/[^0-9.\-]/g, '');
+                      updateAnswer(blockId, { coefficients: { ...coeffAnswer, a: cleaned === '' || cleaned === '-' ? cleaned : parseFloat(cleaned) || 0 }});
+                    }}
                     editable={!isLocked} placeholder="0" />
                   <Text style={styles.findExprCoeffLabel}>b =</Text>
-                  <TextInput style={styles.findExprInput} keyboardType="numeric"
+                  <TextInput style={styles.findExprInput} keyboardType="numbers-and-punctuation"
                     value={coeffAnswer.b != null ? String(coeffAnswer.b) : ''}
-                    onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, b: parseFloat(t) || 0 }})}
+                    onChangeText={(t) => {
+                      const cleaned = t.replace(/[^0-9.\-]/g, '');
+                      updateAnswer(blockId, { coefficients: { ...coeffAnswer, b: cleaned === '' || cleaned === '-' ? cleaned : parseFloat(cleaned) || 0 }});
+                    }}
                     editable={!isLocked} placeholder="0" />
                   {findType === 'quadratic' && (
                     <>
                       <Text style={styles.findExprCoeffLabel}>c =</Text>
-                      <TextInput style={styles.findExprInput} keyboardType="numeric"
+                      <TextInput style={styles.findExprInput} keyboardType="numbers-and-punctuation"
                         value={coeffAnswer.c != null ? String(coeffAnswer.c) : ''}
-                        onChangeText={(t) => updateAnswer(blockId, { coefficients: { ...coeffAnswer, c: parseFloat(t) || 0 }})}
+                        onChangeText={(t) => {
+                          const cleaned = t.replace(/[^0-9.\-]/g, '');
+                          updateAnswer(blockId, { coefficients: { ...coeffAnswer, c: cleaned === '' || cleaned === '-' ? cleaned : parseFloat(cleaned) || 0 }});
+                        }}
                         editable={!isLocked} placeholder="0" />
                     </>
                   )}
