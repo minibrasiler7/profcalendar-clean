@@ -241,7 +241,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                   onPress={() => pickFromCategory(itemIdx, catIdx)}
                   disabled={disabled}
                 >
-                  <MathText text={items[itemIdx]} style={{...dndStyles.catItemText, flex: 1}} />
+                  <MathText text={items[itemIdx]} style={dndStyles.catItemText} />
                   <Ionicons name="close-circle" size={14} color="#ef4444" />
                 </TouchableOpacity>
               ))}
@@ -276,7 +276,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                 disabled={disabled}
               >
                 <Ionicons name="reorder-three" size={18} color="#9ca3af" />
-                <MathText text={item} style={{...dndStyles.poolItemText, flex: 1}} />
+                <MathText text={item} style={dndStyles.poolItemText} />
               </TouchableOpacity>
             );
           })}
@@ -1164,16 +1164,16 @@ const dndStyles = StyleSheet.create({
   catZone: { borderWidth: 2, borderColor: '#d1d5db', borderStyle: 'dashed', borderRadius: 14, padding: 12, marginBottom: 10, minHeight: 60, backgroundColor: '#fafafa' },
   catZoneTarget: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
   catName: { fontSize: 14, fontWeight: '700', color: '#4b5563', marginBottom: 8 },
-  catItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  catItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#667eea', minWidth: 80 },
+  catItems: { gap: 6 },
+  catItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#667eea', flexShrink: 0 },
   catItemPicked: { backgroundColor: '#c7d2fe', borderColor: '#4f46e5' },
   catItemText: { fontSize: 13, color: '#4338ca', fontWeight: '600' },
   catEmpty: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
   pool: { marginTop: 10, padding: 12, borderWidth: 2, borderColor: '#e5e7eb', borderRadius: 14, backgroundColor: '#FFF' },
   poolTarget: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
   poolLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 8 },
-  poolItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  poolItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', minWidth: 80 },
+  poolItems: { gap: 8 },
+  poolItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', flexShrink: 0 },
   poolItemPicked: { backgroundColor: '#dbeafe', borderColor: '#3b82f6' },
   poolItemText: { fontSize: 14, color: '#374151' },
   dragGhost: { position: 'absolute', left: 20, right: 20, height: 56, backgroundColor: '#667eea', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10, zIndex: 999 },
