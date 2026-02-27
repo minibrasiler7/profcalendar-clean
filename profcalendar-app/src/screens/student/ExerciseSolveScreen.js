@@ -499,11 +499,12 @@ function ImageInteractive({ imageUrl, zones, clicks, onClicksChange, disabled, c
 // ============================================================
 function GraphInteractive({ config, onPointsChange, disabled }) {
   const webviewRef = useRef(null);
+  const [staticImage, setStaticImage] = useState(null);
 
-  const htmlContent = `<!DOCTYPE html>
+  const graphHtml = `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;align-items:center;justify-content:center;height:100vh;${config.static_mode ? '' : 'touch-action:none;'}overflow:hidden}canvas{display:block;${config.static_mode ? 'pointer-events:none;' : ''}}</style>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fafbfc;display:flex;align-items:center;justify-content:center;height:100vh;${config.static_mode ? '' : 'touch-action:none;'}overflow:hidden}canvas{display:block}</style>
 </head><body>
 <canvas id="g"></canvas>
 <script>
@@ -538,21 +539,22 @@ if(!c.static_mode){pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);if(p.px<M-5||p.px
 function gXY(e){const r=cv.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const t=e.touches?e.touches[0]:e;return{px:(t.clientX-r.left)*sx,py:(t.clientY-r.top)*sy}}
 function sp(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'points',points:pts.map(p=>({x:p.x,y:p.y}))}))}
 const dis=${disabled ? 'true' : 'false'};
-const isStatic=${config.static_mode ? 'true' : 'false'};
-if(!isStatic){
+if(!c.static_mode){
 cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<40){dr=i;break}}},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);pts[dr].x=Math.round(g.x);pts[dr].y=Math.round(g.y);draw()},{passive:false});
 cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});
 }
 draw();sp();
+if(c.static_mode){setTimeout(()=>{const dataUrl=cv.toDataURL('image/png');window.ReactNativeWebView.postMessage(JSON.stringify({type:'snapshot',uri:dataUrl}))},400);}
 </script></body></html>`;
 
   const handleMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'points') {
-        console.log('[GraphInteractive] Points updated:', JSON.stringify(data.points));
         onPointsChange(data.points);
+      } else if (data.type === 'snapshot' && data.uri) {
+        setStaticImage(data.uri);
       }
     } catch (e) {}
   };
@@ -568,16 +570,20 @@ draw();sp();
       )}
       {config.question ? <MathText text={config.question} style={graphStyles.question} /> : null}
       <View style={graphStyles.webviewWrap}>
-        <WebView
-          ref={webviewRef}
-          source={{ html: htmlContent }}
-          style={graphStyles.webview}
-          scrollEnabled={false}
-          bounces={false}
-          onMessage={handleMessage}
-          javaScriptEnabled={true}
-          originWhitelist={['*']}
-        />
+        {config.static_mode && staticImage ? (
+          <Image source={{ uri: staticImage }} style={graphStyles.webview} resizeMode="contain" />
+        ) : (
+          <WebView
+            ref={webviewRef}
+            source={{ html: graphHtml }}
+            style={[graphStyles.webview, config.static_mode && staticImage ? { position: 'absolute', opacity: 0 } : null]}
+            scrollEnabled={false}
+            bounces={false}
+            onMessage={handleMessage}
+            javaScriptEnabled={true}
+            originWhitelist={['*']}
+          />
+        )}
       </View>
     </View>
   );
