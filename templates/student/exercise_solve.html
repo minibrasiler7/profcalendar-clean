@@ -458,7 +458,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
 {% block content %}
 <div class="rpg-solve-container">
-    <a href="{{ url_for('student_auth.missions') }}" class="back-link">
+    <a href="#" class="back-link" onclick="confirmLeave(event)">
         <i class="fas fa-arrow-left"></i> Retour aux missions
     </a>
 
@@ -771,6 +771,22 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 </div>
 
 <script>
+// ============================================================
+// Confirm leave
+// ============================================================
+function confirmLeave(event) {
+    event.preventDefault();
+    const answered = Object.keys(answeredBlocks).length;
+    if (answered === 0) {
+        // Aucune question répondue, on peut quitter sans conséquence
+        window.location.href = "{{ url_for('student_auth.missions') }}";
+        return;
+    }
+    if (confirm('Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, ta progression ne sera pas enregistrée et tu pourras recommencer plus tard.\n\nEs-tu sûr de vouloir quitter ?')) {
+        window.location.href = "{{ url_for('student_auth.missions') }}";
+    }
+}
+
 // ============================================================
 // State
 // ============================================================

@@ -674,6 +674,27 @@ export default function ExerciseSolveScreen({ route, navigation }) {
 
   useFocusEffect(useCallback(() => { fetchExercise(); }, [missionId]));
 
+  // Intercept back navigation to confirm leaving
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Allow leaving if results modal is shown (mission completed)
+      if (resultModal) return;
+      // If no questions answered yet, allow leaving freely
+      if (Object.keys(feedbackMap).length === 0) return;
+      // Prevent default and show confirmation
+      e.preventDefault();
+      Alert.alert(
+        'Quitter la mission ?',
+        'Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, ta progression ne sera pas enregistrée et tu pourras recommencer plus tard.',
+        [
+          { text: 'Continuer la mission', style: 'cancel' },
+          { text: 'Quitter', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]
+      );
+    });
+    return unsubscribe;
+  }, [navigation, resultModal, feedbackMap]);
+
   const blocks = mission?.blocks || [];
   const totalBlocks = blocks.length;
   const currentBlock = blocks[currentIdx];
