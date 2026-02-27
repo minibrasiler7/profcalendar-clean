@@ -1350,14 +1350,14 @@ function renderFillBlankEditor(block) {
         <div class="form-group">
             <label>Mode de réponse</label>
             <div style="display:flex;gap:0.5rem;">
-                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'text' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'text' ? '#eef2ff' : '#fff'};">
+                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'text' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'text' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
                     <input type="radio" name="fill-mode-${block.uid}" value="text" ${c.mode === 'text' ? 'checked' : ''}
                         onchange="updateFillBlankMode('${block.uid}', 'text')"> Saisie libre
-                </label>
-                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'choices' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'choices' ? '#eef2ff' : '#fff'};">
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'choices' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'choices' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
                     <input type="radio" name="fill-mode-${block.uid}" value="choices" ${c.mode === 'choices' ? 'checked' : ''}
                         onchange="updateFillBlankMode('${block.uid}', 'choices')"> Liste de mots
-                </label>
+                </span>
             </div>
         </div>
         <div class="form-group">
@@ -1675,14 +1675,14 @@ function renderInteractionTypeSelector(block) {
         <div class="form-group">
             <label>Type d'interaction</label>
             <div style="display:flex;gap:0.5rem;">
-                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'zones' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'zones' ? '#eef2ff' : '#fff'};">
+                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'zones' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'zones' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
                     <input type="radio" name="interaction-type-${block.uid}" value="zones" ${it === 'zones' ? 'checked' : ''}
                         onchange="updateInteractionType('${block.uid}', 'zones')"> Zones cliquables
-                </label>
-                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'labels' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'labels' ? '#eef2ff' : '#fff'};">
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'labels' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'labels' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
                     <input type="radio" name="interaction-type-${block.uid}" value="labels" ${it === 'labels' ? 'checked' : ''}
                         onchange="updateInteractionType('${block.uid}', 'labels')"> Labels sur image
-                </label>
+                </span>
             </div>
         </div>`;
 }
