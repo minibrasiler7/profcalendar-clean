@@ -34,7 +34,7 @@ function MathText({ text, style, inline }) {
   // Check if text contains math delimiters
   const hasMath = /\$\$.*?\$\$|\$.*?\$|\\[(\[].*?\\[)\]]/s.test(text);
   if (!hasMath) {
-    return <Text style={flatStyle}>{text}</Text>;
+    return <Text style={flatStyle} numberOfLines={1}>{text}</Text>;
   }
   // Render with KaTeX in a WebView
   const fontSize = flatStyle.fontSize || 14;
@@ -45,7 +45,7 @@ function MathText({ text, style, inline }) {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,system-ui,sans-serif;font-size:${fontSize}px;color:${color};font-weight:${fontWeight};line-height:1.5;padding:4px 0;background:transparent;display:inline}
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,system-ui,sans-serif;font-size:${fontSize}px;color:${color};font-weight:${fontWeight};line-height:1.4;padding:2px 0;background:transparent;white-space:nowrap}
 .katex{font-size:1.1em}</style>
 </head><body><span id="content"></span>
 <script>document.getElementById('content').textContent=${JSON.stringify(text)};
@@ -54,9 +54,9 @@ renderMathInElement(document.getElementById('content'),{delimiters:[{left:'$$',r
 setTimeout(()=>{const r=document.getElementById('content').getBoundingClientRect();window.ReactNativeWebView.postMessage(JSON.stringify({h:Math.ceil(r.height)+10,w:Math.ceil(r.width)+10}))},300);
 </script></body></html>`;
 
-  const [height, setHeight] = useState(30);
+  const [height, setHeight] = useState(24);
   const [width, setWidth] = useState(null);
-  const wrapStyle = flatStyle.flex ? { flex: flatStyle.flex, minHeight: height } : { minHeight: height, ...(width ? { width: Math.min(width, 300) } : {}) };
+  const wrapStyle = flatStyle.flex ? { flex: flatStyle.flex, height } : { height, ...(width ? { width: Math.min(width, 300) } : {}) };
   return (
     <View style={wrapStyle}>
       <WebView
