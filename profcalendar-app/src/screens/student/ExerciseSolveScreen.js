@@ -24,6 +24,49 @@ const BASE_URL = 'https://profcalendar-clean.onrender.com';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CODE_VERSION = 'v5-2026-02-25'; // Version marker to verify code is loaded
 
+// ============================================================
+// MathText — renders text with LaTeX using a WebView when needed
+// ============================================================
+function MathText({ text, style }) {
+  if (!text) return null;
+  // Check if text contains math delimiters
+  const hasMath = /\$\$.*?\$\$|\$.*?\$|\\[(\[].*?\\[)\]]/s.test(text);
+  if (!hasMath) {
+    return <Text style={style}>{text}</Text>;
+  }
+  // Render with KaTeX in a WebView
+  const fontSize = style?.fontSize || 14;
+  const color = style?.color || '#374151';
+  const fontWeight = style?.fontWeight || '400';
+  const htmlContent = `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,system-ui,sans-serif;font-size:${fontSize}px;color:${color};font-weight:${fontWeight};line-height:1.5;padding:4px 0;background:transparent}
+.katex{font-size:1.1em}</style>
+</head><body><span id="content"></span>
+<script>document.getElementById('content').textContent=${JSON.stringify(text)};
+renderMathInElement(document.getElementById('content'),{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\\\(',right:'\\\\)',display:false},{left:'\\\\[',right:'\\\\]',display:true}],throwOnError:false});
+// Send height to React Native
+setTimeout(()=>{window.ReactNativeWebView.postMessage(JSON.stringify({h:document.body.scrollHeight}))},200);
+</script></body></html>`;
+
+  const [height, setHeight] = useState(40);
+  return (
+    <WebView
+      source={{ html: htmlContent }}
+      style={{ height, width: '100%', backgroundColor: 'transparent' }}
+      scrollEnabled={false}
+      onMessage={(e) => {
+        try { const d = JSON.parse(e.nativeEvent.data); if (d.h) setHeight(d.h + 8); } catch(err) {}
+      }}
+      originWhitelist={['*']}
+      javaScriptEnabled={true}
+    />
+  );
+}
+
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -512,7 +555,7 @@ cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});draw();sp();
           ? 'Déplace les 3 points pour tracer la courbe.'
           : 'Déplace les 2 points pour tracer la droite.'}
       </Text>
-      {config.question ? <Text style={graphStyles.question}>{config.question}</Text> : null}
+      {config.question ? <MathText text={config.question} style={graphStyles.question} /> : null}
       <View style={graphStyles.webviewWrap}>
         <WebView
           ref={webviewRef}
@@ -793,24 +836,43 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       case 'qcm': {
         const isMultiple = c.multiple_answers;
         const selected = answer.selected || [];
+        const qcmShowResult = !!currentFeedback;
         return (
           <View>
-            {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
+            {c.question ? <MathText text={c.question} style={styles.questionText} /> : null}
             <View style={styles.optionsContainer}>
               {(c.options || []).map((opt, i) => {
                 const isSel = selected.includes(i);
+                const isOptCorrect = opt.is_correct;
+                const optResultStyle = qcmShowResult && isOptCorrect ? { borderColor: '#10b981', backgroundColor: '#ecfdf5' }
+                  : qcmShowResult && isSel && !isOptCorrect ? { borderColor: '#ef4444', backgroundColor: '#fef2f2' }
+                  : null;
+                const showOptFeedback = qcmShowResult && opt.feedback && (isSel || isOptCorrect);
                 return (
-                  <TouchableOpacity key={i} style={[styles.optionButton, isSel && styles.optionButtonSelected]}
-                    onPress={() => {
-                      if (isLocked) return;
-                      const newSel = isMultiple ? (isSel ? selected.filter(x => x !== i) : [...selected, i]) : [i];
-                      updateAnswer(blockId, { selected: newSel });
-                    }} disabled={isLocked}>
-                    <View style={[styles.optionRadio, isSel && styles.optionRadioSelected]}>
-                      {isSel && <Ionicons name="checkmark" size={12} color="#FFF" />}
-                    </View>
-                    <Text style={styles.optionText}>{opt.text}</Text>
-                  </TouchableOpacity>
+                  <View key={i}>
+                    <TouchableOpacity style={[styles.optionButton, isSel && styles.optionButtonSelected, optResultStyle]}
+                      onPress={() => {
+                        if (isLocked) return;
+                        const newSel = isMultiple ? (isSel ? selected.filter(x => x !== i) : [...selected, i]) : [i];
+                        updateAnswer(blockId, { selected: newSel });
+                      }} disabled={isLocked}>
+                      <View style={[styles.optionRadio, isSel && styles.optionRadioSelected]}>
+                        {isSel && <Ionicons name="checkmark" size={12} color="#FFF" />}
+                      </View>
+                      <Text style={styles.optionText}>{opt.text}</Text>
+                    </TouchableOpacity>
+                    {showOptFeedback && (
+                      <View style={{
+                        marginTop: -4, marginBottom: 8, marginHorizontal: 4,
+                        padding: 8, borderRadius: 8,
+                        backgroundColor: isOptCorrect ? '#d1fae5' : '#fee2e2',
+                      }}>
+                        <Text style={{ fontSize: 13, fontWeight: '500', color: isOptCorrect ? '#065f46' : '#991b1b' }}>
+                          {opt.feedback}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 );
               })}
             </View>
@@ -820,7 +882,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       case 'short_answer':
         return (
           <View>
-            {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
+            {c.question ? <MathText text={c.question} style={styles.questionText} /> : null}
             <TextInput style={styles.textInput} placeholder="Ta réponse..." placeholderTextColor={colors.textLight}
               value={answer.value || ''} onChangeText={(t) => updateAnswer(blockId, { value: t })}
               keyboardType={c.answer_type === 'number' ? 'decimal-pad' : 'default'} editable={!isLocked} />
@@ -943,7 +1005,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         }
         return (
           <View>
-            {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
+            {c.question ? <MathText text={c.question} style={styles.questionText} /> : null}
             {!c.question && exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
             <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />
           </View>

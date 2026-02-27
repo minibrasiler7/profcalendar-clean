@@ -289,6 +289,15 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     content: '\f00c'; font-family: "Font Awesome 6 Free","Font Awesome 5 Free";
     font-weight: 900; font-size: 0.7rem; color: white;
 }
+.qcm-option.option-correct { border-color: #10b981; background: #ecfdf5; }
+.qcm-option.option-incorrect { border-color: #ef4444; background: #fef2f2; }
+.qcm-option .option-feedback {
+    display: none; width: 100%; margin-top: 0.4rem; padding: 0.4rem 0.6rem;
+    border-radius: 6px; font-size: 0.82rem; font-weight: 500; line-height: 1.4;
+}
+.qcm-option.show-feedback .option-feedback { display: block; }
+.qcm-option.option-correct .option-feedback { background: #d1fae5; color: #065f46; }
+.qcm-option.option-incorrect .option-feedback { background: #fee2e2; color: #991b1b; }
 
 /* ---- Answer Input ---- */
 .answer-input {
@@ -525,9 +534,17 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% if c.question %}<p class="question-text">{{ c.question }}</p>{% endif %}
             <ul class="qcm-options" data-block="{{ block.id }}" data-multiple="{{ 'true' if c.multiple_answers else 'false' }}">
                 {% for opt in c.options %}
-                <li class="qcm-option" data-index="{{ loop.index0 }}" onclick="selectQCM(this)">
+                <li class="qcm-option" data-index="{{ loop.index0 }}"
+                    data-feedback="{{ opt.feedback|default('', true)|e }}"
+                    data-correct="{{ 'true' if opt.is_correct else 'false' }}"
+                    onclick="selectQCM(this)">
                     <div class="{{ 'qcm-checkbox' if c.multiple_answers else 'qcm-radio' }}"></div>
-                    <span>{{ opt.text }}</span>
+                    <div style="flex:1;">
+                        <span>{{ opt.text }}</span>
+                        {% if opt.feedback %}
+                        <div class="option-feedback">{{ opt.feedback }}</div>
+                        {% endif %}
+                    </div>
                 </li>
                 {% endfor %}
             </ul>
@@ -907,6 +924,27 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
     flash.className = 'screen-flash ' + (isCorrect ? 'correct' : 'incorrect');
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 600);
+
+    // Show QCM per-option feedback and highlight correct/incorrect options
+    if (card.dataset.blockType === 'qcm') {
+        card.querySelectorAll('.qcm-option').forEach(opt => {
+            const isOptCorrect = opt.dataset.correct === 'true';
+            const isSelected = opt.classList.contains('selected');
+            const feedback = opt.dataset.feedback;
+
+            // Highlight correct options in green, wrong selected in red
+            if (isOptCorrect) {
+                opt.classList.add('option-correct');
+            } else if (isSelected && !isOptCorrect) {
+                opt.classList.add('option-incorrect');
+            }
+
+            // Show feedback text if it exists (for selected options or correct options)
+            if (feedback && (isSelected || isOptCorrect)) {
+                opt.classList.add('show-feedback');
+            }
+        });
+    }
 
     if (isCorrect) {
         comboStreak++;
@@ -1884,8 +1922,15 @@ function drawCorrectCurveOnGraph(blockId) {
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
     if (totalQuestions > 0) showQuestion(0);
-    // KaTeX auto-render for math expressions in questions
-    if (window.renderMathInElement) {
+});
+</script>
+<!-- KaTeX auto-render -->
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script>
+// Render math expressions with KaTeX after scripts are loaded
+function renderAllMath() {
+    if (typeof renderMathInElement === 'function') {
         renderMathInElement(document.body, {
             delimiters: [
                 {left: '$$', right: '$$', display: true},
@@ -1895,11 +1940,11 @@ document.addEventListener('DOMContentLoaded', function() {
             ],
             throwOnError: false
         });
+        console.log('KaTeX: math rendered successfully');
+    } else {
+        console.warn('KaTeX: renderMathInElement not available');
     }
-});
+}
+renderAllMath();
 </script>
-<!-- KaTeX auto-render -->
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
-    onload="if(window.renderMathInElement) renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\\\(',right:'\\\\)',display:false},{left:'\\\\[',right:'\\\\]',display:true}],throwOnError:false});"></script>
 {% endblock %}
