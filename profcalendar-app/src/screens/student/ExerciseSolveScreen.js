@@ -563,7 +563,7 @@ cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});draw();sp();
         </Text>
       )}
       {config.question ? <MathText text={config.question} style={graphStyles.question} /> : null}
-      <View style={graphStyles.webviewWrap}>
+      <View style={graphStyles.webviewWrap} pointerEvents={config.static_mode ? 'none' : 'auto'}>
         <WebView
           ref={webviewRef}
           source={{ html: htmlContent }}
