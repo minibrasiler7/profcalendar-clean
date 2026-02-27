@@ -774,15 +774,22 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 // ============================================================
 // Confirm leave
 // ============================================================
-function confirmLeave(event) {
+async function confirmLeave(event) {
     event.preventDefault();
-    const answered = Object.keys(answeredBlocks).length;
-    if (answered === 0) {
-        // Aucune question répondue, on peut quitter sans conséquence
-        window.location.href = "{{ url_for('student_auth.missions') }}";
-        return;
-    }
-    if (confirm('Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, ta progression ne sera pas enregistrée et tu pourras recommencer plus tard.\n\nEs-tu sûr de vouloir quitter ?')) {
+    if (confirm('Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.\n\nEs-tu sûr de vouloir abandonner ?')) {
+        // Soumettre avec les réponses actuelles (partielles) pour créer la tentative + cooldown
+        try {
+            const answers = {};
+            allCards.forEach(card => {
+                const blockId = card.dataset.blockId;
+                answers[blockId] = collectAnswer(card, blockId);
+            });
+            await fetch(`/student/missions/{{ exercise.id }}/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers }),
+            });
+        } catch(e) { /* on redirige quand même */ }
         window.location.href = "{{ url_for('student_auth.missions') }}";
     }
 }

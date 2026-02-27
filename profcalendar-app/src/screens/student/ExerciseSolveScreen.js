@@ -674,26 +674,41 @@ export default function ExerciseSolveScreen({ route, navigation }) {
 
   useFocusEffect(useCallback(() => { fetchExercise(); }, [missionId]));
 
+  // Refs for fresh values in beforeRemove listener
+  const resultModalRef = useRef(false);
+  const answersRef = useRef({});
+  useEffect(() => { resultModalRef.current = resultModal; }, [resultModal]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+
+  const abandonMission = useCallback(async (thenAction) => {
+    // Submit partial answers to create attempt (0 XP) + trigger 24h cooldown
+    try {
+      const answersList = Object.entries(answersRef.current).map(([blockId, answerData]) => ({
+        block_id: parseInt(blockId, 10),
+        answer: answerData,
+      }));
+      await api.post(`/student/missions/${missionId}/submit`, { answers: answersList });
+    } catch (e) { /* on quitte quand même */ }
+    if (thenAction) thenAction();
+    else navigation.goBack();
+  }, [missionId, navigation]);
+
   // Intercept back navigation to confirm leaving
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // Allow leaving if results modal is shown (mission completed)
-      if (resultModal) return;
-      // If no questions answered yet, allow leaving freely
-      if (Object.keys(feedbackMap).length === 0) return;
-      // Prevent default and show confirmation
+      if (resultModalRef.current) return;
       e.preventDefault();
       Alert.alert(
-        'Quitter la mission ?',
-        'Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, ta progression ne sera pas enregistrée et tu pourras recommencer plus tard.',
+        'Abandonner la mission ?',
+        'Si tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.',
         [
-          { text: 'Continuer la mission', style: 'cancel' },
-          { text: 'Quitter', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+          { text: 'Continuer', style: 'cancel' },
+          { text: 'Abandonner', style: 'destructive', onPress: () => abandonMission(() => navigation.dispatch(e.data.action)) },
         ]
       );
     });
     return unsubscribe;
-  }, [navigation, resultModal, feedbackMap]);
+  }, [navigation, abandonMission]);
 
   const blocks = mission?.blocks || [];
   const totalBlocks = blocks.length;
@@ -1065,6 +1080,18 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.progressSection}>
+        <TouchableOpacity onPress={() => {
+          Alert.alert(
+            'Abandonner la mission ?',
+            'Si tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.',
+            [
+              { text: 'Continuer', style: 'cancel' },
+              { text: 'Abandonner', style: 'destructive', onPress: () => abandonMission() },
+            ]
+          );
+        }} style={styles.abandonButton}>
+          <Ionicons name="close" size={18} color="rgba(255,255,255,0.8)" />
+        </TouchableOpacity>
         <Text style={styles.progressText}>Question {currentIdx + 1}/{totalBlocks}</Text>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${((currentIdx + 1) / totalBlocks) * 100}%` }]} />
@@ -1234,6 +1261,7 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   errorText: { fontSize: 16, color: colors.text },
   progressSection: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(255,255,255,0.08)' },
+  abandonButton: { width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   progressText: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600' },
   progressBar: { flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#667eea', borderRadius: 4 },
