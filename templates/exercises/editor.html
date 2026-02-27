@@ -1349,27 +1349,40 @@ function renderFillBlankEditor(block) {
 
     let wordPoolHtml = '';
     if (c.mode === 'choices') {
-        const poolItems = (c.word_pool || []).map((w, i) => `
-            <div class="item-row" style="margin-bottom:0.3rem;">
-                <input type="text" value="${escapeHtml(w)}" placeholder="Mot ${i+1}"
-                    onchange="updateWordPool('${block.uid}', ${i}, this.value)" style="flex:1;">
-                <button class="remove-item" onclick="removeWordPoolItem('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
-            </div>`).join('');
+        const blanks = c.blanks || [];
+        // Each blank can have its own choices list
+        const blanksHtml = blanks.map((blank, bi) => {
+            const choices = blank.choices || [blank.word];
+            const choicesItems = choices.map((w, ci) => `
+                <div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.2rem;">
+                    <input type="text" value="${escapeHtml(w)}" placeholder="Choix ${ci+1}"
+                        onchange="updateBlankChoice('${block.uid}', ${bi}, ${ci}, this.value)"
+                        style="flex:1;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.85rem;">
+                    ${ci === 0 ? '<span style="font-size:0.65rem;color:#16a34a;font-weight:700;white-space:nowrap;">✓ correct</span>' : ''}
+                    <button class="remove-item" style="padding:2px 4px;" onclick="removeBlankChoice('${block.uid}', ${bi}, ${ci})"><i class="fas fa-times" style="font-size:0.7rem;"></i></button>
+                </div>`).join('');
 
-        wordPoolHtml = `
+            return `
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                    <span style="font-weight:700;color:#667eea;font-size:0.85rem;">Trou ${bi+1} : <em>${escapeHtml(blank.word)}</em></span>
+                    <button class="add-item-btn" style="padding:0.2rem 0.5rem;font-size:0.75rem;" onclick="addBlankChoice('${block.uid}', ${bi})">
+                        <i class="fas fa-plus"></i> Distracteur
+                    </button>
+                </div>
+                ${choicesItems}
+            </div>`;
+        }).join('');
+
+        wordPoolHtml = blanks.length > 0 ? `
         <div class="form-group">
-            <label>Liste de mots proposés</label>
-            <div class="items-list">${poolItems}</div>
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-                <button class="add-item-btn" onclick="addWordPoolItem('${block.uid}')">
-                    <i class="fas fa-plus"></i> Ajouter un mot
-                </button>
-                <button class="add-item-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;" onclick="autoGenerateWordPool('${block.uid}')">
-                    <i class="fas fa-magic"></i> Auto-générer depuis les trous
-                </button>
-            </div>
-            <small style="color:#6b7280;margin-top:0.3rem;display:block;">Ajoutez des mots supplémentaires (distracteurs) pour augmenter la difficulté.</small>
-        </div>`;
+            <label>Listes de mots par trou</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque trou a sa propre liste de choix. Le premier mot (✓) est la bonne réponse. Ajoutez des distracteurs pour augmenter la difficulté.</small>
+            ${blanksHtml}
+            <button class="add-item-btn" style="margin-top:0.5rem;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;" onclick="autoGenerateBlankChoices('${block.uid}')">
+                <i class="fas fa-magic"></i> Auto-générer les listes
+            </button>
+        </div>` : '';
     }
 
     return `
@@ -1407,44 +1420,72 @@ function parseFillBlank(template) {
 function updateFillBlankTemplate(uid, value) {
     const block = blocks.find(b => b.uid === uid);
     block.config_json.text_template = value;
-    // Parse blanks
+    // Parse blanks, preserving existing choices if the word hasn't changed
     const matches = [...value.matchAll(/\{([^}]+)\}/g)];
-    block.config_json.blanks = matches.map((m, i) => ({ word: m[1], position: i }));
+    const oldBlanks = block.config_json.blanks || [];
+    block.config_json.blanks = matches.map((m, i) => {
+        const word = m[1];
+        // Try to find existing blank with same word to preserve choices
+        const existing = oldBlanks.find(b => b.word === word);
+        if (existing && existing.choices) {
+            return { word, position: i, choices: existing.choices };
+        }
+        return { word, position: i };
+    });
     refreshBlockContent(uid);
 }
 
 function updateFillBlankMode(uid, mode) {
     const block = blocks.find(b => b.uid === uid);
     block.config_json.mode = mode;
-    if (mode === 'choices' && (!block.config_json.word_pool || block.config_json.word_pool.length === 0)) {
-        autoGenerateWordPool(uid);
-        return;
+    if (mode === 'choices') {
+        // Auto-generate choices for blanks that don't have any
+        const blanks = block.config_json.blanks || [];
+        blanks.forEach(b => {
+            if (!b.choices || b.choices.length === 0) {
+                b.choices = [b.word];
+            }
+        });
     }
     refreshBlockContent(uid);
 }
 
-function addWordPoolItem(uid) {
+function addBlankChoice(uid, blankIndex) {
     const block = blocks.find(b => b.uid === uid);
-    if (!block.config_json.word_pool) block.config_json.word_pool = [];
-    block.config_json.word_pool.push('');
+    const blank = block.config_json.blanks[blankIndex];
+    if (!blank.choices) blank.choices = [blank.word];
+    blank.choices.push('');
     refreshBlockContent(uid);
 }
 
-function removeWordPoolItem(uid, index) {
+function removeBlankChoice(uid, blankIndex, choiceIndex) {
     const block = blocks.find(b => b.uid === uid);
-    block.config_json.word_pool.splice(index, 1);
+    const blank = block.config_json.blanks[blankIndex];
+    if (blank.choices && blank.choices.length > 1) {
+        blank.choices.splice(choiceIndex, 1);
+    }
     refreshBlockContent(uid);
 }
 
-function updateWordPool(uid, index, value) {
+function updateBlankChoice(uid, blankIndex, choiceIndex, value) {
     const block = blocks.find(b => b.uid === uid);
-    block.config_json.word_pool[index] = value;
+    const blank = block.config_json.blanks[blankIndex];
+    if (!blank.choices) blank.choices = [blank.word];
+    blank.choices[choiceIndex] = value;
+    // If it's the first choice (correct answer), also update the word
+    if (choiceIndex === 0) {
+        blank.word = value;
+    }
 }
 
-function autoGenerateWordPool(uid) {
+function autoGenerateBlankChoices(uid) {
     const block = blocks.find(b => b.uid === uid);
     const blanks = block.config_json.blanks || [];
-    block.config_json.word_pool = blanks.map(b => b.word);
+    blanks.forEach(b => {
+        if (!b.choices || b.choices.length === 0) {
+            b.choices = [b.word];
+        }
+    });
     refreshBlockContent(uid);
 }
 

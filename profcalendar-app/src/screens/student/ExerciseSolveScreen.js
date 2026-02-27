@@ -961,21 +961,23 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         let blankIdx = 0;
         const blanks = answer.blanks || [];
         const fillMode = c.mode || 'text';
-        const wordPool = c.word_pool || [];
+        const configBlanks = c.blanks || [];
 
         return (
           <View><View style={styles.fillBlankWrap}>
             {parts.map((part, i) => {
               if (part.match(/^\{[^}]+\}$/)) {
                 const bi = blankIdx++;
-                if (fillMode === 'choices' && wordPool.length > 0) {
+                const blankConfig = configBlanks[bi] || {};
+                const choices = blankConfig.choices || [];
+                if (fillMode === 'choices' && choices.length > 0) {
                   return (
                     <View key={i} style={styles.fillBlankSelectWrap}>
                       <TouchableOpacity
                         style={[styles.fillBlankSelect, blanks[bi] ? styles.fillBlankSelectFilled : null]}
                         disabled={isLocked}
                         onPress={() => {
-                          const options = [...wordPool].sort(() => Math.random() - 0.5);
+                          const options = [...choices].sort(() => Math.random() - 0.5);
                           options.unshift('— Choisir —');
                           const cancelIdx = options.length;
                           options.push('Annuler');
@@ -1042,12 +1044,22 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                       matchingSelectedLeft === i && styles.matchingItemSelected,
                       isLeftMatched(i) && styles.matchingItemMatched]}
                     disabled={isLocked}
-                    onPress={() => setMatchingSelectedLeft(i)}>
+                    onPress={() => {
+                      if (isLeftMatched(i)) {
+                        // Tap on matched item => unlink it
+                        const newAssoc = { ...associations };
+                        delete newAssoc[i];
+                        updateAnswer(blockId, { associations: newAssoc });
+                        setMatchingSelectedLeft(null);
+                      } else {
+                        setMatchingSelectedLeft(i);
+                      }
+                    }}>
                     <View style={[styles.matchingNum, isLeftMatched(i) && { backgroundColor: '#10b981' }]}>
                       <Text style={styles.matchingNumText}>{i + 1}</Text>
                     </View>
                     <MathText text={p.left} style={styles.matchingItemText} />
-                    {isLeftMatched(i) && <Ionicons name="link" size={14} color="#10b981" style={{ marginLeft: 'auto' }} />}
+                    {isLeftMatched(i) && <Ionicons name="close-circle" size={18} color="#ef4444" style={{ marginLeft: 'auto' }} />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1073,6 +1085,17 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                 ))}
               </View>
             </View>
+            {!isLocked && Object.keys(associations).length > 0 && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' }}
+                onPress={() => {
+                  updateAnswer(blockId, { associations: {} });
+                  setMatchingSelectedLeft(null);
+                }}>
+                <Ionicons name="refresh" size={16} color="#ef4444" />
+                <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '600' }}>Tout délier</Text>
+              </TouchableOpacity>
+            )}
           </View>
         );
       }
@@ -1483,7 +1506,7 @@ const styles = StyleSheet.create({
   matchingItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderWidth: 2, borderColor: '#374151', borderRadius: 10, marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.05)' },
   matchingItemSelected: { borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.15)' },
   matchingItemMatched: { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)' },
-  matchingItemText: { fontSize: 14, color: '#e5e7eb', flex: 1 },
+  matchingItemText: { fontSize: 14, color: '#ffffff', flex: 1 },
   matchingNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#667eea', alignItems: 'center', justifyContent: 'center' },
   matchingNumText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
   confettiOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 },

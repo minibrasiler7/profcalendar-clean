@@ -602,13 +602,14 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 (function() {
                     const template = {{ c.text_template|tojson }};
                     const mode = {{ (c.mode or 'text')|tojson }};
-                    const wordPool = {{ (c.word_pool or [])|tojson }};
+                    const blanks = {{ (c.blanks or [])|tojson }};
                     let blankIdx = 0;
                     const html = template.replace(/\{([^}]+)\}/g, function() {
                         const i = blankIdx++;
-                        if (mode === 'choices' && wordPool.length > 0) {
+                        const blank = blanks[i] || {};
+                        if (mode === 'choices' && blank.choices && blank.choices.length > 0) {
                             let options = '<option value="">— Choisir —</option>';
-                            const shuffled = [...wordPool].sort(() => Math.random() - 0.5);
+                            const shuffled = [...blank.choices].sort(() => Math.random() - 0.5);
                             shuffled.forEach(w => {
                                 options += '<option value="' + w.replace(/"/g, '&quot;') + '">' + w + '</option>';
                             });
