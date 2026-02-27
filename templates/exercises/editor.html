@@ -115,6 +115,32 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 0.3rem;
 }
 
+.radio-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.radio-btn.active {
+    border-color: #667eea;
+    background: #eef2ff;
+    color: #4338ca;
+}
+.radio-btn input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
 .form-group input, .form-group select, .form-group textarea {
     width: 100%;
     padding: 0.5rem 0.75rem;
@@ -1350,14 +1376,14 @@ function renderFillBlankEditor(block) {
         <div class="form-group">
             <label>Mode de réponse</label>
             <div style="display:flex;gap:0.5rem;">
-                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'text' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'text' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
+                <label class="radio-btn ${c.mode === 'text' ? 'active' : ''}">
                     <input type="radio" name="fill-mode-${block.uid}" value="text" ${c.mode === 'text' ? 'checked' : ''}
                         onchange="updateFillBlankMode('${block.uid}', 'text')"> Saisie libre
-                </span>
-                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'choices' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'choices' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
+                </label>
+                <label class="radio-btn ${c.mode === 'choices' ? 'active' : ''}">
                     <input type="radio" name="fill-mode-${block.uid}" value="choices" ${c.mode === 'choices' ? 'checked' : ''}
                         onchange="updateFillBlankMode('${block.uid}', 'choices')"> Liste de mots
-                </span>
+                </label>
             </div>
         </div>
         <div class="form-group">
@@ -1675,14 +1701,14 @@ function renderInteractionTypeSelector(block) {
         <div class="form-group">
             <label>Type d'interaction</label>
             <div style="display:flex;gap:0.5rem;">
-                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'zones' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'zones' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
+                <label class="radio-btn ${it === 'zones' ? 'active' : ''}">
                     <input type="radio" name="interaction-type-${block.uid}" value="zones" ${it === 'zones' ? 'checked' : ''}
                         onchange="updateInteractionType('${block.uid}', 'zones')"> Zones cliquables
-                </span>
-                <span style="display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'labels' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'labels' ? '#eef2ff' : '#fff'};font-size:0.85rem;" onclick="this.querySelector('input').click()">
+                </label>
+                <label class="radio-btn ${it === 'labels' ? 'active' : ''}">
                     <input type="radio" name="interaction-type-${block.uid}" value="labels" ${it === 'labels' ? 'checked' : ''}
                         onchange="updateInteractionType('${block.uid}', 'labels')"> Labels sur image
-                </span>
+                </label>
             </div>
         </div>`;
 }
