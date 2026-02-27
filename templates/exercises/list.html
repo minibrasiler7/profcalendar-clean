@@ -318,6 +318,21 @@
     {% endif %}
 </div>
 
+<!-- Publish modal -->
+<div id="publish-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-paper-plane" style="color:#059669;"></i> Publier l'exercice</h3>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Sélectionnez les classes pour lesquelles publier cet exercice :</p>
+        <div id="publish-class-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button class="btn" onclick="closePublishModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
+            <button class="btn" id="publish-confirm-btn" onclick="confirmPublish()" style="background:#059669;color:white;">
+                <i class="fas fa-paper-plane"></i> Publier
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Folder/Class picker modal -->
 <div id="folder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;">
     <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -382,8 +397,68 @@ async function duplicateExercise(id) {
     } catch(e) { showToast('Erreur', 'error'); }
 }
 
+let publishExerciseId = null;
+
 function quickPublish(id) {
-    window.location.href = `/exercises/${id}/edit`;
+    publishExerciseId = id;
+    const listEl = document.getElementById('publish-class-list');
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    document.getElementById('publish-modal').style.display = 'flex';
+
+    fetch('/exercises/folders-and-classes')
+        .then(r => r.json())
+        .then(data => {
+            const classes = data.classrooms || [];
+            if (classes.length === 0) {
+                listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;">Aucune classe disponible. Créez d\'abord une classe.</p>';
+                return;
+            }
+            listEl.innerHTML = classes.map(c => `
+                <label style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;border-radius:8px;cursor:pointer;transition:background 0.2s;"
+                       onmouseenter="this.style.background='#f0fdf4'" onmouseleave="this.style.background=''">
+                    <input type="checkbox" value="${c.id}" style="width:18px;height:18px;accent-color:#059669;">
+                    <span style="font-weight:500;">${c.name}</span>
+                    <span style="color:#9ca3af;font-size:0.8rem;">${c.subject || ''}</span>
+                </label>
+            `).join('');
+        })
+        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>'; });
+}
+
+function closePublishModal() {
+    document.getElementById('publish-modal').style.display = 'none';
+    publishExerciseId = null;
+}
+
+async function confirmPublish() {
+    if (!publishExerciseId) return;
+    const checkboxes = document.querySelectorAll('#publish-class-list input:checked');
+    const classroomIds = [...checkboxes].map(cb => parseInt(cb.value));
+    if (classroomIds.length === 0) {
+        showToast('Sélectionnez au moins une classe', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`/exercises/${publishExerciseId}/publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+            body: JSON.stringify({ classroom_ids: classroomIds })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message || 'Exercice publié !', 'success');
+            closePublishModal();
+            // Mettre à jour le badge de statut
+            const card = document.querySelector(`.exercise-card[data-id="${publishExerciseId}"]`);
+            if (card) {
+                card.dataset.status = 'published';
+                const badge = card.querySelector('.status-badge');
+                if (badge) { badge.className = 'status-badge published'; badge.textContent = 'Publié'; }
+            }
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur de publication', 'error'); }
 }
 
 // === Folder/Class picker ===
