@@ -577,8 +577,8 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {# Les items seront mélangés par JavaScript #}
                     {% for item in c['items'] %}
                     {% if item %}
-                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}" data-text="{{ item }}">
-                        <i class="fas fa-grip-vertical"></i> <span class="item-text">{{ item }}</span>
+                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}" data-text="{{ item|e }}">
+                        <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item }}</span>
                     </li>
                     {% endif %}
                     {% endfor %}
@@ -601,9 +601,9 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                         {% for item in c['items'] %}
                         {% if item %}
                         <div class="sorting-item" draggable="true" data-item-index="{{ loop.index0 }}"
-                             data-block-id="{{ block.id }}" data-text="{{ item }}"
+                             data-block-id="{{ block.id }}" data-text="{{ item|e }}"
                              ondragstart="catDragStart(event)">
-                            <i class="fas fa-grip-vertical"></i> <span class="item-text">{{ item }}</span>
+                            <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item }}</span>
                         </div>
                         {% endif %}
                         {% endfor %}
@@ -823,6 +823,8 @@ function showQuestion(idx) {
     if (card.dataset.blockType === 'graph' && graphConfigs[blockId] && !graphStates[blockId]) {
         initInteractiveGraph(blockId, graphConfigs[blockId]);
     }
+    // Re-render math in the newly visible card
+    if (typeof renderAllMath === 'function') renderAllMath();
 }
 
 // ============================================================
@@ -1515,6 +1517,7 @@ function catDrop(event, blockId) {
         zoneItems.appendChild(draggedCatItem);
         draggedCatItem.classList.remove('dragging');
         draggedCatItem = null;
+        if (typeof renderAllMath === 'function') renderAllMath();
     }
 }
 document.querySelectorAll('.category-pool').forEach(pool => {
@@ -1526,6 +1529,7 @@ document.querySelectorAll('.category-pool').forEach(pool => {
             pool.querySelector('.pool-items').appendChild(draggedCatItem);
             draggedCatItem.classList.remove('dragging');
             draggedCatItem = null;
+            if (typeof renderAllMath === 'function') renderAllMath();
         }
     });
 });

@@ -129,9 +129,7 @@ function DraggableOrderList({ items, order, onReorder, disabled }) {
               <Ionicons name="reorder-three" size={22} color={isSelected ? '#FFF' : '#9ca3af'} />
             </View>
             <Text style={dndStyles.num}>{pos + 1}.</Text>
-            <Text style={[dndStyles.text, isSelected && dndStyles.textSelected]}>
-              {items[origIdx]}
-            </Text>
+            <MathText text={items[origIdx]} style={[dndStyles.text, isSelected && dndStyles.textSelected]} />
             {isSelected && (
               <View style={dndStyles.selectedBadge}>
                 <Ionicons name="checkmark" size={14} color="#FFF" />
@@ -222,9 +220,10 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
             onPress={() => pickedItem ? dropInCategory(catIdx) : null}
             activeOpacity={pickedItem ? 0.7 : 1}
           >
-            <Text style={dndStyles.catName}>
-              <Ionicons name="folder-open" size={14} color="#4b5563" /> {cat.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="folder-open" size={14} color="#4b5563" />
+              <MathText text={cat.name} style={dndStyles.catName} />
+            </View>
             <View style={dndStyles.catItems}>
               {catItems.map(itemIdx => (
                 <TouchableOpacity
@@ -236,7 +235,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                   onPress={() => pickFromCategory(itemIdx, catIdx)}
                   disabled={disabled}
                 >
-                  <Text style={dndStyles.catItemText}>{items[itemIdx]}</Text>
+                  <MathText text={items[itemIdx]} style={dndStyles.catItemText} />
                   <Ionicons name="close-circle" size={14} color="#ef4444" />
                 </TouchableOpacity>
               ))}
@@ -271,7 +270,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                 disabled={disabled}
               >
                 <Ionicons name="reorder-three" size={18} color="#9ca3af" />
-                <Text style={dndStyles.poolItemText}>{item}</Text>
+                <MathText text={item} style={dndStyles.poolItemText} />
               </TouchableOpacity>
             );
           })}
