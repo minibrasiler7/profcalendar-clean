@@ -628,6 +628,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% if c.question %}<p class="question-text">{{ c.question }}</p>{% endif %}
             {% set ca = c.get('correct_answer', {}) %}
             {% if c.question_type == 'draw_quadratic' %}
+                {% if not c.question %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
                     Trace la courbe : <span style="font-family:serif;font-style:italic;">f(x) =
                     {% if ca.a is defined and ca.a is not none %}
@@ -641,6 +642,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {% endif %}
                     </span>
                 </p>
+                {% endif %}
                 <p class="question-text" style="color:#6b7280;">
                     Déplace les <strong>3 points</strong> pour tracer la courbe.
                 </p>
@@ -666,6 +668,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     </div>
                 </div>
             {% else %}
+                {% if not c.question %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
                     Trace la droite : <span style="font-family:serif;font-style:italic;">f(x) =
                     {% if ca.a is defined and ca.a is not none %}
@@ -676,6 +679,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {% endif %}
                     </span>
                 </p>
+                {% endif %}
                 <p class="question-text" style="color:#6b7280;">
                     Déplace les <strong>2 points</strong> pour tracer la droite.
                 </p>
@@ -944,6 +948,11 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
                 const zones = JSON.parse(zonesStr);
                 drawCorrectZones(blockId, zones);
             }
+        }
+
+        // For graph, draw the correct line/curve in green
+        if (cardType === 'graph' && graphStates[blockId]) {
+            drawCorrectCurveOnGraph(blockId);
         }
 
         // Sad particles + cracks
@@ -1246,6 +1255,9 @@ function handleImageClick(event, blockId) {
     const img = container.querySelector('img');
     const containerRect = container.getBoundingClientRect();
     const imgRect = img.getBoundingClientRect();
+    // Offset of image within container
+    const imgOffsetX = imgRect.left - containerRect.left;
+    const imgOffsetY = imgRect.top - containerRect.top;
     // Convert to natural image dimensions for consistent validation
     const scaleX = (img.naturalWidth || imgRect.width) / imgRect.width;
     const scaleY = (img.naturalHeight || imgRect.height) / imgRect.height;
@@ -1265,9 +1277,9 @@ function handleImageClick(event, blockId) {
     const clickIdx = imageClicks[blockId].length - 1;
     const marker = document.createElement('div');
     marker.className = 'click-marker';
-    // Display marker at display coordinates (not natural)
-    const displayX = x / scaleX;
-    const displayY = y / scaleY;
+    // Display marker at display coordinates relative to container (not natural)
+    const displayX = imgOffsetX + (x / scaleX);
+    const displayY = imgOffsetY + (y / scaleY);
     marker.style.left = displayX + 'px';
     marker.style.top = displayY + 'px';
     const label = document.createElement('div');
@@ -1311,11 +1323,15 @@ function drawCorrectZones(blockId, zones) {
 
     const imgRect = img.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
+    // Offset of image within container (accounts for any padding/margin/centering)
+    const imgOffsetX = imgRect.left - containerRect.left;
+    const imgOffsetY = imgRect.top - containerRect.top;
     const scaleX = (img.naturalWidth || imgRect.width) / imgRect.width;
     const scaleY = (img.naturalHeight || imgRect.height) / imgRect.height;
 
     // Remove old correct zones
     container.querySelectorAll('.correct-zone-circle').forEach(c => c.remove());
+    container.querySelectorAll('.correct-zone-label').forEach(c => c.remove());
 
     // Draw new correct zones
     zones.forEach((zone) => {
@@ -1328,8 +1344,9 @@ function drawCorrectZones(blockId, zones) {
         }
 
         zonePoints.forEach((pt) => {
-            const displayX = (pt.x / scaleX);
-            const displayY = (pt.y / scaleY);
+            // Convert from natural image coords to display coords, adding image offset within container
+            const displayX = imgOffsetX + (pt.x / scaleX);
+            const displayY = imgOffsetY + (pt.y / scaleY);
             const displayRadius = (zoneRadius / scaleX);
 
             const zoneCircle = document.createElement('div');
@@ -1805,6 +1822,61 @@ function onGraphTouchMove(e, blockId) {
 function onGraphMouseUp(blockId) {
     const s = graphStates[blockId]; if (!s) return;
     s.dragging = -1; drawInteractiveGraph(blockId);
+}
+
+// ============================================================
+// Draw correct curve on graph after wrong answer
+// ============================================================
+function drawCorrectCurveOnGraph(blockId) {
+    const s = graphStates[blockId];
+    if (!s) return;
+    const c = s.config;
+    const ca = c.correct_answer || {};
+    const canvas = document.getElementById('graph-' + blockId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const margin = 50;
+
+    // Build correct function
+    let fn = null;
+    if (c.question_type === 'draw_quadratic') {
+        const a = ca.a || 0, b = ca.b || 0, cc = ca.c || 0;
+        fn = (x) => a*x*x + b*x + cc;
+    } else {
+        const a = ca.a || 0, b = ca.b || 0;
+        fn = (x) => a*x + b;
+    }
+    if (!fn) return;
+
+    // Draw correct curve in green (dashed)
+    ctx.save();
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 6]);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    let started = false;
+    const step = (c.x_max - c.x_min) / 400;
+    for (let x = c.x_min; x <= c.x_max; x += step) {
+        const y = fn(x);
+        const p = graphToPixel(blockId, x, y);
+        if (p.py < margin - 5 || p.py > GRAPH_H - margin + 5) { started = false; continue; }
+        if (!started) { ctx.moveTo(p.px, p.py); started = true; }
+        else ctx.lineTo(p.px, p.py);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Add "Réponse correcte" label
+    const labelP = graphToPixel(blockId, c.x_max - 1, fn(c.x_max - 1));
+    if (labelP.py > margin && labelP.py < GRAPH_H - margin) {
+        ctx.save();
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 12px Inter, system-ui, sans-serif';
+        ctx.fillText('Réponse correcte', labelP.px - 100, labelP.py - 10);
+        ctx.restore();
+    }
 }
 
 // ============================================================

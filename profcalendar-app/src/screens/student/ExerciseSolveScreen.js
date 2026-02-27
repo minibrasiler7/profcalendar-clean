@@ -944,7 +944,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return (
           <View>
             {c.question ? <Text style={styles.questionText}>{c.question}</Text> : null}
-            {c.show_expression !== false && exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
+            {!c.question && exprText ? <Text style={styles.graphExpression}>Trace : {exprText}</Text> : null}
             <GraphInteractive config={c} onPointsChange={(pts) => updateAnswer(blockId, { points: pts })} disabled={isLocked} />
           </View>
         );
