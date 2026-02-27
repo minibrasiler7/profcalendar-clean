@@ -844,6 +844,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <i class="fas fa-sort"></i>
                             Classement
                         </button>
+                        <button class="tool-btn" onclick="addBlock('matching')">
+                            <i class="fas fa-arrows-alt-h"></i>
+                            Associations
+                        </button>
                         <button class="tool-btn" onclick="addBlock('image_position')">
                             <i class="fas fa-image"></i>
                             Image interactive
@@ -1024,6 +1028,7 @@ const BLOCK_TYPES = {
     short_answer: { label: 'Réponse courte', icon: 'pen' },
     fill_blank: { label: 'Texte à trous', icon: 'paragraph' },
     sorting: { label: 'Classement', icon: 'sort' },
+    matching: { label: 'Associations', icon: 'arrows-alt-h' },
     image_position: { label: 'Image interactive', icon: 'image' },
     graph: { label: 'Graphique', icon: 'chart-line' },
 };
@@ -1104,7 +1109,9 @@ function getDefaultConfig(type) {
         case 'short_answer':
             return { question: '', answer_type: 'text', correct_answer: '', tolerance: 0, synonyms: [] };
         case 'fill_blank':
-            return { text_template: '', blanks: [] };
+            return { text_template: '', blanks: [], mode: 'text', word_pool: [] };
+        case 'matching':
+            return { pairs: [{ left: '', right: '' }] };
         case 'sorting':
             return { mode: 'order', items: ['', ''], correct_order: [0, 1], categories: [] };
         case 'image_position':
@@ -1159,6 +1166,7 @@ function renderBlockEditor(block) {
         case 'qcm': return renderQCMEditor(block);
         case 'short_answer': return renderShortAnswerEditor(block);
         case 'fill_blank': return renderFillBlankEditor(block);
+        case 'matching': return renderMatchingEditor(block);
         case 'sorting': return renderSortingEditor(block);
         case 'image_position': return renderImagePositionEditor(block);
         case 'graph': return renderGraphEditor(block);
@@ -1309,15 +1317,56 @@ function updateSynonym(uid, index, value) {
 // ============================================================
 function renderFillBlankEditor(block) {
     const c = block.config_json;
+    if (!c.mode) c.mode = 'text';
+    if (!c.word_pool) c.word_pool = [];
     const preview = parseFillBlank(c.text_template || '');
 
+    let wordPoolHtml = '';
+    if (c.mode === 'choices') {
+        const poolItems = (c.word_pool || []).map((w, i) => `
+            <div class="item-row" style="margin-bottom:0.3rem;">
+                <input type="text" value="${escapeHtml(w)}" placeholder="Mot ${i+1}"
+                    onchange="updateWordPool('${block.uid}', ${i}, this.value)" style="flex:1;">
+                <button class="remove-item" onclick="removeWordPoolItem('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>`).join('');
+
+        wordPoolHtml = `
+        <div class="form-group">
+            <label>Liste de mots proposés</label>
+            <div class="items-list">${poolItems}</div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                <button class="add-item-btn" onclick="addWordPoolItem('${block.uid}')">
+                    <i class="fas fa-plus"></i> Ajouter un mot
+                </button>
+                <button class="add-item-btn" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;" onclick="autoGenerateWordPool('${block.uid}')">
+                    <i class="fas fa-magic"></i> Auto-générer depuis les trous
+                </button>
+            </div>
+            <small style="color:#6b7280;margin-top:0.3rem;display:block;">Ajoutez des mots supplémentaires (distracteurs) pour augmenter la difficulté.</small>
+        </div>`;
+    }
+
     return `
+        <div class="form-group">
+            <label>Mode de réponse</label>
+            <div style="display:flex;gap:0.5rem;">
+                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'text' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'text' ? '#eef2ff' : '#fff'};">
+                    <input type="radio" name="fill-mode-${block.uid}" value="text" ${c.mode === 'text' ? 'checked' : ''}
+                        onchange="updateFillBlankMode('${block.uid}', 'text')"> Saisie libre
+                </label>
+                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${c.mode === 'choices' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${c.mode === 'choices' ? '#eef2ff' : '#fff'};">
+                    <input type="radio" name="fill-mode-${block.uid}" value="choices" ${c.mode === 'choices' ? 'checked' : ''}
+                        onchange="updateFillBlankMode('${block.uid}', 'choices')"> Liste de mots
+                </label>
+            </div>
+        </div>
         <div class="form-group">
             <label>Texte avec trous</label>
             <textarea rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: Le {soleil} brille dans le {ciel}."
                 onchange="updateFillBlankTemplate('${block.uid}', this.value)">${escapeHtml(c.text_template || '')}</textarea>
             <small style="color:#6b7280;">Syntaxe : entourez les mots à deviner avec des accolades {mot}</small>
         </div>
+        ${wordPoolHtml}
         <div class="form-group">
             <label>Aperçu</label>
             <div class="fill-blank-preview">${preview}</div>
@@ -1336,6 +1385,88 @@ function updateFillBlankTemplate(uid, value) {
     const matches = [...value.matchAll(/\{([^}]+)\}/g)];
     block.config_json.blanks = matches.map((m, i) => ({ word: m[1], position: i }));
     refreshBlockContent(uid);
+}
+
+function updateFillBlankMode(uid, mode) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.mode = mode;
+    if (mode === 'choices' && (!block.config_json.word_pool || block.config_json.word_pool.length === 0)) {
+        autoGenerateWordPool(uid);
+        return;
+    }
+    refreshBlockContent(uid);
+}
+
+function addWordPoolItem(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.word_pool) block.config_json.word_pool = [];
+    block.config_json.word_pool.push('');
+    refreshBlockContent(uid);
+}
+
+function removeWordPoolItem(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.word_pool.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateWordPool(uid, index, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.word_pool[index] = value;
+}
+
+function autoGenerateWordPool(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const blanks = block.config_json.blanks || [];
+    block.config_json.word_pool = blanks.map(b => b.word);
+    refreshBlockContent(uid);
+}
+
+// ============================================================
+// MATCHING EDITOR
+// ============================================================
+function renderMatchingEditor(block) {
+    const c = block.config_json;
+    if (!c.pairs) c.pairs = [{ left: '', right: '' }];
+
+    const pairsHtml = c.pairs.map((p, i) => `
+        <div class="item-row" style="margin-bottom:0.5rem;align-items:center;">
+            <span style="font-weight:700;color:#667eea;width:20px;">${i + 1}.</span>
+            <input type="text" value="${escapeHtml(p.left || '')}" placeholder="Élément gauche"
+                onchange="updateMatchingPair('${block.uid}', ${i}, 'left', this.value)" style="flex:1;">
+            <i class="fas fa-arrows-alt-h" style="color:#9ca3af;margin:0 0.3rem;"></i>
+            <input type="text" value="${escapeHtml(p.right || '')}" placeholder="Élément droit"
+                onchange="updateMatchingPair('${block.uid}', ${i}, 'right', this.value)" style="flex:1;">
+            <button class="remove-item" onclick="removeMatchingPair('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        </div>`).join('');
+
+    return `
+        <div class="form-group">
+            <label>Paires d'associations</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque ligne représente une association correcte entre un élément gauche et un élément droit.</small>
+            <div class="items-list">${pairsHtml}</div>
+            <button class="add-item-btn" onclick="addMatchingPair('${block.uid}')" style="margin-top:0.5rem;">
+                <i class="fas fa-plus"></i> Ajouter une paire
+            </button>
+        </div>`;
+}
+
+function addMatchingPair(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs.push({ left: '', right: '' });
+    refreshBlockContent(uid);
+}
+
+function removeMatchingPair(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs.splice(index, 1);
+    if (block.config_json.pairs.length === 0) block.config_json.pairs.push({ left: '', right: '' });
+    refreshBlockContent(uid);
+}
+
+function updateMatchingPair(uid, index, side, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs[index][side] = value;
 }
 
 // ============================================================
@@ -1470,6 +1601,11 @@ function updateCategoryItem(uid, ci, ii, value) {
 // ============================================================
 function renderImagePositionEditor(block) {
     const c = block.config_json;
+    if (!c.interaction_type) c.interaction_type = 'zones';
+
+    if (c.interaction_type === 'labels') {
+        return renderImageLabelsEditor(block);
+    }
 
     // zones = [{label: "Coeur", points: [{x,y}, ...], radius: 30}, ...]
     let zonesHtml = '';
@@ -1488,6 +1624,7 @@ function renderImagePositionEditor(block) {
     });
 
     return `
+        ${renderInteractionTypeSelector(block)}
         <div class="form-group">
             <label>Zone active à placer</label>
             <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
@@ -1529,6 +1666,121 @@ function renderImagePositionEditor(block) {
                     onchange="updateDefaultRadius('${block.uid}', parseInt(this.value))">
             </div>
         </div>` : ''}`;
+}
+
+function renderInteractionTypeSelector(block) {
+    const c = block.config_json;
+    const it = c.interaction_type || 'zones';
+    return `
+        <div class="form-group">
+            <label>Type d'interaction</label>
+            <div style="display:flex;gap:0.5rem;">
+                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'zones' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'zones' ? '#eef2ff' : '#fff'};">
+                    <input type="radio" name="interaction-type-${block.uid}" value="zones" ${it === 'zones' ? 'checked' : ''}
+                        onchange="updateInteractionType('${block.uid}', 'zones')"> Zones cliquables
+                </label>
+                <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;padding:0.4rem 0.8rem;border:2px solid ${it === 'labels' ? '#667eea' : '#e5e7eb'};border-radius:8px;background:${it === 'labels' ? '#eef2ff' : '#fff'};">
+                    <input type="radio" name="interaction-type-${block.uid}" value="labels" ${it === 'labels' ? 'checked' : ''}
+                        onchange="updateInteractionType('${block.uid}', 'labels')"> Labels sur image
+                </label>
+            </div>
+        </div>`;
+}
+
+function updateInteractionType(uid, type) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.interaction_type = type;
+    if (type === 'labels' && !block.config_json.labels) {
+        block.config_json.labels = [];
+    }
+    refreshBlockContent(uid);
+}
+
+function renderImageLabelsEditor(block) {
+    const c = block.config_json;
+    if (!c.labels) c.labels = [];
+
+    const labelsHtml = c.labels.map((lbl, i) => `
+        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+            <div class="item-row" style="margin-bottom:0.3rem;">
+                <span style="font-weight:700;color:#16a34a;">${i + 1}.</span>
+                <input type="text" placeholder="Réponse attendue" value="${escapeHtml(lbl.text || '')}"
+                    onchange="updateImageLabel('${block.uid}', ${i}, 'text', this.value)" style="flex:1;">
+                <input type="text" placeholder="Indice (optionnel)" value="${escapeHtml(lbl.hint || '')}"
+                    onchange="updateImageLabel('${block.uid}', ${i}, 'hint', this.value)" style="flex:0.6;">
+                <button class="remove-item" onclick="removeImageLabel('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>
+            <small style="color:#6b7280;">Position : (${Math.round(lbl.x || 0)}%, ${Math.round(lbl.y || 0)}%) — Cliquez sur l'image pour repositionner.</small>
+        </div>`).join('');
+
+    return `
+        ${renderInteractionTypeSelector(block)}
+        <div class="form-group">
+            ${c.image_url ?
+                `<div class="image-preview-container" id="img-container-${block.uid}"
+                    onclick="addImageLabel(event, '${block.uid}')" style="cursor:crosshair;">
+                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous"
+                        onload="repositionLabels('${block.uid}')">
+                    ${renderAllLabelMarkers(c, block.uid)}
+                </div>
+                <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
+                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                </button>` :
+                `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
+                    <p>Cliquez pour téléverser une image</p>
+                    <small>PNG, JPG, GIF</small>
+                </div>`
+            }
+            <input type="file" id="file-input-${block.uid}" accept="image/*" style="display:none;"
+                onchange="handleImageUpload('${block.uid}', this)">
+        </div>
+        ${c.image_url ? `
+        <div class="form-group">
+            <label>Labels positionnés</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Cliquez sur l'image pour ajouter un label. L'élève devra taper la réponse attendue dans un champ positionné à cet endroit.</small>
+            <div class="items-list">${labelsHtml}</div>
+        </div>` : ''}`;
+}
+
+function renderAllLabelMarkers(config, uid) {
+    let html = '';
+    (config.labels || []).forEach((lbl, i) => {
+        html += `<div class="image-label-marker" style="position:absolute;left:${lbl.x}%;top:${lbl.y}%;transform:translate(-50%,-50%);background:rgba(102,126,234,0.85);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;pointer-events:none;">
+            ${i + 1}
+        </div>`;
+    });
+    return html;
+}
+
+function addImageLabel(event, uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const container = event.currentTarget;
+    const img = container.querySelector('img');
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    if (!block.config_json.labels) block.config_json.labels = [];
+    block.config_json.labels.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, text: '', hint: '' });
+    refreshBlockContent(uid);
+}
+
+function removeImageLabel(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.labels.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateImageLabel(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.labels[index][field] = value;
+}
+
+function repositionLabels(uid) {
+    // Labels use percentage positioning, no repositioning needed
 }
 
 function renderAllZonePoints(config) {

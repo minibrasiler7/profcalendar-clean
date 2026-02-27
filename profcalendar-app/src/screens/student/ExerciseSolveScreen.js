@@ -605,6 +605,9 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const [result, setResult] = useState(null);
   const [feedbackMap, setFeedbackMap] = useState({});
   const [questionLocked, setQuestionLocked] = useState(false);
+  const [matchingSelectedLeft, setMatchingSelectedLeft] = useState(null);
+  const matchingShuffledRef = useRef({});
+  const [labelImgSize, setLabelImgSize] = useState({ width: 300, height: 200 });
   const [correctCount, setCorrectCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
 
@@ -663,8 +666,14 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           // The pool items will be shuffled dynamically when rendered (see DraggableCategoryList)
           initial[block.id] = { categories: {} };
         }
+      } else if (block.block_type === 'matching') {
+        initial[block.id] = { associations: {} };
       } else if (block.block_type === 'image_position') {
-        initial[block.id] = { clicks: [] };
+        if (c.interaction_type === 'labels') {
+          initial[block.id] = { labels: {} };
+        } else {
+          initial[block.id] = { clicks: [] };
+        }
       } else if (block.block_type === 'graph') {
         initial[block.id] = { points: [] };
       }
@@ -727,7 +736,13 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       if (c.mode !== 'order') return Object.values(answer?.categories || {}).flat().length > 0;
       return true;
     }
-    if (block.block_type === 'image_position') return (answer?.clicks || []).length > 0;
+    if (block.block_type === 'matching') return Object.keys(answer?.associations || {}).length > 0;
+    if (block.block_type === 'image_position') {
+      if ((block.config_json || {}).interaction_type === 'labels') {
+        return Object.values(answer?.labels || {}).some(v => (v || '').trim().length > 0);
+      }
+      return (answer?.clicks || []).length > 0;
+    }
     if (block.block_type === 'graph') {
       const gc = block.config_json || {};
       if (gc.question_type === 'find_expression') {
@@ -945,17 +960,120 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         const parts = template.split(/(\{[^}]+\})/);
         let blankIdx = 0;
         const blanks = answer.blanks || [];
+        const fillMode = c.mode || 'text';
+        const wordPool = c.word_pool || [];
+
         return (
           <View><View style={styles.fillBlankWrap}>
             {parts.map((part, i) => {
               if (part.match(/^\{[^}]+\}$/)) {
                 const bi = blankIdx++;
+                if (fillMode === 'choices' && wordPool.length > 0) {
+                  return (
+                    <View key={i} style={styles.fillBlankSelectWrap}>
+                      <TouchableOpacity
+                        style={[styles.fillBlankSelect, blanks[bi] ? styles.fillBlankSelectFilled : null]}
+                        disabled={isLocked}
+                        onPress={() => {
+                          const options = [...wordPool].sort(() => Math.random() - 0.5);
+                          options.unshift('— Choisir —');
+                          const cancelIdx = options.length;
+                          options.push('Annuler');
+                          Alert.alert('Choisir un mot', null, options.map((opt, oi) => ({
+                            text: opt,
+                            onPress: () => {
+                              if (oi === 0 || oi === cancelIdx) return;
+                              const nb = [...blanks]; nb[bi] = opt; updateAnswer(blockId, { blanks: nb });
+                            },
+                            style: oi === cancelIdx ? 'cancel' : 'default',
+                          })));
+                        }}
+                      >
+                        <Text style={[styles.fillBlankSelectText, !blanks[bi] && { color: colors.textLight }]}>
+                          {blanks[bi] || '— Choisir —'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color={colors.textLight} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
                 return <TextInput key={i} style={styles.fillBlankInput} placeholder="..." placeholderTextColor={colors.textLight}
                   value={blanks[bi] || ''} onChangeText={(t) => { const nb = [...blanks]; nb[bi] = t; updateAnswer(blockId, { blanks: nb }); }} editable={!isLocked} />;
               }
               return <Text key={i} style={styles.fillBlankText}>{part}</Text>;
             })}
           </View></View>
+        );
+      }
+      case 'matching': {
+        const pairs = c.pairs || [];
+        const associations = answer.associations || {};
+        // Use component-level state for selectedLeft and ref for shuffled order
+        if (!matchingShuffledRef.current[blockId]) {
+          const items = pairs.map((p, i) => ({ text: p.right, originalIndex: i }));
+          for (let i = items.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [items[i], items[j]] = [items[j], items[i]];
+          }
+          matchingShuffledRef.current[blockId] = items;
+        }
+        const shuffledRight = matchingShuffledRef.current[blockId];
+
+        const isLeftMatched = (idx) => associations[idx] !== undefined;
+        const isRightMatched = (origIdx) => Object.values(associations).includes(origIdx);
+        const getLeftMatchLabel = (leftIdx) => {
+          if (associations[leftIdx] === undefined) return null;
+          const rightOrigIdx = associations[leftIdx];
+          const pair = pairs[rightOrigIdx];
+          return pair ? pair.right : null;
+        };
+
+        return (
+          <View>
+            <Text style={{ color: colors.textLight, marginBottom: 12, fontSize: 14 }}>
+              Sélectionne un élément à gauche, puis son correspondant à droite :
+            </Text>
+            <View style={styles.matchingContainer}>
+              <View style={styles.matchingCol}>
+                <Text style={styles.matchingColTitle}>Gauche</Text>
+                {pairs.map((p, i) => (
+                  <TouchableOpacity key={i}
+                    style={[styles.matchingItem,
+                      matchingSelectedLeft === i && styles.matchingItemSelected,
+                      isLeftMatched(i) && styles.matchingItemMatched]}
+                    disabled={isLocked}
+                    onPress={() => setMatchingSelectedLeft(i)}>
+                    <View style={[styles.matchingNum, isLeftMatched(i) && { backgroundColor: '#10b981' }]}>
+                      <Text style={styles.matchingNumText}>{i + 1}</Text>
+                    </View>
+                    <MathText text={p.left} style={styles.matchingItemText} />
+                    {isLeftMatched(i) && <Ionicons name="link" size={14} color="#10b981" style={{ marginLeft: 'auto' }} />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.matchingCol}>
+                <Text style={styles.matchingColTitle}>Droite</Text>
+                {shuffledRight.map((item, di) => (
+                  <TouchableOpacity key={di}
+                    style={[styles.matchingItem, isRightMatched(item.originalIndex) && styles.matchingItemMatched]}
+                    disabled={isLocked || matchingSelectedLeft === null}
+                    onPress={() => {
+                      if (matchingSelectedLeft === null || isRightMatched(item.originalIndex)) return;
+                      const newAssoc = { ...associations, [matchingSelectedLeft]: item.originalIndex };
+                      updateAnswer(blockId, { associations: newAssoc });
+                      setMatchingSelectedLeft(null);
+                    }}>
+                    <MathText text={item.text} style={styles.matchingItemText} />
+                    {isRightMatched(item.originalIndex) && (
+                      <Text style={{ marginLeft: 'auto', fontSize: 11, color: '#10b981', fontWeight: '700' }}>
+                        {Object.entries(associations).find(([, v]) => v === item.originalIndex)?.[0] ? (parseInt(Object.entries(associations).find(([, v]) => v === item.originalIndex)[0]) + 1) : ''} <Ionicons name="link" size={12} color="#10b981" />
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
         );
       }
       case 'sorting':
@@ -971,7 +1089,59 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           : c.image_url ? (c.image_url.startsWith('http') ? c.image_url : `${BASE_URL}${c.image_url}`) : null;
         if (!imageUrl) return <Text style={{ color: '#ef4444' }}>Image non disponible</Text>;
 
-        // Show correct zones when feedback is shown (both correct and incorrect)
+        // IMAGE LABELS MODE
+        if (c.interaction_type === 'labels') {
+          const labels = c.labels || [];
+          const userLabels = answer.labels || {};
+
+          return (
+            <View>
+              <Text style={{ color: colors.textLight, marginBottom: 8, fontSize: 14 }}>
+                Complète les labels sur l'image :
+              </Text>
+              <View style={{ position: 'relative', width: '100%' }}
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  Image.getSize(imageUrl, (natW, natH) => {
+                    setLabelImgSize({ width: w, height: w * (natH / natW) });
+                  }, () => {});
+                }}>
+                <Image source={{ uri: imageUrl }} style={{ width: labelImgSize.width, height: labelImgSize.height, borderRadius: 8 }} resizeMode="contain" />
+                {labels.map((lbl, i) => (
+                  <TextInput
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: `${lbl.x}%`,
+                      top: `${lbl.y}%`,
+                      transform: [{ translateX: -40 }, { translateY: -16 }],
+                      backgroundColor: 'rgba(255,255,255,0.75)',
+                      borderWidth: 2,
+                      borderColor: '#667eea',
+                      borderRadius: 6,
+                      paddingHorizontal: 6,
+                      paddingVertical: 3,
+                      fontSize: 13,
+                      textAlign: 'center',
+                      minWidth: 80,
+                      maxWidth: 120,
+                    }}
+                    placeholder={lbl.hint || '...'}
+                    placeholderTextColor={colors.textLight}
+                    value={userLabels[String(i)] || ''}
+                    onChangeText={(t) => {
+                      const nl = { ...userLabels, [String(i)]: t };
+                      updateAnswer(blockId, { labels: nl });
+                    }}
+                    editable={!isLocked}
+                  />
+                ))}
+              </View>
+            </View>
+          );
+        }
+
+        // ZONES CLICKABLE MODE (original)
         let correctZones = null;
         if (currentFeedback) {
           correctZones = c.zones || [];
@@ -1303,6 +1473,19 @@ const styles = StyleSheet.create({
   fillBlankWrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' },
   fillBlankText: { fontSize: 15, color: '#374151', lineHeight: 36 },
   fillBlankInput: { borderBottomWidth: 2, borderBottomColor: '#667eea', paddingHorizontal: 8, paddingVertical: 4, minWidth: 70, fontSize: 15, color: '#374151', textAlign: 'center' },
+  fillBlankSelectWrap: { marginHorizontal: 4 },
+  fillBlankSelect: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 2, borderColor: '#667eea', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#eef2ff', minWidth: 100 },
+  fillBlankSelectFilled: { backgroundColor: '#dbeafe', borderColor: '#3b82f6' },
+  fillBlankSelectText: { fontSize: 14, color: '#374151', fontWeight: '600' },
+  matchingContainer: { flexDirection: 'row', gap: 10 },
+  matchingCol: { flex: 1 },
+  matchingColTitle: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: 8, textTransform: 'uppercase' },
+  matchingItem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderWidth: 2, borderColor: '#374151', borderRadius: 10, marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.05)' },
+  matchingItemSelected: { borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.15)' },
+  matchingItemMatched: { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)' },
+  matchingItemText: { fontSize: 14, color: '#e5e7eb', flex: 1 },
+  matchingNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#667eea', alignItems: 'center', justifyContent: 'center' },
+  matchingNumText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
   confettiOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 },
   confettiPiece: { position: 'absolute', width: 12, height: 12, borderRadius: 3 },
   sadEmoji: { position: 'absolute', fontSize: 32 },

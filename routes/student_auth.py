@@ -1353,7 +1353,13 @@ def get_correct_answer_text(block):
                 b = correct.get('b', 0)
                 cc = correct.get('c', 0)
                 return f"y = {a}x² + {b}x + {cc}"
+        elif block.block_type == 'matching':
+            pairs = c.get('pairs', [])
+            return ' | '.join(f"{p.get('left', '')} ↔ {p.get('right', '')}" for p in pairs) if pairs else None
         elif block.block_type == 'image_position':
+            if c.get('interaction_type') == 'labels':
+                labels = c.get('labels', [])
+                return ', '.join(lbl.get('text', '') for lbl in labels) if labels else None
             zones = c.get('zones', [])
             return ', '.join(z.get('label', '') for z in zones) if zones else None
     except Exception:
@@ -1374,7 +1380,12 @@ def grade_block(block, answer, accept_typos=False):
         return grade_fill_blank(c, answer, points, accept_typos)
     elif block.block_type == 'sorting':
         return grade_sorting(c, answer, points)
+    elif block.block_type == 'matching':
+        return grade_matching(c, answer, points)
     elif block.block_type == 'image_position':
+        # Check for labels mode
+        if c.get('interaction_type') == 'labels':
+            return grade_image_labels(c, answer, points, accept_typos)
         return grade_image_position(c, answer, points)
     elif block.block_type == 'graph':
         return grade_graph(c, answer, points)
@@ -1584,6 +1595,70 @@ def _grade_line_from_points(points, correct, tolerance):
     b_ok = abs(user_b - expected_b) <= tolerance
     logger.info(f"[GRADE] graph (line): points=({x1},{y1}),({x2},{y2}) => user_a={user_a:.4f} (expected {expected_a}, ok={a_ok}), user_b={user_b:.4f} (expected {expected_b}, ok={b_ok})")
     return a_ok and b_ok
+
+
+def grade_matching(config, answer, max_points):
+    """Corriger les associations : chaque paire correcte rapporte des points proportionnels."""
+    pairs = config.get('pairs', [])
+    associations = answer.get('associations', {})
+
+    if not pairs:
+        return True, max_points
+
+    logger.info(f"[GRADE] matching: pairs={pairs}, associations={associations}")
+
+    correct_count = 0
+    for left_idx_str, right_idx in associations.items():
+        left_idx = int(left_idx_str)
+        # A correct association means left_idx maps to the same index right_idx
+        # (pairs[i].left should be matched with pairs[i].right, so correct is left_idx == right_idx)
+        if left_idx == right_idx:
+            correct_count += 1
+            logger.info(f"[GRADE] matching pair {left_idx} -> {right_idx}: CORRECT")
+        else:
+            logger.warning(f"[GRADE] matching pair {left_idx} -> {right_idx}: INCORRECT (expected {left_idx})")
+
+    ratio = correct_count / len(pairs) if pairs else 0
+    points = round(ratio * max_points)
+    logger.info(f"[GRADE] matching result: {correct_count}/{len(pairs)} correct, ratio={ratio}, points={points}")
+    return ratio == 1.0, points
+
+
+def grade_image_labels(config, answer, max_points, accept_typos=False):
+    """Corriger les labels sur image : comparer chaque label saisi à la réponse attendue."""
+    labels = config.get('labels', [])
+    user_labels = answer.get('labels', {})
+
+    if not labels:
+        return True, max_points
+
+    logger.info(f"[GRADE] image_labels: config labels={labels}, user_labels={user_labels}")
+
+    correct_count = 0
+    for i, label in enumerate(labels):
+        expected = _normalize_text(label.get('text', ''))
+        given = _normalize_text(user_labels.get(str(i), ''))
+
+        is_match = False
+        if given == expected:
+            is_match = True
+            logger.info(f"[GRADE] image_labels label #{i} EXACT MATCH: expected='{expected}', given='{given}'")
+        elif _strip_accents(given) == _strip_accents(expected):
+            is_match = True
+            logger.info(f"[GRADE] image_labels label #{i} ACCENT-STRIPPED MATCH")
+        elif accept_typos and fuzzy_match(given, expected):
+            is_match = True
+            logger.info(f"[GRADE] image_labels label #{i} FUZZY MATCH")
+
+        if is_match:
+            correct_count += 1
+        else:
+            logger.warning(f"[GRADE] image_labels label #{i} INCORRECT: expected='{expected}', given='{given}'")
+
+    ratio = correct_count / len(labels) if labels else 0
+    points = round(ratio * max_points)
+    logger.info(f"[GRADE] image_labels result: {correct_count}/{len(labels)} correct, ratio={ratio}, points={points}")
+    return ratio == 1.0, points
 
 
 def grade_graph(config, answer, max_points):

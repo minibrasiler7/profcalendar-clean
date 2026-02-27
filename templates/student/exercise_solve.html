@@ -346,6 +346,46 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 .category-pool h4 { margin: 0 0 0.5rem; font-size: 0.85rem; color: #6b7280; }
 .category-pool .pool-items { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
+/* ---- Fill Blank Select (choices mode) ---- */
+.blank-select {
+    display: inline-block; width: auto; min-width: 120px;
+    border: 2px solid #667eea; padding: 0.2rem 0.3rem;
+    font-size: 0.95rem; font-family: inherit; text-align: center;
+    background: #eef2ff; border-radius: 6px; cursor: pointer;
+    vertical-align: middle;
+}
+.blank-select:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(102,126,234,0.2); }
+
+/* ---- Matching ---- */
+.matching-container {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    align-items: start;
+}
+.matching-item {
+    padding: 0.7rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px;
+    margin-bottom: 0.5rem; cursor: pointer; display: flex; align-items: center;
+    gap: 0.5rem; background: white; transition: all 0.2s; user-select: none;
+}
+.matching-item:hover { border-color: #667eea; background: #f5f3ff; }
+.matching-item.selected { border-color: #667eea; background: #eef2ff; box-shadow: 0 0 0 3px rgba(102,126,234,0.2); }
+.matching-item.matched { border-color: #10b981; background: #ecfdf5; cursor: default; }
+.matching-num {
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #667eea; color: white; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+.matching-item.matched .matching-num { background: #10b981; }
+.matching-line-indicator {
+    font-size: 0.75rem; color: #10b981; font-weight: 700; margin-left: auto;
+}
+
+/* ---- Image Labels ---- */
+.image-label-input:focus {
+    border-color: #4f46e5; outline: none;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.3);
+    background: rgba(255,255,255,0.9);
+}
+
 /* ---- Image Interactive ---- */
 .image-click-area {
     position: relative; display: inline-block; cursor: crosshair; max-width: 100%;
@@ -561,9 +601,19 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             <script>
                 (function() {
                     const template = {{ c.text_template|tojson }};
+                    const mode = {{ (c.mode or 'text')|tojson }};
+                    const wordPool = {{ (c.word_pool or [])|tojson }};
                     let blankIdx = 0;
                     const html = template.replace(/\{([^}]+)\}/g, function() {
                         const i = blankIdx++;
+                        if (mode === 'choices' && wordPool.length > 0) {
+                            let options = '<option value="">— Choisir —</option>';
+                            const shuffled = [...wordPool].sort(() => Math.random() - 0.5);
+                            shuffled.forEach(w => {
+                                options += '<option value="' + w.replace(/"/g, '&quot;') + '">' + w + '</option>';
+                            });
+                            return '<select class="blank-input blank-select" data-block="{{ block.id }}" data-blank="' + i + '" {{ "disabled" if already_completed }}>' + options + '</select>';
+                        }
                         return '<input class="blank-input" type="text" data-block="{{ block.id }}" data-blank="' + i + '" placeholder="..." {{ "disabled" if already_completed }}>';
                     });
                     document.getElementById('fill-blank-{{ block.id }}').innerHTML = html;
@@ -611,34 +661,109 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 </div>
             {% endif %}
 
+        {% elif block.block_type == 'matching' %}
+            <p class="question-text" style="color:#6b7280;">Associe chaque élément de gauche avec son correspondant à droite :</p>
+            <div class="matching-container" id="matching-{{ block.id }}" data-block="{{ block.id }}"
+                 data-pairs='{{ c.pairs|tojson }}'>
+                <div class="matching-left-col" id="matching-left-{{ block.id }}"></div>
+                <div class="matching-right-col" id="matching-right-{{ block.id }}"></div>
+            </div>
+            <script>
+                (function() {
+                    const pairs = {{ c.pairs|tojson }};
+                    const blockId = '{{ block.id }}';
+                    const disabled = {{ 'true' if already_completed else 'false' }};
+
+                    // Build left column (fixed order)
+                    const leftCol = document.getElementById('matching-left-' + blockId);
+                    pairs.forEach((p, i) => {
+                        const el = document.createElement('div');
+                        el.className = 'matching-item matching-left';
+                        el.dataset.index = i;
+                        el.innerHTML = '<span class="matching-num">' + (i+1) + '</span><span class="item-text math-render">' + p.left + '</span>';
+                        if (!disabled) {
+                            el.onclick = function() { selectMatchingLeft(blockId, i); };
+                        }
+                        leftCol.appendChild(el);
+                    });
+
+                    // Build right column (shuffled)
+                    const rightCol = document.getElementById('matching-right-' + blockId);
+                    const rightItems = pairs.map((p, i) => ({ text: p.right, originalIndex: i }));
+                    for (let i = rightItems.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [rightItems[i], rightItems[j]] = [rightItems[j], rightItems[i]];
+                    }
+                    rightItems.forEach((item, displayIdx) => {
+                        const el = document.createElement('div');
+                        el.className = 'matching-item matching-right';
+                        el.dataset.originalIndex = item.originalIndex;
+                        el.dataset.displayIndex = displayIdx;
+                        el.innerHTML = '<span class="item-text math-render">' + item.text + '</span>';
+                        if (!disabled) {
+                            el.onclick = function() { selectMatchingRight(blockId, item.originalIndex, displayIdx); };
+                        }
+                        rightCol.appendChild(el);
+                    });
+
+                    if (typeof renderAllMath === 'function') renderAllMath();
+                })();
+            </script>
+
         {% elif block.block_type == 'image_position' %}
-            {% if c.image_file_id or c.image_url %}
-            <div class="image-zone-prompt" id="zone-prompt-{{ block.id }}" style="text-align:center;margin-bottom:1rem;">
-                <p style="color:#6b7280;font-size:0.85rem;margin:0 0 0.3rem;">Clique sur la zone :</p>
-                <div style="font-size:1.6rem;font-weight:900;color:#667eea;" id="zone-current-label-{{ block.id }}">
-                    {{ c.zones[0].label if c.zones else '' }}
+            {% if c.get('interaction_type') == 'labels' %}
+                {# IMAGE LABELS MODE #}
+                {% if c.image_file_id or c.image_url %}
+                <p class="question-text" style="color:#6b7280;">Complète les labels sur l'image :</p>
+                <div class="image-labels-container" id="img-labels-{{ block.id }}" data-block="{{ block.id }}" style="position:relative;display:inline-block;width:100%;">
+                    {% if c.image_file_id %}
+                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image" style="width:100%;display:block;border-radius:8px;">
+                    {% elif c.image_url %}
+                    <img src="{{ c.image_url }}" alt="Image" style="width:100%;display:block;border-radius:8px;">
+                    {% endif %}
+                    {% for lbl in c.get('labels', []) %}
+                    <input type="text" class="image-label-input" data-block="{{ block.id }}" data-label-index="{{ loop.index0 }}"
+                        placeholder="{{ lbl.get('hint', '...') }}"
+                        style="position:absolute;left:{{ lbl.x }}%;top:{{ lbl.y }}%;transform:translate(-50%,-50%);
+                               background:rgba(255,255,255,0.75);border:2px solid #667eea;border-radius:6px;
+                               padding:4px 8px;font-size:0.85rem;text-align:center;min-width:60px;max-width:120px;
+                               backdrop-filter:blur(2px);"
+                        {{ 'disabled' if already_completed }}>
+                    {% endfor %}
                 </div>
-                <p style="color:#9ca3af;font-size:0.8rem;margin:0.3rem 0 0;" id="zone-counter-{{ block.id }}">
-                    Zone 1 / {{ c.zones|length }}
-                </p>
-            </div>
-            <div class="image-click-area" id="img-click-{{ block.id }}" data-block="{{ block.id }}"
-                 data-expected="{{ c.zones|length }}"
-                 data-zones='{{ c.zones|tojson }}'
-                 onclick="handleImageClick(event, '{{ block.id }}')">
-                {% if c.image_file_id %}
-                <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image">
-                {% elif c.image_url %}
-                <img src="{{ c.image_url }}" alt="Image">
+                {% else %}
+                <p style="color:#ef4444;">Image non disponible.</p>
                 {% endif %}
-            </div>
-            {% if not already_completed %}
-            <button type="button" class="btn-undo-image" id="btn-undo-{{ block.id }}" style="display:none;margin-top:0.5rem;" onclick="undoLastClick('{{ block.id }}')">
-                <i class="fas fa-undo"></i> Annuler le dernier clic
-            </button>
-            {% endif %}
             {% else %}
-            <p style="color:#ef4444;">Image non disponible.</p>
+                {# ZONES CLICKABLES MODE (original) #}
+                {% if c.image_file_id or c.image_url %}
+                <div class="image-zone-prompt" id="zone-prompt-{{ block.id }}" style="text-align:center;margin-bottom:1rem;">
+                    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 0.3rem;">Clique sur la zone :</p>
+                    <div style="font-size:1.6rem;font-weight:900;color:#667eea;" id="zone-current-label-{{ block.id }}">
+                        {{ c.zones[0].label if c.zones else '' }}
+                    </div>
+                    <p style="color:#9ca3af;font-size:0.8rem;margin:0.3rem 0 0;" id="zone-counter-{{ block.id }}">
+                        Zone 1 / {{ c.zones|length }}
+                    </p>
+                </div>
+                <div class="image-click-area" id="img-click-{{ block.id }}" data-block="{{ block.id }}"
+                     data-expected="{{ c.zones|length }}"
+                     data-zones='{{ c.zones|tojson }}'
+                     onclick="handleImageClick(event, '{{ block.id }}')">
+                    {% if c.image_file_id %}
+                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image">
+                    {% elif c.image_url %}
+                    <img src="{{ c.image_url }}" alt="Image">
+                    {% endif %}
+                </div>
+                {% if not already_completed %}
+                <button type="button" class="btn-undo-image" id="btn-undo-{{ block.id }}" style="display:none;margin-top:0.5rem;" onclick="undoLastClick('{{ block.id }}')">
+                    <i class="fas fa-undo"></i> Annuler le dernier clic
+                </button>
+                {% endif %}
+                {% else %}
+                <p style="color:#ef4444;">Image non disponible.</p>
+                {% endif %}
             {% endif %}
 
         {% elif block.block_type == 'graph' %}
@@ -930,7 +1055,15 @@ function hasAnswer(card, blockId, answer) {
         }
         return true;  // order mode always has an answer
     }
-    if (type === 'image_position') return (imageClicks[blockId] || []).length > 0;
+    if (type === 'matching') {
+        const assoc = answer.associations || {};
+        return Object.keys(assoc).length > 0;
+    }
+    if (type === 'image_position') {
+        // Check both zones mode (clicks) and labels mode
+        if (answer.labels) return Object.values(answer.labels).some(v => v.trim().length > 0);
+        return (imageClicks[blockId] || []).length > 0;
+    }
     if (type === 'graph') return !!graphStates[blockId];
     return true;
 }
@@ -1210,7 +1343,19 @@ function collectAnswer(card, blockId) {
             return { categories };
         }
     }
+    if (type === 'matching') {
+        return { associations: matchingAssociations[blockId] || {} };
+    }
     if (type === 'image_position') {
+        // Check for labels mode
+        const labelInputs = card.querySelectorAll('.image-label-input');
+        if (labelInputs.length > 0) {
+            const labels = {};
+            labelInputs.forEach(inp => {
+                labels[inp.dataset.labelIndex] = inp.value;
+            });
+            return { labels };
+        }
         return { clicks: imageClicks[blockId] || [] };
     }
     if (type === 'graph') {
@@ -1306,6 +1451,82 @@ function selectQCM(li) {
         list.querySelectorAll('.qcm-option').forEach(o => o.classList.remove('selected'));
     }
     li.classList.toggle('selected');
+}
+
+// ============================================================
+// Matching associations
+// ============================================================
+let matchingAssociations = {};  // { blockId: { leftIndex: rightOriginalIndex, ... } }
+let matchingSelectedLeft = {};   // { blockId: leftIndex }
+
+function selectMatchingLeft(blockId, leftIndex) {
+    if (questionLocked) return;
+    const container = document.getElementById('matching-' + blockId);
+    // Deselect all left items
+    container.querySelectorAll('.matching-left').forEach(el => el.classList.remove('selected'));
+    // Select this one
+    const leftEl = container.querySelector('.matching-left[data-index="' + leftIndex + '"]');
+    if (leftEl && !leftEl.classList.contains('matched')) {
+        leftEl.classList.add('selected');
+        matchingSelectedLeft[blockId] = leftIndex;
+    }
+}
+
+function selectMatchingRight(blockId, rightOriginalIndex, displayIndex) {
+    if (questionLocked) return;
+    if (matchingSelectedLeft[blockId] === undefined) return;
+
+    const leftIndex = matchingSelectedLeft[blockId];
+    const container = document.getElementById('matching-' + blockId);
+
+    // Check if this right item is already matched
+    const rightEl = container.querySelector('.matching-right[data-display-index="' + displayIndex + '"]');
+    if (rightEl && rightEl.classList.contains('matched')) return;
+
+    // Check if this left item is already matched — unmatch first
+    if (!matchingAssociations[blockId]) matchingAssociations[blockId] = {};
+    const prevRight = matchingAssociations[blockId][leftIndex];
+    if (prevRight !== undefined) {
+        // Unmatch previous right
+        container.querySelectorAll('.matching-right').forEach(el => {
+            if (parseInt(el.dataset.originalIndex) === prevRight) {
+                el.classList.remove('matched');
+                const indicator = el.querySelector('.matching-line-indicator');
+                if (indicator) indicator.remove();
+            }
+        });
+    }
+
+    // Create association
+    matchingAssociations[blockId][leftIndex] = rightOriginalIndex;
+
+    // Mark both as matched
+    const leftEl = container.querySelector('.matching-left[data-index="' + leftIndex + '"]');
+    if (leftEl) {
+        leftEl.classList.remove('selected');
+        leftEl.classList.add('matched');
+        // Add or update indicator
+        let indicator = leftEl.querySelector('.matching-line-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.className = 'matching-line-indicator';
+            leftEl.appendChild(indicator);
+        }
+        indicator.innerHTML = '<i class="fas fa-link"></i>';
+    }
+    if (rightEl) {
+        rightEl.classList.add('matched');
+        let indicator = rightEl.querySelector('.matching-line-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.className = 'matching-line-indicator';
+            rightEl.appendChild(indicator);
+        }
+        indicator.innerHTML = (leftIndex + 1) + ' <i class="fas fa-link"></i>';
+    }
+
+    // Clear selection
+    delete matchingSelectedLeft[blockId];
 }
 
 // ============================================================
