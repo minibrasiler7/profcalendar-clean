@@ -34,7 +34,7 @@ function MathText({ text, style, inline }) {
   // Check if text contains math delimiters
   const hasMath = /\$\$.*?\$\$|\$.*?\$|\\[(\[].*?\\[)\]]/s.test(text);
   if (!hasMath) {
-    return <Text style={flatStyle} numberOfLines={1}>{text}</Text>;
+    return <Text style={flatStyle}>{text}</Text>;
   }
   // Render with KaTeX in a WebView
   const fontSize = flatStyle.fontSize || 14;
@@ -56,7 +56,7 @@ setTimeout(()=>{const r=document.getElementById('content').getBoundingClientRect
 
   const [height, setHeight] = useState(24);
   const [width, setWidth] = useState(null);
-  const wrapStyle = flatStyle.flex ? { flex: flatStyle.flex, height } : { height, ...(width ? { width: Math.min(width, 300) } : {}) };
+  const wrapStyle = flatStyle.flex ? { flex: flatStyle.flex, height } : { height, ...(width ? { width } : {}) };
   return (
     <View style={wrapStyle}>
       <WebView
