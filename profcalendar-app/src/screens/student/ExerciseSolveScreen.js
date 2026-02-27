@@ -27,43 +27,49 @@ const CODE_VERSION = 'v5-2026-02-25'; // Version marker to verify code is loaded
 // ============================================================
 // MathText — renders text with LaTeX using a WebView when needed
 // ============================================================
-function MathText({ text, style }) {
+function MathText({ text, style, inline }) {
   if (!text) return null;
+  // Flatten style array if needed
+  const flatStyle = Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean)) : (style || {});
   // Check if text contains math delimiters
   const hasMath = /\$\$.*?\$\$|\$.*?\$|\\[(\[].*?\\[)\]]/s.test(text);
   if (!hasMath) {
-    return <Text style={style}>{text}</Text>;
+    return <Text style={flatStyle}>{text}</Text>;
   }
   // Render with KaTeX in a WebView
-  const fontSize = style?.fontSize || 14;
-  const color = style?.color || '#374151';
-  const fontWeight = style?.fontWeight || '400';
+  const fontSize = flatStyle.fontSize || 14;
+  const color = flatStyle.color || '#374151';
+  const fontWeight = flatStyle.fontWeight || '400';
   const htmlContent = `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,system-ui,sans-serif;font-size:${fontSize}px;color:${color};font-weight:${fontWeight};line-height:1.5;padding:4px 0;background:transparent}
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,system-ui,sans-serif;font-size:${fontSize}px;color:${color};font-weight:${fontWeight};line-height:1.5;padding:4px 0;background:transparent;display:inline}
 .katex{font-size:1.1em}</style>
 </head><body><span id="content"></span>
 <script>document.getElementById('content').textContent=${JSON.stringify(text)};
 renderMathInElement(document.getElementById('content'),{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\\\(',right:'\\\\)',display:false},{left:'\\\\[',right:'\\\\]',display:true}],throwOnError:false});
-// Send height to React Native
-setTimeout(()=>{window.ReactNativeWebView.postMessage(JSON.stringify({h:document.body.scrollHeight}))},200);
+// Send size to React Native
+setTimeout(()=>{const r=document.getElementById('content').getBoundingClientRect();window.ReactNativeWebView.postMessage(JSON.stringify({h:Math.ceil(r.height)+10,w:Math.ceil(r.width)+10}))},300);
 </script></body></html>`;
 
-  const [height, setHeight] = useState(40);
+  const [height, setHeight] = useState(30);
+  const [width, setWidth] = useState(null);
+  const wrapStyle = flatStyle.flex ? { flex: flatStyle.flex, minHeight: height } : { minHeight: height, ...(width ? { width: Math.min(width, 300) } : {}) };
   return (
-    <WebView
-      source={{ html: htmlContent }}
-      style={{ height, width: '100%', backgroundColor: 'transparent' }}
-      scrollEnabled={false}
-      onMessage={(e) => {
-        try { const d = JSON.parse(e.nativeEvent.data); if (d.h) setHeight(d.h + 8); } catch(err) {}
-      }}
-      originWhitelist={['*']}
-      javaScriptEnabled={true}
-    />
+    <View style={wrapStyle}>
+      <WebView
+        source={{ html: htmlContent }}
+        style={{ height, width: '100%', backgroundColor: 'transparent' }}
+        scrollEnabled={false}
+        onMessage={(e) => {
+          try { const d = JSON.parse(e.nativeEvent.data); if (d.h) setHeight(d.h); if (d.w) setWidth(d.w); } catch(err) {}
+        }}
+        originWhitelist={['*']}
+        javaScriptEnabled={true}
+      />
+    </View>
   );
 }
 
@@ -235,7 +241,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                   onPress={() => pickFromCategory(itemIdx, catIdx)}
                   disabled={disabled}
                 >
-                  <MathText text={items[itemIdx]} style={dndStyles.catItemText} />
+                  <MathText text={items[itemIdx]} style={{...dndStyles.catItemText, flex: 1}} />
                   <Ionicons name="close-circle" size={14} color="#ef4444" />
                 </TouchableOpacity>
               ))}
@@ -270,7 +276,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                 disabled={disabled}
               >
                 <Ionicons name="reorder-three" size={18} color="#9ca3af" />
-                <MathText text={item} style={dndStyles.poolItemText} />
+                <MathText text={item} style={{...dndStyles.poolItemText, flex: 1}} />
               </TouchableOpacity>
             );
           })}
@@ -1159,7 +1165,7 @@ const dndStyles = StyleSheet.create({
   catZoneTarget: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
   catName: { fontSize: 14, fontWeight: '700', color: '#4b5563', marginBottom: 8 },
   catItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  catItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#667eea' },
+  catItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#667eea', minWidth: 80 },
   catItemPicked: { backgroundColor: '#c7d2fe', borderColor: '#4f46e5' },
   catItemText: { fontSize: 13, color: '#4338ca', fontWeight: '600' },
   catEmpty: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
@@ -1167,7 +1173,7 @@ const dndStyles = StyleSheet.create({
   poolTarget: { borderColor: '#667eea', backgroundColor: '#eef2ff' },
   poolLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', marginBottom: 8 },
   poolItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  poolItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb' },
+  poolItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f9fafb', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb', minWidth: 80 },
   poolItemPicked: { backgroundColor: '#dbeafe', borderColor: '#3b82f6' },
   poolItemText: { fontSize: 14, color: '#374151' },
   dragGhost: { position: 'absolute', left: 20, right: 20, height: 56, backgroundColor: '#667eea', borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 10, zIndex: 999 },
