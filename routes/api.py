@@ -1683,6 +1683,7 @@ def student_submit_mission(mission_id):
     xp_earned = 0
     gold_earned = 0
 
+    old_level = rpg.level if rpg else 1
     if rpg:
         xp_earned = base_score + combo_bonus_xp
         rpg.add_xp(xp_earned)
@@ -1718,6 +1719,8 @@ def student_submit_mission(mission_id):
         'gold_earned': gold_earned,
         'combo_bonus_xp': combo_bonus_xp,
         'new_level': rpg.level if rpg else 1,
+        'old_level': old_level,
+        'leveled_up': (rpg.level > old_level) if rpg else False,
         'blocks_results': blocks_results
     }
     if rpg and item_won:
@@ -1784,9 +1787,13 @@ def student_rpg_profile():
             'defense_magique': getattr(rpg_profile, 'stat_defense_magique', 5) or 5,
             'vie': getattr(rpg_profile, 'stat_vie', 5) or 5,
             'intelligence': getattr(rpg_profile, 'stat_intelligence', 5) or 5,
+            'hp': rpg_profile.max_hp,
+            'max_hp': rpg_profile.max_hp,
+            'mana': rpg_profile.max_mana,
+            'max_mana': rpg_profile.max_mana,
         }
     except Exception:
-        stats = {'force': 5, 'defense': 5, 'defense_magique': 5, 'vie': 5, 'intelligence': 5}
+        stats = {'force': 5, 'defense': 5, 'defense_magique': 5, 'vie': 5, 'intelligence': 5, 'hp': 90, 'max_hp': 90, 'mana': 45, 'max_mana': 45}
 
     try:
         all_skills = rpg_profile.get_all_skills()
@@ -2073,6 +2080,37 @@ def student_rpg_equip():
 
     db.session.commit()
     return jsonify({'success': True, 'profile': rpg.to_dict()})
+
+
+@api_bp.route('/student/rpg/allocate-stat', methods=['POST'])
+@jwt_required(user_type='student')
+def student_allocate_stat():
+    """Attribuer +1 point dans une caractéristique lors d'un level-up."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.rpg import StudentRPGProfile
+    rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
+    if not rpg:
+        return jsonify({'error': 'Profil RPG non trouvé'}), 404
+
+    data = request.get_json(silent=True) or {}
+    stat = data.get('stat', '')
+    valid_stats = ['force', 'defense', 'defense_magique', 'vie', 'intelligence']
+    if stat not in valid_stats:
+        return jsonify({'error': f'Stat invalide. Valeurs acceptées: {valid_stats}'}), 400
+
+    col_name = f'stat_{stat}'
+    current_val = getattr(rpg, col_name, 0) or 0
+    setattr(rpg, col_name, current_val + 1)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'stat': stat,
+        'new_value': current_val + 1,
+    })
 
 
 @api_bp.route('/student/rpg/skills', methods=['POST'])

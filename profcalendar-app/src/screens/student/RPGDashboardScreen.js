@@ -323,6 +323,28 @@ export default function RPGDashboardScreen({ navigation }) {
         </View>
       </View>
 
+      {/* HP & Mana Bars */}
+      {rpgData.avatar_class && stats.max_hp && (
+        <View style={styles.hpManaSection}>
+          <View style={styles.hpManaRow}>
+            <Ionicons name="heart" size={18} color="#ef4444" />
+            <Text style={styles.hpManaLabel}>PV</Text>
+            <View style={styles.hpBarBg}>
+              <View style={[styles.hpBarFill, { width: `${Math.min(100, ((stats.hp || stats.max_hp) / stats.max_hp) * 100)}%` }]} />
+            </View>
+            <Text style={styles.hpManaValue}>{stats.hp || stats.max_hp} / {stats.max_hp}</Text>
+          </View>
+          <View style={styles.hpManaRow}>
+            <Ionicons name="water" size={18} color="#3b82f6" />
+            <Text style={styles.hpManaLabel}>PM</Text>
+            <View style={styles.manaBarBg}>
+              <View style={[styles.manaBarFill, { width: `${Math.min(100, ((stats.mana || stats.max_mana) / stats.max_mana) * 100)}%` }]} />
+            </View>
+            <Text style={styles.hpManaValue}>{stats.mana || stats.max_mana} / {stats.max_mana}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Evolution Alert */}
       {availableEvolutions.length > 0 && (
         <TouchableOpacity
@@ -687,6 +709,14 @@ const styles = StyleSheet.create({
   xpBarBackground: { height: 10, backgroundColor: colors.border, borderRadius: 5, overflow: 'hidden' },
   xpBarFill: { height: '100%', backgroundColor: colors.warning },
   xpText: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
+  hpManaSection: { marginHorizontal: 16, marginTop: 8, backgroundColor: colors.card, borderRadius: 14, padding: 14, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  hpManaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hpManaLabel: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, width: 26 },
+  hpBarBg: { flex: 1, height: 14, backgroundColor: '#fecaca', borderRadius: 7, overflow: 'hidden' },
+  hpBarFill: { height: '100%', backgroundColor: '#ef4444', borderRadius: 7 },
+  manaBarBg: { flex: 1, height: 14, backgroundColor: '#bfdbfe', borderRadius: 7, overflow: 'hidden' },
+  manaBarFill: { height: '100%', backgroundColor: '#3b82f6', borderRadius: 7 },
+  hpManaValue: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, minWidth: 70, textAlign: 'right' },
   evolutionAlert: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#fef3c7', borderWidth: 1, borderColor: '#f59e0b',

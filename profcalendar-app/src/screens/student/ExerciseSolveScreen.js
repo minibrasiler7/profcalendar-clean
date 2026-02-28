@@ -622,6 +622,10 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const [itemWon, setItemWon] = useState(null);
   const itemWonScale = useRef(new Animated.Value(0)).current;
   const itemWonGlow = useRef(new Animated.Value(0)).current;
+  const [levelUpModal, setLevelUpModal] = useState(false);
+  const [levelUpData, setLevelUpData] = useState(null);
+  const [allocatingStat, setAllocatingStat] = useState(false);
+  const levelUpScale = useRef(new Animated.Value(0)).current;
 
   // Animations
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -896,7 +900,11 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList, combo_multipliers: comboMultipliersRef.current });
       console.log('[ExerciseSolveScreen] Submit response FULL:', JSON.stringify(res.data));
       setResult(res.data);
-      // Show item won popup first if an item was won, then result modal
+      // Save level-up data if applicable
+      if (res.data.leveled_up) {
+        setLevelUpData({ new_level: res.data.new_level, old_level: res.data.old_level });
+      }
+      // Chain: item_won → level_up → result
       if (res.data.item_won) {
         setItemWon(res.data.item_won);
         setItemWonModal(true);
@@ -909,6 +917,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             Animated.timing(itemWonGlow, { toValue: 0, duration: 1200, useNativeDriver: true }),
           ])),
         ]).start();
+      } else if (res.data.leveled_up) {
+        showLevelUpModal();
       } else {
         setResultModal(true);
       }
@@ -918,6 +928,24 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const showLevelUpModal = () => {
+    setLevelUpModal(true);
+    levelUpScale.setValue(0);
+    Animated.spring(levelUpScale, { toValue: 1, friction: 4, tension: 50, useNativeDriver: true }).start();
+  };
+
+  const handleAllocateStat = async (stat) => {
+    setAllocatingStat(true);
+    try {
+      await api.post('/student/rpg/allocate-stat', { stat });
+    } catch (e) {
+      console.log('[ExerciseSolveScreen] Allocate stat error:', e.response?.data || e.message);
+    }
+    setAllocatingStat(false);
+    setLevelUpModal(false);
+    setResultModal(true);
   };
 
   const handleResultClose = () => {
@@ -1430,6 +1458,38 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         )}
       </View>
 
+      {/* Level Up Popup */}
+      <Modal visible={levelUpModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.levelUpContent, { transform: [{ scale: levelUpScale }] }]}>
+            <Text style={styles.levelUpEmoji}>⬆️</Text>
+            <Text style={styles.levelUpTitle}>NIVEAU {levelUpData?.new_level} !</Text>
+            <Text style={styles.levelUpSubtitle}>Félicitations ! Tu as monté de niveau !</Text>
+            <Text style={styles.levelUpChoose}>Choisis une caractéristique à améliorer :</Text>
+            <View style={styles.levelUpStatsGrid}>
+              {[
+                { key: 'force', label: 'Force', icon: 'fitness', color: '#ef4444' },
+                { key: 'defense', label: 'Défense', icon: 'shield', color: '#3b82f6' },
+                { key: 'defense_magique', label: 'Déf. Magique', icon: 'sparkles', color: '#a855f7' },
+                { key: 'vie', label: 'Vie', icon: 'heart', color: '#10b981' },
+                { key: 'intelligence', label: 'Intelligence', icon: 'bulb', color: '#f59e0b' },
+              ].map((stat) => (
+                <TouchableOpacity
+                  key={stat.key}
+                  style={[styles.levelUpStatBtn, { borderColor: stat.color }]}
+                  onPress={() => handleAllocateStat(stat.key)}
+                  disabled={allocatingStat}
+                >
+                  <Ionicons name={stat.icon} size={22} color={stat.color} />
+                  <Text style={[styles.levelUpStatLabel, { color: stat.color }]}>{stat.label}</Text>
+                  <Text style={[styles.levelUpStatPlus, { color: stat.color }]}>+1</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       {/* Item Won Popup */}
       <Modal visible={itemWonModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -1452,7 +1512,11 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             ) : null}
             <TouchableOpacity style={styles.itemWonButton} onPress={() => {
               setItemWonModal(false);
-              setResultModal(true);
+              if (levelUpData) {
+                showLevelUpModal();
+              } else {
+                setResultModal(true);
+              }
             }}>
               <Text style={styles.itemWonButtonText}>Super !</Text>
             </TouchableOpacity>
@@ -1631,6 +1695,16 @@ const styles = StyleSheet.create({
   undoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 12, marginTop: 12 },
   undoButtonText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   // Item Won Popup styles
+  // Level Up Modal styles
+  levelUpContent: { backgroundColor: '#1e1b4b', borderRadius: 24, padding: 28, alignItems: 'center', marginHorizontal: 20, borderWidth: 2, borderColor: '#10b981', shadowColor: '#10b981', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
+  levelUpEmoji: { fontSize: 48, marginBottom: 8 },
+  levelUpTitle: { fontSize: 32, fontWeight: '900', color: '#10b981', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 },
+  levelUpSubtitle: { fontSize: 16, fontWeight: '600', color: '#FFF', marginBottom: 16 },
+  levelUpChoose: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 16 },
+  levelUpStatsGrid: { width: '100%', gap: 8 },
+  levelUpStatBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, borderWidth: 2, backgroundColor: 'rgba(255,255,255,0.05)' },
+  levelUpStatLabel: { flex: 1, fontSize: 16, fontWeight: '700' },
+  levelUpStatPlus: { fontSize: 18, fontWeight: '900' },
   itemWonContent: { backgroundColor: '#1e1b4b', borderRadius: 24, padding: 32, alignItems: 'center', marginHorizontal: 24, borderWidth: 2, borderColor: '#fbbf24', shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
   itemWonTitle: { fontSize: 24, fontWeight: '900', color: '#fbbf24', marginBottom: 20, textTransform: 'uppercase', letterSpacing: 2 },
   itemWonIconWrap: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(251, 191, 36, 0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: 'rgba(251, 191, 36, 0.3)', shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 0 } },

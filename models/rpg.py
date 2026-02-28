@@ -272,6 +272,14 @@ class StudentRPGProfile(db.Model):
         progress = ((self.xp_total - current_level_xp) / (next_level_xp - current_level_xp)) * 100
         return min(100, max(0, round(progress)))
 
+    @property
+    def max_hp(self):
+        return 50 + (self.stat_vie or 5) * 8
+
+    @property
+    def max_mana(self):
+        return 20 + (self.stat_intelligence or 5) * 5
+
     def add_xp(self, amount):
         old_level = self.level
         self.xp_total += amount
