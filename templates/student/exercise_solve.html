@@ -166,6 +166,33 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     100% { opacity: 0; transform: translateY(-120px) scale(0.8); }
 }
 
+/* ---- Combo bar ---- */
+.combo-bar-container {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+    padding: 0.4rem 0.8rem; border-radius: 10px;
+    background: rgba(15,12,41,0.4); backdrop-filter: blur(4px);
+}
+.combo-bar-label { font-size: 0.75rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; }
+.combo-bar-track {
+    flex: 1; height: 10px; background: #374151; border-radius: 5px; overflow: hidden;
+    display: flex; gap: 2px;
+}
+.combo-bar-segment {
+    flex: 1; height: 100%; border-radius: 3px;
+    background: #374151; transition: background 0.4s ease;
+}
+.combo-bar-segment.filled-1 { background: linear-gradient(90deg, #667eea, #764ba2); }
+.combo-bar-segment.filled-2 { background: linear-gradient(90deg, #f59e0b, #f97316); }
+.combo-bar-segment.filled-3 { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.combo-multiplier {
+    font-size: 0.9rem; font-weight: 900; min-width: 32px; text-align: center;
+    transition: all 0.3s ease;
+}
+.combo-multiplier.x1 { color: #9ca3af; }
+.combo-multiplier.x2 { color: #f59e0b; text-shadow: 0 0 8px rgba(245,158,11,0.5); }
+.combo-multiplier.x3 { color: #ef4444; text-shadow: 0 0 12px rgba(239,68,68,0.6); animation: comboPulse 0.6s ease infinite alternate; }
+@keyframes comboPulse { from { transform: scale(1); } to { transform: scale(1.15); } }
+
 /* ---- Combo text ---- */
 .combo-popup {
     position: fixed; z-index: 10000; pointer-events: none;
@@ -541,6 +568,17 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <div class="progress-bar-track">
             <div class="progress-bar-fill" id="progress-fill" style="width: 0%;"></div>
         </div>
+    </div>
+
+    <!-- Combo bar -->
+    <div class="combo-bar-container" id="combo-bar">
+        <span class="combo-bar-label">Combo</span>
+        <div class="combo-bar-track">
+            <div class="combo-bar-segment" id="combo-seg-0"></div>
+            <div class="combo-bar-segment" id="combo-seg-1"></div>
+            <div class="combo-bar-segment" id="combo-seg-2"></div>
+        </div>
+        <span class="combo-multiplier x1" id="combo-mult">x1</span>
     </div>
 
     <!-- Questions -->
@@ -1008,15 +1046,17 @@ async function validateCurrentQuestion() {
             questionLocked = true;
             answeredBlocks[blockId] = { is_correct: data.is_correct, points_earned: data.points_earned };
 
-            // Update counters
+            // Show feedback first (updates comboStreak & comboMultipliers)
+            showFeedback(card, blockId, data.is_correct, data.points_earned, data.max_points, data.correct_answer);
+
+            // Update counters with boosted points
+            const mult = comboMultipliers[blockId] || 1;
+            const boostedPoints = data.points_earned * mult;
             totalCorrect += data.is_correct ? 1 : 0;
-            totalXPEarned += data.points_earned;
+            totalXPEarned += boostedPoints;
             document.getElementById('correct-count').textContent = totalCorrect;
             document.getElementById('total-answered').textContent = Object.keys(answeredBlocks).length;
             document.getElementById('xp-earned').textContent = totalXPEarned;
-
-            // Show feedback
-            showFeedback(card, blockId, data.is_correct, data.points_earned, data.max_points, data.correct_answer);
 
             // Lock inputs
             lockQuestion(card);
@@ -1073,6 +1113,30 @@ function hasAnswer(card, blockId, answer) {
 // Combo streak tracking
 // ============================================================
 let comboStreak = 0;
+let comboMultipliers = {};  // { blockId: multiplier }
+
+function getComboMultiplier() {
+    // 0 or 1 correct in a row = x1, 2 = x2, 3+ = x3
+    if (comboStreak >= 3) return 3;
+    if (comboStreak >= 2) return 2;
+    return 1;
+}
+
+function updateComboBar() {
+    const mult = getComboMultiplier();
+    // Update segments
+    for (let i = 0; i < 3; i++) {
+        const seg = document.getElementById('combo-seg-' + i);
+        seg.className = 'combo-bar-segment';
+        if (i < comboStreak) {
+            seg.classList.add('filled-' + Math.min(comboStreak, 3));
+        }
+    }
+    // Update multiplier text
+    const multEl = document.getElementById('combo-mult');
+    multEl.textContent = 'x' + mult;
+    multEl.className = 'combo-multiplier x' + mult;
+}
 
 // ============================================================
 // Show feedback animation — full gaming experience
@@ -1107,6 +1171,12 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
 
     if (isCorrect) {
         comboStreak++;
+        const mult = getComboMultiplier();
+        const boostedPoints = points * mult;
+        comboMultipliers[blockId] = mult;
+
+        updateComboBar();
+
         card.classList.add('feedback-correct');
         document.getElementById('feedback-correct-' + blockId).classList.add('show');
 
@@ -1116,15 +1186,17 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
         // Star burst from card center
         spawnStarBurst(card);
 
-        // XP floating popup
-        spawnXPPopup(card, points);
+        // XP floating popup (show boosted points)
+        spawnXPPopup(card, boostedPoints, mult > 1 ? mult : null);
 
-        // Combo popup if streak
+        // Combo popup if streak >= 2
         if (comboStreak >= 2) {
             spawnComboPopup(comboStreak);
         }
     } else {
         comboStreak = 0;
+        comboMultipliers[blockId] = 1;
+        updateComboBar();
         card.classList.add('feedback-incorrect');
         document.getElementById('feedback-incorrect-' + blockId).classList.add('show');
 
@@ -1225,11 +1297,15 @@ function spawnStarBurst(card) {
 // ============================================================
 // XP floating popup
 // ============================================================
-function spawnXPPopup(card, points) {
+function spawnXPPopup(card, points, multiplier) {
     const rect = card.getBoundingClientRect();
     const popup = document.createElement('div');
     popup.className = 'xp-popup';
-    popup.textContent = `+${points} XP`;
+    if (multiplier && multiplier > 1) {
+        popup.innerHTML = `+${points} XP <span style="color:#f59e0b;font-size:0.7em;">(x${multiplier})</span>`;
+    } else {
+        popup.textContent = `+${points} XP`;
+    }
     popup.style.left = (rect.left + rect.width / 2 - 50) + 'px';
     popup.style.top = (rect.top + 20) + 'px';
     document.body.appendChild(popup);
@@ -1394,7 +1470,7 @@ async function submitExercise() {
         const res = await fetch(`/student/missions/{{ exercise.id }}/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers }),
+            body: JSON.stringify({ answers, combo_multipliers: comboMultipliers }),
         });
         const data = await res.json();
 

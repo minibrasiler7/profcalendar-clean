@@ -608,6 +608,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const [matchingSelectedLeft, setMatchingSelectedLeft] = useState(null);
   const matchingShuffledRef = useRef({});
   const [labelImgSize, setLabelImgSize] = useState({ width: 300, height: 200 });
+  const [comboStreak, setComboStreak] = useState(0);
+  const comboMultipliersRef = useRef({});
   const [correctCount, setCorrectCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
 
@@ -838,10 +840,22 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       console.log(`[ExerciseSolveScreen] Block check response for block ${blockId}:`, JSON.stringify({ is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer }));
       if (data.success) {
         setQuestionLocked(true);
-        setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: data.points_earned, correct_answer: data.correct_answer } }));
-        if (data.is_correct) { setCorrectCount(prev => prev + 1); playCorrectAnimation(); }
-        else { playIncorrectAnimation(); }
-        setXpEarned(prev => prev + data.points_earned);
+        let mult = 1;
+        if (data.is_correct) {
+          const newStreak = comboStreak + 1;
+          setComboStreak(newStreak);
+          mult = newStreak >= 3 ? 3 : newStreak >= 2 ? 2 : 1;
+          comboMultipliersRef.current[blockId] = mult;
+          setCorrectCount(prev => prev + 1);
+          playCorrectAnimation();
+        } else {
+          setComboStreak(0);
+          comboMultipliersRef.current[blockId] = 1;
+          playIncorrectAnimation();
+        }
+        const boostedPoints = data.points_earned * mult;
+        setFeedbackMap(prev => ({ ...prev, [blockId]: { is_correct: data.is_correct, points: boostedPoints, correct_answer: data.correct_answer, multiplier: mult } }));
+        setXpEarned(prev => prev + boostedPoints);
       }
     } catch (err) {
       console.log(`[ExerciseSolveScreen] Check block error for block ${blockId}:`, err.response?.data || err.message);
@@ -868,7 +882,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         answer: answerData,
       }));
       console.log('[ExerciseSolveScreen] Submitting all answers:', answersList);
-      const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList });
+      console.log('[ExerciseSolveScreen] Combo multipliers:', comboMultipliersRef.current);
+      const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList, combo_multipliers: comboMultipliersRef.current });
       console.log('[ExerciseSolveScreen] Submit response:', { score: res.data.score, max_score: res.data.max_score, percentage: res.data.percentage });
       setResult(res.data);
       setResultModal(true);
@@ -1296,6 +1311,21 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         </View>
       </View>
 
+      {/* Combo bar */}
+      <View style={styles.comboBarContainer}>
+        <View style={styles.comboBarTrack}>
+          <View style={[styles.comboBarSegment, comboStreak >= 1 && styles.comboBarSegmentFilled1]} />
+          <View style={[styles.comboBarSegment, comboStreak >= 2 && styles.comboBarSegmentFilled2]} />
+          <View style={[styles.comboBarSegment, comboStreak >= 3 && styles.comboBarSegmentFilled3]} />
+        </View>
+        <Text style={[styles.comboMultiplierText,
+          comboStreak >= 3 ? styles.comboMultiplierX3 :
+          comboStreak >= 2 ? styles.comboMultiplierX2 : null
+        ]}>
+          {comboStreak >= 3 ? 'x3' : comboStreak >= 2 ? 'x2' : 'x1'}
+        </Text>
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {currentBlock && (
           <Animated.View style={[styles.blockContainer,
@@ -1329,7 +1359,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
                       </Text>
                     </View>
                   ) : null}
-                  <Text style={styles.feedbackPoints}>+{currentFeedback.points} XP</Text>
+                  <Text style={styles.feedbackPoints}>+{currentFeedback.points} XP{currentFeedback.multiplier > 1 ? ` (x${currentFeedback.multiplier})` : ''}</Text>
                 </View>
               </Animated.View>
             )}
@@ -1461,6 +1491,15 @@ const styles = StyleSheet.create({
   scoreTracker: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   scoreText: { color: '#10b981', fontSize: 13, fontWeight: '700' },
   xpBadge: { color: '#f59e0b', fontSize: 11, fontWeight: '700', backgroundColor: 'rgba(245,158,11,0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 4, overflow: 'hidden' },
+  comboBarContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.05)' },
+  comboBarTrack: { flex: 1, flexDirection: 'row', height: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 5, overflow: 'hidden', gap: 2 },
+  comboBarSegment: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
+  comboBarSegmentFilled1: { backgroundColor: '#667eea' },
+  comboBarSegmentFilled2: { backgroundColor: '#f59e0b' },
+  comboBarSegmentFilled3: { backgroundColor: '#ef4444' },
+  comboMultiplierText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '800', marginLeft: 8, minWidth: 22, textAlign: 'center' },
+  comboMultiplierX2: { color: '#f59e0b' },
+  comboMultiplierX3: { color: '#ef4444' },
   scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 24 },
   blockContainer: { backgroundColor: '#FFF', borderRadius: 18, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 6 },

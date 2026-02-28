@@ -1040,13 +1040,27 @@ def submit_exercise(exercise_id):
 
         total_score = 0
         total_max = 0
-        answers_data = data.get('answers', {})
+        raw_answers = data.get('answers', {})
+        # Support both dict format (web) and list format (mobile)
+        if isinstance(raw_answers, list):
+            answers_data = {}
+            for item in raw_answers:
+                bid = str(item.get('block_id', ''))
+                answers_data[bid] = item.get('answer', {})
+        else:
+            answers_data = raw_answers
+        combo_multipliers = data.get('combo_multipliers', {})
         accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
 
         # Corriger chaque bloc
         for block in exercise.blocks:
             block_answer = answers_data.get(str(block.id), {})
             is_correct, points = grade_block(block, block_answer, accept_typos=accept_typos)
+
+            # Appliquer le multiplicateur combo si présent
+            mult = combo_multipliers.get(str(block.id), 1)
+            if isinstance(mult, (int, float)) and mult in (1, 2, 3):
+                points = int(points * mult)
 
             total_score += points
             total_max += block.points
