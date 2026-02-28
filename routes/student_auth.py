@@ -1038,8 +1038,9 @@ def submit_exercise(exercise_id):
         db.session.add(attempt)
         db.session.flush()
 
-        total_score = 0
+        base_score = 0
         total_max = 0
+        combo_bonus_xp = 0
         raw_answers = data.get('answers', {})
         # Support both dict format (web) and list format (mobile)
         if isinstance(raw_answers, list):
@@ -1052,32 +1053,49 @@ def submit_exercise(exercise_id):
         combo_multipliers = data.get('combo_multipliers', {})
         accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
 
+        logger.info(f"[SUBMIT] Exercise {exercise_id}: answers_keys={list(answers_data.keys())}, combo_multipliers={combo_multipliers}")
+
         # Corriger chaque bloc
         for block in exercise.blocks:
             block_answer = answers_data.get(str(block.id), {})
             is_correct, points = grade_block(block, block_answer, accept_typos=accept_typos)
 
-            # Appliquer le multiplicateur combo si présent
-            mult = combo_multipliers.get(str(block.id), 1)
-            if isinstance(mult, (int, float)) and mult in (1, 2, 3):
-                points = int(points * mult)
+            # Calculer le bonus combo (séparé du score de base)
+            mult = 1
+            raw_mult = combo_multipliers.get(str(block.id))
+            if raw_mult is not None:
+                try:
+                    raw_mult = int(raw_mult)
+                    if raw_mult in (2, 3):
+                        mult = raw_mult
+                except (ValueError, TypeError):
+                    pass
+            boosted_points = points * mult
+            combo_bonus_xp += (boosted_points - points)  # Extra XP from combo
 
-            total_score += points
+            base_score += points
             total_max += block.points
+
+            logger.info(f"[SUBMIT] Block {block.id} ({block.block_type}): correct={is_correct}, base_pts={points}, mult=x{mult}, boosted={boosted_points}")
 
             answer = StudentBlockAnswer(
                 attempt_id=attempt.id,
                 block_id=block.id,
                 answer_json=block_answer,
                 is_correct=is_correct,
-                points_earned=points,
+                points_earned=boosted_points,
             )
             db.session.add(answer)
 
-        attempt.score = total_score
+        # Score de base pour le pourcentage (sans combo)
+        attempt.score = base_score
         attempt.max_score = total_max
         attempt.completed_at = datetime.utcnow()
         attempt.calculate_rewards(exercise)
+
+        # Ajouter le bonus combo aux XP gagnés
+        attempt.xp_earned = (attempt.xp_earned or 0) + combo_bonus_xp
+        logger.info(f"[SUBMIT] Final: base_score={base_score}/{total_max}, combo_bonus_xp={combo_bonus_xp}, total_xp={attempt.xp_earned}")
 
         # Mettre à jour le profil RPG
         rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
@@ -1098,13 +1116,16 @@ def submit_exercise(exercise_id):
 
         db.session.commit()
 
+        total_with_combo = base_score + combo_bonus_xp
         result = {
             'success': True,
-            'score': total_score,
+            'score': base_score,
             'max_score': total_max,
             'percentage': attempt.score_percentage,
             'xp_earned': attempt.xp_earned,
             'gold_earned': attempt.gold_earned,
+            'combo_bonus_xp': combo_bonus_xp,
+            'total_with_combo': total_with_combo,
             'new_level': rpg.level,
             'results': [{
                 'block_id': a.block_id,

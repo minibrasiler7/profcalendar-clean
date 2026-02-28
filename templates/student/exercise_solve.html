@@ -1480,8 +1480,11 @@ async function submitExercise() {
             scoreEl.textContent = pct + '%';
             scoreEl.className = 'results-score ' + (pct >= 80 ? 'good' : pct >= 50 ? 'medium' : 'bad');
 
-            document.getElementById('results-detail').textContent =
-                `${data.score}/${data.max_score} points — ${totalCorrect}/${totalQuestions} bonnes réponses`;
+            let detailText = `${data.score}/${data.max_score} points — ${totalCorrect}/${totalQuestions} bonnes réponses`;
+            if (data.combo_bonus_xp && data.combo_bonus_xp > 0) {
+                detailText += ` — Bonus combo : +${data.combo_bonus_xp} XP`;
+            }
+            document.getElementById('results-detail').textContent = detailText;
             document.getElementById('results-xp').textContent = '+' + data.xp_earned;
             document.getElementById('results-gold').textContent = '+' + data.gold_earned;
             document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;

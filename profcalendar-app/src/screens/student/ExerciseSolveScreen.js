@@ -1413,6 +1413,9 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             <Text style={[styles.resultScore, { color: (result?.percentage || 0) >= 80 ? '#10b981' : (result?.percentage || 0) >= 50 ? '#f59e0b' : '#ef4444' }]}>
               {result?.percentage || 0}%</Text>
             <Text style={styles.resultDetail}>{result?.score}/{result?.max_score} points — {correctCount}/{totalBlocks} bonnes réponses</Text>
+            {(result?.combo_bonus_xp || 0) > 0 && (
+              <Text style={styles.comboBonusText}>Bonus combo : +{result.combo_bonus_xp} XP</Text>
+            )}
             <View style={styles.resultRewards}>
               <View style={styles.rewardItem}><Ionicons name="star" size={28} color="#f59e0b" /><Text style={styles.rewardValue}>+{result?.xp_earned || 0}</Text><Text style={styles.rewardLabel}>XP</Text></View>
               <View style={styles.rewardItem}><Ionicons name="cash-outline" size={28} color="#fbbf24" /><Text style={styles.rewardValue}>+{result?.gold_earned || 0}</Text><Text style={styles.rewardLabel}>Or</Text></View>
@@ -1562,6 +1565,7 @@ const styles = StyleSheet.create({
   resultTitle: { fontSize: 22, fontWeight: '800', color: '#fbbf24', marginBottom: 8 },
   resultScore: { fontSize: 56, fontWeight: '900', marginVertical: 8 },
   resultDetail: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 16 },
+  comboBonusText: { fontSize: 14, fontWeight: '700', color: '#f59e0b', marginBottom: 8 },
   resultRewards: { flexDirection: 'row', justifyContent: 'center', gap: 50, marginVertical: 16 },
   rewardItem: { alignItems: 'center' },
   rewardValue: { fontSize: 22, fontWeight: '800', color: '#FFF', marginTop: 4 },
