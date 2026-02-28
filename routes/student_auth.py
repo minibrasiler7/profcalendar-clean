@@ -1050,33 +1050,44 @@ def submit_exercise(exercise_id):
                 answers_data[bid] = item.get('answer', {})
         else:
             answers_data = raw_answers
-        combo_multipliers = data.get('combo_multipliers', {})
         accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
 
-        logger.info(f"[SUBMIT] Exercise {exercise_id}: answers_keys={list(answers_data.keys())}, combo_multipliers={combo_multipliers}")
+        logger.info(f"[SUBMIT] Exercise {exercise_id}: answers_keys={list(answers_data.keys())}, blocks={[b.id for b in exercise.blocks]}")
 
-        # Corriger chaque bloc
+        # Corriger chaque bloc et calculer le combo côté serveur
+        combo_streak = 0
+        block_results = []
         for block in exercise.blocks:
             block_answer = answers_data.get(str(block.id), {})
             is_correct, points = grade_block(block, block_answer, accept_typos=accept_typos)
 
-            # Calculer le bonus combo (séparé du score de base)
-            mult = 1
-            raw_mult = combo_multipliers.get(str(block.id))
-            if raw_mult is not None:
-                try:
-                    raw_mult = int(raw_mult)
-                    if raw_mult in (2, 3):
-                        mult = raw_mult
-                except (ValueError, TypeError):
-                    pass
+            logger.info(f"[SUBMIT] Block {block.id} ({block.block_type}): correct={is_correct}, base_pts={points}/{block.points}, answer_keys={list(block_answer.keys()) if isinstance(block_answer, dict) else 'N/A'}")
+
+            # Calculer le multiplicateur combo côté serveur
+            if is_correct and points == (block.points or 0):
+                # Réponse 100% correcte -> incrémenter le streak
+                combo_streak += 1
+            else:
+                # Réponse incorrecte ou partielle -> reset
+                combo_streak = 0
+
+            mult = min(combo_streak, 3)  # 1=x1, 2=x2, 3+=x3
+            if mult < 1:
+                mult = 1
             boosted_points = points * mult
-            combo_bonus_xp += (boosted_points - points)  # Extra XP from combo
+            combo_bonus_xp += (boosted_points - points)
+
+            logger.info(f"[SUBMIT] Block {block.id}: streak={combo_streak}, mult=x{mult}, boosted={boosted_points}")
 
             base_score += points
             total_max += block.points
-
-            logger.info(f"[SUBMIT] Block {block.id} ({block.block_type}): correct={is_correct}, base_pts={points}, mult=x{mult}, boosted={boosted_points}")
+            block_results.append({
+                'block_id': block.id,
+                'is_correct': is_correct,
+                'base_points': points,
+                'multiplier': mult,
+                'boosted_points': boosted_points,
+            })
 
             answer = StudentBlockAnswer(
                 attempt_id=attempt.id,
@@ -1127,11 +1138,7 @@ def submit_exercise(exercise_id):
             'combo_bonus_xp': combo_bonus_xp,
             'total_with_combo': total_with_combo,
             'new_level': rpg.level,
-            'results': [{
-                'block_id': a.block_id,
-                'is_correct': a.is_correct,
-                'points_earned': a.points_earned,
-            } for a in attempt.answers],
+            'results': block_results,
         }
         if item_won:
             result['item_won'] = item_won.to_dict()
