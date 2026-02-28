@@ -629,7 +629,7 @@ def live_tracking(pub_id):
     if completed_items:
         avg_score = round(sum(t['score_percentage'] for t in completed_items) / len(completed_items))
 
-    return jsonify({
+    result = {
         'success': True,
         'exercise_title': exercise.title,
         'blocks_count': blocks_count,
@@ -640,7 +640,28 @@ def live_tracking(pub_id):
         'is_active': pub.is_active,
         'mode': pub.mode or 'classique',
         'students': tracking_data,
-    })
+    }
+
+    # Si mode combat, inclure le combat_session_id
+    if (pub.mode or 'classique') == 'combat':
+        try:
+            from models.combat import CombatSession
+            combat = CombatSession.query.filter(
+                CombatSession.classroom_id == pub.classroom_id,
+                CombatSession.exercise_id == exercise.id,
+                CombatSession.status.in_(['waiting', 'active'])
+            ).order_by(CombatSession.created_at.desc()).first()
+            if combat:
+                result['combat_session_id'] = combat.id
+                result['combat_status'] = combat.status
+                result['combat_round'] = combat.current_round
+                result['combat_phase'] = combat.current_phase
+                # Nombre de participants connectés au combat
+                result['combat_participants'] = combat.participants.count()
+        except Exception:
+            pass
+
+    return jsonify(result)
 
 
 # ============================================================

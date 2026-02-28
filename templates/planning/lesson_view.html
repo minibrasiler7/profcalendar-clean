@@ -9911,6 +9911,19 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Liste des élèves -->
         <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
 
+        <!-- Bouton ouvrir arène RPG (visible uniquement en mode combat) -->
+        <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
+                <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
+                </div>
+                <button id="open-arena-btn" onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
+                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                </button>
+            </div>
+        </div>
+
         <!-- Bouton arrêter -->
         <div style="text-align:center;margin-top:1.5rem;">
             <button id="stop-mission-btn" onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
@@ -10319,13 +10332,24 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 let trackingInterval = null;
 let currentPubId = null;
+let currentCombatSessionId = null;
 
 function openTracking(pubId) {
     currentPubId = pubId;
+    currentCombatSessionId = null;
     document.getElementById('tracking-modal').style.display = 'block';
+    document.getElementById('combat-arena-section').style.display = 'none';
     refreshTracking();
     // Rafraîchir toutes les 4 secondes
     trackingInterval = setInterval(refreshTracking, 4000);
+}
+
+function openCombatArena() {
+    if (currentCombatSessionId) {
+        window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
+    } else {
+        alert('Aucune session de combat active trouvée.');
+    }
 }
 
 function closeTrackingModal() {
@@ -10349,6 +10373,28 @@ async function refreshTracking() {
         document.getElementById('track-started').textContent = data.started;
         document.getElementById('track-completed').textContent = data.completed;
         document.getElementById('track-avg').textContent = data.completed > 0 ? data.average_score + '%' : '—';
+
+        // Afficher la section arène RPG si mode combat
+        if (data.mode === 'combat' && data.combat_session_id) {
+            currentCombatSessionId = data.combat_session_id;
+            document.getElementById('combat-arena-section').style.display = 'block';
+            const phaseLabels = {
+                'waiting': 'En attente des élèves',
+                'question': 'Question en cours',
+                'action': 'Choix des actions',
+                'execute': 'Exécution du round',
+                'monster_turn': 'Tour des monstres',
+                'round_end': 'Fin du round',
+            };
+            const statusLabel = data.combat_status === 'active'
+                ? `Round ${data.combat_round} — ${phaseLabels[data.combat_phase] || data.combat_phase}`
+                : 'En attente des élèves';
+            document.getElementById('combat-status-text').textContent = statusLabel;
+            document.getElementById('combat-participants-text').textContent =
+                data.combat_participants > 0 ? `(${data.combat_participants} combattant${data.combat_participants > 1 ? 's' : ''})` : '';
+        } else {
+            document.getElementById('combat-arena-section').style.display = 'none';
+        }
 
         const container = document.getElementById('tracking-students');
         container.innerHTML = data.students.map(s => {

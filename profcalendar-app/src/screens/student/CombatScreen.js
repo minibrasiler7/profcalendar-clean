@@ -63,8 +63,9 @@ export default function CombatScreen({ route, navigation }) {
   const { sessionId, studentId, classroomId } = route.params;
 
   // State management
-  const [combatPhase, setCombatPhase] = useState('waiting'); // waiting, question, action, execute, round_end, finished
+  const [combatPhase, setCombatPhase] = useState('waiting');
   const [participants, setParticipants] = useState([]);
+  const [monsters, setMonsters] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [timer, setTimer] = useState(30);
   const [timerAnimation] = useState(new Animated.Value(1));
@@ -72,6 +73,7 @@ export default function CombatScreen({ route, navigation }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedMultiple, setSelectedMultiple] = useState([]);
   const [answering, setAnswering] = useState(false);
+  const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [answerResult, setAnswerResult] = useState(null); // null, true, false
   const [availableSkills, setAvailableSkills] = useState([]);
   const [selectedSkill, setSelectedSkill] = useState(null);
@@ -79,7 +81,8 @@ export default function CombatScreen({ route, navigation }) {
   const [availableTargets, setAvailableTargets] = useState([]);
   const [combatLog, setCombatLog] = useState([]);
   const [playerStats, setPlayerStats] = useState({ hp: 100, maxHp: 100, mana: 50, maxMana: 50 });
-  const [result, setResult] = useState(null); // { victory: bool, xp: number, gold: number, levelUp: bool }
+  const [result, setResult] = useState(null);
+  const [answerProgress, setAnswerProgress] = useState({ answered: 0, total: 0 });
 
   // Socket reference
   const socketRef = useRef(null);
@@ -99,82 +102,106 @@ export default function CombatScreen({ route, navigation }) {
       student_id: studentId,
     });
 
-    // Listen for state updates
+    // Listen for state updates (server sends: {session_id, status, round, phase, participants, monsters, all_monsters})
     socketRef.current.on('combat:state_update', (state) => {
-      setCombatPhase(state.phase);
+      console.log('[Combat] state_update:', state.phase, state.round);
+      setCombatPhase(state.phase || 'waiting');
       setParticipants(state.participants || []);
-      setPlayerStats({
-        hp: state.player_hp || playerStats.hp,
-        maxHp: state.player_max_hp || playerStats.maxHp,
-        mana: state.player_mana || playerStats.mana,
-        maxMana: state.player_max_mana || playerStats.maxMana,
-      });
+      setMonsters(state.all_monsters || state.monsters || []);
+
+      // Update player stats from participants list
+      const me = (state.participants || []).find(p => p.student_id === studentId);
+      if (me) {
+        setPlayerStats({
+          hp: me.current_hp,
+          maxHp: me.max_hp,
+          mana: me.current_mana,
+          maxMana: me.max_mana,
+        });
+        // Update available skills from snapshot
+        if (me.skills && me.skills.length > 0) {
+          setAvailableSkills(me.skills);
+        }
+      }
     });
 
-    // Listen for new questions
+    // Listen for new questions (server sends: {block_id, block_type, title, config, round})
     socketRef.current.on('combat:question', (data) => {
-      setCurrentQuestion(data.question);
+      console.log('[Combat] question received:', data.block_type, data.title);
+      const config = data.config || {};
+      setCurrentQuestion({
+        block_id: data.block_id,
+        block_type: data.block_type,
+        title: data.title,
+        question_text: data.title || config.question || config.text || '',
+        options: (config.options || []).map(o => o.text || o.label || o),
+        multiple: (config.options || []).filter(o => o.is_correct).length > 1,
+        answer_type: config.answer_type,
+        config: config,
+      });
       setTimer(30);
       setUserAnswer('');
       setSelectedOption(null);
       setSelectedMultiple([]);
       setAnswering(false);
+      setAnswerSubmitted(false);
       setAnswerResult(null);
       setCombatPhase('question');
     });
 
-    // Listen for answer results
+    // Listen for answer results (server sends: {student_id, is_correct})
     socketRef.current.on('combat:answer_result', (data) => {
-      setAnswerResult(data.correct);
-      if (data.correct) {
-        setAvailableSkills(data.available_skills || []);
-        setCombatPhase('action');
-      } else {
-        setCombatPhase('action');
-      }
+      console.log('[Combat] answer_result:', data.is_correct);
+      setAnswerResult(data.is_correct);
+      setAnswerSubmitted(true);
     });
 
-    // Listen for answer progress (other players)
+    // Listen for answer progress (server sends: {answered, total, student_id, is_correct})
     socketRef.current.on('combat:answer_progress', (data) => {
-      // Update participants with answered status
-      setParticipants((prev) =>
-        prev.map((p) =>
-          p.student_id === data.student_id ? { ...p, answered: true } : p
-        )
-      );
+      setAnswerProgress({ answered: data.answered, total: data.total });
     });
 
-    // Listen for all answered signal
-    socketRef.current.on('combat:all_answered', () => {
-      setAnswering(true);
+    // Listen for all answered signal → move to action phase
+    socketRef.current.on('combat:all_answered', (data) => {
+      console.log('[Combat] all_answered → action phase');
+      setCombatPhase('action');
     });
 
-    // Listen for combat execution
+    // Listen for combat execution (server sends: {animations: [...]})
     socketRef.current.on('combat:execute', (data) => {
+      console.log('[Combat] execute:', (data.animations || []).length, 'animations');
       setCombatPhase('execute');
-      setCombatLog((prev) => [...prev, data.log_entry]);
-      if (data.player_hp !== undefined) {
-        setPlayerStats((prev) => ({
-          ...prev,
-          hp: data.player_hp,
-        }));
-      }
+      // Convert animations to combat log entries
+      const logEntries = (data.animations || []).map(anim => {
+        if (anim.type === 'attack' || anim.type === 'monster_attack') {
+          const killed = anim.killed ? ' 💀 K.O.!' : '';
+          return `⚔️ ${anim.attacker_name} utilise ${anim.skill_name} sur ${anim.target_name} → ${anim.damage} dégâts${killed}`;
+        } else if (anim.type === 'heal') {
+          return `💚 ${anim.attacker_name} soigne ${anim.target_name} → +${anim.heal} PV`;
+        } else if (anim.type === 'defense' || anim.type === 'buff') {
+          return `🛡️ ${anim.attacker_name} utilise ${anim.skill_name}`;
+        }
+        return `${anim.attacker_name} → ${anim.skill_name}`;
+      });
+      setCombatLog(prev => [...prev, ...logEntries]);
+
+      // Update player HP/Mana from animations
+      const myDamage = (data.animations || []).filter(
+        a => a.target_type === 'player' && a.target_id && a.type === 'monster_attack'
+      );
+      // We'll get updated stats from the next state_update
     });
 
-    // Listen for round end
-    socketRef.current.on('combat:round_end', () => {
-      setCombatPhase('round_end');
-      setCombatLog([]);
-    });
-
-    // Listen for combat finished
+    // Listen for combat finished (server sends: {result: 'victory'/'defeat', rewards: {student_id: {xp, gold, ...}}})
     socketRef.current.on('combat:finished', (data) => {
+      console.log('[Combat] finished:', data.result);
       setCombatPhase('finished');
+      const myReward = data.rewards ? data.rewards[String(studentId)] : null;
       setResult({
-        victory: data.victory,
-        xp: data.xp_earned || 0,
-        gold: data.gold_earned || 0,
-        levelUp: data.level_up || false,
+        victory: data.result === 'victory',
+        xp: myReward?.xp || 0,
+        gold: myReward?.gold || 0,
+        levelUp: myReward?.leveled_up || false,
       });
     });
 
@@ -219,9 +246,15 @@ export default function CombatScreen({ route, navigation }) {
 
     setAnswering(true);
 
-    let answer = userAnswer;
+    // Build answer object matching grade_block format
+    let answer = {};
     if (currentQuestion.block_type === 'qcm') {
-      answer = currentQuestion.multiple ? selectedMultiple : selectedOption;
+      const sel = currentQuestion.multiple ? selectedMultiple : (selectedOption !== null ? [selectedOption] : []);
+      answer = { selected: sel };
+    } else if (currentQuestion.block_type === 'short_answer' || currentQuestion.block_type === 'fill_blank') {
+      answer = { value: userAnswer };
+    } else {
+      answer = { value: userAnswer };
     }
 
     socketRef.current.emit('combat:submit_answer', {
@@ -233,26 +266,49 @@ export default function CombatScreen({ route, navigation }) {
 
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
-    setSelectingTarget(true);
-    // Set available targets based on skill type
-    if (skill.target_type === 'monster') {
-      setAvailableTargets(participants.filter((p) => p.type === 'monster'));
-    } else if (skill.target_type === 'ally') {
-      setAvailableTargets(participants.filter((p) => p.type === 'player'));
+
+    // Determine targets based on skill type
+    // skill.type: 'attack' → target monsters, 'heal' → target allies, 'defense'/'buff' → self (no target needed)
+    if (skill.type === 'heal') {
+      // Target alive allies (players)
+      const aliveAllies = participants.filter(p => p.is_alive);
+      setAvailableTargets(aliveAllies.map(p => ({
+        id: p.id,
+        name: p.student_name,
+        current_hp: p.current_hp,
+        max_hp: p.max_hp,
+        target_type: 'player',
+      })));
+      setSelectingTarget(true);
+    } else if (skill.type === 'attack') {
+      // Target alive monsters
+      const aliveMonsters = monsters.filter(m => m.is_alive);
+      setAvailableTargets(aliveMonsters.map(m => ({
+        id: m.id,
+        name: m.name,
+        current_hp: m.current_hp,
+        max_hp: m.max_hp,
+        target_type: 'monster',
+      })));
+      setSelectingTarget(true);
     } else {
-      setAvailableTargets(participants);
+      // Defense/buff — auto-target self, submit immediately
+      handleConfirmAction(null, 'self');
     }
   };
 
-  const handleConfirmAction = (targetId) => {
-    if (!selectedSkill) return;
+  const handleConfirmAction = (targetId, targetType) => {
+    if (!selectedSkill && !targetType) return;
+
+    const skillToUse = selectedSkill;
+    const tType = targetType || (availableTargets.find(t => t.id === targetId)?.target_type) || 'monster';
 
     socketRef.current.emit('combat:submit_action', {
       session_id: sessionId,
       student_id: studentId,
-      skill_id: selectedSkill.id,
+      skill_id: skillToUse?.id || selectedSkill?.id,
       target_id: targetId,
-      target_type: selectedSkill.target_type,
+      target_type: tType,
     });
 
     setSelectedSkill(null);
@@ -277,18 +333,18 @@ export default function CombatScreen({ route, navigation }) {
         <Text style={styles.sectionTitle}>Participants</Text>
         <FlatList
           data={participants}
-          keyExtractor={(item) => item.student_id}
+          keyExtractor={(item) => String(item.student_id)}
           scrollEnabled={false}
           renderItem={({ item }) => (
             <View style={styles.participantItem}>
               <View
                 style={[
                   styles.classIndicator,
-                  { backgroundColor: CLASS_COLORS[item.class_name] || colors.primary },
+                  { backgroundColor: CLASS_COLORS[item.avatar_class] || colors.primary },
                 ]}
               />
-              <Text style={styles.participantName}>{item.name}</Text>
-              <Text style={styles.participantClass}>{item.class_name}</Text>
+              <Text style={styles.participantName}>{item.student_name}</Text>
+              <Text style={styles.participantClass}>{item.avatar_class}</Text>
             </View>
           )}
         />
@@ -414,12 +470,12 @@ export default function CombatScreen({ route, navigation }) {
           <Text style={styles.sectionTitle}>Choisir une cible</Text>
           <FlatList
             data={availableTargets}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             scrollEnabled={false}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.targetButton}
-                onPress={() => handleConfirmAction(item.id)}
+                onPress={() => handleConfirmAction(item.id, item.target_type)}
               >
                 <Text style={styles.targetName}>{item.name}</Text>
                 <View style={styles.targetHpBar}>
@@ -427,13 +483,13 @@ export default function CombatScreen({ route, navigation }) {
                     style={[
                       styles.targetHpFill,
                       {
-                        width: `${(item.hp / item.max_hp) * 100}%`,
+                        width: `${(item.current_hp / item.max_hp) * 100}%`,
                       },
                     ]}
                   />
                 </View>
                 <Text style={styles.targetHpText}>
-                  {item.hp} / {item.max_hp} PV
+                  {item.current_hp} / {item.max_hp} PV
                 </Text>
               </TouchableOpacity>
             )}
@@ -448,7 +504,10 @@ export default function CombatScreen({ route, navigation }) {
         <Text style={styles.sectionTitle}>Choisir une compétence</Text>
         <View style={styles.skillsGrid}>
           {availableSkills.map((skill) => {
-            const hasEnoughMana = playerStats.mana >= skill.mana_cost;
+            const manaCost = skill.cost || 0;
+            const hasEnoughMana = playerStats.mana >= manaCost;
+            const me = participants.find(p => p.student_id === studentId);
+            const myClass = me?.avatar_class || 'guerrier';
             return (
               <TouchableOpacity
                 key={skill.id}
@@ -460,15 +519,15 @@ export default function CombatScreen({ route, navigation }) {
                 disabled={!hasEnoughMana}
               >
                 <Ionicons
-                  name={getSkillIcon(skill.icon_name)}
+                  name={getSkillIcon(skill.icon)}
                   size={32}
-                  color={hasEnoughMana ? CLASS_COLORS[skill.class_name] || colors.primary : '#666'}
+                  color={hasEnoughMana ? CLASS_COLORS[myClass] || colors.primary : '#666'}
                 />
                 <Text style={[styles.skillName, !hasEnoughMana && styles.skillNameDisabled]}>
                   {skill.name}
                 </Text>
                 <Text style={[styles.skillCost, !hasEnoughMana && styles.skillCostDisabled]}>
-                  {skill.mana_cost} ⚡
+                  {manaCost > 0 ? `${manaCost} ⚡` : 'Gratuit'}
                 </Text>
               </TouchableOpacity>
             );
