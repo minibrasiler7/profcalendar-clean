@@ -22,7 +22,7 @@ import colors from '../../theme/colors';
 
 const BASE_URL = 'https://profcalendar-clean.onrender.com';
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CODE_VERSION = 'v5-2026-02-25'; // Version marker to verify code is loaded
+const CODE_VERSION = 'v6-combo-server-2026-02-28'; // Version marker to verify code is loaded
 
 // ============================================================
 // MathText — renders text with LaTeX using a WebView when needed
@@ -884,7 +884,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       console.log('[ExerciseSolveScreen] Submitting all answers:', answersList);
       console.log('[ExerciseSolveScreen] Combo multipliers:', comboMultipliersRef.current);
       const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList, combo_multipliers: comboMultipliersRef.current });
-      console.log('[ExerciseSolveScreen] Submit response:', { score: res.data.score, max_score: res.data.max_score, percentage: res.data.percentage });
+      console.log('[ExerciseSolveScreen] Submit response FULL:', JSON.stringify(res.data));
       setResult(res.data);
       setResultModal(true);
     } catch (err) {

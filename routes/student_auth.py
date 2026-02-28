@@ -1001,6 +1001,13 @@ def check_block_answer(exercise_id):
     })
 
 
+SUBMIT_CODE_VERSION = 'v6-combo-server-2026-02-28'
+
+@student_auth_bp.route('/api/version')
+def api_version():
+    """Simple endpoint to check deployed code version"""
+    return jsonify({'version': SUBMIT_CODE_VERSION, 'status': 'ok'})
+
 @student_auth_bp.route('/missions/<int:exercise_id>/submit', methods=['POST'])
 @login_required
 def submit_exercise(exercise_id):
@@ -1130,6 +1137,7 @@ def submit_exercise(exercise_id):
         total_with_combo = base_score + combo_bonus_xp
         result = {
             'success': True,
+            'server_version': SUBMIT_CODE_VERSION,
             'score': base_score,
             'max_score': total_max,
             'percentage': attempt.score_percentage,
