@@ -1584,12 +1584,12 @@ def student_submit_mission(mission_id):
 
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"[SUBMIT] mission_id={mission_id}, student={student.id}, "
+    logger.info(f"[SUBMIT-API] mission_id={mission_id}, student={student.id}, "
                 f"exercise={exercise.id}, answers_count={len(answers)}")
 
     # Si aucune réponse envoyée, tenter de récupérer depuis le body brut
     if not answers:
-        logger.warning(f"[SUBMIT] Empty answers! raw body: {request.data[:500] if request.data else 'None'}")
+        logger.warning(f"[SUBMIT-API] Empty answers! raw body: {request.data[:500] if request.data else 'None'}")
 
     # Créer une tentative
     attempt = StudentExerciseAttempt(
@@ -1600,37 +1600,56 @@ def student_submit_mission(mission_id):
     db.session.add(attempt)
     db.session.flush()
 
-    total_points_earned = 0
+    base_score = 0
     max_points = 0
+    combo_bonus_xp = 0
     blocks_results = []
 
-    # Traiter chaque réponse
+    # Traiter chaque réponse avec calcul du combo côté serveur
+    combo_streak = 0
     for answer_data in answers:
         block_id = answer_data.get('block_id')
         user_answer = answer_data.get('answer', {})  # {} au lieu de '' pour éviter les crashes .get()
 
         if not block_id:
-            logger.warning(f"[SUBMIT] Skipping answer with no block_id: {answer_data}")
+            logger.warning(f"[SUBMIT-API] Skipping answer with no block_id: {answer_data}")
             continue
 
         block = ExerciseBlock.query.get(block_id)
         if not block or block.exercise_id != exercise.id:
-            logger.warning(f"[SUBMIT] Block {block_id} not found or wrong exercise "
+            logger.warning(f"[SUBMIT-API] Block {block_id} not found or wrong exercise "
                            f"(block.exercise_id={block.exercise_id if block else 'N/A'}, "
                            f"expected={exercise.id})")
             continue
 
-        max_points += (block.points or 0)
+        block_max = block.points or 0
+        max_points += block_max
 
         # Grader le bloc — returns (is_correct, points_earned)
         try:
             accept_typos = exercise.accept_typos if hasattr(exercise, 'accept_typos') else False
-            is_correct, points_earned = grade_block(block, user_answer, accept_typos)
+            is_correct, points_earned = grade_block(block, user_answer, accept_typos=accept_typos)
         except Exception as e:
-            logger.error(f"[SUBMIT] grade_block error block={block_id} type={block.block_type}: {e}")
+            logger.error(f"[SUBMIT-API] grade_block error block={block_id} type={block.block_type}: {e}")
+            import traceback
+            logger.error(f"[SUBMIT-API] traceback: {traceback.format_exc()}")
             is_correct, points_earned = False, 0
 
-        total_points_earned += points_earned
+        logger.info(f"[SUBMIT-API] Block {block_id} ({block.block_type}): correct={is_correct}, "
+                     f"pts={points_earned}/{block_max}, answer_type={type(user_answer).__name__}, "
+                     f"answer_keys={list(user_answer.keys()) if isinstance(user_answer, dict) else 'N/A'}")
+
+        # Combo côté serveur
+        if is_correct and points_earned == block_max:
+            combo_streak += 1
+        else:
+            combo_streak = 0
+
+        mult = min(combo_streak, 3) if combo_streak >= 1 else 1
+        boosted_points = points_earned * mult
+        combo_bonus_xp += (boosted_points - points_earned)
+
+        base_score += points_earned
 
         # Enregistrer la réponse
         block_answer = StudentBlockAnswer(
@@ -1638,21 +1657,23 @@ def student_submit_mission(mission_id):
             block_id=block_id,
             answer_json=user_answer if isinstance(user_answer, (dict, list)) else {'raw': user_answer},
             is_correct=is_correct,
-            points_earned=points_earned
+            points_earned=boosted_points
         )
         db.session.add(block_answer)
 
         blocks_results.append({
             'block_id': block_id,
             'is_correct': is_correct,
-            'points_earned': points_earned
+            'base_points': points_earned,
+            'multiplier': mult,
+            'points_earned': boosted_points
         })
 
-    logger.info(f"[SUBMIT] Results: {total_points_earned}/{max_points} points, "
-                f"{len(blocks_results)} blocks graded")
+    logger.info(f"[SUBMIT-API] Results: base_score={base_score}/{max_points}, "
+                f"combo_bonus={combo_bonus_xp}, total_xp={base_score + combo_bonus_xp}")
 
-    # Calculer le score final
-    attempt.score = total_points_earned
+    # Calculer le score final (base score pour le pourcentage)
+    attempt.score = base_score
     attempt.max_score = max_points
     attempt.completed_at = datetime.utcnow()
 
@@ -1663,15 +1684,15 @@ def student_submit_mission(mission_id):
     gold_earned = 0
 
     if rpg:
-        xp_earned = total_points_earned
+        xp_earned = base_score + combo_bonus_xp
         rpg.add_xp(xp_earned)
         attempt.xp_earned = xp_earned
 
         # Bonus or si score >= seuil
-        score_pct = (total_points_earned / max_points * 100) if max_points > 0 else 0
+        score_pct = (base_score / max_points * 100) if max_points > 0 else 0
         gold_threshold = exercise.bonus_gold_threshold or 80
         if score_pct >= gold_threshold:
-            gold_earned = max(1, total_points_earned // 10)
+            gold_earned = max(1, xp_earned // 10)
             rpg.add_gold(gold_earned)
             attempt.gold_earned = gold_earned
 
@@ -1680,21 +1701,22 @@ def student_submit_mission(mission_id):
 
         # Attribuer un objet RPG aléatoire
         from models.rpg import award_random_item
-        score_pct_val = (total_points_earned / max_points * 100) if max_points > 0 else 0
-        item_won = award_random_item(student.id, score_pct_val)
+        item_won = award_random_item(student.id, score_pct)
 
     db.session.commit()
 
-    score_pct_result = round((total_points_earned / max_points * 100) if max_points > 0 else 0, 1)
+    score_pct_result = round((base_score / max_points * 100) if max_points > 0 else 0, 1)
     result = {
         'success': True,
+        'server_version': 'v7-api-combo-2026-02-28',
         'attempt_id': attempt.id,
-        'score': attempt.score,
-        'max_score': attempt.max_score,
+        'score': base_score,
+        'max_score': max_points,
         'score_percentage': score_pct_result,
         'percentage': score_pct_result,
         'xp_earned': xp_earned,
         'gold_earned': gold_earned,
+        'combo_bonus_xp': combo_bonus_xp,
         'new_level': rpg.level if rpg else 1,
         'blocks_results': blocks_results
     }

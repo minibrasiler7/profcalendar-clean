@@ -1719,6 +1719,7 @@ def grade_graph(config, answer, max_points):
     tolerance = max(float(raw_tolerance), 0.5)
     correct = config.get('correct_answer', {})
     question_type = config.get('question_type', 'draw_line')
+    logger.info(f"[GRADE] grade_graph ENTRY: question_type={question_type}, answer_type={type(answer).__name__}, answer={answer}, correct={correct}, tolerance={tolerance}")
 
     logger.info(f"[GRADE] graph: question_type={question_type}, raw_tolerance={raw_tolerance}, effective_tolerance={tolerance}, expected={correct}, user_answer={answer}")
 
