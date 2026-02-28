@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Arena - RPG Classroom</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #top-bar {
+            background-color: #16213e;
+            border-bottom: 2px solid #0f3460;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+
+        .session-info {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .phase-indicator {
+            font-size: 14px;
+            padding: 6px 12px;
+            background-color: #0f3460;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .phase-question {
+            background-color: #667eea;
+        }
+
+        .phase-action {
+            background-color: #f59e0b;
+        }
+
+        .phase-execute {
+            background-color: #ef4444;
+        }
+
+        #game-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        #phaser-game {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .side-panel {
+            width: 250px;
+            background-color: #16213e;
+            border-left: 2px solid #0f3460;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #667eea;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 8px;
+        }
+
+        .entity-card {
+            background-color: #0f3460;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .entity-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #ffd700;
+        }
+
+        .hp-bar-container {
+            background-color: #1a1a2e;
+            height: 12px;
+            border-radius: 2px;
+            margin-bottom: 3px;
+            overflow: hidden;
+            border: 1px solid #667eea;
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.3s ease;
+        }
+
+        .mana-bar-container {
+            background-color: #1a1a2e;
+            height: 8px;
+            border-radius: 2px;
+            overflow: hidden;
+            border: 1px solid #3b82f6;
+        }
+
+        .mana-bar-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #a0aec0;
+            margin-bottom: 2px;
+        }
+
+        .center-overlay {
+            position: fixed;
+            top: 60px;
+            left: 250px;
+            right: 250px;
+            height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .overlay-message {
+            background-color: rgba(15, 52, 96, 0.95);
+            border: 2px solid #667eea;
+            padding: 20px 40px;
+            border-radius: 8px;
+            text-align: center;
+            pointer-events: auto;
+            margin-bottom: 20px;
+        }
+
+        .overlay-message h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .progress-info {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 20px;
+            background-color: #1a1a2e;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            margin: 15px auto;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #10b981);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .combat-log {
+            position: fixed;
+            bottom: 15px;
+            left: 280px;
+            right: 280px;
+            max-height: 120px;
+            background-color: rgba(15, 52, 96, 0.9);
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 12px;
+            z-index: 50;
+        }
+
+        .log-entry {
+            color: #a0aec0;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+
+        .log-entry.damage {
+            color: #ef4444;
+        }
+
+        .log-entry.heal {
+            color: #10b981;
+        }
+
+        .log-entry.phase {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .teacher-controls {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px;
+            background-color: #0f3460;
+            border: 1px solid #667eea;
+            color: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #667eea;
+            color: #1a1a2e;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.primary {
+            background-color: #667eea;
+            color: #ffffff;
+        }
+
+        .btn.primary:hover {
+            background-color: #5568d3;
+        }
+
+        .error-message {
+            background-color: #ef4444;
+            border: 1px solid #dc2626;
+            color: #ffffff;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        #left-panel {
+            width: 250px;
+            background-color: #16213e;
+            border-right: 2px solid #0f3460;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #right-panel {
+            width: 250px;
+            background-color: #16213e;
+            border-left: 2px solid #0f3460;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scrollable {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar styling */
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollable::-webkit-scrollbar-track {
+            background: #0f3460;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .scrollable::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <div class="session-info">
+            Combat - <span id="round-number">Round 1</span>
+        </div>
+        <div class="phase-indicator" id="phase-indicator">
+            Phase: <span id="phase-name">Attente</span>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="left-panel">
+            <div class="panel-title">Équipe de Héros</div>
+            <div id="players-list" class="scrollable"></div>
+        </div>
+
+        <div id="phaser-game"></div>
+
+        <div id="right-panel">
+            <div class="panel-title">Monstres</div>
+            <div id="monsters-list" class="scrollable"></div>
+            <div class="teacher-controls">
+                <button class="btn primary" id="btn-next-round">
+                    Prochain Round
+                </button>
+                <button class="btn" id="btn-force-execute">
+                    Forcer Exécution
+                </button>
+                <div id="error-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="center-overlay" id="center-overlay">
+        <div class="overlay-message" id="overlay-message" style="display: none;">
+            <h2 id="overlay-title">Les élèves répondent...</h2>
+            <div class="progress-info" id="overlay-progress">0/0</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="overlay-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="combat-log" id="combat-log"></div>
+
+    <!-- Load Phaser from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <!-- Load Socket.IO from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.2/dist/socket.io.min.js"></script>
+
+    <!-- Session data from Flask -->
+    <script>
+        const SESSION_ID = {{ session.id }};
+        const CLASSROOM_ID = {{ session.classroom_id }};
+        const EXERCISE_ID = {{ session.exercise_id }};
+        const DIFFICULTY = "{{ session.difficulty }}";
+        const MAP_CONFIG = {{ session.map_config_json | tojson }};
+    </script>
+
+    <!-- Load combat scripts -->
+    <script src="{{ url_for('static', filename='js/combat/socket-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/combat/phaser-arena.js') }}"></script>
+</body>
+</html>

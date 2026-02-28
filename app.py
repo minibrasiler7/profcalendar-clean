@@ -1,7 +1,7 @@
 from config import Config
 from flask import Flask, redirect, url_for, flash
 from flask_login import current_user
-from extensions import db, login_manager, migrate
+from extensions import db, login_manager, migrate, socketio
 import logging
 import stripe
 
@@ -24,6 +24,7 @@ def create_app(config_name='development'):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='gevent')
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
     
@@ -184,6 +185,15 @@ def create_app(config_name='development'):
         print("✅ exercises blueprint ajouté")
     except ImportError:
         print("❌ exercises blueprint non trouvé")
+
+    # Blueprint combat (SocketIO + REST)
+    try:
+        from routes.combat import combat_bp, register_combat_events
+        app.register_blueprint(combat_bp)
+        register_combat_events(socketio)
+        print("✅ combat blueprint ajouté")
+    except ImportError as e:
+        print(f"❌ combat blueprint non trouvé: {e}")
 
     # Blueprint administration
     try:
@@ -580,6 +590,68 @@ def create_app(config_name='development'):
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+        # Tables combat (SocketIO combat system)
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS combat_sessions (
+                    id SERIAL PRIMARY KEY,
+                    classroom_id INTEGER NOT NULL REFERENCES classrooms(id),
+                    exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+                    teacher_id INTEGER NOT NULL REFERENCES users(id),
+                    status VARCHAR(20) DEFAULT 'waiting',
+                    current_round INTEGER DEFAULT 0,
+                    current_phase VARCHAR(20) DEFAULT 'waiting',
+                    difficulty VARCHAR(20) DEFAULT 'medium',
+                    map_config_json JSONB DEFAULT '{}',
+                    current_block_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ended_at TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS combat_participants (
+                    id SERIAL PRIMARY KEY,
+                    combat_session_id INTEGER NOT NULL REFERENCES combat_sessions(id) ON DELETE CASCADE,
+                    student_id INTEGER NOT NULL REFERENCES students(id),
+                    snapshot_json JSONB DEFAULT '{}',
+                    current_hp INTEGER DEFAULT 100,
+                    current_mana INTEGER DEFAULT 50,
+                    max_hp INTEGER DEFAULT 100,
+                    max_mana INTEGER DEFAULT 50,
+                    grid_x INTEGER DEFAULT 0,
+                    grid_y INTEGER DEFAULT 0,
+                    is_alive BOOLEAN DEFAULT TRUE,
+                    answered BOOLEAN DEFAULT FALSE,
+                    is_correct BOOLEAN DEFAULT FALSE,
+                    selected_action_json JSONB,
+                    action_submitted BOOLEAN DEFAULT FALSE,
+                    UNIQUE(combat_session_id, student_id)
+                )
+            """))
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS combat_monsters (
+                    id SERIAL PRIMARY KEY,
+                    combat_session_id INTEGER NOT NULL REFERENCES combat_sessions(id) ON DELETE CASCADE,
+                    monster_type VARCHAR(20) NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    level INTEGER DEFAULT 1,
+                    max_hp INTEGER DEFAULT 50,
+                    current_hp INTEGER DEFAULT 50,
+                    attack INTEGER DEFAULT 5,
+                    defense INTEGER DEFAULT 3,
+                    magic_defense INTEGER DEFAULT 3,
+                    grid_x INTEGER DEFAULT 5,
+                    grid_y INTEGER DEFAULT 0,
+                    is_alive BOOLEAN DEFAULT TRUE,
+                    skills_json JSONB DEFAULT '[]'
+                )
+            """))
+            db.session.commit()
+            print("✅ Tables combat créées")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Tables combat: {e}")
 
         # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
         try:

@@ -2143,3 +2143,34 @@ def student_rpg_skills():
     rpg.active_skills_json = skill_ids
     db.session.commit()
     return jsonify({'success': True, 'profile': rpg.to_dict()})
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  COMBAT RPG — endpoints mobile
+# ═══════════════════════════════════════════════════════════════════
+
+@api_bp.route('/student/combat/active', methods=['GET'])
+@jwt_required(user_type='student')
+def student_active_combat():
+    """Retourne le combat actif pour la classe de l'élève."""
+    student = _get_current_student()
+    if not student or not student.classroom_id:
+        return jsonify({'active': False})
+
+    from models.combat import CombatSession
+    session = CombatSession.query.filter(
+        CombatSession.classroom_id == student.classroom_id,
+        CombatSession.status.in_(['waiting', 'active'])
+    ).first()
+
+    if not session:
+        return jsonify({'active': False})
+
+    return jsonify({
+        'active': True,
+        'session_id': session.id,
+        'classroom_id': session.classroom_id,
+        'difficulty': session.difficulty,
+        'status': session.status,
+        'participant_count': session.participants.count(),
+    })

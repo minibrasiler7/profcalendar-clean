@@ -9,6 +9,7 @@ import TeachersScreen from '../screens/student/TeachersScreen';
 import MissionsScreen from '../screens/student/MissionsScreen';
 import ExerciseSolveScreen from '../screens/student/ExerciseSolveScreen';
 import RPGDashboardScreen from '../screens/student/RPGDashboardScreen';
+import CombatScreen from '../screens/student/CombatScreen';
 import colors from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -50,6 +51,16 @@ function RPGStackNavigator() {
         options={{
           title: 'Profil RPG',
           headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: '#FFF',
+          headerTitleStyle: { fontWeight: '600' },
+        }}
+      />
+      <Stack.Screen
+        name="Combat"
+        component={CombatScreen}
+        options={{
+          title: 'Combat',
+          headerStyle: { backgroundColor: '#1a1a2e' },
           headerTintColor: '#FFF',
           headerTitleStyle: { fontWeight: '600' },
         }}
