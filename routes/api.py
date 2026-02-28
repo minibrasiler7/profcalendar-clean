@@ -1407,7 +1407,7 @@ def student_list_missions():
             except Exception:
                 blocks_count = 0
 
-            missions_data.append({
+            mission_item = {
                 'id': pub_row.id,
                 'exercise_id': exercise.id,
                 'title': exercise.title,
@@ -1419,7 +1419,21 @@ def student_list_missions():
                 'on_cooldown': on_cooldown,
                 'cooldown_remaining': cooldown_remaining,
                 'mode': pub_row.mode or 'classique',
-            })
+            }
+
+            # Si mode combat, chercher la session de combat active
+            if (pub_row.mode or 'classique') == 'combat':
+                from models.combat import CombatSession
+                combat = CombatSession.query.filter(
+                    CombatSession.classroom_id == student.classroom_id,
+                    CombatSession.exercise_id == exercise.id,
+                    CombatSession.status.in_(['waiting', 'active'])
+                ).order_by(CombatSession.created_at.desc()).first()
+                if combat:
+                    mission_item['combat_session_id'] = combat.id
+                    mission_item['combat_status'] = combat.status
+
+            missions_data.append(mission_item)
 
         return jsonify({'missions': missions_data})
 
@@ -1830,6 +1844,7 @@ def student_rpg_profile():
     return jsonify({
         'rpg_profile': {
             'student_id': student.id,
+            'classroom_id': student.classroom_id,
             'student_name': f'{student.first_name} {student.last_name}',
             'xp_total': rpg_profile.xp_total,
             'level': level,

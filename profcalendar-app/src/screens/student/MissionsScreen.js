@@ -76,6 +76,21 @@ export default function MissionsScreen({ navigation }) {
 
   const handleMissionPress = (mission) => {
     if (mission.on_cooldown && mission.cooldown_remaining > 0) return;
+
+    // Mode combat RPG → ouvrir CombatScreen
+    if (mission.mode === 'combat' && mission.combat_session_id) {
+      navigation.getParent().navigate('RPG', {
+        screen: 'Combat',
+        params: {
+          sessionId: mission.combat_session_id,
+          studentId: rpgData?.student_id,
+          classroomId: rpgData?.classroom_id,
+        },
+      });
+      return;
+    }
+
+    // Mode classique → exercice normal
     navigation.navigate('ExerciseSolve', { missionId: mission.id });
   };
 
@@ -88,28 +103,43 @@ export default function MissionsScreen({ navigation }) {
 
   const renderMissionItem = ({ item }) => {
     const isCooldown = item.on_cooldown && item.cooldown_remaining > 0;
+    const isCombat = item.mode === 'combat' && item.combat_session_id;
+    const combatNotReady = item.mode === 'combat' && !item.combat_session_id;
+
     const statusColor = isCooldown
       ? '#f59e0b'
+      : isCombat
+      ? '#ef4444'
       : item.status === 'completed'
       ? colors.success
       : colors.warning;
     const statusLabel = isCooldown
       ? 'Cooldown'
+      : isCombat
+      ? '⚔️ Combat'
+      : combatNotReady
+      ? 'En attente'
       : item.status === 'completed'
       ? 'Complété'
       : 'À faire';
 
+    const isDisabled = isCooldown || combatNotReady;
+
     return (
       <TouchableOpacity
-        style={[styles.missionCard, isCooldown && styles.missionCardCooldown]}
+        style={[
+          styles.missionCard,
+          isCooldown && styles.missionCardCooldown,
+          isCombat && styles.missionCardCombat,
+        ]}
         onPress={() => handleMissionPress(item)}
-        disabled={isCooldown}
-        activeOpacity={isCooldown ? 1 : 0.7}
+        disabled={isDisabled}
+        activeOpacity={isDisabled ? 1 : 0.7}
       >
         <View style={styles.missionHeader}>
           <View style={styles.missionInfo}>
-            <Text style={[styles.missionTitle, isCooldown && { opacity: 0.5 }]}>
-              {item.title}
+            <Text style={[styles.missionTitle, isDisabled && { opacity: 0.5 }]}>
+              {isCombat ? '⚔️ ' : ''}{item.title}
             </Text>
             <Text style={styles.missionSubject}>{item.subject}</Text>
           </View>
@@ -122,6 +152,24 @@ export default function MissionsScreen({ navigation }) {
             </View>
           </View>
         </View>
+
+        {isCombat && (
+          <View style={styles.combatRow}>
+            <Ionicons name="flash" size={16} color="#ef4444" />
+            <Text style={styles.combatText}>
+              Combat en cours — Rejoindre !
+            </Text>
+          </View>
+        )}
+
+        {combatNotReady && (
+          <View style={styles.combatRow}>
+            <Ionicons name="time-outline" size={16} color="#9ca3af" />
+            <Text style={[styles.combatText, { color: '#9ca3af' }]}>
+              En attente du prof pour lancer le combat
+            </Text>
+          </View>
+        )}
 
         {isCooldown && (
           <View style={styles.cooldownRow}>
@@ -137,8 +185,8 @@ export default function MissionsScreen({ navigation }) {
             <Ionicons name="star" size={14} color={colors.warning} />
             <Text style={styles.xpText}>+{item.xp_reward} XP</Text>
           </View>
-          {!isCooldown && item.status !== 'completed' && (
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          {!isDisabled && (
+            <Ionicons name="chevron-forward" size={18} color={isCombat ? '#ef4444' : colors.textSecondary} />
           )}
         </View>
       </TouchableOpacity>
@@ -240,6 +288,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     opacity: 0.75,
   },
+  missionCardCombat: {
+    borderColor: '#ef4444',
+    borderWidth: 2,
+    backgroundColor: '#1a1a2e10',
+  },
+  combatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ef444415',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+    gap: 6,
+  },
+  combatText: { fontSize: 13, fontWeight: '600', color: '#ef4444' },
   missionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   missionInfo: { flex: 1 },
   missionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },

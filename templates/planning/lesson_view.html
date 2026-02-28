@@ -10203,6 +10203,11 @@ async function launchExercise() {
             if (data.success) {
                 closeModeModal();
 
+                // Si combat RPG, ouvrir l'arène Phaser dans un nouvel onglet
+                if (selectedMode === 'combat' && data.combat_session_id) {
+                    window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+                }
+
                 // Ouvrir le suivi live pour tous les modes
                 openTracking(data.publication_id);
             } else {
@@ -10241,6 +10246,11 @@ async function launchExercise() {
 
                 closeModeModal();
                 closeAddResourceModal();
+
+                // Si combat RPG, ouvrir l'arène Phaser dans un nouvel onglet
+                if (selectedMode === 'combat' && data.combat_session_id) {
+                    window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+                }
 
                 // Ouvrir le suivi live pour tous les modes
                 openTracking(data.publication_id);

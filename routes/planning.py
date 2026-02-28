@@ -8666,11 +8666,29 @@ def publish_resource():
 
         db.session.commit()
 
-        return jsonify({
+        result = {
             'success': True,
             'message': f'Exercice publié en mode {mode}',
             'publication_id': pub_obj.id
-        })
+        }
+
+        # Si mode combat, créer une CombatSession automatiquement
+        if mode == 'combat':
+            try:
+                from services.combat_engine import CombatEngine
+                combat_session = CombatEngine.create_session(
+                    teacher_id=current_user.id,
+                    classroom_id=classroom_id,
+                    exercise_id=exercise_id,
+                    difficulty='medium',
+                )
+                result['combat_session_id'] = combat_session.id
+            except Exception as e2:
+                import traceback
+                traceback.print_exc()
+                result['combat_error'] = str(e2)
+
+        return jsonify(result)
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Erreur publish-resource: {e}")

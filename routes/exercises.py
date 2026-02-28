@@ -515,12 +515,31 @@ def launch_exercise():
     db.session.commit()
 
     pub_obj = existing or pub
-    return jsonify({
+    result = {
         'success': True,
         'publication_id': pub_obj.id,
         'mode': mode,
         'message': f'Exercice lancé en mode {mode}'
-    })
+    }
+
+    # Si mode combat, créer une CombatSession automatiquement
+    if mode == 'combat':
+        try:
+            from services.combat_engine import CombatEngine
+            difficulty = data.get('difficulty', 'medium')
+            combat_session = CombatEngine.create_session(
+                teacher_id=current_user.id,
+                classroom_id=classroom_id,
+                exercise_id=exercise_id,
+                difficulty=difficulty,
+            )
+            result['combat_session_id'] = combat_session.id
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            result['combat_error'] = str(e)
+
+    return jsonify(result)
 
 
 @exercises_bp.route('/publication/<int:pub_id>/toggle-active', methods=['POST'])
