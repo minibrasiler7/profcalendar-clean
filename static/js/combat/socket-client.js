@@ -133,7 +133,7 @@ class CombatSocket {
 
         this.socket.on('combat:error', (errorData) => {
             console.error('Combat error:', errorData);
-            this.showError(errorData.message || 'Une erreur est survenue');
+            this.showError(errorData.error || errorData.message || 'Une erreur est survenue');
             if (this.callbacks.onError) {
                 this.callbacks.onError(errorData);
             }
@@ -234,12 +234,12 @@ class CombatSocket {
         const progress = document.getElementById('overlay-progress');
 
         if (overlay && title) {
-            title.textContent = questionData.question || 'Les élèves répondent...';
-            progress.textContent = '0/' + (questionData.total || 0);
+            title.textContent = questionData.title || questionData.question || 'Les élèves répondent...';
+            progress.textContent = '0/?';
             overlay.style.display = 'block';
         }
 
-        this.addCombatLogEntry('Question: ' + (questionData.question || 'Question phase'), 'phase');
+        this.addCombatLogEntry('Round ' + (questionData.round || '?') + ' — ' + (questionData.title || 'Question'), 'phase');
     }
 
     /**
@@ -258,18 +258,19 @@ class CombatSocket {
     showFinishedScreen(result) {
         const overlay = document.getElementById('overlay-message');
         const title = document.getElementById('overlay-title');
+        const isVictory = result.result === 'victory' || result.victory;
 
         if (overlay && title) {
-            title.textContent = result.victory ? '✓ Victoire!' : '✗ Défaite';
+            title.textContent = isVictory ? '🎉 VICTOIRE!' : '💀 DÉFAITE...';
             overlay.style.display = 'block';
-            overlay.style.backgroundColor = result.victory ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-            overlay.style.borderColor = result.victory ? '#10b981' : '#ef4444';
+            overlay.style.backgroundColor = isVictory ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+            overlay.style.borderColor = isVictory ? '#10b981' : '#ef4444';
         }
 
-        if (result.victory) {
-            this.addCombatLogEntry('✓ VICTOIRE - Combat terminé!', 'phase');
+        if (isVictory) {
+            this.addCombatLogEntry('🎉 VICTOIRE - Combat terminé!', 'phase');
         } else {
-            this.addCombatLogEntry('✗ DÉFAITE - L\'équipe a été vaincue', 'phase');
+            this.addCombatLogEntry('💀 DÉFAITE - L\'équipe a été vaincue', 'phase');
         }
     }
 

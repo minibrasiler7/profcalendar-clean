@@ -98,7 +98,11 @@ function createScene() {
     if (typeof CombatSocketInstance !== 'undefined') {
         CombatSocketInstance.setGameInstance({
             updateState: (state) => updateGameState(scene, state),
-            addPlayerSprite: (student) => addPlayerSprite(scene, student),
+            addPlayerSprite: (data) => {
+                // data from combat:student_joined is {participant: {...}}
+                const p = data.participant || data;
+                addPlayerSprite(scene, p);
+            },
             playAnimations: (animations) => playAnimations(scene, animations),
             updatePhase: (phase, data) => updatePhase(scene, phase, data),
             updateRound: (round, phase) => updateRoundDisplay(scene, round, phase)
@@ -131,7 +135,6 @@ function drawGrid(scene) {
             const x = startX + col * GRID.tileSize;
             const y = startY + row * GRID.tileSize;
 
-            // Alternate grass/dirt colors
             const isEvenRow = row % 2 === 0;
             const isEvenCol = col % 2 === 0;
             const shouldBeDark = isEvenRow === isEvenCol;
@@ -167,36 +170,57 @@ function drawGrid(scene) {
 }
 
 /**
+ * Get grid pixel position from grid coordinates
+ */
+function gridToPixel(gridX, gridY) {
+    return {
+        x: ARENA.padding + gridX * GRID.tileSize + GRID.tileSize / 2,
+        y: ARENA.padding + gridY * GRID.tileSize + GRID.tileSize / 2
+    };
+}
+
+/**
  * Add a player sprite to the arena
+ * Server data: {id, student_id, student_name, avatar_class, level, current_hp, max_hp, current_mana, max_mana, grid_x, grid_y, is_alive, skills}
  */
 function addPlayerSprite(scene, player) {
     if (!scene || !player) return;
 
-    const playerId = player.id || player.user_id;
+    const playerId = player.id;
     if (scene.entities.players[playerId]) {
-        return; // Player already exists
+        // Already exists, just update
+        updatePlayerSprite(scene, playerId, player);
+        return;
     }
 
-    // Position players on left side of grid, staggered
-    const playerIndex = Object.keys(scene.entities.players).length;
-    const playerSlots = 4;
-    const spacingY = ARENA.height / (playerSlots + 1);
-    const x = ARENA.padding + GRID.tileSize * 1;
-    const y = ARENA.padding + spacingY * (playerIndex + 1);
+    // Use grid position from server
+    const pos = gridToPixel(player.grid_x || 1, player.grid_y || 0);
+    const x = pos.x;
+    const y = pos.y;
 
     // Get player color based on class
-    const classColor = COLORS.playerClasses[player.class] || '#667eea';
+    const avatarClass = player.avatar_class || 'guerrier';
+    const classColor = COLORS.playerClasses[avatarClass] || '#667eea';
 
     // Create player sprite (circle)
-    const circle = scene.add.circle(x, y, 24, parseInt(classColor.replace('#', '0x')));
+    const circle = scene.add.circle(0, 0, 24, parseInt(classColor.replace('#', '0x')));
     circle.setStrokeStyle(2, 0xffffff);
 
-    // Create player container
-    const playerGroup = scene.add.container(x, y, [circle]);
+    // Class initial letter
+    const classLetter = scene.add.text(0, 0, avatarClass.charAt(0).toUpperCase(), {
+        font: 'bold 18px Arial',
+        fill: '#ffffff',
+        align: 'center'
+    });
+    classLetter.setOrigin(0.5, 0.5);
+
+    // Create player container at grid position
+    const playerGroup = scene.add.container(x, y, [circle, classLetter]);
 
     // Add name text
-    const nameText = scene.add.text(0, 32, player.username || 'Player', {
-        font: '12px Arial',
+    const displayName = player.student_name || ('Élève ' + player.student_id);
+    const nameText = scene.add.text(0, 32, displayName, {
+        font: '11px Arial',
         fill: COLORS.text,
         align: 'center'
     });
@@ -206,7 +230,11 @@ function addPlayerSprite(scene, player) {
     // Add HP bar
     const hpBarBg = scene.add.rectangle(0, 46, 48, 8, 0x1a1a2e);
     hpBarBg.setStrokeStyle(1, 0x10b981);
-    const hpBarFill = scene.add.rectangle(-22, 46, 44, 6, 0x10b981);
+    const hpPercent = Math.max(0, Math.min(1, (player.current_hp || 0) / (player.max_hp || 1)));
+    const hpBarFill = scene.add.rectangle(-24 + 22 * hpPercent, 46, 44 * hpPercent, 6, 0x10b981);
+    hpBarFill.setOrigin(0, 0.5);
+    hpBarFill.x = -22;
+    hpBarFill.width = 44 * hpPercent;
     playerGroup.add([hpBarBg, hpBarFill]);
 
     // Store player data
@@ -217,48 +245,60 @@ function addPlayerSprite(scene, player) {
         hpBarFill,
         hpBarBg,
         maxHp: player.max_hp || 100,
-        currentHp: player.hp || 100,
-        mana: player.mana || 0,
+        currentHp: player.current_hp || 100,
+        mana: player.current_mana || 0,
         maxMana: player.max_mana || 50,
-        class: player.class,
-        username: player.username
+        avatarClass: avatarClass,
+        studentName: displayName,
+        isAlive: player.is_alive !== false
     };
 
-    // Update player roster in UI
+    // Update player roster in side panel
     updatePlayerRoster(scene);
+
+    console.log('Player sprite added:', displayName, 'at grid', player.grid_x, player.grid_y);
 }
 
 /**
  * Add a monster sprite to the arena
+ * Server data: {id, monster_type, name, level, max_hp, current_hp, attack, defense, grid_x, grid_y, is_alive, skills}
  */
 function addMonsterSprite(scene, monster) {
     if (!scene || !monster) return;
 
     const monsterId = monster.id;
     if (scene.entities.monsters[monsterId]) {
-        return; // Monster already exists
+        updateMonsterSprite(scene, monsterId, monster);
+        return;
     }
 
-    // Position monsters on right side of grid, staggered
-    const monsterIndex = Object.keys(scene.entities.monsters).length;
-    const monsterSlots = 3;
-    const spacingY = ARENA.height / (monsterSlots + 1);
-    const x = ARENA.padding + GRID.tileSize * (GRID.width - 2);
-    const y = ARENA.padding + spacingY * (monsterIndex + 1);
+    // Use grid position from server
+    const pos = gridToPixel(monster.grid_x || 7, monster.grid_y || 0);
+    const x = pos.x;
+    const y = pos.y;
 
-    // Get monster color
-    const monsterColor = COLORS.monsterTypes[monster.type] || '#3b82f6';
+    // Get monster color based on type
+    const monsterType = monster.monster_type || 'slime';
+    const monsterColor = COLORS.monsterTypes[monsterType] || '#3b82f6';
 
     // Create monster sprite (rectangle)
-    const shape = scene.add.rectangle(x, y, 40, 50, parseInt(monsterColor.replace('#', '0x')));
+    const shape = scene.add.rectangle(0, 0, 40, 50, parseInt(monsterColor.replace('#', '0x')));
     shape.setStrokeStyle(2, 0xffffff);
 
+    // Monster type initial
+    const typeLetter = scene.add.text(0, 0, monsterType.charAt(0).toUpperCase(), {
+        font: 'bold 18px Arial',
+        fill: '#ffffff',
+        align: 'center'
+    });
+    typeLetter.setOrigin(0.5, 0.5);
+
     // Create monster container
-    const monsterGroup = scene.add.container(x, y, [shape]);
+    const monsterGroup = scene.add.container(x, y, [shape, typeLetter]);
 
     // Add name text
-    const nameText = scene.add.text(0, 32, monster.name || 'Monster', {
-        font: '12px Arial',
+    const nameText = scene.add.text(0, 32, monster.name || 'Monstre', {
+        font: '11px Arial',
         fill: COLORS.text,
         align: 'center'
     });
@@ -268,7 +308,11 @@ function addMonsterSprite(scene, monster) {
     // Add HP bar
     const hpBarBg = scene.add.rectangle(0, 46, 48, 8, 0x1a1a2e);
     hpBarBg.setStrokeStyle(1, 0xef4444);
-    const hpBarFill = scene.add.rectangle(-22, 46, 44, 6, 0xef4444);
+    const hpPercent = Math.max(0, Math.min(1, (monster.current_hp || 0) / (monster.max_hp || 1)));
+    const hpBarFill = scene.add.rectangle(0, 46, 44 * hpPercent, 6, 0xef4444);
+    hpBarFill.setOrigin(0, 0.5);
+    hpBarFill.x = -22;
+    hpBarFill.width = 44 * hpPercent;
     monsterGroup.add([hpBarBg, hpBarFill]);
 
     // Store monster data
@@ -279,47 +323,53 @@ function addMonsterSprite(scene, monster) {
         hpBarFill,
         hpBarBg,
         maxHp: monster.max_hp || 50,
-        currentHp: monster.hp || 50,
+        currentHp: monster.current_hp || 50,
         name: monster.name,
-        type: monster.type
+        monsterType: monsterType,
+        isAlive: monster.is_alive !== false
     };
 
-    // Update monster roster in UI
+    // Update monster roster in side panel
     updateMonsterRoster(scene);
+
+    console.log('Monster sprite added:', monster.name, 'at grid', monster.grid_x, monster.grid_y);
 }
 
 /**
  * Update game state from server
+ * Server sends: {session_id, status, round, phase, participants: [...], monsters: [...], all_monsters: [...]}
  */
 function updateGameState(scene, state) {
     if (!scene) return;
+
+    console.log('updateGameState:', state.phase, 'round:', state.round,
+        'participants:', (state.participants || []).length,
+        'monsters:', (state.monsters || []).length);
 
     currentGameState = state;
 
     // Update round display
     updateRoundDisplay(scene, state.round, state.phase);
 
-    // Update or create players
-    if (state.players) {
-        Object.values(state.players).forEach(player => {
-            if (!scene.entities.players[player.id]) {
-                addPlayerSprite(scene, player);
-            } else {
-                updatePlayerSprite(scene, player.id, player);
-            }
-        });
-    }
+    // Update or create players from participants array
+    const participants = state.participants || [];
+    participants.forEach(p => {
+        if (!scene.entities.players[p.id]) {
+            addPlayerSprite(scene, p);
+        } else {
+            updatePlayerSprite(scene, p.id, p);
+        }
+    });
 
-    // Update or create monsters
-    if (state.monsters) {
-        Object.values(state.monsters).forEach(monster => {
-            if (!scene.entities.monsters[monster.id]) {
-                addMonsterSprite(scene, monster);
-            } else {
-                updateMonsterSprite(scene, monster.id, monster);
-            }
-        });
-    }
+    // Update or create monsters from all_monsters array (includes dead ones for display)
+    const allMonsters = state.all_monsters || state.monsters || [];
+    allMonsters.forEach(m => {
+        if (!scene.entities.monsters[m.id]) {
+            addMonsterSprite(scene, m);
+        } else {
+            updateMonsterSprite(scene, m.id, m);
+        }
+    });
 }
 
 /**
@@ -329,19 +379,20 @@ function updatePlayerSprite(scene, playerId, playerData) {
     const player = scene.entities.players[playerId];
     if (!player) return;
 
-    player.currentHp = playerData.hp || playerData.currentHp;
-    player.maxHp = playerData.max_hp || playerData.maxHp;
-    player.mana = playerData.mana || 0;
+    player.currentHp = playerData.current_hp !== undefined ? playerData.current_hp : player.currentHp;
+    player.maxHp = playerData.max_hp || player.maxHp;
+    player.mana = playerData.current_mana !== undefined ? playerData.current_mana : player.mana;
     player.maxMana = playerData.max_mana || player.maxMana;
+    player.isAlive = playerData.is_alive !== undefined ? playerData.is_alive : player.isAlive;
 
     // Update HP bar
     const hpPercent = Math.max(0, Math.min(1, player.currentHp / player.maxHp));
     player.hpBarFill.width = 44 * hpPercent;
-    player.hpBarFill.x = -22 + (44 * hpPercent) / 2;
+    player.hpBarFill.x = -22;
 
     // Fade out if dead
-    if (player.currentHp <= 0) {
-        player.container.setAlpha(0.5);
+    if (!player.isAlive || player.currentHp <= 0) {
+        player.container.setAlpha(0.3);
         player.circle.setFillStyle(0x888888);
     } else {
         player.container.setAlpha(1);
@@ -358,17 +409,18 @@ function updateMonsterSprite(scene, monsterId, monsterData) {
     const monster = scene.entities.monsters[monsterId];
     if (!monster) return;
 
-    monster.currentHp = monsterData.hp || monsterData.currentHp;
-    monster.maxHp = monsterData.max_hp || monsterData.maxHp;
+    monster.currentHp = monsterData.current_hp !== undefined ? monsterData.current_hp : monster.currentHp;
+    monster.maxHp = monsterData.max_hp || monster.maxHp;
+    monster.isAlive = monsterData.is_alive !== undefined ? monsterData.is_alive : monster.isAlive;
 
     // Update HP bar
     const hpPercent = Math.max(0, Math.min(1, monster.currentHp / monster.maxHp));
     monster.hpBarFill.width = 44 * hpPercent;
-    monster.hpBarFill.x = -22 + (44 * hpPercent) / 2;
+    monster.hpBarFill.x = -22;
 
     // Fade out if dead
-    if (monster.currentHp <= 0) {
-        monster.container.setAlpha(0.5);
+    if (!monster.isAlive || monster.currentHp <= 0) {
+        monster.container.setAlpha(0.3);
         monster.shape.setFillStyle(0x888888);
     } else {
         monster.container.setAlpha(1);
@@ -383,9 +435,6 @@ function updateMonsterSprite(scene, monsterId, monsterData) {
  */
 function playAnimations(scene, animations) {
     if (!Array.isArray(animations) || animations.length === 0) {
-        if (typeof CombatSocketInstance !== 'undefined' && CombatSocketInstance.socket) {
-            CombatSocketInstance.socket.emit('combat:animations_done', { session_id: SESSION_ID });
-        }
         return;
     }
 
@@ -399,16 +448,13 @@ function playAnimations(scene, animations) {
 function executeNextAnimation(scene) {
     if (scene.animationQueue.length === 0) {
         scene.isAnimating = false;
-        if (typeof CombatSocketInstance !== 'undefined' && CombatSocketInstance.socket) {
-            CombatSocketInstance.socket.emit('combat:animations_done', { session_id: SESSION_ID });
-        }
         return;
     }
 
     const animation = scene.animationQueue.shift();
     scene.isAnimating = true;
 
-    console.log('Playing animation:', animation);
+    console.log('Playing animation:', animation.type, animation.attacker_name, '→', animation.target_name);
 
     switch (animation.type) {
         case 'attack':
@@ -420,22 +466,37 @@ function executeNextAnimation(scene) {
         case 'monster_attack':
             playMonsterAttackAnimation(scene, animation, () => executeNextAnimation(scene));
             break;
-        case 'ko':
-            playKoAnimation(scene, animation, () => executeNextAnimation(scene));
+        case 'defense':
+        case 'buff':
+            playBuffAnimation(scene, animation, () => executeNextAnimation(scene));
             break;
         default:
+            // Log and skip unknown animation type
+            if (typeof CombatSocketInstance !== 'undefined') {
+                CombatSocketInstance.addCombatLogEntry(
+                    (animation.attacker_name || '?') + ' utilise ' + (animation.skill_name || '?'),
+                    'default'
+                );
+            }
             executeNextAnimation(scene);
     }
 }
 
 /**
- * Play attack animation
+ * Play attack animation (player attacks monster)
+ * animation: {type, attacker_type, attacker_id, attacker_name, target_type, target_id, target_name, skill_name, damage, target_hp, target_max_hp, killed}
  */
 function playAttackAnimation(scene, animation, onComplete) {
     const attacker = scene.entities.players[animation.attacker_id];
     const target = scene.entities.monsters[animation.target_id];
 
     if (!attacker || !target) {
+        if (typeof CombatSocketInstance !== 'undefined') {
+            CombatSocketInstance.addCombatLogEntry(
+                (animation.attacker_name || '?') + ' → ' + (animation.skill_name || '?') + ' → ' + animation.damage + ' dégâts',
+                'damage'
+            );
+        }
         onComplete();
         return;
     }
@@ -449,43 +510,53 @@ function playAttackAnimation(scene, animation, onComplete) {
     target.shape.setFillStyle(0xffffff);
 
     // Move attacker toward target and back
-    scene.tweens.timeline({
-        tweens: [
-            {
-                targets: attacker.container,
-                x: targetX - 30,
-                y: targetY,
-                duration: 200,
-                ease: 'Quad.Out'
-            },
-            {
-                targets: attacker.container,
-                x: startX,
-                y: startY,
-                duration: 200,
-                ease: 'Quad.In'
-            }
-        ],
+    scene.tweens.add({
+        targets: attacker.container,
+        x: targetX - 30,
+        y: targetY,
+        duration: 200,
+        ease: 'Quad.Out',
+        yoyo: true,
         onComplete: () => {
-            target.shape.setFillStyle(parseInt(COLORS.monsterTypes[target.type] || '#3b82f6'));
+            const monsterType = target.monsterType || 'slime';
+            const origColor = parseInt((COLORS.monsterTypes[monsterType] || '#3b82f6').replace('#', '0x'));
+            target.shape.setFillStyle(origColor);
+
+            // Update target HP
+            target.currentHp = animation.target_hp;
+            target.maxHp = animation.target_max_hp || target.maxHp;
+            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
+            target.hpBarFill.width = 44 * hpPercent;
+
+            if (animation.killed) {
+                target.container.setAlpha(0.3);
+                target.shape.setFillStyle(0x888888);
+                target.isAlive = false;
+            }
+
             // Show damage number
             showDamageNumber(scene, targetX, targetY, animation.damage, false);
+            updateMonsterRoster(scene);
             onComplete();
         }
     });
 
     // Log action
-    CombatSocketInstance.addCombatLogEntry(
-        attacker.username + ' attaque pour ' + animation.damage + ' dégâts',
-        'damage'
-    );
+    if (typeof CombatSocketInstance !== 'undefined') {
+        const killText = animation.killed ? ' 💀 K.O.!' : '';
+        CombatSocketInstance.addCombatLogEntry(
+            animation.attacker_name + ' utilise ' + animation.skill_name + ' → ' + animation.damage + ' dégâts' + killText,
+            'damage'
+        );
+    }
 }
 
 /**
  * Play heal animation
+ * animation: {type, attacker_id, attacker_name, target_id, target_name, skill_name, heal, target_hp, target_max_hp}
  */
 function playHealAnimation(scene, animation, onComplete) {
-    const healer = scene.entities.players[animation.caster_id];
+    const healer = scene.entities.players[animation.attacker_id];
     const target = scene.entities.players[animation.target_id];
 
     if (!healer || !target) {
@@ -494,34 +565,32 @@ function playHealAnimation(scene, animation, onComplete) {
     }
 
     // Pulse effect on target
-    scene.tweens.timeline({
-        tweens: [
-            {
-                targets: target.container,
-                scaleX: 1.1,
-                scaleY: 1.1,
-                duration: 150,
-                ease: 'Quad.Out'
-            },
-            {
-                targets: target.container,
-                scaleX: 1,
-                scaleY: 1,
-                duration: 150,
-                ease: 'Quad.In'
-            }
-        ],
+    scene.tweens.add({
+        targets: target.container,
+        scaleX: 1.15,
+        scaleY: 1.15,
+        duration: 150,
+        ease: 'Quad.Out',
+        yoyo: true,
         onComplete: () => {
-            showDamageNumber(scene, target.container.x, target.container.y - 40, animation.heal_amount, true);
+            // Update target HP
+            target.currentHp = animation.target_hp;
+            target.maxHp = animation.target_max_hp || target.maxHp;
+            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
+            target.hpBarFill.width = 44 * hpPercent;
+
+            showDamageNumber(scene, target.container.x, target.container.y - 40, animation.heal, true);
+            updatePlayerRoster(scene);
             onComplete();
         }
     });
 
-    // Log action
-    CombatSocketInstance.addCombatLogEntry(
-        healer.username + ' soigne ' + target.username + ' pour ' + animation.heal_amount + ' PV',
-        'heal'
-    );
+    if (typeof CombatSocketInstance !== 'undefined') {
+        CombatSocketInstance.addCombatLogEntry(
+            animation.attacker_name + ' soigne ' + animation.target_name + ' → +' + animation.heal + ' PV',
+            'heal'
+        );
+    }
 }
 
 /**
@@ -532,6 +601,12 @@ function playMonsterAttackAnimation(scene, animation, onComplete) {
     const target = scene.entities.players[animation.target_id];
 
     if (!attacker || !target) {
+        if (typeof CombatSocketInstance !== 'undefined') {
+            CombatSocketInstance.addCombatLogEntry(
+                (animation.attacker_name || '?') + ' → ' + (animation.skill_name || '?') + ' → ' + animation.damage + ' dégâts',
+                'damage'
+            );
+        }
         onComplete();
         return;
     }
@@ -545,82 +620,93 @@ function playMonsterAttackAnimation(scene, animation, onComplete) {
     target.circle.setFillStyle(0xffffff);
 
     // Move attacker toward target and back
-    scene.tweens.timeline({
-        tweens: [
-            {
-                targets: attacker.container,
-                x: targetX + 30,
-                y: targetY,
-                duration: 200,
-                ease: 'Quad.Out'
-            },
-            {
-                targets: attacker.container,
-                x: startX,
-                y: startY,
-                duration: 200,
-                ease: 'Quad.In'
-            }
-        ],
+    scene.tweens.add({
+        targets: attacker.container,
+        x: targetX + 30,
+        y: targetY,
+        duration: 200,
+        ease: 'Quad.Out',
+        yoyo: true,
         onComplete: () => {
-            target.circle.setFillStyle(parseInt(COLORS.playerClasses[target.class] || '#667eea'));
+            const avatarClass = target.avatarClass || 'guerrier';
+            const origColor = parseInt((COLORS.playerClasses[avatarClass] || '#667eea').replace('#', '0x'));
+            target.circle.setFillStyle(origColor);
+
+            // Update target HP
+            target.currentHp = animation.target_hp;
+            target.maxHp = animation.target_max_hp || target.maxHp;
+            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
+            target.hpBarFill.width = 44 * hpPercent;
+
+            if (animation.killed) {
+                target.container.setAlpha(0.3);
+                target.circle.setFillStyle(0x888888);
+                target.isAlive = false;
+            }
+
             showDamageNumber(scene, targetX, targetY, animation.damage, false);
+            updatePlayerRoster(scene);
             onComplete();
         }
     });
 
-    // Log action
-    CombatSocketInstance.addCombatLogEntry(
-        attacker.name + ' attaque ' + target.username + ' pour ' + animation.damage + ' dégâts',
-        'damage'
-    );
+    if (typeof CombatSocketInstance !== 'undefined') {
+        const killText = animation.killed ? ' 💀 K.O.!' : '';
+        CombatSocketInstance.addCombatLogEntry(
+            animation.attacker_name + ' attaque ' + animation.target_name + ' → ' + animation.damage + ' dégâts' + killText,
+            'damage'
+        );
+    }
 }
 
 /**
- * Play KO animation
+ * Play buff/defense animation
  */
-function playKoAnimation(scene, animation, onComplete) {
-    const entity = scene.entities.players[animation.entity_id] || scene.entities.monsters[animation.entity_id];
+function playBuffAnimation(scene, animation, onComplete) {
+    const player = scene.entities.players[animation.attacker_id];
 
-    if (!entity) {
+    if (player) {
+        // Quick pulse effect
+        scene.tweens.add({
+            targets: player.container,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 200,
+            ease: 'Quad.Out',
+            yoyo: true,
+            onComplete: onComplete
+        });
+    } else {
         onComplete();
-        return;
     }
 
-    scene.tweens.to(entity.container, {
-        alpha: 0.3,
-        duration: 500,
-        ease: 'Quad.In',
-        onComplete: onComplete
-    });
-
-    const name = entity.username || entity.name || 'Entity';
-    CombatSocketInstance.addCombatLogEntry(name + ' a été vaincu!', 'damage');
+    if (typeof CombatSocketInstance !== 'undefined') {
+        CombatSocketInstance.addCombatLogEntry(
+            animation.attacker_name + ' utilise ' + animation.skill_name,
+            'default'
+        );
+    }
 }
 
 /**
  * Show floating damage/heal number
  */
-function showDamageNumber(scene, x, y, amount, isHeal = false) {
+function showDamageNumber(scene, x, y, amount, isHeal) {
     const color = isHeal ? COLORS.heal : COLORS.damage;
     const prefix = isHeal ? '+' : '-';
 
-    const text = scene.add.text(x, y, prefix + amount, {
+    const text = scene.add.text(x, y - 20, prefix + amount, {
         font: 'bold 24px Arial',
         fill: color
     });
     text.setOrigin(0.5, 0.5);
 
-    scene.tweens.timeline({
-        tweens: [
-            {
-                targets: text,
-                y: y - 60,
-                alpha: 0,
-                duration: 1000,
-                ease: 'Quad.Out'
-            }
-        ],
+    scene.tweens.add({
+        targets: text,
+        y: y - 80,
+        alpha: 0,
+        duration: 1200,
+        ease: 'Quad.Out',
         onComplete: () => {
             text.destroy();
         }
@@ -636,30 +722,24 @@ function updateRoundDisplay(scene, round, phase) {
     const phaseIndicator = document.getElementById('phase-indicator');
 
     if (roundElement) {
-        roundElement.textContent = 'Round ' + round;
+        roundElement.textContent = 'Round ' + (round || 0);
     }
 
     if (phaseElement) {
         let phaseName = 'Attente';
         switch (phase) {
-            case 'question':
-                phaseName = 'Question';
-                break;
-            case 'action':
-                phaseName = 'Action';
-                break;
-            case 'execute':
-                phaseName = 'Exécution';
-                break;
-            case 'finished':
-                phaseName = 'Terminé';
-                break;
+            case 'waiting': phaseName = 'Attente'; break;
+            case 'question': phaseName = 'Question'; break;
+            case 'action': phaseName = 'Action'; break;
+            case 'execute': phaseName = 'Exécution'; break;
+            case 'round_end': phaseName = 'Fin de round'; break;
+            case 'finished': phaseName = 'Terminé'; break;
         }
         phaseElement.textContent = phaseName;
     }
 
     if (phaseIndicator) {
-        phaseIndicator.className = 'phase-indicator phase-' + phase;
+        phaseIndicator.className = 'phase-indicator phase-' + (phase || 'waiting');
     }
 }
 
@@ -671,7 +751,7 @@ function updatePhase(scene, phase, data) {
 }
 
 /**
- * Update player roster UI
+ * Update player roster UI (left side panel)
  */
 function updatePlayerRoster(scene) {
     const roster = document.getElementById('players-list');
@@ -682,18 +762,19 @@ function updatePlayerRoster(scene) {
     Object.entries(scene.entities.players).forEach(([playerId, player]) => {
         const card = document.createElement('div');
         card.className = 'entity-card';
+        if (!player.isAlive) card.style.opacity = '0.4';
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'entity-name';
-        nameDiv.textContent = player.username;
+        nameDiv.textContent = player.studentName + (player.isAlive ? '' : ' 💀');
 
         const hpLabel = document.createElement('div');
         hpLabel.className = 'bar-label';
-        hpLabel.innerHTML = '<span>HP</span><span>' + player.currentHp + '/' + player.maxHp + '</span>';
+        hpLabel.innerHTML = '<span>HP</span><span>' + Math.max(0, player.currentHp) + '/' + player.maxHp + '</span>';
 
         const hpBarContainer = document.createElement('div');
         hpBarContainer.className = 'hp-bar-container';
-        const hpPercent = Math.max(0, Math.min(1, player.currentHp / player.maxHp)) * 100;
+        const hpPercent = Math.max(0, Math.min(100, (player.currentHp / player.maxHp) * 100));
         hpBarContainer.innerHTML = '<div class="hp-bar-fill" style="width: ' + hpPercent + '%"></div>';
 
         const manaLabel = document.createElement('div');
@@ -702,7 +783,7 @@ function updatePlayerRoster(scene) {
 
         const manaBarContainer = document.createElement('div');
         manaBarContainer.className = 'mana-bar-container';
-        const manaPercent = Math.max(0, Math.min(1, player.mana / player.maxMana)) * 100;
+        const manaPercent = Math.max(0, Math.min(100, (player.mana / player.maxMana) * 100));
         manaBarContainer.innerHTML = '<div class="mana-bar-fill" style="width: ' + manaPercent + '%"></div>';
 
         card.appendChild(nameDiv);
@@ -716,7 +797,7 @@ function updatePlayerRoster(scene) {
 }
 
 /**
- * Update monster roster UI
+ * Update monster roster UI (right side panel)
  */
 function updateMonsterRoster(scene) {
     const roster = document.getElementById('monsters-list');
@@ -727,18 +808,19 @@ function updateMonsterRoster(scene) {
     Object.entries(scene.entities.monsters).forEach(([monsterId, monster]) => {
         const card = document.createElement('div');
         card.className = 'entity-card';
+        if (!monster.isAlive) card.style.opacity = '0.4';
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'entity-name';
-        nameDiv.textContent = monster.name;
+        nameDiv.textContent = monster.name + (monster.isAlive ? '' : ' 💀');
 
         const hpLabel = document.createElement('div');
         hpLabel.className = 'bar-label';
-        hpLabel.innerHTML = '<span>HP</span><span>' + monster.currentHp + '/' + monster.maxHp + '</span>';
+        hpLabel.innerHTML = '<span>HP</span><span>' + Math.max(0, monster.currentHp) + '/' + monster.maxHp + '</span>';
 
         const hpBarContainer = document.createElement('div');
         hpBarContainer.className = 'hp-bar-container';
-        const hpPercent = Math.max(0, Math.min(1, monster.currentHp / monster.maxHp)) * 100;
+        const hpPercent = Math.max(0, Math.min(100, (monster.currentHp / monster.maxHp) * 100));
         hpBarContainer.innerHTML = '<div class="hp-bar-fill" style="width: ' + hpPercent + '%"></div>';
 
         card.appendChild(nameDiv);
