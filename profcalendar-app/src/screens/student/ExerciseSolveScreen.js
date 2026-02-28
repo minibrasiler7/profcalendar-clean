@@ -538,9 +538,8 @@ if(c.static_mode&&c.correct_answer){let sfn=null;const ca=c.correct_answer;if(c.
 if(!c.static_mode){pts.forEach((pt,i)=>{const p=g2p(pt.x,pt.y);if(p.px<M-5||p.px>W-M+5||p.py<M-5||p.py>H-M+5)return;x.fillStyle=(i===dr)?'rgba(220,38,38,0.2)':'rgba(16,185,129,0.2)';x.beginPath();x.arc(p.px,p.py,22,0,Math.PI*2);x.fill();x.fillStyle=i===dr?'#dc2626':'#10b981';x.strokeStyle='white';x.lineWidth=3;x.beginPath();x.arc(p.px,p.py,14,0,Math.PI*2);x.fill();x.stroke();x.fillStyle='white';x.font='bold 13px sans-serif';x.textAlign='center';x.fillText(String.fromCharCode(65+i),p.px,p.py+5);x.textAlign='left';x.fillStyle='#1e1b4b';x.font='bold 13px sans-serif';x.fillText('('+pt.x+', '+pt.y+')',p.px+20,p.py-8)})}}
 function gXY(e){const r=cv.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const t=e.touches?e.touches[0]:e;return{px:(t.clientX-r.left)*sx,py:(t.clientY-r.top)*sy}}
 function sp(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'points',points:pts.map(p=>({x:p.x,y:p.y}))}))}
-const dis=${disabled ? 'true' : 'false'};
 if(!c.static_mode){
-cv.addEventListener('touchstart',e=>{e.preventDefault();if(dis)return;const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<40){dr=i;break}}},{passive:false});
+cv.addEventListener('touchstart',e=>{e.preventDefault();const{px,py}=gXY(e);for(let i=0;i<pts.length;i++){const p=g2p(pts[i].x,pts[i].y);if(Math.sqrt((px-p.px)**2+(py-p.py)**2)<40){dr=i;break}}},{passive:false});
 cv.addEventListener('touchmove',e=>{e.preventDefault();if(dr<0)return;const{px,py}=gXY(e);const g=p2g(px,py);pts[dr].x=Math.round(g.x);pts[dr].y=Math.round(g.y);draw()},{passive:false});
 cv.addEventListener('touchend',e=>{dr=-1;draw();sp()});
 }
@@ -548,11 +547,18 @@ draw();sp();
 if(c.static_mode){setTimeout(()=>{const dataUrl=cv.toDataURL('image/png');window.ReactNativeWebView.postMessage(JSON.stringify({type:'snapshot',uri:dataUrl}))},400);}
 </script></body></html>`;
 
+  const disabledRef = useRef(disabled);
+  useEffect(() => { disabledRef.current = disabled; }, [disabled]);
+
   const handleMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'points') {
-        onPointsChange(data.points);
+        // Don't update answer when disabled (locked after check-block)
+        // to prevent WebView reload from overwriting the correct answer
+        if (!disabledRef.current) {
+          onPointsChange(data.points);
+        }
       } else if (data.type === 'snapshot' && data.uri) {
         setStaticImage(data.uri);
       }
@@ -569,7 +575,7 @@ if(c.static_mode){setTimeout(()=>{const dataUrl=cv.toDataURL('image/png');window
         </Text>
       )}
       {config.question ? <MathText text={config.question} style={graphStyles.question} /> : null}
-      <View style={graphStyles.webviewWrap}>
+      <View style={[graphStyles.webviewWrap, disabled && { pointerEvents: 'none' }]}>
         {config.static_mode && staticImage ? (
           <Image source={{ uri: staticImage }} style={graphStyles.webview} resizeMode="contain" />
         ) : (
@@ -612,6 +618,10 @@ export default function ExerciseSolveScreen({ route, navigation }) {
   const comboMultipliersRef = useRef({});
   const [correctCount, setCorrectCount] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
+  const [itemWonModal, setItemWonModal] = useState(false);
+  const [itemWon, setItemWon] = useState(null);
+  const itemWonScale = useRef(new Animated.Value(0)).current;
+  const itemWonGlow = useRef(new Animated.Value(0)).current;
 
   // Animations
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -886,7 +896,22 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       const res = await api.post(`/student/missions/${missionId}/submit`, { answers: answersList, combo_multipliers: comboMultipliersRef.current });
       console.log('[ExerciseSolveScreen] Submit response FULL:', JSON.stringify(res.data));
       setResult(res.data);
-      setResultModal(true);
+      // Show item won popup first if an item was won, then result modal
+      if (res.data.item_won) {
+        setItemWon(res.data.item_won);
+        setItemWonModal(true);
+        itemWonScale.setValue(0);
+        itemWonGlow.setValue(0);
+        Animated.sequence([
+          Animated.spring(itemWonScale, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
+          Animated.loop(Animated.sequence([
+            Animated.timing(itemWonGlow, { toValue: 1, duration: 1200, useNativeDriver: true }),
+            Animated.timing(itemWonGlow, { toValue: 0, duration: 1200, useNativeDriver: true }),
+          ])),
+        ]).start();
+      } else {
+        setResultModal(true);
+      }
     } catch (err) {
       console.log('[ExerciseSolveScreen] Submit error:', err.response?.data || err.message);
       Alert.alert('Erreur', 'Impossible de soumettre');
@@ -1405,6 +1430,36 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         )}
       </View>
 
+      {/* Item Won Popup */}
+      <Modal visible={itemWonModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.itemWonContent, { transform: [{ scale: itemWonScale }] }]}>
+            <Text style={styles.itemWonTitle}>Nouvel objet !</Text>
+            <Animated.View style={[styles.itemWonIconWrap, {
+              shadowOpacity: itemWonGlow.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] }),
+              shadowRadius: itemWonGlow.interpolate({ inputRange: [0, 1], outputRange: [8, 20] }),
+            }]}>
+              <Text style={styles.itemWonIcon}>{itemWon?.icon || '🎁'}</Text>
+            </Animated.View>
+            <Text style={styles.itemWonName}>{itemWon?.name || 'Objet mystère'}</Text>
+            <View style={[styles.itemWonRarityBadge, { backgroundColor: (itemWon?.rarity_color || '#9ca3af') + '22' }]}>
+              <Text style={[styles.itemWonRarityText, { color: itemWon?.rarity_color || '#9ca3af' }]}>
+                {itemWon?.rarity_label || 'Commun'}
+              </Text>
+            </View>
+            {itemWon?.description ? (
+              <Text style={styles.itemWonDesc}>{itemWon.description}</Text>
+            ) : null}
+            <TouchableOpacity style={styles.itemWonButton} onPress={() => {
+              setItemWonModal(false);
+              setResultModal(true);
+            }}>
+              <Text style={styles.itemWonButtonText}>Super !</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+
       <Modal visible={resultModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -1575,4 +1630,15 @@ const styles = StyleSheet.create({
   closeModalButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
   undoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 12, marginTop: 12 },
   undoButtonText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+  // Item Won Popup styles
+  itemWonContent: { backgroundColor: '#1e1b4b', borderRadius: 24, padding: 32, alignItems: 'center', marginHorizontal: 24, borderWidth: 2, borderColor: '#fbbf24', shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 10 },
+  itemWonTitle: { fontSize: 24, fontWeight: '900', color: '#fbbf24', marginBottom: 20, textTransform: 'uppercase', letterSpacing: 2 },
+  itemWonIconWrap: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(251, 191, 36, 0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: 'rgba(251, 191, 36, 0.3)', shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 0 } },
+  itemWonIcon: { fontSize: 48 },
+  itemWonName: { fontSize: 20, fontWeight: '800', color: '#FFF', marginBottom: 8, textAlign: 'center' },
+  itemWonRarityBadge: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 12, marginBottom: 12 },
+  itemWonRarityText: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  itemWonDesc: { fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  itemWonButton: { backgroundColor: '#fbbf24', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 40, shadowColor: '#fbbf24', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6 },
+  itemWonButtonText: { fontSize: 18, fontWeight: '800', color: '#1e1b4b' },
 });
