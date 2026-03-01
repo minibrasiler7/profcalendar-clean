@@ -6,7 +6,7 @@
 const TILE_W = 64;
 const TILE_H = 32;
 const TILE_DEPTH = 16;
-const SPRITE_SIZE = 48;
+const SPRITE_SIZE = 72;
 
 class CombatArena extends Phaser.Scene {
     constructor() {
@@ -104,19 +104,25 @@ class CombatArena extends Phaser.Scene {
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
             const cam = this.cameras.main;
             const oldZoom = cam.zoom;
-            const newZoom = Phaser.Math.Clamp(oldZoom - deltaY * 0.001, 0.4, 2.5);
 
+            // Use discrete zoom steps for reliable behavior
+            const zoomStep = deltaY > 0 ? -0.15 : 0.15;
+            const newZoom = Phaser.Math.Clamp(oldZoom + zoomStep, 0.3, 3.0);
             if (newZoom === oldZoom) return;
 
-            // Calculate the world point under the cursor before zoom
-            const worldX = cam.scrollX + pointer.x / oldZoom;
-            const worldY = cam.scrollY + pointer.y / oldZoom;
+            // Use Phaser's API to get world point under cursor BEFORE zoom change
+            const worldPoint = cam.getWorldPoint(pointer.x, pointer.y);
 
             cam.setZoom(newZoom);
 
-            // Adjust scroll so the world point stays under the cursor
-            cam.scrollX = worldX - pointer.x / newZoom;
-            cam.scrollY = worldY - pointer.y / newZoom;
+            // After zoom, adjust scroll so the same world point stays under the cursor.
+            // cam.getWorldPoint formula: worldX = (screenX - cam.width/2) / zoom + cam.midPoint.x
+            // cam.midPoint.x = cam.scrollX + cam.width / (2 * zoom)
+            // So: worldX = (screenX - cam.width/2) / zoom + cam.scrollX + cam.width / (2*zoom)
+            //            = screenX / zoom + cam.scrollX
+            // Therefore: cam.scrollX = worldX - screenX / zoom
+            cam.scrollX = worldPoint.x - pointer.x / newZoom;
+            cam.scrollY = worldPoint.y - pointer.y / newZoom;
         });
 
         // Disable right-click context menu
@@ -245,18 +251,18 @@ class CombatArena extends Phaser.Scene {
         }
         sprite.setDepth(p.grid_x + p.grid_y + 1);
 
-        // Name label
-        const name = this.add.text(x, y - TILE_DEPTH - 30, p.student_name || 'Élève', {
-            fontSize: '10px',
+        // Name label (positioned above the larger sprite)
+        const name = this.add.text(x, y - TILE_DEPTH - 50, p.student_name || 'Élève', {
+            fontSize: '11px',
             fontFamily: 'Arial',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar
-        const barWidth = 30;
-        const barY = y - TILE_DEPTH - 20;
+        // HP bar (positioned between name and sprite)
+        const barWidth = 36;
+        const barY = y - TILE_DEPTH - 38;
         const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
         const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
         const curHp = p.current_hp !== undefined ? p.current_hp : maxHp;
@@ -358,11 +364,11 @@ class CombatArena extends Phaser.Scene {
             this.tweens.add({
                 targets: ent.name,
                 x: x,
-                y: targetY - (ent.type === 'monster' ? 36 : 30),
+                y: targetY - (ent.type === 'monster' ? 36 : 50),
                 duration: 400,
                 ease: 'Power2',
             });
-            const barY = targetY - (ent.type === 'monster' ? 26 : 20);
+            const barY = targetY - (ent.type === 'monster' ? 26 : 38);
             this.tweens.add({
                 targets: [ent.hpBg],
                 x: x,
@@ -380,8 +386,8 @@ class CombatArena extends Phaser.Scene {
         } else {
             ent.sprite.setPosition(x, targetY);
             ent.sprite.setDepth(gx + gy + 1);
-            const nameYOff = ent.type === 'monster' ? 36 : 30;
-            const barYOff = ent.type === 'monster' ? 26 : 20;
+            const nameYOff = ent.type === 'monster' ? 36 : 50;
+            const barYOff = ent.type === 'monster' ? 26 : 38;
             ent.name.setPosition(x, targetY - nameYOff);
             ent.hpBg.setPosition(x, targetY - barYOff);
             ent.hpFill.setPosition(x, targetY - barYOff);

@@ -109,6 +109,15 @@ export default function CombatScreen({ route, navigation }) {
   const [targetsInRange, setTargetsInRange] = useState([]);
   const [skillsWithTargets, setSkillsWithTargets] = useState(new Set()); // skill IDs that have at least 1 target in range
 
+  // Debug log for troubleshooting
+  const [debugLog, setDebugLog] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const addDebug = useCallback((msg) => {
+    const ts = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setDebugLog(prev => [`[${ts}] ${msg}`, ...prev].slice(0, 50));
+    console.log('[CombatDebug]', msg);
+  }, []);
+
   // Socket reference
   const socketRef = useRef(null);
 
@@ -121,15 +130,24 @@ export default function CombatScreen({ route, navigation }) {
       reconnectionAttempts: 5,
     });
 
+    addDebug(`Socket init: sessionId=${sessionId}, studentId=${studentId}`);
+
     // Join combat session
     socketRef.current.emit('combat:student_join', {
       session_id: sessionId,
       student_id: studentId,
     });
 
+    socketRef.current.on('connect', () => {
+      addDebug('Socket CONNECTED');
+    });
+    socketRef.current.on('disconnect', (reason) => {
+      addDebug(`Socket DISCONNECTED: ${reason}`);
+    });
+
     // Listen for state updates
     socketRef.current.on('combat:state_update', (state) => {
-      console.log('[Combat] state_update:', state.phase, state.round);
+      addDebug(`STATE_UPDATE phase=${state.phase} round=${state.round} participants=${(state.participants||[]).length} monsters=${(state.monsters||[]).length}`);
       setCombatPhase(state.phase || 'waiting');
       setParticipants(state.participants || []);
       setMonsters(state.all_monsters || state.monsters || []);
@@ -139,9 +157,10 @@ export default function CombatScreen({ route, navigation }) {
         setMapConfig(state.map_config);
       }
 
-      // Update player stats from participants list (use == for type-safe comparison)
+      // Update player stats from participants list
       const me = (state.participants || []).find(p => Number(p.student_id) === studentId);
       if (me) {
+        addDebug(`ME found: hp=${me.current_hp}/${me.max_hp} moved=${me.has_moved} correct=${me.is_correct} answered=${me.answered} pos=(${me.grid_x},${me.grid_y})`);
         setPlayerStats({
           hp: me.current_hp,
           maxHp: me.max_hp,
@@ -153,16 +172,18 @@ export default function CombatScreen({ route, navigation }) {
         if (me.skills && me.skills.length > 0) {
           setAvailableSkills(me.skills);
         }
+      } else {
+        addDebug(`ME NOT FOUND in participants! Looking for studentId=${studentId}, ids=[${(state.participants||[]).map(p=>p.student_id).join(',')}]`);
       }
     });
 
     // Listen for new questions (server sends: {block_id, block_type, title, config, round})
     socketRef.current.on('combat:question', (data) => {
-      console.log('[Combat] question received:', data.block_type, data.title);
+      addDebug(`QUESTION round=${data.round} type=${data.block_type} title="${data.title}"`);
       const config = data.config || {};
       // config.question contains the actual question text, data.title is just the block label
       const questionText = config.question || config.text || data.title || 'Question';
-      console.log('[Combat] question text:', questionText, 'options:', config.options?.length);
+      addDebug(`Question text: "${questionText.substring(0, 60)}" options=${(config.options||[]).length}`);
       setCurrentQuestion({
         block_id: data.block_id,
         block_type: data.block_type,
@@ -185,61 +206,62 @@ export default function CombatScreen({ route, navigation }) {
 
     // Listen for answer results (server sends: {student_id, is_correct})
     socketRef.current.on('combat:answer_result', (data) => {
-      console.log('[Combat] answer_result:', data.is_correct);
+      addDebug(`ANSWER_RESULT is_correct=${data.is_correct} student_id=${data.student_id}`);
       setAnswerResult(data.is_correct);
       setAnswerSubmitted(true);
     });
 
     // Listen for answer progress (server sends: {answered, total, student_id, is_correct})
     socketRef.current.on('combat:answer_progress', (data) => {
+      addDebug(`ANSWER_PROGRESS ${data.answered}/${data.total} (student ${data.student_id} correct=${data.is_correct})`);
       setAnswerProgress({ answered: data.answered, total: data.total });
     });
 
     // Listen for all answered signal → move phase
     socketRef.current.on('combat:all_answered', (data) => {
-      console.log('[Combat] all_answered → phase:', data.phase);
+      addDebug(`ALL_ANSWERED → phase=${data.phase}`);
       setCombatPhase(data.phase || 'move');
       setHasMoved(false);
-      // Request move tiles if we answered correctly
     });
 
     // Listen for phase changes
     socketRef.current.on('combat:phase_change', (data) => {
-      console.log('[Combat] phase_change:', data.phase);
+      addDebug(`PHASE_CHANGE → ${data.phase}`);
       setCombatPhase(data.phase);
     });
 
     // Listen for move tiles response
     socketRef.current.on('combat:move_tiles', (data) => {
-      console.log('[Combat] move_tiles:', data.tiles?.length, 'tiles available');
+      addDebug(`MOVE_TILES received: ${(data.tiles||[]).length} tiles`);
       setMoveTiles(data.tiles || []);
     });
 
     // Listen for move result (server sends: {student_id, participant_id, from_x, from_y, to_x, to_y})
     socketRef.current.on('combat:move_result', (data) => {
-      console.log('[Combat] move_result:', data);
+      addDebug(`MOVE_RESULT student=${data.student_id} from=(${data.from_x},${data.from_y}) to=(${data.to_x},${data.to_y})`);
       if (Number(data.student_id) === studentId) {
         setMyPosition({ x: data.to_x, y: data.to_y });
         setHasMoved(true);
         setMoveTiles([]);
+        addDebug('→ My move confirmed');
       }
     });
 
     // Listen for targets in range
     socketRef.current.on('combat:targets_in_range', (data) => {
-      console.log('[Combat] targets_in_range:', data.targets);
+      addDebug(`TARGETS_IN_RANGE: ${(data.targets||[]).length} targets`);
       setTargetsInRange(data.targets || []);
     });
 
     // Listen for skills availability (which skills have valid targets)
     socketRef.current.on('combat:skills_availability', (data) => {
-      console.log('[Combat] skills_availability:', data.available_skills);
+      addDebug(`SKILLS_AVAILABILITY: [${(data.available_skills||[]).join(',')}]`);
       setSkillsWithTargets(new Set(data.available_skills || []));
     });
 
     // Listen for combat execution (server sends: {animations: [...]})
     socketRef.current.on('combat:execute', (data) => {
-      console.log('[Combat] execute:', (data.animations || []).length, 'animations');
+      addDebug(`EXECUTE: ${(data.animations||[]).length} animations`);
       setCombatPhase('execute');
       // Convert animations to combat log entries
       const logEntries = (data.animations || []).map(anim => {
@@ -260,7 +282,7 @@ export default function CombatScreen({ route, navigation }) {
 
     // Listen for combat finished (server sends: {result: 'victory'/'defeat', rewards: {student_id: {xp, gold, ...}}})
     socketRef.current.on('combat:finished', (data) => {
-      console.log('[Combat] finished:', data.result);
+      addDebug(`FINISHED: ${data.result}`);
       setCombatPhase('finished');
       const myReward = data.rewards ? (data.rewards[String(studentId)] || data.rewards[studentId]) : null;
       setResult({
@@ -1094,10 +1116,32 @@ export default function CombatScreen({ route, navigation }) {
     }
   };
 
+  // Debug panel renderer
+  const renderDebugPanel = () => (
+    <View style={styles.debugPanel}>
+      <TouchableOpacity
+        style={styles.debugToggle}
+        onPress={() => setShowDebug(!showDebug)}
+      >
+        <Text style={styles.debugToggleText}>
+          {showDebug ? '▼' : '▲'} DEBUG — phase: {combatPhase} | answerResult: {String(answerResult)} | hasMoved: {String(hasMoved)}
+        </Text>
+      </TouchableOpacity>
+      {showDebug && (
+        <ScrollView style={styles.debugLogContainer}>
+          {debugLog.map((entry, i) => (
+            <Text key={i} style={styles.debugLogEntry}>{entry}</Text>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+
   return (
     <View style={styles.screen}>
       {combatPhase !== 'finished' && renderStatsBar()}
       {renderPhase()}
+      {renderDebugPanel()}
     </View>
   );
 }
@@ -1472,5 +1516,31 @@ const styles = StyleSheet.create({
   targetOutOfRange: {
     opacity: 0.4,
     borderColor: '#333',
+  },
+  // Debug panel styles
+  debugPanel: {
+    backgroundColor: '#000',
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  debugToggle: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#111',
+  },
+  debugToggleText: {
+    color: '#0f0',
+    fontSize: 10,
+    fontFamily: 'monospace',
+  },
+  debugLogContainer: {
+    maxHeight: 200,
+    paddingHorizontal: 8,
+  },
+  debugLogEntry: {
+    color: '#0f0',
+    fontSize: 9,
+    fontFamily: 'monospace',
+    paddingVertical: 1,
   },
 });
