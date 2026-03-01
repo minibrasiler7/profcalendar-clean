@@ -40,7 +40,6 @@ class CombatArena extends Phaser.Scene {
         this.load.image('hl_selected', '/static/img/combat/tiles/iso_highlight_selected.png');
 
         // Directional chihuahua sprites (4 classes × 4 directions × 4 states)
-        // Default facing: nw_idle (north-west idle frame)
         const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
         const dirs = ['se', 'sw', 'ne', 'nw'];
         const states = ['idle', 'attack', 'hurt', 'ko'];
@@ -48,6 +47,15 @@ class CombatArena extends Phaser.Scene {
             for (const dir of dirs) {
                 for (const state of states) {
                     this.load.image(`chi_${cls}_${dir}_${state}`, `/static/img/combat/chihuahua/${cls}_${dir}_${state}.png`);
+                }
+            }
+        }
+
+        // Walk animation frames (9 frames per class per direction)
+        for (const cls of classes) {
+            for (const dir of dirs) {
+                for (let f = 0; f < 9; f++) {
+                    this.load.image(`walk_${cls}_${dir}_${f}`, `/static/img/combat/walk_frames/${cls}_walk_${dir}_${f}.png`);
                 }
             }
         }
@@ -326,9 +334,8 @@ class CombatArena extends Phaser.Scene {
     }
 
     /**
-     * Looping idle animation: bob up/down and cycle between idle frames
-     * of the current facing direction to simulate breathing.
-     * Works for both players and monsters.
+     * Looping idle animation: cycle through walk frames for a lively look.
+     * Players use walk_frames (9 frames), monsters use scale pulse.
      */
     _startIdleAnimation(id) {
         const ent = this.entitySprites[id];
@@ -348,22 +355,41 @@ class CombatArena extends Phaser.Scene {
             ease: 'Sine.easeInOut',
         });
 
-        // Sprite frame cycling: alternate idle ↔ attack frame every 600ms
-        // This simulates a simple 2-frame walk/idle animation
         if (ent._idleTimer) ent._idleTimer.destroy();
-        let frame = 0;
-        const idleFrames = ['idle', 'idle']; // both idle — we'll add subtle scale change instead
-        ent._idleTimer = this.time.addEvent({
-            delay: 500,
-            loop: true,
-            callback: () => {
-                if ((ent.type === 'player' && ent.isMoving) || ent.state === 'ko') return;
-                frame = (frame + 1) % 2;
-                // Subtle scale pulse for "breathing"
-                const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
-                ent.sprite.setScale(baseScale * (frame === 0 ? 1.0 : 1.03));
-            },
-        });
+
+        if (ent.type === 'player') {
+            // Cycle through 9 walk frames for the player's class and direction
+            let frame = 0;
+            const dir = ent.direction || 'ne';
+            const cls = ent.cls || 'guerrier';
+            ent._idleTimer = this.time.addEvent({
+                delay: 120, // ~8 FPS walk animation
+                loop: true,
+                callback: () => {
+                    if (ent.isMoving || ent.state === 'ko') return;
+                    const texKey = `walk_${cls}_${dir}_${frame}`;
+                    if (this.textures.exists(texKey)) {
+                        ent.sprite.setTexture(texKey);
+                        const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
+                        ent.sprite.setScale(baseScale);
+                    }
+                    frame = (frame + 1) % 9;
+                },
+            });
+        } else {
+            // Monsters: subtle scale pulse for "breathing"
+            let frame = 0;
+            ent._idleTimer = this.time.addEvent({
+                delay: 500,
+                loop: true,
+                callback: () => {
+                    if (ent.state === 'ko') return;
+                    frame = (frame + 1) % 2;
+                    const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
+                    ent.sprite.setScale(baseScale * (frame === 0 ? 1.0 : 1.03));
+                },
+            });
+        }
     }
 
     /**
@@ -486,10 +512,30 @@ class CombatArena extends Phaser.Scene {
 
         const stepDuration = 250; // ms per cell
         let stepIdx = 1; // start from step 1 (step 0 is current position)
+        let walkFrame = 0;
+
+        // Start walk frame cycling during movement
+        const walkTimer = this.time.addEvent({
+            delay: 100, // ~10 FPS walk cycle
+            loop: true,
+            callback: () => {
+                if (!ent.isMoving) return;
+                const dir = ent.direction || 'ne';
+                const cls = ent.cls || 'guerrier';
+                const texKey = `walk_${cls}_${dir}_${walkFrame}`;
+                if (this.textures.exists(texKey)) {
+                    ent.sprite.setTexture(texKey);
+                    const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
+                    ent.sprite.setScale(baseScale);
+                }
+                walkFrame = (walkFrame + 1) % 9;
+            },
+        });
 
         const doStep = () => {
             if (stepIdx >= path.length) {
-                // Movement complete — restart idle
+                // Movement complete — stop walk cycle, restart idle
+                walkTimer.destroy();
                 ent.isMoving = false;
                 this._startIdleAnimation(id);
                 return;
@@ -504,11 +550,7 @@ class CombatArena extends Phaser.Scene {
             const newDir = this._getDirection(prevCell.x, prevCell.y, cell.x, cell.y);
             if (newDir !== ent.direction) {
                 ent.direction = newDir;
-                const texKey = `chi_${ent.cls}_${newDir}_idle`;
-                if (this.textures.exists(texKey)) {
-                    ent.sprite.setTexture(texKey);
-                    ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
-                }
+                walkFrame = 0; // Reset walk frame on direction change
             }
 
             // Tween sprite + name + HP bars to next cell

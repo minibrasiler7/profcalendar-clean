@@ -26,12 +26,12 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Socket.IO constants
 const SOCKET_URL = 'https://profcalendar-clean.onrender.com';
 
-// Sprite URL helper — use the north-west idle directional sprite
+// Sprite URL helper — use walk frame 0 from movement sprites
 const getSpriteUrl = (avatarClass) => {
-  return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_nw_idle.png`;
+  return `${SOCKET_URL}/static/img/combat/walk_frames/${avatarClass}_walk_ne_0.png`;
 };
 const getIsometricSpriteUrl = (avatarClass, direction = 'se', state = 'idle') => {
-  return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_${direction}_${state}.png`;
+  return `${SOCKET_URL}/static/img/combat/walk_frames/${avatarClass}_walk_${direction}_0.png`;
 };
 const getMonsterSpriteUrl = (monsterType, state = 'idle') => {
   return `${SOCKET_URL}/static/img/combat/monsters/${monsterType}_${state}.png`;
@@ -128,6 +128,14 @@ export default function CombatScreen({ route, navigation }) {
   // Attack targeting UI state
   const [attackRangeTiles, setAttackRangeTiles] = useState([]);
   const [selectedTargetId, setSelectedTargetId] = useState(null);
+
+  // Mini-map pinch-to-zoom state
+  const [mapScale, setMapScale] = useState(1);
+  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+  const mapScaleRef = useRef(1);
+  const mapOffsetRef = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef(0);
+  const mapDoubleTapTimer = useRef(null);
 
   // Debug log for troubleshooting
   const [debugLog, setDebugLog] = useState([]);
@@ -528,10 +536,49 @@ export default function CombatScreen({ route, navigation }) {
     }
   }, [combatPhase, answerResult, sessionId, studentId]);
 
-  // ── Mini-map isometric component (larger + scrollable) ──
+  // ── Mini-map isometric component (larger + pinch-to-zoom) ──
 
-  const IsoMiniMap = ({ mapHeight = 280, interactive = false, attackTiles = [], selectedTargetId = null }) => {
+  const IsoMiniMap = ({ mapHeight = 280, interactive = false, attackTiles = [], selectedTargetId = null, onMonsterTap = null }) => {
     if (!mapConfig) return null;
+
+    // Create PanResponder for pinch-to-zoom and drag
+    const mapPanResponder = useRef(PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2;
+      },
+      onPanResponderGrant: (evt) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          const t = evt.nativeEvent.touches;
+          lastPinchDist.current = Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+        }
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (evt.nativeEvent.touches.length === 2) {
+          // Pinch zoom
+          const t = evt.nativeEvent.touches;
+          const dist = Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+          if (lastPinchDist.current > 0) {
+            const scaleDelta = dist / lastPinchDist.current;
+            const newScale = Math.max(0.5, Math.min(3.0, mapScaleRef.current * scaleDelta));
+            mapScaleRef.current = newScale;
+            setMapScale(newScale);
+          }
+          lastPinchDist.current = dist;
+        } else if (evt.nativeEvent.touches.length === 1) {
+          // Single finger pan
+          const newOffset = {
+            x: mapOffsetRef.current.x + gestureState.dx * 0.5,
+            y: mapOffsetRef.current.y + gestureState.dy * 0.5,
+          };
+          mapOffsetRef.current = newOffset;
+          setMapOffset(newOffset);
+        }
+      },
+      onPanResponderRelease: () => {
+        lastPinchDist.current = 0;
+      },
+    })).current;
 
     const gw = mapConfig.width || 10;
     const gh = mapConfig.height || 8;
@@ -673,9 +720,14 @@ export default function CombatScreen({ route, navigation }) {
       const size = 12;
       const hpPct = m.current_hp / m.max_hp;
       const isSelected = selectedTargetId === m.id;
+      const isInAttackRange = attackTiles.some(t => {
+        const tx = t.x !== undefined ? t.x : t[0];
+        const ty = t.y !== undefined ? t.y : t[1];
+        return tx === m.grid_x && ty === m.grid_y;
+      });
 
       entityElements.push(
-        <G key={`mon_${m.id}`}>
+        <G key={`mon_${m.id}`} onPress={onMonsterTap && (isInAttackRange || !attackTiles.length) ? () => onMonsterTap(m) : undefined}>
           {/* Pulsing highlight circle for selected target */}
           {isSelected && (
             <Circle
@@ -716,17 +768,31 @@ export default function CombatScreen({ route, navigation }) {
     });
 
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={[styles.miniMapContainer, { maxHeight: mapHeight }]}
-        contentContainerStyle={{ alignItems: 'center', paddingVertical: 4 }}
+      <View
+        style={[styles.miniMapContainer, { maxHeight: mapHeight, position: 'relative', overflow: 'hidden' }]}
+        {...mapPanResponder.panHandlers}
       >
-        <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
-          <G>{tileElements}</G>
-          <G>{entityElements}</G>
-        </Svg>
-      </ScrollView>
+        <View
+          style={{
+            transform: [
+              { translateX: mapOffset.x },
+              { translateY: mapOffset.y },
+              { scale: mapScale },
+            ],
+          }}
+        >
+          <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
+            <G>{tileElements}</G>
+            <G>{entityElements}</G>
+          </Svg>
+        </View>
+        {/* Zoom indicator badge */}
+        <View style={styles.zoomBadge}>
+          <Text style={styles.zoomBadgeText}>
+            {Math.round(mapScale * 100)}%
+          </Text>
+        </View>
+      </View>
     );
   };
 
@@ -1032,125 +1098,66 @@ export default function CombatScreen({ route, navigation }) {
     // Correct answer - show skills or target selection
     if (selectingTarget && selectedSkill) {
       const selectedTarget = availableTargets.find(t => t.id === selectedTargetId);
-      const isHealSkill = selectedSkill.type === 'heal';
 
       return (
         <View style={styles.container}>
-          <IsoMiniMap
-            mapHeight={240}
-            attackTiles={attackRangeTiles}
-            selectedTargetId={selectedTargetId}
-          />
-          <View style={styles.targetSelectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {selectedSkill.name}
-            </Text>
-            <Text style={styles.skillRangeText}>
-              Portée: {selectedSkill.range || '?'}
-            </Text>
-          </View>
+          {/* Full-height map with attack targeting */}
+          <View style={{ flex: 1, position: 'relative' }}>
+            <IsoMiniMap
+              mapHeight={SCREEN_HEIGHT * 0.55}
+              attackTiles={attackRangeTiles}
+              selectedTargetId={selectedTargetId}
+              onMonsterTap={(monster) => {
+                if (monster.in_range !== false) {
+                  setSelectedTargetId(monster.id);
+                }
+              }}
+            />
 
-          {/* Target list with radio-button style selection */}
-          <ScrollView style={styles.targetListContainer}>
-            {availableTargets.map((target) => {
-              const inRange = target.in_range !== false;
-              const isSelected = target.id === selectedTargetId;
-              const hpPct = target.current_hp / target.max_hp;
-
-              return (
-                <TouchableOpacity
-                  key={target.id}
-                  style={[
-                    styles.targetSelectButton,
-                    !inRange && styles.targetOutOfRange,
-                    isSelected && styles.targetSelectButtonSelected,
-                  ]}
-                  onPress={() => inRange && setSelectedTargetId(target.id)}
-                  disabled={!inRange}
-                >
-                  {/* Radio button indicator */}
-                  <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
-                    {isSelected && <View style={styles.radioButtonInner} />}
-                  </View>
-
-                  {/* Target info */}
-                  <View style={styles.targetInfo}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={styles.targetSelectName}>{target.name}</Text>
-                      {!inRange && (
-                        <Text style={styles.outOfRangeLabel}>Hors portée</Text>
-                      )}
-                    </View>
-                    <View style={styles.targetHpBar}>
-                      <View
-                        style={[
-                          styles.targetHpFill,
-                          {
-                            width: `${hpPct * 100}%`,
-                            backgroundColor: hpPct > 0.5 ? '#10b981' : (hpPct > 0.25 ? '#f59e0b' : '#ef4444'),
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.targetHpText}>
-                      {target.current_hp} / {target.max_hp} PV
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Selected target details and action buttons */}
-          {selectedTarget && (
-            <View style={styles.selectedTargetDetails}>
-              <View style={styles.targetDetailRow}>
-                <Text style={styles.detailLabel}>{selectedTarget.name}</Text>
-                <Text style={styles.detailValue}>
-                  {selectedTarget.current_hp} / {selectedTarget.max_hp} PV
+            {/* Monster info bubble overlay */}
+            {selectedTarget && (
+              <View style={styles.monsterInfoBubble}>
+                <Text style={styles.monsterInfoName}>{selectedTarget.name}</Text>
+                <View style={styles.monsterInfoHpBar}>
+                  <View
+                    style={[
+                      styles.monsterInfoHpFill,
+                      { width: `${(selectedTarget.current_hp / selectedTarget.max_hp) * 100}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.monsterInfoHpText}>
+                  {selectedTarget.current_hp}/{selectedTarget.max_hp} PV
                 </Text>
-              </View>
-              <View style={styles.actionButtonsRow}>
                 <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => {
-                    setSelectedTargetId(null);
-                    setSelectedSkill(null);
-                    setSelectingTarget(false);
-                    setAttackRangeTiles([]);
-                  }}
-                >
-                  <Ionicons name="arrow-back" size={18} color="#f59e0b" />
-                  <Text style={styles.backButtonText}>Retour</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.confirmButton}
+                  style={styles.monsterInfoAttackBtn}
                   onPress={() => handleConfirmAction(selectedTarget.id, selectedTarget.target_type)}
                 >
-                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                  <Text style={styles.confirmButtonText}>Confirmer</Text>
+                  <Ionicons name="flash" size={16} color="#fff" />
+                  <Text style={styles.monsterInfoAttackText}>Attaquer</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
+            )}
+          </View>
 
-          {!selectedTarget && availableTargets.length > 0 && (
-            <View style={styles.selectedTargetDetails}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => {
-                  setSelectedTargetId(null);
-                  setSelectedSkill(null);
-                  setSelectingTarget(false);
-                  setAttackRangeTiles([]);
-                }}
-              >
-                <Ionicons name="arrow-back" size={18} color="#f59e0b" />
-                <Text style={styles.backButtonText}>Retour</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Skill info bar + back button */}
+          <View style={styles.attackBottomBar}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => {
+                setSelectedTargetId(null);
+                setSelectedSkill(null);
+                setSelectingTarget(false);
+                setAttackRangeTiles([]);
+              }}
+            >
+              <Ionicons name="arrow-back" size={18} color="#f59e0b" />
+              <Text style={styles.backButtonText}>Retour</Text>
+            </TouchableOpacity>
+            <Text style={styles.attackSkillInfo}>
+              {selectedSkill.name} — Portée: {selectedSkill.range || '?'}
+            </Text>
+          </View>
         </View>
       );
     }
@@ -1920,6 +1927,92 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#1a4a8a',
+  },
+  zoomBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  zoomBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+  },
+  // Monster info bubble
+  monsterInfoBubble: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#1a1a2e',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+    minWidth: 160,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 100,
+  },
+  monsterInfoName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  monsterInfoHpBar: {
+    height: 8,
+    backgroundColor: '#333',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  monsterInfoHpFill: {
+    height: '100%',
+    backgroundColor: '#ef4444',
+    borderRadius: 4,
+  },
+  monsterInfoHpText: {
+    color: '#aaa',
+    fontSize: 11,
+    textAlign: 'right',
+    marginBottom: 10,
+  },
+  monsterInfoAttackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ef4444',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  monsterInfoAttackText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  attackBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    backgroundColor: '#16213e',
+    borderTopWidth: 1,
+    borderTopColor: '#0f3460',
+  },
+  attackSkillInfo: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   // Move phase styles
   skipMoveButton: {
