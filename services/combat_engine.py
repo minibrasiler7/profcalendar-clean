@@ -44,14 +44,14 @@ class CombatEngine:
             StudentRPGProfile.student_id.in_(student_ids)
         ).all() if student_ids else []
         avg_level = max(1, int(sum(p.level for p in rpg_profiles) / len(rpg_profiles))) if rpg_profiles else 1
-        num_students = len(students)
 
-        # Grille dynamique basée sur le nombre de joueurs
-        grid_w = max(8, 6 + num_students)
-        grid_h = max(6, 4 + max(1, num_students // 2))
-        # Cap à 14×10 pour rester lisible
-        grid_w = min(grid_w, 14)
-        grid_h = min(grid_h, 10)
+        # NOTE: Use 1 as default - the grid will be resized when combat actually starts
+        # This prevents oversized grids when only 1 player connects out of a large class
+        num_students = 1  # Will be adjusted in resize_for_players()
+
+        # Grille compacte par défaut (sera redimensionnée au lancement)
+        grid_w = 7
+        grid_h = 5
 
         # Générer la carte avec obstacles
         tile_map, obstacles = CombatEngine._generate_map(grid_w, grid_h)
@@ -318,6 +318,71 @@ class CombatEngine:
         db.session.commit()
         return participant, None
 
+    # ─── Redimensionner pour le nombre réel de joueurs ─────────
+    @staticmethod
+    def resize_for_players(session_id):
+        """Redimensionne la grille et les monstres en fonction du nombre réel de joueurs connectés.
+        Appelé au début du premier round."""
+        session = CombatSession.query.get(session_id)
+        if not session:
+            return
+
+        num_players = len([p for p in session.participants if p.is_alive])
+        if num_players == 0:
+            num_players = 1
+
+        # Recalculer la taille de la grille
+        grid_w = max(6, 5 + num_players)
+        grid_h = max(5, 4 + max(1, num_players // 2))
+        grid_w = min(grid_w, 14)
+        grid_h = min(grid_h, 10)
+
+        # Régénérer la carte
+        tile_map, obstacles = CombatEngine._generate_map(grid_w, grid_h)
+
+        session.map_config_json = {
+            'width': grid_w,
+            'height': grid_h,
+            'tile_size': 64,
+            'tiles': tile_map,
+            'obstacles': obstacles,
+        }
+
+        # Supprimer les anciens monstres et en recréer
+        for m in session.monsters:
+            db.session.delete(m)
+        db.session.flush()
+
+        # Calculer le niveau moyen
+        from models.rpg import StudentRPGProfile
+        rpg_profiles = []
+        for p in session.participants:
+            rpg = StudentRPGProfile.query.filter_by(student_id=p.student_id).first()
+            if rpg:
+                rpg_profiles.append(rpg)
+        avg_level = max(1, int(sum(r.level for r in rpg_profiles) / len(rpg_profiles))) if rpg_profiles else 1
+
+        config = DIFFICULTY_CONFIGS.get(session.difficulty, DIFFICULTY_CONFIGS['medium'])
+        obstacle_set = {(o['x'], o['y']) for o in obstacles}
+
+        CombatEngine._spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles)
+
+        # Replacer les joueurs sur le côté gauche si nécessaire
+        existing_positions = set()
+        for p in session.participants:
+            if p.grid_x >= grid_w or p.grid_y >= grid_h:
+                # Player is outside new grid, reposition
+                available = []
+                for gx in range(0, 3):
+                    for gy in range(grid_h):
+                        if (gx, gy) not in obstacle_set and (gx, gy) not in existing_positions:
+                            available.append((gx, gy))
+                if available:
+                    p.grid_x, p.grid_y = available[0]
+            existing_positions.add((p.grid_x, p.grid_y))
+
+        db.session.commit()
+
     # ─── Pathfinding BFS ───────────────────────────────────────
     @staticmethod
     def get_reachable_tiles(session_id, participant_id):
@@ -466,10 +531,14 @@ class CombatEngine:
     # ─── Transition phase mouvement ───────────────────────────
     @staticmethod
     def transition_to_move(session_id):
-        """Passe en phase de déplacement."""
+        """Passe en phase de déplacement. Les élèves incorrects skipent automatiquement."""
         session = CombatSession.query.get(session_id)
         if session:
             session.current_phase = 'move'
+            # Auto-skip move for incorrect players
+            for p in session.participants:
+                if p.is_alive and not p.is_correct:
+                    p.has_moved = True
             db.session.commit()
 
     # ─── Démarrer un round ───────────────────────────────────
@@ -505,6 +574,10 @@ class CombatEngine:
         session.current_phase = 'question'
         session.current_block_id = block.id
         session.status = 'active'
+
+        # Au premier round, redimensionner la grille et les monstres selon les joueurs connectés
+        if session.current_round == 1:
+            CombatEngine.resize_for_players(session_id)
 
         # Reset les participants pour ce round
         for p in session.participants:
@@ -745,6 +818,13 @@ class CombatEngine:
         grid_w = map_config.get('width', 10)
         grid_h = map_config.get('height', 8)
 
+        # Build occupied cells set (players + other monsters)
+        occupied = set()
+        for p in alive_players:
+            occupied.add((p.grid_x, p.grid_y))
+        for m in alive_monsters:
+            occupied.add((m.grid_x, m.grid_y))
+
         for monster in alive_monsters:
             if not alive_players:
                 break
@@ -763,18 +843,25 @@ class CombatEngine:
             # IA : si hors de portée, se déplacer vers la cible
             dist = abs(monster.grid_x - target.grid_x) + abs(monster.grid_y - target.grid_y)
             if dist > monster_range:
+                # Remove own position from occupied to allow movement
+                occupied.discard((monster.grid_x, monster.grid_y))
+
                 # Déplacer le monstre (max 2 cases vers la cible)
                 move_budget = 2
                 mx, my = monster.grid_x, monster.grid_y
                 for _ in range(move_budget):
                     best_dx, best_dy = 0, 0
-                    best_dist = dist
+                    best_dist = abs(mx - target.grid_x) + abs(my - target.grid_y)
                     for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                         nx, ny = mx + dx, my + dy
                         if 0 <= nx < grid_w and 0 <= ny < grid_h:
+                            # Check obstacle tiles
                             if ny < len(tiles) and nx < len(tiles[ny]):
                                 if tiles[ny][nx] in OBSTACLE_TILES:
                                     continue
+                            # Check occupied cells (don't walk into other entities)
+                            if (nx, ny) in occupied:
+                                continue
                             new_dist = abs(nx - target.grid_x) + abs(ny - target.grid_y)
                             if new_dist < best_dist:
                                 best_dist = new_dist
@@ -783,10 +870,14 @@ class CombatEngine:
                         mx += best_dx
                         my += best_dy
 
+                # Update occupied set
+                occupied.add((mx, my))
+
                 if mx != monster.grid_x or my != monster.grid_y:
                     animations.append({
                         'type': 'monster_move',
                         'monster_id': monster.id,
+                        'monster_name': monster.name,
                         'from_x': monster.grid_x, 'from_y': monster.grid_y,
                         'to_x': mx, 'to_y': my,
                     })

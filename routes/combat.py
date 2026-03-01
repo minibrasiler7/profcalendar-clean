@@ -210,10 +210,17 @@ def register_combat_events(socketio):
         if result.get('all_answered'):
             CombatEngine.transition_to_move(session_id)
             session = CombatSession.query.get(session_id)
-            emit('combat:all_answered', {
-                'phase': 'move',
-            }, room=room)
-            emit('combat:state_update', session.get_state(), room=room)
+
+            # Check if all correct players are already done with move (e.g., no correct answers)
+            correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+            if not correct_alive or all(p.has_moved for p in correct_alive):
+                # Skip move and action, go straight to execute (monsters only)
+                _execute_and_broadcast(session_id, room)
+            else:
+                emit('combat:all_answered', {
+                    'phase': 'move',
+                }, room=room)
+                emit('combat:state_update', session.get_state(), room=room)
 
     @socketio.on('combat:request_move_tiles')
     def on_request_move_tiles(data):
@@ -326,9 +333,57 @@ def register_combat_events(socketio):
             return
 
         targets = CombatEngine.get_targets_in_range(session_id, participant.id, skill_id)
+        # Flatten targets to a single list for the client
+        all_targets = []
+        for m in targets.get('monsters', []):
+            m['target_type'] = 'monster'
+            all_targets.append(m)
+        for a in targets.get('allies', []):
+            a['target_type'] = 'player'
+            all_targets.append(a)
         emit('combat:targets_in_range', {
             'skill_id': skill_id,
-            'targets': targets,
+            'targets': all_targets,
+        })
+
+    @socketio.on('combat:request_skills_availability')
+    def on_request_skills_availability(data):
+        """Vérifie quels skills ont au moins une cible à portée."""
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        if not session_id or not student_id:
+            return
+
+        participant = CombatParticipant.query.filter_by(
+            combat_session_id=session_id, student_id=student_id
+        ).first()
+        if not participant:
+            return
+
+        snapshot = participant.snapshot_json or {}
+        skills = snapshot.get('skills', [])
+        available_skill_ids = []
+
+        for skill in skills:
+            skill_type = skill.get('type', 'attack')
+            # Defense and buff skills are always available (self-target)
+            if skill_type in ('defense', 'buff'):
+                available_skill_ids.append(skill.get('id'))
+                continue
+
+            targets = CombatEngine.get_targets_in_range(session_id, participant.id, skill.get('id'))
+            if skill_type == 'attack':
+                has_valid = any(t.get('in_range') for t in targets.get('monsters', []))
+            elif skill_type == 'heal':
+                has_valid = any(t.get('in_range') for t in targets.get('allies', []))
+            else:
+                has_valid = True
+
+            if has_valid:
+                available_skill_ids.append(skill.get('id'))
+
+        emit('combat:skills_availability', {
+            'available_skills': available_skill_ids,
         })
 
     @socketio.on('combat:submit_action')

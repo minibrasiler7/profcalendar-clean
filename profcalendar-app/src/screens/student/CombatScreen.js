@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   TextInput,
   Dimensions,
+  Image,
+  PanResponder,
 } from 'react-native';
-import Svg, { Polygon, Circle, Rect, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Polygon, Circle, Rect, G, Text as SvgText, Line } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import io from 'socket.io-client';
 import api from '../../api/client';
@@ -22,6 +24,14 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 // Socket.IO constants
 const SOCKET_URL = 'https://profcalendar-clean.onrender.com';
+
+// Sprite URL helper
+const getSpriteUrl = (avatarClass, direction = 'se', state = 'idle') => {
+  return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_${direction}_${state}.png`;
+};
+const getMonsterSpriteUrl = (monsterType, state = 'idle') => {
+  return `${SOCKET_URL}/static/img/combat/monsters/${monsterType}_${state}.png`;
+};
 
 // Class color mapping
 const CLASS_COLORS = {
@@ -91,6 +101,7 @@ export default function CombatScreen({ route, navigation }) {
   const [mapConfig, setMapConfig] = useState(null);
   const [myPosition, setMyPosition] = useState({ x: 0, y: 0 });
   const [targetsInRange, setTargetsInRange] = useState([]);
+  const [skillsWithTargets, setSkillsWithTargets] = useState(new Set()); // skill IDs that have at least 1 target in range
 
   // Socket reference
   const socketRef = useRef(null);
@@ -143,13 +154,16 @@ export default function CombatScreen({ route, navigation }) {
     socketRef.current.on('combat:question', (data) => {
       console.log('[Combat] question received:', data.block_type, data.title);
       const config = data.config || {};
+      // config.question contains the actual question text, data.title is just the block label
+      const questionText = config.question || config.text || data.title || 'Question';
+      console.log('[Combat] question text:', questionText, 'options:', config.options?.length);
       setCurrentQuestion({
         block_id: data.block_id,
         block_type: data.block_type,
         title: data.title,
-        question_text: data.title || config.question || config.text || '',
+        question_text: questionText,
         options: (config.options || []).map(o => o.text || o.label || o),
-        multiple: (config.options || []).filter(o => o.is_correct).length > 1,
+        multiple: config.multiple_answers || (config.options || []).filter(o => o.is_correct).length > 1,
         answer_type: config.answer_type,
         config: config,
       });
@@ -207,8 +221,14 @@ export default function CombatScreen({ route, navigation }) {
 
     // Listen for targets in range
     socketRef.current.on('combat:targets_in_range', (data) => {
-      console.log('[Combat] targets_in_range:', data.targets?.length);
+      console.log('[Combat] targets_in_range:', data.targets);
       setTargetsInRange(data.targets || []);
+    });
+
+    // Listen for skills availability (which skills have valid targets)
+    socketRef.current.on('combat:skills_availability', (data) => {
+      console.log('[Combat] skills_availability:', data.available_skills);
+      setSkillsWithTargets(new Set(data.available_skills || []));
     });
 
     // Listen for combat execution (server sends: {animations: [...]})
@@ -217,7 +237,9 @@ export default function CombatScreen({ route, navigation }) {
       setCombatPhase('execute');
       // Convert animations to combat log entries
       const logEntries = (data.animations || []).map(anim => {
-        if (anim.type === 'attack' || anim.type === 'monster_attack') {
+        if (anim.type === 'monster_move') {
+          return `🦶 ${anim.monster_name || 'Monstre'} se déplace`;
+        } else if (anim.type === 'attack' || anim.type === 'monster_attack') {
           const killed = anim.killed ? ' 💀 K.O.!' : '';
           return `⚔️ ${anim.attacker_name} utilise ${anim.skill_name} sur ${anim.target_name} → ${anim.damage} dégâts${killed}`;
         } else if (anim.type === 'heal') {
@@ -225,15 +247,9 @@ export default function CombatScreen({ route, navigation }) {
         } else if (anim.type === 'defense' || anim.type === 'buff') {
           return `🛡️ ${anim.attacker_name} utilise ${anim.skill_name}`;
         }
-        return `${anim.attacker_name} → ${anim.skill_name}`;
-      });
+        return `${anim.attacker_name || '?'} → ${anim.skill_name || '?'}`;
+      }).filter(Boolean);
       setCombatLog(prev => [...prev, ...logEntries]);
-
-      // Update player HP/Mana from animations
-      const myDamage = (data.animations || []).filter(
-        a => a.target_type === 'player' && a.target_id && a.type === 'monster_attack'
-      );
-      // We'll get updated stats from the next state_update
     });
 
     // Listen for combat finished (server sends: {result: 'victory'/'defeat', rewards: {student_id: {xp, gold, ...}}})
@@ -348,11 +364,8 @@ export default function CombatScreen({ route, navigation }) {
   // Update available targets when server responds with range info
   useEffect(() => {
     if (targetsInRange.length > 0 && selectingTarget) {
-      const rangeIds = new Set(targetsInRange.map(t => t.id));
-      setAvailableTargets(prev => prev.map(t => ({
-        ...t,
-        in_range: rangeIds.has(t.id),
-      })));
+      // Use server-provided targets directly (already flattened with in_range + target_type)
+      setAvailableTargets(targetsInRange);
     }
   }, [targetsInRange, selectingTarget]);
 
@@ -429,17 +442,35 @@ export default function CombatScreen({ route, navigation }) {
     }
   }, [combatPhase, answerResult, hasMoved, requestMoveTiles]);
 
-  // ── Mini-map isometric component ──
+  // Request skills availability when entering action phase
+  useEffect(() => {
+    if (combatPhase === 'action' && answerResult === true && socketRef.current) {
+      socketRef.current.emit('combat:request_skills_availability', {
+        session_id: sessionId,
+        student_id: studentId,
+      });
+    }
+  }, [combatPhase, answerResult, sessionId, studentId]);
 
-  const IsoMiniMap = ({ width = SCREEN_WIDTH - 32, height = 150 }) => {
+  // ── Mini-map isometric component (larger + scrollable) ──
+
+  const IsoMiniMap = ({ mapHeight = 280, interactive = false }) => {
     if (!mapConfig) return null;
 
     const gw = mapConfig.width || 10;
     const gh = mapConfig.height || 8;
-    const tileW = Math.min(20, (width - 20) / (gw + gh));
+
+    // Calculate tile size to fill the available width nicely
+    const availableWidth = SCREEN_WIDTH - 32;
+    // For isometric, the total width spans (gw + gh) * tileW/2
+    const tileW = Math.max(28, Math.min(44, availableWidth / (gw + gh) * 1.8));
     const tileH = tileW / 2;
-    const oxMap = width / 2;
-    const oyMap = 10;
+
+    // SVG viewBox dimensions
+    const svgW = (gw + gh) * (tileW / 2) + tileW;
+    const svgH = (gw + gh) * (tileH / 2) + tileH + 20;
+    const oxMap = svgW / 2;
+    const oyMap = tileH;
 
     const gridToMini = (gx, gy) => ({
       x: (gx - gy) * (tileW / 2) + oxMap,
@@ -447,8 +478,8 @@ export default function CombatScreen({ route, navigation }) {
     });
 
     // Build obstacle set
-    const obstacles = new Set();
-    (mapConfig.obstacles || []).forEach(o => obstacles.add(`${o.x}_${o.y}`));
+    const obstacleSet = new Set();
+    (mapConfig.obstacles || []).forEach(o => obstacleSet.add(`${o.x}_${o.y}`));
 
     // Build move tile set
     const moveTileSet = new Set();
@@ -459,16 +490,18 @@ export default function CombatScreen({ route, navigation }) {
     });
 
     const tileElements = [];
-    for (let gy = 0; gy < gh; gy++) {
-      for (let gx = 0; gx < gw; gx++) {
-        const { x, y } = gridToMini(gx, gy);
-        const key = `${gx}_${gy}`;
-        const isObs = obstacles.has(key);
+    for (let gy2 = 0; gy2 < gh; gy2++) {
+      for (let gx2 = 0; gx2 < gw; gx2++) {
+        const { x, y } = gridToMini(gx2, gy2);
+        const key = `${gx2}_${gy2}`;
+        const isObs = obstacleSet.has(key);
         const isMovable = moveTileSet.has(key);
+        const isMyPos = gx2 === myPosition.x && gy2 === myPosition.y;
 
         let fill = '#4a7c59'; // grass
         if (isObs) fill = '#3a5a8c'; // water/wall
-        if (isMovable) fill = '#3b82f6'; // blue highlight
+        if (isMovable) fill = 'rgba(59, 130, 246, 0.6)'; // blue highlight
+        if (isMyPos && !isMovable) fill = '#f59e0b'; // gold for current position
 
         const hw = tileW / 2;
         const hh = tileH / 2;
@@ -479,9 +512,9 @@ export default function CombatScreen({ route, navigation }) {
             key={`tile_${key}`}
             points={points}
             fill={fill}
-            stroke={isMovable ? '#60a5fa' : '#2d5a3d'}
-            strokeWidth={isMovable ? 1.5 : 0.5}
-            onPress={isMovable ? () => handleMoveTo(gx, gy) : undefined}
+            stroke={isMovable ? '#60a5fa' : isMyPos ? '#ffd700' : '#2d5a3d'}
+            strokeWidth={isMovable ? 2 : isMyPos ? 2 : 0.5}
+            onPress={interactive && isMovable ? () => handleMoveTo(gx2, gy2) : undefined}
           />
         );
       }
@@ -490,50 +523,98 @@ export default function CombatScreen({ route, navigation }) {
     // Draw entities
     const entityElements = [];
 
-    // Players
+    // Players - colored circles with class initial
     (participants || []).forEach(p => {
       if (!p.is_alive) return;
       const { x, y } = gridToMini(p.grid_x, p.grid_y);
       const isMe = p.student_id === studentId;
       const clsColor = CLASS_COLORS[p.avatar_class] || '#ffffff';
+      const radius = isMe ? 8 : 6;
 
       entityElements.push(
-        <Circle
-          key={`player_${p.student_id}`}
-          cx={x}
-          cy={y}
-          r={isMe ? 4 : 3}
-          fill={clsColor}
-          stroke={isMe ? '#ffffff' : 'none'}
-          strokeWidth={isMe ? 1.5 : 0}
-        />
+        <G key={`player_${p.student_id}`}>
+          <Circle
+            cx={x}
+            cy={y - 4}
+            r={radius}
+            fill={clsColor}
+            stroke={isMe ? '#ffffff' : '#000'}
+            strokeWidth={isMe ? 2 : 1}
+          />
+          <SvgText
+            x={x}
+            y={y - 1}
+            fontSize={isMe ? 9 : 7}
+            fill="#fff"
+            textAnchor="middle"
+            fontWeight="bold"
+          >
+            {(p.avatar_class || 'G')[0].toUpperCase()}
+          </SvgText>
+          {isMe && (
+            <SvgText
+              x={x}
+              y={y - 14}
+              fontSize={7}
+              fill="#ffd700"
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              MOI
+            </SvgText>
+          )}
+        </G>
       );
     });
 
-    // Monsters
+    // Monsters - red squares with type initial
     (monsters || []).forEach(m => {
       if (!m.is_alive) return;
       const { x, y } = gridToMini(m.grid_x, m.grid_y);
+      const size = 12;
+      const hpPct = m.current_hp / m.max_hp;
+
       entityElements.push(
-        <Rect
-          key={`mon_${m.id}`}
-          x={x - 3}
-          y={y - 3}
-          width={6}
-          height={6}
-          fill="#ef4444"
-          rx={1}
-        />
+        <G key={`mon_${m.id}`}>
+          <Rect
+            x={x - size / 2}
+            y={y - size / 2 - 4}
+            width={size}
+            height={size}
+            fill="#ef4444"
+            stroke="#dc2626"
+            strokeWidth={1}
+            rx={2}
+          />
+          <SvgText
+            x={x}
+            y={y + 1}
+            fontSize={7}
+            fill="#fff"
+            textAnchor="middle"
+            fontWeight="bold"
+          >
+            {(m.monster_type || m.name || 'M')[0].toUpperCase()}
+          </SvgText>
+          {/* Mini HP bar under monster */}
+          <Rect x={x - 8} y={y + 5} width={16} height={3} fill="#333" rx={1} />
+          <Rect x={x - 8} y={y + 5} width={16 * hpPct} height={3} fill={hpPct > 0.5 ? '#10b981' : '#ef4444'} rx={1} />
+        </G>
       );
     });
 
     return (
-      <View style={styles.miniMapContainer}>
-        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={[styles.miniMapContainer, { maxHeight: mapHeight }]}
+        contentContainerStyle={{ alignItems: 'center', paddingVertical: 4 }}
+      >
+        <Svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
           <G>{tileElements}</G>
           <G>{entityElements}</G>
         </Svg>
-      </View>
+      </ScrollView>
     );
   };
 
@@ -575,6 +656,31 @@ export default function CombatScreen({ route, navigation }) {
 
     const isMultiple = currentQuestion.block_type === 'qcm' && currentQuestion.multiple;
 
+    // If answer submitted, show result while waiting
+    if (answerSubmitted) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.centerContent}>
+            <Text style={{ fontSize: 64, marginBottom: 12 }}>
+              {answerResult ? '✅' : '❌'}
+            </Text>
+            <Text style={styles.phaseTitle}>
+              {answerResult ? 'Bonne réponse !' : 'Mauvaise réponse...'}
+            </Text>
+            <Text style={styles.phaseSubtitle}>
+              {answerResult
+                ? 'Tu pourras te déplacer et attaquer !'
+                : 'Tu devras passer ton tour...'}
+            </Text>
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
+            <Text style={[styles.phaseSubtitle, { marginTop: 8 }]}>
+              En attente des autres joueurs ({answerProgress.answered}/{answerProgress.total})
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.container}>
         <View style={styles.timerContainer}>
@@ -592,12 +698,19 @@ export default function CombatScreen({ route, navigation }) {
           <Text style={styles.timerText}>{timer}s</Text>
         </View>
 
+        {/* Block title if different from question */}
+        {currentQuestion.title && currentQuestion.title !== currentQuestion.question_text && (
+          <Text style={{ color: '#667eea', fontSize: 13, marginBottom: 8, fontWeight: '600' }}>
+            {currentQuestion.title}
+          </Text>
+        )}
+
         <ScrollView style={styles.questionContainer}>
           <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
 
-          {currentQuestion.block_type === 'qcm' && (
+          {currentQuestion.block_type === 'qcm' && currentQuestion.options?.length > 0 && (
             <View style={styles.optionsContainer}>
-              {currentQuestion.options?.map((option, index) => (
+              {currentQuestion.options.map((option, index) => (
                 <TouchableOpacity
                   key={index}
                   style={[
@@ -695,8 +808,8 @@ export default function CombatScreen({ route, navigation }) {
     return (
       <View style={styles.container}>
         <Text style={styles.sectionTitle}>Phase de déplacement</Text>
-        <Text style={styles.phaseSubtitle}>Touchez une case bleue pour vous déplacer</Text>
-        <IsoMiniMap height={200} />
+        <Text style={styles.phaseSubtitle}>Touchez une case bleue pour vous déplacer (glissez pour voir la carte)</Text>
+        <IsoMiniMap mapHeight={SCREEN_HEIGHT * 0.5} interactive={true} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 }}>
           <TouchableOpacity style={styles.skipMoveButton} onPress={handleSkipMove}>
             <Ionicons name="close-circle-outline" size={20} color="#f59e0b" />
@@ -766,37 +879,54 @@ export default function CombatScreen({ route, navigation }) {
       );
     }
 
-    // Show skills
+    // Show skills with range filtering
+    const me = participants.find(p => p.student_id === studentId);
+    const myClass = me?.avatar_class || 'guerrier';
+
     return (
       <View style={styles.container}>
+        <IsoMiniMap mapHeight={180} />
         <Text style={styles.sectionTitle}>Choisir une compétence</Text>
         <View style={styles.skillsGrid}>
           {availableSkills.map((skill) => {
             const manaCost = skill.cost || 0;
             const hasEnoughMana = playerStats.mana >= manaCost;
-            const me = participants.find(p => p.student_id === studentId);
-            const myClass = me?.avatar_class || 'guerrier';
+            // Check if skill has valid targets (defense/buff always available)
+            const isSelfSkill = skill.type === 'defense' || skill.type === 'buff';
+            const hasTargets = isSelfSkill || skillsWithTargets.size === 0 || skillsWithTargets.has(skill.id);
+            const canUse = hasEnoughMana && hasTargets;
+
             return (
               <TouchableOpacity
                 key={skill.id}
                 style={[
                   styles.skillButton,
-                  !hasEnoughMana && styles.skillButtonDisabled,
+                  !canUse && styles.skillButtonDisabled,
                 ]}
                 onPress={() => handleSelectSkill(skill)}
-                disabled={!hasEnoughMana}
+                disabled={!canUse}
               >
                 <Ionicons
                   name={getSkillIcon(skill.icon)}
                   size={32}
-                  color={hasEnoughMana ? CLASS_COLORS[myClass] || colors.primary : '#666'}
+                  color={canUse ? CLASS_COLORS[myClass] || colors.primary : '#666'}
                 />
-                <Text style={[styles.skillName, !hasEnoughMana && styles.skillNameDisabled]}>
+                <Text style={[styles.skillName, !canUse && styles.skillNameDisabled]}>
                   {skill.name}
                 </Text>
-                <Text style={[styles.skillCost, !hasEnoughMana && styles.skillCostDisabled]}>
+                <Text style={[styles.skillCost, !canUse && styles.skillCostDisabled]}>
                   {manaCost > 0 ? `${manaCost} ⚡` : 'Gratuit'}
                 </Text>
+                {!hasTargets && hasEnoughMana && (
+                  <Text style={{ color: '#ef4444', fontSize: 10, marginTop: 2 }}>
+                    Aucune cible
+                  </Text>
+                )}
+                {skill.range && (
+                  <Text style={{ color: '#667eea', fontSize: 10, marginTop: 2 }}>
+                    Portée: {skill.range}
+                  </Text>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -875,8 +1005,27 @@ export default function CombatScreen({ route, navigation }) {
   };
 
   // Render player stats bar
-  const renderStatsBar = () => (
+  const renderStatsBar = () => {
+    const me = participants.find(p => p.student_id === studentId);
+    const myClass = me?.avatar_class || 'guerrier';
+
+    return (
     <View style={styles.statsBar}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <Image
+          source={{ uri: getSpriteUrl(myClass) }}
+          style={{ width: 40, height: 40, marginRight: 10 }}
+          resizeMode="contain"
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: CLASS_COLORS[myClass] || '#fff', fontSize: 14, fontWeight: '700', textTransform: 'capitalize' }}>
+            {myClass}
+          </Text>
+          <Text style={{ color: '#aaa', fontSize: 11 }}>
+            Phase: {combatPhase}
+          </Text>
+        </View>
+      </View>
       <View style={styles.statBarItem}>
         <Text style={styles.statBarLabel}>HP</Text>
         <View style={styles.statBarBackground}>
@@ -913,7 +1062,8 @@ export default function CombatScreen({ route, navigation }) {
         </Text>
       </View>
     </View>
-  );
+    );
+  };
 
   // Main render
   const renderPhase = () => {
@@ -1294,7 +1444,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#1a4a8a',
-    alignItems: 'center',
   },
   // Move phase styles
   skipMoveButton: {

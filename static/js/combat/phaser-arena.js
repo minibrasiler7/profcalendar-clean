@@ -532,7 +532,9 @@ class CombatArena extends Phaser.Scene {
     _playOneAnimation(anim) {
         const type = anim.type;
 
-        if (type === 'attack' || type === 'monster_attack') {
+        if (type === 'monster_move') {
+            this._playMonsterMoveAnim(anim);
+        } else if (type === 'attack' || type === 'monster_attack') {
             this._playAttackAnim(anim);
         } else if (type === 'heal') {
             this._playHealAnim(anim);
@@ -545,7 +547,9 @@ class CombatArena extends Phaser.Scene {
             const dmg = anim.damage || anim.heal_amount || 0;
             const logType = type === 'heal' ? 'heal' : 'damage';
             let msg = '';
-            if (type === 'attack') {
+            if (type === 'monster_move') {
+                msg = `${anim.monster_name || 'Monstre'} se déplace`;
+            } else if (type === 'attack') {
                 msg = `${anim.attacker_name || '?'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
             } else if (type === 'heal') {
                 msg = `${anim.attacker_name || '?'} soigne ${anim.target_name || '?'} : +${dmg} HP`;
@@ -556,6 +560,25 @@ class CombatArena extends Phaser.Scene {
             }
             CombatSocketInstance.addCombatLogEntry(msg, logType);
         }
+    }
+
+    _playMonsterMoveAnim(anim) {
+        const monsterId = `monster_${anim.monster_id}`;
+        const entity = this.entitySprites[monsterId];
+        if (!entity) return;
+
+        const newIso = this.gridToIso(anim.to_x, anim.to_y);
+        entity.data = entity.data || {};
+        entity.data.grid_x = anim.to_x;
+        entity.data.grid_y = anim.to_y;
+
+        this.tweens.add({
+            targets: [entity.sprite, entity.hpBar?.bg, entity.hpBar?.fill, entity.nameText].filter(Boolean),
+            x: `+=${newIso.x - entity.sprite.x}`,
+            y: `+=${newIso.y - entity.sprite.y}`,
+            duration: 400,
+            ease: 'Power2',
+        });
     }
 
     _playAttackAnim(anim) {
