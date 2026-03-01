@@ -552,7 +552,7 @@ class CombatEngine:
         if not session:
             return None, "Session non trouvée"
 
-        logger.info(f"[Combat] start_round session={session_id} current_round={session.current_round} participants={len(session.participants)}")
+        logger.info(f"[Combat] start_round session={session_id} current_round={session.current_round} participants={session.participants.count() if hasattr(session.participants, 'count') else len(session.participants)}")
 
         from models.exercise import ExerciseBlock, Exercise
         exercise = Exercise.query.get(session.exercise_id)
@@ -581,7 +581,7 @@ class CombatEngine:
         # Au premier round, redimensionner la grille AVANT de modifier le round
         if session.current_round == 0:
             try:
-                logger.info(f"[Combat] Resizing for {len(session.participants)} players")
+                logger.info(f"[Combat] Resizing for {session.participants.count() if hasattr(session.participants, 'count') else len(session.participants)} players")
                 CombatEngine.resize_for_players(session_id)
                 # Re-fetch session after resize (it did its own commit)
                 session = CombatSession.query.get(session_id)
