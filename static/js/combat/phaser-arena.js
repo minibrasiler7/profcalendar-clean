@@ -92,37 +92,39 @@ class CombatArena extends Phaser.Scene {
             CombatSocketInstance.setGameInstance(this);
         }
 
-        // Camera drag (middle click or right click)
-        this.input.on('pointermove', (pointer) => {
-            if (pointer.isDown && (pointer.button === 1 || pointer.button === 2)) {
-                this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
-                this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
-            }
+        // ── Camera controls: drag to pan (any button) + scroll to zoom ──
+        this._isDragging = false;
+        this._dragStartX = 0;
+        this._dragStartY = 0;
+        this._camStartX = 0;
+        this._camStartY = 0;
+
+        this.input.on('pointerdown', (pointer) => {
+            this._isDragging = true;
+            this._dragStartX = pointer.x;
+            this._dragStartY = pointer.y;
+            this._camStartX = this.cameras.main.scrollX;
+            this._camStartY = this.cameras.main.scrollY;
         });
 
-        // Zoom with mouse wheel — zoom toward cursor position
+        this.input.on('pointermove', (pointer) => {
+            if (!this._isDragging || !pointer.isDown) return;
+            const cam = this.cameras.main;
+            const dx = (pointer.x - this._dragStartX) / cam.zoom;
+            const dy = (pointer.y - this._dragStartY) / cam.zoom;
+            cam.scrollX = this._camStartX - dx;
+            cam.scrollY = this._camStartY - dy;
+        });
+
+        this.input.on('pointerup', () => {
+            this._isDragging = false;
+        });
+
+        // Scroll to zoom — simple centered zoom
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
             const cam = this.cameras.main;
-            const oldZoom = cam.zoom;
-
-            // Use discrete zoom steps for reliable behavior
-            const zoomStep = deltaY > 0 ? -0.15 : 0.15;
-            const newZoom = Phaser.Math.Clamp(oldZoom + zoomStep, 0.3, 3.0);
-            if (newZoom === oldZoom) return;
-
-            // Use Phaser's API to get world point under cursor BEFORE zoom change
-            const worldPoint = cam.getWorldPoint(pointer.x, pointer.y);
-
-            cam.setZoom(newZoom);
-
-            // After zoom, adjust scroll so the same world point stays under the cursor.
-            // cam.getWorldPoint formula: worldX = (screenX - cam.width/2) / zoom + cam.midPoint.x
-            // cam.midPoint.x = cam.scrollX + cam.width / (2 * zoom)
-            // So: worldX = (screenX - cam.width/2) / zoom + cam.scrollX + cam.width / (2*zoom)
-            //            = screenX / zoom + cam.scrollX
-            // Therefore: cam.scrollX = worldX - screenX / zoom
-            cam.scrollX = worldPoint.x - pointer.x / newZoom;
-            cam.scrollY = worldPoint.y - pointer.y / newZoom;
+            const zoomStep = deltaY > 0 ? -0.1 : 0.1;
+            cam.setZoom(Phaser.Math.Clamp(cam.zoom + zoomStep, 0.3, 3.0));
         });
 
         // Disable right-click context menu
@@ -146,6 +148,45 @@ class CombatArena extends Phaser.Scene {
     }
 
     // ── Grid rendering ──
+
+    /**
+     * Redraw the entire grid (called when map_config changes, e.g., after resize_for_players).
+     * Also clears and re-adds all entities.
+     */
+    redrawGrid(newMapConfig) {
+        console.log('[Arena] redrawGrid called, new size:', newMapConfig.width, 'x', newMapConfig.height);
+
+        // Update config
+        this.mapConfig = newMapConfig;
+        this.gridW = newMapConfig.width || 10;
+        this.gridH = newMapConfig.height || 8;
+
+        // Recenter
+        const canvasW = this.sys.game.config.width;
+        this.offsetX = canvasW / 2;
+
+        // Destroy old tile sprites
+        for (const key in this.tileSprites) {
+            this.tileSprites[key].destroy();
+        }
+        this.tileSprites = {};
+
+        // Destroy old entity sprites
+        for (const id in this.entitySprites) {
+            const ent = this.entitySprites[id];
+            if (ent.sprite) ent.sprite.destroy();
+            if (ent.name) ent.name.destroy();
+            if (ent.hpBg) ent.hpBg.destroy();
+            if (ent.hpFill) ent.hpFill.destroy();
+        }
+        this.entitySprites = {};
+
+        // Clear highlights
+        this.clearHighlights();
+
+        // Redraw
+        this.drawGrid();
+    }
 
     drawGrid() {
         const tiles = this.mapConfig ? this.mapConfig.tiles : null;
@@ -438,6 +479,19 @@ class CombatArena extends Phaser.Scene {
 
     updateState(state) {
         if (!state) return;
+
+        // Check if map config changed (e.g., after resize_for_players)
+        if (state.map_config) {
+            const newW = state.map_config.width;
+            const newH = state.map_config.height;
+            const oldW = this.mapConfig ? this.mapConfig.width : 0;
+            const oldH = this.mapConfig ? this.mapConfig.height : 0;
+
+            if (newW !== oldW || newH !== oldH) {
+                console.log(`[Arena] Map size changed: ${oldW}x${oldH} → ${newW}x${newH}, redrawing...`);
+                this.redrawGrid(state.map_config);
+            }
+        }
 
         // Update round/phase
         if (state.current_round !== undefined) {

@@ -156,22 +156,34 @@ def register_combat_events(socketio):
         """Le prof démarre un nouveau round."""
         session_id = data.get('session_id')
         if not session_id:
+            logger.error("[Combat] start_round: no session_id in data")
             return
 
         room = f'combat_{session_id}'
-        question_data, error = CombatEngine.start_round(session_id)
+        logger.info(f"[Combat] start_round called for session {session_id}")
+
+        try:
+            question_data, error = CombatEngine.start_round(session_id)
+        except Exception as e:
+            logger.error(f"[Combat] start_round EXCEPTION: {e}", exc_info=True)
+            emit('combat:error', {'error': f'Erreur serveur: {str(e)}'}, room=room)
+            return
+
         if error:
+            logger.error(f"[Combat] start_round error: {error}")
             emit('combat:error', {'error': error}, room=room)
             return
 
-        logger.info(f"Round {question_data['round']} démarré pour combat {session_id}")
+        logger.info(f"[Combat] Round {question_data['round']} started, sending question to room {room}")
 
         # Envoyer la question à tous
         emit('combat:question', question_data, room=room)
 
         # Envoyer aussi l'état mis à jour
         session = CombatSession.query.get(session_id)
-        emit('combat:state_update', session.get_state(), room=room)
+        state = session.get_state()
+        logger.info(f"[Combat] Sending state_update: phase={state['phase']}, round={state['round']}, participants={len(state['participants'])}, monsters={len(state['monsters'])}")
+        emit('combat:state_update', state, room=room)
 
     @socketio.on('combat:submit_answer')
     def on_submit_answer(data):

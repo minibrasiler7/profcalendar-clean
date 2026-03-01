@@ -545,14 +545,19 @@ class CombatEngine:
     @staticmethod
     def start_round(session_id):
         """Démarre un nouveau round : sélectionne une question aléatoire."""
+        import logging
+        logger = logging.getLogger(__name__)
+
         session = CombatSession.query.get(session_id)
         if not session:
             return None, "Session non trouvée"
 
+        logger.info(f"[Combat] start_round session={session_id} current_round={session.current_round} participants={len(session.participants)}")
+
         from models.exercise import ExerciseBlock, Exercise
         exercise = Exercise.query.get(session.exercise_id)
         if not exercise:
-            return None, "Exercice non trouvé"
+            return None, f"Exercice non trouvé (exercise_id={session.exercise_id})"
 
         # Sélectionner un bloc aléatoire (types supportés pour le combat)
         supported_types = ['qcm', 'short_answer', 'fill_blank']
@@ -561,13 +566,29 @@ class CombatEngine:
             ExerciseBlock.block_type.in_(supported_types)
         ).all()
 
+        logger.info(f"[Combat] Found {len(blocks)} supported blocks for exercise {session.exercise_id}")
+
         if not blocks:
             blocks = ExerciseBlock.query.filter_by(exercise_id=session.exercise_id).all()
+            logger.info(f"[Combat] Fallback: {len(blocks)} total blocks")
 
         if not blocks:
-            return None, "Aucune question disponible"
+            return None, f"Aucune question disponible (exercise_id={session.exercise_id})"
 
         block = random.choice(blocks)
+        logger.info(f"[Combat] Selected block: id={block.id} type={block.block_type} title='{block.title}'")
+
+        # Au premier round, redimensionner la grille AVANT de modifier le round
+        if session.current_round == 0:
+            try:
+                logger.info(f"[Combat] Resizing for {len(session.participants)} players")
+                CombatEngine.resize_for_players(session_id)
+                # Re-fetch session after resize (it did its own commit)
+                session = CombatSession.query.get(session_id)
+                logger.info(f"[Combat] Resize complete, new grid: {session.map_config_json.get('width')}x{session.map_config_json.get('height')}")
+            except Exception as e:
+                logger.error(f"[Combat] resize_for_players FAILED: {e}", exc_info=True)
+                return None, f"Erreur resize: {str(e)}"
 
         # Nouveau round
         session.current_round += 1
@@ -575,16 +596,19 @@ class CombatEngine:
         session.current_block_id = block.id
         session.status = 'active'
 
-        # Au premier round, redimensionner la grille et les monstres selon les joueurs connectés
-        if session.current_round == 1:
-            CombatEngine.resize_for_players(session_id)
-
         # Reset les participants pour ce round
         for p in session.participants:
             if p.is_alive:
                 p.reset_round()
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            logger.error(f"[Combat] start_round commit FAILED: {e}", exc_info=True)
+            db.session.rollback()
+            return None, f"Erreur DB: {str(e)}"
+
+        logger.info(f"[Combat] Round {session.current_round} started, phase=question, block={block.id}")
 
         question_data = {
             'block_id': block.id,
