@@ -12,6 +12,7 @@ import {
   Dimensions,
   Image,
   PanResponder,
+  Alert,
 } from 'react-native';
 import Svg, { Polygon, Circle, Rect, G, Text as SvgText, Line } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -89,6 +90,7 @@ export default function CombatScreen({ route, navigation }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedMultiple, setSelectedMultiple] = useState([]);
+  const [fillBlanks, setFillBlanks] = useState([]);
   const [answering, setAnswering] = useState(false);
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [answerResult, setAnswerResult] = useState(null); // null, true, false
@@ -184,12 +186,17 @@ export default function CombatScreen({ route, navigation }) {
       // config.question contains the actual question text, data.title is just the block label
       // Extract question text based on block type
       let questionText = config.question || config.text || '';
-      if (data.block_type === 'fill_blank') {
-        // For fill_blank, the question is the text_template with blanks
-        questionText = config.text_template || config.question || data.title || '';
-      }
       if (!questionText) questionText = data.title || 'Question';
-      addDebug(`Question text: "${questionText.substring(0, 60)}" options=${(config.options||[]).length}`);
+      addDebug(`Question text: "${questionText.substring(0, 60)}" type=${data.block_type} options=${(config.options||[]).length}`);
+
+      // For fill_blank, count blanks in template
+      let blankCount = 0;
+      if (data.block_type === 'fill_blank') {
+        const tpl = config.text_template || '';
+        const matches = tpl.match(/\{[^}]+\}/g) || [];
+        blankCount = matches.length;
+      }
+
       setCurrentQuestion({
         block_id: data.block_id,
         block_type: data.block_type,
@@ -204,6 +211,7 @@ export default function CombatScreen({ route, navigation }) {
       setUserAnswer('');
       setSelectedOption(null);
       setSelectedMultiple([]);
+      setFillBlanks(new Array(blankCount).fill(''));
       setAnswering(false);
       setAnswerSubmitted(false);
       setAnswerResult(null);
@@ -339,13 +347,15 @@ export default function CombatScreen({ route, navigation }) {
 
     setAnswering(true);
 
-    // Build answer object matching grade_block format
+    // Build answer object matching grade_block format (same as ExerciseSolveScreen)
     let answer = {};
     if (currentQuestion.block_type === 'qcm') {
       const sel = currentQuestion.multiple ? selectedMultiple : (selectedOption !== null ? [selectedOption] : []);
       answer = { selected: sel };
-    } else if (currentQuestion.block_type === 'short_answer' || currentQuestion.block_type === 'fill_blank') {
+    } else if (currentQuestion.block_type === 'short_answer') {
       answer = { value: userAnswer };
+    } else if (currentQuestion.block_type === 'fill_blank') {
+      answer = { blanks: fillBlanks };
     } else {
       answer = { value: userAnswer };
     }
@@ -355,7 +365,7 @@ export default function CombatScreen({ route, navigation }) {
       student_id: studentId,
       answer: answer,
     });
-  }, [sessionId, studentId, userAnswer, selectedOption, selectedMultiple, currentQuestion, answering]);
+  }, [sessionId, studentId, userAnswer, selectedOption, selectedMultiple, fillBlanks, currentQuestion, answering]);
 
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
@@ -683,6 +693,155 @@ export default function CombatScreen({ route, navigation }) {
     </View>
   );
 
+  // Render the question block content (matching ExerciseSolveScreen style)
+  const renderQuestionBlock = () => {
+    if (!currentQuestion) return null;
+    const c = currentQuestion.config || {};
+    const blockType = currentQuestion.block_type;
+    const isMultiple = blockType === 'qcm' && currentQuestion.multiple;
+
+    switch (blockType) {
+      case 'qcm': {
+        return (
+          <View>
+            {c.question ? (
+              <Text style={styles.questionText}>{c.question}</Text>
+            ) : null}
+            <View style={styles.optionsContainer}>
+              {(c.options || []).map((opt, i) => {
+                const optText = typeof opt === 'string' ? opt : (opt.text || opt.label || '');
+                const isSel = isMultiple ? selectedMultiple.includes(i) : selectedOption === i;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.optionButton, isSel && styles.optionButtonSelected]}
+                    onPress={() => {
+                      if (isMultiple) {
+                        setSelectedMultiple(prev =>
+                          prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
+                        );
+                      } else {
+                        setSelectedOption(i);
+                      }
+                    }}
+                    disabled={answering}
+                  >
+                    <View style={[styles.checkbox, isSel && styles.checkboxSelected]}>
+                      {isSel && <Ionicons name="checkmark" size={16} color="white" />}
+                    </View>
+                    <Text style={styles.optionText}>{optText}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        );
+      }
+
+      case 'short_answer': {
+        return (
+          <View>
+            {c.question ? (
+              <Text style={styles.questionText}>{c.question}</Text>
+            ) : null}
+            <TextInput
+              style={styles.answerInput}
+              placeholder="Ta réponse..."
+              placeholderTextColor="#999"
+              value={userAnswer}
+              onChangeText={setUserAnswer}
+              keyboardType={c.answer_type === 'number' ? 'decimal-pad' : 'default'}
+              editable={!answering}
+            />
+          </View>
+        );
+      }
+
+      case 'fill_blank': {
+        const template = c.text_template || '';
+        const parts = template.split(/(\{[^}]+\})/);
+        let blankIdx = 0;
+        const fillMode = c.mode || 'text';
+        const configBlanks = c.blanks || [];
+
+        return (
+          <View>
+            <View style={combatQuestionStyles.fillBlankWrap}>
+              {parts.map((part, i) => {
+                if (part.match(/^\{[^}]+\}$/)) {
+                  const bi = blankIdx++;
+                  const blankConfig = configBlanks[bi] || {};
+                  const choices = blankConfig.choices || [];
+
+                  if (fillMode === 'choices' && choices.length > 0) {
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[combatQuestionStyles.fillBlankSelect, fillBlanks[bi] ? combatQuestionStyles.fillBlankSelectFilled : null]}
+                        disabled={answering}
+                        onPress={() => {
+                          const options = [...choices].sort(() => Math.random() - 0.5);
+                          options.unshift('— Choisir —');
+                          const cancelIdx = options.length;
+                          options.push('Annuler');
+                          Alert.alert('Choisir un mot', null, options.map((opt, oi) => ({
+                            text: opt,
+                            onPress: () => {
+                              if (oi === 0 || oi === cancelIdx) return;
+                              const nb = [...fillBlanks]; nb[bi] = opt;
+                              setFillBlanks(nb);
+                            },
+                            style: oi === cancelIdx ? 'cancel' : 'default',
+                          })));
+                        }}
+                      >
+                        <Text style={[combatQuestionStyles.fillBlankSelectText, !fillBlanks[bi] && { color: '#999' }]}>
+                          {fillBlanks[bi] || '— Choisir —'}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color="#999" />
+                      </TouchableOpacity>
+                    );
+                  }
+
+                  return (
+                    <TextInput
+                      key={i}
+                      style={combatQuestionStyles.fillBlankInput}
+                      placeholder="..."
+                      placeholderTextColor="#999"
+                      value={fillBlanks[bi] || ''}
+                      onChangeText={(t) => {
+                        const nb = [...fillBlanks]; nb[bi] = t;
+                        setFillBlanks(nb);
+                      }}
+                      editable={!answering}
+                    />
+                  );
+                }
+                return <Text key={i} style={combatQuestionStyles.fillBlankText}>{part}</Text>;
+              })}
+            </View>
+          </View>
+        );
+      }
+
+      default:
+        return (
+          <View>
+            <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
+            <TextInput
+              style={styles.answerInput}
+              placeholder="Ta réponse..."
+              placeholderTextColor="#999"
+              value={userAnswer}
+              onChangeText={setUserAnswer}
+              editable={!answering}
+            />
+          </View>
+        );
+    }
+  };
+
   // Render question phase
   const renderQuestion = () => {
     if (!currentQuestion) return null;
@@ -739,72 +898,7 @@ export default function CombatScreen({ route, navigation }) {
         )}
 
         <ScrollView style={styles.questionContainer}>
-          <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
-
-          {currentQuestion.block_type === 'qcm' && currentQuestion.options?.length > 0 && (
-            <View style={styles.optionsContainer}>
-              {currentQuestion.options.map((option, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.optionButton,
-                    isMultiple
-                      ? selectedMultiple.includes(index) && styles.optionButtonSelected
-                      : selectedOption === index && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => {
-                    if (isMultiple) {
-                      setSelectedMultiple((prev) =>
-                        prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-                      );
-                    } else {
-                      setSelectedOption(index);
-                    }
-                  }}
-                  disabled={answering}
-                >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      (isMultiple
-                        ? selectedMultiple.includes(index)
-                        : selectedOption === index) && styles.checkboxSelected,
-                    ]}
-                  >
-                    {(isMultiple
-                      ? selectedMultiple.includes(index)
-                      : selectedOption === index) && (
-                      <Ionicons name="checkmark" size={16} color="white" />
-                    )}
-                  </View>
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {currentQuestion.block_type === 'short_answer' && (
-            <TextInput
-              style={styles.answerInput}
-              placeholder="Votre réponse..."
-              placeholderTextColor="#999"
-              value={userAnswer}
-              onChangeText={setUserAnswer}
-              editable={!answering}
-              multiline
-            />
-          )}
-
-          {currentQuestion.block_type === 'fill_blank' && (
-            <TextInput
-              style={styles.answerInput}
-              placeholder="Complétez le texte à trous..."
-              placeholderTextColor="#999"
-              value={userAnswer}
-              onChangeText={setUserAnswer}
-              editable={!answering}
-            />
-          )}
+          {renderQuestionBlock()}
         </ScrollView>
 
         <TouchableOpacity
@@ -1147,6 +1241,58 @@ export default function CombatScreen({ route, navigation }) {
     </View>
   );
 }
+
+// Combat question-specific styles (matching ExerciseSolveScreen look)
+const combatQuestionStyles = StyleSheet.create({
+  fillBlankWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  fillBlankText: {
+    color: '#e0e0e0',
+    fontSize: 16,
+    lineHeight: 28,
+  },
+  fillBlankInput: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#667eea',
+    color: '#fff',
+    fontSize: 16,
+    minWidth: 80,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    textAlign: 'center',
+    marginHorizontal: 2,
+  },
+  fillBlankSelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(102,126,234,0.1)',
+    minWidth: 100,
+  },
+  fillBlankSelectFilled: {
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16,185,129,0.1)',
+  },
+  fillBlankSelectText: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
+  },
+});
 
 const styles = StyleSheet.create({
   screen: {
