@@ -206,14 +206,130 @@ def register_combat_events(socketio):
             'is_correct': result.get('is_correct', False),
         }, room=room)
 
-        # Si tous ont répondu, passer en phase action
+        # Si tous ont répondu, passer en phase mouvement d'abord
         if result.get('all_answered'):
-            CombatEngine.transition_to_action(session_id)
+            CombatEngine.transition_to_move(session_id)
             session = CombatSession.query.get(session_id)
             emit('combat:all_answered', {
-                'phase': 'action',
+                'phase': 'move',
             }, room=room)
             emit('combat:state_update', session.get_state(), room=room)
+
+    @socketio.on('combat:request_move_tiles')
+    def on_request_move_tiles(data):
+        """Un élève demande ses cases de déplacement accessibles."""
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        if not session_id or not student_id:
+            return
+
+        participant = CombatParticipant.query.filter_by(
+            combat_session_id=session_id, student_id=student_id
+        ).first()
+        if not participant:
+            return
+
+        tiles = CombatEngine.get_reachable_tiles(session_id, participant.id)
+        emit('combat:move_tiles', {
+            'tiles': tiles,
+            'participant_id': participant.id,
+        })
+
+    @socketio.on('combat:move')
+    def on_move(data):
+        """Un élève se déplace sur la grille."""
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        target_x = data.get('target_x')
+        target_y = data.get('target_y')
+
+        if session_id is None or student_id is None or target_x is None or target_y is None:
+            return
+
+        room = f'combat_{session_id}'
+        result, error = CombatEngine.move_participant(session_id, student_id, target_x, target_y)
+        if error:
+            emit('combat:error', {'error': error})
+            return
+
+        # Broadcast le déplacement à tous
+        emit('combat:move_result', result, room=room)
+
+        # Vérifier si tous les joueurs corrects ont bougé (ou skip)
+        session = CombatSession.query.get(session_id)
+        correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+        all_moved = all(p.has_moved for p in correct_alive)
+        if all_moved:
+            CombatEngine.transition_to_action(session_id)
+            session = CombatSession.query.get(session_id)
+            emit('combat:phase_change', {'phase': 'action'}, room=room)
+            emit('combat:state_update', session.get_state(), room=room)
+
+    @socketio.on('combat:skip_move')
+    def on_skip_move(data):
+        """Un élève skip son déplacement."""
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        if not session_id or not student_id:
+            return
+
+        room = f'combat_{session_id}'
+        participant = CombatParticipant.query.filter_by(
+            combat_session_id=session_id, student_id=student_id
+        ).first()
+        if participant:
+            participant.has_moved = True
+            db.session.commit()
+
+        # Vérifier si tous ont bougé
+        session = CombatSession.query.get(session_id)
+        correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+        all_moved = all(p.has_moved for p in correct_alive)
+        if all_moved:
+            CombatEngine.transition_to_action(session_id)
+            session = CombatSession.query.get(session_id)
+            emit('combat:phase_change', {'phase': 'action'}, room=room)
+            emit('combat:state_update', session.get_state(), room=room)
+
+    @socketio.on('combat:force_move_end')
+    def on_force_move_end(data):
+        """Le prof force la fin de la phase de mouvement."""
+        session_id = data.get('session_id')
+        if not session_id:
+            return
+        room = f'combat_{session_id}'
+        # Marquer tous comme ayant bougé
+        session = CombatSession.query.get(session_id)
+        if session:
+            for p in session.participants:
+                if p.is_alive and p.is_correct:
+                    p.has_moved = True
+            db.session.commit()
+            CombatEngine.transition_to_action(session_id)
+            session = CombatSession.query.get(session_id)
+            emit('combat:phase_change', {'phase': 'action'}, room=room)
+            emit('combat:state_update', session.get_state(), room=room)
+
+    @socketio.on('combat:request_targets')
+    def on_request_targets(data):
+        """Un élève demande les cibles à portée pour un skill."""
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        skill_id = data.get('skill_id')
+        if not session_id or not student_id or not skill_id:
+            return
+
+        participant = CombatParticipant.query.filter_by(
+            combat_session_id=session_id, student_id=student_id
+        ).first()
+        if not participant:
+            return
+
+        targets = CombatEngine.get_targets_in_range(session_id, participant.id, skill_id)
+        emit('combat:targets_in_range', {
+            'skill_id': skill_id,
+            'targets': targets,
+        })
 
     @socketio.on('combat:submit_action')
     def on_submit_action(data):

@@ -1,845 +1,768 @@
 /**
- * Phaser 3 Combat Arena Scene
- * Displays the combat grid with players and monsters
+ * Phaser.js Isometric Combat Arena (FFT-like)
+ * Renders the combat grid in isometric view with depth sorting.
  */
 
-// Color scheme
-const COLORS = {
-    background: '#1a1a2e',
-    gridLine: '#16213e',
-    playerClasses: {
-        guerrier: '#ef4444',
-        mage: '#667eea',
-        archer: '#10b981',
-        guerisseur: '#f59e0b'
-    },
-    monsterTypes: {
-        slime: '#3b82f6',
-        goblin: '#22c55e',
-        orc: '#78716c',
-        skeleton: '#d4d4d8',
-        dragon: '#ef4444'
-    },
-    hpBar: { bg: '#1a1a2e', fill: '#10b981' },
-    manaBar: { bg: '#1a1a2e', fill: '#3b82f6' },
-    text: '#ffffff',
-    damage: '#ef4444',
-    heal: '#10b981'
-};
+const TILE_W = 64;
+const TILE_H = 32;
+const TILE_DEPTH = 16;
+const SPRITE_SIZE = 48;
 
-const GRID = {
-    width: 10,
-    height: 8,
-    tileSize: 64
-};
-
-const ARENA = {
-    width: GRID.width * GRID.tileSize,
-    height: GRID.height * GRID.tileSize,
-    padding: 40
-};
-
-const GAME_CONFIG = {
-    type: Phaser.AUTO,
-    parent: 'phaser-game',
-    width: ARENA.width + ARENA.padding * 2,
-    height: ARENA.height + ARENA.padding,
-    backgroundColor: COLORS.background,
-    scene: {
-        init: initScene,
-        create: createScene,
-        update: updateScene
-    },
-    render: {
-        antialiasGL: true,
-        pixelArt: false
+class CombatArena extends Phaser.Scene {
+    constructor() {
+        super({ key: 'CombatArena' });
+        this.mapConfig = null;
+        this.gridW = 10;
+        this.gridH = 8;
+        this.tileSprites = {};    // {`${x}_${y}`: sprite}
+        this.highlightSprites = {}; // {`${x}_${y}`: sprite}
+        this.entitySprites = {};  // {id: {sprite, hpBar, nameText, ...}}
+        this.participants = [];
+        this.monsters = [];
+        this.currentPhase = 'waiting';
+        this.currentRound = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
     }
-};
 
-// Global game reference
-let gameInstance = null;
-let currentGameState = {
-    round: 1,
-    phase: 'Attente',
-    players: {},
-    monsters: {},
-    animations: []
-};
+    preload() {
+        // Isometric tiles
+        this.load.image('iso_grass', '/static/img/combat/tiles/iso_grass.png');
+        this.load.image('iso_stone', '/static/img/combat/tiles/iso_stone.png');
+        this.load.image('iso_dirt', '/static/img/combat/tiles/iso_dirt.png');
+        this.load.image('iso_water', '/static/img/combat/tiles/iso_water.png');
+        this.load.image('iso_wall', '/static/img/combat/tiles/iso_wall.png');
 
-/**
- * Initialize scene
- */
-function initScene() {
-    this.entities = {
-        players: {},
-        monsters: {}
-    };
-    this.animationQueue = [];
-    this.isAnimating = false;
-    this.gridStartX = ARENA.padding;
-    this.gridStartY = ARENA.padding;
-}
+        // Highlight tiles
+        this.load.image('hl_move', '/static/img/combat/tiles/iso_highlight_move.png');
+        this.load.image('hl_attack', '/static/img/combat/tiles/iso_highlight_attack.png');
+        this.load.image('hl_heal', '/static/img/combat/tiles/iso_highlight_heal.png');
+        this.load.image('hl_selected', '/static/img/combat/tiles/iso_highlight_selected.png');
 
-/**
- * Create scene (setup graphics, sprites, UI)
- */
-function createScene() {
-    const scene = this;
-    gameInstance = this;
+        // Chihuahua sprites (4 classes × 4 directions × 4 states)
+        const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
+        const dirs = ['se', 'sw', 'ne', 'nw'];
+        const states = ['idle', 'attack', 'hurt', 'ko'];
+        for (const cls of classes) {
+            for (const dir of dirs) {
+                for (const state of states) {
+                    this.load.image(`chi_${cls}_${dir}_${state}`, `/static/img/combat/chihuahua/${cls}_${dir}_${state}.png`);
+                }
+            }
+        }
 
-    // Draw grid background
-    drawGrid(scene);
+        // Monster sprites
+        const monsterTypes = ['goblin', 'orc', 'slime', 'skeleton', 'dragon'];
+        const monsterStates = ['idle', 'attack', 'hurt', 'ko'];
+        for (const m of monsterTypes) {
+            for (const s of monsterStates) {
+                this.load.image(`mon_${m}_${s}`, `/static/img/combat/monsters/${m}_iso_${s}.png`);
+            }
+        }
 
-    // Create containers for entities
-    scene.playerContainer = scene.add.container(0, 0);
-    scene.monsterContainer = scene.add.container(0, 0);
+        // Effects
+        this.load.image('fx_slash', '/static/img/combat/effects/iso_slash.png');
+        this.load.image('fx_fireball', '/static/img/combat/effects/iso_fireball.png');
+        this.load.image('fx_heal', '/static/img/combat/effects/iso_heal.png');
+        this.load.image('fx_shield', '/static/img/combat/effects/iso_shield.png');
+    }
 
-    // Set up socket integration
-    if (typeof CombatSocketInstance !== 'undefined') {
-        CombatSocketInstance.setGameInstance({
-            updateState: (state) => updateGameState(scene, state),
-            addPlayerSprite: (data) => {
-                // data from combat:student_joined is {participant: {...}}
-                const p = data.participant || data;
-                addPlayerSprite(scene, p);
-            },
-            playAnimations: (animations) => playAnimations(scene, animations),
-            updatePhase: (phase, data) => updatePhase(scene, phase, data),
-            updateRound: (round, phase) => updateRoundDisplay(scene, round, phase)
+    create() {
+        // Parse map config
+        this.mapConfig = typeof MAP_CONFIG === 'string' ? JSON.parse(MAP_CONFIG) : MAP_CONFIG;
+        this.gridW = this.mapConfig ? this.mapConfig.width : 10;
+        this.gridH = this.mapConfig ? this.mapConfig.height : 8;
+
+        // Center the iso grid
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+        this.offsetX = canvasW / 2;
+        this.offsetY = 80;
+
+        // Draw the grid
+        this.drawGrid();
+
+        // Register with socket
+        if (typeof CombatSocketInstance !== 'undefined') {
+            CombatSocketInstance.setGameInstance(this);
+        }
+
+        // Camera drag (right click)
+        this.input.on('pointermove', (pointer) => {
+            if (pointer.isDown && pointer.button === 2) {
+                this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x);
+                this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y);
+            }
         });
+
+        // Zoom with mouse wheel
+        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+            const cam = this.cameras.main;
+            const newZoom = Phaser.Math.Clamp(cam.zoom - deltaY * 0.001, 0.4, 2.0);
+            cam.setZoom(newZoom);
+        });
+
+        // Disable right-click context menu
+        this.input.mouse.disableContextMenu();
     }
 
-    console.log('Phaser scene created');
-}
+    // ── Isometric coordinate conversion ──
 
-/**
- * Update scene
- */
-function updateScene() {
-    // Per-frame updates if needed
-}
+    gridToIso(gx, gy) {
+        const isoX = (gx - gy) * (TILE_W / 2) + this.offsetX;
+        const isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
+        return { x: isoX, y: isoY };
+    }
 
-/**
- * Draw the grid background
- */
-function drawGrid(scene) {
-    const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
-    graphics.setDepth(-100);
+    isoToGrid(isoX, isoY) {
+        const rx = isoX - this.offsetX;
+        const ry = isoY - this.offsetY;
+        const gx = (rx / (TILE_W / 2) + ry / (TILE_H / 2)) / 2;
+        const gy = (ry / (TILE_H / 2) - rx / (TILE_W / 2)) / 2;
+        return { x: Math.round(gx), y: Math.round(gy) };
+    }
 
-    const startX = ARENA.padding;
-    const startY = ARENA.padding;
+    // ── Grid rendering ──
 
-    // Draw grid tiles
-    for (let row = 0; row < GRID.height; row++) {
-        for (let col = 0; col < GRID.width; col++) {
-            const x = startX + col * GRID.tileSize;
-            const y = startY + row * GRID.tileSize;
+    drawGrid() {
+        const tiles = this.mapConfig ? this.mapConfig.tiles : null;
+        const obstacles = this.mapConfig ? (this.mapConfig.obstacles || []) : [];
 
-            const isEvenRow = row % 2 === 0;
-            const isEvenCol = col % 2 === 0;
-            const shouldBeDark = isEvenRow === isEvenCol;
+        // Build obstacle lookup
+        const obstacleMap = {};
+        for (const obs of obstacles) {
+            obstacleMap[`${obs.x}_${obs.y}`] = obs.type;
+        }
 
-            const tileColor = shouldBeDark ? 0x0f3460 : 0x16213e;
-            graphics.fillStyle(tileColor, 1);
-            graphics.fillRect(x, y, GRID.tileSize, GRID.tileSize);
+        // Draw tiles from back to front (painter's algorithm)
+        for (let gy = 0; gy < this.gridH; gy++) {
+            for (let gx = 0; gx < this.gridW; gx++) {
+                const { x, y } = this.gridToIso(gx, gy);
+                const key = `${gx}_${gy}`;
+                const obsType = obstacleMap[key];
+
+                let tileKey = 'iso_grass';
+                if (obsType === 'water') {
+                    tileKey = 'iso_water';
+                } else if (obsType === 'wall') {
+                    tileKey = 'iso_wall';
+                } else if (tiles && tiles[gy] && tiles[gy][gx]) {
+                    const tType = tiles[gy][gx];
+                    if (tType === 'stone') tileKey = 'iso_stone';
+                    else if (tType === 'dirt') tileKey = 'iso_dirt';
+                    else if (tType === 'water') tileKey = 'iso_water';
+                    else if (tType === 'wall') tileKey = 'iso_wall';
+                }
+
+                const tile = this.add.image(x, y, tileKey);
+                tile.setOrigin(0.5, 0.5);
+                tile.setDepth(gx + gy);
+                this.tileSprites[key] = tile;
+            }
         }
     }
 
-    // Draw grid overlay lines
-    graphics.lineStyle(1, 0x16213e, 0.5);
-    for (let row = 0; row <= GRID.height; row++) {
-        const y = ARENA.padding + row * GRID.tileSize;
-        graphics.lineBetween(ARENA.padding, y, ARENA.padding + ARENA.width, y);
+    // ── Highlight tiles ──
+
+    clearHighlights() {
+        for (const key in this.highlightSprites) {
+            this.highlightSprites[key].destroy();
+        }
+        this.highlightSprites = {};
     }
 
-    for (let col = 0; col <= GRID.width; col++) {
-        const x = ARENA.padding + col * GRID.tileSize;
-        graphics.lineBetween(x, ARENA.padding, x, ARENA.padding + ARENA.height);
+    showHighlights(tiles, type = 'move') {
+        this.clearHighlights();
+        const texKey = type === 'attack' ? 'hl_attack' : type === 'heal' ? 'hl_heal' : 'hl_move';
+
+        for (const t of tiles) {
+            const tx = t.x !== undefined ? t.x : t[0];
+            const ty = t.y !== undefined ? t.y : t[1];
+            const { x, y } = this.gridToIso(tx, ty);
+            const key = `${tx}_${ty}`;
+            const hl = this.add.image(x, y, texKey);
+            hl.setOrigin(0.5, 0.5);
+            hl.setDepth(tx + ty + 0.5);
+            hl.setAlpha(0.7);
+
+            // Pulse animation
+            this.tweens.add({
+                targets: hl,
+                alpha: { from: 0.5, to: 0.9 },
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+            });
+
+            this.highlightSprites[key] = hl;
+        }
     }
 
-    graphics.generateTexture('gridTexture', GAME_CONFIG.width, GAME_CONFIG.height);
-    graphics.destroy();
+    // ── Entity sprite management ──
 
-    const background = scene.add.sprite(
-        GAME_CONFIG.width / 2,
-        GAME_CONFIG.height / 2,
-        'gridTexture'
-    );
-    background.setDepth(-50);
-    background.setOrigin(0.5, 0.5);
-}
-
-/**
- * Get grid pixel position from grid coordinates
- */
-function gridToPixel(gridX, gridY) {
-    return {
-        x: ARENA.padding + gridX * GRID.tileSize + GRID.tileSize / 2,
-        y: ARENA.padding + gridY * GRID.tileSize + GRID.tileSize / 2
-    };
-}
-
-/**
- * Add a player sprite to the arena
- * Server data: {id, student_id, student_name, avatar_class, level, current_hp, max_hp, current_mana, max_mana, grid_x, grid_y, is_alive, skills}
- */
-function addPlayerSprite(scene, player) {
-    if (!scene || !player) return;
-
-    const playerId = player.id;
-    if (scene.entities.players[playerId]) {
-        // Already exists, just update
-        updatePlayerSprite(scene, playerId, player);
-        return;
+    _getDirection(fromX, fromY, toX, toY) {
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        if (dx >= 0 && dy >= 0) return 'se';
+        if (dx >= 0 && dy < 0) return 'ne';
+        if (dx < 0 && dy >= 0) return 'sw';
+        return 'nw';
     }
 
-    // Use grid position from server
-    const pos = gridToPixel(player.grid_x || 1, player.grid_y || 0);
-    const x = pos.x;
-    const y = pos.y;
+    addParticipant(p) {
+        const id = `player_${p.student_id || p.id}`;
+        if (this.entitySprites[id]) return;
 
-    // Get player color based on class
-    const avatarClass = player.avatar_class || 'guerrier';
-    const classColor = COLORS.playerClasses[avatarClass] || '#667eea';
+        const cls = (p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier').toLowerCase();
+        const { x, y } = this.gridToIso(p.grid_x, p.grid_y);
 
-    // Create player sprite (circle)
-    const circle = scene.add.circle(0, 0, 24, parseInt(classColor.replace('#', '0x')));
-    circle.setStrokeStyle(2, 0xffffff);
+        const spriteKey = `chi_${cls}_se_idle`;
+        const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
+        sprite.setOrigin(0.5, 0.8);
+        sprite.setDepth(p.grid_x + p.grid_y + 1);
 
-    // Class initial letter
-    const classLetter = scene.add.text(0, 0, avatarClass.charAt(0).toUpperCase(), {
-        font: 'bold 18px Arial',
-        fill: '#ffffff',
-        align: 'center'
-    });
-    classLetter.setOrigin(0.5, 0.5);
+        // Name label
+        const name = this.add.text(x, y - TILE_DEPTH - 30, p.student_name || 'Élève', {
+            fontSize: '10px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(9999);
 
-    // Create player container at grid position
-    const playerGroup = scene.add.container(x, y, [circle, classLetter]);
+        // HP bar
+        const barWidth = 30;
+        const barY = y - TILE_DEPTH - 20;
+        const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
+        const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
+        const curHp = p.current_hp !== undefined ? p.current_hp : maxHp;
+        const hpPct = Math.max(0, curHp / maxHp);
+        const hpColor = hpPct > 0.5 ? 0x10b981 : hpPct > 0.25 ? 0xf59e0b : 0xef4444;
+        const hpFill = this.add.rectangle(
+            x - barWidth / 2 + (barWidth * hpPct) / 2,
+            barY,
+            barWidth * hpPct,
+            4,
+            hpColor
+        ).setDepth(9999);
 
-    // Add name text
-    const displayName = player.student_name || ('Élève ' + player.student_id);
-    const nameText = scene.add.text(0, 32, displayName, {
-        font: '11px Arial',
-        fill: COLORS.text,
-        align: 'center'
-    });
-    nameText.setOrigin(0.5, 0);
-    playerGroup.add(nameText);
-
-    // Add HP bar
-    const hpBarBg = scene.add.rectangle(0, 46, 48, 8, 0x1a1a2e);
-    hpBarBg.setStrokeStyle(1, 0x10b981);
-    const hpPercent = Math.max(0, Math.min(1, (player.current_hp || 0) / (player.max_hp || 1)));
-    const hpBarFill = scene.add.rectangle(-24 + 22 * hpPercent, 46, 44 * hpPercent, 6, 0x10b981);
-    hpBarFill.setOrigin(0, 0.5);
-    hpBarFill.x = -22;
-    hpBarFill.width = 44 * hpPercent;
-    playerGroup.add([hpBarBg, hpBarFill]);
-
-    // Store player data
-    scene.entities.players[playerId] = {
-        container: playerGroup,
-        circle,
-        nameText,
-        hpBarFill,
-        hpBarBg,
-        maxHp: player.max_hp || 100,
-        currentHp: player.current_hp || 100,
-        mana: player.current_mana || 0,
-        maxMana: player.max_mana || 50,
-        avatarClass: avatarClass,
-        studentName: displayName,
-        isAlive: player.is_alive !== false
-    };
-
-    // Update player roster in side panel
-    updatePlayerRoster(scene);
-
-    console.log('Player sprite added:', displayName, 'at grid', player.grid_x, player.grid_y);
-}
-
-/**
- * Add a monster sprite to the arena
- * Server data: {id, monster_type, name, level, max_hp, current_hp, attack, defense, grid_x, grid_y, is_alive, skills}
- */
-function addMonsterSprite(scene, monster) {
-    if (!scene || !monster) return;
-
-    const monsterId = monster.id;
-    if (scene.entities.monsters[monsterId]) {
-        updateMonsterSprite(scene, monsterId, monster);
-        return;
+        this.entitySprites[id] = {
+            sprite, name, hpBg, hpFill,
+            data: p,
+            type: 'player',
+            cls: cls,
+            direction: 'se',
+            state: p.is_alive !== false ? 'idle' : 'ko',
+        };
     }
 
-    // Use grid position from server
-    const pos = gridToPixel(monster.grid_x || 7, monster.grid_y || 0);
-    const x = pos.x;
-    const y = pos.y;
+    addMonster(m) {
+        const id = `monster_${m.id}`;
+        if (this.entitySprites[id]) return;
 
-    // Get monster color based on type
-    const monsterType = monster.monster_type || 'slime';
-    const monsterColor = COLORS.monsterTypes[monsterType] || '#3b82f6';
+        const monType = (m.monster_type || 'goblin').toLowerCase();
+        const { x, y } = this.gridToIso(m.grid_x, m.grid_y);
 
-    // Create monster sprite (rectangle)
-    const shape = scene.add.rectangle(0, 0, 40, 50, parseInt(monsterColor.replace('#', '0x')));
-    shape.setStrokeStyle(2, 0xffffff);
+        const spriteKey = `mon_${monType}_idle`;
+        const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
+        sprite.setOrigin(0.5, 0.8);
+        sprite.setDepth(m.grid_x + m.grid_y + 1);
 
-    // Monster type initial
-    const typeLetter = scene.add.text(0, 0, monsterType.charAt(0).toUpperCase(), {
-        font: 'bold 18px Arial',
-        fill: '#ffffff',
-        align: 'center'
-    });
-    typeLetter.setOrigin(0.5, 0.5);
+        // Name
+        const name = this.add.text(x, y - TILE_DEPTH - 36, m.name || monType, {
+            fontSize: '10px',
+            fontFamily: 'Arial',
+            color: '#ff6b6b',
+            stroke: '#000000',
+            strokeThickness: 2,
+        }).setOrigin(0.5).setDepth(9999);
 
-    // Create monster container
-    const monsterGroup = scene.add.container(x, y, [shape, typeLetter]);
+        // HP bar
+        const barWidth = 30;
+        const barY = y - TILE_DEPTH - 26;
+        const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
+        const maxHp = m.max_hp || 100;
+        const curHp = m.current_hp !== undefined ? m.current_hp : maxHp;
+        const hpPct = Math.max(0, curHp / maxHp);
+        const hpFill = this.add.rectangle(
+            x - barWidth / 2 + (barWidth * hpPct) / 2,
+            barY,
+            barWidth * hpPct,
+            4,
+            0xef4444
+        ).setDepth(9999);
 
-    // Add name text
-    const nameText = scene.add.text(0, 32, monster.name || 'Monstre', {
-        font: '11px Arial',
-        fill: COLORS.text,
-        align: 'center'
-    });
-    nameText.setOrigin(0.5, 0);
-    monsterGroup.add(nameText);
+        this.entitySprites[id] = {
+            sprite, name, hpBg, hpFill,
+            data: m,
+            type: 'monster',
+            monType: monType,
+            state: m.is_alive !== false ? 'idle' : 'ko',
+        };
+    }
 
-    // Add HP bar
-    const hpBarBg = scene.add.rectangle(0, 46, 48, 8, 0x1a1a2e);
-    hpBarBg.setStrokeStyle(1, 0xef4444);
-    const hpPercent = Math.max(0, Math.min(1, (monster.current_hp || 0) / (monster.max_hp || 1)));
-    const hpBarFill = scene.add.rectangle(0, 46, 44 * hpPercent, 6, 0xef4444);
-    hpBarFill.setOrigin(0, 0.5);
-    hpBarFill.x = -22;
-    hpBarFill.width = 44 * hpPercent;
-    monsterGroup.add([hpBarBg, hpBarFill]);
+    updateEntityPosition(id, gx, gy, animate = true) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
 
-    // Store monster data
-    scene.entities.monsters[monsterId] = {
-        container: monsterGroup,
-        shape,
-        nameText,
-        hpBarFill,
-        hpBarBg,
-        maxHp: monster.max_hp || 50,
-        currentHp: monster.current_hp || 50,
-        name: monster.name,
-        monsterType: monsterType,
-        isAlive: monster.is_alive !== false
-    };
+        const { x, y } = this.gridToIso(gx, gy);
+        const targetY = y - TILE_DEPTH;
 
-    // Update monster roster in side panel
-    updateMonsterRoster(scene);
+        // Update direction for players
+        if (ent.type === 'player' && ent.data) {
+            const newDir = this._getDirection(ent.data.grid_x, ent.data.grid_y, gx, gy);
+            if (newDir !== ent.direction) {
+                ent.direction = newDir;
+                const texKey = `chi_${ent.cls}_${newDir}_${ent.state}`;
+                if (this.textures.exists(texKey)) {
+                    ent.sprite.setTexture(texKey);
+                }
+            }
+        }
 
-    console.log('Monster sprite added:', monster.name, 'at grid', monster.grid_x, monster.grid_y);
-}
-
-/**
- * Update game state from server
- * Server sends: {session_id, status, round, phase, participants: [...], monsters: [...], all_monsters: [...]}
- */
-function updateGameState(scene, state) {
-    if (!scene) return;
-
-    console.log('updateGameState:', state.phase, 'round:', state.round,
-        'participants:', (state.participants || []).length,
-        'monsters:', (state.monsters || []).length);
-
-    currentGameState = state;
-
-    // Update round display
-    updateRoundDisplay(scene, state.round, state.phase);
-
-    // Update or create players from participants array
-    const participants = state.participants || [];
-    participants.forEach(p => {
-        if (!scene.entities.players[p.id]) {
-            addPlayerSprite(scene, p);
+        if (animate) {
+            this.tweens.add({
+                targets: [ent.sprite],
+                x: x,
+                y: targetY,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                    ent.sprite.setDepth(gx + gy + 1);
+                },
+            });
+            this.tweens.add({
+                targets: ent.name,
+                x: x,
+                y: targetY - (ent.type === 'monster' ? 36 : 30),
+                duration: 400,
+                ease: 'Power2',
+            });
+            const barY = targetY - (ent.type === 'monster' ? 26 : 20);
+            this.tweens.add({
+                targets: [ent.hpBg],
+                x: x,
+                y: barY,
+                duration: 400,
+                ease: 'Power2',
+            });
+            this.tweens.add({
+                targets: [ent.hpFill],
+                x: x,
+                y: barY,
+                duration: 400,
+                ease: 'Power2',
+            });
         } else {
-            updatePlayerSprite(scene, p.id, p);
+            ent.sprite.setPosition(x, targetY);
+            ent.sprite.setDepth(gx + gy + 1);
+            const nameYOff = ent.type === 'monster' ? 36 : 30;
+            const barYOff = ent.type === 'monster' ? 26 : 20;
+            ent.name.setPosition(x, targetY - nameYOff);
+            ent.hpBg.setPosition(x, targetY - barYOff);
+            ent.hpFill.setPosition(x, targetY - barYOff);
         }
-    });
+    }
 
-    // Update or create monsters from all_monsters array (includes dead ones for display)
-    const allMonsters = state.all_monsters || state.monsters || [];
-    allMonsters.forEach(m => {
-        if (!scene.entities.monsters[m.id]) {
-            addMonsterSprite(scene, m);
+    updateEntityHP(id, curHp, maxHp) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
+
+        const barWidth = 30;
+        const pct = Math.max(0, Math.min(1, curHp / maxHp));
+        const hpColor = ent.type === 'monster' ? 0xef4444
+            : (pct > 0.5 ? 0x10b981 : pct > 0.25 ? 0xf59e0b : 0xef4444);
+
+        ent.hpFill.width = barWidth * pct;
+        ent.hpFill.fillColor = hpColor;
+        const baseX = ent.hpBg.x;
+        ent.hpFill.x = baseX - barWidth / 2 + (barWidth * pct) / 2;
+    }
+
+    setEntityState(id, state) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
+
+        ent.state = state;
+        let texKey;
+        if (ent.type === 'player') {
+            texKey = `chi_${ent.cls}_${ent.direction || 'se'}_${state}`;
         } else {
-            updateMonsterSprite(scene, m.id, m);
+            texKey = `mon_${ent.monType}_${state}`;
         }
-    });
-}
 
-/**
- * Update a player sprite with new data
- */
-function updatePlayerSprite(scene, playerId, playerData) {
-    const player = scene.entities.players[playerId];
-    if (!player) return;
+        if (this.textures.exists(texKey)) {
+            ent.sprite.setTexture(texKey);
+        }
 
-    player.currentHp = playerData.current_hp !== undefined ? playerData.current_hp : player.currentHp;
-    player.maxHp = playerData.max_hp || player.maxHp;
-    player.mana = playerData.current_mana !== undefined ? playerData.current_mana : player.mana;
-    player.maxMana = playerData.max_mana || player.maxMana;
-    player.isAlive = playerData.is_alive !== undefined ? playerData.is_alive : player.isAlive;
-
-    // Update HP bar
-    const hpPercent = Math.max(0, Math.min(1, player.currentHp / player.maxHp));
-    player.hpBarFill.width = 44 * hpPercent;
-    player.hpBarFill.x = -22;
-
-    // Fade out if dead
-    if (!player.isAlive || player.currentHp <= 0) {
-        player.container.setAlpha(0.3);
-        player.circle.setFillStyle(0x888888);
-    } else {
-        player.container.setAlpha(1);
+        if (state === 'ko') {
+            ent.sprite.setAlpha(0.5);
+            ent.name.setAlpha(0.5);
+        } else {
+            ent.sprite.setAlpha(1);
+            ent.name.setAlpha(1);
+        }
     }
 
-    // Update roster
-    updatePlayerRoster(scene);
-}
+    // ── Full state update from server ──
 
-/**
- * Update a monster sprite with new data
- */
-function updateMonsterSprite(scene, monsterId, monsterData) {
-    const monster = scene.entities.monsters[monsterId];
-    if (!monster) return;
+    updateState(state) {
+        if (!state) return;
 
-    monster.currentHp = monsterData.current_hp !== undefined ? monsterData.current_hp : monster.currentHp;
-    monster.maxHp = monsterData.max_hp || monster.maxHp;
-    monster.isAlive = monsterData.is_alive !== undefined ? monsterData.is_alive : monster.isAlive;
-
-    // Update HP bar
-    const hpPercent = Math.max(0, Math.min(1, monster.currentHp / monster.maxHp));
-    monster.hpBarFill.width = 44 * hpPercent;
-    monster.hpBarFill.x = -22;
-
-    // Fade out if dead
-    if (!monster.isAlive || monster.currentHp <= 0) {
-        monster.container.setAlpha(0.3);
-        monster.shape.setFillStyle(0x888888);
-    } else {
-        monster.container.setAlpha(1);
-    }
-
-    // Update roster
-    updateMonsterRoster(scene);
-}
-
-/**
- * Play animations sequentially
- */
-function playAnimations(scene, animations) {
-    if (!Array.isArray(animations) || animations.length === 0) {
-        return;
-    }
-
-    scene.animationQueue = [...animations];
-    executeNextAnimation(scene);
-}
-
-/**
- * Execute next animation in queue
- */
-function executeNextAnimation(scene) {
-    if (scene.animationQueue.length === 0) {
-        scene.isAnimating = false;
-        return;
-    }
-
-    const animation = scene.animationQueue.shift();
-    scene.isAnimating = true;
-
-    console.log('Playing animation:', animation.type, animation.attacker_name, '→', animation.target_name);
-
-    switch (animation.type) {
-        case 'attack':
-            playAttackAnimation(scene, animation, () => executeNextAnimation(scene));
-            break;
-        case 'heal':
-            playHealAnimation(scene, animation, () => executeNextAnimation(scene));
-            break;
-        case 'monster_attack':
-            playMonsterAttackAnimation(scene, animation, () => executeNextAnimation(scene));
-            break;
-        case 'defense':
-        case 'buff':
-            playBuffAnimation(scene, animation, () => executeNextAnimation(scene));
-            break;
-        default:
-            // Log and skip unknown animation type
+        // Update round/phase
+        if (state.current_round !== undefined) {
+            this.currentRound = state.current_round;
+            const roundEl = document.getElementById('round-number');
+            if (roundEl) roundEl.textContent = 'Round ' + state.current_round;
+        }
+        if (state.current_phase) {
+            this.currentPhase = state.current_phase;
             if (typeof CombatSocketInstance !== 'undefined') {
-                CombatSocketInstance.addCombatLogEntry(
-                    (animation.attacker_name || '?') + ' utilise ' + (animation.skill_name || '?'),
-                    'default'
-                );
+                CombatSocketInstance.updatePhaseIndicator(state.current_phase);
             }
-            executeNextAnimation(scene);
+        }
+
+        // Update participants
+        if (state.participants) {
+            this.participants = state.participants;
+            for (const p of state.participants) {
+                const id = `player_${p.student_id}`;
+                if (!this.entitySprites[id]) {
+                    this.addParticipant(p);
+                } else {
+                    const ent = this.entitySprites[id];
+                    const oldData = ent.data;
+                    if (oldData.grid_x !== p.grid_x || oldData.grid_y !== p.grid_y) {
+                        this.updateEntityPosition(id, p.grid_x, p.grid_y, true);
+                    }
+                    const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
+                    this.updateEntityHP(id, p.current_hp, maxHp);
+
+                    if (!p.is_alive && ent.state !== 'ko') {
+                        this.setEntityState(id, 'ko');
+                    } else if (p.is_alive && ent.state === 'ko') {
+                        this.setEntityState(id, 'idle');
+                    }
+                    ent.data = p;
+                }
+            }
+            this.updatePlayerRoster(state.participants);
+        }
+
+        // Update monsters
+        if (state.monsters) {
+            this.monsters = state.monsters;
+            for (const m of state.monsters) {
+                const id = `monster_${m.id}`;
+                if (!this.entitySprites[id]) {
+                    this.addMonster(m);
+                } else {
+                    const ent = this.entitySprites[id];
+                    const oldData = ent.data;
+                    if (oldData.grid_x !== m.grid_x || oldData.grid_y !== m.grid_y) {
+                        this.updateEntityPosition(id, m.grid_x, m.grid_y, true);
+                    }
+                    this.updateEntityHP(id, m.current_hp, m.max_hp);
+                    if (!m.is_alive && ent.state !== 'ko') {
+                        this.setEntityState(id, 'ko');
+                    }
+                    ent.data = m;
+                }
+            }
+            this.updateMonsterRoster(state.monsters);
+        }
     }
-}
 
-/**
- * Play attack animation (player attacks monster)
- * animation: {type, attacker_type, attacker_id, attacker_name, target_type, target_id, target_name, skill_name, damage, target_hp, target_max_hp, killed}
- */
-function playAttackAnimation(scene, animation, onComplete) {
-    const attacker = scene.entities.players[animation.attacker_id];
-    const target = scene.entities.monsters[animation.target_id];
+    // ── Phase change handler ──
 
-    if (!attacker || !target) {
+    onPhaseChange(phase) {
+        this.currentPhase = phase;
+        this.clearHighlights();
+
         if (typeof CombatSocketInstance !== 'undefined') {
-            CombatSocketInstance.addCombatLogEntry(
-                (animation.attacker_name || '?') + ' → ' + (animation.skill_name || '?') + ' → ' + animation.damage + ' dégâts',
-                'damage'
-            );
-        }
-        onComplete();
-        return;
-    }
-
-    const startX = attacker.container.x;
-    const startY = attacker.container.y;
-    const targetX = target.container.x;
-    const targetY = target.container.y;
-
-    // Flash the target
-    target.shape.setFillStyle(0xffffff);
-
-    // Move attacker toward target and back
-    scene.tweens.add({
-        targets: attacker.container,
-        x: targetX - 30,
-        y: targetY,
-        duration: 200,
-        ease: 'Quad.Out',
-        yoyo: true,
-        onComplete: () => {
-            const monsterType = target.monsterType || 'slime';
-            const origColor = parseInt((COLORS.monsterTypes[monsterType] || '#3b82f6').replace('#', '0x'));
-            target.shape.setFillStyle(origColor);
-
-            // Update target HP
-            target.currentHp = animation.target_hp;
-            target.maxHp = animation.target_max_hp || target.maxHp;
-            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
-            target.hpBarFill.width = 44 * hpPercent;
-
-            if (animation.killed) {
-                target.container.setAlpha(0.3);
-                target.shape.setFillStyle(0x888888);
-                target.isAlive = false;
+            if (phase === 'move') {
+                CombatSocketInstance.addCombatLogEntry('Phase de déplacement', 'phase');
+            } else if (phase === 'action') {
+                CombatSocketInstance.addCombatLogEntry('Phase d\'action', 'phase');
             }
-
-            // Show damage number
-            showDamageNumber(scene, targetX, targetY, animation.damage, false);
-            updateMonsterRoster(scene);
-            onComplete();
         }
-    });
-
-    // Log action
-    if (typeof CombatSocketInstance !== 'undefined') {
-        const killText = animation.killed ? ' 💀 K.O.!' : '';
-        CombatSocketInstance.addCombatLogEntry(
-            animation.attacker_name + ' utilise ' + animation.skill_name + ' → ' + animation.damage + ' dégâts' + killText,
-            'damage'
-        );
-    }
-}
-
-/**
- * Play heal animation
- * animation: {type, attacker_id, attacker_name, target_id, target_name, skill_name, heal, target_hp, target_max_hp}
- */
-function playHealAnimation(scene, animation, onComplete) {
-    const healer = scene.entities.players[animation.attacker_id];
-    const target = scene.entities.players[animation.target_id];
-
-    if (!healer || !target) {
-        onComplete();
-        return;
     }
 
-    // Pulse effect on target
-    scene.tweens.add({
-        targets: target.container,
-        scaleX: 1.15,
-        scaleY: 1.15,
-        duration: 150,
-        ease: 'Quad.Out',
-        yoyo: true,
-        onComplete: () => {
-            // Update target HP
-            target.currentHp = animation.target_hp;
-            target.maxHp = animation.target_max_hp || target.maxHp;
-            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
-            target.hpBarFill.width = 44 * hpPercent;
+    // ── Move result handler ──
 
-            showDamageNumber(scene, target.container.x, target.container.y - 40, animation.heal, true);
-            updatePlayerRoster(scene);
-            onComplete();
-        }
-    });
+    onMoveResult(result) {
+        if (!result) return;
 
-    if (typeof CombatSocketInstance !== 'undefined') {
-        CombatSocketInstance.addCombatLogEntry(
-            animation.attacker_name + ' soigne ' + animation.target_name + ' → +' + animation.heal + ' PV',
-            'heal'
-        );
-    }
-}
+        // Find entity by participant_id
+        for (const id in this.entitySprites) {
+            const ent = this.entitySprites[id];
+            if (ent.type === 'player' && ent.data && ent.data.id === result.participant_id) {
+                this.updateEntityPosition(id, result.new_x, result.new_y, true);
+                ent.data.grid_x = result.new_x;
+                ent.data.grid_y = result.new_y;
 
-/**
- * Play monster attack animation
- */
-function playMonsterAttackAnimation(scene, animation, onComplete) {
-    const attacker = scene.entities.monsters[animation.attacker_id];
-    const target = scene.entities.players[animation.target_id];
-
-    if (!attacker || !target) {
-        if (typeof CombatSocketInstance !== 'undefined') {
-            CombatSocketInstance.addCombatLogEntry(
-                (animation.attacker_name || '?') + ' → ' + (animation.skill_name || '?') + ' → ' + animation.damage + ' dégâts',
-                'damage'
-            );
-        }
-        onComplete();
-        return;
-    }
-
-    const startX = attacker.container.x;
-    const startY = attacker.container.y;
-    const targetX = target.container.x;
-    const targetY = target.container.y;
-
-    // Flash the target
-    target.circle.setFillStyle(0xffffff);
-
-    // Move attacker toward target and back
-    scene.tweens.add({
-        targets: attacker.container,
-        x: targetX + 30,
-        y: targetY,
-        duration: 200,
-        ease: 'Quad.Out',
-        yoyo: true,
-        onComplete: () => {
-            const avatarClass = target.avatarClass || 'guerrier';
-            const origColor = parseInt((COLORS.playerClasses[avatarClass] || '#667eea').replace('#', '0x'));
-            target.circle.setFillStyle(origColor);
-
-            // Update target HP
-            target.currentHp = animation.target_hp;
-            target.maxHp = animation.target_max_hp || target.maxHp;
-            const hpPercent = Math.max(0, Math.min(1, target.currentHp / target.maxHp));
-            target.hpBarFill.width = 44 * hpPercent;
-
-            if (animation.killed) {
-                target.container.setAlpha(0.3);
-                target.circle.setFillStyle(0x888888);
-                target.isAlive = false;
+                if (typeof CombatSocketInstance !== 'undefined') {
+                    CombatSocketInstance.addCombatLogEntry(
+                        `${ent.data.student_name || 'Joueur'} se déplace vers (${result.new_x},${result.new_y})`, 'default'
+                    );
+                }
+                break;
             }
-
-            showDamageNumber(scene, targetX, targetY, animation.damage, false);
-            updatePlayerRoster(scene);
-            onComplete();
         }
-    });
-
-    if (typeof CombatSocketInstance !== 'undefined') {
-        const killText = animation.killed ? ' 💀 K.O.!' : '';
-        CombatSocketInstance.addCombatLogEntry(
-            animation.attacker_name + ' attaque ' + animation.target_name + ' → ' + animation.damage + ' dégâts' + killText,
-            'damage'
-        );
     }
-}
 
-/**
- * Play buff/defense animation
- */
-function playBuffAnimation(scene, animation, onComplete) {
-    const player = scene.entities.players[animation.attacker_id];
+    // ── Animations from execute phase ──
 
-    if (player) {
-        // Quick pulse effect
-        scene.tweens.add({
-            targets: player.container,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            duration: 200,
-            ease: 'Quad.Out',
-            yoyo: true,
-            onComplete: onComplete
+    playAnimations(animations) {
+        if (!animations || !Array.isArray(animations)) return;
+
+        let delay = 0;
+        for (const anim of animations) {
+            this.time.delayedCall(delay, () => {
+                this._playOneAnimation(anim);
+            });
+            delay += 900;
+        }
+
+        this.time.delayedCall(delay + 300, () => {
+            this.clearHighlights();
         });
-    } else {
-        onComplete();
     }
 
-    if (typeof CombatSocketInstance !== 'undefined') {
-        CombatSocketInstance.addCombatLogEntry(
-            animation.attacker_name + ' utilise ' + animation.skill_name,
-            'default'
-        );
-    }
-}
+    _playOneAnimation(anim) {
+        const type = anim.type;
 
-/**
- * Show floating damage/heal number
- */
-function showDamageNumber(scene, x, y, amount, isHeal) {
-    const color = isHeal ? COLORS.heal : COLORS.damage;
-    const prefix = isHeal ? '+' : '-';
-
-    const text = scene.add.text(x, y - 20, prefix + amount, {
-        font: 'bold 24px Arial',
-        fill: color
-    });
-    text.setOrigin(0.5, 0.5);
-
-    scene.tweens.add({
-        targets: text,
-        y: y - 80,
-        alpha: 0,
-        duration: 1200,
-        ease: 'Quad.Out',
-        onComplete: () => {
-            text.destroy();
+        if (type === 'attack' || type === 'monster_attack') {
+            this._playAttackAnim(anim);
+        } else if (type === 'heal') {
+            this._playHealAnim(anim);
+        } else if (type === 'buff') {
+            this._playBuffAnim(anim);
         }
-    });
-}
 
-/**
- * Update round display
- */
-function updateRoundDisplay(scene, round, phase) {
-    const roundElement = document.getElementById('round-number');
-    const phaseElement = document.getElementById('phase-name');
-    const phaseIndicator = document.getElementById('phase-indicator');
-
-    if (roundElement) {
-        roundElement.textContent = 'Round ' + (round || 0);
-    }
-
-    if (phaseElement) {
-        let phaseName = 'Attente';
-        switch (phase) {
-            case 'waiting': phaseName = 'Attente'; break;
-            case 'question': phaseName = 'Question'; break;
-            case 'action': phaseName = 'Action'; break;
-            case 'execute': phaseName = 'Exécution'; break;
-            case 'round_end': phaseName = 'Fin de round'; break;
-            case 'finished': phaseName = 'Terminé'; break;
+        // Log
+        if (typeof CombatSocketInstance !== 'undefined') {
+            const dmg = anim.damage || anim.heal_amount || 0;
+            const logType = type === 'heal' ? 'heal' : 'damage';
+            let msg = '';
+            if (type === 'attack') {
+                msg = `${anim.attacker_name || '?'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
+            } else if (type === 'heal') {
+                msg = `${anim.attacker_name || '?'} soigne ${anim.target_name || '?'} : +${dmg} HP`;
+            } else if (type === 'monster_attack') {
+                msg = `${anim.attacker_name || 'Monstre'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
+            } else {
+                msg = `${anim.attacker_name || '?'} utilise ${anim.skill_name || 'compétence'}`;
+            }
+            CombatSocketInstance.addCombatLogEntry(msg, logType);
         }
-        phaseElement.textContent = phaseName;
     }
 
-    if (phaseIndicator) {
-        phaseIndicator.className = 'phase-indicator phase-' + (phase || 'waiting');
+    _playAttackAnim(anim) {
+        const attackerId = anim.attacker_type === 'monster'
+            ? `monster_${anim.attacker_id}` : `player_${anim.attacker_id}`;
+        const targetId = anim.target_type === 'monster'
+            ? `monster_${anim.target_id}` : `player_${anim.target_id}`;
+
+        const attacker = this.entitySprites[attackerId];
+        const target = this.entitySprites[targetId];
+
+        if (attacker) {
+            // Face towards target
+            if (attacker.type === 'player' && target) {
+                const dir = this._getDirection(
+                    attacker.data.grid_x, attacker.data.grid_y,
+                    target.data.grid_x, target.data.grid_y
+                );
+                attacker.direction = dir;
+            }
+            this.setEntityState(attackerId, 'attack');
+            this.time.delayedCall(500, () => {
+                this.setEntityState(attackerId, 'idle');
+            });
+        }
+
+        if (target) {
+            const fxKey = anim.skill_type === 'magic' ? 'fx_fireball' : 'fx_slash';
+            if (this.textures.exists(fxKey)) {
+                const fx = this.add.image(target.sprite.x, target.sprite.y, fxKey);
+                fx.setDepth(9998);
+                fx.setAlpha(0);
+                this.tweens.add({
+                    targets: fx,
+                    alpha: 1,
+                    scale: { from: 0.5, to: 1.3 },
+                    duration: 350,
+                    yoyo: true,
+                    onComplete: () => fx.destroy(),
+                });
+            }
+
+            // Damage number
+            const dmg = anim.damage || 0;
+            if (dmg > 0) {
+                this._showDamageNumber(target.sprite.x, target.sprite.y - 20, dmg, '#ff4444');
+            }
+
+            // Hurt flash
+            this.time.delayedCall(200, () => {
+                this.setEntityState(targetId, 'hurt');
+                this.time.delayedCall(400, () => {
+                    if (anim.target_killed) {
+                        this.setEntityState(targetId, 'ko');
+                    } else {
+                        this.setEntityState(targetId, 'idle');
+                    }
+                });
+            });
+
+            if (anim.target_hp_after !== undefined && anim.target_max_hp) {
+                this.time.delayedCall(300, () => {
+                    this.updateEntityHP(targetId, anim.target_hp_after, anim.target_max_hp);
+                });
+            }
+        }
+    }
+
+    _playHealAnim(anim) {
+        const targetId = `player_${anim.target_id}`;
+        const target = this.entitySprites[targetId];
+
+        if (target && this.textures.exists('fx_heal')) {
+            const fx = this.add.image(target.sprite.x, target.sprite.y, 'fx_heal');
+            fx.setDepth(9998);
+            fx.setAlpha(0);
+            this.tweens.add({
+                targets: fx,
+                alpha: 1,
+                scale: { from: 0.8, to: 1.5 },
+                duration: 500,
+                yoyo: true,
+                onComplete: () => fx.destroy(),
+            });
+        }
+
+        if (target && anim.heal_amount) {
+            this._showDamageNumber(target.sprite.x, target.sprite.y - 20, -anim.heal_amount, '#10b981');
+        }
+
+        if (anim.target_hp_after !== undefined && anim.target_max_hp) {
+            this.updateEntityHP(targetId, anim.target_hp_after, anim.target_max_hp);
+        }
+    }
+
+    _playBuffAnim(anim) {
+        const targetId = `player_${anim.target_id || anim.attacker_id}`;
+        const target = this.entitySprites[targetId];
+
+        if (target && this.textures.exists('fx_shield')) {
+            const fx = this.add.image(target.sprite.x, target.sprite.y, 'fx_shield');
+            fx.setDepth(9998);
+            fx.setAlpha(0);
+            this.tweens.add({
+                targets: fx,
+                alpha: 0.8,
+                duration: 500,
+                yoyo: true,
+                onComplete: () => fx.destroy(),
+            });
+        }
+    }
+
+    _showDamageNumber(x, y, value, color) {
+        const prefix = value > 0 ? '-' : '+';
+        const text = this.add.text(x, y, prefix + Math.abs(value), {
+            fontSize: '16px',
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            color: color,
+            stroke: '#000000',
+            strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(10000);
+
+        this.tweens.add({
+            targets: text,
+            y: y - 40,
+            alpha: { from: 1, to: 0 },
+            duration: 1200,
+            ease: 'Power2',
+            onComplete: () => text.destroy(),
+        });
+    }
+
+    // ── Side panel updates ──
+
+    updatePlayerRoster(participants) {
+        const container = document.getElementById('players-list');
+        if (!container) return;
+
+        container.innerHTML = participants.map(p => {
+            const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
+            const maxMana = (p.snapshot_json && p.snapshot_json.max_mana) || p.max_mana || 50;
+            const hpPct = Math.max(0, Math.min(100, Math.round((p.current_hp / maxHp) * 100)));
+            const manaPct = Math.max(0, Math.min(100, Math.round((p.current_mana / maxMana) * 100)));
+            const alive = p.is_alive !== false;
+            const cls = p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || '?';
+
+            return `
+                <div class="entity-card" style="opacity:${alive ? 1 : 0.4}">
+                    <div class="entity-name">${p.student_name || 'Élève'} <small style="color:#a0aec0">${cls}</small></div>
+                    <div class="bar-label"><span>HP</span><span>${p.current_hp}/${maxHp}</span></div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill" style="width:${hpPct}%;background:${hpPct > 50 ? '#10b981' : hpPct > 25 ? '#f59e0b' : '#ef4444'}"></div>
+                    </div>
+                    <div class="bar-label"><span>Mana</span><span>${p.current_mana}/${maxMana}</span></div>
+                    <div class="mana-bar-container">
+                        <div class="mana-bar-fill" style="width:${manaPct}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    updateMonsterRoster(monsters) {
+        const container = document.getElementById('monsters-list');
+        if (!container) return;
+
+        container.innerHTML = monsters.map(m => {
+            const hpPct = Math.max(0, Math.min(100, Math.round((m.current_hp / m.max_hp) * 100)));
+            const alive = m.is_alive !== false;
+
+            return `
+                <div class="entity-card" style="opacity:${alive ? 1 : 0.4}">
+                    <div class="entity-name" style="color:#ef4444">${m.name || m.monster_type} <small>Nv.${m.level || 1}</small></div>
+                    <div class="bar-label"><span>HP</span><span>${m.current_hp}/${m.max_hp}</span></div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill" style="width:${hpPct}%;background:#ef4444"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 }
 
-/**
- * Update phase display
- */
-function updatePhase(scene, phase, data) {
-    updateRoundDisplay(scene, currentGameState.round, phase);
-}
+// ── Initialize Phaser ──
 
-/**
- * Update player roster UI (left side panel)
- */
-function updatePlayerRoster(scene) {
-    const roster = document.getElementById('players-list');
-    if (!roster) return;
-
-    roster.innerHTML = '';
-
-    Object.entries(scene.entities.players).forEach(([playerId, player]) => {
-        const card = document.createElement('div');
-        card.className = 'entity-card';
-        if (!player.isAlive) card.style.opacity = '0.4';
-
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'entity-name';
-        nameDiv.textContent = player.studentName + (player.isAlive ? '' : ' 💀');
-
-        const hpLabel = document.createElement('div');
-        hpLabel.className = 'bar-label';
-        hpLabel.innerHTML = '<span>HP</span><span>' + Math.max(0, player.currentHp) + '/' + player.maxHp + '</span>';
-
-        const hpBarContainer = document.createElement('div');
-        hpBarContainer.className = 'hp-bar-container';
-        const hpPercent = Math.max(0, Math.min(100, (player.currentHp / player.maxHp) * 100));
-        hpBarContainer.innerHTML = '<div class="hp-bar-fill" style="width: ' + hpPercent + '%"></div>';
-
-        const manaLabel = document.createElement('div');
-        manaLabel.className = 'bar-label';
-        manaLabel.innerHTML = '<span>Mana</span><span>' + player.mana + '/' + player.maxMana + '</span>';
-
-        const manaBarContainer = document.createElement('div');
-        manaBarContainer.className = 'mana-bar-container';
-        const manaPercent = Math.max(0, Math.min(100, (player.mana / player.maxMana) * 100));
-        manaBarContainer.innerHTML = '<div class="mana-bar-fill" style="width: ' + manaPercent + '%"></div>';
-
-        card.appendChild(nameDiv);
-        card.appendChild(hpLabel);
-        card.appendChild(hpBarContainer);
-        card.appendChild(manaLabel);
-        card.appendChild(manaBarContainer);
-
-        roster.appendChild(card);
-    });
-}
-
-/**
- * Update monster roster UI (right side panel)
- */
-function updateMonsterRoster(scene) {
-    const roster = document.getElementById('monsters-list');
-    if (!roster) return;
-
-    roster.innerHTML = '';
-
-    Object.entries(scene.entities.monsters).forEach(([monsterId, monster]) => {
-        const card = document.createElement('div');
-        card.className = 'entity-card';
-        if (!monster.isAlive) card.style.opacity = '0.4';
-
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'entity-name';
-        nameDiv.textContent = monster.name + (monster.isAlive ? '' : ' 💀');
-
-        const hpLabel = document.createElement('div');
-        hpLabel.className = 'bar-label';
-        hpLabel.innerHTML = '<span>HP</span><span>' + Math.max(0, monster.currentHp) + '/' + monster.maxHp + '</span>';
-
-        const hpBarContainer = document.createElement('div');
-        hpBarContainer.className = 'hp-bar-container';
-        const hpPercent = Math.max(0, Math.min(100, (monster.currentHp / monster.maxHp) * 100));
-        hpBarContainer.innerHTML = '<div class="hp-bar-fill" style="width: ' + hpPercent + '%"></div>';
-
-        card.appendChild(nameDiv);
-        card.appendChild(hpLabel);
-        card.appendChild(hpBarContainer);
-
-        roster.appendChild(card);
-    });
-}
-
-// Initialize Phaser game when document is ready
 document.addEventListener('DOMContentLoaded', () => {
-    const game = new Phaser.Game(GAME_CONFIG);
-    console.log('Phaser game instance created');
-});
+    const gameContainer = document.getElementById('phaser-game');
+    if (!gameContainer) return;
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (typeof CombatSocketInstance !== 'undefined') {
-        CombatSocketInstance.disconnect();
-    }
+    const config = {
+        type: Phaser.AUTO,
+        parent: 'phaser-game',
+        width: window.innerWidth - 500,
+        height: window.innerHeight - 60,
+        transparent: true,
+        scene: CombatArena,
+        scale: {
+            mode: Phaser.Scale.RESIZE,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+    };
+
+    const game = new Phaser.Game(config);
+
+    window.addEventListener('resize', () => {
+        game.scale.resize(window.innerWidth - 500, window.innerHeight - 60);
+    });
 });

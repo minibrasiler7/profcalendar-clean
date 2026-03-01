@@ -141,8 +141,11 @@ class CombatSession(db.Model):
         return {
             'session_id': self.id,
             'status': self.status,
+            'current_round': self.current_round,
+            'current_phase': self.current_phase,
             'round': self.current_round,
             'phase': self.current_phase,
+            'map_config': self.map_config_json or {},
             'participants': [p.to_dict() for p in self.participants],
             'monsters': [m.to_dict() for m in self.monsters if m.is_alive],
             'all_monsters': [m.to_dict() for m in self.monsters],
@@ -177,6 +180,7 @@ class CombatParticipant(db.Model):
     is_correct = db.Column(db.Boolean, default=False)
     selected_action_json = db.Column(db.JSON, nullable=True)
     action_submitted = db.Column(db.Boolean, default=False)
+    has_moved = db.Column(db.Boolean, default=False)
 
     # Relations
     student = db.relationship('Student', backref=db.backref('combat_participations', lazy='dynamic'))
@@ -203,6 +207,8 @@ class CombatParticipant(db.Model):
             'answered': self.answered,
             'is_correct': self.is_correct,
             'action_submitted': self.action_submitted,
+            'has_moved': self.has_moved,
+            'move_range': snapshot.get('move_range', 3),
             'skills': snapshot.get('skills', []),
         }
 
@@ -212,6 +218,7 @@ class CombatParticipant(db.Model):
         self.is_correct = False
         self.selected_action_json = None
         self.action_submitted = False
+        self.has_moved = False
 
     def __repr__(self):
         return f'<CombatParticipant student={self.student_id} hp={self.current_hp}/{self.max_hp}>'

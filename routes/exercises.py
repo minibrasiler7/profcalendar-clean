@@ -642,10 +642,10 @@ def live_tracking(pub_id):
         'students': tracking_data,
     }
 
-    # Si mode combat, inclure le combat_session_id
+    # Si mode combat, inclure le combat_session_id et les participants
     if (pub.mode or 'classique') == 'combat':
         try:
-            from models.combat import CombatSession
+            from models.combat import CombatSession, CombatParticipant
             combat = CombatSession.query.filter(
                 CombatSession.classroom_id == pub.classroom_id,
                 CombatSession.exercise_id == exercise.id,
@@ -656,8 +656,38 @@ def live_tracking(pub_id):
                 result['combat_status'] = combat.status
                 result['combat_round'] = combat.current_round
                 result['combat_phase'] = combat.current_phase
-                # Nombre de participants connectés au combat
-                result['combat_participants'] = combat.participants.count()
+                # Participants connectés au combat
+                participants = CombatParticipant.query.filter_by(
+                    combat_session_id=combat.id
+                ).all()
+                result['combat_participants'] = len(participants)
+
+                # Enrichir la liste d'élèves avec les infos combat
+                combat_student_ids = set()
+                combat_info = {}
+                for p in participants:
+                    combat_student_ids.add(p.student_id)
+                    snapshot = p.snapshot_json or {}
+                    combat_info[p.student_id] = {
+                        'in_combat': True,
+                        'avatar_class': snapshot.get('avatar_class', ''),
+                        'current_hp': p.current_hp,
+                        'max_hp': snapshot.get('max_hp', p.current_hp),
+                        'is_alive': p.is_alive,
+                        'grid_x': p.grid_x,
+                        'grid_y': p.grid_y,
+                    }
+
+                # Mettre à jour chaque étudiant dans tracking_data
+                for s in result['students']:
+                    sid = s['student_id']
+                    if sid in combat_student_ids:
+                        s['in_combat'] = True
+                        s['combat_info'] = combat_info[sid]
+                        if s['status'] == 'not_started':
+                            s['status'] = 'in_progress'
+                    else:
+                        s['in_combat'] = False
         except Exception:
             pass
 

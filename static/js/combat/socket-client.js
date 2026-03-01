@@ -1,5 +1,5 @@
 /**
- * Socket.IO Client for Combat Arena
+ * Socket.IO Client for Combat Arena (Isometric FFT-like)
  * Handles real-time communication between teacher projector and student devices
  */
 
@@ -8,31 +8,17 @@ class CombatSocket {
         this.socket = null;
         this.connected = false;
         this.gameInstance = null;
-        this.callbacks = {
-            onStateUpdate: null,
-            onStudentJoined: null,
-            onQuestion: null,
-            onAnswerProgress: null,
-            onAllAnswered: null,
-            onActionProgress: null,
-            onExecute: null,
-            onFinished: null,
-            onError: null
-        };
+        this.callbacks = {};
     }
 
-    /**
-     * Initialize socket connection
-     */
     connect() {
         this.socket = io({
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5
+            reconnectionAttempts: 10
         });
 
-        // Connection events
         this.socket.on('connect', () => {
             console.log('Socket connected:', this.socket.id);
             this.connected = true;
@@ -50,215 +36,186 @@ class CombatSocket {
             this.showError('Erreur de connexion: ' + error.message);
         });
 
-        // Combat events
+        // ── State updates ──
         this.socket.on('combat:state_update', (state) => {
             console.log('State update:', state);
-            if (this.gameInstance && typeof this.gameInstance.updateState === 'function') {
+            if (this.gameInstance) {
                 this.gameInstance.updateState(state);
             }
-            if (this.callbacks.onStateUpdate) {
-                this.callbacks.onStateUpdate(state);
-            }
+            this._fire('onStateUpdate', state);
         });
 
-        this.socket.on('combat:student_joined', (student) => {
-            console.log('Student joined:', student);
-            if (this.gameInstance && typeof this.gameInstance.addPlayerSprite === 'function') {
-                this.gameInstance.addPlayerSprite(student);
+        this.socket.on('combat:student_joined', (data) => {
+            console.log('Student joined:', data);
+            if (this.gameInstance && data.participant) {
+                this.gameInstance.addParticipant(data.participant);
             }
-            if (this.callbacks.onStudentJoined) {
-                this.callbacks.onStudentJoined(student);
-            }
+            this._fire('onStudentJoined', data);
         });
 
+        // ── Question phase ──
         this.socket.on('combat:question', (questionData) => {
             console.log('Question received:', questionData);
             this.showQuestionOverlay(questionData);
-            if (this.callbacks.onQuestion) {
-                this.callbacks.onQuestion(questionData);
-            }
+            this._fire('onQuestion', questionData);
         });
 
         this.socket.on('combat:answer_progress', (progress) => {
             console.log('Answer progress:', progress);
             this.updateAnswerProgress(progress);
-            if (this.callbacks.onAnswerProgress) {
-                this.callbacks.onAnswerProgress(progress);
-            }
+            this._fire('onAnswerProgress', progress);
         });
 
         this.socket.on('combat:all_answered', (data) => {
-            console.log('All students answered');
+            console.log('All students answered, phase:', data.phase);
             this.hideQuestionOverlay();
             this.addCombatLogEntry('✓ Tous les élèves ont répondu', 'phase');
-            if (this.callbacks.onAllAnswered) {
-                this.callbacks.onAllAnswered(data);
-            }
+            this._fire('onAllAnswered', data);
         });
 
+        // ── Phase changes ──
+        this.socket.on('combat:phase_change', (data) => {
+            console.log('Phase change:', data.phase);
+            this.updatePhaseIndicator(data.phase);
+            if (this.gameInstance && typeof this.gameInstance.onPhaseChange === 'function') {
+                this.gameInstance.onPhaseChange(data.phase);
+            }
+            this._fire('onPhaseChange', data);
+        });
+
+        // ── Move phase ──
+        this.socket.on('combat:move_result', (result) => {
+            console.log('Move result:', result);
+            if (this.gameInstance && typeof this.gameInstance.onMoveResult === 'function') {
+                this.gameInstance.onMoveResult(result);
+            }
+            this._fire('onMoveResult', result);
+        });
+
+        // ── Action phase ──
         this.socket.on('combat:action_progress', (progress) => {
-            console.log('Action phase progress:', progress);
-            if (this.gameInstance && typeof this.gameInstance.updatePhase === 'function') {
-                this.gameInstance.updatePhase('Action', progress);
-            }
-            if (this.callbacks.onActionProgress) {
-                this.callbacks.onActionProgress(progress);
-            }
+            console.log('Action progress:', progress);
+            this._fire('onActionProgress', progress);
         });
 
+        // ── Execution ──
         this.socket.on('combat:execute', (executionData) => {
             console.log('Executing animations:', executionData);
             if (this.gameInstance && typeof this.gameInstance.playAnimations === 'function') {
                 this.gameInstance.playAnimations(executionData.animations);
             }
-            if (this.callbacks.onExecute) {
-                this.callbacks.onExecute(executionData);
-            }
+            this._fire('onExecute', executionData);
         });
 
-        this.socket.on('combat:round_update', (roundData) => {
-            console.log('Round update:', roundData);
-            if (this.gameInstance && typeof this.gameInstance.updateRound === 'function') {
-                this.gameInstance.updateRound(roundData.round, roundData.phase);
-            }
-        });
-
+        // ── Combat end ──
         this.socket.on('combat:finished', (result) => {
             console.log('Combat finished:', result);
             this.showFinishedScreen(result);
-            if (this.callbacks.onFinished) {
-                this.callbacks.onFinished(result);
-            }
+            this._fire('onFinished', result);
         });
 
         this.socket.on('combat:error', (errorData) => {
             console.error('Combat error:', errorData);
-            this.showError(errorData.error || errorData.message || 'Une erreur est survenue');
-            if (this.callbacks.onError) {
-                this.callbacks.onError(errorData);
-            }
+            this.showError(errorData.error || 'Une erreur est survenue');
+            this._fire('onError', errorData);
         });
     }
 
-    /**
-     * Join the combat room
-     */
-    joinCombatRoom() {
-        if (!this.socket || !this.connected) {
-            console.warn('Socket not connected yet');
-            return;
-        }
-
-        const joinData = {
-            session_id: SESSION_ID,
-            classroom_id: CLASSROOM_ID,
-            exercise_id: EXERCISE_ID
-        };
-
-        console.log('Joining combat room:', joinData);
-        this.socket.emit('combat:teacher_join', joinData);
+    _fire(event, data) {
+        if (this.callbacks[event]) this.callbacks[event](data);
     }
 
-    /**
-     * Start a new round
-     */
-    startRound() {
-        if (!this.socket || !this.connected) {
-            this.showError('Non connecté au serveur');
-            return;
-        }
-
-        console.log('Starting new round');
-        this.socket.emit('combat:start_round', {
-            session_id: SESSION_ID
-        });
-    }
-
-    /**
-     * Force immediate execution of current round
-     */
-    forceExecute() {
-        if (!this.socket || !this.connected) {
-            this.showError('Non connecté au serveur');
-            return;
-        }
-
-        console.log('Forcing execution');
-        this.socket.emit('combat:force_execute', {
-            session_id: SESSION_ID
-        });
-    }
-
-    /**
-     * Set callback for a specific event
-     */
     on(event, callback) {
-        if (event in this.callbacks) {
-            this.callbacks[event] = callback;
-        }
+        this.callbacks[event] = callback;
     }
 
-    /**
-     * Set the game instance reference (for Phaser integration)
-     */
-    setGameInstance(gameInstance) {
-        this.gameInstance = gameInstance;
+    joinCombatRoom() {
+        if (!this.socket || !this.connected) return;
+        console.log('Joining combat room:', SESSION_ID);
+        this.socket.emit('combat:teacher_join', { session_id: SESSION_ID });
+    }
+
+    startRound() {
+        if (!this.connected) { this.showError('Non connecté'); return; }
+        this.socket.emit('combat:start_round', { session_id: SESSION_ID });
+    }
+
+    forceExecute() {
+        if (!this.connected) { this.showError('Non connecté'); return; }
+        this.socket.emit('combat:force_execute', { session_id: SESSION_ID });
+    }
+
+    forceMoveEnd() {
+        if (!this.connected) { this.showError('Non connecté'); return; }
+        console.log('Forcing move phase end');
+        this.socket.emit('combat:force_move_end', { session_id: SESSION_ID });
+    }
+
+    setGameInstance(instance) {
+        this.gameInstance = instance;
         console.log('Game instance set');
     }
 
-    /**
-     * Update UI with answer progress
-     */
-    updateAnswerProgress(progress) {
-        const total = progress.total || 1;
-        const answered = progress.answered || 0;
-        const percentage = Math.round((answered / total) * 100);
+    // ── UI helpers ──
 
-        const progressFill = document.getElementById('overlay-progress-fill');
-        const progressInfo = document.getElementById('overlay-progress');
+    updatePhaseIndicator(phase) {
+        const el = document.getElementById('phase-name');
+        const indicator = document.getElementById('phase-indicator');
+        if (!el) return;
 
-        if (progressFill) {
-            progressFill.style.width = percentage + '%';
-        }
-        if (progressInfo) {
-            progressInfo.textContent = `${answered}/${total}`;
+        const labels = {
+            'waiting': 'Attente',
+            'question': 'Question',
+            'move': 'Déplacement',
+            'action': 'Action',
+            'execute': 'Exécution',
+            'monster_turn': 'Tour Monstres',
+            'round_end': 'Fin du Round',
+        };
+        el.textContent = labels[phase] || phase;
+
+        if (indicator) {
+            indicator.className = 'phase-indicator';
+            if (phase === 'question') indicator.classList.add('phase-question');
+            else if (phase === 'move') indicator.classList.add('phase-move');
+            else if (phase === 'action') indicator.classList.add('phase-action');
+            else if (phase === 'execute') indicator.classList.add('phase-execute');
         }
     }
 
-    /**
-     * Show question overlay
-     */
-    showQuestionOverlay(questionData) {
+    updateAnswerProgress(progress) {
+        const total = progress.total || 1;
+        const answered = progress.answered || 0;
+        const pct = Math.round((answered / total) * 100);
+
+        const fill = document.getElementById('overlay-progress-fill');
+        const info = document.getElementById('overlay-progress');
+        if (fill) fill.style.width = pct + '%';
+        if (info) info.textContent = answered + '/' + total;
+    }
+
+    showQuestionOverlay(qData) {
         const overlay = document.getElementById('overlay-message');
         const title = document.getElementById('overlay-title');
         const progress = document.getElementById('overlay-progress');
 
         if (overlay && title) {
-            title.textContent = questionData.title || questionData.question || 'Les élèves répondent...';
-            progress.textContent = '0/?';
+            title.textContent = qData.title || 'Les élèves répondent...';
+            if (progress) progress.textContent = '0/?';
             overlay.style.display = 'block';
         }
-
-        this.addCombatLogEntry('Round ' + (questionData.round || '?') + ' — ' + (questionData.title || 'Question'), 'phase');
+        this.addCombatLogEntry('Round ' + (qData.round || '?') + ' — ' + (qData.title || 'Question'), 'phase');
     }
 
-    /**
-     * Hide question overlay
-     */
     hideQuestionOverlay() {
         const overlay = document.getElementById('overlay-message');
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
+        if (overlay) overlay.style.display = 'none';
     }
 
-    /**
-     * Show finished/victory screen
-     */
     showFinishedScreen(result) {
         const overlay = document.getElementById('overlay-message');
         const title = document.getElementById('overlay-title');
-        const isVictory = result.result === 'victory' || result.victory;
+        const isVictory = result.result === 'victory';
 
         if (overlay && title) {
             title.textContent = isVictory ? '🎉 VICTOIRE!' : '💀 DÉFAITE...';
@@ -266,17 +223,9 @@ class CombatSocket {
             overlay.style.backgroundColor = isVictory ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
             overlay.style.borderColor = isVictory ? '#10b981' : '#ef4444';
         }
-
-        if (isVictory) {
-            this.addCombatLogEntry('🎉 VICTOIRE - Combat terminé!', 'phase');
-        } else {
-            this.addCombatLogEntry('💀 DÉFAITE - L\'équipe a été vaincue', 'phase');
-        }
+        this.addCombatLogEntry(isVictory ? '🎉 VICTOIRE!' : '💀 DÉFAITE...', 'phase');
     }
 
-    /**
-     * Add entry to combat log
-     */
     addCombatLogEntry(message, type = 'default') {
         const log = document.getElementById('combat-log');
         if (!log) return;
@@ -284,21 +233,14 @@ class CombatSocket {
         const entry = document.createElement('div');
         entry.className = 'log-entry ' + type;
         entry.textContent = message;
-
         log.appendChild(entry);
 
-        // Keep only last 10 entries
-        while (log.children.length > 10) {
+        while (log.children.length > 15) {
             log.removeChild(log.firstChild);
         }
-
-        // Auto-scroll to bottom
         log.scrollTop = log.scrollHeight;
     }
 
-    /**
-     * Show error message
-     */
     showError(message) {
         const container = document.getElementById('error-container');
         if (!container) return;
@@ -306,22 +248,15 @@ class CombatSocket {
         const error = document.createElement('div');
         error.className = 'error-message';
         error.textContent = message;
-
         container.appendChild(error);
 
-        // Auto-remove after 5 seconds
         setTimeout(() => {
-            if (container.contains(error)) {
-                container.removeChild(error);
-            }
+            if (container.contains(error)) container.removeChild(error);
         }, 5000);
 
         this.addCombatLogEntry('⚠ ' + message, 'error');
     }
 
-    /**
-     * Disconnect socket
-     */
     disconnect() {
         if (this.socket) {
             this.socket.disconnect();
@@ -330,31 +265,21 @@ class CombatSocket {
     }
 }
 
-// Create global socket instance
+// Global instance
 const CombatSocketInstance = new CombatSocket();
 
-// Connect when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     CombatSocketInstance.connect();
 
-    // Attach button handlers
-    const btnNextRound = document.getElementById('btn-next-round');
-    const btnForceExecute = document.getElementById('btn-force-execute');
+    const btnNext = document.getElementById('btn-next-round');
+    const btnForce = document.getElementById('btn-force-execute');
+    const btnForceMove = document.getElementById('btn-force-move-end');
 
-    if (btnNextRound) {
-        btnNextRound.addEventListener('click', () => {
-            CombatSocketInstance.startRound();
-        });
-    }
-
-    if (btnForceExecute) {
-        btnForceExecute.addEventListener('click', () => {
-            CombatSocketInstance.forceExecute();
-        });
-    }
+    if (btnNext) btnNext.addEventListener('click', () => CombatSocketInstance.startRound());
+    if (btnForce) btnForce.addEventListener('click', () => CombatSocketInstance.forceExecute());
+    if (btnForceMove) btnForceMove.addEventListener('click', () => CombatSocketInstance.forceMoveEnd());
 
     console.log('Socket client initialized');
 });
 
-// Expose global for debugging
 window.CombatSocket = CombatSocketInstance;

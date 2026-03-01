@@ -11,6 +11,7 @@ import {
   TextInput,
   Dimensions,
 } from 'react-native';
+import Svg, { Polygon, Circle, Rect, G, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import io from 'socket.io-client';
 import api from '../../api/client';
@@ -84,6 +85,13 @@ export default function CombatScreen({ route, navigation }) {
   const [result, setResult] = useState(null);
   const [answerProgress, setAnswerProgress] = useState({ answered: 0, total: 0 });
 
+  // Move phase state
+  const [moveTiles, setMoveTiles] = useState([]);
+  const [hasMoved, setHasMoved] = useState(false);
+  const [mapConfig, setMapConfig] = useState(null);
+  const [myPosition, setMyPosition] = useState({ x: 0, y: 0 });
+  const [targetsInRange, setTargetsInRange] = useState([]);
+
   // Socket reference
   const socketRef = useRef(null);
 
@@ -102,12 +110,17 @@ export default function CombatScreen({ route, navigation }) {
       student_id: studentId,
     });
 
-    // Listen for state updates (server sends: {session_id, status, round, phase, participants, monsters, all_monsters})
+    // Listen for state updates
     socketRef.current.on('combat:state_update', (state) => {
       console.log('[Combat] state_update:', state.phase, state.round);
       setCombatPhase(state.phase || 'waiting');
       setParticipants(state.participants || []);
       setMonsters(state.all_monsters || state.monsters || []);
+
+      // Store map config
+      if (state.map_config) {
+        setMapConfig(state.map_config);
+      }
 
       // Update player stats from participants list
       const me = (state.participants || []).find(p => p.student_id === studentId);
@@ -118,7 +131,8 @@ export default function CombatScreen({ route, navigation }) {
           mana: me.current_mana,
           maxMana: me.max_mana,
         });
-        // Update available skills from snapshot
+        setMyPosition({ x: me.grid_x, y: me.grid_y });
+        setHasMoved(me.has_moved || false);
         if (me.skills && me.skills.length > 0) {
           setAvailableSkills(me.skills);
         }
@@ -161,10 +175,40 @@ export default function CombatScreen({ route, navigation }) {
       setAnswerProgress({ answered: data.answered, total: data.total });
     });
 
-    // Listen for all answered signal → move to action phase
+    // Listen for all answered signal → move phase
     socketRef.current.on('combat:all_answered', (data) => {
-      console.log('[Combat] all_answered → action phase');
-      setCombatPhase('action');
+      console.log('[Combat] all_answered → phase:', data.phase);
+      setCombatPhase(data.phase || 'move');
+      setHasMoved(false);
+      // Request move tiles if we answered correctly
+    });
+
+    // Listen for phase changes
+    socketRef.current.on('combat:phase_change', (data) => {
+      console.log('[Combat] phase_change:', data.phase);
+      setCombatPhase(data.phase);
+    });
+
+    // Listen for move tiles response
+    socketRef.current.on('combat:move_tiles', (data) => {
+      console.log('[Combat] move_tiles:', data.tiles?.length, 'tiles available');
+      setMoveTiles(data.tiles || []);
+    });
+
+    // Listen for move result
+    socketRef.current.on('combat:move_result', (data) => {
+      console.log('[Combat] move_result:', data);
+      if (data.student_id === studentId || data.participant_id) {
+        setMyPosition({ x: data.new_x, y: data.new_y });
+        setHasMoved(true);
+        setMoveTiles([]);
+      }
+    });
+
+    // Listen for targets in range
+    socketRef.current.on('combat:targets_in_range', (data) => {
+      console.log('[Combat] targets_in_range:', data.targets?.length);
+      setTargetsInRange(data.targets || []);
     });
 
     // Listen for combat execution (server sends: {animations: [...]})
@@ -267,10 +311,17 @@ export default function CombatScreen({ route, navigation }) {
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
 
-    // Determine targets based on skill type
-    // skill.type: 'attack' → target monsters, 'heal' → target allies, 'defense'/'buff' → self (no target needed)
+    if (skill.type === 'defense' || skill.type === 'buff') {
+      // Auto-target self
+      handleConfirmAction(null, 'self');
+      return;
+    }
+
+    // Request server-validated targets in range
+    requestTargets(skill.id);
+
+    // Also build a fallback target list
     if (skill.type === 'heal') {
-      // Target alive allies (players)
       const aliveAllies = participants.filter(p => p.is_alive);
       setAvailableTargets(aliveAllies.map(p => ({
         id: p.id,
@@ -278,10 +329,9 @@ export default function CombatScreen({ route, navigation }) {
         current_hp: p.current_hp,
         max_hp: p.max_hp,
         target_type: 'player',
+        in_range: true,
       })));
-      setSelectingTarget(true);
-    } else if (skill.type === 'attack') {
-      // Target alive monsters
+    } else {
       const aliveMonsters = monsters.filter(m => m.is_alive);
       setAvailableTargets(aliveMonsters.map(m => ({
         id: m.id,
@@ -289,13 +339,22 @@ export default function CombatScreen({ route, navigation }) {
         current_hp: m.current_hp,
         max_hp: m.max_hp,
         target_type: 'monster',
+        in_range: true,
       })));
-      setSelectingTarget(true);
-    } else {
-      // Defense/buff — auto-target self, submit immediately
-      handleConfirmAction(null, 'self');
     }
+    setSelectingTarget(true);
   };
+
+  // Update available targets when server responds with range info
+  useEffect(() => {
+    if (targetsInRange.length > 0 && selectingTarget) {
+      const rangeIds = new Set(targetsInRange.map(t => t.id));
+      setAvailableTargets(prev => prev.map(t => ({
+        ...t,
+        in_range: rangeIds.has(t.id),
+      })));
+    }
+  }, [targetsInRange, selectingTarget]);
 
   const handleConfirmAction = (targetId, targetType) => {
     if (!selectedSkill && !targetType) return;
@@ -318,6 +377,164 @@ export default function CombatScreen({ route, navigation }) {
 
   const handleReturnHome = () => {
     navigation.goBack();
+  };
+
+  // ── Move phase handlers ──
+
+  const requestMoveTiles = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.emit('combat:request_move_tiles', {
+        session_id: sessionId,
+        student_id: studentId,
+      });
+    }
+  }, [sessionId, studentId]);
+
+  const handleMoveTo = useCallback((tx, ty) => {
+    if (socketRef.current && !hasMoved) {
+      socketRef.current.emit('combat:move', {
+        session_id: sessionId,
+        student_id: studentId,
+        target_x: tx,
+        target_y: ty,
+      });
+    }
+  }, [sessionId, studentId, hasMoved]);
+
+  const handleSkipMove = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.emit('combat:skip_move', {
+        session_id: sessionId,
+        student_id: studentId,
+      });
+      setHasMoved(true);
+      setMoveTiles([]);
+    }
+  }, [sessionId, studentId]);
+
+  const requestTargets = useCallback((skillId) => {
+    if (socketRef.current) {
+      socketRef.current.emit('combat:request_targets', {
+        session_id: sessionId,
+        student_id: studentId,
+        skill_id: skillId,
+      });
+    }
+  }, [sessionId, studentId]);
+
+  // Request move tiles when entering move phase
+  useEffect(() => {
+    if (combatPhase === 'move' && answerResult === true && !hasMoved) {
+      requestMoveTiles();
+    }
+  }, [combatPhase, answerResult, hasMoved, requestMoveTiles]);
+
+  // ── Mini-map isometric component ──
+
+  const IsoMiniMap = ({ width = SCREEN_WIDTH - 32, height = 150 }) => {
+    if (!mapConfig) return null;
+
+    const gw = mapConfig.width || 10;
+    const gh = mapConfig.height || 8;
+    const tileW = Math.min(20, (width - 20) / (gw + gh));
+    const tileH = tileW / 2;
+    const oxMap = width / 2;
+    const oyMap = 10;
+
+    const gridToMini = (gx, gy) => ({
+      x: (gx - gy) * (tileW / 2) + oxMap,
+      y: (gx + gy) * (tileH / 2) + oyMap,
+    });
+
+    // Build obstacle set
+    const obstacles = new Set();
+    (mapConfig.obstacles || []).forEach(o => obstacles.add(`${o.x}_${o.y}`));
+
+    // Build move tile set
+    const moveTileSet = new Set();
+    moveTiles.forEach(t => {
+      const tx = t.x !== undefined ? t.x : t[0];
+      const ty = t.y !== undefined ? t.y : t[1];
+      moveTileSet.add(`${tx}_${ty}`);
+    });
+
+    const tileElements = [];
+    for (let gy = 0; gy < gh; gy++) {
+      for (let gx = 0; gx < gw; gx++) {
+        const { x, y } = gridToMini(gx, gy);
+        const key = `${gx}_${gy}`;
+        const isObs = obstacles.has(key);
+        const isMovable = moveTileSet.has(key);
+
+        let fill = '#4a7c59'; // grass
+        if (isObs) fill = '#3a5a8c'; // water/wall
+        if (isMovable) fill = '#3b82f6'; // blue highlight
+
+        const hw = tileW / 2;
+        const hh = tileH / 2;
+        const points = `${x},${y - hh} ${x + hw},${y} ${x},${y + hh} ${x - hw},${y}`;
+
+        tileElements.push(
+          <Polygon
+            key={`tile_${key}`}
+            points={points}
+            fill={fill}
+            stroke={isMovable ? '#60a5fa' : '#2d5a3d'}
+            strokeWidth={isMovable ? 1.5 : 0.5}
+            onPress={isMovable ? () => handleMoveTo(gx, gy) : undefined}
+          />
+        );
+      }
+    }
+
+    // Draw entities
+    const entityElements = [];
+
+    // Players
+    (participants || []).forEach(p => {
+      if (!p.is_alive) return;
+      const { x, y } = gridToMini(p.grid_x, p.grid_y);
+      const isMe = p.student_id === studentId;
+      const clsColor = CLASS_COLORS[p.avatar_class] || '#ffffff';
+
+      entityElements.push(
+        <Circle
+          key={`player_${p.student_id}`}
+          cx={x}
+          cy={y}
+          r={isMe ? 4 : 3}
+          fill={clsColor}
+          stroke={isMe ? '#ffffff' : 'none'}
+          strokeWidth={isMe ? 1.5 : 0}
+        />
+      );
+    });
+
+    // Monsters
+    (monsters || []).forEach(m => {
+      if (!m.is_alive) return;
+      const { x, y } = gridToMini(m.grid_x, m.grid_y);
+      entityElements.push(
+        <Rect
+          key={`mon_${m.id}`}
+          x={x - 3}
+          y={y - 3}
+          width={6}
+          height={6}
+          fill="#ef4444"
+          rx={1}
+        />
+      );
+    });
+
+    return (
+      <View style={styles.miniMapContainer}>
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          <G>{tileElements}</G>
+          <G>{entityElements}</G>
+        </Svg>
+      </View>
+    );
   };
 
   // Render waiting phase
@@ -447,6 +664,49 @@ export default function CombatScreen({ route, navigation }) {
     );
   };
 
+  // Render move phase
+  const renderMove = () => {
+    if (answerResult === false) {
+      return (
+        <View style={styles.container}>
+          <IsoMiniMap />
+          <View style={styles.centerContent}>
+            <Text style={styles.sadEmoji}>😢</Text>
+            <Text style={styles.phaseTitle}>Tour passé</Text>
+            <Text style={styles.phaseSubtitle}>Mauvaise réponse — pas de déplacement</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (hasMoved) {
+      return (
+        <View style={styles.container}>
+          <IsoMiniMap />
+          <View style={styles.centerContent}>
+            <Ionicons name="checkmark-circle" size={48} color="#10b981" />
+            <Text style={styles.phaseTitle}>Déplacement effectué</Text>
+            <Text style={styles.phaseSubtitle}>En attente des autres joueurs...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.sectionTitle}>Phase de déplacement</Text>
+        <Text style={styles.phaseSubtitle}>Touchez une case bleue pour vous déplacer</Text>
+        <IsoMiniMap height={200} />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 }}>
+          <TouchableOpacity style={styles.skipMoveButton} onPress={handleSkipMove}>
+            <Ionicons name="close-circle-outline" size={20} color="#f59e0b" />
+            <Text style={styles.skipMoveText}>Rester ici</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   // Render action phase
   const renderAction = () => {
     if (answerResult === false) {
@@ -467,32 +727,40 @@ export default function CombatScreen({ route, navigation }) {
     if (selectingTarget && selectedSkill) {
       return (
         <View style={styles.container}>
-          <Text style={styles.sectionTitle}>Choisir une cible</Text>
+          <IsoMiniMap />
+          <Text style={styles.sectionTitle}>
+            Choisir une cible — {selectedSkill.name} (portée: {selectedSkill.range || '?'})
+          </Text>
           <FlatList
             data={availableTargets}
             keyExtractor={(item) => String(item.id)}
             scrollEnabled={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.targetButton}
-                onPress={() => handleConfirmAction(item.id, item.target_type)}
-              >
-                <Text style={styles.targetName}>{item.name}</Text>
-                <View style={styles.targetHpBar}>
-                  <View
-                    style={[
-                      styles.targetHpFill,
-                      {
-                        width: `${(item.current_hp / item.max_hp) * 100}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.targetHpText}>
-                  {item.current_hp} / {item.max_hp} PV
-                </Text>
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }) => {
+              const inRange = item.in_range !== false;
+              return (
+                <TouchableOpacity
+                  style={[styles.targetButton, !inRange && styles.targetOutOfRange]}
+                  onPress={() => inRange && handleConfirmAction(item.id, item.target_type)}
+                  disabled={!inRange}
+                >
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.targetName}>{item.name}</Text>
+                    {!inRange && <Text style={{ color: '#ef4444', fontSize: 11 }}>Hors portée</Text>}
+                  </View>
+                  <View style={styles.targetHpBar}>
+                    <View
+                      style={[
+                        styles.targetHpFill,
+                        { width: `${(item.current_hp / item.max_hp) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.targetHpText}>
+                    {item.current_hp} / {item.max_hp} PV
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
           />
         </View>
       );
@@ -654,11 +922,14 @@ export default function CombatScreen({ route, navigation }) {
         return renderWaiting();
       case 'question':
         return renderQuestion();
+      case 'move':
+        return renderMove();
       case 'action':
         return renderAction();
       case 'execute':
         return renderExecute();
       case 'round_end':
+      case 'monster_turn':
         return renderRoundEnd();
       case 'finished':
         return renderFinished();
@@ -1014,5 +1285,37 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Mini-map styles
+  miniMapContainer: {
+    backgroundColor: '#0f3460',
+    borderRadius: 12,
+    padding: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#1a4a8a',
+    alignItems: 'center',
+  },
+  // Move phase styles
+  skipMoveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    gap: 8,
+  },
+  skipMoveText: {
+    color: '#f59e0b',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // Target out of range
+  targetOutOfRange: {
+    opacity: 0.4,
+    borderColor: '#333',
   },
 });

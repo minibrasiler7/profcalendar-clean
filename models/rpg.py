@@ -104,50 +104,63 @@ CLASS_EVOLUTIONS = {
 }
 
 # Compétences de base par classe (acquises au niveau 1)
+# ═══════════════════════════════════════════════════════════════════
+#  MOUVEMENT PAR CLASSE (nombre de cases par tour)
+# ═══════════════════════════════════════════════════════════════════
+CLASS_MOVEMENT = {
+    'guerrier': 3,
+    'mage': 2,
+    'archer': 3,
+    'guerisseur': 2,
+}
+
+# ═══════════════════════════════════════════════════════════════════
+#  COMPÉTENCES DE BASE — range = portée en cases, aoe = rayon zone
+# ═══════════════════════════════════════════════════════════════════
 CLASS_BASE_SKILLS = {
     'guerrier': [
-        {'id': 'coup_epee', 'name': 'Coup d\'épée', 'description': 'Attaque de base au corps à corps', 'icon': 'sword', 'type': 'attack', 'damage': 10, 'cost': 0},
-        {'id': 'bouclier_protect', 'name': 'Protection', 'description': 'Réduit les dégâts reçus', 'icon': 'shield', 'type': 'defense', 'damage': 0, 'cost': 5},
-        {'id': 'charge', 'name': 'Charge', 'description': 'Fonce sur l\'ennemi avec puissance', 'icon': 'flash', 'type': 'attack', 'damage': 15, 'cost': 10},
+        {'id': 'coup_epee', 'name': 'Coup d\'épée', 'description': 'Attaque de base au corps à corps', 'icon': 'sword', 'type': 'attack', 'damage': 10, 'cost': 0, 'range': 1, 'aoe': 0},
+        {'id': 'bouclier_protect', 'name': 'Protection', 'description': 'Réduit les dégâts reçus', 'icon': 'shield', 'type': 'defense', 'damage': 0, 'cost': 5, 'range': 0, 'aoe': 0},
+        {'id': 'charge', 'name': 'Charge', 'description': 'Fonce sur l\'ennemi avec puissance', 'icon': 'flash', 'type': 'attack', 'damage': 15, 'cost': 10, 'range': 2, 'aoe': 0},
     ],
     'mage': [
-        {'id': 'boule_feu', 'name': 'Boule de feu', 'description': 'Lance une boule de feu', 'icon': 'flame', 'type': 'attack', 'damage': 15, 'cost': 10},
-        {'id': 'barriere_magique', 'name': 'Barrière magique', 'description': 'Bouclier magique protecteur', 'icon': 'sparkles', 'type': 'defense', 'damage': 0, 'cost': 8},
-        {'id': 'eclair', 'name': 'Éclair', 'description': 'Frappe électrique rapide', 'icon': 'flash', 'type': 'attack', 'damage': 12, 'cost': 8},
+        {'id': 'boule_feu', 'name': 'Boule de feu', 'description': 'Lance une boule de feu', 'icon': 'flame', 'type': 'attack', 'damage': 15, 'cost': 10, 'range': 4, 'aoe': 0},
+        {'id': 'barriere_magique', 'name': 'Barrière magique', 'description': 'Bouclier magique protecteur', 'icon': 'sparkles', 'type': 'defense', 'damage': 0, 'cost': 8, 'range': 0, 'aoe': 0},
+        {'id': 'eclair', 'name': 'Éclair', 'description': 'Frappe électrique rapide', 'icon': 'flash', 'type': 'attack', 'damage': 12, 'cost': 8, 'range': 3, 'aoe': 0},
     ],
     'archer': [
-        {'id': 'tir_precis', 'name': 'Tir précis', 'description': 'Flèche tirée avec précision', 'icon': 'locate', 'type': 'attack', 'damage': 12, 'cost': 5},
-        {'id': 'pluie_fleches', 'name': 'Pluie de flèches', 'description': 'Flèches sur une large zone', 'icon': 'rainy', 'type': 'attack', 'damage': 8, 'cost': 12},
-        {'id': 'esquive', 'name': 'Esquive', 'description': 'Évite la prochaine attaque', 'icon': 'body', 'type': 'defense', 'damage': 0, 'cost': 6},
+        {'id': 'tir_precis', 'name': 'Tir précis', 'description': 'Flèche tirée avec précision', 'icon': 'locate', 'type': 'attack', 'damage': 12, 'cost': 5, 'range': 5, 'aoe': 0},
+        {'id': 'pluie_fleches', 'name': 'Pluie de flèches', 'description': 'Flèches sur une large zone', 'icon': 'rainy', 'type': 'attack', 'damage': 8, 'cost': 12, 'range': 4, 'aoe': 2},
+        {'id': 'esquive', 'name': 'Esquive', 'description': 'Évite la prochaine attaque', 'icon': 'body', 'type': 'defense', 'damage': 0, 'cost': 6, 'range': 0, 'aoe': 0},
     ],
     'guerisseur': [
-        {'id': 'soin', 'name': 'Soin', 'description': 'Restaure des points de vie', 'icon': 'heart', 'type': 'heal', 'damage': 0, 'cost': 8, 'heal': 15},
-        {'id': 'coup_baton', 'name': 'Coup de bâton', 'description': 'Frappe avec le bâton sacré', 'icon': 'fitness', 'type': 'attack', 'damage': 8, 'cost': 0},
-        {'id': 'benediction', 'name': 'Bénédiction', 'description': 'Augmente les stats alliées', 'icon': 'sunny', 'type': 'buff', 'damage': 0, 'cost': 10},
+        {'id': 'soin', 'name': 'Soin', 'description': 'Restaure des points de vie', 'icon': 'heart', 'type': 'heal', 'damage': 0, 'cost': 8, 'heal': 15, 'range': 3, 'aoe': 0},
+        {'id': 'coup_baton', 'name': 'Coup de bâton', 'description': 'Frappe avec le bâton sacré', 'icon': 'fitness', 'type': 'attack', 'damage': 8, 'cost': 0, 'range': 1, 'aoe': 0},
+        {'id': 'benediction', 'name': 'Bénédiction', 'description': 'Augmente les stats alliées', 'icon': 'sunny', 'type': 'buff', 'damage': 0, 'cost': 10, 'range': 3, 'aoe': 2},
     ],
 }
 
-# Compétences débloquées par niveau
+# Compétences débloquées par niveau — avec range et aoe
 CLASS_LEVEL_SKILLS = {
     'guerrier': {
-        3: {'id': 'tourbillon', 'name': 'Tourbillon', 'description': 'Attaque circulaire puissante', 'icon': 'sync', 'type': 'attack', 'damage': 20, 'cost': 15},
-        6: {'id': 'cri_guerre', 'name': 'Cri de guerre', 'description': 'Augmente la force temporairement', 'icon': 'megaphone', 'type': 'buff', 'damage': 0, 'cost': 12},
-        9: {'id': 'frappe_titan', 'name': 'Frappe du titan', 'description': 'Coup dévastateur ultime', 'icon': 'nuclear', 'type': 'attack', 'damage': 35, 'cost': 25},
+        3: {'id': 'tourbillon', 'name': 'Tourbillon', 'description': 'Attaque circulaire puissante', 'icon': 'sync', 'type': 'attack', 'damage': 20, 'cost': 15, 'range': 1, 'aoe': 1},
+        6: {'id': 'cri_guerre', 'name': 'Cri de guerre', 'description': 'Augmente la force temporairement', 'icon': 'megaphone', 'type': 'buff', 'damage': 0, 'cost': 12, 'range': 0, 'aoe': 2},
+        9: {'id': 'frappe_titan', 'name': 'Frappe du titan', 'description': 'Coup dévastateur ultime', 'icon': 'nuclear', 'type': 'attack', 'damage': 35, 'cost': 25, 'range': 1, 'aoe': 0},
     },
     'mage': {
-        3: {'id': 'blizzard', 'name': 'Blizzard', 'description': 'Tempête de glace sur zone', 'icon': 'snow', 'type': 'attack', 'damage': 18, 'cost': 15},
-        6: {'id': 'teleportation', 'name': 'Téléportation', 'description': 'Se déplace instantanément', 'icon': 'flash', 'type': 'utility', 'damage': 0, 'cost': 10},
-        9: {'id': 'meteor', 'name': 'Météore', 'description': 'Invoque un météore destructeur', 'icon': 'planet', 'type': 'attack', 'damage': 40, 'cost': 30},
+        3: {'id': 'blizzard', 'name': 'Blizzard', 'description': 'Tempête de glace sur zone', 'icon': 'snow', 'type': 'attack', 'damage': 18, 'cost': 15, 'range': 4, 'aoe': 2},
+        6: {'id': 'teleportation', 'name': 'Téléportation', 'description': 'Se déplace instantanément', 'icon': 'flash', 'type': 'utility', 'damage': 0, 'cost': 10, 'range': 5, 'aoe': 0},
+        9: {'id': 'meteor', 'name': 'Météore', 'description': 'Invoque un météore destructeur', 'icon': 'planet', 'type': 'attack', 'damage': 40, 'cost': 30, 'range': 5, 'aoe': 3},
     },
     'archer': {
-        3: {'id': 'fleche_poison', 'name': 'Flèche empoisonnée', 'description': 'Inflige des dégâts continus', 'icon': 'flask', 'type': 'attack', 'damage': 10, 'cost': 8},
-        6: {'id': 'piege', 'name': 'Piège', 'description': 'Pose un piège au sol', 'icon': 'warning', 'type': 'utility', 'damage': 15, 'cost': 10},
-        9: {'id': 'tir_ultime', 'name': 'Tir ultime', 'description': 'Flèche chargée de puissance', 'icon': 'rocket', 'type': 'attack', 'damage': 35, 'cost': 25},
+        3: {'id': 'fleche_poison', 'name': 'Flèche empoisonnée', 'description': 'Inflige des dégâts continus', 'icon': 'flask', 'type': 'attack', 'damage': 10, 'cost': 8, 'range': 5, 'aoe': 0},
+        6: {'id': 'piege', 'name': 'Piège', 'description': 'Pose un piège au sol', 'icon': 'warning', 'type': 'utility', 'damage': 15, 'cost': 10, 'range': 2, 'aoe': 0},
+        9: {'id': 'tir_ultime', 'name': 'Tir ultime', 'description': 'Flèche chargée de puissance', 'icon': 'rocket', 'type': 'attack', 'damage': 35, 'cost': 25, 'range': 6, 'aoe': 0},
     },
     'guerisseur': {
-        3: {'id': 'guerison_groupe', 'name': 'Guérison de groupe', 'description': 'Soigne toute l\'équipe', 'icon': 'people', 'type': 'heal', 'damage': 0, 'cost': 15, 'heal': 10},
-        6: {'id': 'purification', 'name': 'Purification', 'description': 'Retire les malus et poisons', 'icon': 'water', 'type': 'utility', 'damage': 0, 'cost': 12},
-        9: {'id': 'resurrection', 'name': 'Résurrection', 'description': 'Ramène un allié tombé', 'icon': 'star', 'type': 'heal', 'damage': 0, 'cost': 30, 'heal': 50},
+        3: {'id': 'guerison_groupe', 'name': 'Guérison de groupe', 'description': 'Soigne toute l\'équipe', 'icon': 'people', 'type': 'heal', 'damage': 0, 'cost': 15, 'heal': 10, 'range': 4, 'aoe': 3},
+        6: {'id': 'purification', 'name': 'Purification', 'description': 'Retire les malus et poisons', 'icon': 'water', 'type': 'utility', 'damage': 0, 'cost': 12, 'range': 3, 'aoe': 0},
+        9: {'id': 'resurrection', 'name': 'Résurrection', 'description': 'Ramène un allié tombé', 'icon': 'star', 'type': 'heal', 'damage': 0, 'cost': 30, 'heal': 50, 'range': 2, 'aoe': 0},
     },
 }
 

@@ -626,6 +626,7 @@ def create_app(config_name='development'):
                     is_correct BOOLEAN DEFAULT FALSE,
                     selected_action_json JSONB,
                     action_submitted BOOLEAN DEFAULT FALSE,
+                    has_moved BOOLEAN DEFAULT FALSE,
                     UNIQUE(combat_session_id, student_id)
                 )
             """))
@@ -652,6 +653,15 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Tables combat: {e}")
+
+        # Migration: ajouter has_moved aux combat_participants existants
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE combat_participants ADD COLUMN IF NOT EXISTS has_moved BOOLEAN DEFAULT FALSE"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
         # Migration: changer la FK de student_file_shares de class_files vers class_files_v2
         try:

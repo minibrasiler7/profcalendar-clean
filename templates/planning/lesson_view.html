@@ -10397,25 +10397,49 @@ async function refreshTracking() {
         }
 
         const container = document.getElementById('tracking-students');
+        const isCombat = data.mode === 'combat';
         container.innerHTML = data.students.map(s => {
             let statusIcon, statusColor, statusText, progressWidth;
-            if (s.status === 'completed') {
-                statusIcon = 'check-circle';
-                statusColor = '#10b981';
-                statusText = `${s.score_percentage}%`;
-                progressWidth = 100;
-            } else if (s.status === 'in_progress') {
-                statusIcon = 'spinner fa-pulse';
-                statusColor = '#f59e0b';
-                const pct = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
-                statusText = `${s.answers_count}/${s.blocks_count}`;
-                progressWidth = pct;
+
+            if (isCombat) {
+                // Mode combat : afficher le statut de connexion au combat
+                if (s.in_combat && s.combat_info) {
+                    const ci = s.combat_info;
+                    statusIcon = ci.is_alive ? 'shield-alt' : 'skull-crossbones';
+                    statusColor = ci.is_alive ? '#10b981' : '#ef4444';
+                    const hpPct = ci.max_hp > 0 ? Math.round((ci.current_hp / ci.max_hp) * 100) : 100;
+                    statusText = `${ci.avatar_class} — ${ci.current_hp}/${ci.max_hp} HP`;
+                    progressWidth = hpPct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'Pas connecté';
+                    progressWidth = 0;
+                }
             } else {
-                statusIcon = 'clock';
-                statusColor = '#6b7280';
-                statusText = 'En attente';
-                progressWidth = 0;
+                // Mode classique
+                if (s.status === 'completed') {
+                    statusIcon = 'check-circle';
+                    statusColor = '#10b981';
+                    statusText = `${s.score_percentage}%`;
+                    progressWidth = 100;
+                } else if (s.status === 'in_progress') {
+                    statusIcon = 'spinner fa-pulse';
+                    statusColor = '#f59e0b';
+                    const pct = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
+                    statusText = `${s.answers_count}/${s.blocks_count}`;
+                    progressWidth = pct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'En attente';
+                    progressWidth = 0;
+                }
             }
+
+            const hpBarColor = isCombat && s.in_combat
+                ? (progressWidth > 50 ? '#10b981' : progressWidth > 25 ? '#f59e0b' : '#ef4444')
+                : statusColor;
 
             return `
                 <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:0.65rem 0.8rem;display:flex;align-items:center;gap:0.6rem;">
@@ -10426,9 +10450,9 @@ async function refreshTracking() {
                             <span style="color:${statusColor};font-weight:700;font-size:0.8rem;">${statusText}</span>
                         </div>
                         <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
-                            <div style="width:${progressWidth}%;height:100%;background:${statusColor};border-radius:2px;transition:width 0.5s ease;"></div>
+                            <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
                         </div>
-                        ${s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
                     </div>
                 </div>
             `;
