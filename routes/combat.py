@@ -153,7 +153,7 @@ def register_combat_events(socketio):
 
     @socketio.on('combat:start_round')
     def on_start_round(data):
-        """Le prof démarre un nouveau round."""
+        """Le prof démarre un nouveau round. Flow: move → question → action → execute."""
         session_id = data.get('session_id')
         if not session_id:
             logger.error("[Combat] start_round: no session_id in data")
@@ -163,7 +163,7 @@ def register_combat_events(socketio):
         logger.info(f"[Combat] start_round called for session {session_id}")
 
         try:
-            question_data, error = CombatEngine.start_round(session_id)
+            round_data, error = CombatEngine.start_round(session_id)
         except Exception as e:
             logger.error(f"[Combat] start_round EXCEPTION: {e}", exc_info=True)
             emit('combat:error', {'error': f'Erreur serveur: {str(e)}'}, room=room)
@@ -174,12 +174,9 @@ def register_combat_events(socketio):
             emit('combat:error', {'error': error}, room=room)
             return
 
-        logger.info(f"[Combat] Round {question_data['round']} started, sending question to room {room}")
+        logger.info(f"[Combat] Round {round_data['round']} started, phase=move")
 
-        # Envoyer la question à tous
-        emit('combat:question', question_data, room=room)
-
-        # Envoyer aussi l'état mis à jour
+        # Envoyer l'état mis à jour (phase=move, tout le monde peut se déplacer)
         session = CombatSession.query.get(session_id)
         state = session.get_state()
         logger.info(f"[Combat] Sending state_update: phase={state['phase']}, round={state['round']}, participants={len(state['participants'])}, monsters={len(state['monsters'])}")
@@ -218,19 +215,19 @@ def register_combat_events(socketio):
             'is_correct': result.get('is_correct', False),
         }, room=room)
 
-        # Si tous ont répondu, passer en phase mouvement d'abord
+        # Si tous ont répondu, passer en phase action
         if result.get('all_answered'):
-            CombatEngine.transition_to_move(session_id)
+            # Check if any correct players can attack
             session = CombatSession.query.get(session_id)
-
-            # Check if all correct players are already done with move (e.g., no correct answers)
             correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
-            if not correct_alive or all(p.has_moved for p in correct_alive):
-                # Skip move and action, go straight to execute (monsters only)
+            if not correct_alive:
+                # Personne n'a bien répondu → exécuter directement (monstres seulement)
                 _execute_and_broadcast(session_id, room)
             else:
+                CombatEngine.transition_to_action(session_id)
+                session = CombatSession.query.get(session_id)
                 emit('combat:all_answered', {
-                    'phase': 'move',
+                    'phase': 'action',
                 }, room=room)
                 emit('combat:state_update', session.get_state(), room=room)
 
@@ -274,15 +271,12 @@ def register_combat_events(socketio):
         # Broadcast le déplacement à tous
         emit('combat:move_result', result, room=room)
 
-        # Vérifier si tous les joueurs corrects ont bougé (ou skip)
+        # Vérifier si tous les joueurs vivants ont bougé
         session = CombatSession.query.get(session_id)
-        correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
-        all_moved = all(p.has_moved for p in correct_alive)
+        alive_players = [p for p in session.participants if p.is_alive]
+        all_moved = all(p.has_moved for p in alive_players)
         if all_moved:
-            CombatEngine.transition_to_action(session_id)
-            session = CombatSession.query.get(session_id)
-            emit('combat:phase_change', {'phase': 'action'}, room=room)
-            emit('combat:state_update', session.get_state(), room=room)
+            _transition_to_question_phase(session_id, room)
 
     @socketio.on('combat:skip_move')
     def on_skip_move(data):
@@ -300,19 +294,16 @@ def register_combat_events(socketio):
             participant.has_moved = True
             db.session.commit()
 
-        # Vérifier si tous ont bougé
+        # Vérifier si tous ont bougé → passer en phase question
         session = CombatSession.query.get(session_id)
-        correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
-        all_moved = all(p.has_moved for p in correct_alive)
+        alive_players = [p for p in session.participants if p.is_alive]
+        all_moved = all(p.has_moved for p in alive_players)
         if all_moved:
-            CombatEngine.transition_to_action(session_id)
-            session = CombatSession.query.get(session_id)
-            emit('combat:phase_change', {'phase': 'action'}, room=room)
-            emit('combat:state_update', session.get_state(), room=room)
+            _transition_to_question_phase(session_id, room)
 
     @socketio.on('combat:force_move_end')
     def on_force_move_end(data):
-        """Le prof force la fin de la phase de mouvement."""
+        """Le prof force la fin de la phase de mouvement → passe en question."""
         session_id = data.get('session_id')
         if not session_id:
             return
@@ -321,13 +312,10 @@ def register_combat_events(socketio):
         session = CombatSession.query.get(session_id)
         if session:
             for p in session.participants:
-                if p.is_alive and p.is_correct:
+                if p.is_alive:
                     p.has_moved = True
             db.session.commit()
-            CombatEngine.transition_to_action(session_id)
-            session = CombatSession.query.get(session_id)
-            emit('combat:phase_change', {'phase': 'action'}, room=room)
-            emit('combat:state_update', session.get_state(), room=room)
+            _transition_to_question_phase(session_id, room)
 
     @socketio.on('combat:request_targets')
     def on_request_targets(data):
@@ -447,6 +435,17 @@ def register_combat_events(socketio):
             return
         room = f'combat_{session_id}'
         on_start_round(data)
+
+    def _transition_to_question_phase(session_id, room):
+        """Helper: transition move → question. Envoie la question à tous."""
+        question_data, error = CombatEngine.transition_to_question(session_id)
+        if error:
+            emit('combat:error', {'error': error}, room=room)
+            return
+        logger.info(f"[Combat] All moved → sending question to room {room}")
+        emit('combat:question', question_data, room=room)
+        session = CombatSession.query.get(session_id)
+        emit('combat:state_update', session.get_state(), room=room)
 
     def _execute_and_broadcast(session_id, room):
         """Exécute le round et broadcast les résultats."""

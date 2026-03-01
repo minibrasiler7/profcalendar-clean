@@ -41,6 +41,7 @@ class CombatArena extends Phaser.Scene {
 
         // Directional chihuahua sprites (4 classes × 4 directions × 4 states)
         // Default facing: nw_idle (north-west idle frame)
+        const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
         const dirs = ['se', 'sw', 'ne', 'nw'];
         const states = ['idle', 'attack', 'hurt', 'ko'];
         for (const cls of classes) {

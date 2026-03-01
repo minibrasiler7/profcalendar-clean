@@ -505,7 +505,7 @@ class CombatEngine:
         participant = CombatParticipant.query.filter_by(
             combat_session_id=session_id, student_id=student_id
         ).first()
-        if not participant or not participant.is_alive or not participant.is_correct:
+        if not participant or not participant.is_alive:
             return None, "Non autorisé à se déplacer"
 
         # Vérifier que la case est accessible
@@ -529,17 +529,13 @@ class CombatEngine:
             'to_y': target_y,
         }, None
 
-    # ─── Transition phase mouvement ───────────────────────────
+    # ─── Transition phase mouvement (gardée pour compatibilité) ─
     @staticmethod
     def transition_to_move(session_id):
-        """Passe en phase de déplacement. Les élèves incorrects skipent automatiquement."""
+        """Passe en phase de déplacement."""
         session = CombatSession.query.get(session_id)
         if session:
             session.current_phase = 'move'
-            # Auto-skip move for incorrect players
-            for p in session.participants:
-                if p.is_alive and not p.is_correct:
-                    p.has_moved = True
             db.session.commit()
 
     # ─── Démarrer un round ───────────────────────────────────
@@ -591,9 +587,9 @@ class CombatEngine:
                 logger.error(f"[Combat] resize_for_players FAILED: {e}", exc_info=True)
                 return None, f"Erreur resize: {str(e)}"
 
-        # Nouveau round
+        # Nouveau round — commence par la phase de déplacement
         session.current_round += 1
-        session.current_phase = 'question'
+        session.current_phase = 'move'
         session.current_block_id = block.id
         session.status = 'active'
 
@@ -609,7 +605,25 @@ class CombatEngine:
             db.session.rollback()
             return None, f"Erreur DB: {str(e)}"
 
-        logger.info(f"[Combat] Round {session.current_round} started, phase=question, block={block.id}")
+        logger.info(f"[Combat] Round {session.current_round} started, phase=move, block={block.id}")
+
+        return {'round': session.current_round}, None
+
+    # ─── Transition vers la phase question ───────────────────
+    @staticmethod
+    def transition_to_question(session_id):
+        """Passe en phase question après le déplacement. Retourne les données de la question."""
+        session = CombatSession.query.get(session_id)
+        if not session:
+            return None, "Session non trouvée"
+
+        session.current_phase = 'question'
+        db.session.commit()
+
+        from models.exercise import ExerciseBlock
+        block = ExerciseBlock.query.get(session.current_block_id)
+        if not block:
+            return None, "Bloc non trouvé"
 
         question_data = {
             'block_id': block.id,

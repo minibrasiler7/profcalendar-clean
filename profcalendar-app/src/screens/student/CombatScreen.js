@@ -182,7 +182,13 @@ export default function CombatScreen({ route, navigation }) {
       addDebug(`QUESTION round=${data.round} type=${data.block_type} title="${data.title}"`);
       const config = data.config || {};
       // config.question contains the actual question text, data.title is just the block label
-      const questionText = config.question || config.text || data.title || 'Question';
+      // Extract question text based on block type
+      let questionText = config.question || config.text || '';
+      if (data.block_type === 'fill_blank') {
+        // For fill_blank, the question is the text_template with blanks
+        questionText = config.text_template || config.question || data.title || '';
+      }
+      if (!questionText) questionText = data.title || 'Question';
       addDebug(`Question text: "${questionText.substring(0, 60)}" options=${(config.options||[]).length}`);
       setCurrentQuestion({
         block_id: data.block_id,
@@ -217,11 +223,10 @@ export default function CombatScreen({ route, navigation }) {
       setAnswerProgress({ answered: data.answered, total: data.total });
     });
 
-    // Listen for all answered signal → move phase
+    // Listen for all answered signal → action phase (new flow: move → question → action)
     socketRef.current.on('combat:all_answered', (data) => {
       addDebug(`ALL_ANSWERED → phase=${data.phase}`);
-      setCombatPhase(data.phase || 'move');
-      setHasMoved(false);
+      setCombatPhase(data.phase || 'action');
     });
 
     // Listen for phase changes
@@ -463,12 +468,12 @@ export default function CombatScreen({ route, navigation }) {
     }
   }, [sessionId, studentId]);
 
-  // Request move tiles when entering move phase
+  // Request move tiles when entering move phase (move is now first, before question)
   useEffect(() => {
-    if (combatPhase === 'move' && answerResult === true && !hasMoved) {
+    if (combatPhase === 'move' && !hasMoved) {
       requestMoveTiles();
     }
-  }, [combatPhase, answerResult, hasMoved, requestMoveTiles]);
+  }, [combatPhase, hasMoved, requestMoveTiles]);
 
   // Request skills availability when entering action phase
   useEffect(() => {
@@ -697,8 +702,8 @@ export default function CombatScreen({ route, navigation }) {
             </Text>
             <Text style={styles.phaseSubtitle}>
               {answerResult
-                ? 'Tu pourras te déplacer et attaquer !'
-                : 'Tu devras passer ton tour...'}
+                ? 'Tu vas pouvoir attaquer !'
+                : 'Pas d\'attaque ce tour-ci...'}
             </Text>
             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
             <Text style={[styles.phaseSubtitle, { marginTop: 8 }]}>
@@ -778,8 +783,7 @@ export default function CombatScreen({ route, navigation }) {
             </View>
           )}
 
-          {(currentQuestion.block_type === 'short_answer' ||
-            currentQuestion.block_type === 'fill_blank') && (
+          {currentQuestion.block_type === 'short_answer' && (
             <TextInput
               style={styles.answerInput}
               placeholder="Votre réponse..."
@@ -787,7 +791,18 @@ export default function CombatScreen({ route, navigation }) {
               value={userAnswer}
               onChangeText={setUserAnswer}
               editable={!answering}
-              multiline={currentQuestion.block_type === 'short_answer'}
+              multiline
+            />
+          )}
+
+          {currentQuestion.block_type === 'fill_blank' && (
+            <TextInput
+              style={styles.answerInput}
+              placeholder="Complétez le texte à trous..."
+              placeholderTextColor="#999"
+              value={userAnswer}
+              onChangeText={setUserAnswer}
+              editable={!answering}
             />
           )}
         </ScrollView>
@@ -805,21 +820,8 @@ export default function CombatScreen({ route, navigation }) {
     );
   };
 
-  // Render move phase
+  // Render move phase (move is now FIRST, before question)
   const renderMove = () => {
-    if (answerResult === false) {
-      return (
-        <View style={styles.container}>
-          <IsoMiniMap />
-          <View style={styles.centerContent}>
-            <Text style={styles.sadEmoji}>😢</Text>
-            <Text style={styles.phaseTitle}>Tour passé</Text>
-            <Text style={styles.phaseSubtitle}>Mauvaise réponse — pas de déplacement</Text>
-          </View>
-        </View>
-      );
-    }
-
     if (hasMoved) {
       return (
         <View style={styles.container}>
@@ -950,7 +952,7 @@ export default function CombatScreen({ route, navigation }) {
                     Aucune cible
                   </Text>
                 )}
-                {skill.range && (
+                {skill.range != null && (
                   <Text style={{ color: '#667eea', fontSize: 10, marginTop: 2 }}>
                     Portée: {skill.range}
                   </Text>
