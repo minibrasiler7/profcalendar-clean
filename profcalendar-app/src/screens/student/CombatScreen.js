@@ -74,6 +74,20 @@ const getSkillIcon = (iconName) => {
   return SKILL_ICON_MAP[iconName] || 'help-circle';
 };
 
+// Compute tiles within attack range (Manhattan distance)
+const computeAttackRangeTiles = (playerX, playerY, range, gridWidth, gridHeight) => {
+  const tiles = [];
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      const dist = Math.abs(x - playerX) + Math.abs(y - playerY);
+      if (dist <= range && dist > 0) {
+        tiles.push({ x, y });
+      }
+    }
+  }
+  return tiles;
+};
+
 export default function CombatScreen({ route, navigation }) {
   // IMPORTANT: Convert to Number to avoid strict equality issues with server (int vs string)
   const sessionId = Number(route.params.sessionId);
@@ -110,6 +124,10 @@ export default function CombatScreen({ route, navigation }) {
   const [myPosition, setMyPosition] = useState({ x: 0, y: 0 });
   const [targetsInRange, setTargetsInRange] = useState([]);
   const [skillsWithTargets, setSkillsWithTargets] = useState(new Set()); // skill IDs that have at least 1 target in range
+
+  // Attack targeting UI state
+  const [attackRangeTiles, setAttackRangeTiles] = useState([]);
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
 
   // Debug log for troubleshooting
   const [debugLog, setDebugLog] = useState([]);
@@ -369,11 +387,24 @@ export default function CombatScreen({ route, navigation }) {
 
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
+    setSelectedTargetId(null); // Reset selected target
 
     if (skill.type === 'defense' || skill.type === 'buff') {
       // Auto-target self
       handleConfirmAction(null, 'self');
       return;
+    }
+
+    // Compute and display attack range tiles
+    if (mapConfig && skill.range != null) {
+      const tiles = computeAttackRangeTiles(
+        myPosition.x,
+        myPosition.y,
+        skill.range,
+        mapConfig.width || 10,
+        mapConfig.height || 8
+      );
+      setAttackRangeTiles(tiles);
     }
 
     // Request server-validated targets in range
@@ -428,6 +459,8 @@ export default function CombatScreen({ route, navigation }) {
 
     setSelectedSkill(null);
     setSelectingTarget(false);
+    setAttackRangeTiles([]);
+    setSelectedTargetId(null);
     setCombatPhase('execute');
   };
 
@@ -497,7 +530,7 @@ export default function CombatScreen({ route, navigation }) {
 
   // ── Mini-map isometric component (larger + scrollable) ──
 
-  const IsoMiniMap = ({ mapHeight = 280, interactive = false }) => {
+  const IsoMiniMap = ({ mapHeight = 280, interactive = false, attackTiles = [], selectedTargetId = null }) => {
     if (!mapConfig) return null;
 
     const gw = mapConfig.width || 10;
@@ -532,6 +565,14 @@ export default function CombatScreen({ route, navigation }) {
       moveTileSet.add(`${tx}_${ty}`);
     });
 
+    // Build attack range tile set
+    const attackTileSet = new Set();
+    attackTiles.forEach(t => {
+      const tx = t.x !== undefined ? t.x : t[0];
+      const ty = t.y !== undefined ? t.y : t[1];
+      attackTileSet.add(`${tx}_${ty}`);
+    });
+
     const tileElements = [];
     for (let gy2 = 0; gy2 < gh; gy2++) {
       for (let gx2 = 0; gx2 < gw; gx2++) {
@@ -539,11 +580,13 @@ export default function CombatScreen({ route, navigation }) {
         const key = `${gx2}_${gy2}`;
         const isObs = obstacleSet.has(key);
         const isMovable = moveTileSet.has(key);
+        const isAttackRange = attackTileSet.has(key);
         const isMyPos = gx2 === myPosition.x && gy2 === myPosition.y;
 
         let fill = '#4a7c59'; // grass
         if (isObs) fill = '#3a5a8c'; // water/wall
-        if (isMovable) fill = 'rgba(59, 130, 246, 0.6)'; // blue highlight
+        if (isMovable) fill = 'rgba(59, 130, 246, 0.6)'; // blue highlight for movement
+        if (isAttackRange) fill = 'rgba(239, 108, 68, 0.5)'; // red/orange for attack range (default)
         if (isMyPos && !isMovable) fill = '#f59e0b'; // gold for current position
 
         const hw = tileW / 2;
@@ -573,16 +616,29 @@ export default function CombatScreen({ route, navigation }) {
       const isMe = Number(p.student_id) === studentId;
       const clsColor = CLASS_COLORS[p.avatar_class] || '#ffffff';
       const radius = isMe ? 8 : 6;
+      const isSelected = selectedTargetId === p.id && !isMe;
 
       entityElements.push(
         <G key={`player_${p.student_id}`}>
+          {/* Pulsing highlight circle for selected target */}
+          {isSelected && (
+            <Circle
+              cx={x}
+              cy={y - 4}
+              r={radius + 3}
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth={2}
+              opacity={0.8}
+            />
+          )}
           <Circle
             cx={x}
             cy={y - 4}
             r={radius}
-            fill={clsColor}
-            stroke={isMe ? '#ffffff' : '#000'}
-            strokeWidth={isMe ? 2 : 1}
+            fill={isSelected ? '#fbbf24' : clsColor}
+            stroke={isSelected ? '#f59e0b' : (isMe ? '#ffffff' : '#000')}
+            strokeWidth={isSelected ? 2 : (isMe ? 2 : 1)}
           />
           <SvgText
             x={x}
@@ -616,17 +672,30 @@ export default function CombatScreen({ route, navigation }) {
       const { x, y } = gridToMini(m.grid_x, m.grid_y);
       const size = 12;
       const hpPct = m.current_hp / m.max_hp;
+      const isSelected = selectedTargetId === m.id;
 
       entityElements.push(
         <G key={`mon_${m.id}`}>
+          {/* Pulsing highlight circle for selected target */}
+          {isSelected && (
+            <Circle
+              cx={x}
+              cy={y - 4}
+              r={size}
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth={2}
+              opacity={0.8}
+            />
+          )}
           <Rect
             x={x - size / 2}
             y={y - size / 2 - 4}
             width={size}
             height={size}
-            fill="#ef4444"
-            stroke="#dc2626"
-            strokeWidth={1}
+            fill={isSelected ? '#fbbf24' : '#ef4444'}
+            stroke={isSelected ? '#f59e0b' : '#dc2626'}
+            strokeWidth={isSelected ? 2 : 1}
             rx={2}
           />
           <SvgText
@@ -919,7 +988,7 @@ export default function CombatScreen({ route, navigation }) {
     if (hasMoved) {
       return (
         <View style={styles.container}>
-          <IsoMiniMap />
+          <IsoMiniMap attackTiles={[]} selectedTargetId={null} />
           <View style={styles.centerContent}>
             <Ionicons name="checkmark-circle" size={48} color="#10b981" />
             <Text style={styles.phaseTitle}>Déplacement effectué</Text>
@@ -933,7 +1002,7 @@ export default function CombatScreen({ route, navigation }) {
       <View style={styles.container}>
         <Text style={styles.sectionTitle}>Phase de déplacement</Text>
         <Text style={styles.phaseSubtitle}>Touchez une case bleue pour vous déplacer (glissez pour voir la carte)</Text>
-        <IsoMiniMap mapHeight={SCREEN_HEIGHT * 0.5} interactive={true} />
+        <IsoMiniMap mapHeight={SCREEN_HEIGHT * 0.5} interactive={true} attackTiles={[]} selectedTargetId={null} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 }}>
           <TouchableOpacity style={styles.skipMoveButton} onPress={handleSkipMove}>
             <Ionicons name="close-circle-outline" size={20} color="#f59e0b" />
@@ -962,43 +1031,126 @@ export default function CombatScreen({ route, navigation }) {
 
     // Correct answer - show skills or target selection
     if (selectingTarget && selectedSkill) {
+      const selectedTarget = availableTargets.find(t => t.id === selectedTargetId);
+      const isHealSkill = selectedSkill.type === 'heal';
+
       return (
         <View style={styles.container}>
-          <IsoMiniMap />
-          <Text style={styles.sectionTitle}>
-            Choisir une cible — {selectedSkill.name} (portée: {selectedSkill.range || '?'})
-          </Text>
-          <FlatList
-            data={availableTargets}
-            keyExtractor={(item) => String(item.id)}
-            scrollEnabled={false}
-            renderItem={({ item }) => {
-              const inRange = item.in_range !== false;
+          <IsoMiniMap
+            mapHeight={240}
+            attackTiles={attackRangeTiles}
+            selectedTargetId={selectedTargetId}
+          />
+          <View style={styles.targetSelectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {selectedSkill.name}
+            </Text>
+            <Text style={styles.skillRangeText}>
+              Portée: {selectedSkill.range || '?'}
+            </Text>
+          </View>
+
+          {/* Target list with radio-button style selection */}
+          <ScrollView style={styles.targetListContainer}>
+            {availableTargets.map((target) => {
+              const inRange = target.in_range !== false;
+              const isSelected = target.id === selectedTargetId;
+              const hpPct = target.current_hp / target.max_hp;
+
               return (
                 <TouchableOpacity
-                  style={[styles.targetButton, !inRange && styles.targetOutOfRange]}
-                  onPress={() => inRange && handleConfirmAction(item.id, item.target_type)}
+                  key={target.id}
+                  style={[
+                    styles.targetSelectButton,
+                    !inRange && styles.targetOutOfRange,
+                    isSelected && styles.targetSelectButtonSelected,
+                  ]}
+                  onPress={() => inRange && setSelectedTargetId(target.id)}
                   disabled={!inRange}
                 >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={styles.targetName}>{item.name}</Text>
-                    {!inRange && <Text style={{ color: '#ef4444', fontSize: 11 }}>Hors portée</Text>}
+                  {/* Radio button indicator */}
+                  <View style={[styles.radioButton, isSelected && styles.radioButtonSelected]}>
+                    {isSelected && <View style={styles.radioButtonInner} />}
                   </View>
-                  <View style={styles.targetHpBar}>
-                    <View
-                      style={[
-                        styles.targetHpFill,
-                        { width: `${(item.current_hp / item.max_hp) * 100}%` },
-                      ]}
-                    />
+
+                  {/* Target info */}
+                  <View style={styles.targetInfo}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.targetSelectName}>{target.name}</Text>
+                      {!inRange && (
+                        <Text style={styles.outOfRangeLabel}>Hors portée</Text>
+                      )}
+                    </View>
+                    <View style={styles.targetHpBar}>
+                      <View
+                        style={[
+                          styles.targetHpFill,
+                          {
+                            width: `${hpPct * 100}%`,
+                            backgroundColor: hpPct > 0.5 ? '#10b981' : (hpPct > 0.25 ? '#f59e0b' : '#ef4444'),
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.targetHpText}>
+                      {target.current_hp} / {target.max_hp} PV
+                    </Text>
                   </View>
-                  <Text style={styles.targetHpText}>
-                    {item.current_hp} / {item.max_hp} PV
-                  </Text>
                 </TouchableOpacity>
               );
-            }}
-          />
+            })}
+          </ScrollView>
+
+          {/* Selected target details and action buttons */}
+          {selectedTarget && (
+            <View style={styles.selectedTargetDetails}>
+              <View style={styles.targetDetailRow}>
+                <Text style={styles.detailLabel}>{selectedTarget.name}</Text>
+                <Text style={styles.detailValue}>
+                  {selectedTarget.current_hp} / {selectedTarget.max_hp} PV
+                </Text>
+              </View>
+              <View style={styles.actionButtonsRow}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => {
+                    setSelectedTargetId(null);
+                    setSelectedSkill(null);
+                    setSelectingTarget(false);
+                    setAttackRangeTiles([]);
+                  }}
+                >
+                  <Ionicons name="arrow-back" size={18} color="#f59e0b" />
+                  <Text style={styles.backButtonText}>Retour</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={() => handleConfirmAction(selectedTarget.id, selectedTarget.target_type)}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                  <Text style={styles.confirmButtonText}>Confirmer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {!selectedTarget && availableTargets.length > 0 && (
+            <View style={styles.selectedTargetDetails}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                  setSelectedTargetId(null);
+                  setSelectedSkill(null);
+                  setSelectingTarget(false);
+                  setAttackRangeTiles([]);
+                }}
+              >
+                <Ionicons name="arrow-back" size={18} color="#f59e0b" />
+                <Text style={styles.backButtonText}>Retour</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       );
     }
@@ -1009,7 +1161,7 @@ export default function CombatScreen({ route, navigation }) {
 
     return (
       <View style={styles.container}>
-        <IsoMiniMap mapHeight={180} />
+        <IsoMiniMap mapHeight={180} attackTiles={[]} selectedTargetId={null} />
         <Text style={styles.sectionTitle}>Choisir une compétence</Text>
         <View style={styles.skillsGrid}>
           {availableSkills.map((skill) => {
@@ -1563,6 +1715,132 @@ const styles = StyleSheet.create({
   targetHpText: {
     color: '#aaa',
     fontSize: 12,
+  },
+  // New target selection UI styles
+  targetSelectionHeader: {
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  skillRangeText: {
+    color: '#667eea',
+    fontSize: 13,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  targetListContainer: {
+    flex: 1,
+    marginVertical: 12,
+  },
+  targetSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#16213e',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#0f3460',
+  },
+  targetSelectButtonSelected: {
+    borderColor: '#fbbf24',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+  },
+  radioButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    borderColor: '#fbbf24',
+    backgroundColor: '#fbbf24',
+  },
+  radioButtonInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
+  targetInfo: {
+    flex: 1,
+  },
+  targetSelectName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  outOfRangeLabel: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  selectedTargetDetails: {
+    backgroundColor: '#16213e',
+    borderTopWidth: 1,
+    borderTopColor: '#0f3460',
+    paddingVertical: 12,
+    paddingHorizontal: 0,
+    marginTop: 12,
+  },
+  targetDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  detailLabel: {
+    color: '#aaa',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  detailValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+  },
+  backButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16213e',
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+    borderRadius: 8,
+    paddingVertical: 11,
+    gap: 8,
+  },
+  backButtonText: {
+    color: '#f59e0b',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    borderRadius: 8,
+    paddingVertical: 11,
+    gap: 8,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   combatLogContainer: {
     flex: 1,

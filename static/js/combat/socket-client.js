@@ -98,6 +98,15 @@ class CombatSocket {
             this._fire('onActionProgress', progress);
         });
 
+        this.socket.on('combat:show_attack_range', (data) => {
+            console.log('Show attack range:', data);
+            if (this.gameInstance) {
+                const type = data.skill_type === 'heal' ? 'heal' : 'attack';
+                this.gameInstance.showHighlights(data.tiles, type);
+            }
+            this._fire('onShowAttackRange', data);
+        });
+
         // ── Execution ──
         this.socket.on('combat:execute', (executionData) => {
             console.log('Executing animations:', executionData);
@@ -216,6 +225,11 @@ class CombatSocket {
         const overlay = document.getElementById('overlay-message');
         const title = document.getElementById('overlay-title');
         const isVictory = result.result === 'victory';
+
+        // Show Phaser end screen with particles
+        if (this.gameInstance && typeof this.gameInstance.showCombatEndScreen === 'function') {
+            this.gameInstance.showCombatEndScreen(isVictory);
+        }
 
         if (overlay && title) {
             title.textContent = isVictory ? '🎉 VICTOIRE!' : '💀 DÉFAITE...';

@@ -341,10 +341,38 @@ def register_combat_events(socketio):
         for a in targets.get('allies', []):
             a['target_type'] = 'player'
             all_targets.append(a)
+
+        # Get skill range for visualization
+        snapshot = participant.snapshot_json or {}
+        skills = snapshot.get('skills', [])
+        skill_data = next((s for s in skills if s.get('id') == skill_id), {})
+        skill_range = skill_data.get('range', 1)
+        skill_type = skill_data.get('type', 'attack')
+
         emit('combat:targets_in_range', {
             'skill_id': skill_id,
             'targets': all_targets,
+            'skill_range': skill_range,
+            'skill_type': skill_type,
+            'player_x': participant.grid_x,
+            'player_y': participant.grid_y,
         })
+
+        # Also emit attack range to teacher arena for visualization
+        room = f'combat_{session_id}'
+        range_tiles = []
+        gw = session.map_config_json.get('width', 10) if session.map_config_json else 10
+        gh = session.map_config_json.get('height', 8) if session.map_config_json else 8
+        for rx in range(gw):
+            for ry in range(gh):
+                dist = abs(rx - participant.grid_x) + abs(ry - participant.grid_y)
+                if 0 < dist <= skill_range:
+                    range_tiles.append({'x': rx, 'y': ry})
+        emit('combat:show_attack_range', {
+            'player_id': f'player_{student_id}',
+            'tiles': range_tiles,
+            'skill_type': skill_type,
+        }, room=room)
 
     @socketio.on('combat:request_skills_availability')
     def on_request_skills_availability(data):

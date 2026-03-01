@@ -328,10 +328,14 @@ class CombatArena extends Phaser.Scene {
     /**
      * Looping idle animation: bob up/down and cycle between idle frames
      * of the current facing direction to simulate breathing.
+     * Works for both players and monsters.
      */
     _startIdleAnimation(id) {
         const ent = this.entitySprites[id];
-        if (!ent || ent.type !== 'player') return;
+        if (!ent) return;
+
+        // Only skip if the entity is already moving or KO
+        if ((ent.type === 'player' && ent.isMoving) || ent.state === 'ko') return;
 
         // Bobbing tween (gentle up/down)
         if (ent._idleTween) ent._idleTween.destroy();
@@ -353,7 +357,7 @@ class CombatArena extends Phaser.Scene {
             delay: 500,
             loop: true,
             callback: () => {
-                if (ent.isMoving || ent.state === 'ko') return;
+                if ((ent.type === 'player' && ent.isMoving) || ent.state === 'ko') return;
                 frame = (frame + 1) % 2;
                 // Subtle scale pulse for "breathing"
                 const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
@@ -415,6 +419,9 @@ class CombatArena extends Phaser.Scene {
             monType: monType,
             state: m.is_alive !== false ? 'idle' : 'ko',
         };
+
+        // Start idle animation for monsters
+        this._startIdleAnimation(id);
     }
 
     /**
@@ -597,6 +604,10 @@ class CombatArena extends Phaser.Scene {
 
         // Update round/phase
         if (state.current_round !== undefined) {
+            // Show round banner if round changed
+            if (this.currentRound !== state.current_round) {
+                this._showRoundBanner(state.current_round);
+            }
             this.currentRound = state.current_round;
             const roundEl = document.getElementById('round-number');
             if (roundEl) roundEl.textContent = 'Round ' + state.current_round;
@@ -666,6 +677,9 @@ class CombatArena extends Phaser.Scene {
         this.currentPhase = phase;
         this.clearHighlights();
 
+        // Show phase banner
+        this._showPhaseBanner(phase);
+
         if (typeof CombatSocketInstance !== 'undefined') {
             if (phase === 'move') {
                 CombatSocketInstance.addCombatLogEntry('Phase de déplacement', 'phase');
@@ -673,6 +687,98 @@ class CombatArena extends Phaser.Scene {
                 CombatSocketInstance.addCombatLogEntry('Phase d\'action', 'phase');
             }
         }
+    }
+
+    /**
+     * Display a dramatic phase transition banner
+     */
+    _showPhaseBanner(phase) {
+        const phaseTexts = {
+            'move': { text: 'DÉPLACEMENT', color: 0x3b82f6, bgColor: '#3b82f6' },
+            'question': { text: 'QUESTION', color: 0xeab308, bgColor: '#eab308' },
+            'action': { text: 'ATTAQUE!', color: 0xdc2626, bgColor: '#dc2626' },
+            'execute': { text: 'EXÉCUTION!', color: 0xf97316, bgColor: '#f97316' },
+            'monster_turn': { text: 'TOUR DES MONSTRES', color: 0xa855f7, bgColor: '#a855f7' },
+        };
+
+        const phaseInfo = phaseTexts[phase] || { text: phase.toUpperCase(), color: 0x6366f1, bgColor: '#6366f1' };
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        // Semi-transparent background for banner
+        const bgGraphics = this.add.graphics();
+        bgGraphics.fillStyle(0x000000, 0.5);
+        bgGraphics.fillRect(-canvasW, canvasH / 2 - 50, canvasW * 3, 100);
+        bgGraphics.setDepth(10001);
+
+        // Phase text banner
+        const bannerText = this.add.text(canvasW / 2, canvasH / 2, phaseInfo.text, {
+            fontSize: '64px',
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: phaseInfo.bgColor,
+            strokeThickness: 6,
+        }).setOrigin(0.5).setDepth(10002);
+
+        // Animate banner: slide in from left, stay, fade out
+        bannerText.x = -canvasW / 2;
+        this.tweens.add({
+            targets: bannerText,
+            x: canvasW / 2,
+            duration: 500,
+            ease: 'Power2.out',
+        });
+
+        // Keep visible for 1.5 seconds, then fade out
+        this.time.delayedCall(1500, () => {
+            this.tweens.add({
+                targets: [bannerText, bgGraphics],
+                alpha: 0,
+                duration: 400,
+                ease: 'Linear',
+                onComplete: () => {
+                    bannerText.destroy();
+                    bgGraphics.destroy();
+                },
+            });
+        });
+    }
+
+    /**
+     * Display round counter
+     */
+    _showRoundBanner(roundNum) {
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        const roundText = this.add.text(canvasW / 2, 100, `ROUND ${roundNum}`, {
+            fontSize: '48px',
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            color: '#fbbf24',
+            stroke: '#92400e',
+            strokeThickness: 4,
+        }).setOrigin(0.5).setDepth(10000);
+
+        // Scale up, stay, then fade away
+        roundText.setScale(0.5);
+        this.tweens.add({
+            targets: roundText,
+            scale: 1,
+            duration: 400,
+            ease: 'Back.out',
+        });
+
+        this.time.delayedCall(2000, () => {
+            this.tweens.add({
+                targets: roundText,
+                alpha: 0,
+                duration: 500,
+                ease: 'Linear',
+                onComplete: () => roundText.destroy(),
+            });
+        });
     }
 
     // ── Move result handler ──
@@ -817,6 +923,15 @@ class CombatArena extends Phaser.Scene {
         }
 
         if (target) {
+            const dmg = anim.damage || 0;
+            const isCritical = anim.critical || false;
+            const isHeavyHit = dmg > 10;
+
+            // Camera shake on heavy hits
+            if (isHeavyHit || isCritical) {
+                this.cameras.main.shake(200, 0.02);
+            }
+
             const fxKey = anim.skill_type === 'magic' ? 'fx_fireball' : 'fx_slash';
             if (this.textures.exists(fxKey)) {
                 const fx = this.add.image(target.sprite.x, target.sprite.y, fxKey);
@@ -832,10 +947,31 @@ class CombatArena extends Phaser.Scene {
                 });
             }
 
-            // Damage number
-            const dmg = anim.damage || 0;
+            // Particle scatter effect on impact
+            if (isHeavyHit) {
+                this._createImpactParticles(target.sprite.x, target.sprite.y, dmg);
+            }
+
+            // Target flash white on hit
+            this.time.delayedCall(100, () => {
+                if (target.sprite) {
+                    const originalTint = target.sprite.tint;
+                    target.sprite.setTint(0xffffff);
+                    this.time.delayedCall(150, () => {
+                        if (target.sprite) target.sprite.clearTint();
+                    });
+                }
+            });
+
+            // Screen flash overlay for big hits
+            if (isHeavyHit || isCritical) {
+                this._screenFlash(dmg > 30 ? 0.3 : 0.15);
+            }
+
+            // Damage number - make it bigger and more dramatic
             if (dmg > 0) {
-                this._showDamageNumber(target.sprite.x, target.sprite.y - 20, dmg, '#ff4444');
+                const prefix = isCritical ? 'CRIT! -' : '-';
+                this._showDamageNumber(target.sprite.x, target.sprite.y - 20, dmg, '#ff4444', isCritical);
             }
 
             // Hurt flash
@@ -843,7 +979,7 @@ class CombatArena extends Phaser.Scene {
                 this.setEntityState(targetId, 'hurt');
                 this.time.delayedCall(400, () => {
                     if (anim.killed) {
-                        this.setEntityState(targetId, 'ko');
+                        this._playKOAnimation(targetId);
                     } else {
                         this.setEntityState(targetId, 'idle');
                     }
@@ -877,7 +1013,7 @@ class CombatArena extends Phaser.Scene {
         }
 
         if (target && anim.heal) {
-            this._showDamageNumber(target.sprite.x, target.sprite.y - 20, -anim.heal, '#10b981');
+            this._showHealNumber(target.sprite.x, target.sprite.y - 20, anim.heal);
         }
 
         if (anim.target_hp !== undefined && anim.target_max_hp) {
@@ -903,23 +1039,135 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    _showDamageNumber(x, y, value, color) {
-        const prefix = value > 0 ? '-' : '+';
-        const text = this.add.text(x, y, prefix + Math.abs(value), {
-            fontSize: '16px',
+    /**
+     * Create particle scatter effect from impact point
+     */
+    _createImpactParticles(x, y, damage) {
+        const particleCount = Math.min(8, Math.floor(damage / 5));
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const speed = 150 + Math.random() * 100;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+
+            const particle = this.add.circle(x, y, 3, 0xff6b6b);
+            particle.setDepth(9998);
+
+            this.tweens.add({
+                targets: particle,
+                x: x + vx * 0.5,
+                y: y + vy * 0.5,
+                alpha: { from: 0.8, to: 0 },
+                scale: { from: 1, to: 0.3 },
+                duration: 600,
+                ease: 'Power2.out',
+                onComplete: () => particle.destroy(),
+            });
+        }
+    }
+
+    /**
+     * Flash the screen with a color overlay
+     */
+    _screenFlash(intensity = 0.2) {
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        const flash = this.add.rectangle(canvasW / 2, canvasH / 2, canvasW, canvasH, 0xffffff);
+        flash.setDepth(10000);
+        flash.setAlpha(intensity);
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 250,
+            ease: 'Power2.out',
+            onComplete: () => flash.destroy(),
+        });
+    }
+
+    /**
+     * Play dramatic KO animation: shrink, spin, gray out, fade
+     */
+    _playKOAnimation(id) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
+
+        this._stopIdleAnimation(id);
+
+        // Shrink and spin
+        this.tweens.add({
+            targets: ent.sprite,
+            scale: 0.3,
+            rotation: Math.PI * 2,
+            duration: 600,
+            ease: 'Back.in',
+        });
+
+        // Turn gray
+        this.time.delayedCall(300, () => {
+            if (ent.sprite) {
+                ent.sprite.setTint(0x808080);
+            }
+        });
+
+        // Fade out
+        this.time.delayedCall(600, () => {
+            this.tweens.add({
+                targets: [ent.sprite, ent.name, ent.hpBg, ent.hpFill],
+                alpha: 0.3,
+                duration: 400,
+                ease: 'Linear',
+                onComplete: () => {
+                    this.setEntityState(id, 'ko');
+                },
+            });
+        });
+    }
+
+    _showDamageNumber(x, y, value, color, isCritical = false) {
+        const prefix = isCritical ? 'CRIT! ' : '';
+        const text = this.add.text(x, y, prefix + '-' + Math.abs(value), {
+            fontSize: isCritical ? '32px' : '24px',
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
             color: color,
             stroke: '#000000',
-            strokeThickness: 3,
+            strokeThickness: 4,
         }).setOrigin(0.5).setDepth(10000);
 
+        // Start small, scale up, then float away
+        text.setScale(0.5);
         this.tweens.add({
             targets: text,
-            y: y - 40,
+            scale: isCritical ? 1.3 : 1.0,
+            y: y - 50,
             alpha: { from: 1, to: 0 },
-            duration: 1200,
-            ease: 'Power2',
+            duration: 1400,
+            ease: 'Power2.out',
+            onComplete: () => text.destroy(),
+        });
+    }
+
+    _showHealNumber(x, y, value) {
+        const text = this.add.text(x, y, '+' + Math.abs(value), {
+            fontSize: '24px',
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            color: '#10b981',
+            stroke: '#059669',
+            strokeThickness: 4,
+        }).setOrigin(0.5).setDepth(10000);
+
+        // Start small, scale up, then float away
+        text.setScale(0.5);
+        this.tweens.add({
+            targets: text,
+            scale: 1.0,
+            y: y - 50,
+            alpha: { from: 1, to: 0 },
+            duration: 1400,
+            ease: 'Power2.out',
             onComplete: () => text.destroy(),
         });
     }
@@ -972,6 +1220,73 @@ class CombatArena extends Phaser.Scene {
                 </div>
             `;
         }).join('');
+    }
+
+    /**
+     * Show victory or defeat screen on the Phaser canvas
+     */
+    showCombatEndScreen(isVictory) {
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        // Semi-transparent overlay
+        const overlay = this.add.rectangle(canvasW / 2, canvasH / 2, canvasW, canvasH, 0x000000);
+        overlay.setAlpha(0.6);
+        overlay.setDepth(10010);
+
+        // Victory/Defeat text
+        const resultText = isVictory ? 'VICTOIRE!' : 'DÉFAITE';
+        const resultColor = isVictory ? '#10b981' : '#ef4444';
+        const resultStroke = isVictory ? '#059669' : '#dc2626';
+
+        const text = this.add.text(canvasW / 2, canvasH / 2, resultText, {
+            fontSize: '96px',
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            color: resultColor,
+            stroke: resultStroke,
+            strokeThickness: 8,
+        }).setOrigin(0.5).setDepth(10011);
+
+        text.setScale(0);
+        this.tweens.add({
+            targets: text,
+            scale: 1,
+            duration: 600,
+            ease: 'Back.out',
+        });
+
+        // Particle burst around text
+        this._createVictoryParticles(canvasW / 2, canvasH / 2, isVictory);
+    }
+
+    /**
+     * Create celebratory or mournful particles
+     */
+    _createVictoryParticles(centerX, centerY, isVictory) {
+        const particleCount = 20;
+        const color = isVictory ? 0xfbbf24 : 0xff6b6b;
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (i / particleCount) * Math.PI * 2;
+            const speed = 200 + Math.random() * 200;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+
+            const particle = this.add.circle(centerX, centerY, 4, color);
+            particle.setDepth(10010);
+
+            this.tweens.add({
+                targets: particle,
+                x: centerX + vx,
+                y: centerY + vy,
+                alpha: { from: 0.8, to: 0 },
+                scale: { from: 1, to: 0 },
+                duration: 1000,
+                ease: 'Power2.out',
+                onComplete: () => particle.destroy(),
+            });
+        }
     }
 }
 
