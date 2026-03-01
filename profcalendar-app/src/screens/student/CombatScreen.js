@@ -25,9 +25,9 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Socket.IO constants
 const SOCKET_URL = 'https://profcalendar-clean.onrender.com';
 
-// Sprite URL helper — use the user's own chihuahua sprites
+// Sprite URL helper — use the north-west idle directional sprite
 const getSpriteUrl = (avatarClass) => {
-  return `${SOCKET_URL}/static/img/chihuahua/${avatarClass}.png`;
+  return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_nw_idle.png`;
 };
 const getIsometricSpriteUrl = (avatarClass, direction = 'se', state = 'idle') => {
   return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_${direction}_${state}.png`;

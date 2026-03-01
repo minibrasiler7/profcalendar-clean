@@ -103,7 +103,8 @@ class CombatEngine:
 
         placed = 0
         attempts = 0
-        while placed < num_obstacles and attempts < num_obstacles * 5:
+        # Si la grille est trop petite, pas d'obstacles (safe_left >= safe_right)
+        while placed < num_obstacles and attempts < num_obstacles * 5 and safe_left < safe_right:
             attempts += 1
             ox = random.randint(safe_left, safe_right - 1)
             oy = random.randint(0, height - 1)

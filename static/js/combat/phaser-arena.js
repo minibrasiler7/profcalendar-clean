@@ -39,13 +39,8 @@ class CombatArena extends Phaser.Scene {
         this.load.image('hl_heal', '/static/img/combat/tiles/iso_highlight_heal.png');
         this.load.image('hl_selected', '/static/img/combat/tiles/iso_highlight_selected.png');
 
-        // User's own chihuahua sprites (main character images)
-        const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
-        for (const cls of classes) {
-            this.load.image(`chi_${cls}_main`, `/static/img/chihuahua/${cls}.png`);
-        }
-
-        // Directional chihuahua sprites (4 classes × 4 directions × 4 states) for animations
+        // Directional chihuahua sprites (4 classes × 4 directions × 4 states)
+        // Default facing: nw_idle (north-west idle frame)
         const dirs = ['se', 'sw', 'ne', 'nw'];
         const states = ['idle', 'attack', 'hurt', 'ko'];
         for (const cls of classes) {
@@ -280,16 +275,13 @@ class CombatArena extends Phaser.Scene {
         const cls = (p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier').toLowerCase();
         const { x, y } = this.gridToIso(p.grid_x, p.grid_y);
 
-        // Use user's own sprite first, fall back to directional sprite
-        const mainKey = `chi_${cls}_main`;
+        // Use north-west idle sprite as default facing direction
+        const spriteKey = `chi_${cls}_nw_idle`;
         const fallbackKey = `chi_${cls}_se_idle`;
-        const spriteKey = this.textures.exists(mainKey) ? mainKey : fallbackKey;
-        const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
+        const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
+        const sprite = this.add.image(x, y - TILE_DEPTH, usedKey);
         sprite.setOrigin(0.5, 0.8);
-        // Scale down if using main sprite (user sprites are large ~1MB images)
-        if (spriteKey === mainKey) {
-            sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
-        }
+        sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
         sprite.setDepth(p.grid_x + p.grid_y + 1);
 
         // Name label (positioned above the larger sprite)
@@ -322,7 +314,7 @@ class CombatArena extends Phaser.Scene {
             data: p,
             type: 'player',
             cls: cls,
-            direction: 'se',
+            direction: 'nw',
             state: p.is_alive !== false ? 'idle' : 'ko',
         };
     }
