@@ -39,8 +39,13 @@ class CombatArena extends Phaser.Scene {
         this.load.image('hl_heal', '/static/img/combat/tiles/iso_highlight_heal.png');
         this.load.image('hl_selected', '/static/img/combat/tiles/iso_highlight_selected.png');
 
-        // Chihuahua sprites (4 classes × 4 directions × 4 states)
+        // User's own chihuahua sprites (main character images)
         const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
+        for (const cls of classes) {
+            this.load.image(`chi_${cls}_main`, `/static/img/chihuahua/${cls}.png`);
+        }
+
+        // Directional chihuahua sprites (4 classes × 4 directions × 4 states) for animations
         const dirs = ['se', 'sw', 'ne', 'nw'];
         const states = ['idle', 'attack', 'hurt', 'ko'];
         for (const cls of classes) {
@@ -87,19 +92,31 @@ class CombatArena extends Phaser.Scene {
             CombatSocketInstance.setGameInstance(this);
         }
 
-        // Camera drag (right click)
+        // Camera drag (middle click or right click)
         this.input.on('pointermove', (pointer) => {
-            if (pointer.isDown && pointer.button === 2) {
-                this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x);
-                this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y);
+            if (pointer.isDown && (pointer.button === 1 || pointer.button === 2)) {
+                this.cameras.main.scrollX -= (pointer.x - pointer.prevPosition.x) / this.cameras.main.zoom;
+                this.cameras.main.scrollY -= (pointer.y - pointer.prevPosition.y) / this.cameras.main.zoom;
             }
         });
 
-        // Zoom with mouse wheel
+        // Zoom with mouse wheel — zoom toward cursor position
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
             const cam = this.cameras.main;
-            const newZoom = Phaser.Math.Clamp(cam.zoom - deltaY * 0.001, 0.4, 2.0);
+            const oldZoom = cam.zoom;
+            const newZoom = Phaser.Math.Clamp(oldZoom - deltaY * 0.001, 0.4, 2.5);
+
+            if (newZoom === oldZoom) return;
+
+            // Calculate the world point under the cursor before zoom
+            const worldX = cam.scrollX + pointer.x / oldZoom;
+            const worldY = cam.scrollY + pointer.y / oldZoom;
+
             cam.setZoom(newZoom);
+
+            // Adjust scroll so the world point stays under the cursor
+            cam.scrollX = worldX - pointer.x / newZoom;
+            cam.scrollY = worldY - pointer.y / newZoom;
         });
 
         // Disable right-click context menu
@@ -216,9 +233,16 @@ class CombatArena extends Phaser.Scene {
         const cls = (p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier').toLowerCase();
         const { x, y } = this.gridToIso(p.grid_x, p.grid_y);
 
-        const spriteKey = `chi_${cls}_se_idle`;
+        // Use user's own sprite first, fall back to directional sprite
+        const mainKey = `chi_${cls}_main`;
+        const fallbackKey = `chi_${cls}_se_idle`;
+        const spriteKey = this.textures.exists(mainKey) ? mainKey : fallbackKey;
         const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
         sprite.setOrigin(0.5, 0.8);
+        // Scale down if using main sprite (user sprites are large ~1MB images)
+        if (spriteKey === mainKey) {
+            sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
+        }
         sprite.setDepth(p.grid_x + p.grid_y + 1);
 
         // Name label
@@ -493,17 +517,22 @@ class CombatArena extends Phaser.Scene {
     onMoveResult(result) {
         if (!result) return;
 
-        // Find entity by participant_id
+        // Server sends: {student_id, participant_id, from_x, from_y, to_x, to_y}
+        const toX = result.to_x;
+        const toY = result.to_y;
+
+        // Find entity by participant_id or student_id
         for (const id in this.entitySprites) {
             const ent = this.entitySprites[id];
-            if (ent.type === 'player' && ent.data && ent.data.id === result.participant_id) {
-                this.updateEntityPosition(id, result.new_x, result.new_y, true);
-                ent.data.grid_x = result.new_x;
-                ent.data.grid_y = result.new_y;
+            if (ent.type === 'player' && ent.data &&
+                (ent.data.id === result.participant_id || ent.data.student_id === result.student_id)) {
+                this.updateEntityPosition(id, toX, toY, true);
+                ent.data.grid_x = toX;
+                ent.data.grid_y = toY;
 
                 if (typeof CombatSocketInstance !== 'undefined') {
                     CombatSocketInstance.addCombatLogEntry(
-                        `${ent.data.student_name || 'Joueur'} se déplace vers (${result.new_x},${result.new_y})`, 'default'
+                        `${ent.data.student_name || 'Joueur'} se déplace vers (${toX},${toY})`, 'default'
                     );
                 }
                 break;
@@ -544,7 +573,7 @@ class CombatArena extends Phaser.Scene {
 
         // Log
         if (typeof CombatSocketInstance !== 'undefined') {
-            const dmg = anim.damage || anim.heal_amount || 0;
+            const dmg = anim.damage || anim.heal || 0;
             const logType = type === 'heal' ? 'heal' : 'damage';
             let msg = '';
             if (type === 'monster_move') {
@@ -572,12 +601,24 @@ class CombatArena extends Phaser.Scene {
         entity.data.grid_x = anim.to_x;
         entity.data.grid_y = anim.to_y;
 
-        this.tweens.add({
-            targets: [entity.sprite, entity.hpBar?.bg, entity.hpBar?.fill, entity.nameText].filter(Boolean),
-            x: `+=${newIso.x - entity.sprite.x}`,
-            y: `+=${newIso.y - entity.sprite.y}`,
-            duration: 400,
-            ease: 'Power2',
+        const dx = newIso.x - entity.sprite.x;
+        const dy = (newIso.y - TILE_DEPTH) - entity.sprite.y;
+
+        // Move all parts of the entity together
+        const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name].filter(Boolean);
+        for (const part of parts) {
+            this.tweens.add({
+                targets: part,
+                x: part.x + dx,
+                y: part.y + dy,
+                duration: 400,
+                ease: 'Power2',
+            });
+        }
+
+        // Update depth after move
+        this.time.delayedCall(420, () => {
+            if (entity.sprite) entity.sprite.setDepth(anim.to_x + anim.to_y + 1);
         });
     }
 
@@ -631,7 +672,7 @@ class CombatArena extends Phaser.Scene {
             this.time.delayedCall(200, () => {
                 this.setEntityState(targetId, 'hurt');
                 this.time.delayedCall(400, () => {
-                    if (anim.target_killed) {
+                    if (anim.killed) {
                         this.setEntityState(targetId, 'ko');
                     } else {
                         this.setEntityState(targetId, 'idle');
@@ -639,9 +680,9 @@ class CombatArena extends Phaser.Scene {
                 });
             });
 
-            if (anim.target_hp_after !== undefined && anim.target_max_hp) {
+            if (anim.target_hp !== undefined && anim.target_max_hp) {
                 this.time.delayedCall(300, () => {
-                    this.updateEntityHP(targetId, anim.target_hp_after, anim.target_max_hp);
+                    this.updateEntityHP(targetId, anim.target_hp, anim.target_max_hp);
                 });
             }
         }
@@ -665,12 +706,12 @@ class CombatArena extends Phaser.Scene {
             });
         }
 
-        if (target && anim.heal_amount) {
-            this._showDamageNumber(target.sprite.x, target.sprite.y - 20, -anim.heal_amount, '#10b981');
+        if (target && anim.heal) {
+            this._showDamageNumber(target.sprite.x, target.sprite.y - 20, -anim.heal, '#10b981');
         }
 
-        if (anim.target_hp_after !== undefined && anim.target_max_hp) {
-            this.updateEntityHP(targetId, anim.target_hp_after, anim.target_max_hp);
+        if (anim.target_hp !== undefined && anim.target_max_hp) {
+            this.updateEntityHP(targetId, anim.target_hp, anim.target_max_hp);
         }
     }
 

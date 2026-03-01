@@ -25,8 +25,11 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 // Socket.IO constants
 const SOCKET_URL = 'https://profcalendar-clean.onrender.com';
 
-// Sprite URL helper
-const getSpriteUrl = (avatarClass, direction = 'se', state = 'idle') => {
+// Sprite URL helper — use the user's own chihuahua sprites
+const getSpriteUrl = (avatarClass) => {
+  return `${SOCKET_URL}/static/img/chihuahua/${avatarClass}.png`;
+};
+const getIsometricSpriteUrl = (avatarClass, direction = 'se', state = 'idle') => {
   return `${SOCKET_URL}/static/img/combat/chihuahua/${avatarClass}_${direction}_${state}.png`;
 };
 const getMonsterSpriteUrl = (monsterType, state = 'idle') => {
@@ -71,7 +74,10 @@ const getSkillIcon = (iconName) => {
 };
 
 export default function CombatScreen({ route, navigation }) {
-  const { sessionId, studentId, classroomId } = route.params;
+  // IMPORTANT: Convert to Number to avoid strict equality issues with server (int vs string)
+  const sessionId = Number(route.params.sessionId);
+  const studentId = Number(route.params.studentId);
+  const classroomId = route.params.classroomId;
 
   // State management
   const [combatPhase, setCombatPhase] = useState('waiting');
@@ -133,8 +139,8 @@ export default function CombatScreen({ route, navigation }) {
         setMapConfig(state.map_config);
       }
 
-      // Update player stats from participants list
-      const me = (state.participants || []).find(p => p.student_id === studentId);
+      // Update player stats from participants list (use == for type-safe comparison)
+      const me = (state.participants || []).find(p => Number(p.student_id) === studentId);
       if (me) {
         setPlayerStats({
           hp: me.current_hp,
@@ -209,11 +215,11 @@ export default function CombatScreen({ route, navigation }) {
       setMoveTiles(data.tiles || []);
     });
 
-    // Listen for move result
+    // Listen for move result (server sends: {student_id, participant_id, from_x, from_y, to_x, to_y})
     socketRef.current.on('combat:move_result', (data) => {
       console.log('[Combat] move_result:', data);
-      if (data.student_id === studentId || data.participant_id) {
-        setMyPosition({ x: data.new_x, y: data.new_y });
+      if (Number(data.student_id) === studentId) {
+        setMyPosition({ x: data.to_x, y: data.to_y });
         setHasMoved(true);
         setMoveTiles([]);
       }
@@ -256,7 +262,7 @@ export default function CombatScreen({ route, navigation }) {
     socketRef.current.on('combat:finished', (data) => {
       console.log('[Combat] finished:', data.result);
       setCombatPhase('finished');
-      const myReward = data.rewards ? data.rewards[String(studentId)] : null;
+      const myReward = data.rewards ? (data.rewards[String(studentId)] || data.rewards[studentId]) : null;
       setResult({
         victory: data.result === 'victory',
         xp: myReward?.xp || 0,
@@ -527,7 +533,7 @@ export default function CombatScreen({ route, navigation }) {
     (participants || []).forEach(p => {
       if (!p.is_alive) return;
       const { x, y } = gridToMini(p.grid_x, p.grid_y);
-      const isMe = p.student_id === studentId;
+      const isMe = Number(p.student_id) === studentId;
       const clsColor = CLASS_COLORS[p.avatar_class] || '#ffffff';
       const radius = isMe ? 8 : 6;
 
@@ -880,7 +886,7 @@ export default function CombatScreen({ route, navigation }) {
     }
 
     // Show skills with range filtering
-    const me = participants.find(p => p.student_id === studentId);
+    const me = participants.find(p => Number(p.student_id) === studentId);
     const myClass = me?.avatar_class || 'guerrier';
 
     return (
@@ -1006,7 +1012,7 @@ export default function CombatScreen({ route, navigation }) {
 
   // Render player stats bar
   const renderStatsBar = () => {
-    const me = participants.find(p => p.student_id === studentId);
+    const me = participants.find(p => Number(p.student_id) === studentId);
     const myClass = me?.avatar_class || 'guerrier';
 
     return (
