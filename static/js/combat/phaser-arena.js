@@ -275,9 +275,10 @@ class CombatArena extends Phaser.Scene {
 
         const cls = (p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier').toLowerCase();
         const { x, y } = this.gridToIso(p.grid_x, p.grid_y);
+        const dir = 'ne';  // Default facing direction
 
-        // Use north-west idle sprite as default facing direction
-        const spriteKey = `chi_${cls}_nw_idle`;
+        // Use NE idle sprite as default
+        const spriteKey = `chi_${cls}_${dir}_idle`;
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
         const sprite = this.add.image(x, y - TILE_DEPTH, usedKey);
@@ -285,7 +286,7 @@ class CombatArena extends Phaser.Scene {
         sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
         sprite.setDepth(p.grid_x + p.grid_y + 1);
 
-        // Name label (positioned above the larger sprite)
+        // Name label
         const name = this.add.text(x, y - TILE_DEPTH - 50, p.student_name || 'Élève', {
             fontSize: '11px',
             fontFamily: 'Arial',
@@ -294,7 +295,7 @@ class CombatArena extends Phaser.Scene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar (positioned between name and sprite)
+        // HP bar
         const barWidth = 36;
         const barY = y - TILE_DEPTH - 38;
         const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
@@ -315,9 +316,60 @@ class CombatArena extends Phaser.Scene {
             data: p,
             type: 'player',
             cls: cls,
-            direction: 'nw',
+            direction: dir,
             state: p.is_alive !== false ? 'idle' : 'ko',
+            isMoving: false,
         };
+
+        // Start idle animation (bobbing + sprite cycling)
+        this._startIdleAnimation(id);
+    }
+
+    /**
+     * Looping idle animation: bob up/down and cycle between idle frames
+     * of the current facing direction to simulate breathing.
+     */
+    _startIdleAnimation(id) {
+        const ent = this.entitySprites[id];
+        if (!ent || ent.type !== 'player') return;
+
+        // Bobbing tween (gentle up/down)
+        if (ent._idleTween) ent._idleTween.destroy();
+        ent._idleTween = this.tweens.add({
+            targets: ent.sprite,
+            y: ent.sprite.y - 3,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        // Sprite frame cycling: alternate idle ↔ attack frame every 600ms
+        // This simulates a simple 2-frame walk/idle animation
+        if (ent._idleTimer) ent._idleTimer.destroy();
+        let frame = 0;
+        const idleFrames = ['idle', 'idle']; // both idle — we'll add subtle scale change instead
+        ent._idleTimer = this.time.addEvent({
+            delay: 500,
+            loop: true,
+            callback: () => {
+                if (ent.isMoving || ent.state === 'ko') return;
+                frame = (frame + 1) % 2;
+                // Subtle scale pulse for "breathing"
+                const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
+                ent.sprite.setScale(baseScale * (frame === 0 ? 1.0 : 1.03));
+            },
+        });
+    }
+
+    /**
+     * Stop idle animation (when moving or KO).
+     */
+    _stopIdleAnimation(id) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
+        if (ent._idleTween) { ent._idleTween.destroy(); ent._idleTween = null; }
+        if (ent._idleTimer) { ent._idleTimer.destroy(); ent._idleTimer = null; }
     }
 
     addMonster(m) {
@@ -365,6 +417,10 @@ class CombatArena extends Phaser.Scene {
         };
     }
 
+    /**
+     * Move an entity to a grid position — simple teleport or single-step tween.
+     * For path-following, use animateAlongPath() instead.
+     */
     updateEntityPosition(id, gx, gy, animate = true) {
         const ent = this.entitySprites[id];
         if (!ent) return;
@@ -377,9 +433,10 @@ class CombatArena extends Phaser.Scene {
             const newDir = this._getDirection(ent.data.grid_x, ent.data.grid_y, gx, gy);
             if (newDir !== ent.direction) {
                 ent.direction = newDir;
-                const texKey = `chi_${ent.cls}_${newDir}_${ent.state}`;
+                const texKey = `chi_${ent.cls}_${newDir}_idle`;
                 if (this.textures.exists(texKey)) {
                     ent.sprite.setTexture(texKey);
+                    ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
                 }
             }
         }
@@ -387,36 +444,14 @@ class CombatArena extends Phaser.Scene {
         if (animate) {
             this.tweens.add({
                 targets: [ent.sprite],
-                x: x,
-                y: targetY,
-                duration: 400,
-                ease: 'Power2',
-                onComplete: () => {
-                    ent.sprite.setDepth(gx + gy + 1);
-                },
+                x: x, y: targetY,
+                duration: 300, ease: 'Linear',
+                onComplete: () => { ent.sprite.setDepth(gx + gy + 1); },
             });
-            this.tweens.add({
-                targets: ent.name,
-                x: x,
-                y: targetY - (ent.type === 'monster' ? 36 : 50),
-                duration: 400,
-                ease: 'Power2',
-            });
+            this.tweens.add({ targets: ent.name, x: x, y: targetY - (ent.type === 'monster' ? 36 : 50), duration: 300, ease: 'Linear' });
             const barY = targetY - (ent.type === 'monster' ? 26 : 38);
-            this.tweens.add({
-                targets: [ent.hpBg],
-                x: x,
-                y: barY,
-                duration: 400,
-                ease: 'Power2',
-            });
-            this.tweens.add({
-                targets: [ent.hpFill],
-                x: x,
-                y: barY,
-                duration: 400,
-                ease: 'Power2',
-            });
+            this.tweens.add({ targets: [ent.hpBg], x: x, y: barY, duration: 300, ease: 'Linear' });
+            this.tweens.add({ targets: [ent.hpFill], x: x, y: barY, duration: 300, ease: 'Linear' });
         } else {
             ent.sprite.setPosition(x, targetY);
             ent.sprite.setDepth(gx + gy + 1);
@@ -426,6 +461,80 @@ class CombatArena extends Phaser.Scene {
             ent.hpBg.setPosition(x, targetY - barYOff);
             ent.hpFill.setPosition(x, targetY - barYOff);
         }
+    }
+
+    /**
+     * Animate a player entity along a series of grid cells (path).
+     * Changes direction sprite at each step.
+     * @param {string} id - entity ID (e.g., 'player_34')
+     * @param {Array<{x,y}>} path - ordered list of grid positions
+     */
+    animateAlongPath(id, path) {
+        const ent = this.entitySprites[id];
+        if (!ent || !path || path.length < 2) return;
+
+        // Stop idle animation during movement
+        ent.isMoving = true;
+        this._stopIdleAnimation(id);
+
+        const stepDuration = 250; // ms per cell
+        let stepIdx = 1; // start from step 1 (step 0 is current position)
+
+        const doStep = () => {
+            if (stepIdx >= path.length) {
+                // Movement complete — restart idle
+                ent.isMoving = false;
+                this._startIdleAnimation(id);
+                return;
+            }
+
+            const prevCell = path[stepIdx - 1];
+            const cell = path[stepIdx];
+            const { x, y } = this.gridToIso(cell.x, cell.y);
+            const targetY = y - TILE_DEPTH;
+
+            // Update direction based on movement
+            const newDir = this._getDirection(prevCell.x, prevCell.y, cell.x, cell.y);
+            if (newDir !== ent.direction) {
+                ent.direction = newDir;
+                const texKey = `chi_${ent.cls}_${newDir}_idle`;
+                if (this.textures.exists(texKey)) {
+                    ent.sprite.setTexture(texKey);
+                    ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
+                }
+            }
+
+            // Tween sprite + name + HP bars to next cell
+            this.tweens.add({
+                targets: [ent.sprite],
+                x: x, y: targetY,
+                duration: stepDuration,
+                ease: 'Linear',
+                onComplete: () => {
+                    ent.sprite.setDepth(cell.x + cell.y + 1);
+                    stepIdx++;
+                    doStep(); // Next step
+                },
+            });
+            this.tweens.add({
+                targets: ent.name,
+                x: x, y: targetY - 50,
+                duration: stepDuration, ease: 'Linear',
+            });
+            const barY = targetY - 38;
+            this.tweens.add({
+                targets: [ent.hpBg],
+                x: x, y: barY,
+                duration: stepDuration, ease: 'Linear',
+            });
+            this.tweens.add({
+                targets: [ent.hpFill],
+                x: x, y: barY,
+                duration: stepDuration, ease: 'Linear',
+            });
+        };
+
+        doStep();
     }
 
     updateEntityHP(id, curHp, maxHp) {
@@ -509,7 +618,8 @@ class CombatArena extends Phaser.Scene {
                 } else {
                     const ent = this.entitySprites[id];
                     const oldData = ent.data;
-                    if (oldData.grid_x !== p.grid_x || oldData.grid_y !== p.grid_y) {
+                    // Don't override position during path animation
+                    if (!ent.isMoving && (oldData.grid_x !== p.grid_x || oldData.grid_y !== p.grid_y)) {
                         this.updateEntityPosition(id, p.grid_x, p.grid_y, true);
                     }
                     const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
@@ -570,16 +680,23 @@ class CombatArena extends Phaser.Scene {
     onMoveResult(result) {
         if (!result) return;
 
-        // Server sends: {student_id, participant_id, from_x, from_y, to_x, to_y}
+        // Server sends: {student_id, participant_id, from_x, from_y, to_x, to_y, path}
         const toX = result.to_x;
         const toY = result.to_y;
+        const path = result.path; // Array of {x, y} cells
 
         // Find entity by participant_id or student_id
         for (const id in this.entitySprites) {
             const ent = this.entitySprites[id];
             if (ent.type === 'player' && ent.data &&
                 (ent.data.id === result.participant_id || ent.data.student_id === result.student_id)) {
-                this.updateEntityPosition(id, toX, toY, true);
+
+                // Use path animation if available, otherwise simple move
+                if (path && path.length > 1) {
+                    this.animateAlongPath(id, path);
+                } else {
+                    this.updateEntityPosition(id, toX, toY, true);
+                }
                 ent.data.grid_x = toX;
                 ent.data.grid_y = toY;
 

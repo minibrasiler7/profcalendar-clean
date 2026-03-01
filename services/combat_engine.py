@@ -515,6 +515,10 @@ class CombatEngine:
             return None, "Case non accessible"
 
         old_x, old_y = participant.grid_x, participant.grid_y
+
+        # Compute the BFS path from current position to target
+        path = CombatEngine._get_bfs_path(session, participant, target_x, target_y)
+
         participant.grid_x = target_x
         participant.grid_y = target_y
         participant.has_moved = True
@@ -527,7 +531,59 @@ class CombatEngine:
             'from_y': old_y,
             'to_x': target_x,
             'to_y': target_y,
+            'path': path,  # Full path as list of {x, y}
         }, None
+
+    @staticmethod
+    def _get_bfs_path(session, participant, target_x, target_y):
+        """Reconstruct the BFS shortest path from participant position to target."""
+        map_config = session.map_config_json or {}
+        width = map_config.get('width', 10)
+        height = map_config.get('height', 8)
+        tiles = map_config.get('tiles', [])
+
+        occupied = set()
+        for p in session.participants:
+            if p.is_alive and p.id != participant.id:
+                occupied.add((p.grid_x, p.grid_y))
+        for m in session.monsters:
+            if m.is_alive:
+                occupied.add((m.grid_x, m.grid_y))
+
+        start = (participant.grid_x, participant.grid_y)
+        target = (target_x, target_y)
+        if start == target:
+            return [{'x': start[0], 'y': start[1]}]
+
+        # BFS with parent tracking
+        parent = {start: None}
+        queue = deque([start])
+        while queue:
+            cx, cy = queue.popleft()
+            if (cx, cy) == target:
+                break
+            for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
+                nx, ny = cx + dx, cy + dy
+                if 0 <= nx < width and 0 <= ny < height and (nx, ny) not in parent:
+                    if ny < len(tiles) and nx < len(tiles[ny]):
+                        if tiles[ny][nx] in OBSTACLE_TILES:
+                            continue
+                    if (nx, ny) in occupied:
+                        continue
+                    parent[(nx, ny)] = (cx, cy)
+                    queue.append((nx, ny))
+
+        # Reconstruct path
+        if target not in parent:
+            return [{'x': start[0], 'y': start[1]}, {'x': target_x, 'y': target_y}]
+
+        path = []
+        cur = target
+        while cur is not None:
+            path.append({'x': cur[0], 'y': cur[1]})
+            cur = parent[cur]
+        path.reverse()
+        return path
 
     # ─── Transition phase mouvement (gardée pour compatibilité) ─
     @staticmethod
