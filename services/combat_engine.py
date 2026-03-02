@@ -996,7 +996,7 @@ class CombatEngine:
                 if skill.get('target') == 'all':
                     for target_p in alive_players:
                         player_def = (target_p.snapshot_json or {}).get('stats', {}).get('defense', 5)
-                        damage = max(1, int(monster.attack + skill.get('damage', 8)) - player_def // 2)
+                        damage = max(1, int(monster.attack * 0.5 + skill.get('damage', 8) * 0.4) - player_def)
                         target_p.current_hp = max(0, target_p.current_hp - damage)
                         if target_p.current_hp <= 0:
                             target_p.is_alive = False
