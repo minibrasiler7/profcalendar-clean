@@ -285,13 +285,14 @@ const CombatSocketInstance = new CombatSocket();
 document.addEventListener('DOMContentLoaded', () => {
     CombatSocketInstance.connect();
 
-    const btnNext = document.getElementById('btn-next-round');
-    const btnForce = document.getElementById('btn-force-execute');
-    const btnForceMove = document.getElementById('btn-force-move-end');
-
-    if (btnNext) btnNext.addEventListener('click', () => CombatSocketInstance.startRound());
-    if (btnForce) btnForce.addEventListener('click', () => CombatSocketInstance.forceExecute());
-    if (btnForceMove) btnForceMove.addEventListener('click', () => CombatSocketInstance.forceMoveEnd());
+    // Single Start button — auto-advance handles everything after
+    const btnStart = document.getElementById('btn-start-combat');
+    if (btnStart) {
+        btnStart.addEventListener('click', () => {
+            CombatSocketInstance.startRound();
+            btnStart.style.display = 'none'; // Hide after starting
+        });
+    }
 
     console.log('Socket client initialized');
 });

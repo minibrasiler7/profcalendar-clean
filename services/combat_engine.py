@@ -612,24 +612,30 @@ class CombatEngine:
         if not exercise:
             return None, f"Exercice non trouvé (exercise_id={session.exercise_id})"
 
-        # Sélectionner un bloc aléatoire (types supportés pour le combat)
-        supported_types = ['qcm', 'short_answer', 'fill_blank']
-        blocks = ExerciseBlock.query.filter(
-            ExerciseBlock.exercise_id == session.exercise_id,
-            ExerciseBlock.block_type.in_(supported_types)
-        ).all()
+        # Sélectionner un bloc aléatoire (tous les types supportés)
+        blocks = ExerciseBlock.query.filter_by(exercise_id=session.exercise_id).all()
 
-        logger.info(f"[Combat] Found {len(blocks)} supported blocks for exercise {session.exercise_id}")
-
-        if not blocks:
-            blocks = ExerciseBlock.query.filter_by(exercise_id=session.exercise_id).all()
-            logger.info(f"[Combat] Fallback: {len(blocks)} total blocks")
+        logger.info(f"[Combat] Found {len(blocks)} blocks for exercise {session.exercise_id}")
 
         if not blocks:
             return None, f"Aucune question disponible (exercise_id={session.exercise_id})"
 
-        block = random.choice(blocks)
-        logger.info(f"[Combat] Selected block: id={block.id} type={block.block_type} title='{block.title}'")
+        # Implémentation de la rotation des questions
+        used_block_ids = session.used_block_ids_json or []
+        if len(used_block_ids) >= len(blocks):
+            # Tous les blocs ont été utilisés, réinitialiser
+            used_block_ids = []
+            logger.info(f"[Combat] Resetting used blocks, all {len(blocks)} blocks have been used")
+
+        # Sélectionner un bloc qui n'a pas été utilisé dans ce combat
+        available_blocks = [b for b in blocks if b.id not in used_block_ids]
+        if not available_blocks:
+            available_blocks = blocks
+
+        block = random.choice(available_blocks)
+        used_block_ids.append(block.id)
+        session.used_block_ids_json = used_block_ids
+        logger.info(f"[Combat] Selected block: id={block.id} type={block.block_type} title='{block.title}' (used: {len(used_block_ids)}/{len(blocks)})")
 
         # Au premier round, redimensionner la grille AVANT de modifier le round
         if session.current_round == 0:
@@ -843,7 +849,7 @@ class CombatEngine:
                                 dist = abs(m.grid_x - cx) + abs(m.grid_y - cy)
                                 if dist <= skill_aoe:
                                     force = stats.get('force', 5)
-                                    damage = max(1, int(force * skill_damage / 10) - m.defense)
+                                    damage = max(1, int((force + skill_damage) * (1 + force / 20)) - m.defense // 2)
                                     actual = m.take_damage(damage)
                                     animations.append({
                                         'type': 'attack',
@@ -862,7 +868,7 @@ class CombatEngine:
                     target = CombatMonster.query.get(target_id) if target_type == 'monster' else None
                     if target and target.is_alive:
                         force = stats.get('force', 5)
-                        damage = max(1, int(force * skill_damage / 10) - target.defense)
+                        damage = max(1, int((force + skill_damage) * (1 + force / 20)) - target.defense // 2)
                         actual = target.take_damage(damage)
                         animations.append({
                             'type': 'attack',
@@ -985,8 +991,8 @@ class CombatEngine:
             if dist <= monster_range:
                 if skill.get('target') == 'all':
                     for target_p in alive_players:
-                        damage = max(1, int(monster.attack * skill.get('damage', 8) / 10) -
-                                     ((target_p.snapshot_json or {}).get('stats', {}).get('defense', 5)))
+                        player_def = (target_p.snapshot_json or {}).get('stats', {}).get('defense', 5)
+                        damage = max(1, int((monster.attack + skill.get('damage', 8)) * (1 + monster.attack / 20)) - player_def // 2)
                         target_p.current_hp = max(0, target_p.current_hp - damage)
                         if target_p.current_hp <= 0:
                             target_p.is_alive = False
@@ -1007,7 +1013,7 @@ class CombatEngine:
                         player_def = (target.snapshot_json or {}).get('stats', {}).get('defense_magique', 5)
                     else:
                         player_def = (target.snapshot_json or {}).get('stats', {}).get('defense', 5)
-                    damage = max(1, int(monster.attack * skill.get('damage', 8) / 10) - player_def)
+                    damage = max(1, int((monster.attack + skill.get('damage', 8)) * (1 + monster.attack / 20)) - player_def // 2)
                     target.current_hp = max(0, target.current_hp - damage)
                     if target.current_hp <= 0:
                         target.is_alive = False

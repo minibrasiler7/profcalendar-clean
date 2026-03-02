@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import io from 'socket.io-client';
 import api from '../../api/client';
 import colors from '../../theme/colors';
+import QuestionRenderer from '../../components/questions/QuestionRenderer';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -99,12 +100,9 @@ export default function CombatScreen({ route, navigation }) {
   const [participants, setParticipants] = useState([]);
   const [monsters, setMonsters] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [combatAnswer, setCombatAnswer] = useState({});
   const [timer, setTimer] = useState(30);
   const [timerAnimation] = useState(new Animated.Value(1));
-  const [userAnswer, setUserAnswer] = useState('');
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [selectedMultiple, setSelectedMultiple] = useState([]);
-  const [fillBlanks, setFillBlanks] = useState([]);
   const [answering, setAnswering] = useState(false);
   const [answerSubmitted, setAnswerSubmitted] = useState(false);
   const [answerResult, setAnswerResult] = useState(null); // null, true, false
@@ -140,6 +138,7 @@ export default function CombatScreen({ route, navigation }) {
   // Debug log for troubleshooting
   const [debugLog, setDebugLog] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [comboStreak, setComboStreak] = useState(0);
   const addDebug = useCallback((msg) => {
     const ts = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setDebugLog(prev => [`[${ts}] ${msg}`, ...prev].slice(0, 50));
@@ -215,29 +214,15 @@ export default function CombatScreen({ route, navigation }) {
       if (!questionText) questionText = data.title || 'Question';
       addDebug(`Question text: "${questionText.substring(0, 60)}" type=${data.block_type} options=${(config.options||[]).length}`);
 
-      // For fill_blank, count blanks in template
-      let blankCount = 0;
-      if (data.block_type === 'fill_blank') {
-        const tpl = config.text_template || '';
-        const matches = tpl.match(/\{[^}]+\}/g) || [];
-        blankCount = matches.length;
-      }
-
       setCurrentQuestion({
         block_id: data.block_id,
         block_type: data.block_type,
         title: data.title,
-        question_text: questionText,
-        options: (config.options || []).map(o => o.text || o.label || o),
-        multiple: config.multiple_answers || (config.options || []).filter(o => o.is_correct).length > 1,
-        answer_type: config.answer_type,
         config: config,
+        points: data.points || 10,
       });
+      setCombatAnswer({});
       setTimer(30);
-      setUserAnswer('');
-      setSelectedOption(null);
-      setSelectedMultiple([]);
-      setFillBlanks(new Array(blankCount).fill(''));
       setAnswering(false);
       setAnswerSubmitted(false);
       setAnswerResult(null);
@@ -249,6 +234,12 @@ export default function CombatScreen({ route, navigation }) {
       addDebug(`ANSWER_RESULT is_correct=${data.is_correct} student_id=${data.student_id}`);
       setAnswerResult(data.is_correct);
       setAnswerSubmitted(true);
+      // Update combo streak
+      if (data.is_correct) {
+        setComboStreak(prev => prev + 1);
+      } else {
+        setComboStreak(0);
+      }
     });
 
     // Listen for answer progress (server sends: {answered, total, student_id, is_correct})
@@ -373,25 +364,12 @@ export default function CombatScreen({ route, navigation }) {
 
     setAnswering(true);
 
-    // Build answer object matching grade_block format (same as ExerciseSolveScreen)
-    let answer = {};
-    if (currentQuestion.block_type === 'qcm') {
-      const sel = currentQuestion.multiple ? selectedMultiple : (selectedOption !== null ? [selectedOption] : []);
-      answer = { selected: sel };
-    } else if (currentQuestion.block_type === 'short_answer') {
-      answer = { value: userAnswer };
-    } else if (currentQuestion.block_type === 'fill_blank') {
-      answer = { blanks: fillBlanks };
-    } else {
-      answer = { value: userAnswer };
-    }
-
     socketRef.current.emit('combat:submit_answer', {
       session_id: sessionId,
       student_id: studentId,
-      answer: answer,
+      answer: combatAnswer,
     });
-  }, [sessionId, studentId, userAnswer, selectedOption, selectedMultiple, fillBlanks, currentQuestion, answering]);
+  }, [sessionId, studentId, combatAnswer, currentQuestion, answering]);
 
   const handleSelectSkill = (skill) => {
     setSelectedSkill(skill);
@@ -829,159 +807,13 @@ export default function CombatScreen({ route, navigation }) {
   );
 
   // Render the question block content (matching ExerciseSolveScreen style)
-  const renderQuestionBlock = () => {
-    if (!currentQuestion) return null;
-    const c = currentQuestion.config || {};
-    const blockType = currentQuestion.block_type;
-    const isMultiple = blockType === 'qcm' && currentQuestion.multiple;
-
-    switch (blockType) {
-      case 'qcm': {
-        return (
-          <View>
-            {c.question ? (
-              <Text style={styles.questionText}>{c.question}</Text>
-            ) : null}
-            <View style={styles.optionsContainer}>
-              {(c.options || []).map((opt, i) => {
-                const optText = typeof opt === 'string' ? opt : (opt.text || opt.label || '');
-                const isSel = isMultiple ? selectedMultiple.includes(i) : selectedOption === i;
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    style={[styles.optionButton, isSel && styles.optionButtonSelected]}
-                    onPress={() => {
-                      if (isMultiple) {
-                        setSelectedMultiple(prev =>
-                          prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
-                        );
-                      } else {
-                        setSelectedOption(i);
-                      }
-                    }}
-                    disabled={answering}
-                  >
-                    <View style={[styles.checkbox, isSel && styles.checkboxSelected]}>
-                      {isSel && <Ionicons name="checkmark" size={16} color="white" />}
-                    </View>
-                    <Text style={styles.optionText}>{optText}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        );
-      }
-
-      case 'short_answer': {
-        return (
-          <View>
-            {c.question ? (
-              <Text style={styles.questionText}>{c.question}</Text>
-            ) : null}
-            <TextInput
-              style={styles.answerInput}
-              placeholder="Ta réponse..."
-              placeholderTextColor="#999"
-              value={userAnswer}
-              onChangeText={setUserAnswer}
-              keyboardType={c.answer_type === 'number' ? 'decimal-pad' : 'default'}
-              editable={!answering}
-            />
-          </View>
-        );
-      }
-
-      case 'fill_blank': {
-        const template = c.text_template || '';
-        const parts = template.split(/(\{[^}]+\})/);
-        let blankIdx = 0;
-        const fillMode = c.mode || 'text';
-        const configBlanks = c.blanks || [];
-
-        return (
-          <View>
-            <View style={combatQuestionStyles.fillBlankWrap}>
-              {parts.map((part, i) => {
-                if (part.match(/^\{[^}]+\}$/)) {
-                  const bi = blankIdx++;
-                  const blankConfig = configBlanks[bi] || {};
-                  const choices = blankConfig.choices || [];
-
-                  if (fillMode === 'choices' && choices.length > 0) {
-                    return (
-                      <TouchableOpacity
-                        key={i}
-                        style={[combatQuestionStyles.fillBlankSelect, fillBlanks[bi] ? combatQuestionStyles.fillBlankSelectFilled : null]}
-                        disabled={answering}
-                        onPress={() => {
-                          const options = [...choices].sort(() => Math.random() - 0.5);
-                          options.unshift('— Choisir —');
-                          const cancelIdx = options.length;
-                          options.push('Annuler');
-                          Alert.alert('Choisir un mot', null, options.map((opt, oi) => ({
-                            text: opt,
-                            onPress: () => {
-                              if (oi === 0 || oi === cancelIdx) return;
-                              const nb = [...fillBlanks]; nb[bi] = opt;
-                              setFillBlanks(nb);
-                            },
-                            style: oi === cancelIdx ? 'cancel' : 'default',
-                          })));
-                        }}
-                      >
-                        <Text style={[combatQuestionStyles.fillBlankSelectText, !fillBlanks[bi] && { color: '#999' }]}>
-                          {fillBlanks[bi] || '— Choisir —'}
-                        </Text>
-                        <Ionicons name="chevron-down" size={14} color="#999" />
-                      </TouchableOpacity>
-                    );
-                  }
-
-                  return (
-                    <TextInput
-                      key={i}
-                      style={combatQuestionStyles.fillBlankInput}
-                      placeholder="..."
-                      placeholderTextColor="#999"
-                      value={fillBlanks[bi] || ''}
-                      onChangeText={(t) => {
-                        const nb = [...fillBlanks]; nb[bi] = t;
-                        setFillBlanks(nb);
-                      }}
-                      editable={!answering}
-                    />
-                  );
-                }
-                return <Text key={i} style={combatQuestionStyles.fillBlankText}>{part}</Text>;
-              })}
-            </View>
-          </View>
-        );
-      }
-
-      default:
-        return (
-          <View>
-            <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
-            <TextInput
-              style={styles.answerInput}
-              placeholder="Ta réponse..."
-              placeholderTextColor="#999"
-              value={userAnswer}
-              onChangeText={setUserAnswer}
-              editable={!answering}
-            />
-          </View>
-        );
-    }
+  const handleAnswerChange = (blockId, answerData) => {
+    setCombatAnswer(answerData);
   };
 
   // Render question phase
   const renderQuestion = () => {
     if (!currentQuestion) return null;
-
-    const isMultiple = currentQuestion.block_type === 'qcm' && currentQuestion.multiple;
 
     // If answer submitted, show result while waiting
     if (answerSubmitted) {
@@ -1008,6 +840,15 @@ export default function CombatScreen({ route, navigation }) {
       );
     }
 
+    // Map current question to QuestionRenderer format
+    const block = {
+      id: currentQuestion.block_id,
+      block_type: currentQuestion.block_type,
+      title: currentQuestion.title,
+      config_json: currentQuestion.config,
+      points: currentQuestion.points || 10,
+    };
+
     return (
       <View style={styles.container}>
         <View style={styles.timerContainer}>
@@ -1025,15 +866,38 @@ export default function CombatScreen({ route, navigation }) {
           <Text style={styles.timerText}>{timer}s</Text>
         </View>
 
-        {/* Block title if different from question */}
-        {currentQuestion.title && currentQuestion.title !== currentQuestion.question_text && (
+        {/* Combo bar */}
+        <View style={styles.comboBarContainer}>
+          <View style={styles.comboBarTrack}>
+            <View style={[styles.comboBarSegment, comboStreak >= 1 && styles.comboBarSegmentFilled1]} />
+            <View style={[styles.comboBarSegment, comboStreak >= 2 && styles.comboBarSegmentFilled2]} />
+            <View style={[styles.comboBarSegment, comboStreak >= 3 && styles.comboBarSegmentFilled3]} />
+          </View>
+          <Text style={[styles.comboMultiplierText,
+            comboStreak >= 3 ? styles.comboMultiplierX3 :
+            comboStreak >= 2 ? styles.comboMultiplierX2 : null
+          ]}>
+            {comboStreak >= 3 ? 'x3' : comboStreak >= 2 ? 'x2' : 'x1'}
+          </Text>
+        </View>
+
+        {/* Block title */}
+        {block.title && (
           <Text style={{ color: '#667eea', fontSize: 13, marginBottom: 8, fontWeight: '600' }}>
-            {currentQuestion.title}
+            {block.title}
           </Text>
         )}
 
         <ScrollView style={styles.questionContainer}>
-          {renderQuestionBlock()}
+          <View style={styles.questionCardWrapper}>
+            <QuestionRenderer
+              block={block}
+              answer={combatAnswer}
+              onAnswerChange={handleAnswerChange}
+              isLocked={answering}
+              feedback={null}
+            />
+          </View>
         </ScrollView>
 
         <TouchableOpacity
@@ -1402,57 +1266,6 @@ export default function CombatScreen({ route, navigation }) {
 }
 
 // Combat question-specific styles (matching ExerciseSolveScreen look)
-const combatQuestionStyles = StyleSheet.create({
-  fillBlankWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 4,
-    padding: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  fillBlankText: {
-    color: '#e0e0e0',
-    fontSize: 16,
-    lineHeight: 28,
-  },
-  fillBlankInput: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#667eea',
-    color: '#fff',
-    fontSize: 16,
-    minWidth: 80,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    textAlign: 'center',
-    marginHorizontal: 2,
-  },
-  fillBlankSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 2,
-    borderColor: '#667eea',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(102,126,234,0.1)',
-    minWidth: 100,
-  },
-  fillBlankSelectFilled: {
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16,185,129,0.1)',
-  },
-  fillBlankSelectText: {
-    color: '#fff',
-    fontSize: 14,
-    flex: 1,
-  },
-});
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -1529,6 +1342,12 @@ const styles = StyleSheet.create({
   questionContainer: {
     flex: 1,
     marginBottom: 16,
+  },
+  questionCardWrapper: {
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 8,
   },
   questionText: {
     color: '#fff',
@@ -2062,4 +1881,14 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
     paddingVertical: 1,
   },
+  // Combo bar styles
+  comboBarContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, marginBottom: 8 },
+  comboBarTrack: { flex: 1, flexDirection: 'row', height: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 5, overflow: 'hidden', gap: 2 },
+  comboBarSegment: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
+  comboBarSegmentFilled1: { backgroundColor: '#667eea' },
+  comboBarSegmentFilled2: { backgroundColor: '#f59e0b' },
+  comboBarSegmentFilled3: { backgroundColor: '#ef4444' },
+  comboMultiplierText: { color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '800', marginLeft: 8, minWidth: 22, textAlign: 'center' },
+  comboMultiplierX2: { color: '#f59e0b' },
+  comboMultiplierX3: { color: '#ef4444' },
 });

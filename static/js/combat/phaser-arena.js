@@ -5,7 +5,7 @@
 
 const TILE_W = 64;
 const TILE_H = 32;
-const TILE_DEPTH = 16;
+const TILE_DEPTH = 8;
 const SPRITE_SIZE = 72;
 
 class CombatArena extends Phaser.Scene {
@@ -290,12 +290,14 @@ class CombatArena extends Phaser.Scene {
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
         const sprite = this.add.image(x, y - TILE_DEPTH, usedKey);
-        sprite.setOrigin(0.5, 0.8);
+        sprite.setOrigin(0.5, 0.85);
         sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
         sprite.setDepth(p.grid_x + p.grid_y + 1);
 
         // Name label
-        const name = this.add.text(x, y - TILE_DEPTH - 50, p.student_name || 'Élève', {
+        const spriteY = y - TILE_DEPTH;
+        const nameY = spriteY - 45;
+        const name = this.add.text(x, nameY, p.student_name || 'Élève', {
             fontSize: '11px',
             fontFamily: 'Arial',
             color: '#ffffff',
@@ -305,7 +307,7 @@ class CombatArena extends Phaser.Scene {
 
         // HP bar
         const barWidth = 36;
-        const barY = y - TILE_DEPTH - 38;
+        const barY = nameY + 12;
         const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
         const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
         const curHp = p.current_hp !== undefined ? p.current_hp : maxHp;
@@ -411,11 +413,13 @@ class CombatArena extends Phaser.Scene {
 
         const spriteKey = `mon_${monType}_idle`;
         const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
-        sprite.setOrigin(0.5, 0.8);
+        sprite.setOrigin(0.5, 0.85);
         sprite.setDepth(m.grid_x + m.grid_y + 1);
 
         // Name
-        const name = this.add.text(x, y - TILE_DEPTH - 36, m.name || monType, {
+        const spriteY = y - TILE_DEPTH;
+        const nameY = spriteY - 45;
+        const name = this.add.text(x, nameY, m.name || monType, {
             fontSize: '10px',
             fontFamily: 'Arial',
             color: '#ff6b6b',
@@ -425,7 +429,7 @@ class CombatArena extends Phaser.Scene {
 
         // HP bar
         const barWidth = 30;
-        const barY = y - TILE_DEPTH - 26;
+        const barY = nameY + 12;
         const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
         const maxHp = m.max_hp || 100;
         const curHp = m.current_hp !== undefined ? m.current_hp : maxHp;
@@ -474,6 +478,10 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
+        // Standardized positioning: nameY = spriteY - 45, barY = nameY + 12 = spriteY - 33
+        const nameY = targetY - 45;
+        const barY = nameY + 12;
+
         if (animate) {
             this.tweens.add({
                 targets: [ent.sprite],
@@ -481,18 +489,15 @@ class CombatArena extends Phaser.Scene {
                 duration: 300, ease: 'Linear',
                 onComplete: () => { ent.sprite.setDepth(gx + gy + 1); },
             });
-            this.tweens.add({ targets: ent.name, x: x, y: targetY - (ent.type === 'monster' ? 36 : 50), duration: 300, ease: 'Linear' });
-            const barY = targetY - (ent.type === 'monster' ? 26 : 38);
+            this.tweens.add({ targets: ent.name, x: x, y: nameY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpBg], x: x, y: barY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpFill], x: x, y: barY, duration: 300, ease: 'Linear' });
         } else {
             ent.sprite.setPosition(x, targetY);
             ent.sprite.setDepth(gx + gy + 1);
-            const nameYOff = ent.type === 'monster' ? 36 : 50;
-            const barYOff = ent.type === 'monster' ? 26 : 38;
-            ent.name.setPosition(x, targetY - nameYOff);
-            ent.hpBg.setPosition(x, targetY - barYOff);
-            ent.hpFill.setPosition(x, targetY - barYOff);
+            ent.name.setPosition(x, nameY);
+            ent.hpBg.setPosition(x, barY);
+            ent.hpFill.setPosition(x, barY);
         }
     }
 
@@ -554,6 +559,10 @@ class CombatArena extends Phaser.Scene {
             }
 
             // Tween sprite + name + HP bars to next cell
+            // Standardized positioning: nameY = spriteY - 45, barY = nameY + 12 = spriteY - 33
+            const nameY = targetY - 45;
+            const barY = nameY + 12;
+
             this.tweens.add({
                 targets: [ent.sprite],
                 x: x, y: targetY,
@@ -567,10 +576,9 @@ class CombatArena extends Phaser.Scene {
             });
             this.tweens.add({
                 targets: ent.name,
-                x: x, y: targetY - 50,
+                x: x, y: nameY,
                 duration: stepDuration, ease: 'Linear',
             });
-            const barY = targetY - 38;
             this.tweens.add({
                 targets: [ent.hpBg],
                 x: x, y: barY,

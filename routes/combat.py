@@ -477,6 +477,7 @@ def register_combat_events(socketio):
 
     def _execute_and_broadcast(session_id, room):
         """Exécute le round et broadcast les résultats."""
+        import time
         animations, error = CombatEngine.execute_round(session_id)
         if error:
             emit('combat:error', {'error': error}, room=room)
@@ -505,3 +506,14 @@ def register_combat_events(socketio):
             # Envoyer l'état mis à jour
             session = CombatSession.query.get(session_id)
             emit('combat:state_update', session.get_state(), room=room)
+
+            # Auto-avance au prochain round après un délai
+            time.sleep(2)  # Laisser le temps au client de traiter
+            result, error = CombatEngine.start_round(session_id)
+            if not error:
+                emit('combat:round_started', {
+                    'round': result['round']
+                }, room=room)
+                # Envoyer l'état du nouveau round
+                session = CombatSession.query.get(session_id)
+                emit('combat:state_update', session.get_state(), room=room)

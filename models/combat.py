@@ -111,6 +111,9 @@ class CombatSession(db.Model):
     # Bloc d'exercice courant (pour la question du tour)
     current_block_id = db.Column(db.Integer, nullable=True)
 
+    # Suivi des blocs utilisés pour la rotation des questions
+    used_block_ids_json = db.Column(db.JSON, default=list)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     ended_at = db.Column(db.DateTime, nullable=True)
 
