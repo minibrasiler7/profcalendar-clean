@@ -579,6 +579,63 @@ if(c.static_mode){setTimeout(()=>{const dataUrl=cv.toDataURL('image/png');window
 }
 
 // ============================================================
+// ImageLabelsMode — image with text input labels overlay
+// ============================================================
+function ImageLabelsMode({ imageUrl, labels, userLabels, onUpdate, isLocked }) {
+  const [imgSize, setImgSize] = useState({ width: SCREEN_WIDTH - 40, height: 200 });
+
+  useEffect(() => {
+    if (imageUrl) {
+      Image.getSize(imageUrl, (natW, natH) => {
+        const displayW = SCREEN_WIDTH - 40;
+        const displayH = displayW * (natH / natW);
+        setImgSize({ width: displayW, height: displayH });
+      }, () => {});
+    }
+  }, [imageUrl]);
+
+  return (
+    <View>
+      <Text style={{ color: colors.textLight, marginBottom: 8, fontSize: 14 }}>
+        Complète les labels sur l'image :
+      </Text>
+      <View style={{ position: 'relative', width: imgSize.width, height: imgSize.height }}>
+        <Image source={{ uri: imageUrl }} style={{ width: imgSize.width, height: imgSize.height, borderRadius: 8 }} resizeMode="contain" />
+        {labels.map((lbl, i) => (
+          <TextInput
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${lbl.x}%`,
+              top: `${lbl.y}%`,
+              transform: [{ translateX: -40 }, { translateY: -16 }],
+              backgroundColor: 'rgba(255,255,255,0.75)',
+              borderWidth: 2,
+              borderColor: '#667eea',
+              borderRadius: 6,
+              paddingHorizontal: 6,
+              paddingVertical: 3,
+              fontSize: 13,
+              textAlign: 'center',
+              minWidth: 80,
+              maxWidth: 120,
+            }}
+            placeholder={lbl.hint || '...'}
+            placeholderTextColor={colors.textLight}
+            value={userLabels[String(i)] || ''}
+            onChangeText={(t) => {
+              const nl = { ...userLabels, [String(i)]: t };
+              onUpdate(nl);
+            }}
+            editable={!isLocked}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ============================================================
 // QuestionRenderer — main component
 // ============================================================
 export default function QuestionRenderer({ block, answer, onAnswerChange, isLocked, feedback }) {
@@ -813,43 +870,13 @@ export default function QuestionRenderer({ block, answer, onAnswerChange, isLock
         const userLabels = answer.labels || {};
 
         return (
-          <View>
-            <Text style={{ color: colors.textLight, marginBottom: 8, fontSize: 14 }}>
-              Complète les labels sur l'image :
-            </Text>
-            <View style={{ position: 'relative', width: '100%' }}>
-              <Image source={{ uri: imageUrl }} style={{ width: '100%', borderRadius: 8 }} resizeMode="contain" />
-              {labels.map((lbl, i) => (
-                <TextInput
-                  key={i}
-                  style={{
-                    position: 'absolute',
-                    left: `${lbl.x}%`,
-                    top: `${lbl.y}%`,
-                    transform: [{ translateX: -40 }, { translateY: -16 }],
-                    backgroundColor: 'rgba(255,255,255,0.75)',
-                    borderWidth: 2,
-                    borderColor: '#667eea',
-                    borderRadius: 6,
-                    paddingHorizontal: 6,
-                    paddingVertical: 3,
-                    fontSize: 13,
-                    textAlign: 'center',
-                    minWidth: 80,
-                    maxWidth: 120,
-                  }}
-                  placeholder={lbl.hint || '...'}
-                  placeholderTextColor={colors.textLight}
-                  value={userLabels[String(i)] || ''}
-                  onChangeText={(t) => {
-                    const nl = { ...userLabels, [String(i)]: t };
-                    updateAnswer({ labels: nl });
-                  }}
-                  editable={!isLocked}
-                />
-              ))}
-            </View>
-          </View>
+          <ImageLabelsMode
+            imageUrl={imageUrl}
+            labels={labels}
+            userLabels={userLabels}
+            onUpdate={(nl) => updateAnswer({ labels: nl })}
+            isLocked={isLocked}
+          />
         );
       }
 
