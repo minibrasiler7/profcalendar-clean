@@ -131,6 +131,7 @@ def register_combat_events(socketio):
         """Un élève rejoint le combat."""
         session_id = data.get('session_id')
         student_id = data.get('student_id')
+        logger.info(f"[Combat:{session_id}] student_join: student_id={student_id}")
         if not session_id or not student_id:
             return
 
@@ -139,10 +140,11 @@ def register_combat_events(socketio):
 
         participant, error = CombatEngine.join_session(session_id, student_id)
         if error:
+            logger.error(f"[Combat:{session_id}] join_session ERROR: {error}")
             emit('combat:error', {'error': error})
             return
 
-        logger.info(f"Élève {student_id} rejoint le combat {session_id}")
+        logger.info(f"[Combat:{session_id}] Élève {student_id} rejoint — hp={participant.current_hp}/{participant.max_hp} class={participant.snapshot_json.get('avatar_class','?')}")
 
         # Notifier tout le monde
         session = CombatSession.query.get(session_id)
@@ -193,26 +195,33 @@ def register_combat_events(socketio):
             return
 
         room = f'combat_{session_id}'
+        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} answer_keys={list(answer.keys()) if isinstance(answer, dict) else type(answer)}")
+
         result, error = CombatEngine.submit_answer(session_id, student_id, answer)
         if error:
+            logger.error(f"[Combat:{session_id}] submit_answer ERROR: {error}")
             emit('combat:error', {'error': error})
             return
+
+        is_correct = result.get('is_correct', False)
+        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} correct={is_correct} all_answered={result.get('all_answered')}")
 
         # Envoyer le résultat à l'élève
         emit('combat:answer_result', {
             'student_id': student_id,
-            'is_correct': result.get('is_correct', False),
+            'is_correct': is_correct,
         })
 
         # Notifier la progression à tout le monde
         session = CombatSession.query.get(session_id)
         alive_count = sum(1 for p in session.participants if p.is_alive)
         answered_count = sum(1 for p in session.participants if p.is_alive and p.answered)
+        logger.info(f"[Combat:{session_id}] Answer progress: {answered_count}/{alive_count}")
         emit('combat:answer_progress', {
             'answered': answered_count,
             'total': alive_count,
             'student_id': student_id,
-            'is_correct': result.get('is_correct', False),
+            'is_correct': is_correct,
         }, room=room)
 
         # Si tous ont répondu, passer en phase action
@@ -220,10 +229,13 @@ def register_combat_events(socketio):
             # Check if any correct players can attack
             session = CombatSession.query.get(session_id)
             correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+            logger.info(f"[Combat:{session_id}] All answered! correct_alive={len(correct_alive)}")
             if not correct_alive:
                 # Personne n'a bien répondu → exécuter directement (monstres seulement)
+                logger.info(f"[Combat:{session_id}] No correct answers → direct execute (monsters only)")
                 _execute_and_broadcast(session_id, room)
             else:
+                logger.info(f"[Combat:{session_id}] → transition to ACTION phase")
                 CombatEngine.transition_to_action(session_id)
                 session = CombatSession.query.get(session_id)
                 emit('combat:all_answered', {
@@ -361,8 +373,9 @@ def register_combat_events(socketio):
         # Also emit attack range to teacher arena for visualization
         room = f'combat_{session_id}'
         range_tiles = []
-        gw = session.map_config_json.get('width', 10) if session.map_config_json else 10
-        gh = session.map_config_json.get('height', 8) if session.map_config_json else 8
+        combat_session = CombatSession.query.get(session_id)
+        gw = combat_session.map_config_json.get('width', 10) if combat_session and combat_session.map_config_json else 10
+        gh = combat_session.map_config_json.get('height', 8) if combat_session and combat_session.map_config_json else 8
         for rx in range(gw):
             for ry in range(gh):
                 dist = abs(rx - participant.grid_x) + abs(ry - participant.grid_y)
@@ -477,11 +490,20 @@ def register_combat_events(socketio):
 
     def _execute_and_broadcast(session_id, room):
         """Exécute le round et broadcast les résultats."""
-        import time
+        logger.info(f"[Combat:{session_id}] === EXECUTE_AND_BROADCAST START ===")
+
         animations, error = CombatEngine.execute_round(session_id)
         if error:
+            logger.error(f"[Combat:{session_id}] execute_round ERROR: {error}")
             emit('combat:error', {'error': error}, room=room)
             return
+
+        logger.info(f"[Combat:{session_id}] execute_round OK: {len(animations)} animations")
+        for i, anim in enumerate(animations):
+            logger.info(f"[Combat:{session_id}]   anim[{i}]: type={anim.get('type')} "
+                        f"attacker={anim.get('attacker_name','?')} → target={anim.get('target_name','?')} "
+                        f"dmg={anim.get('damage','?')} hp={anim.get('target_hp','?')}/{anim.get('target_max_hp','?')} "
+                        f"killed={anim.get('killed', False)}")
 
         # Envoyer les animations
         emit('combat:execute', {
@@ -490,14 +512,18 @@ def register_combat_events(socketio):
 
         # Vérifier la fin du combat
         end_result = CombatEngine.check_end_condition(session_id)
+        logger.info(f"[Combat:{session_id}] check_end_condition: {end_result}")
+
         if end_result == 'victory':
             rewards = CombatEngine.distribute_rewards(session_id)
+            logger.info(f"[Combat:{session_id}] VICTORY! rewards={rewards}")
             emit('combat:finished', {
                 'result': 'victory',
                 'rewards': {str(k): v for k, v in rewards.items()},
             }, room=room)
         elif end_result == 'defeat':
             rewards = CombatEngine.end_combat_defeat(session_id)
+            logger.info(f"[Combat:{session_id}] DEFEAT! rewards={rewards}")
             emit('combat:finished', {
                 'result': 'defeat',
                 'rewards': {str(k): v for k, v in rewards.items()},
@@ -505,15 +531,39 @@ def register_combat_events(socketio):
         else:
             # Envoyer l'état mis à jour
             session = CombatSession.query.get(session_id)
+            logger.info(f"[Combat:{session_id}] Round end — phase={session.current_phase}, round={session.current_round}")
             emit('combat:state_update', session.get_state(), room=room)
 
-            # Auto-avance au prochain round après un délai
-            time.sleep(2)  # Laisser le temps au client de traiter
-            result, error = CombatEngine.start_round(session_id)
-            if not error:
-                emit('combat:round_started', {
-                    'round': result['round']
-                }, room=room)
-                # Envoyer l'état du nouveau round
-                session = CombatSession.query.get(session_id)
-                emit('combat:state_update', session.get_state(), room=room)
+            # Auto-avance au prochain round via background task
+            logger.info(f"[Combat:{session_id}] Scheduling auto-advance in 3 seconds...")
+            _auto_advance_round(socketio, session_id, room)
+
+    def _auto_advance_round(sio, session_id, room):
+        """Auto-avance au prochain round après un court délai."""
+        import time
+        from flask import current_app
+        app = current_app._get_current_object()
+
+        def _do_advance():
+            time.sleep(3)
+            with app.app_context():
+                try:
+                    logger.info(f"[Combat:{session_id}] Auto-advance: calling start_round...")
+                    result, error = CombatEngine.start_round(session_id)
+                    if error:
+                        logger.error(f"[Combat:{session_id}] Auto-advance start_round ERROR: {error}")
+                        sio.emit('combat:error', {'error': f'Auto-advance failed: {error}'}, room=room)
+                        return
+                    logger.info(f"[Combat:{session_id}] Auto-advance OK: round={result['round']}")
+                    sio.emit('combat:round_started', {
+                        'round': result['round']
+                    }, room=room)
+                    session = CombatSession.query.get(session_id)
+                    sio.emit('combat:state_update', session.get_state(), room=room)
+                    logger.info(f"[Combat:{session_id}] Auto-advance: state_update sent, phase={session.current_phase}")
+                except Exception as e:
+                    logger.error(f"[Combat:{session_id}] Auto-advance EXCEPTION: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        sio.start_background_task(_do_advance)

@@ -310,6 +310,22 @@ export default function CombatScreen({ route, navigation }) {
       setCombatLog(prev => [...prev, ...logEntries]);
     });
 
+    // Listen for round_started (auto-advance sends this)
+    socketRef.current.on('combat:round_started', (data) => {
+      addDebug(`ROUND_STARTED round=${data.round}`);
+      // Reset per-round state
+      setHasMoved(false);
+      setAnswerSubmitted(false);
+      setAnswerResult(null);
+      setCurrentQuestion(null);
+      setCombatAnswer({});
+      setAnswering(false);
+      setSelectedSkill(null);
+      setSelectingTarget(false);
+      setAttackRangeTiles([]);
+      setSelectedTargetId(null);
+    });
+
     // Listen for combat finished (server sends: {result: 'victory'/'defeat', rewards: {student_id: {xp, gold, ...}}})
     socketRef.current.on('combat:finished', (data) => {
       addDebug(`FINISHED: ${data.result}`);
