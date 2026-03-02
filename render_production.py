@@ -77,6 +77,10 @@ def init_db():
              "ALTER TABLE student_accommodations ALTER COLUMN custom_name TYPE TEXT"),
             ("sanction_templates.name vers Text",
              "ALTER TABLE sanction_templates ALTER COLUMN name TYPE TEXT"),
+
+            # --- Combat question cycling (20260302) ---
+            ("used_block_ids_json sur combat_sessions",
+             "ALTER TABLE combat_sessions ADD COLUMN used_block_ids_json JSON DEFAULT '[]'"),
         ]
 
         for description, sql in migrations:
