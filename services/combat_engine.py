@@ -154,10 +154,14 @@ class CombatEngine:
         """Place les monstres dynamiquement selon le nombre de joueurs et leur niveau."""
         obstacle_set = {(o['x'], o['y']) for o in obstacles}
 
-        # Nombre dynamique de monstres
-        base_count = num_players + max(1, num_players // 3)
-        level_bonus = avg_level // 3
-        total_monsters = base_count + level_bonus
+        # Nombre dynamique de monstres — ratio équitable selon le nombre de joueurs
+        # 1 joueur → 1-2 monstres, 2 joueurs → 2-3, 5 joueurs → 4-5, etc.
+        if num_players <= 2:
+            base_count = num_players  # 1v1 ou 2v2
+        else:
+            base_count = num_players - 1 + max(1, num_players // 4)
+        level_bonus = max(0, avg_level // 5)  # Bonus léger par niveau
+        total_monsters = max(1, base_count + level_bonus)
 
         # Types de monstres selon la difficulté
         difficulty = session.difficulty
