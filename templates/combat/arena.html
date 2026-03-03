@@ -196,36 +196,78 @@
 
         .combat-log {
             position: fixed;
-            bottom: 15px;
-            left: 280px;
-            right: 280px;
-            max-height: 120px;
-            background-color: rgba(15, 52, 96, 0.9);
-            border: 1px solid #0f3460;
-            border-radius: 4px;
-            padding: 10px;
+            bottom: 10px;
+            left: 270px;
+            right: 270px;
+            max-height: 140px;
+            background: linear-gradient(180deg, rgba(15, 52, 96, 0.85), rgba(15, 52, 96, 0.95));
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
             overflow-y: auto;
             font-size: 12px;
             z-index: 50;
+            backdrop-filter: blur(4px);
         }
 
+        .combat-log::-webkit-scrollbar { width: 4px; }
+        .combat-log::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
+
         .log-entry {
-            color: #a0aec0;
-            margin-bottom: 4px;
-            line-height: 1.4;
+            color: #94a3b8;
+            margin-bottom: 3px;
+            line-height: 1.5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .log-entry.damage {
-            color: #ef4444;
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.08);
         }
 
         .log-entry.heal {
-            color: #10b981;
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.08);
         }
 
         .log-entry.phase {
-            color: #667eea;
+            color: #a5b4fc;
             font-weight: bold;
+            text-align: center;
+            border-top: 1px solid #334155;
+            border-bottom: 1px solid #334155;
+            padding: 4px;
+            margin: 4px 0;
+        }
+
+        .log-entry.error {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.08);
+        }
+
+        .entity-card .monster-type {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .entity-card .entity-name.monster {
+            color: #f87171;
+        }
+
+        .entity-card .entity-name.player {
+            color: #60a5fa;
+        }
+
+        .entity-card.ko {
+            opacity: 0.4;
         }
 
         .teacher-controls {

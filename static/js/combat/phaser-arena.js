@@ -26,6 +26,50 @@ class CombatArena extends Phaser.Scene {
     }
 
     preload() {
+        // ── Loading screen ──
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        // Loading bar background
+        const barBg = this.add.rectangle(canvasW / 2, canvasH / 2 + 20, 400, 24, 0x1a1a2e);
+        barBg.setStrokeStyle(2, 0x6366f1);
+        const barFill = this.add.rectangle(canvasW / 2 - 198, canvasH / 2 + 20, 0, 20, 0x6366f1);
+        barFill.setOrigin(0, 0.5);
+
+        const loadText = this.add.text(canvasW / 2, canvasH / 2 - 30, 'Chargement de l\'arène...', {
+            fontSize: '18px', fontFamily: 'Arial', color: '#a5b4fc',
+        }).setOrigin(0.5);
+
+        const percentText = this.add.text(canvasW / 2, canvasH / 2 + 20, '0%', {
+            fontSize: '14px', fontFamily: 'Arial', color: '#e0e7ff',
+        }).setOrigin(0.5);
+
+        const tipTexts = [
+            'Astuce : Répondez vite pour des combos !',
+            'Astuce : Le guérisseur peut soigner ses alliés.',
+            'Astuce : Positionnez-vous bien pour attaquer.',
+            'Astuce : Les mages infligent des dégâts magiques.',
+            'Astuce : Les archers attaquent à distance.',
+        ];
+        const tipText = this.add.text(canvasW / 2, canvasH / 2 + 60, tipTexts[Math.floor(Math.random() * tipTexts.length)], {
+            fontSize: '13px', fontFamily: 'Arial', color: '#94a3b8', fontStyle: 'italic',
+        }).setOrigin(0.5);
+
+        this.load.on('progress', (value) => {
+            barFill.width = 396 * value;
+            percentText.setText(Math.round(value * 100) + '%');
+        });
+
+        this.load.on('complete', () => {
+            barBg.destroy();
+            barFill.destroy();
+            loadText.destroy();
+            percentText.destroy();
+            tipText.destroy();
+        });
+
+        // ── Assets ──
+
         // Isometric tiles
         this.load.image('iso_grass', '/static/img/combat/tiles/iso_grass.png');
         this.load.image('iso_stone', '/static/img/combat/tiles/iso_stone.png');
@@ -1234,17 +1278,25 @@ class CombatArena extends Phaser.Scene {
         const container = document.getElementById('players-list');
         if (!container) return;
 
+        const classEmojis = { guerrier: '⚔️', mage: '🔮', archer: '🏹', guerisseur: '💚' };
+        const classColors = { guerrier: '#ef4444', mage: '#818cf8', archer: '#34d399', guerisseur: '#fbbf24' };
+
         container.innerHTML = participants.map(p => {
             const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
             const maxMana = (p.snapshot_json && p.snapshot_json.max_mana) || p.max_mana || 50;
             const hpPct = Math.max(0, Math.min(100, Math.round((p.current_hp / maxHp) * 100)));
             const manaPct = Math.max(0, Math.min(100, Math.round((p.current_mana / maxMana) * 100)));
             const alive = p.is_alive !== false;
-            const cls = p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || '?';
+            const cls = p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier';
+            const emoji = classEmojis[cls] || '🛡';
+            const color = classColors[cls] || '#60a5fa';
+            const statusIcon = alive ? (p.answered ? '✅' : '') : '💀';
 
             return `
-                <div class="entity-card" style="opacity:${alive ? 1 : 0.4}">
-                    <div class="entity-name">${p.student_name || 'Élève'} <small style="color:#a0aec0">${cls}</small></div>
+                <div class="entity-card${alive ? '' : ' ko'}">
+                    <div class="entity-name player" style="color:${color}">${emoji} ${p.student_name || 'Élève'} ${statusIcon}
+                        <small style="color:#94a3b8;font-weight:normal">Nv.${p.level || 1}</small>
+                    </div>
                     <div class="bar-label"><span>HP</span><span>${p.current_hp}/${maxHp}</span></div>
                     <div class="hp-bar-container">
                         <div class="hp-bar-fill" style="width:${hpPct}%;background:${hpPct > 50 ? '#10b981' : hpPct > 25 ? '#f59e0b' : '#ef4444'}"></div>
@@ -1262,17 +1314,22 @@ class CombatArena extends Phaser.Scene {
         const container = document.getElementById('monsters-list');
         if (!container) return;
 
+        const monsterEmojis = { slime: '🟢', goblin: '👺', orc: '🐗', skeleton: '💀', dragon: '🐉' };
+
         container.innerHTML = monsters.map(m => {
             const hpPct = Math.max(0, Math.min(100, Math.round((m.current_hp / m.max_hp) * 100)));
             const alive = m.is_alive !== false;
+            const emoji = monsterEmojis[m.monster_type] || '👾';
+            const hpColor = hpPct > 50 ? '#ef4444' : hpPct > 25 ? '#f59e0b' : '#dc2626';
 
             return `
-                <div class="entity-card" style="opacity:${alive ? 1 : 0.4}">
-                    <div class="entity-name" style="color:#ef4444">${m.name || m.monster_type} <small>Nv.${m.level || 1}</small></div>
+                <div class="entity-card${alive ? '' : ' ko'}">
+                    <div class="entity-name monster">${emoji} ${m.name || m.monster_type} <small style="color:#94a3b8;font-weight:normal">Nv.${m.level || 1}</small></div>
                     <div class="bar-label"><span>HP</span><span>${m.current_hp}/${m.max_hp}</span></div>
                     <div class="hp-bar-container">
-                        <div class="hp-bar-fill" style="width:${hpPct}%;background:#ef4444"></div>
+                        <div class="hp-bar-fill" style="width:${hpPct}%;background:${hpColor}"></div>
                     </div>
+                    ${m.attack ? `<div style="font-size:10px;color:#94a3b8;margin-top:3px">ATK:${m.attack} DEF:${m.defense}</div>` : ''}
                 </div>
             `;
         }).join('');

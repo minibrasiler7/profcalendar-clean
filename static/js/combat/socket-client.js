@@ -107,9 +107,24 @@ class CombatSocket {
             this._fire('onShowAttackRange', data);
         });
 
+        // ── Round started ──
+        this.socket.on('combat:round_started', (data) => {
+            console.log('Round started:', data);
+            const roundNum = data.round || '?';
+            document.getElementById('round-number').textContent = 'Round ' + roundNum;
+            this.addCombatLogEntry(`══ Round ${roundNum} ══`, 'phase');
+            this._fire('onRoundStarted', data);
+        });
+
         // ── Execution ──
         this.socket.on('combat:execute', (executionData) => {
             console.log('Executing animations:', executionData);
+            // Log each animation to combat log
+            if (executionData.animations) {
+                for (const anim of executionData.animations) {
+                    this._logAnimation(anim);
+                }
+            }
             if (this.gameInstance && typeof this.gameInstance.playAnimations === 'function') {
                 this.gameInstance.playAnimations(executionData.animations);
             }
@@ -253,6 +268,32 @@ class CombatSocket {
             log.removeChild(log.firstChild);
         }
         log.scrollTop = log.scrollHeight;
+    }
+
+    _logAnimation(anim) {
+        if (!anim) return;
+        const type = anim.type;
+        const attacker = anim.attacker_name || '???';
+        const target = anim.target_name || '???';
+
+        if (type === 'attack') {
+            const dmg = anim.damage || 0;
+            const skillName = anim.skill_name || 'Attaque';
+            const killed = anim.killed ? ' 💀 KO!' : '';
+            this.addCombatLogEntry(`⚔ ${attacker} → ${target} : ${skillName} (-${dmg} HP)${killed}`, 'damage');
+        } else if (type === 'monster_attack') {
+            const dmg = anim.damage || 0;
+            const skillName = anim.skill_name || 'Attaque';
+            const killed = anim.killed ? ' 💀 KO!' : '';
+            this.addCombatLogEntry(`🔴 ${attacker} → ${target} : ${skillName} (-${dmg} HP)${killed}`, 'damage');
+        } else if (type === 'monster_move') {
+            this.addCombatLogEntry(`🔴 ${anim.monster_name || 'Monstre'} se déplace`, 'default');
+        } else if (type === 'heal') {
+            const heal = anim.heal || 0;
+            this.addCombatLogEntry(`💚 ${attacker} soigne ${target} (+${heal} HP)`, 'heal');
+        } else if (type === 'buff' || type === 'defense') {
+            this.addCombatLogEntry(`🛡 ${attacker} utilise ${anim.skill_name || 'Défense'}`, 'default');
+        }
     }
 
     showError(message) {
