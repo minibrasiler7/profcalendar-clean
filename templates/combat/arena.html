@@ -69,6 +69,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
+            min-width: 0;
         }
 
         .side-panel {
@@ -320,6 +322,8 @@
 
         #left-panel {
             width: 250px;
+            min-width: 250px;
+            flex-shrink: 0;
             background-color: #16213e;
             border-right: 2px solid #0f3460;
             padding: 15px;
@@ -330,6 +334,8 @@
 
         #right-panel {
             width: 250px;
+            min-width: 250px;
+            flex-shrink: 0;
             background-color: #16213e;
             border-left: 2px solid #0f3460;
             padding: 15px;

@@ -1636,15 +1636,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameContainer = document.getElementById('phaser-game');
     if (!gameContainer) return;
 
+    const container = document.getElementById('phaser-game');
+    const cw = container ? container.clientWidth : (window.innerWidth - 500);
+    const ch = container ? container.clientHeight : (window.innerHeight - 60);
     const config = {
         type: Phaser.AUTO,
         parent: 'phaser-game',
-        width: window.innerWidth - 500,
-        height: window.innerHeight - 60,
+        width: cw,
+        height: ch,
         transparent: true,
         scene: CombatArena,
         scale: {
-            mode: Phaser.Scale.RESIZE,
+            mode: Phaser.Scale.NONE,
             autoCenter: Phaser.Scale.CENTER_BOTH,
         },
     };
