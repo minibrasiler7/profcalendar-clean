@@ -286,7 +286,9 @@ class CombatSocket {
             const dmg = anim.damage || 0;
             const skillName = anim.skill_name || 'Attaque';
             const killed = anim.killed ? ' 💀 KO!' : '';
-            this.addCombatLogEntry(`⚔ ${attacker} → ${target} : ${skillName} (-${dmg} HP)${killed}`, 'damage');
+            const crit = anim.critical ? ' 💥CRIT!' : '';
+            const combo = (anim.combo_streak >= 2) ? ` [x${anim.combo_streak} COMBO]` : '';
+            this.addCombatLogEntry(`⚔ ${attacker} → ${target} : ${skillName} (-${dmg} HP)${crit}${combo}${killed}`, 'damage');
         } else if (type === 'monster_attack') {
             const dmg = anim.damage || 0;
             const skillName = anim.skill_name || 'Attaque';

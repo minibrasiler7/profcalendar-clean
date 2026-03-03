@@ -457,6 +457,7 @@ export default function CombatScreen({ route, navigation }) {
       skill_id: skillToUse?.id || selectedSkill?.id,
       target_id: targetId,
       target_type: tType,
+      combo_streak: comboStreak,
     });
 
     setSelectedSkill(null);

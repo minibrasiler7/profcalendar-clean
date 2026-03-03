@@ -730,7 +730,7 @@ class CombatEngine:
 
     # ─── Soumettre une action ────────────────────────────────
     @staticmethod
-    def submit_action(session_id, student_id, skill_id, target_id, target_type='monster'):
+    def submit_action(session_id, student_id, skill_id, target_id, target_type='monster', combo_streak=0):
         """Soumet l'action choisie par un élève (skill + cible)."""
         session = CombatSession.query.get(session_id)
         if not session or session.current_phase != 'action':
@@ -774,6 +774,7 @@ class CombatEngine:
             'skill': skill,
             'target_id': target_id,
             'target_type': target_type,
+            'combo_streak': combo_streak,
         }
         participant.action_submitted = True
         db.session.commit()
@@ -831,6 +832,20 @@ class CombatEngine:
 
             p.current_mana = max(0, p.current_mana - skill_cost)
 
+            # ── Critical hit chance (based on intelligence + combo streak) ──
+            import random as _rng
+            intelligence = stats.get('intelligence', 5)
+            combo_streak = action.get('combo_streak', 0)
+            crit_chance = min(0.35, 0.05 + intelligence * 0.01 + combo_streak * 0.05)
+            is_critical = _rng.random() < crit_chance
+
+            # ── Combo damage multiplier ──
+            combo_mult = 1.0
+            if combo_streak >= 3:
+                combo_mult = 1.3
+            elif combo_streak >= 2:
+                combo_mult = 1.15
+
             if skill_type == 'attack':
                 if skill_aoe > 0:
                     # AoE attack — hit all monsters in range from target
@@ -842,7 +857,9 @@ class CombatEngine:
                                 dist = abs(m.grid_x - cx) + abs(m.grid_y - cy)
                                 if dist <= skill_aoe:
                                     force = stats.get('force', 5)
-                                    damage = max(1, int((force + skill_damage) * (1 + force / 20)) - m.defense // 2)
+                                    damage = max(1, int((force + skill_damage) * (1 + force / 20) * combo_mult) - m.defense // 2)
+                                    if is_critical:
+                                        damage = int(damage * 1.5)
                                     actual = m.take_damage(damage)
                                     animations.append({
                                         'type': 'attack',
@@ -855,13 +872,17 @@ class CombatEngine:
                                         'target_hp': m.current_hp, 'target_max_hp': m.max_hp,
                                         'killed': not m.is_alive,
                                         'is_aoe': True,
+                                        'critical': is_critical,
+                                        'combo_streak': combo_streak,
                                     })
                 else:
                     # Single target attack
                     target = CombatMonster.query.get(target_id) if target_type == 'monster' else None
                     if target and target.is_alive:
                         force = stats.get('force', 5)
-                        damage = max(1, int((force + skill_damage) * (1 + force / 20)) - target.defense // 2)
+                        damage = max(1, int((force + skill_damage) * (1 + force / 20) * combo_mult) - target.defense // 2)
+                        if is_critical:
+                            damage = int(damage * 1.5)
                         actual = target.take_damage(damage)
                         animations.append({
                             'type': 'attack',
@@ -873,6 +894,8 @@ class CombatEngine:
                             'damage': actual,
                             'target_hp': target.current_hp, 'target_max_hp': target.max_hp,
                             'killed': not target.is_alive,
+                            'critical': is_critical,
+                            'combo_streak': combo_streak,
                         })
 
             elif skill_type == 'heal':

@@ -435,12 +435,13 @@ def register_combat_events(socketio):
         skill_id = data.get('skill_id')
         target_id = data.get('target_id')
         target_type = data.get('target_type', 'monster')
+        combo_streak = data.get('combo_streak', 0)
 
         if not session_id or not student_id or not skill_id:
             return
 
         room = f'combat_{session_id}'
-        result, error = CombatEngine.submit_action(session_id, student_id, skill_id, target_id, target_type)
+        result, error = CombatEngine.submit_action(session_id, student_id, skill_id, target_id, target_type, combo_streak)
         if error:
             emit('combat:error', {'error': error})
             return
