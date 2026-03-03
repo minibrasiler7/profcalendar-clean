@@ -365,10 +365,18 @@
 <body>
     <div id="top-bar">
         <div class="session-info">
-            Combat - <span id="round-number">Round 1</span>
+            <span style="font-size: 22px;">⚔️</span> <span id="round-number">Round 0</span>
+            <span id="difficulty-badge" style="font-size:11px; padding:3px 8px; border-radius:3px; margin-left:10px;
+                background:${{'easy':'#10b981','medium':'#f59e0b','hard':'#ef4444','boss':'#8b5cf6'}[DIFFICULTY] || '#667eea'};
+                color:#fff;">{{ session.difficulty|upper }}</span>
         </div>
-        <div class="phase-indicator" id="phase-indicator">
-            Phase: <span id="phase-name">Attente</span>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div id="player-count" style="font-size:13px; color:#94a3b8;">
+                <span id="alive-count">0</span> héros en vie
+            </div>
+            <div class="phase-indicator" id="phase-indicator">
+                Phase: <span id="phase-name">Attente</span>
+            </div>
         </div>
     </div>
 

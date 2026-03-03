@@ -1006,7 +1006,7 @@ class CombatEngine:
                         player_def = (target.snapshot_json or {}).get('stats', {}).get('defense_magique', 5)
                     else:
                         player_def = (target.snapshot_json or {}).get('stats', {}).get('defense', 5)
-                    damage = max(1, int((monster.attack + skill.get('damage', 8)) * (1 + monster.attack / 20)) - player_def // 2)
+                    damage = max(1, int(monster.attack * 0.5 + skill.get('damage', 8) * 0.4) - player_def)
                     target.current_hp = max(0, target.current_hp - damage)
                     if target.current_hp <= 0:
                         target.is_alive = False

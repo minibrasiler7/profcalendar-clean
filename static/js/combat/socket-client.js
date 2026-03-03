@@ -42,6 +42,12 @@ class CombatSocket {
             if (this.gameInstance) {
                 this.gameInstance.updateState(state);
             }
+            // Update alive player count
+            if (state && state.participants) {
+                const alive = state.participants.filter(p => p.is_alive !== false).length;
+                const el = document.getElementById('alive-count');
+                if (el) el.textContent = alive;
+            }
             this._fire('onStateUpdate', state);
         });
 
