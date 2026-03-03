@@ -135,6 +135,9 @@ class CombatArena extends Phaser.Scene {
         // Draw the grid
         this.drawGrid();
 
+        // ── Ambient particles ──
+        this._createAmbientParticles();
+
         // Register with socket
         if (typeof CombatSocketInstance !== 'undefined') {
             CombatSocketInstance.setGameInstance(this);
@@ -177,6 +180,43 @@ class CombatArena extends Phaser.Scene {
 
         // Disable right-click context menu
         this.input.mouse.disableContextMenu();
+    }
+
+    // ── Ambient effects ──
+
+    _createAmbientParticles() {
+        const canvasW = this.sys.game.config.width;
+        const canvasH = this.sys.game.config.height;
+
+        // Floating dust particles (using graphics-generated texture)
+        const gfx = this.make.graphics({ x: 0, y: 0, add: false });
+        gfx.fillStyle(0xffffff, 0.6);
+        gfx.fillCircle(3, 3, 3);
+        gfx.generateTexture('dust_particle', 6, 6);
+        gfx.destroy();
+
+        // Create slow-floating particles
+        for (let i = 0; i < 15; i++) {
+            const px = Phaser.Math.Between(0, canvasW);
+            const py = Phaser.Math.Between(0, canvasH);
+            const p = this.add.image(px, py, 'dust_particle')
+                .setAlpha(Phaser.Math.FloatBetween(0.1, 0.3))
+                .setScale(Phaser.Math.FloatBetween(0.3, 0.8))
+                .setDepth(9000)
+                .setScrollFactor(0);
+
+            // Floating animation
+            this.tweens.add({
+                targets: p,
+                y: py - Phaser.Math.Between(20, 60),
+                x: px + Phaser.Math.Between(-30, 30),
+                alpha: { from: p.alpha, to: 0 },
+                duration: Phaser.Math.Between(4000, 8000),
+                repeat: -1,
+                yoyo: true,
+                delay: Phaser.Math.Between(0, 3000),
+            });
+        }
     }
 
     // ── Isometric coordinate conversion ──
@@ -775,11 +815,16 @@ class CombatArena extends Phaser.Scene {
         this._showPhaseBanner(phase);
 
         if (typeof CombatSocketInstance !== 'undefined') {
-            if (phase === 'move') {
-                CombatSocketInstance.addCombatLogEntry('Phase de déplacement', 'phase');
-            } else if (phase === 'action') {
-                CombatSocketInstance.addCombatLogEntry('Phase d\'action', 'phase');
-            }
+            const phaseLabels = {
+                'move': '🏃 Phase de déplacement',
+                'question': '❓ Les élèves répondent...',
+                'action': '⚔️ Phase d\'action — choisissez votre attaque !',
+                'execute': '💥 Exécution des actions !',
+                'monster_turn': '🔴 Tour des monstres !',
+                'round_end': '🔄 Fin du round',
+            };
+            const label = phaseLabels[phase] || phase;
+            CombatSocketInstance.addCombatLogEntry(label, 'phase');
         }
     }
 
