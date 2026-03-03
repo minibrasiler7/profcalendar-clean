@@ -95,12 +95,12 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Walk animation frames (9 frames per class per direction)
+        // Walk spritesheets (9 frames per sheet, 576×64)
         for (const cls of classes) {
             for (const dir of dirs) {
-                for (let f = 0; f < 9; f++) {
-                    this.load.image(`walk_${cls}_${dir}_${f}`, `/static/img/combat/walk_frames/${cls}_walk_${dir}_${f}.png`);
-                }
+                this.load.spritesheet(`walk_${cls}_${dir}`, `/static/img/combat/walk_sheets/${cls}_walk_${dir}.png`, {
+                    frameWidth: 64, frameHeight: 64,
+                });
             }
         }
 
@@ -444,18 +444,18 @@ class CombatArena extends Phaser.Scene {
         if (ent._idleTimer) ent._idleTimer.destroy();
 
         if (ent.type === 'player') {
-            // Cycle through 9 walk frames for the player's class and direction
+            // Cycle through 9 walk frames from spritesheet
             let frame = 0;
             const dir = ent.direction || 'ne';
             const cls = ent.cls || 'guerrier';
+            const sheetKey = `walk_${cls}_${dir}`;
             ent._idleTimer = this.time.addEvent({
                 delay: 120, // ~8 FPS walk animation
                 loop: true,
                 callback: () => {
                     if (ent.isMoving || ent.state === 'ko') return;
-                    const texKey = `walk_${cls}_${dir}_${frame}`;
-                    if (this.textures.exists(texKey)) {
-                        ent.sprite.setTexture(texKey);
+                    if (this.textures.exists(sheetKey)) {
+                        ent.sprite.setTexture(sheetKey, frame);
                         const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
                         ent.sprite.setScale(baseScale);
                     }
@@ -603,7 +603,7 @@ class CombatArena extends Phaser.Scene {
         let stepIdx = 1; // start from step 1 (step 0 is current position)
         let walkFrame = 0;
 
-        // Start walk frame cycling during movement
+        // Start walk frame cycling during movement (using spritesheet)
         const walkTimer = this.time.addEvent({
             delay: 100, // ~10 FPS walk cycle
             loop: true,
@@ -611,9 +611,9 @@ class CombatArena extends Phaser.Scene {
                 if (!ent.isMoving) return;
                 const dir = ent.direction || 'ne';
                 const cls = ent.cls || 'guerrier';
-                const texKey = `walk_${cls}_${dir}_${walkFrame}`;
-                if (this.textures.exists(texKey)) {
-                    ent.sprite.setTexture(texKey);
+                const sheetKey = `walk_${cls}_${dir}`;
+                if (this.textures.exists(sheetKey)) {
+                    ent.sprite.setTexture(sheetKey, walkFrame);
                     const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
                     ent.sprite.setScale(baseScale);
                 }
