@@ -52,9 +52,9 @@ class CombatEngine:
         # This prevents oversized grids when only 1 player connects out of a large class
         num_students = 1  # Will be adjusted in resize_for_players()
 
-        # Grille compacte par défaut (sera redimensionnée au lancement)
-        grid_w = 7
-        grid_h = 5
+        # Grille de taille correcte dès le départ pour un bel aperçu
+        grid_w = 10
+        grid_h = 8
 
         # Générer la carte avec obstacles et élévation
         tile_map, obstacles, elevation, template_name = CombatEngine._generate_map(grid_w, grid_h, difficulty)
@@ -449,9 +449,9 @@ class CombatEngine:
         if num_players == 0:
             num_players = 1
 
-        # Recalculer la taille de la grille
-        grid_w = max(6, 5 + num_players)
-        grid_h = max(5, 4 + max(1, num_players // 2))
+        # Recalculer la taille de la grille (minimum 10x8 pour un beau terrain)
+        grid_w = max(10, 5 + num_players)
+        grid_h = max(8, 4 + max(1, num_players // 2))
         grid_w = min(grid_w, 14)
         grid_h = min(grid_h, 10)
 
