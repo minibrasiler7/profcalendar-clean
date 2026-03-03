@@ -9,6 +9,7 @@ class CombatSocket {
         this.connected = false;
         this.gameInstance = null;
         this.callbacks = {};
+        this._pendingState = null; // Store state received before game instance is ready
     }
 
     connect() {
@@ -41,6 +42,9 @@ class CombatSocket {
             console.log('State update:', state);
             if (this.gameInstance) {
                 this.gameInstance.updateState(state);
+            } else {
+                console.log('Game instance not ready yet, storing pending state');
+                this._pendingState = state;
             }
             // Update alive player count
             if (state && state.participants) {
@@ -184,6 +188,14 @@ class CombatSocket {
     setGameInstance(instance) {
         this.gameInstance = instance;
         console.log('Game instance set');
+        // Replay any state received before the game was ready
+        if (this._pendingState) {
+            console.log('Replaying pending state with',
+                (this._pendingState.monsters || []).length, 'monsters,',
+                (this._pendingState.participants || []).length, 'participants');
+            instance.updateState(this._pendingState);
+            this._pendingState = null;
+        }
     }
 
     // ── UI helpers ──
