@@ -145,9 +145,7 @@ function launchCombat() {
         if (data.success) {
             showSuccess(`Combat créé ! Redirection vers l'arène...`);
             setTimeout(() => {
-                window.open(`/combat/${data.session.id}/arena`, '_blank');
-                btn.disabled = false;
-                btn.innerHTML = '⚔️ Lancer le Combat !';
+                window.location.href = `/combat/${data.session.id}/arena`;
             }, 1000);
         } else {
             showError(data.error || 'Erreur lors de la création');

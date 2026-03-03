@@ -151,36 +151,24 @@ class CombatEngine:
 
     @staticmethod
     def _spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles):
-        """Place les monstres dynamiquement selon le nombre de joueurs et leur niveau."""
+        """Place les monstres selon DIFFICULTY_CONFIGS, avec scaling par nombre de joueurs."""
         obstacle_set = {(o['x'], o['y']) for o in obstacles}
 
-        # Nombre dynamique de monstres — ratio équitable selon le nombre de joueurs
-        # 1 joueur → 1-2 monstres, 2 joueurs → 2-3, 5 joueurs → 4-5, etc.
-        if num_players <= 2:
-            base_count = num_players  # 1v1 ou 2v2
-        else:
-            base_count = num_players - 1 + max(1, num_players // 4)
-        level_bonus = max(0, avg_level // 5)  # Bonus léger par niveau
-        total_monsters = max(1, base_count + level_bonus)
-
-        # Types de monstres selon la difficulté
         difficulty = session.difficulty
-        if difficulty == 'easy':
-            pool = [('slime', 0.6), ('goblin', 0.4)]
-        elif difficulty == 'medium':
-            pool = [('goblin', 0.4), ('slime', 0.3), ('orc', 0.3)]
-        elif difficulty == 'hard':
-            pool = [('orc', 0.35), ('skeleton', 0.35), ('goblin', 0.3)]
-        else:  # boss
-            pool = [('dragon', 0.15), ('orc', 0.35), ('skeleton', 0.3), ('goblin', 0.2)]
 
-        # Générer la liste de monstres
+        # Utiliser directement les DIFFICULTY_CONFIGS pour les types et nombres de monstres
         monster_types = []
-        for m_type, weight in pool:
-            count = max(1, round(total_monsters * weight))
-            monster_types.extend([m_type] * count)
+        for entry in config.get('monsters', []):
+            m_type = entry['type']
+            base_count = entry.get('count', 1)
+            # Scaling: si plus de joueurs que prévu, ajouter des monstres proportionnellement
+            # La config est calibrée pour ~1-2 joueurs, on scale au-delà
+            if num_players > 2:
+                scaled_count = max(base_count, round(base_count * num_players / 2))
+            else:
+                scaled_count = base_count
+            monster_types.extend([m_type] * scaled_count)
         random.shuffle(monster_types)
-        monster_types = monster_types[:total_monsters]
 
         # Placer sur le côté droit de la grille
         spawn_x_start = grid_w - 3
@@ -191,16 +179,17 @@ class CombatEngine:
                     available_positions.append((gx, gy))
         random.shuffle(available_positions)
 
+        # Construire un lookup level_offset par type de monstre depuis la config
+        level_offset_map = {}
+        for entry in config.get('monsters', []):
+            level_offset_map[entry['type']] = entry.get('level_offset', 0)
+
         for i, m_type in enumerate(monster_types):
             preset = MONSTER_PRESETS.get(m_type)
             if not preset:
                 continue
 
-            level_offset = 0
-            if difficulty == 'boss' and m_type == 'dragon':
-                level_offset = 2
-            elif difficulty == 'hard':
-                level_offset = 1
+            level_offset = level_offset_map.get(m_type, 0)
 
             level = max(1, avg_level + level_offset)
             hp = preset['base_hp'] + preset['hp_per_level'] * (level - 1)

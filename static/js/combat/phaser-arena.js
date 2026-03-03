@@ -802,14 +802,14 @@ class CombatArena extends Phaser.Scene {
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
-        const roundText = this.add.text(canvasW / 2, 100, `ROUND ${roundNum}`, {
+        const roundText = this.add.text(canvasW / 2, canvasH / 3, `ROUND ${roundNum}`, {
             fontSize: '48px',
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
             color: '#fbbf24',
             stroke: '#92400e',
             strokeThickness: 4,
-        }).setOrigin(0.5).setDepth(10000);
+        }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
 
         // Scale up, stay, then fade away
         roundText.setScale(0.5);
@@ -818,16 +818,22 @@ class CombatArena extends Phaser.Scene {
             scale: 1,
             duration: 400,
             ease: 'Back.out',
-        });
-
-        this.time.delayedCall(2000, () => {
-            this.tweens.add({
-                targets: roundText,
-                alpha: 0,
-                duration: 500,
-                ease: 'Linear',
-                onComplete: () => roundText.destroy(),
-            });
+            onComplete: () => {
+                // Fade out after staying visible for 1.5 seconds
+                this.time.delayedCall(1500, () => {
+                    if (roundText && roundText.active) {
+                        this.tweens.add({
+                            targets: roundText,
+                            alpha: 0,
+                            duration: 500,
+                            ease: 'Linear',
+                            onComplete: () => {
+                                if (roundText && roundText.active) roundText.destroy();
+                            },
+                        });
+                    }
+                });
+            },
         });
     }
 
