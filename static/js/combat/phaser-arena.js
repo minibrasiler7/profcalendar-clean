@@ -70,12 +70,15 @@ class CombatArena extends Phaser.Scene {
 
         // ── Assets ──
 
-        // Isometric tiles
+        // Isometric tiles (base + new terrain types)
         this.load.image('iso_grass', '/static/img/combat/tiles/iso_grass.png');
         this.load.image('iso_stone', '/static/img/combat/tiles/iso_stone.png');
         this.load.image('iso_dirt', '/static/img/combat/tiles/iso_dirt.png');
         this.load.image('iso_water', '/static/img/combat/tiles/iso_water.png');
         this.load.image('iso_wall', '/static/img/combat/tiles/iso_wall.png');
+        this.load.image('iso_forest', '/static/img/combat/tiles/iso_forest.png');
+        this.load.image('iso_sand', '/static/img/combat/tiles/iso_sand.png');
+        this.load.image('iso_lava', '/static/img/combat/tiles/iso_lava.png');
 
         // Highlight tiles
         this.load.image('hl_move', '/static/img/combat/tiles/iso_highlight_move.png');
@@ -221,10 +224,19 @@ class CombatArena extends Phaser.Scene {
 
     // ── Isometric coordinate conversion ──
 
-    gridToIso(gx, gy) {
+    gridToIso(gx, gy, includeElevation = false) {
         const isoX = (gx - gy) * (TILE_W / 2) + this.offsetX;
-        const isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
+        let isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
+        if (includeElevation && this.elevation) {
+            const elev = (this.elevation[gy] && this.elevation[gy][gx]) || 0;
+            isoY -= elev * 10; // 10px per elevation level
+        }
         return { x: isoX, y: isoY };
+    }
+
+    getElevation(gx, gy) {
+        if (!this.elevation) return 0;
+        return (this.elevation[gy] && this.elevation[gy][gx]) || 0;
     }
 
     isoToGrid(isoX, isoY) {
@@ -279,12 +291,26 @@ class CombatArena extends Phaser.Scene {
     drawGrid() {
         const tiles = this.mapConfig ? this.mapConfig.tiles : null;
         const obstacles = this.mapConfig ? (this.mapConfig.obstacles || []) : [];
+        const elevation = this.mapConfig ? (this.mapConfig.elevation || []) : [];
+
+        // Store elevation for gameplay use
+        this.elevation = elevation;
 
         // Build obstacle lookup
         const obstacleMap = {};
         for (const obs of obstacles) {
             obstacleMap[`${obs.x}_${obs.y}`] = obs.type;
         }
+
+        // Tile type to texture key mapping
+        const tileTextures = {
+            'grass': 'iso_grass', 'stone': 'iso_stone', 'dirt': 'iso_dirt',
+            'water': 'iso_water', 'wall': 'iso_wall', 'forest': 'iso_forest',
+            'sand': 'iso_sand', 'lava': 'iso_lava',
+        };
+
+        // Height offset per elevation level (pixels upward)
+        const ELEV_OFFSET = 10;
 
         // Draw tiles from back to front (painter's algorithm)
         for (let gy = 0; gy < this.gridH; gy++) {
@@ -293,24 +319,83 @@ class CombatArena extends Phaser.Scene {
                 const key = `${gx}_${gy}`;
                 const obsType = obstacleMap[key];
 
+                // Get tile elevation
+                const elev = (elevation[gy] && elevation[gy][gx]) || 0;
+                const elevPx = elev * ELEV_OFFSET;
+
+                // Determine tile texture
                 let tileKey = 'iso_grass';
-                if (obsType === 'water') {
-                    tileKey = 'iso_water';
-                } else if (obsType === 'wall') {
-                    tileKey = 'iso_wall';
+                if (obsType) {
+                    tileKey = tileTextures[obsType] || 'iso_wall';
                 } else if (tiles && tiles[gy] && tiles[gy][gx]) {
-                    const tType = tiles[gy][gx];
-                    if (tType === 'stone') tileKey = 'iso_stone';
-                    else if (tType === 'dirt') tileKey = 'iso_dirt';
-                    else if (tType === 'water') tileKey = 'iso_water';
-                    else if (tType === 'wall') tileKey = 'iso_wall';
+                    tileKey = tileTextures[tiles[gy][gx]] || 'iso_grass';
                 }
 
-                const tile = this.add.image(x, y, tileKey);
+                // Render base tile at elevated position
+                const tileY = y - elevPx;
+                const tile = this.add.image(x, tileY, tileKey);
                 tile.setOrigin(0.5, 0.5);
-                tile.setDepth(gx + gy);
+                tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
+
+                // Draw elevation "pillar" underneath elevated tiles
+                if (elev > 0 && tileKey !== 'iso_wall') {
+                    for (let e = 0; e < elev; e++) {
+                        const pillarY = y - (e * ELEV_OFFSET);
+                        const pillar = this.add.image(x, pillarY, 'iso_dirt');
+                        pillar.setOrigin(0.5, 0.5);
+                        pillar.setDepth((gx + gy) * 10 + e);
+                        pillar.setAlpha(0.7);
+                        pillar.setTint(0x998866);
+                    }
+                }
+
+                // Water shimmer effect
+                if (tileKey === 'iso_water') {
+                    this.tweens.add({
+                        targets: tile, alpha: { from: 0.85, to: 1.0 },
+                        duration: 1500 + Math.random() * 500,
+                        yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+                    });
+                }
+
+                // Lava glow pulse
+                if (tileKey === 'iso_lava') {
+                    this.tweens.add({
+                        targets: tile, alpha: { from: 0.8, to: 1.0 },
+                        duration: 800 + Math.random() * 400,
+                        yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+                    });
+                    // Red glow underneath
+                    const glow = this.add.circle(x, tileY + 5, 20, 0xff4400, 0.15);
+                    glow.setDepth((gx + gy) * 10 - 1);
+                    this.tweens.add({
+                        targets: glow, alpha: { from: 0.1, to: 0.25 },
+                        duration: 600, yoyo: true, repeat: -1,
+                    });
+                }
             }
+        }
+
+        // Show template name briefly
+        if (this.mapConfig && this.mapConfig.template) {
+            const templateNames = {
+                'valley': '🏔️ Vallée',
+                'fortress': '🏰 Forteresse',
+                'river': '🌊 Rivière',
+                'arena': '⚔️ Arène',
+            };
+            const name = templateNames[this.mapConfig.template] || this.mapConfig.template;
+            const canvasW = this.sys.game.config.width;
+            const mapLabel = this.add.text(canvasW / 2, 25, name, {
+                fontSize: '16px', fontFamily: 'Arial', color: '#94a3b8',
+                stroke: '#000', strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(20000).setScrollFactor(0).setAlpha(0);
+            this.tweens.add({
+                targets: mapLabel, alpha: { from: 0, to: 0.8 },
+                duration: 500, yoyo: true, hold: 2000,
+                onComplete: () => mapLabel.destroy(),
+            });
         }
     }
 
@@ -330,11 +415,12 @@ class CombatArena extends Phaser.Scene {
         for (const t of tiles) {
             const tx = t.x !== undefined ? t.x : t[0];
             const ty = t.y !== undefined ? t.y : t[1];
-            const { x, y } = this.gridToIso(tx, ty);
+            const { x, y } = this.gridToIso(tx, ty, true);
             const key = `${tx}_${ty}`;
             const hl = this.add.image(x, y, texKey);
             hl.setOrigin(0.5, 0.5);
-            hl.setDepth(tx + ty + 0.5);
+            const hlElev = this.getElevation(tx, ty);
+            hl.setDepth((tx + ty) * 10 + hlElev + 3);
             hl.setAlpha(0.7);
 
             // Pulse animation
@@ -366,8 +452,9 @@ class CombatArena extends Phaser.Scene {
         if (this.entitySprites[id]) return;
 
         const cls = (p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier').toLowerCase();
-        const { x, y } = this.gridToIso(p.grid_x, p.grid_y);
+        const { x, y } = this.gridToIso(p.grid_x, p.grid_y, true);
         const dir = 'ne';  // Default facing direction
+        const elev = this.getElevation(p.grid_x, p.grid_y);
 
         // Use NE idle sprite as default
         const spriteKey = `chi_${cls}_${dir}_idle`;
@@ -376,7 +463,7 @@ class CombatArena extends Phaser.Scene {
         const sprite = this.add.image(x, y - TILE_DEPTH, usedKey);
         sprite.setOrigin(0.5, 0.85);
         sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
-        sprite.setDepth(p.grid_x + p.grid_y + 1);
+        sprite.setDepth((p.grid_x + p.grid_y) * 10 + elev + 5);
 
         // Name label
         const spriteY = y - TILE_DEPTH;
@@ -493,12 +580,13 @@ class CombatArena extends Phaser.Scene {
         if (this.entitySprites[id]) return;
 
         const monType = (m.monster_type || 'goblin').toLowerCase();
-        const { x, y } = this.gridToIso(m.grid_x, m.grid_y);
+        const { x, y } = this.gridToIso(m.grid_x, m.grid_y, true);
+        const elev = this.getElevation(m.grid_x, m.grid_y);
 
         const spriteKey = `mon_${monType}_idle`;
         const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
         sprite.setOrigin(0.5, 0.85);
-        sprite.setDepth(m.grid_x + m.grid_y + 1);
+        sprite.setDepth((m.grid_x + m.grid_y) * 10 + elev + 5);
 
         // Name
         const spriteY = y - TILE_DEPTH;
@@ -546,8 +634,9 @@ class CombatArena extends Phaser.Scene {
         const ent = this.entitySprites[id];
         if (!ent) return;
 
-        const { x, y } = this.gridToIso(gx, gy);
+        const { x, y } = this.gridToIso(gx, gy, true);
         const targetY = y - TILE_DEPTH;
+        const elev = this.getElevation(gx, gy);
 
         // Update direction for players
         if (ent.type === 'player' && ent.data) {
@@ -571,14 +660,14 @@ class CombatArena extends Phaser.Scene {
                 targets: [ent.sprite],
                 x: x, y: targetY,
                 duration: 300, ease: 'Linear',
-                onComplete: () => { ent.sprite.setDepth(gx + gy + 1); },
+                onComplete: () => { ent.sprite.setDepth((gx + gy) * 10 + elev + 5); },
             });
             this.tweens.add({ targets: ent.name, x: x, y: nameY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpBg], x: x, y: barY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpFill], x: x, y: barY, duration: 300, ease: 'Linear' });
         } else {
             ent.sprite.setPosition(x, targetY);
-            ent.sprite.setDepth(gx + gy + 1);
+            ent.sprite.setDepth((gx + gy) * 10 + elev + 5);
             ent.name.setPosition(x, nameY);
             ent.hpBg.setPosition(x, barY);
             ent.hpFill.setPosition(x, barY);

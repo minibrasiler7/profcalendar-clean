@@ -22,8 +22,11 @@ TILE_STONE = 'stone'
 TILE_DIRT = 'dirt'
 TILE_WATER = 'water'      # Obstacle (infranchissable)
 TILE_WALL = 'wall'         # Obstacle surélevé (infranchissable)
+TILE_FOREST = 'forest'    # Walkable, donne couverture (+DEF)
+TILE_SAND = 'sand'        # Walkable, ralentit (-1 mouvement)
+TILE_LAVA = 'lava'        # Obstacle infranchissable
 
-OBSTACLE_TILES = {TILE_WATER, TILE_WALL}
+OBSTACLE_TILES = {TILE_WATER, TILE_WALL, TILE_LAVA}
 
 
 class CombatEngine:
@@ -53,8 +56,8 @@ class CombatEngine:
         grid_w = 7
         grid_h = 5
 
-        # Générer la carte avec obstacles
-        tile_map, obstacles = CombatEngine._generate_map(grid_w, grid_h)
+        # Générer la carte avec obstacles et élévation
+        tile_map, obstacles, elevation, template_name = CombatEngine._generate_map(grid_w, grid_h, difficulty)
 
         # Créer la session
         session = CombatSession(
@@ -71,6 +74,8 @@ class CombatEngine:
                 'tile_size': 64,
                 'tiles': tile_map,
                 'obstacles': obstacles,
+                'elevation': elevation,
+                'template': template_name,
             },
         )
         db.session.add(session)
@@ -82,53 +87,172 @@ class CombatEngine:
         db.session.commit()
         return session
 
-    @staticmethod
-    def _generate_map(width, height):
-        """Génère une carte avec ~15% d'obstacles, garantissant un chemin."""
-        tile_types = [TILE_GRASS, TILE_STONE, TILE_DIRT]
-        tile_map = []
-        obstacles = []
+    # ── Map templates for interesting terrain layouts ──
+    MAP_TEMPLATES = {
+        'valley': {
+            # Central corridor flanked by elevated walls — forces close combat
+            'description': 'Vallée étroite',
+            'wall_pattern': lambda w, h: [
+                (x, y) for x in range(2, w - 2)
+                for y in [0, h - 1]
+                if random.random() < 0.6
+            ],
+            'water_pattern': lambda w, h: [
+                (w // 2, h // 2)
+            ] if h >= 5 else [],
+            'forest_zones': lambda w, h: [
+                (x, y) for x in range(1, w - 1)
+                for y in [1, h - 2]
+                if random.random() < 0.4
+            ],
+        },
+        'fortress': {
+            # Walls forming defensive positions in the center
+            'description': 'Forteresse',
+            'wall_pattern': lambda w, h: [
+                (w // 2, y) for y in range(h)
+                if y != h // 2 and y != h // 2 - 1
+            ] + [(w // 2 - 1, h // 4), (w // 2 + 1, h // 4),
+                 (w // 2 - 1, h - h // 4 - 1), (w // 2 + 1, h - h // 4 - 1)],
+            'water_pattern': lambda w, h: [],
+            'forest_zones': lambda w, h: [
+                (x, y) for x in [1, 2, w - 3, w - 2]
+                for y in range(h)
+                if random.random() < 0.3
+            ],
+        },
+        'river': {
+            # Diagonal river crossing the map — limits movement options
+            'description': 'Rivière',
+            'wall_pattern': lambda w, h: [
+                (x, y) for x in range(2, w - 2) for y in range(h)
+                if random.random() < 0.05
+            ],
+            'water_pattern': lambda w, h: [
+                (x, y) for x in range(w)
+                for y in range(h)
+                if abs(y - (h * x // w)) <= 0 and 2 <= x <= w - 3
+            ],
+            'forest_zones': lambda w, h: [
+                (x, y) for x in range(w) for y in range(h)
+                if random.random() < 0.15 and abs(y - (h * x // w)) > 1
+            ],
+        },
+        'arena': {
+            # Open arena with scattered cover — balanced
+            'description': 'Arène ouverte',
+            'wall_pattern': lambda w, h: [
+                (x, y) for x, y in [
+                    (w // 3, h // 3), (w // 3, h - h // 3 - 1),
+                    (w - w // 3 - 1, h // 3), (w - w // 3 - 1, h - h // 3 - 1),
+                ]
+            ],
+            'water_pattern': lambda w, h: [],
+            'forest_zones': lambda w, h: [
+                (x, y) for x in range(w) for y in range(h)
+                if random.random() < 0.2
+            ],
+        },
+    }
 
-        # Remplir la carte de tuiles de base
+    @staticmethod
+    def _generate_map(width, height, difficulty='medium'):
+        """Génère une carte tactique avec terrain varié, élévation et obstacles stratégiques."""
+        import math
+
+        # Choose a map template based on difficulty or random
+        if difficulty == 'boss':
+            template_name = 'fortress'
+        elif difficulty == 'hard':
+            template_name = random.choice(['valley', 'fortress'])
+        else:
+            template_name = random.choice(list(CombatEngine.MAP_TEMPLATES.keys()))
+
+        template = CombatEngine.MAP_TEMPLATES[template_name]
+
+        # ── 1. Generate elevation map (simplified Perlin-like noise) ──
+        elevation = [[0] * width for _ in range(height)]
+        # Place 2-3 "hills" at random positions
+        num_hills = random.randint(2, min(4, max(2, width * height // 15)))
+        hill_centers = []
+        for _ in range(num_hills):
+            cx = random.randint(2, width - 3)
+            cy = random.randint(1, height - 2)
+            hill_centers.append((cx, cy))
+            radius = random.uniform(1.5, 2.5)
+            peak = random.choice([1, 1, 2])  # Mostly height 1, sometimes 2
+            for y in range(height):
+                for x in range(width):
+                    dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+                    if dist < radius:
+                        elev = max(0, peak - int(dist))
+                        elevation[y][x] = max(elevation[y][x], elev)
+
+        # ── 2. Generate base tiles with coherent zones ──
+        tile_map = []
         for row in range(height):
             row_tiles = []
             for col in range(width):
-                row_tiles.append(random.choice(tile_types))
+                elev = elevation[row][col]
+                if elev >= 2:
+                    row_tiles.append(TILE_STONE)
+                elif elev == 1:
+                    row_tiles.append(random.choice([TILE_GRASS, TILE_STONE, TILE_DIRT]))
+                else:
+                    # Low ground — mostly grass with some dirt
+                    row_tiles.append(random.choices(
+                        [TILE_GRASS, TILE_DIRT, TILE_SAND],
+                        weights=[5, 3, 1],
+                        k=1
+                    )[0])
             tile_map.append(row_tiles)
 
-        # Placer des obstacles (~15% des cases, pas sur les bords gauche/droit)
-        num_obstacles = int(width * height * 0.12)
-        safe_left = 3    # Pas d'obstacle dans les 3 colonnes de gauche (spawn joueurs)
-        safe_right = width - 3  # Ni dans les 3 de droite (spawn monstres)
+        # ── 3. Apply template patterns (walls, water, forest) ──
+        obstacles = []
+        safe_left = 2
+        safe_right = width - 2
 
-        placed = 0
-        attempts = 0
-        # Si la grille est trop petite, pas d'obstacles (safe_left >= safe_right)
-        while placed < num_obstacles and attempts < num_obstacles * 5 and safe_left < safe_right:
-            attempts += 1
-            ox = random.randint(safe_left, safe_right - 1)
-            oy = random.randint(0, height - 1)
+        # Walls from template
+        for x, y in template['wall_pattern'](width, height):
+            if 0 <= x < width and 0 <= y < height:
+                if x < safe_left or x >= safe_right:
+                    continue  # Don't block spawn zones
+                if tile_map[y][x] not in OBSTACLE_TILES:
+                    tile_map[y][x] = TILE_WALL
+                    obstacles.append({'x': x, 'y': y, 'type': TILE_WALL})
+                    elevation[y][x] = max(elevation[y][x], 2)
 
-            # Vérifier que la case n'est pas déjà un obstacle
-            if tile_map[oy][ox] in OBSTACLE_TILES:
-                continue
+        # Water from template
+        for x, y in template['water_pattern'](width, height):
+            if 0 <= x < width and 0 <= y < height:
+                if x < safe_left or x >= safe_right:
+                    continue
+                if tile_map[y][x] not in OBSTACLE_TILES:
+                    tile_map[y][x] = TILE_WATER
+                    obstacles.append({'x': x, 'y': y, 'type': TILE_WATER})
+                    elevation[y][x] = 0  # Water is always at lowest elevation
 
-            obstacle_type = random.choice([TILE_WATER, TILE_WALL])
-            tile_map[oy][ox] = obstacle_type
-            obstacles.append({'x': ox, 'y': oy, 'type': obstacle_type})
-            placed += 1
+        # Forest from template
+        for x, y in template['forest_zones'](width, height):
+            if 0 <= x < width and 0 <= y < height:
+                if tile_map[y][x] not in OBSTACLE_TILES and tile_map[y][x] != TILE_FOREST:
+                    tile_map[y][x] = TILE_FOREST
 
-        # Vérifier qu'un chemin existe entre gauche et droite (BFS)
-        # Si non, retirer des obstacles aléatoirement
+        # ── 4. Ensure path connectivity ──
         start = (1, height // 2)
         end = (width - 2, height // 2)
-        if not CombatEngine._path_exists(tile_map, width, height, start, end):
-            # Retirer la moitié des obstacles et réessayer
-            for obs in obstacles[:len(obstacles) // 2]:
-                tile_map[obs['y']][obs['x']] = TILE_STONE
-            obstacles = obstacles[len(obstacles) // 2:]
+        max_retries = 3
+        for _ in range(max_retries):
+            if CombatEngine._path_exists(tile_map, width, height, start, end):
+                break
+            # Remove random obstacles to clear path
+            if obstacles:
+                to_remove = random.sample(obstacles, min(len(obstacles) // 2 + 1, len(obstacles)))
+                for obs in to_remove:
+                    tile_map[obs['y']][obs['x']] = TILE_GRASS
+                obstacles = [o for o in obstacles if o not in to_remove]
 
-        return tile_map, obstacles
+        return tile_map, obstacles, elevation, template_name
 
     @staticmethod
     def _path_exists(tile_map, width, height, start, end):
@@ -332,7 +456,8 @@ class CombatEngine:
         grid_h = min(grid_h, 10)
 
         # Régénérer la carte
-        tile_map, obstacles = CombatEngine._generate_map(grid_w, grid_h)
+        tile_map, obstacles, elevation, template_name = CombatEngine._generate_map(
+            grid_w, grid_h, session.difficulty)
 
         session.map_config_json = {
             'width': grid_w,
@@ -340,6 +465,8 @@ class CombatEngine:
             'tile_size': 64,
             'tiles': tile_map,
             'obstacles': obstacles,
+            'elevation': elevation,
+            'template': template_name,
         }
 
         # Supprimer les anciens monstres et en recréer
