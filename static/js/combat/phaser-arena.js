@@ -31,28 +31,30 @@ class CombatArena extends Phaser.Scene {
         const canvasH = this.sys.game.config.height;
 
         // Loading bar background
-        const barBg = this.add.rectangle(canvasW / 2, canvasH / 2 + 20, 400, 24, 0x1a1a2e);
-        barBg.setStrokeStyle(2, 0x6366f1);
-        const barFill = this.add.rectangle(canvasW / 2 - 198, canvasH / 2 + 20, 0, 20, 0x6366f1);
+        const barBg = this.add.rectangle(canvasW / 2, canvasH / 2 + 20, 360, 20, 0x0a0e1a);
+        barBg.setStrokeStyle(1, 0x4f6bff);
+        const barFill = this.add.rectangle(canvasW / 2 - 178, canvasH / 2 + 20, 0, 16, 0x4f6bff);
         barFill.setOrigin(0, 0.5);
 
-        const loadText = this.add.text(canvasW / 2, canvasH / 2 - 30, 'Chargement de l\'arène...', {
-            fontSize: '18px', fontFamily: 'Arial', color: '#a5b4fc',
+        const loadText = this.add.text(canvasW / 2, canvasH / 2 - 40, 'CHARGEMENT', {
+            fontSize: '12px', fontFamily: '"Press Start 2P", monospace', color: '#ffd700',
         }).setOrigin(0.5);
 
         const percentText = this.add.text(canvasW / 2, canvasH / 2 + 20, '0%', {
-            fontSize: '14px', fontFamily: 'Arial', color: '#e0e7ff',
+            fontSize: '10px', fontFamily: '"Press Start 2P", monospace', color: '#e0e7ff',
         }).setOrigin(0.5);
 
         const tipTexts = [
-            'Astuce : Répondez vite pour des combos !',
-            'Astuce : Le guérisseur peut soigner ses alliés.',
-            'Astuce : Positionnez-vous bien pour attaquer.',
-            'Astuce : Les mages infligent des dégâts magiques.',
-            'Astuce : Les archers attaquent à distance.',
+            'Astuce : Repondez vite pour des combos !',
+            'Astuce : Le guerisseur peut soigner ses allies.',
+            'Astuce : La foret offre un bonus de defense.',
+            'Astuce : Le terrain eleve donne un avantage.',
+            'Astuce : Les mages infligent des degats magiques.',
+            'Astuce : Les archers attaquent a distance.',
+            'Astuce : Le sable ralentit les deplacements.',
         ];
-        const tipText = this.add.text(canvasW / 2, canvasH / 2 + 60, tipTexts[Math.floor(Math.random() * tipTexts.length)], {
-            fontSize: '13px', fontFamily: 'Arial', color: '#94a3b8', fontStyle: 'italic',
+        const tipText = this.add.text(canvasW / 2, canvasH / 2 + 55, tipTexts[Math.floor(Math.random() * tipTexts.length)], {
+            fontSize: '12px', fontFamily: 'Rajdhani, Arial', color: '#6b7a96', fontStyle: 'italic',
         }).setOrigin(0.5);
 
         this.load.on('progress', (value) => {
@@ -191,34 +193,78 @@ class CombatArena extends Phaser.Scene {
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
-        // Floating dust particles (using graphics-generated texture)
+        // ── Dust mote texture ──
         const gfx = this.make.graphics({ x: 0, y: 0, add: false });
         gfx.fillStyle(0xffffff, 0.6);
         gfx.fillCircle(3, 3, 3);
         gfx.generateTexture('dust_particle', 6, 6);
         gfx.destroy();
 
-        // Create slow-floating particles
-        for (let i = 0; i < 15; i++) {
+        // ── Soft glow texture ──
+        const glowGfx = this.make.graphics({ x: 0, y: 0, add: false });
+        glowGfx.fillStyle(0x88aaff, 0.3);
+        glowGfx.fillCircle(8, 8, 8);
+        glowGfx.fillStyle(0xaaccff, 0.5);
+        glowGfx.fillCircle(8, 8, 4);
+        glowGfx.generateTexture('glow_particle', 16, 16);
+        glowGfx.destroy();
+
+        // ── Floating dust motes (screen-space) ──
+        for (let i = 0; i < 20; i++) {
             const px = Phaser.Math.Between(0, canvasW);
             const py = Phaser.Math.Between(0, canvasH);
             const p = this.add.image(px, py, 'dust_particle')
-                .setAlpha(Phaser.Math.FloatBetween(0.1, 0.3))
-                .setScale(Phaser.Math.FloatBetween(0.3, 0.8))
+                .setAlpha(Phaser.Math.FloatBetween(0.15, 0.4))
+                .setScale(Phaser.Math.FloatBetween(0.3, 1.0))
                 .setDepth(9000)
                 .setScrollFactor(0);
 
-            // Floating animation
             this.tweens.add({
                 targets: p,
-                y: py - Phaser.Math.Between(20, 60),
-                x: px + Phaser.Math.Between(-30, 30),
-                alpha: { from: p.alpha, to: 0 },
-                duration: Phaser.Math.Between(4000, 8000),
+                y: py - Phaser.Math.Between(30, 80),
+                x: px + Phaser.Math.Between(-40, 40),
+                alpha: { from: p.alpha, to: 0.05 },
+                duration: Phaser.Math.Between(5000, 10000),
                 repeat: -1,
                 yoyo: true,
-                delay: Phaser.Math.Between(0, 3000),
+                delay: Phaser.Math.Between(0, 4000),
             });
+        }
+
+        // ── Firefly glows near forest tiles (world-space) ──
+        if (this.tileMap) {
+            const forestTiles = [];
+            for (let gy = 0; gy < this.tileMap.length; gy++) {
+                for (let gx = 0; gx < this.tileMap[gy].length; gx++) {
+                    if (this.tileMap[gy][gx] === 'forest') forestTiles.push({ gx, gy });
+                }
+            }
+            const numFireflies = Math.min(forestTiles.length * 2, 12);
+            for (let i = 0; i < numFireflies; i++) {
+                const ft = forestTiles[i % forestTiles.length];
+                const pos = this.gridToIso(ft.gx, ft.gy, true);
+                const fx = pos.x + Phaser.Math.Between(-20, 20);
+                const fy = pos.y + Phaser.Math.Between(-30, -5);
+                const elev = this.getElevation(ft.gx, ft.gy);
+                const firefly = this.add.image(fx, fy, 'glow_particle')
+                    .setAlpha(0)
+                    .setScale(Phaser.Math.FloatBetween(0.3, 0.6))
+                    .setTint(0x88ff88)
+                    .setDepth((ft.gx + ft.gy) * 10 + elev + 4);
+
+                this.tweens.add({
+                    targets: firefly,
+                    alpha: { from: 0, to: Phaser.Math.FloatBetween(0.3, 0.6) },
+                    x: fx + Phaser.Math.Between(-15, 15),
+                    y: fy + Phaser.Math.Between(-15, 10),
+                    scale: { from: firefly.scale, to: firefly.scale * 1.3 },
+                    duration: Phaser.Math.Between(2000, 4000),
+                    repeat: -1,
+                    yoyo: true,
+                    delay: Phaser.Math.Between(0, 3000),
+                    ease: 'Sine.easeInOut',
+                });
+            }
         }
     }
 
