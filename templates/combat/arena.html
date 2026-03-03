@@ -367,7 +367,7 @@
         <div class="session-info">
             <span style="font-size: 22px;">⚔️</span> <span id="round-number">Round 0</span>
             <span id="difficulty-badge" style="font-size:11px; padding:3px 8px; border-radius:3px; margin-left:10px;
-                background:${{'easy':'#10b981','medium':'#f59e0b','hard':'#ef4444','boss':'#8b5cf6'}[DIFFICULTY] || '#667eea'};
+                background:{% if session.difficulty == 'easy' %}#10b981{% elif session.difficulty == 'medium' %}#f59e0b{% elif session.difficulty == 'hard' %}#ef4444{% elif session.difficulty == 'boss' %}#8b5cf6{% else %}#667eea{% endif %};
                 color:#fff;">{{ session.difficulty|upper }}</span>
         </div>
         <div style="display:flex; align-items:center; gap:15px;">
