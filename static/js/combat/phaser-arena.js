@@ -143,6 +143,9 @@ class CombatArena extends Phaser.Scene {
         // ── Ambient particles ──
         this._createAmbientParticles();
 
+        // ── Vignette overlay for cinematic feel ──
+        this._createVignette();
+
         // Register with socket
         if (typeof CombatSocketInstance !== 'undefined') {
             CombatSocketInstance.setGameInstance(this);
@@ -265,6 +268,24 @@ class CombatArena extends Phaser.Scene {
                     ease: 'Sine.easeInOut',
                 });
             }
+        }
+    }
+
+    _createVignette() {
+        const cw = this.sys.game.config.width;
+        const ch = this.sys.game.config.height;
+        // Subtle dark edge vignette using a large gradient ring
+        const vig = this.add.graphics();
+        vig.setScrollFactor(0).setDepth(9500);
+        // Draw radial gradient approximation with concentric transparent-to-dark rings
+        const cx = cw / 2, cy = ch / 2;
+        const maxR = Math.max(cw, ch) * 0.8;
+        const steps = 20;
+        for (let i = steps; i >= 0; i--) {
+            const r = maxR * (i / steps);
+            const alpha = i < steps * 0.5 ? 0 : ((i - steps * 0.5) / (steps * 0.5)) * 0.35;
+            vig.fillStyle(0x000000, alpha);
+            vig.fillEllipse(cx, cy, r * 2, r * 1.5);
         }
     }
 
@@ -1790,6 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const game = new Phaser.Game(config);
 
     window.addEventListener('resize', () => {
-        game.scale.resize(window.innerWidth - 500, window.innerHeight - 60);
+        const c = document.getElementById('phaser-game');
+        game.scale.resize(c ? c.clientWidth : (window.innerWidth - 480), c ? c.clientHeight : (window.innerHeight - 56));
     });
 });
