@@ -109,12 +109,17 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Monster sprites
-        const monsterTypes = ['goblin', 'orc', 'slime', 'skeleton', 'dragon'];
-        const monsterStates = ['idle', 'attack', 'hurt', 'ko'];
+        // Monster sprites — directional sprites (se/sw/ne/nw) from PixelLab
+        const monsterTypes = [
+            'slime', 'rat', 'kobold', 'bat',
+            'goblin', 'wolf', 'zombie', 'mushroom', 'bandit', 'fire_elemental',
+            'ogre', 'vampire', 'witch', 'spider', 'golem',
+            'necromancer', 'lich', 'dragon', 'hydra', 'shadow'
+        ];
+        const monsterDirs = ['se', 'sw', 'ne', 'nw'];
         for (const m of monsterTypes) {
-            for (const s of monsterStates) {
-                this.load.image(`mon_${m}_${s}`, `/static/img/combat/monsters/${m}_iso_${s}.png`);
+            for (const d of monsterDirs) {
+                this.load.image(`mon_${m}_${d}`, `/static/img/combat/monsters/${m}/${d}.png`);
             }
         }
 
@@ -650,10 +655,16 @@ class CombatArena extends Phaser.Scene {
         const { x, y } = this.gridToIso(m.grid_x, m.grid_y, true);
         const elev = this.getElevation(m.grid_x, m.grid_y);
 
-        const spriteKey = `mon_${monType}_idle`;
+        // Default direction: sw (facing players who are on the left)
+        const defaultDir = 'sw';
+        const spriteKey = `mon_${monType}_${defaultDir}`;
         const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
         sprite.setOrigin(0.5, 0.85);
         sprite.setDepth((m.grid_x + m.grid_y) * 10 + elev + 5);
+
+        // Scale the PixelLab sprites up (they're 56×56 or 48×48, we want ~SPRITE_SIZE)
+        const baseScale = SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1);
+        sprite.setScale(baseScale);
 
         // Name
         const spriteY = y - TILE_DEPTH;
@@ -686,6 +697,7 @@ class CombatArena extends Phaser.Scene {
             data: m,
             type: 'monster',
             monType: monType,
+            direction: defaultDir,
             state: m.is_alive !== false ? 'idle' : 'ko',
         };
 
@@ -705,15 +717,24 @@ class CombatArena extends Phaser.Scene {
         const targetY = y - TILE_DEPTH;
         const elev = this.getElevation(gx, gy);
 
-        // Update direction for players
-        if (ent.type === 'player' && ent.data) {
+        // Update direction for players and monsters
+        if (ent.data) {
             const newDir = this._getDirection(ent.data.grid_x, ent.data.grid_y, gx, gy);
             if (newDir !== ent.direction) {
                 ent.direction = newDir;
-                const texKey = `chi_${ent.cls}_${newDir}_idle`;
-                if (this.textures.exists(texKey)) {
-                    ent.sprite.setTexture(texKey);
-                    ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
+                if (ent.type === 'player') {
+                    const texKey = `chi_${ent.cls}_${newDir}_idle`;
+                    if (this.textures.exists(texKey)) {
+                        ent.sprite.setTexture(texKey);
+                        ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
+                    }
+                } else {
+                    // Monster: use directional sprite
+                    const texKey = `mon_${ent.monType}_${newDir}`;
+                    if (this.textures.exists(texKey)) {
+                        ent.sprite.setTexture(texKey);
+                        ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
+                    }
                 }
             }
         }
@@ -854,21 +875,65 @@ class CombatArena extends Phaser.Scene {
         if (!ent) return;
 
         ent.state = state;
-        let texKey;
-        if (ent.type === 'player') {
-            texKey = `chi_${ent.cls}_${ent.direction || 'se'}_${state}`;
-        } else {
-            texKey = `mon_${ent.monType}_${state}`;
-        }
 
-        if (this.textures.exists(texKey)) {
-            ent.sprite.setTexture(texKey);
+        if (ent.type === 'player') {
+            // Players have per-state sprites
+            const texKey = `chi_${ent.cls}_${ent.direction || 'se'}_${state}`;
+            if (this.textures.exists(texKey)) {
+                ent.sprite.setTexture(texKey);
+            }
+        } else {
+            // Monsters use directional sprites with visual effects for states
+            const dir = ent.direction || 'sw';
+            const texKey = `mon_${ent.monType}_${dir}`;
+            if (this.textures.exists(texKey)) {
+                ent.sprite.setTexture(texKey);
+                const baseScale = SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1);
+                ent.sprite.setScale(baseScale);
+            }
+
+            // Apply visual effects based on state
+            if (state === 'attack') {
+                ent.sprite.setTint(0xffcccc);
+                // Quick lunge forward
+                this.tweens.add({
+                    targets: ent.sprite,
+                    scaleX: ent.sprite.scaleX * 1.15,
+                    scaleY: ent.sprite.scaleY * 1.15,
+                    duration: 150,
+                    yoyo: true,
+                    ease: 'Power2',
+                    onComplete: () => { if (ent.sprite) ent.sprite.clearTint(); }
+                });
+            } else if (state === 'hurt') {
+                ent.sprite.setTint(0xff4444);
+                // Shake effect
+                const origX = ent.sprite.x;
+                this.tweens.add({
+                    targets: ent.sprite,
+                    x: origX - 4,
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 2,
+                    onComplete: () => {
+                        if (ent.sprite) {
+                            ent.sprite.x = origX;
+                            ent.sprite.clearTint();
+                        }
+                    }
+                });
+            } else if (state === 'idle') {
+                ent.sprite.clearTint();
+            }
         }
 
         if (state === 'ko') {
             ent.sprite.setAlpha(0.5);
             ent.name.setAlpha(0.5);
-        } else {
+            if (ent.type === 'monster') {
+                ent.sprite.setTint(0x666666);
+            }
+        } else if (state !== 'hurt' && state !== 'attack') {
             ent.sprite.setAlpha(1);
             ent.name.setAlpha(1);
         }
@@ -1209,8 +1274,8 @@ class CombatArena extends Phaser.Scene {
         const target = this.entitySprites[targetId];
 
         if (attacker) {
-            // Face towards target
-            if (attacker.type === 'player' && target) {
+            // Face towards target (both players and monsters)
+            if (target) {
                 const dir = this._getDirection(
                     attacker.data.grid_x, attacker.data.grid_y,
                     target.data.grid_x, target.data.grid_y
@@ -1606,7 +1671,12 @@ class CombatArena extends Phaser.Scene {
         const container = document.getElementById('monsters-list');
         if (!container) return;
 
-        const monsterEmojis = { slime: '🟢', goblin: '👺', orc: '🐗', skeleton: '💀', dragon: '🐉' };
+        const monsterEmojis = {
+            slime: '🟢', rat: '🐀', kobold: '🦎', bat: '🦇',
+            goblin: '👺', wolf: '🐺', zombie: '🧟', mushroom: '🍄', bandit: '🗡️', fire_elemental: '🔥',
+            ogre: '👹', vampire: '🧛', witch: '🧙', spider: '🕷️', golem: '🗿',
+            necromancer: '💀', lich: '☠️', dragon: '🐉', hydra: '🐍', shadow: '👻',
+        };
 
         container.innerHTML = monsters.map(m => {
             const hpPct = Math.max(0, Math.min(100, Math.round((m.current_hp / m.max_hp) * 100)));

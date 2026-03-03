@@ -106,47 +106,6 @@ def api_active_combat(classroom_id):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  TEMPORARY SPRITE UPLOAD (to be removed after use)
-# ═══════════════════════════════════════════════════════════════════
-@combat_bp.route('/upload-sprites', methods=['POST'])
-def upload_sprites():
-    """Temporary endpoint to upload monster sprites from PixelLab."""
-    import base64, os
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data'}), 400
-
-    base_dir = os.path.join(current_app.static_folder, 'img', 'combat', 'monsters')
-    os.makedirs(base_dir, exist_ok=True)
-
-    saved = []
-    dir_map = {
-        'south-east': 'se',
-        'south-west': 'sw',
-        'north-east': 'ne',
-        'north-west': 'nw'
-    }
-
-    for monster_key, monster_data in data.items():
-        monster_dir = os.path.join(base_dir, monster_key)
-        os.makedirs(monster_dir, exist_ok=True)
-
-        directions = monster_data.get('directions', {})
-        for dir_name, b64_data in directions.items():
-            short_dir = dir_map.get(dir_name, dir_name)
-            filepath = os.path.join(monster_dir, f'{short_dir}.png')
-            try:
-                img_bytes = base64.b64decode(b64_data)
-                with open(filepath, 'wb') as f:
-                    f.write(img_bytes)
-                saved.append(f'{monster_key}/{short_dir}.png')
-            except Exception as e:
-                saved.append(f'{monster_key}/{short_dir}.png ERROR: {str(e)}')
-
-    return jsonify({'saved': len(saved), 'files': saved[:10]})
-
-
-# ═══════════════════════════════════════════════════════════════════
 #  SOCKETIO EVENTS
 # ═══════════════════════════════════════════════════════════════════
 

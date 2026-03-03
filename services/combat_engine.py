@@ -10,7 +10,8 @@ from datetime import datetime
 from extensions import db
 from models.combat import (
     CombatSession, CombatParticipant, CombatMonster,
-    MONSTER_PRESETS, DIFFICULTY_CONFIGS
+    MONSTER_PRESETS, DIFFICULTY_CONFIGS,
+    TIER_EASY, TIER_MEDIUM, TIER_HARD, TIER_BOSS
 )
 
 
@@ -273,26 +274,46 @@ class CombatEngine:
                         queue.append((nx, ny))
         return False
 
+    # Mapping des noms de tier vers les listes de types
+    TIER_POOLS = {
+        'easy': TIER_EASY,
+        'medium': TIER_MEDIUM,
+        'hard': TIER_HARD,
+        'boss': TIER_BOSS,
+    }
+
     @staticmethod
     def _spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles):
-        """Place les monstres selon DIFFICULTY_CONFIGS, avec scaling par nombre de joueurs."""
+        """Place les monstres selon DIFFICULTY_CONFIGS avec sélection aléatoire par tier."""
         obstacle_set = {(o['x'], o['y']) for o in obstacles}
 
-        difficulty = session.difficulty
-
-        # Utiliser directement les DIFFICULTY_CONFIGS pour les types et nombres de monstres
-        monster_types = []
+        # Sélectionner les types de monstres depuis les tiers
+        monster_entries = []  # (m_type, level_offset)
         for entry in config.get('monsters', []):
-            m_type = entry['type']
+            # Support ancien format ('type') et nouveau format ('tier')
+            tier_name = entry.get('tier')
+            m_type_direct = entry.get('type')
             base_count = entry.get('count', 1)
-            # Scaling: si plus de joueurs que prévu, ajouter des monstres proportionnellement
-            # La config est calibrée pour ~1-2 joueurs, on scale au-delà
+            level_offset = entry.get('level_offset', 0)
+
+            # Scaling par nombre de joueurs
             if num_players > 2:
                 scaled_count = max(base_count, round(base_count * num_players / 2))
             else:
                 scaled_count = base_count
-            monster_types.extend([m_type] * scaled_count)
-        random.shuffle(monster_types)
+
+            if tier_name:
+                # Nouveau format : sélection aléatoire dans le tier
+                pool = CombatEngine.TIER_POOLS.get(tier_name, TIER_EASY)
+                selected = random.choices(pool, k=scaled_count)
+                for m_type in selected:
+                    monster_entries.append((m_type, level_offset))
+            elif m_type_direct:
+                # Ancien format : type direct (rétrocompatibilité)
+                for _ in range(scaled_count):
+                    monster_entries.append((m_type_direct, level_offset))
+
+        random.shuffle(monster_entries)
 
         # Placer sur le côté droit de la grille
         spawn_x_start = grid_w - 3
@@ -303,17 +324,14 @@ class CombatEngine:
                     available_positions.append((gx, gy))
         random.shuffle(available_positions)
 
-        # Construire un lookup level_offset par type de monstre depuis la config
-        level_offset_map = {}
-        for entry in config.get('monsters', []):
-            level_offset_map[entry['type']] = entry.get('level_offset', 0)
+        # Compteur de noms pour éviter les doublons
+        type_counts = {}
+        all_types = [e[0] for e in monster_entries]
 
-        for i, m_type in enumerate(monster_types):
+        for i, (m_type, level_offset) in enumerate(monster_entries):
             preset = MONSTER_PRESETS.get(m_type)
             if not preset:
                 continue
-
-            level_offset = level_offset_map.get(m_type, 0)
 
             level = max(1, avg_level + level_offset)
             hp = preset['base_hp'] + preset['hp_per_level'] * (level - 1)
@@ -327,9 +345,12 @@ class CombatEngine:
             else:
                 gx, gy = grid_w - 1, i % grid_h
 
-            # Nommer les monstres
-            type_count = sum(1 for j in range(i) if monster_types[j] == m_type)
-            name = f"{preset['name']} {type_count + 1}" if monster_types.count(m_type) > 1 else preset['name']
+            # Nommer les monstres (numéroter si plusieurs du même type)
+            type_counts[m_type] = type_counts.get(m_type, 0) + 1
+            if all_types.count(m_type) > 1:
+                name = f"{preset['name']} {type_counts[m_type]}"
+            else:
+                name = preset['name']
 
             monster = CombatMonster(
                 combat_session_id=session.id,
