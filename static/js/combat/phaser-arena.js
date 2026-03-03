@@ -1072,11 +1072,6 @@ class CombatArena extends Phaser.Scene {
             const isCritical = anim.critical || false;
             const isHeavyHit = dmg > 10;
 
-            // Camera shake on heavy hits
-            if (isHeavyHit || isCritical) {
-                this.cameras.main.shake(200, 0.02);
-            }
-
             const fxKey = anim.skill_type === 'magic' ? 'fx_fireball' : 'fx_slash';
             if (this.textures.exists(fxKey)) {
                 const fx = this.add.image(target.sprite.x, target.sprite.y, fxKey);
@@ -1271,47 +1266,143 @@ class CombatArena extends Phaser.Scene {
     }
 
     _showDamageNumber(x, y, value, color, isCritical = false) {
-        const prefix = isCritical ? 'CRIT! ' : '';
-        const text = this.add.text(x, y, prefix + '-' + Math.abs(value), {
-            fontSize: isCritical ? '32px' : '24px',
+        const absVal = Math.abs(value);
+        // Damage tiers: light (1-5), normal (6-15), heavy (16+)
+        let fontSize, finalScale, offsetX;
+        if (isCritical) {
+            fontSize = '36px';
+            finalScale = 1.4;
+        } else if (absVal >= 16) {
+            fontSize = '30px';
+            finalScale = 1.2;
+        } else if (absVal >= 6) {
+            fontSize = '24px';
+            finalScale = 1.0;
+        } else {
+            fontSize = '18px';
+            finalScale = 0.8;
+        }
+        // Random horizontal spread to avoid overlap
+        offsetX = Phaser.Math.Between(-25, 25);
+
+        const prefix = isCritical ? '💥 ' : '';
+        const text = this.add.text(x + offsetX, y, prefix + '-' + absVal, {
+            fontSize: fontSize,
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
             color: color,
             stroke: '#000000',
-            strokeThickness: 4,
+            strokeThickness: isCritical ? 6 : 4,
         }).setOrigin(0.5).setDepth(10000);
 
-        // Start small, scale up, then float away
-        text.setScale(0.5);
-        this.tweens.add({
-            targets: text,
-            scale: isCritical ? 1.3 : 1.0,
-            y: y - 50,
-            alpha: { from: 1, to: 0 },
-            duration: 1400,
-            ease: 'Power2.out',
-            onComplete: () => text.destroy(),
-        });
+        text.setScale(0.3);
+        if (isCritical) {
+            // Critical: bounce + shake + longer duration
+            this.tweens.add({
+                targets: text,
+                scale: finalScale,
+                duration: 300,
+                ease: 'Back.out',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: text,
+                        x: text.x + Phaser.Math.Between(-4, 4),
+                        duration: 50,
+                        repeat: 5,
+                        yoyo: true,
+                        onComplete: () => {
+                            this.tweens.add({
+                                targets: text,
+                                y: y - 70,
+                                alpha: 0,
+                                duration: 1000,
+                                ease: 'Power2.out',
+                                onComplete: () => text.destroy(),
+                            });
+                        },
+                    });
+                },
+            });
+        } else {
+            // Normal: scale up + float away
+            this.tweens.add({
+                targets: text,
+                scale: finalScale,
+                y: y - 50 - (absVal >= 16 ? 15 : 0),
+                alpha: { from: 1, to: 0 },
+                duration: 1400,
+                ease: 'Power2.out',
+                onComplete: () => text.destroy(),
+            });
+        }
+
+        // Heavy hit: screen shake
+        if (absVal >= 16 || isCritical) {
+            this.cameras.main.shake(200, isCritical ? 0.008 : 0.004);
+        }
     }
 
     _showHealNumber(x, y, value) {
-        const text = this.add.text(x, y, '+' + Math.abs(value), {
-            fontSize: '24px',
+        const absVal = Math.abs(value);
+        const isLargeHeal = absVal >= 15;
+        const offsetX = Phaser.Math.Between(-15, 15);
+
+        const text = this.add.text(x + offsetX, y, '+' + absVal, {
+            fontSize: isLargeHeal ? '28px' : '22px',
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
-            color: '#10b981',
+            color: isLargeHeal ? '#34d399' : '#10b981',
             stroke: '#059669',
             strokeThickness: 4,
         }).setOrigin(0.5).setDepth(10000);
 
-        // Start small, scale up, then float away
+        text.setScale(0.3);
+        this.tweens.add({
+            targets: text,
+            scale: isLargeHeal ? 1.2 : 1.0,
+            y: y - 55,
+            alpha: { from: 1, to: 0 },
+            duration: 1500,
+            ease: 'Power2.out',
+            onComplete: () => text.destroy(),
+        });
+
+        // Large heal: green particle burst
+        if (isLargeHeal) {
+            for (let i = 0; i < 6; i++) {
+                const px = x + Phaser.Math.Between(-20, 20);
+                const py = y + Phaser.Math.Between(-10, 10);
+                const p = this.add.circle(px, py, 3, 0x10b981).setDepth(9999).setAlpha(0.8);
+                this.tweens.add({
+                    targets: p,
+                    y: py - Phaser.Math.Between(30, 60),
+                    alpha: 0,
+                    scale: 0,
+                    duration: Phaser.Math.Between(600, 1000),
+                    ease: 'Power2.out',
+                    onComplete: () => p.destroy(),
+                });
+            }
+        }
+    }
+
+    _showStatusText(x, y, message, color) {
+        const text = this.add.text(x, y - 10, message, {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            color: color,
+            stroke: '#000000',
+            strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(10000);
+
         text.setScale(0.5);
         this.tweens.add({
             targets: text,
             scale: 1.0,
-            y: y - 50,
+            y: y - 40,
             alpha: { from: 1, to: 0 },
-            duration: 1400,
+            duration: 1200,
             ease: 'Power2.out',
             onComplete: () => text.destroy(),
         });
@@ -1387,60 +1478,151 @@ class CombatArena extends Phaser.Scene {
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(canvasW / 2, canvasH / 2, canvasW, canvasH, 0x000000);
-        overlay.setAlpha(0.6);
-        overlay.setDepth(10010);
+        // Semi-transparent overlay with fade-in
+        const overlay = this.add.rectangle(canvasW / 2, canvasH / 2, canvasW, canvasH,
+            isVictory ? 0x000000 : 0x1a0000);
+        overlay.setAlpha(0).setDepth(10010).setScrollFactor(0);
+        this.tweens.add({ targets: overlay, alpha: 0.7, duration: 400 });
 
-        // Victory/Defeat text
-        const resultText = isVictory ? 'VICTOIRE!' : 'DÉFAITE';
-        const resultColor = isVictory ? '#10b981' : '#ef4444';
-        const resultStroke = isVictory ? '#059669' : '#dc2626';
+        // Emoji burst
+        const emoji = isVictory ? '🎉' : '💀';
+        const emojiText = this.add.text(canvasW / 2, canvasH / 2 - 60, emoji, {
+            fontSize: '72px',
+        }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setScale(0);
+        this.tweens.add({
+            targets: emojiText, scale: 1, duration: 500, ease: 'Back.out',
+        });
 
-        const text = this.add.text(canvasW / 2, canvasH / 2, resultText, {
-            fontSize: '96px',
+        // Main result text with dramatic entrance
+        const resultText = isVictory ? 'VICTOIRE!' : 'DÉFAITE...';
+        const resultColor = isVictory ? '#fbbf24' : '#ef4444';
+        const resultStroke = isVictory ? '#b45309' : '#7f1d1d';
+
+        const text = this.add.text(canvasW / 2, canvasH / 2 + 20, resultText, {
+            fontSize: '80px',
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
             color: resultColor,
             stroke: resultStroke,
             strokeThickness: 8,
-        }).setOrigin(0.5).setDepth(10011);
+        }).setOrigin(0.5).setDepth(10012).setScrollFactor(0);
 
         text.setScale(0);
         this.tweens.add({
             targets: text,
             scale: 1,
             duration: 600,
+            delay: 200,
             ease: 'Back.out',
+            onComplete: () => {
+                // Gentle pulsing glow effect
+                this.tweens.add({
+                    targets: text, scale: 1.05, duration: 1000,
+                    yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+                });
+            },
         });
 
-        // Particle burst around text
+        // Subtitle
+        const subtitle = isVictory
+            ? 'Tous les monstres ont été vaincus !'
+            : 'Tous les héros sont tombés...';
+        const subText = this.add.text(canvasW / 2, canvasH / 2 + 80, subtitle, {
+            fontSize: '20px', fontFamily: 'Arial', color: '#94a3b8',
+        }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
+        this.tweens.add({ targets: subText, alpha: 1, duration: 500, delay: 800 });
+
+        // Round count
+        const roundInfo = this.add.text(canvasW / 2, canvasH / 2 + 110, `Combat terminé en ${this.currentRound} rounds`, {
+            fontSize: '16px', fontFamily: 'Arial', color: '#667eea',
+        }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
+        this.tweens.add({ targets: roundInfo, alpha: 1, duration: 500, delay: 1000 });
+
+        // Camera effects
+        if (isVictory) {
+            this.cameras.main.flash(400, 255, 215, 0, true); // Golden flash
+        } else {
+            this.cameras.main.shake(300, 0.01);
+            this.time.delayedCall(300, () => {
+                this.cameras.main.flash(300, 255, 0, 0, true); // Red flash
+            });
+        }
+
+        // Particle effects
         this._createVictoryParticles(canvasW / 2, canvasH / 2, isVictory);
+
+        // Continuous confetti rain for victory
+        if (isVictory) {
+            this._startConfettiRain(canvasW, canvasH);
+        }
+    }
+
+    _startConfettiRain(canvasW, canvasH) {
+        const colors = [0xfbbf24, 0xef4444, 0x3b82f6, 0x10b981, 0xa855f7, 0xf97316];
+        let spawned = 0;
+        const maxConfetti = 80;
+
+        const confettiTimer = this.time.addEvent({
+            delay: 60,
+            repeat: maxConfetti - 1,
+            callback: () => {
+                const x = Phaser.Math.Between(0, canvasW);
+                const color = colors[Phaser.Math.Between(0, colors.length - 1)];
+                const size = Phaser.Math.Between(3, 7);
+                const isSquare = Math.random() > 0.5;
+
+                let confetti;
+                if (isSquare) {
+                    confetti = this.add.rectangle(x, -10, size, size * 1.5, color);
+                } else {
+                    confetti = this.add.circle(x, -10, size / 2, color);
+                }
+                confetti.setDepth(10011).setScrollFactor(0).setAlpha(0.9);
+                confetti.setAngle(Phaser.Math.Between(0, 360));
+
+                this.tweens.add({
+                    targets: confetti,
+                    y: canvasH + 20,
+                    x: x + Phaser.Math.Between(-60, 60),
+                    angle: confetti.angle + Phaser.Math.Between(-180, 180),
+                    alpha: { from: 0.9, to: 0.3 },
+                    duration: Phaser.Math.Between(2000, 4000),
+                    ease: 'Linear',
+                    onComplete: () => confetti.destroy(),
+                });
+                spawned++;
+            },
+        });
     }
 
     /**
-     * Create celebratory or mournful particles
+     * Create celebratory or mournful particle burst
      */
     _createVictoryParticles(centerX, centerY, isVictory) {
-        const particleCount = 20;
-        const color = isVictory ? 0xfbbf24 : 0xff6b6b;
+        const particleCount = isVictory ? 30 : 15;
+        const colors = isVictory
+            ? [0xfbbf24, 0xf97316, 0xef4444, 0x10b981, 0x3b82f6]
+            : [0xef4444, 0x991b1b, 0x7f1d1d];
 
         for (let i = 0; i < particleCount; i++) {
             const angle = (i / particleCount) * Math.PI * 2;
-            const speed = 200 + Math.random() * 200;
+            const speed = 150 + Math.random() * 250;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
+            const color = colors[i % colors.length];
+            const size = Phaser.Math.Between(3, 6);
 
-            const particle = this.add.circle(centerX, centerY, 4, color);
-            particle.setDepth(10010);
+            const particle = this.add.circle(centerX, centerY, size, color);
+            particle.setDepth(10011).setScrollFactor(0);
 
             this.tweens.add({
                 targets: particle,
                 x: centerX + vx,
                 y: centerY + vy,
-                alpha: { from: 0.8, to: 0 },
-                scale: { from: 1, to: 0 },
-                duration: 1000,
+                alpha: { from: 0.9, to: 0 },
+                scale: { from: 1, to: 0.2 },
+                duration: isVictory ? 1200 : 800,
+                delay: Phaser.Math.Between(0, 200),
                 ease: 'Power2.out',
                 onComplete: () => particle.destroy(),
             });
