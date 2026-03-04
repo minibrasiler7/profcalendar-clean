@@ -899,6 +899,12 @@ class CombatEngine:
             safe_config.pop('correct_y', None)
             safe_config.pop('correct_positions', None)
 
+        # Catch-all: strip common answer keys for any block type not handled above
+        # (e.g. graph, draw_quadratic, etc.)
+        for key in ['correct_answer', 'correct_answers', 'answer', 'answers',
+                     'correct_order', 'correct_positions', 'solution']:
+            safe_config.pop(key, None)
+
         question_data = {
             'block_id': block.id,
             'block_type': block.block_type,
