@@ -81,6 +81,24 @@ def combat_state(session_id):
     return jsonify(session.get_state())
 
 
+@combat_bp.route('/<int:session_id>/current_question')
+@login_required
+def current_question(session_id):
+    """Teacher-only: returns the current block config WITH correct answers (for debug/testing)."""
+    session = CombatSession.query.get_or_404(session_id)
+    if not session.current_block_id:
+        return jsonify({'error': 'No active question'}), 404
+    from models.exercise import ExerciseBlock
+    block = ExerciseBlock.query.get(session.current_block_id)
+    if not block:
+        return jsonify({'error': 'Block not found'}), 404
+    return jsonify({
+        'block_id': block.id,
+        'block_type': block.block_type,
+        'config': block.config_json,
+    })
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  API REST pour le mobile (JWT auth)
 # ═══════════════════════════════════════════════════════════════════

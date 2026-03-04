@@ -421,11 +421,15 @@ class CombatEngine:
             return None, "Élève non trouvé"
 
         # Snapshot des stats
+        from models.rpg import CLASS_BASE_SKILLS
         avatar_class = rpg.avatar_class if rpg else 'guerrier'
         level = rpg.level if rpg else 1
         max_hp = rpg.max_hp if rpg else 90
         max_mana = rpg.max_mana if rpg else 45
         skills = rpg.get_active_skills() if rpg else []
+        # Fallback: if no skills (no RPG profile or no avatar_class), use base class skills
+        if not skills:
+            skills = list(CLASS_BASE_SKILLS.get(avatar_class, CLASS_BASE_SKILLS.get('guerrier', [])))
         move_range = CLASS_MOVEMENT.get(avatar_class, 3)
         stats = {
             'force': rpg.stat_force if rpg else 5,
@@ -868,11 +872,38 @@ class CombatEngine:
         if not block:
             return None, "Bloc non trouvé"
 
+        # Strip correct answers from config before sending to students
+        import copy
+        safe_config = copy.deepcopy(block.config_json) if block.config_json else {}
+        if block.block_type == 'qcm':
+            # Remove is_correct flags from options
+            for opt in safe_config.get('options', []):
+                opt.pop('is_correct', None)
+        elif block.block_type == 'short_answer':
+            safe_config.pop('correct_answer', None)
+            safe_config.pop('synonyms', None)
+        elif block.block_type == 'fill_blank':
+            safe_config.pop('correct_answer', None)
+            safe_config.pop('answers', None)
+        elif block.block_type == 'sorting':
+            safe_config.pop('correct_order', None)
+        elif block.block_type == 'matching':
+            # Shuffle the right side so answers aren't obvious
+            import random as _rnd
+            if 'pairs' in safe_config:
+                rights = [p.get('right', '') for p in safe_config['pairs']]
+                _rnd.shuffle(rights)
+                safe_config['shuffled_rights'] = rights
+        elif block.block_type == 'image_position':
+            safe_config.pop('correct_x', None)
+            safe_config.pop('correct_y', None)
+            safe_config.pop('correct_positions', None)
+
         question_data = {
             'block_id': block.id,
             'block_type': block.block_type,
             'title': block.title,
-            'config': block.config_json,
+            'config': safe_config,
             'round': session.current_round,
         }
 
