@@ -8,8 +8,13 @@ from extensions import db
 from models.combat import CombatSession, CombatParticipant, CombatMonster
 from services.combat_engine import CombatEngine
 import logging
+import time
+import uuid
 
 logger = logging.getLogger(__name__)
+
+# Track phase tokens to prevent stale timeouts
+phase_tokens = {}  # session_id -> current_phase_token
 
 combat_bp = Blueprint('combat', __name__, url_prefix='/combat')
 
@@ -184,6 +189,12 @@ def register_combat_events(socketio):
         logger.info(f"[Combat] Sending state_update: phase={state['phase']}, round={state['round']}, participants={len(state['participants'])}, monsters={len(state['monsters'])}")
         emit('combat:state_update', state, room=room)
 
+        # Start 20-second auto-timeout for move phase
+        phase_token = str(uuid.uuid4())
+        phase_tokens[session_id] = phase_token
+        logger.info(f"[Combat:{session_id}] Starting 20s auto-timeout for move phase (token={phase_token})")
+        _auto_timeout_move_phase(socketio, session_id, room, phase_token, 20)
+
     @socketio.on('combat:submit_answer')
     def on_submit_answer(data):
         """Un élève soumet sa réponse."""
@@ -242,6 +253,11 @@ def register_combat_events(socketio):
                     'phase': 'action',
                 }, room=room)
                 emit('combat:state_update', session.get_state(), room=room)
+                # Start 30-second auto-timeout for action phase
+                phase_token = str(uuid.uuid4())
+                phase_tokens[session_id] = phase_token
+                logger.info(f"[Combat:{session_id}] Starting 30s auto-timeout for action phase (token={phase_token})")
+                _auto_timeout_action_phase(socketio, session_id, room, phase_token, 30)
 
     @socketio.on('combat:request_move_tiles')
     def on_request_move_tiles(data):
@@ -488,6 +504,11 @@ def register_combat_events(socketio):
         emit('combat:question', question_data, room=room)
         session = CombatSession.query.get(session_id)
         emit('combat:state_update', session.get_state(), room=room)
+        # Start 45-second auto-timeout for question phase
+        phase_token = str(uuid.uuid4())
+        phase_tokens[session_id] = phase_token
+        logger.info(f"[Combat:{session_id}] Starting 45s auto-timeout for question phase (token={phase_token})")
+        _auto_timeout_question_phase(socketio, session_id, room, phase_token, 45)
 
     def _execute_and_broadcast(session_id, room):
         """Exécute le round et broadcast les résultats."""
@@ -539,9 +560,112 @@ def register_combat_events(socketio):
             logger.info(f"[Combat:{session_id}] Scheduling auto-advance in 3 seconds...")
             _auto_advance_round(socketio, session_id, room)
 
+    def _auto_timeout_move_phase(sio, session_id, room, phase_token, timeout_sec):
+        """Auto-force move phase end after timeout."""
+        from flask import current_app
+        app = current_app._get_current_object()
+
+        def _do_timeout():
+            time.sleep(timeout_sec)
+            with app.app_context():
+                # Check if this phase token is still current
+                if phase_tokens.get(session_id) != phase_token:
+                    logger.info(f"[Combat:{session_id}] Skipping stale move phase timeout (token mismatch)")
+                    return
+                try:
+                    session = CombatSession.query.get(session_id)
+                    if not session or session.current_phase != 'move':
+                        logger.info(f"[Combat:{session_id}] Move phase timeout: phase is no longer 'move' (current={session.current_phase if session else 'N/A'})")
+                        return
+                    logger.info(f"[Combat:{session_id}] Move phase timeout triggered! Forcing move end...")
+                    # Mark all alive players as moved
+                    for p in session.participants:
+                        if p.is_alive:
+                            p.has_moved = True
+                    db.session.commit()
+                    # Transition to question phase
+                    _transition_to_question_phase(session_id, room)
+                except Exception as e:
+                    logger.error(f"[Combat:{session_id}] Move phase timeout EXCEPTION: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        sio.start_background_task(_do_timeout)
+
+    def _auto_timeout_question_phase(sio, session_id, room, phase_token, timeout_sec):
+        """Auto-force question phase end after timeout."""
+        from flask import current_app
+        app = current_app._get_current_object()
+
+        def _do_timeout():
+            time.sleep(timeout_sec)
+            with app.app_context():
+                # Check if this phase token is still current
+                if phase_tokens.get(session_id) != phase_token:
+                    logger.info(f"[Combat:{session_id}] Skipping stale question phase timeout (token mismatch)")
+                    return
+                try:
+                    session = CombatSession.query.get(session_id)
+                    if not session or session.current_phase != 'question':
+                        logger.info(f"[Combat:{session_id}] Question phase timeout: phase is no longer 'question' (current={session.current_phase if session else 'N/A'})")
+                        return
+                    logger.info(f"[Combat:{session_id}] Question phase timeout triggered! Forcing transition to action...")
+                    # Mark all alive participants as answered
+                    for p in session.participants:
+                        if p.is_alive:
+                            p.answered = True
+                    db.session.commit()
+                    # Transition to action phase
+                    correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+                    if not correct_alive:
+                        logger.info(f"[Combat:{session_id}] No correct answers after timeout → direct execute")
+                        _execute_and_broadcast(session_id, room)
+                    else:
+                        logger.info(f"[Combat:{session_id}] Question timeout → transition to ACTION phase")
+                        CombatEngine.transition_to_action(session_id)
+                        session = CombatSession.query.get(session_id)
+                        sio.emit('combat:all_answered', {'phase': 'action'}, room=room)
+                        sio.emit('combat:state_update', session.get_state(), room=room)
+                        # Start action phase timeout
+                        new_phase_token = str(uuid.uuid4())
+                        phase_tokens[session_id] = new_phase_token
+                        logger.info(f"[Combat:{session_id}] Starting 30s auto-timeout for action phase (token={new_phase_token})")
+                        _auto_timeout_action_phase(sio, session_id, room, new_phase_token, 30)
+                except Exception as e:
+                    logger.error(f"[Combat:{session_id}] Question phase timeout EXCEPTION: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        sio.start_background_task(_do_timeout)
+
+    def _auto_timeout_action_phase(sio, session_id, room, phase_token, timeout_sec):
+        """Auto-force action phase end after timeout."""
+        from flask import current_app
+        app = current_app._get_current_object()
+
+        def _do_timeout():
+            time.sleep(timeout_sec)
+            with app.app_context():
+                # Check if this phase token is still current
+                if phase_tokens.get(session_id) != phase_token:
+                    logger.info(f"[Combat:{session_id}] Skipping stale action phase timeout (token mismatch)")
+                    return
+                try:
+                    session = CombatSession.query.get(session_id)
+                    if not session or session.current_phase != 'action':
+                        logger.info(f"[Combat:{session_id}] Action phase timeout: phase is no longer 'action' (current={session.current_phase if session else 'N/A'})")
+                        return
+                    logger.info(f"[Combat:{session_id}] Action phase timeout triggered! Forcing execute with submitted actions...")
+                    _execute_and_broadcast(session_id, room)
+                except Exception as e:
+                    logger.error(f"[Combat:{session_id}] Action phase timeout EXCEPTION: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+        sio.start_background_task(_do_timeout)
+
     def _auto_advance_round(sio, session_id, room):
         """Auto-avance au prochain round après un court délai."""
-        import time
         from flask import current_app
         app = current_app._get_current_object()
 

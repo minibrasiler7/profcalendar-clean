@@ -284,7 +284,10 @@ class CombatEngine:
 
     @staticmethod
     def _spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles):
-        """Place les monstres selon DIFFICULTY_CONFIGS avec sélection aléatoire par tier."""
+        """Place les monstres selon DIFFICULTY_CONFIGS avec sélection aléatoire par tier.
+        Adapte le nombre et la puissance selon num_players et avg_level."""
+        import logging
+        logger = logging.getLogger(__name__)
         obstacle_set = {(o['x'], o['y']) for o in obstacles}
 
         # Sélectionner les types de monstres depuis les tiers
@@ -296,11 +299,15 @@ class CombatEngine:
             base_count = entry.get('count', 1)
             level_offset = entry.get('level_offset', 0)
 
-            # Scaling par nombre de joueurs
-            if num_players > 2:
-                scaled_count = max(base_count, round(base_count * num_players / 2))
-            else:
+            # Scaling par nombre de joueurs (plus progressif)
+            if num_players <= 1:
+                scaled_count = max(1, base_count - 1)  # Moins de monstres en solo
+            elif num_players <= 3:
                 scaled_count = base_count
+            elif num_players <= 6:
+                scaled_count = max(base_count, round(base_count * 1.5))
+            else:
+                scaled_count = max(base_count, round(base_count * num_players / 3))
 
             if tier_name:
                 # Nouveau format : sélection aléatoire dans le tier
@@ -313,7 +320,27 @@ class CombatEngine:
                 for _ in range(scaled_count):
                     monster_entries.append((m_type_direct, level_offset))
 
+        # Adaptation par niveau moyen : si les élèves sont de haut niveau,
+        # ajouter des monstres supplémentaires d'un tier supérieur
+        if avg_level >= 8:
+            # Ajouter 1-2 monstres hard en bonus
+            bonus = random.choices(TIER_HARD, k=min(2, max(1, num_players // 3)))
+            for m_type in bonus:
+                monster_entries.append((m_type, 1))
+            logger.info(f"[Combat] High level ({avg_level}) bonus: +{len(bonus)} hard monsters")
+        elif avg_level >= 5:
+            # Ajouter 1 monstre medium en bonus
+            bonus_type = random.choice(TIER_MEDIUM)
+            monster_entries.append((bonus_type, 0))
+            logger.info(f"[Combat] Mid level ({avg_level}) bonus: +1 medium monster ({bonus_type})")
+
+        # Limiter au nombre max de positions disponibles
+        max_monsters = (grid_w * grid_h) // 4  # Max 25% de la grille
+        if len(monster_entries) > max_monsters:
+            monster_entries = monster_entries[:max_monsters]
+
         random.shuffle(monster_entries)
+        logger.info(f"[Combat] Spawning {len(monster_entries)} monsters for {num_players} players (avg_level={avg_level})")
 
         # Placer sur le côté droit de la grille
         spawn_x_start = grid_w - 3
@@ -462,6 +489,9 @@ class CombatEngine:
     def resize_for_players(session_id):
         """Redimensionne la grille et les monstres en fonction du nombre réel de joueurs connectés.
         Appelé au début du premier round."""
+        import logging
+        logger = logging.getLogger(__name__)
+
         session = CombatSession.query.get(session_id)
         if not session:
             return
@@ -470,11 +500,21 @@ class CombatEngine:
         if num_players == 0:
             num_players = 1
 
-        # Recalculer la taille de la grille (minimum 10x8 pour un beau terrain)
-        grid_w = max(10, 5 + num_players)
-        grid_h = max(8, 4 + max(1, num_players // 2))
-        grid_w = min(grid_w, 14)
-        grid_h = min(grid_h, 10)
+        # Grille adaptée au nombre de joueurs :
+        # 1 joueur → 8x6 (petit et compact)
+        # 2-3 joueurs → 10x8 (standard)
+        # 4-6 joueurs → 12x9
+        # 7+ joueurs → 14x10
+        if num_players <= 1:
+            grid_w, grid_h = 8, 6
+        elif num_players <= 3:
+            grid_w, grid_h = 10, 8
+        elif num_players <= 6:
+            grid_w, grid_h = 12, 9
+        else:
+            grid_w, grid_h = 14, 10
+
+        logger.info(f"[Combat:{session_id}] resize_for_players: {num_players} players → grid {grid_w}x{grid_h}")
 
         # Régénérer la carte
         tile_map, obstacles, elevation, template_name = CombatEngine._generate_map(
@@ -1111,8 +1151,9 @@ class CombatEngine:
                 # Remove own position from occupied to allow movement
                 occupied.discard((monster.grid_x, monster.grid_y))
 
-                # Déplacer le monstre (max 2 cases vers la cible)
-                move_budget = 2
+                # Déplacer le monstre en utilisant sa move_range depuis les presets
+                preset = MONSTER_PRESETS.get(monster.monster_type, {})
+                move_budget = preset.get('move_range', 2)
                 mx, my = monster.grid_x, monster.grid_y
                 for _ in range(move_budget):
                     best_dx, best_dy = 0, 0

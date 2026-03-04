@@ -10,6 +10,8 @@ class CombatSocket {
         this.gameInstance = null;
         this.callbacks = {};
         this._pendingState = null; // Store state received before game instance is ready
+        this._phaseTimer = null;   // Countdown interval
+        this._phaseTimeLeft = 0;
     }
 
     connect() {
@@ -222,6 +224,48 @@ class CombatSocket {
             else if (phase === 'move') indicator.classList.add('phase-move');
             else if (phase === 'action') indicator.classList.add('phase-action');
             else if (phase === 'execute') indicator.classList.add('phase-execute');
+        }
+
+        // Start countdown timer for phases with timeouts
+        const phaseDurations = { 'move': 20, 'question': 45, 'action': 30 };
+        if (phaseDurations[phase]) {
+            this._startPhaseTimer(phaseDurations[phase]);
+        } else {
+            this._stopPhaseTimer();
+        }
+    }
+
+    _startPhaseTimer(seconds) {
+        this._stopPhaseTimer();
+        this._phaseTimeLeft = seconds;
+        const timerEl = document.getElementById('phase-timer');
+        if (timerEl) {
+            timerEl.textContent = seconds + 's';
+            timerEl.classList.remove('warning');
+        }
+        this._phaseTimer = setInterval(() => {
+            this._phaseTimeLeft--;
+            if (timerEl) {
+                timerEl.textContent = Math.max(0, this._phaseTimeLeft) + 's';
+                if (this._phaseTimeLeft <= 5) {
+                    timerEl.classList.add('warning');
+                }
+            }
+            if (this._phaseTimeLeft <= 0) {
+                this._stopPhaseTimer();
+            }
+        }, 1000);
+    }
+
+    _stopPhaseTimer() {
+        if (this._phaseTimer) {
+            clearInterval(this._phaseTimer);
+            this._phaseTimer = null;
+        }
+        const timerEl = document.getElementById('phase-timer');
+        if (timerEl) {
+            timerEl.textContent = '';
+            timerEl.classList.remove('warning');
         }
     }
 

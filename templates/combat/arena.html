@@ -97,6 +97,27 @@
             border: 1px solid rgba(255,255,255,0.1);
             background-color: #1a2744;
             transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #phase-timer {
+            font-family: var(--font-game);
+            font-size: 11px;
+            color: #ffd700;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        #phase-timer.warning {
+            color: #ef4444;
+            animation: timerBlink 0.5s ease-in-out infinite;
+        }
+
+        @keyframes timerBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
         .phase-question {
@@ -142,7 +163,7 @@
             align-items: center;
             overflow: hidden;
             min-width: 0;
-            background: radial-gradient(ellipse at center, #111b2e 0%, #0a0e1a 70%);
+            background: radial-gradient(ellipse at center, #1e2d4a 0%, #141f35 60%, #0f1728 100%);
         }
 
         /* ===== SIDE PANELS ===== */
@@ -513,6 +534,7 @@
             </div>
             <div class="phase-indicator" id="phase-indicator">
                 Phase: <span id="phase-name">Attente</span>
+                <span id="phase-timer"></span>
             </div>
         </div>
     </div>

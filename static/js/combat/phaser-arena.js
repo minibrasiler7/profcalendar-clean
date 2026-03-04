@@ -279,16 +279,16 @@ class CombatArena extends Phaser.Scene {
     _createVignette() {
         const cw = this.sys.game.config.width;
         const ch = this.sys.game.config.height;
-        // Subtle dark edge vignette using a large gradient ring
+        // Very subtle vignette — just a hint of darkening at the edges
         const vig = this.add.graphics();
         vig.setScrollFactor(0).setDepth(9500);
-        // Draw radial gradient approximation with concentric transparent-to-dark rings
         const cx = cw / 2, cy = ch / 2;
-        const maxR = Math.max(cw, ch) * 0.8;
-        const steps = 20;
+        const maxR = Math.max(cw, ch) * 0.9;
+        const steps = 12;
         for (let i = steps; i >= 0; i--) {
             const r = maxR * (i / steps);
-            const alpha = i < steps * 0.5 ? 0 : ((i - steps * 0.5) / (steps * 0.5)) * 0.35;
+            // Only darken the outer 30% — max alpha 0.12 (was 0.35)
+            const alpha = i < steps * 0.7 ? 0 : ((i - steps * 0.7) / (steps * 0.3)) * 0.12;
             vig.fillStyle(0x000000, alpha);
             vig.fillEllipse(cx, cy, r * 2, r * 1.5);
         }
@@ -410,16 +410,39 @@ class CombatArena extends Phaser.Scene {
                 tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
 
-                // Draw elevation "pillar" underneath elevated tiles
+                // Draw isometric side faces to connect elevated tile to ground level
                 if (elev > 0 && tileKey !== 'iso_wall') {
-                    for (let e = 0; e < elev; e++) {
-                        const pillarY = y - (e * ELEV_OFFSET);
-                        const pillar = this.add.image(x, pillarY, 'iso_dirt');
-                        pillar.setOrigin(0.5, 0.5);
-                        pillar.setDepth((gx + gy) * 10 + e);
-                        pillar.setAlpha(0.7);
-                        pillar.setTint(0x998866);
-                    }
+                    const hw = TILE_W / 2;  // 32
+                    const hh = TILE_H / 2;  // 16
+                    const totalElevPx = elevPx;
+                    const sideGfx = this.add.graphics();
+                    sideGfx.setDepth((gx + gy) * 10 + elev - 0.5);
+
+                    // Right face (south-east side) — lighter brown
+                    sideGfx.fillStyle(0x8B7355, 0.9);
+                    sideGfx.beginPath();
+                    sideGfx.moveTo(x, tileY + hh);             // top: bottom-center of tile
+                    sideGfx.lineTo(x + hw, tileY);              // top: right-center of tile
+                    sideGfx.lineTo(x + hw, tileY + totalElevPx); // bottom: same + elevation
+                    sideGfx.lineTo(x, tileY + hh + totalElevPx); // bottom: center + elevation
+                    sideGfx.closePath();
+                    sideGfx.fillPath();
+
+                    // Left face (south-west side) — darker brown for depth
+                    sideGfx.fillStyle(0x6B5740, 0.9);
+                    sideGfx.beginPath();
+                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of tile
+                    sideGfx.lineTo(x - hw, tileY);              // top: left-center of tile
+                    sideGfx.lineTo(x - hw, tileY + totalElevPx); // bottom: same + elevation
+                    sideGfx.lineTo(x, tileY + hh + totalElevPx); // bottom: center + elevation
+                    sideGfx.closePath();
+                    sideGfx.fillPath();
+
+                    // Thin edge lines for definition
+                    sideGfx.lineStyle(1, 0x4a3c2a, 0.4);
+                    sideGfx.lineBetween(x, tileY + hh, x, tileY + hh + totalElevPx);
+                    sideGfx.lineBetween(x + hw, tileY, x + hw, tileY + totalElevPx);
+                    sideGfx.lineBetween(x - hw, tileY, x - hw, tileY + totalElevPx);
                 }
 
                 // Water shimmer effect
