@@ -334,8 +334,7 @@ class CombatSession(db.Model):
             'phase': self.current_phase,
             'map_config': self.map_config_json or {},
             'participants': [p.to_dict() for p in self.participants],
-            'monsters': [m.to_dict() for m in self.monsters if m.is_alive],
-            'all_monsters': [m.to_dict() for m in self.monsters],
+            'monsters': [m.to_dict() for m in self.monsters],  # All monsters (alive + dead) — client handles is_alive
         }
 
     def __repr__(self):

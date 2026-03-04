@@ -693,6 +693,27 @@ class CombatArena extends Phaser.Scene {
         if (ent._idleTimer) { ent._idleTimer.destroy(); ent._idleTimer = null; }
     }
 
+    /**
+     * Completely remove an entity sprite and all its sub-objects (name, HP bars, animations).
+     * Used to clean up stale/ghost sprites when entities are removed from the state.
+     */
+    _destroyEntity(id) {
+        const ent = this.entitySprites[id];
+        if (!ent) return;
+
+        this._stopIdleAnimation(id);
+        if (ent.sprite) ent.sprite.destroy();
+        if (ent.name) ent.name.destroy();
+        if (ent.hpBg) ent.hpBg.destroy();
+        if (ent.hpFill) ent.hpFill.destroy();
+        // Clean up any extra references (mana bars, etc.)
+        if (ent.manaBg) ent.manaBg.destroy();
+        if (ent.manaFill) ent.manaFill.destroy();
+
+        delete this.entitySprites[id];
+        console.log(`[Arena] Destroyed stale entity: ${id}`);
+    }
+
     addMonster(m) {
         const id = `monster_${m.id}`;
         if (this.entitySprites[id]) return;
@@ -747,8 +768,13 @@ class CombatArena extends Phaser.Scene {
             state: m.is_alive !== false ? 'idle' : 'ko',
         };
 
-        // Start idle animation for monsters
-        this._startIdleAnimation(id);
+        // If dead on arrival, apply KO state immediately
+        if (m.is_alive === false) {
+            this.setEntityState(id, 'ko');
+        } else {
+            // Start idle animation for monsters
+            this._startIdleAnimation(id);
+        }
     }
 
     /**
@@ -1020,8 +1046,15 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Update participants
+        // Update participants — first remove stale sprites
         if (state.participants) {
+            const currentPlayerIds = new Set(state.participants.map(p => `player_${p.student_id}`));
+            for (const id of Object.keys(this.entitySprites)) {
+                if (id.startsWith('player_') && !currentPlayerIds.has(id)) {
+                    this._destroyEntity(id);
+                }
+            }
+
             this.participants = state.participants;
             for (const p of state.participants) {
                 const id = `player_${p.student_id}`;
@@ -1048,8 +1081,15 @@ class CombatArena extends Phaser.Scene {
             this.updatePlayerRoster(state.participants);
         }
 
-        // Update monsters
+        // Update monsters — first remove stale/ghost sprites
         if (state.monsters) {
+            const currentMonsterIds = new Set(state.monsters.map(m => `monster_${m.id}`));
+            for (const id of Object.keys(this.entitySprites)) {
+                if (id.startsWith('monster_') && !currentMonsterIds.has(id)) {
+                    this._destroyEntity(id);
+                }
+            }
+
             this.monsters = state.monsters;
             for (const m of state.monsters) {
                 const id = `monster_${m.id}`;
