@@ -121,7 +121,7 @@ def fix_skills(session_id):
 @combat_bp.route('/version')
 def combat_version():
     """Quick version check to verify deploy."""
-    return jsonify({'version': '2026-03-04-v4', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60']})
+    return jsonify({'version': '2026-03-04-v5', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer']})
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -257,28 +257,29 @@ def register_combat_events(socketio, app=None):
         session_id = data.get('session_id')
         student_id = data.get('student_id')
         answer = data.get('answer', {})
+        caller_sid = request.sid  # capture caller's socket ID for reliable emit
 
         if not session_id or not student_id:
             return
 
         room = f'combat_{session_id}'
-        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} answer_keys={list(answer.keys()) if isinstance(answer, dict) else type(answer)}")
+        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} sid={caller_sid} answer_type={type(answer).__name__}")
 
         try:
             result, error = CombatEngine.submit_answer(session_id, student_id, answer)
             if error:
                 logger.error(f"[Combat:{session_id}] submit_answer ERROR: {error}")
-                emit('combat:error', {'error': error})
+                socketio.emit('combat:error', {'error': error}, to=caller_sid)
                 return
 
             is_correct = result.get('is_correct', False)
-            logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} correct={is_correct} all_answered={result.get('all_answered')}")
+            logger.info(f"[Combat:{session_id}] submit_answer OK: student={student_id} correct={is_correct} all_answered={result.get('all_answered')}")
 
-            # Envoyer le résultat à l'élève
-            emit('combat:answer_result', {
+            # Envoyer le résultat à l'élève (via socketio.emit + to=sid for reliability)
+            socketio.emit('combat:answer_result', {
                 'student_id': student_id,
                 'is_correct': is_correct,
-            })
+            }, to=caller_sid)
 
             # Notifier la progression à tout le monde
             session = CombatSession.query.get(session_id)
@@ -317,11 +318,11 @@ def register_combat_events(socketio, app=None):
                     _auto_timeout_action_phase(socketio, session_id, room, phase_token, 30)
         except Exception as e:
             logger.error(f"[Combat:{session_id}] submit_answer EXCEPTION: {e}", exc_info=True)
-            emit('combat:answer_result', {
+            socketio.emit('combat:answer_result', {
                 'student_id': student_id,
                 'is_correct': False,
                 'error': str(e),
-            })
+            }, to=caller_sid)
 
     @socketio.on('combat:request_move_tiles')
     def on_request_move_tiles(data):
