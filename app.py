@@ -190,7 +190,7 @@ def create_app(config_name='development'):
     try:
         from routes.combat import combat_bp, register_combat_events
         app.register_blueprint(combat_bp)
-        register_combat_events(socketio)
+        register_combat_events(socketio, app)
         print("✅ combat blueprint ajouté")
     except ImportError as e:
         print(f"❌ combat blueprint non trouvé: {e}")

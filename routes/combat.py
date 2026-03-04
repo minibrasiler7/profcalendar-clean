@@ -157,10 +157,13 @@ def api_active_combat(classroom_id):
 #  SOCKETIO EVENTS
 # ═══════════════════════════════════════════════════════════════════
 
-def register_combat_events(socketio):
+def register_combat_events(socketio, app=None):
     """Enregistre les événements SocketIO pour le combat."""
-    from flask import current_app
-    app_ref = current_app._get_current_object()
+    if app is None:
+        from flask import current_app
+        app_ref = current_app._get_current_object()
+    else:
+        app_ref = app
 
     @socketio.on('combat:teacher_join')
     def on_teacher_join(data):
