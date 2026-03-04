@@ -17,7 +17,41 @@ class ClassFile(db.Model):
     # Relations
     classroom = db.relationship('Classroom', backref='class_files_v2')
     user_file = db.relationship('UserFile', backref=db.backref('class_copies', cascade='all, delete-orphan'))
-    
+
+    # Propriétés proxy pour compatibilité avec le code legacy et les templates
+    @property
+    def original_filename(self):
+        return self.user_file.original_filename if self.user_file else None
+
+    @property
+    def filename(self):
+        return self.user_file.filename if self.user_file else None
+
+    @property
+    def file_type(self):
+        return self.user_file.file_type if self.user_file else None
+
+    @property
+    def file_size(self):
+        return self.user_file.file_size if self.user_file else None
+
+    @property
+    def mime_type(self):
+        return self.user_file.mime_type if self.user_file else None
+
+    @property
+    def file_content(self):
+        return self.user_file.file_content if self.user_file else None
+
+    @property
+    def uploaded_at(self):
+        return self.copied_at
+
+    @property
+    def is_student_shared(self):
+        """Toujours False pour les fichiers v2 (pas de concept de student_shared)"""
+        return False
+
     def get_full_path(self):
         """Retourne le chemin complet du fichier dans la classe"""
         if self.folder_path:

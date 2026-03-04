@@ -278,6 +278,76 @@
         background-color: #edf2f7;
         color: #2d3748;
     }
+
+    /* Styles pour les remarques */
+    .remarks-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .remark-item {
+        padding: 1rem;
+        background-color: #f7fafc;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+        position: relative;
+        transition: background-color 0.3s, border-left-color 0.3s;
+        cursor: pointer;
+    }
+
+    .remark-item.unread {
+        background-color: #fff5f5;
+        border-left-color: #e74c3c;
+    }
+
+    .remark-item:hover {
+        background-color: #edf2f7;
+    }
+
+    .remark-teacher {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .remark-date {
+        font-size: 0.8rem;
+        color: #718096;
+        margin-bottom: 0.5rem;
+    }
+
+    .remark-text {
+        color: #4a5568;
+        line-height: 1.5;
+    }
+
+    .new-indicator {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background-color: #e74c3c;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .unread-badge {
+        background: #e74c3c;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -297,6 +367,12 @@
             </a>
             <a href="{{ url_for('student_auth.teachers') }}">
                 <i class="fas fa-chalkboard-teacher"></i> Enseignants
+            </a>
+            <a href="{{ url_for('student_auth.missions') }}">
+                <i class="fas fa-scroll"></i> Missions
+            </a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}">
+                <i class="fas fa-gamepad"></i> RPG
             </a>
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
@@ -387,18 +463,93 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Remarques des enseignants -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <h2 class="card-title">
+                    Remarques
+                    {% if unread_remarks_count > 0 %}
+                    <span class="unread-badge">{{ unread_remarks_count }}</span>
+                    {% endif %}
+                </h2>
+            </div>
+            <div class="remarks-container">
+                {% if remarks %}
+                    {% for remark in remarks[:5] %}
+                        <div class="remark-item {% if not remark.is_viewed_by_student %}unread{% endif %}"
+                             data-remark-id="{{ remark.id }}"
+                             onclick="markRemarkAsRead({{ remark.id }}, this)">
+                            <div class="remark-teacher">
+                                <i class="fas fa-user"></i> {{ remark.user.username }}
+                            </div>
+                            <div class="remark-date">
+                                {{ remark.created_at.strftime('%d/%m/%Y') }}
+                            </div>
+                            <div class="remark-text">
+                                {{ remark.content }}
+                            </div>
+                            {% if not remark.is_viewed_by_student %}
+                            <span class="new-indicator">Nouveau</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-comment-slash"></i>
+                        <p>Aucune remarque</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    <!-- Liens rapides -->
-    <div class="quick-links">
-        <a href="{{ url_for('student_auth.grades') }}" class="quick-link">
-            <i class="fas fa-chart-line"></i>
-            <span>Voir toutes mes notes</span>
-        </a>
-        <a href="{{ url_for('student_auth.files') }}" class="quick-link">
-            <i class="fas fa-folder"></i>
-            <span>Accéder aux fichiers</span>
-        </a>
-    </div>
 </div>
+
+<script>
+function markRemarkAsRead(remarkId, element) {
+    // Ne rien faire si déjà lue
+    if (!element.classList.contains('unread')) {
+        return;
+    }
+
+    // Marquer comme lue immédiatement (optimistic update)
+    element.classList.remove('unread');
+    const badge = element.querySelector('.new-indicator');
+    if (badge) {
+        badge.remove();
+    }
+
+    // Envoyer la requête au serveur
+    fetch(`/planning/mark_remark_read/${remarkId}`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erreur lors du marquage');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data.success) {
+            console.error('Erreur:', data.error);
+            // Restaurer l'état en cas d'erreur
+            element.classList.add('unread');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        // Restaurer l'état en cas d'erreur
+        element.classList.add('unread');
+    });
+}
+</script>
 {% endblock %}

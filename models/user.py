@@ -11,6 +11,18 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    email_verified = db.Column(db.Boolean, default=False)
+
+    # Double authentification (TOTP)
+    totp_secret = db.Column(db.String(32), nullable=True)  # Secret TOTP Base32
+    totp_enabled = db.Column(db.Boolean, default=False)  # 2FA activée
+
+    # Abonnement et Premium
+    is_admin = db.Column(db.Boolean, default=False)
+    subscription_tier = db.Column(db.String(20), default='freemium')  # 'freemium' ou 'premium'
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    premium_until = db.Column(db.DateTime, nullable=True)  # Date d'expiration premium
 
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée
@@ -19,6 +31,9 @@ class User(UserMixin, db.Model):
     school_year_start = db.Column(db.Date)
     school_year_end = db.Column(db.Date)
     timezone_offset = db.Column(db.Integer, default=0)  # Décalage horaire en heures par rapport à UTC
+
+    # Préférences d'affichage
+    student_sort_pref = db.Column(db.String(20), default='last_name')  # 'first_name' ou 'last_name'
 
     # Horaires
     day_start_time = db.Column(db.Time)
@@ -31,6 +46,37 @@ class User(UserMixin, db.Model):
     holidays = db.relationship('Holiday', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
     breaks = db.relationship('Break', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
     schedules = db.relationship('Schedule', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
+
+    def is_premium(self):
+        """Vérifie si l'utilisateur a un accès premium actif"""
+        if self.subscription_tier == 'premium':
+            # Si premium_until est défini, vérifier qu'il n'est pas expiré
+            if self.premium_until:
+                return self.premium_until > datetime.utcnow()
+            # premium sans date d'expiration = illimité
+            return True
+        return False
+
+    def has_premium_access(self):
+        """Alias pour is_premium()"""
+        return self.is_premium()
+
+    def grant_premium_access(self, days=None):
+        """Accorder l'accès premium (days=None = illimité)"""
+        from datetime import timedelta
+        self.subscription_tier = 'premium'
+        if days:
+            self.premium_until = datetime.utcnow() + timedelta(days=days)
+        else:
+            self.premium_until = None
+        db.session.commit()
+
+    def revoke_premium_access(self):
+        """Révoquer l'accès premium"""
+        self.subscription_tier = 'freemium'
+        self.premium_until = None
+        self.stripe_subscription_id = None
+        db.session.commit()
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -46,10 +92,27 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
     
     def get_local_datetime(self):
-        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur"""
-        from datetime import timedelta
-        utc_now = datetime.utcnow()
-        return utc_now + timedelta(hours=self.timezone_offset or 0)
+        """Retourne la datetime actuelle ajustée selon le fuseau horaire de l'utilisateur
+
+        IMPORTANT: Utilise pytz pour gérer correctement l'heure d'été (DST)
+        La Suisse passe de UTC+1 (hiver) à UTC+2 (été) automatiquement
+        """
+        try:
+            import pytz
+            # Utiliser le fuseau horaire Europe/Zurich qui gère automatiquement DST
+            swiss_tz = pytz.timezone('Europe/Zurich')
+            # Obtenir l'heure UTC actuelle (aware)
+            utc_now = datetime.now(pytz.UTC)
+            # Convertir en heure suisse (gère automatiquement UTC+1 ou UTC+2)
+            swiss_time = utc_now.astimezone(swiss_tz)
+            # Retourner datetime naive pour compatibilité avec le code existant
+            return swiss_time.replace(tzinfo=None)
+        except ImportError:
+            # Fallback si pytz n'est pas installé (ne devrait pas arriver)
+            from datetime import timedelta
+            utc_now = datetime.utcnow()
+            # Fallback basique avec offset (ne gère pas DST correctement)
+            return utc_now + timedelta(hours=self.timezone_offset or 1)
     
     def get_local_time(self):
         """Retourne l'heure actuelle ajustée selon le fuseau horaire de l'utilisateur"""

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combat Arena - RPG Classroom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-panel: #0d1525;
+            --bg-card: #111b2e;
+            --border-glow: #4f6bff;
+            --accent-gold: #ffd700;
+            --accent-blue: #4f9cff;
+            --accent-purple: #a855f7;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --text-primary: #e8ecf4;
+            --text-muted: #6b7a96;
+            --font-game: 'Press Start 2P', monospace;
+            --font-ui: 'Rajdhani', 'Segoe UI', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ===== TOP BAR ===== */
+        #top-bar {
+            background: linear-gradient(180deg, #111b2e 0%, #0d1525 100%);
+            border-bottom: 1px solid rgba(79, 107, 255, 0.3);
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            position: relative;
+            z-index: 10;
+        }
+
+        #top-bar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
+            opacity: 0.6;
+        }
+
+        .session-info {
+            font-family: var(--font-game);
+            font-size: 12px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .session-info #round-number {
+            color: var(--accent-gold);
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        }
+
+        #difficulty-badge {
+            font-family: var(--font-ui) !important;
+            font-weight: 700;
+            font-size: 11px !important;
+            padding: 4px 10px !important;
+            border-radius: 3px !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .phase-indicator {
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 13px;
+            padding: 6px 16px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #1a2744;
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #phase-timer {
+            font-family: var(--font-game);
+            font-size: 11px;
+            color: #ffd700;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        #phase-timer.warning {
+            color: #ef4444;
+            animation: timerBlink 0.5s ease-in-out infinite;
+        }
+
+        @keyframes timerBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .phase-question {
+            background: linear-gradient(135deg, #667eea, #5a4fcf);
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .phase-action {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-color: #f59e0b;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .phase-move {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .phase-execute {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #ef4444;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+            animation: pulseGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.7); }
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        #game-container {
+            display: flex;
+            height: calc(100vh - 56px);
+        }
+
+        #phaser-game {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            min-width: 0;
+            background: radial-gradient(ellipse at center, #1e2d4a 0%, #141f35 60%, #0f1728 100%);
+        }
+
+        /* ===== SIDE PANELS ===== */
+        #left-panel, #right-panel {
+            width: 240px;
+            min-width: 240px;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, #0d1525 0%, #0a1020 100%);
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #left-panel {
+            border-right: 1px solid rgba(79, 107, 255, 0.15);
+        }
+
+        #right-panel {
+            border-left: 1px solid rgba(79, 107, 255, 0.15);
+        }
+
+        .panel-title {
+            font-family: var(--font-game);
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--border-glow);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(79, 107, 255, 0.2);
+            text-shadow: 0 0 6px rgba(79, 107, 255, 0.3);
+        }
+
+        /* ===== ENTITY CARDS ===== */
+        .entity-card {
+            background: linear-gradient(135deg, #111b2e 0%, #0d1525 100%);
+            border: 1px solid rgba(79, 107, 255, 0.12);
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .entity-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .entity-card:hover {
+            border-color: rgba(79, 107, 255, 0.3);
+            background: linear-gradient(135deg, #152035 0%, #111b2e 100%);
+        }
+
+        .entity-name {
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .entity-name.player {
+            color: var(--accent-blue);
+        }
+
+        .entity-card:has(.entity-name.player)::before {
+            background: var(--accent-blue);
+        }
+
+        .entity-name.monster {
+            color: var(--accent-red);
+        }
+
+        .entity-card:has(.entity-name.monster)::before {
+            background: var(--accent-red);
+        }
+
+        .entity-card .monster-type {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-style: italic;
+        }
+
+        .entity-card.ko {
+            opacity: 0.3;
+            filter: grayscale(1);
+        }
+
+        /* ===== HP / MANA BARS ===== */
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .hp-bar-container {
+            background-color: rgba(0, 0, 0, 0.4);
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 4px;
+            overflow: hidden;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            box-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
+            transition: width 0.5s ease;
+        }
+
+        .mana-bar-container {
+            background-color: rgba(0, 0, 0, 0.4);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(79, 156, 255, 0.2);
+        }
+
+        .mana-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            box-shadow: 0 0 4px rgba(59, 130, 246, 0.3);
+            transition: width 0.5s ease;
+        }
+
+        /* ===== CENTER OVERLAY ===== */
+        .center-overlay {
+            position: fixed;
+            top: 56px;
+            left: 240px;
+            right: 240px;
+            height: calc(100vh - 56px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .overlay-message {
+            background: linear-gradient(135deg, rgba(13, 21, 37, 0.97), rgba(10, 14, 26, 0.97));
+            border: 1px solid rgba(79, 107, 255, 0.4);
+            box-shadow: 0 0 30px rgba(79, 107, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5);
+            padding: 28px 48px;
+            border-radius: 12px;
+            text-align: center;
+            pointer-events: auto;
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+        }
+
+        .overlay-message h2 {
+            font-family: var(--font-game);
+            font-size: 14px;
+            margin-bottom: 14px;
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .progress-info {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            width: 280px;
+            height: 16px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(79, 107, 255, 0.3);
+            border-radius: 8px;
+            margin: 14px auto;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #667eea, #a855f7, #22c55e);
+            background-size: 200% 100%;
+            animation: progressShimmer 2s ease infinite;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        @keyframes progressShimmer {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        /* ===== COMBAT LOG ===== */
+        .combat-log {
+            position: fixed;
+            bottom: 10px;
+            left: 260px;
+            right: 260px;
+            max-height: 130px;
+            background: linear-gradient(180deg, rgba(10, 14, 26, 0.85), rgba(10, 14, 26, 0.95));
+            border: 1px solid rgba(79, 107, 255, 0.15);
+            border-radius: 8px;
+            padding: 8px 14px;
+            overflow-y: auto;
+            font-size: 12px;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+        }
+
+        .combat-log::-webkit-scrollbar { width: 3px; }
+        .combat-log::-webkit-scrollbar-track { background: transparent; }
+        .combat-log::-webkit-scrollbar-thumb { background: rgba(79, 107, 255, 0.3); border-radius: 3px; }
+
+        .log-entry {
+            color: var(--text-muted);
+            margin-bottom: 2px;
+            line-height: 1.6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            animation: logSlide 0.3s ease;
+        }
+
+        @keyframes logSlide {
+            from { opacity: 0; transform: translateX(-8px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .log-entry.damage {
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.06);
+        }
+
+        .log-entry.heal {
+            color: #4ade80;
+            background: rgba(34, 197, 94, 0.06);
+        }
+
+        .log-entry.phase {
+            color: var(--accent-gold);
+            font-family: var(--font-game);
+            font-size: 9px;
+            font-weight: normal;
+            text-align: center;
+            border-top: 1px solid rgba(79, 107, 255, 0.15);
+            border-bottom: 1px solid rgba(79, 107, 255, 0.15);
+            padding: 6px;
+            margin: 6px 0;
+            letter-spacing: 1px;
+            text-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
+        }
+
+        .log-entry.error {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.06);
+        }
+
+        /* ===== TEACHER CONTROLS ===== */
+        .teacher-controls {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 12px;
+        }
+
+        .btn {
+            font-family: var(--font-ui);
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #1a2744, #111b2e);
+            border: 1px solid rgba(79, 107, 255, 0.3);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.25s ease;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #1e3050, #1a2744);
+            border-color: var(--border-glow);
+            box-shadow: 0 0 12px rgba(79, 107, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, #4f6bff, #3b50d9);
+            border-color: #4f6bff;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(79, 107, 255, 0.3);
+        }
+
+        .btn.primary:hover {
+            background: linear-gradient(135deg, #5a76ff, #4560e8);
+            box-shadow: 0 0 20px rgba(79, 107, 255, 0.5);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        .scrollable {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .scrollable::-webkit-scrollbar { width: 3px; }
+        .scrollable::-webkit-scrollbar-track { background: transparent; }
+        .scrollable::-webkit-scrollbar-thumb { background: rgba(79, 107, 255, 0.25); border-radius: 3px; }
+        .scrollable::-webkit-scrollbar-thumb:hover { background: rgba(79, 107, 255, 0.4); }
+
+        /* ===== ALIVE COUNT ===== */
+        #player-count {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        #alive-count {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <div class="session-info">
+            <span style="font-size: 20px;">&#9876;</span>
+            <span id="round-number">Round 0</span>
+            <span id="difficulty-badge" style="font-size:11px; padding:4px 10px; border-radius:3px; margin-left:10px;
+                background:{% if session.difficulty == 'easy' %}#10b981{% elif session.difficulty == 'medium' %}#f59e0b{% elif session.difficulty == 'hard' %}#ef4444{% elif session.difficulty == 'boss' %}#8b5cf6{% else %}#667eea{% endif %};
+                color:#fff;">{{ session.difficulty|upper }}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div id="player-count">
+                <span id="alive-count">0</span> h&eacute;ros en vie
+            </div>
+            <div class="phase-indicator" id="phase-indicator">
+                Phase: <span id="phase-name">Attente</span>
+                <span id="phase-timer"></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="left-panel">
+            <div class="panel-title">&#9813; &Eacute;quipe de H&eacute;ros</div>
+            <div id="players-list" class="scrollable"></div>
+        </div>
+
+        <div id="phaser-game"></div>
+
+        <div id="right-panel">
+            <div class="panel-title">&#9760; Monstres</div>
+            <div id="monsters-list" class="scrollable"></div>
+            <div class="teacher-controls">
+                <button class="btn primary" id="btn-start-combat" style="font-size: 16px; padding: 14px 24px;">
+                    &#9654; D&eacute;marrer le Combat
+                </button>
+                <div id="error-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="center-overlay" id="center-overlay">
+        <div class="overlay-message" id="overlay-message" style="display: none;">
+            <h2 id="overlay-title">Les &eacute;l&egrave;ves r&eacute;pondent...</h2>
+            <div class="progress-info" id="overlay-progress">0/0</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="overlay-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="combat-log" id="combat-log"></div>
+
+    <!-- Load Phaser from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <!-- Load Socket.IO from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.2/dist/socket.io.min.js"></script>
+
+    <!-- Session data from Flask -->
+    <script>
+        const SESSION_ID = {{ session.id }};
+        const CLASSROOM_ID = {{ session.classroom_id }};
+        const EXERCISE_ID = {{ session.exercise_id }};
+        const DIFFICULTY = "{{ session.difficulty }}";
+        const MAP_CONFIG = {{ session.map_config_json | tojson }};
+    </script>
+
+    <!-- Load combat scripts -->
+    <script src="{{ url_for('static', filename='js/combat/socket-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/combat/phaser-arena.js') }}"></script>
+</body>
+</html>

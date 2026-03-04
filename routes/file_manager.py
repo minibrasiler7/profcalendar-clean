@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, send_file, current_app, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from extensions import db
@@ -106,12 +106,24 @@ def index():
             breadcrumb.insert(0, folder)
             folder = folder.parent
 
+    # Exercices rangés dans ce dossier
+    folder_exercises = []
+    try:
+        from models.exercise import Exercise
+        folder_exercises = Exercise.query.filter_by(
+            user_id=current_user.id,
+            folder_id=folder_id
+        ).order_by(Exercise.title).all()
+    except Exception:
+        pass
+
     # Calculer l'espace utilisé
     total_size = sum(f.file_size or 0 for f in current_user.files.all())
 
     return render_template('file_manager/index.html',
                          folders=folders,
                          files=files,
+                         exercises=folder_exercises,
                          current_folder=current_folder,
                          breadcrumb=breadcrumb,
                          total_size=total_size)
@@ -204,7 +216,7 @@ def get_class_files(class_id):
             if not file.user_file:
                 # Fichier source supprimé, on ignore
                 continue
-                
+
             files_data.append({
                 'id': file.id,
                 'original_filename': file.user_file.original_filename,
@@ -213,6 +225,28 @@ def get_class_files(class_id):
                 'folder_name': file.folder_path,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             })
+
+        # Ajouter les exercices liés à cette classe
+        try:
+            from models.exercise import Exercise
+            class_exercises = Exercise.query.filter_by(
+                classroom_id=class_id
+            ).all()
+            for ex in class_exercises:
+                files_data.append({
+                    'id': f'exercise-{ex.id}',
+                    'exercise_id': ex.id,
+                    'original_filename': ex.title or 'Exercice sans titre',
+                    'file_type': 'exercise',
+                    'file_size': 0,
+                    'folder_name': None,
+                    'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
+                    'is_exercise': True,
+                    'total_points': ex.total_points,
+                    'block_count': ex.blocks.count() if ex.blocks else 0
+                })
+        except Exception:
+            pass
 
         return jsonify({
             'success': True,
@@ -359,6 +393,13 @@ def copy_to_class_folder():
         file_id = data.get('file_id')
         class_id = data.get('class_id')
         folder_path = data.get('folder_name')  # Gardons 'folder_name' pour la compatibilité
+
+        # Convertir en int pour éviter les erreurs SQL de type cast (VARCHAR vs INTEGER)
+        try:
+            file_id = int(file_id) if file_id is not None else None
+            class_id = int(class_id) if class_id is not None else None
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'IDs invalides'}), 400
 
         if not file_id or not class_id or not folder_path:
             return jsonify({'success': False, 'message': 'Données manquantes'}), 400
@@ -1181,12 +1222,30 @@ def download_file(file_id):
 def preview_file(file_id):
     """Aperçu d'un fichier"""
     from models.file_manager import UserFile
+    from models.class_file import ClassFile
     from flask import Response
 
+    # D'abord essayer de trouver un UserFile appartenant à l'utilisateur
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
-    ).first_or_404()
+    ).first()
+
+    # Sinon chercher un ClassFile de ses classes
+    if not file:
+        from models.classroom import Classroom
+        class_file = ClassFile.query.filter_by(id=file_id).first()
+        if class_file:
+            # Vérifier que l'utilisateur appartient à cette classe (en tant que professeur)
+            classroom = Classroom.query.filter_by(
+                id=class_file.classroom_id,
+                teacher_id=current_user.id
+            ).first()
+            if classroom:
+                file = class_file.user_file
+
+    if not file:
+        return abort(404)
 
     # Pour les images, utiliser la miniature BLOB si disponible
     if file.thumbnail_content and request.args.get('thumbnail'):
@@ -1611,37 +1670,39 @@ def save_annotations():
         
         data = request.get_json()
         annotations_data = data.get('annotations', {})
+        custom_pages_data = data.get('custom_pages', [])
         file_id_raw = data.get('file_id')
-        
+
         # Extraire l'ID du fichier depuis les données
         file_id = int(file_id_raw) if str(file_id_raw).isdigit() else None
         if not file_id:
             return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
-            
+
         # Vérifier que le fichier existe et appartient à l'utilisateur
         from models.class_file import ClassFile
         from models.classroom import Classroom
-        
+
         class_file = ClassFile.query.join(
             Classroom, ClassFile.classroom_id == Classroom.id
         ).filter(
             ClassFile.id == file_id,
             Classroom.user_id == current_user.id
         ).first()
-        
+
         if not class_file:
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-            
+
         # Chercher une annotation existante
         annotation = FileAnnotation.query.filter_by(
             file_id=file_id,
             file_type='class_file',
             user_id=current_user.id
         ).first()
-        
+
         if annotation:
             # Mettre à jour l'annotation existante
             annotation.annotations_data = annotations_data
+            annotation.custom_pages_data = custom_pages_data
             annotation.updated_at = datetime.utcnow()
         else:
             # Créer une nouvelle annotation
@@ -1649,7 +1710,8 @@ def save_annotations():
                 file_id=file_id,
                 file_type='class_file',
                 user_id=current_user.id,
-                annotations_data=annotations_data
+                annotations_data=annotations_data,
+                custom_pages_data=custom_pages_data
             )
             db.session.add(annotation)
             
@@ -1696,7 +1758,8 @@ def load_annotations(file_id):
         if annotation:
             return jsonify({
                 'success': True,
-                'annotations': annotation.annotations_data
+                'annotations': annotation.annotations_data,
+                'custom_pages': annotation.custom_pages_data or []
             })
         else:
             # Pas d'annotations trouvées, retourner structure vide

@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+from utils.custom_types import EncryptedText
 
 class AbsenceJustification(db.Model):
     """Modèle pour les justifications d'absence soumises par les parents"""
@@ -15,7 +16,7 @@ class AbsenceJustification(db.Model):
     
     # Motif
     reason_type = db.Column(db.String(50), nullable=False)  # maladie, medecin, transport, conge_joker, dispense, autre
-    other_reason_text = db.Column(db.Text)  # Texte libre si reason_type = 'autre'
+    other_reason_text = db.Column(EncryptedText())  # Texte libre si reason_type = 'autre'
     
     # Champs spécifiques pour les dispenses
     dispense_subject = db.Column(db.String(100))  # Discipline dispensée
@@ -27,7 +28,7 @@ class AbsenceJustification(db.Model):
     
     # Statut de traitement
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
-    teacher_response = db.Column(db.Text)  # Réponse de l'enseignant
+    teacher_response = db.Column(EncryptedText())  # Réponse de l'enseignant
     processed_at = db.Column(db.DateTime)
     processed_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     

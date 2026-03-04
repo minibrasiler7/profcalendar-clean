@@ -1,10 +1,11 @@
 from extensions import db
 from datetime import datetime
+from utils.custom_types import EncryptedString, EncryptedText
 
 class AccommodationTemplate(db.Model):
     """Modèles d'aménagements prédéfinis"""
     __tablename__ = 'accommodation_templates'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(200), nullable=False)
@@ -28,15 +29,15 @@ class StudentAccommodation(db.Model):
     template_id = db.Column(db.Integer, db.ForeignKey('accommodation_templates.id'), nullable=True)
     
     # Champs pour aménagements personnalisés (si template_id est null)
-    custom_name = db.Column(db.String(200))
-    custom_description = db.Column(db.Text)
+    custom_name = db.Column(EncryptedString())
+    custom_description = db.Column(EncryptedText())
     custom_emoji = db.Column(db.String(10))
     custom_is_time_extension = db.Column(db.Boolean, default=False)
     custom_time_multiplier = db.Column(db.Float)
-    
+
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    notes = db.Column(db.Text)  # Notes spécifiques pour cet élève
+    notes = db.Column(EncryptedText())  # Notes spécifiques pour cet élève
     
     # Relations
     student = db.relationship('Student', backref=db.backref('accommodations', lazy='dynamic'))

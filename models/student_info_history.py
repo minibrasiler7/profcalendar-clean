@@ -1,5 +1,6 @@
 from extensions import db
 from datetime import datetime
+from utils.custom_types import EncryptedText
 
 class StudentInfoHistory(db.Model):
     """Modèle pour l'historique des informations supplémentaires d'un élève"""
@@ -8,7 +9,7 @@ class StudentInfoHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(EncryptedText(), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relations

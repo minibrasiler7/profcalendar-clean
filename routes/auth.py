@@ -1,13 +1,15 @@
+import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from extensions import db
 from models.user import User
+from models.email_verification import EmailVerification
+from services.email_service import send_verification_code
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-
-auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -57,7 +59,8 @@ def login():
     if form.validate_on_submit():
         # Vérifier d'abord si c'est un email de parent
         from models.parent import Parent
-        parent_check = Parent.query.filter_by(email=form.email.data).first()
+        from utils.encryption import encryption_engine
+        parent_check = Parent.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         if parent_check:
             flash('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.', 'error')
             return render_template('auth/login.html', form=form)
@@ -65,6 +68,34 @@ def login():
         # Ensuite vérifier l'enseignant
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            # Bypass vérification email en mode dev (variable d'environnement)
+            skip_verification = os.environ.get('SKIP_EMAIL_VERIFICATION', '').lower() == 'true'
+            if skip_verification and not user.email_verified:
+                user.email_verified = True
+                db.session.commit()
+
+            # Vérifier si l'email est vérifié
+            if not user.email_verified:
+                # Renvoyer un code et rediriger vers la vérification
+                verification = EmailVerification.create_verification(user.email, 'teacher')
+                db.session.commit()
+                email_sent = send_verification_code(user.email, verification.code, 'teacher')
+
+                session['pending_user_id'] = user.id
+                session['pending_user_type'] = 'teacher'
+                session['verification_email'] = user.email
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer ou contacter le support.', 'error')
+                return redirect(url_for('auth.verify_email'))
+
+            # Vérifier si la 2FA est activée
+            if user.totp_enabled:
+                session['pending_totp_user_id'] = user.id
+                session['pending_totp_next'] = request.args.get('next', '')
+                return redirect(url_for('auth.verify_totp'))
+
             session.clear()  # Nettoyer la session pour éviter les conflits
             session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
             login_user(user, remember=True)
@@ -101,30 +132,159 @@ def register():
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        
+
         # Créer automatiquement un code d'accès par défaut pour les enseignants spécialisés
         from models.class_collaboration import TeacherAccessCode
         default_access_code = TeacherAccessCode(
             master_teacher_id=user.id,
             code=TeacherAccessCode.generate_code(6),
-            max_uses=None,  # Illimité
-            expires_at=None  # Pas d'expiration
+            max_uses=None,
+            expires_at=None
         )
         db.session.add(default_access_code)
+
+        # Générer et envoyer le code de vérification email
+        verification = EmailVerification.create_verification(user.email, 'teacher')
         db.session.commit()
 
-        session['user_type'] = 'teacher'  # Marquer comme enseignant dans la session
-        login_user(user, remember=True)
-        flash('Inscription réussie ! Bienvenue sur TeacherPlanner.', 'success')
-        return redirect(url_for('setup.initial_setup'))
+        email_sent = send_verification_code(user.email, verification.code, 'teacher')
+
+        # Stocker l'ID utilisateur en session pour la vérification
+        session['pending_user_id'] = user.id
+        session['pending_user_type'] = 'teacher'
+        session['verification_email'] = user.email
+
+        if email_sent:
+            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+        else:
+            flash('Compte créé, mais impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
+        return redirect(url_for('auth.verify_email'))
     else:
-        # Afficher les erreurs de validation pour déboguer
         if form.errors:
             for field, errors in form.errors.items():
                 for error in errors:
                     flash(f'{field}: {error}', 'error')
 
     return render_template('auth/register.html', form=form)
+
+@auth_bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Vérification du code email pour les enseignants"""
+    user_id = session.get('pending_user_id')
+    if not user_id or session.get('pending_user_type') != 'teacher':
+        return redirect(url_for('auth.register'))
+
+    user = User.query.get(user_id)
+    if not user:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('auth.register'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+
+        verification = EmailVerification.query.filter_by(
+            email=user.email,
+            code=code,
+            user_type='teacher',
+            is_used=False
+        ).first()
+
+        if verification and verification.is_valid():
+            verification.is_used = True
+            user.email_verified = True
+            db.session.commit()
+
+            # Connecter l'utilisateur
+            session['user_type'] = 'teacher'
+            login_user(user, remember=True)
+            # Nettoyer la session de vérification
+            session.pop('pending_user_id', None)
+            session.pop('pending_user_type', None)
+            session.pop('verification_email', None)
+
+            flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
+            return redirect(url_for('setup.initial_setup'))
+        else:
+            flash('Code invalide ou expiré.', 'error')
+
+    return render_template('auth/verify_email.html', email=user.email)
+
+@auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    user_id = session.get('pending_user_id')
+    if not user_id or session.get('pending_user_type') != 'teacher':
+        return redirect(url_for('auth.register'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('auth.register'))
+
+    # Rate limit: vérifier le dernier envoi
+    last_verification = EmailVerification.query.filter_by(
+        email=user.email,
+        user_type='teacher'
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
+        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
+        return redirect(url_for('auth.verify_email'))
+
+    verification = EmailVerification.create_verification(user.email, 'teacher')
+    db.session.commit()
+
+    email_sent = send_verification_code(user.email, verification.code, 'teacher')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+    return redirect(url_for('auth.verify_email'))
+
+@auth_bp.route('/verify-totp', methods=['GET', 'POST'])
+def verify_totp():
+    """Vérification du code TOTP pour la double authentification"""
+    user_id = session.get('pending_totp_user_id')
+    if not user_id:
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(user_id)
+    if not user or not user.totp_enabled:
+        session.pop('pending_totp_user_id', None)
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        code = request.form.get('totp_code', '').strip()
+
+        import pyotp
+        totp = pyotp.TOTP(user.totp_secret)
+        # valid_window=1 accepte le code précédent et suivant (±30s)
+        if totp.verify(code, valid_window=1):
+            # Nettoyer la session TOTP
+            next_page = session.get('pending_totp_next', '')
+            session.pop('pending_totp_user_id', None)
+            session.pop('pending_totp_next', None)
+
+            # Connecter l'utilisateur
+            session['user_type'] = 'teacher'
+            login_user(user, remember=True)
+
+            if not next_page or urlparse(next_page).netloc != '':
+                if not user.school_year_start or not user.day_start_time:
+                    next_page = url_for('setup.initial_setup')
+                elif user.classrooms.count() == 0:
+                    next_page = url_for('setup.manage_classrooms')
+                elif not user.setup_completed:
+                    next_page = url_for('setup.manage_holidays')
+                elif not user.schedule_completed:
+                    next_page = url_for('schedule.weekly_schedule')
+                else:
+                    next_page = url_for('planning.dashboard')
+            return redirect(next_page)
+        else:
+            flash('Code invalide. Veuillez réessayer.', 'error')
+
+    return render_template('auth/verify_totp.html', email=user.email)
+
 
 @auth_bp.route('/logout')
 @login_required

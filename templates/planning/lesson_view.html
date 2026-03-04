@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}{% if is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - TeacherPlanner{% endblock %}
+{% block title %}{% if not lesson %}Aucun cours{% elif is_current %}Leçon en cours{% else %}Prochain cours{% endif %} - ProfCalendar{% endblock %}
+
+<!-- VERSION: 2dfd042-fix-studentsdata-tojson - 2026-01-19T16:35:00Z -->
 
 {% block extra_css %}
 <!-- Cache busting pour forcer le rechargement -->
@@ -38,6 +40,22 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 </script>
 <style>
+/* Empêcher le scroll automatique vers les inputs lors du focus */
+html {
+    scroll-behavior: auto;
+}
+
+body {
+    overflow-anchor: none;
+}
+
+/* Empêcher les inputs de provoquer un scroll */
+input, textarea, select {
+    scroll-margin: 0;
+    scroll-margin-top: 0;
+    scroll-margin-bottom: 0;
+}
+
 .lesson-container {
     max-width: 1400px;
     margin: 0 auto;
@@ -520,6 +538,31 @@ if (typeof pdfjsLib !== 'undefined') {
     border-color: var(--warning-color);
 }
 
+.late-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #D1D5DB;
+    background-color: white;
+    color: var(--gray-color);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.late-btn:hover {
+    background-color: #F3F4F6;
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.late-btn:active {
+    transform: scale(0.95);
+}
+
 .btn-late {
     width: 32px;
     height: 32px;
@@ -878,10 +921,206 @@ if (typeof pdfjsLib !== 'undefined') {
         font-size: 0.875rem;
     }
 }
+
+/* ============================================================================
+   MENU DES FEUILLES BLANCHES
+   ============================================================================ */
+
+.blank-sheets-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.blank-sheets-menu .menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.blank-sheets-menu .menu-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .close-menu-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+
+.blank-sheets-menu .close-menu-btn:hover {
+    background-color: #f3f4f6;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .menu-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.blank-sheets-menu .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid transparent;
+}
+
+.blank-sheets-menu .sheet-item:hover {
+    background-color: #fef3c7;
+    border-color: #fbbf24;
+}
+
+.blank-sheets-menu .sheet-item i {
+    font-size: 1.25rem;
+    color: #f59e0b;
+}
+
+.blank-sheets-menu .sheet-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.blank-sheets-menu .sheet-title {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .sheet-date {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.blank-sheets-menu .new-sheet-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+.blank-sheets-menu .new-sheet-btn:hover {
+    background-color: #2563eb;
+}
+
+/* Section feuilles blanches dans la liste des ressources */
+.blank-sheets-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.section-subtitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Bouton de suppression des feuilles blanches */
+.btn-delete-blank-sheet {
+    background: none;
+    border: none;
+    color: #dc2626;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    opacity: 0.6;
+}
+
+.btn-delete-blank-sheet:hover {
+    background-color: #fee2e2;
+    opacity: 1;
+}
+
+.resource-item.blank-sheet {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.resource-item.blank-sheet .resource-info {
+    flex: 1;
+    cursor: pointer;
+}
+
+.resource-item.blank-sheet {
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.resource-item.blank-sheet:hover {
+    background-color: #fde68a;
+}
 </style>
 {% endblock %}
 
 {% block content %}
+{% if not lesson %}
+<div style="max-width: 600px; margin: 4rem auto; text-align: center; padding: 2rem;">
+    <div style="background: #FEF3C7; border: 2px solid #F59E0B; border-radius: 12px; padding: 2rem;">
+        <i class="fas fa-calendar-alt" style="font-size: 3rem; color: #F59E0B; margin-bottom: 1rem;"></i>
+        <h2 style="color: #92400E; margin-bottom: 0.5rem;">Aucun cours prévu</h2>
+        <p style="color: #78350F; margin-bottom: 1.5rem;">
+            Votre horaire type n'est pas encore rempli. Configurez-le pour voir vos prochains cours ici.
+        </p>
+        <a href="{{ url_for('schedule.weekly_schedule') }}"
+           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem;
+                  background: #F59E0B; color: white; border-radius: 8px; text-decoration: none;
+                  font-size: 1rem; font-weight: 600;">
+            <i class="fas fa-edit"></i> Remplir mon horaire type
+        </a>
+    </div>
+</div>
+{% else %}
 <div class="lesson-container">
     <!-- En-tête de la leçon -->
     <div class="lesson-header">
@@ -1001,9 +1240,14 @@ if (typeof pdfjsLib !== 'undefined') {
                 <h2 class="section-title">
                     <i class="fas fa-clipboard-list"></i> Planification du cours
                 </h2>
-                <button class="edit-planning-btn" onclick="togglePlanningEdit()">
-                    <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
-                </button>
+                <div style="display:flex;gap:0.5rem;">
+                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un fichier ou exercice" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                        <i class="fas fa-file-upload"></i> Ajout de fichiers
+                    </button>
+                    <button class="edit-planning-btn" onclick="togglePlanningEdit()">
+                        <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
+                    </button>
+                </div>
             </div>
 
             <div class="planning-content">
@@ -1018,7 +1262,59 @@ if (typeof pdfjsLib !== 'undefined') {
                                 Aucune description
                             {% endif %}
                         </div>
+
+                        <!-- Section des ressources de planification -->
+                        {% if planning and planning.resources.count() > 0 %}
+                        <div id="planning-resources-section" style="margin-top:1.5rem;padding-top:1.5rem;border-top:2px solid #e5e7eb;">
+                            <h4 style="margin:0 0 1rem 0;font-size:0.95rem;color:#374151;"><i class="fas fa-file-alt" style="margin-right:0.5rem;color:#10b981;"></i> Ressources du cours</h4>
+                            <div id="planning-resources-list" style="display:flex;flex-direction:column;gap:0.5rem;">
+                                {% for resource in planning.resources.all() %}
+                                <div class="planning-resource-item"
+                                     data-resource-id="{{ resource.id }}"
+                                     data-resource-type="{{ resource.resource_type }}"
+                                     style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:0.6rem;"
+                                     {% if resource.resource_type == 'file' %}
+                                     onclick="openResourceFile({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
+                                     {% elif resource.resource_type == 'exercise' %}
+                                     onclick="showModeModal({{ resource.resource_id }}, '{{ resource.display_name|e }}', 'publish', {{ resource.id }})"
+                                     {% endif %}>
+
+                                    {% if resource.resource_type == 'file' %}
+                                        <i class="fas fa-{{ resource.display_icon or 'file' }}" style="color:{{ '#dc2626' if resource.display_icon == 'file-pdf' else '#3b82f6' if resource.display_icon == 'file-image' else '#6b7280' }};font-size:1.1rem;"></i>
+                                        <div style="flex:1;">
+                                            <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
+                                            <div style="font-size:0.75rem;color:#9ca3af;">PDF/Document</div>
+                                        </div>
+                                        <i class="fas fa-external-link-alt" style="color:#10b981;font-size:0.9rem;"></i>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                    {% elif resource.resource_type == 'exercise' %}
+                                        <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
+                                        <div style="flex:1;">
+                                            <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">{{ resource.display_name }}</div>
+                                            <div style="font-size:0.75rem;color:#9ca3af;">
+                                                {% if resource.status == 'published' %}
+                                                    <span style="background:{{ '#fef2f2' if resource.mode == 'combat' else '#eef2ff' }};color:{{ '#ef4444' if resource.mode == 'combat' else '#10b981' }};padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">
+                                                        {{ '⚔️ Combat' if resource.mode == 'combat' else '📖 Classique' }}
+                                                    </span>
+                                                {% else %}
+                                                    <span style="background:#f0fdf4;color:#10b981;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Non publié</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-play-circle" style="color:#667eea;font-size:0.9rem;"></i>
+                                        <button class="btn-delete-resource" data-resource-id="{{ resource.id }}" style="background:none;border:none;cursor:pointer;padding:0.3rem;margin-left:0.3rem;" title="Supprimer"><i class="fas fa-trash-alt" style="color:#ef4444;font-size:0.85rem;"></i></button>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
+                </div>
+
+                <!-- Mémos et remarques en mode lecture seule - TOUJOURS VISIBLE -->
+                <div id="memosViewContainer" class="memos-view-container" style="margin-top: 2rem;">
+                    <!-- Les mémos/remarques seront affichés ici par JavaScript -->
                 </div>
 
                 <!-- Formulaire d'édition -->
@@ -1034,7 +1330,7 @@ if (typeof pdfjsLib !== 'undefined') {
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Description détaillée</label>
+                            <label class="form-label">Planification</label>
                             <textarea id="planningDescription"
                                       class="form-control"
                                       rows="8"
@@ -1042,6 +1338,99 @@ if (typeof pdfjsLib !== 'undefined') {
                             <div class="checklist-help">
                                 Astuce : Commencez une ligne par "-" pour créer une case à cocher
                             </div>
+                        </div>
+
+                        <!-- Mémos et remarques - Nouveau design -->
+                        <div class="form-group">
+                            <label class="form-label">Mémos et remarques</label>
+
+                            <div class="memos-actions">
+                                <button type="button" class="btn btn-memo" onclick="openMemoCreation()">
+                                    <i class="fas fa-sticky-note"></i> Enregistrer mémo
+                                </button>
+                                <button type="button" class="btn btn-remark" onclick="openRemarkCreation()">
+                                    <i class="fas fa-user-edit"></i> Enregistrer remarque élève
+                                </button>
+                            </div>
+
+                            <!-- Formulaire création mémo -->
+                            <div id="memoCreationForm" class="memo-form" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">Choisir une date de rappel</label>
+                                    <select id="memoDateType" class="form-control" onchange="handleMemoDateTypeChange()">
+                                        <option value="">-- Sélectionner --</option>
+                                        <option value="next_lesson">Cours suivant</option>
+                                        <option value="next_week">Semaine prochaine</option>
+                                        <option value="custom">Date personnalisée</option>
+                                        <option value="no_date">Sans date</option>
+                                    </select>
+                                </div>
+
+                                <div id="memoCustomDateDiv" class="form-group" style="display: none;">
+                                    <label class="form-label">Date personnalisée</label>
+                                    <input type="date" id="memoCustomDate" class="form-control">
+                                </div>
+
+                                <div id="memoContentDiv" class="form-group" style="display: none;">
+                                    <label class="form-label">Contenu du mémo</label>
+                                    <textarea id="memoContent" class="form-control" rows="3" placeholder="Entrez le contenu du mémo..."></textarea>
+                                    <div class="memo-form-actions">
+                                        <button type="button" class="btn btn-primary" onclick="submitMemo()">
+                                            <i class="fas fa-plus"></i> Ajouter
+                                        </button>
+                                        <button type="button" class="btn btn-outline" onclick="cancelMemoCreation()">
+                                            Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Formulaire création remarque -->
+                            <div id="remarkCreationForm" class="memo-form" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">Sélectionner un ou plusieurs élèves</label>
+                                    <input type="text"
+                                           id="remarkStudentInput"
+                                           class="form-control"
+                                           placeholder="Commencez à taper le nom d'un élève..."
+                                           autocomplete="off">
+                                    <div id="remarkStudentAutocomplete" class="memo-autocomplete" style="display: none;"></div>
+
+                                    <div id="selectedStudentsDiv" class="selected-students" style="display: none;">
+                                        <label class="form-label">Élèves sélectionnés :</label>
+                                        <div id="selectedStudentsList"></div>
+                                        <button type="button" class="btn btn-primary btn-sm" onclick="confirmStudentSelection()">
+                                            <i class="fas fa-check"></i> OK
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="remarkContentDiv" class="form-group" style="display: none;">
+                                    <label class="form-label">Contenu de la remarque</label>
+                                    <textarea id="remarkContent" class="form-control" rows="3" placeholder="Entrez la remarque..."></textarea>
+
+                                    <div class="form-check" style="margin-top: 1rem; margin-bottom: 1rem;">
+                                        <input type="checkbox" class="form-check-input" id="sendToParentAndStudent">
+                                        <label class="form-check-label" for="sendToParentAndStudent">
+                                            <i class="fas fa-paper-plane"></i> Envoyer aux parents et à l'élève
+                                        </label>
+                                    </div>
+
+                                    <div class="memo-form-actions">
+                                        <button type="button" class="btn btn-primary" onclick="submitRemark()">
+                                            <i class="fas fa-plus"></i> Ajouter
+                                        </button>
+                                        <button type="button" class="btn btn-outline" onclick="cancelRemarkCreation()">
+                                            Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Liste des mémos et remarques existants -->
+                        <div id="memosListContainer" class="memos-list-container">
+                            <!-- Les mémos/remarques seront affichés ici -->
                         </div>
 
                         <div class="form-actions">
@@ -1070,7 +1459,10 @@ if (typeof pdfjsLib !== 'undefined') {
 
 
         <!-- Section présences -->
-        <div class="attendance-section">
+        <div class="attendance-section"
+             data-classroom-id="{{ lesson_classroom.id if lesson_classroom else '' }}"
+             data-lesson-date="{{ lesson_date.strftime('%Y-%m-%d') }}"
+             data-period-number="{{ lesson.period_number }}">
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-user-check"></i> Suivi des élèves
@@ -1168,13 +1560,24 @@ if (typeof pdfjsLib !== 'undefined') {
                         </div>
 
                         <div class="late-controls">
+                            <button class="late-btn decrease"
+                                    onclick="adjustLateMinutes({{ student.id }}, -1)"
+                                    title="Diminuer de 1 minute">
+                                <i class="fas fa-minus"></i>
+                            </button>
                             <input type="number"
                                    class="late-minutes"
                                    id="late-{{ student.id }}"
                                    value="{{ late_minutes if status == 'late' else '' }}"
                                    min="1"
                                    max="120"
-                                   placeholder="min">
+                                   placeholder="min"
+                                   onchange="setLateStatus({{ student.id }})">
+                            <button class="late-btn increase"
+                                    onclick="adjustLateMinutes({{ student.id }}, 1)"
+                                    title="Augmenter de 1 minute">
+                                <i class="fas fa-plus"></i>
+                            </button>
                             <button class="btn-late"
                                     onclick="setLateStatus({{ student.id }})"
                                     title="Marquer en retard">
@@ -1260,6 +1663,9 @@ if (typeof pdfjsLib !== 'undefined') {
                     <button class="resource-btn" onclick="refreshResources()" title="Actualiser">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <button class="add-resource-btn" onclick="showBlankSheetsMenu()" title="Créer ou ouvrir des feuilles blanches" style="margin-right: 0.5rem;">
+                        <i class="fas fa-file-medical"></i> Feuilles blanches
+                    </button>
                     <a href="{{ url_for('file_manager.index') }}" class="add-resource-btn" target="_blank">
                         <i class="fas fa-plus"></i> Gestionnaire
                     </a>
@@ -1338,9 +1744,6 @@ if (typeof pdfjsLib !== 'undefined') {
 <!-- Modal Viewer/Annotateur avec Lecteur PDF Unifié -->
 <div class="file-viewer-modal" id="fileViewerModal">
     <div class="unified-pdf-viewer-wrapper">
-        <button class="close-viewer" onclick="closeFileViewer()">
-            <i class="fas fa-times"></i>
-        </button>
         <!-- Le lecteur PDF unifié sera injecté ici -->
         <div id="unified-pdf-viewer-container"></div>
     </div>
@@ -1355,6 +1758,17 @@ const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 const mixedGroupId = {{ lesson.mixed_group_id if lesson.mixed_group_id else 'null' }};
 let isEditingPlanning = false;
 let isSplitViewActive = false;
+
+// Liste des élèves pour l'autocomplétion
+const lessonStudents = [
+    {% for student in students %}
+    {
+        id: {{ student.id }},
+        first_name: {{ student.first_name | tojson }},
+        last_name: {{ student.last_name | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
 
 // Variables pour le système de sanctions
 let initialSanctionCounts = {};
@@ -1457,27 +1871,45 @@ function togglePlanningEdit() {
     const planningView = document.getElementById('planningView');
     const planningEdit = document.getElementById('planningEdit');
     const emptyPlanning = document.getElementById('emptyPlanning');
+    const memosViewContainer = document.getElementById('memosViewContainer');
     const editBtn = document.querySelector('.edit-planning-btn');
     const editBtnText = document.getElementById('editBtnText');
 
     if (isEditingPlanning) {
+        // Sauvegarder la position de scroll avant toute modification
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+
         // Passer en mode édition
         if (planningView) planningView.style.display = 'none';
         if (emptyPlanning) emptyPlanning.style.display = 'none';
+        if (memosViewContainer) memosViewContainer.style.display = 'none';
         planningEdit.style.display = 'block';
         editBtnText.textContent = 'Fermer';
 
-        // Focus sur le titre
-        document.getElementById('planningTitle').focus();
+        // Attacher la conversion des tirets en checkboxes
+        attachDashConversion();
+
+        // Ne pas faire de focus automatique pour éviter le scroll
+        // L'utilisateur peut cliquer où il veut
+
+        // Forcer la restauration du scroll après toutes les opérations du navigateur
+        requestAnimationFrame(() => {
+            window.scrollTo(scrollX, scrollY);
+            // Double protection avec un second requestAnimationFrame
+            requestAnimationFrame(() => {
+                window.scrollTo(scrollX, scrollY);
+            });
+        });
     } else {
         // Passer en mode lecture
         planningEdit.style.display = 'none';
-        
+
         // Vérifier s'il y a du contenu de planification en regardant le titre
         const titleDisplay = document.getElementById('planningTitleDisplay');
-        const hasPlanning = titleDisplay && titleDisplay.textContent.trim() && 
+        const hasPlanning = titleDisplay && titleDisplay.textContent.trim() &&
                            titleDisplay.textContent !== 'Cours sans titre';
-        
+
         if (hasPlanning) {
             // Il y a une planification, afficher la vue de lecture
             if (planningView) planningView.style.display = 'block';
@@ -1487,38 +1919,88 @@ function togglePlanningEdit() {
             if (planningView) planningView.style.display = 'none';
             if (emptyPlanning) emptyPlanning.style.display = 'block';
         }
+
+        // Toujours afficher les mémos en mode lecture
+        if (memosViewContainer) memosViewContainer.style.display = 'block';
+
         editBtnText.textContent = 'Modifier';
+
+        // Recharger les mémos/remarques pour la vue en lecture seule
+        if (typeof lessonMemosManager !== 'undefined' && lessonMemosManager) {
+            lessonMemosManager.loadExistingMemosAndRemarks();
+        }
     }
 }
 
-// Fonction pour gérer l'auto-conversion des tirets en checkboxes
-document.getElementById('planningDescription').addEventListener('input', function(e) {
-    const textarea = e.target;
-    const cursorPos = textarea.selectionStart;
-    const value = textarea.value;
-
-    // Vérifier si on vient de taper un tiret en début de ligne
-    if (e.inputType === 'insertText' && e.data === '-') {
-        const lines = value.substring(0, cursorPos).split('\n');
-        const currentLine = lines[lines.length - 1];
-
-        // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
-        if (currentLine.trim() === '-') {
-            e.preventDefault();
-
-            // Remplacer le tiret par [ ]
-            const beforeCursor = value.substring(0, cursorPos - 1);
-            const afterCursor = value.substring(cursorPos);
-            const spaces = currentLine.match(/^\s*/)[0]; // Préserver l'indentation
-
-            textarea.value = beforeCursor + spaces + '[ ] ' + afterCursor;
-
-            // Placer le curseur après [ ]
-            const newCursorPos = cursorPos - 1 + spaces.length + 4;
-            textarea.setSelectionRange(newCursorPos, newCursorPos);
-        }
+// Fonction pour attacher l'auto-conversion des tirets en checkboxes
+function attachDashConversion() {
+    console.log('🔧 attachDashConversion called');
+    const textarea = document.getElementById('planningDescription');
+    if (!textarea) {
+        console.error('❌ planningDescription textarea not found!');
+        return;
     }
-});
+    console.log('✅ Textarea found:', textarea);
+
+    // Sauvegarder le scroll avant clonage
+    const windowScrollY = window.scrollY;
+    const windowScrollX = window.scrollX;
+
+    // Supprimer les anciens listeners pour éviter les doublons
+    const newTextarea = textarea.cloneNode(true);
+    textarea.parentNode.replaceChild(newTextarea, textarea);
+
+    // Restaurer le scroll après clonage
+    window.scrollTo(windowScrollX, windowScrollY);
+    console.log('🔄 Textarea cloned and replaced, scroll restored');
+
+    newTextarea.addEventListener('input', function(e) {
+        console.log('⌨️ Input event:', {
+            inputType: e.inputType,
+            data: e.data,
+            value: this.value,
+            cursorPos: this.selectionStart
+        });
+
+        const cursorPos = this.selectionStart;
+        const value = this.value;
+
+        // Vérifier si on vient de taper un tiret en début de ligne
+        if (e.inputType === 'insertText' && e.data === '-') {
+            console.log('➖ Dash detected!');
+            const lines = value.substring(0, cursorPos).split('\n');
+            const currentLine = lines[lines.length - 1];
+            console.log('📝 Current line:', currentLine, 'trimmed:', currentLine.trim());
+
+            // Si le tiret est au début de la ligne (avec éventuellement des espaces avant)
+            if (currentLine.trim() === '-') {
+                console.log('✨ Converting dash to checkbox');
+                // Sauvegarder la position de scroll avant modification
+                const scrollTop = this.scrollTop;
+                const scrollLeft = this.scrollLeft;
+                const windowScrollY = window.scrollY;
+
+                // Remplacer le tiret par [ ]
+                const beforeCursor = value.substring(0, cursorPos - 1);
+                const afterCursor = value.substring(cursorPos);
+                const spaces = currentLine.match(/^\s*/)[0]; // Préserver l'indentation
+
+                this.value = beforeCursor + spaces + '[ ] ' + afterCursor;
+
+                // Placer le curseur après [ ]
+                const newCursorPos = cursorPos - 1 + spaces.length + 4;
+                this.setSelectionRange(newCursorPos, newCursorPos);
+
+                // Restaurer la position de scroll
+                this.scrollTop = scrollTop;
+                this.scrollLeft = scrollLeft;
+                window.scrollTo(0, windowScrollY);
+                console.log('✅ Conversion complete, scroll restored');
+            }
+        }
+    });
+    console.log('👂 Event listener attached');
+}
 
 // Fonction pour échapper le HTML
 function escapeHtml(text) {
@@ -1750,14 +2232,31 @@ async function toggleAttendance(studentId) {
     await updateAttendance(studentId, newStatus, null);
 }
 
+// Fonction pour ajuster les minutes de retard avec les boutons +/-
+async function adjustLateMinutes(studentId, delta) {
+    const lateInput = document.getElementById(`late-${studentId}`);
+    const currentValue = parseInt(lateInput.value) || 0;
+    const newValue = Math.max(0, Math.min(120, currentValue + delta));
+
+    lateInput.value = newValue > 0 ? newValue : '';
+
+    // Si la valeur est > 0, marquer automatiquement en retard
+    if (newValue > 0) {
+        await updateAttendance(studentId, 'late', newValue);
+    } else {
+        // Si on descend à 0, remettre présent
+        await updateAttendance(studentId, 'present', null);
+    }
+}
+
 // Fonction pour marquer un élève en retard (toggle)
 async function setLateStatus(studentId) {
     const studentElement = document.getElementById(`student-${studentId}`);
     const lateInput = document.getElementById(`late-${studentId}`);
-    
+
     // Vérifier le statut actuel de l'élève
     const isCurrentlyLate = studentElement.classList.contains('late');
-    
+
     if (isCurrentlyLate) {
         // Si déjà en retard, remettre présent
         await updateAttendance(studentId, 'present', null);
@@ -1767,7 +2266,6 @@ async function setLateStatus(studentId) {
 
         if (!minutes || minutes <= 0) {
             alert('Veuillez entrer le nombre de minutes de retard');
-            lateInput.focus();
             return;
         }
 
@@ -1856,9 +2354,81 @@ function showQuickNotification(element, status) {
 
 // Permettre d'entrer le retard avec Enter
 document.addEventListener('DOMContentLoaded', function() {
+    // Détecter si on est sur iOS/iPad
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Variable pour stocker la position de scroll avant l'apparition du clavier
+    let savedScrollPosition = 0;
+    let savedScrollContainer = null;
+
+    // Empêcher le scroll automatique lors du focus sur les inputs
+    const preventScrollOnFocus = (e) => {
+        if (e.target.matches('input, textarea, select')) {
+            // Sauvegarder la position de scroll actuelle
+            if (isIOS) {
+                savedScrollContainer = document.querySelector('.lesson-container') || window;
+                savedScrollPosition = savedScrollContainer === window ?
+                    window.scrollY : savedScrollContainer.scrollTop;
+            } else {
+                const scrollY = window.scrollY;
+                const scrollX = window.scrollX;
+                setTimeout(() => {
+                    window.scrollTo(scrollX, scrollY);
+                }, 0);
+            }
+        }
+    };
+
+    // Sur iOS, restaurer la position après que le clavier soit apparu
+    const restoreScrollOnBlur = (e) => {
+        if (isIOS && e.target.matches('input, textarea, select')) {
+            setTimeout(() => {
+                if (savedScrollContainer) {
+                    if (savedScrollContainer === window) {
+                        window.scrollTo(0, savedScrollPosition);
+                    } else {
+                        savedScrollContainer.scrollTop = savedScrollPosition;
+                    }
+                }
+            }, 100);
+        }
+    };
+
+    document.addEventListener('focus', preventScrollOnFocus, true);
+    document.addEventListener('blur', restoreScrollOnBlur, true);
+
+    // Empêcher le resize du viewport de provoquer un scroll sur iOS
+    if (isIOS) {
+        let lastHeight = window.innerHeight;
+        window.addEventListener('resize', () => {
+            const currentHeight = window.innerHeight;
+            // Le clavier apparaît (viewport réduit)
+            if (currentHeight < lastHeight) {
+                // Ne rien faire, garder la position
+                if (savedScrollContainer) {
+                    if (savedScrollContainer === window) {
+                        window.scrollTo(0, savedScrollPosition);
+                    } else {
+                        savedScrollContainer.scrollTop = savedScrollPosition;
+                    }
+                }
+            }
+            lastHeight = currentHeight;
+        });
+    }
+
+    // Redéfinir la méthode focus pour tous les inputs avec preventScroll
+    document.querySelectorAll('input, textarea, select').forEach(element => {
+        const originalFocus = element.focus;
+        element.focus = function(options) {
+            originalFocus.call(this, { ...options, preventScroll: true });
+        };
+    });
+
     // Initialiser les contrôles de disposition
     initLayoutControls();
-    
+
     // Initialiser les statistiques
     updateStats();
 
@@ -1882,20 +2452,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Escape pour annuler l'édition
+        // Escape pour annuler l'édition (sauf si le viewer PDF est ouvert)
         if (e.key === 'Escape' && isEditingPlanning) {
-            cancelPlanningEdit();
+            const pdfModal = document.getElementById('fileViewerModal');
+            const pdfModalVisible = pdfModal && (pdfModal.style.display === 'flex' || pdfModal.classList.contains('show'));
+            if (!pdfModalVisible) {
+                cancelPlanningEdit();
+            }
         }
     });
 });
 
 // Fonction pour mettre à jour les statistiques
+// IMPORTANT: Cibler uniquement .attendance-section pour éviter de compter
+// en double les éléments dupliqués dans le modal de gestion de classe du PDF viewer
 function updateStats() {
     let present = 0;
     let absent = 0;
     let late = 0;
 
-    document.querySelectorAll('.student-attendance').forEach(student => {
+    document.querySelectorAll('.attendance-section .student-attendance').forEach(student => {
         const status = student.dataset.status;
         if (status === 'present') present++;
         else if (status === 'absent') absent++;
@@ -1932,7 +2508,7 @@ async function loadClassResources() {
         
         if (result.success) {
             classResources = result.files || [];
-            renderResources(result.pinned_files || [], classResources);
+            await renderResources(result.pinned_files || [], classResources);
         } else {
             showNoResources();
         }
@@ -1966,15 +2542,15 @@ function showNoResources() {
 }
 
 // Fonction pour rendre les ressources
-function renderResources(pinnedFiles, allFiles) {
+async function renderResources(pinnedFiles, allFiles) {
     const pinnedElement = document.getElementById('pinnedResources');
     const navigationElement = document.getElementById('folderNavigation');
     const treeElement = document.getElementById('resourcesTree');
     const noResourcesElement = document.getElementById('noResources');
-    
+
     // Masquer l'état vide
     if (noResourcesElement) noResourcesElement.style.display = 'none';
-    
+
     // Afficher les ressources épinglées
     if (pinnedFiles && pinnedFiles.length > 0) {
         renderPinnedResources(pinnedFiles);
@@ -1982,7 +2558,7 @@ function renderResources(pinnedFiles, allFiles) {
     } else {
         if (pinnedElement) pinnedElement.style.display = 'none';
     }
-    
+
     // À la racine, passer tous les fichiers à renderResourceTree pour qu'elle puisse extraire les dossiers
     // Dans un dossier spécifique, filtrer seulement les fichiers de ce dossier
     let filesToDisplay;
@@ -1993,11 +2569,16 @@ function renderResources(pinnedFiles, allFiles) {
         // Dans un dossier : filtrer
         filesToDisplay = filterFilesByFolder(allFiles, currentFolderPath);
     }
-    
+
     // Afficher la navigation
     renderBreadcrumb();
     if (navigationElement) navigationElement.style.display = 'block';
-    
+
+    // Afficher les feuilles blanches (uniquement à la racine)
+    if (!currentFolderPath) {
+        await renderBlankSheets();
+    }
+
     // Afficher l'arborescence
     renderResourceTree(filesToDisplay);
     if (treeElement) treeElement.style.display = 'block';
@@ -2147,9 +2728,34 @@ function renderResourceTree(files) {
     
     // Afficher les fichiers
     regularFiles.forEach(file => {
+        // Exercice interactif
+        if (file.is_exercise) {
+            html += `
+                <div class="resource-item" data-file-id="${file.id}" style="border-left:3px solid #667eea;">
+                    <div class="resource-icon" style="background:#eef2ff;color:#667eea;">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="resource-info">
+                        <div class="resource-main">
+                            <div class="resource-name clickable-file" onclick="window.location.href='/exercises/edit/${file.exercise_id}'">
+                                <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                                ${file.original_filename}
+                            </div>
+                            <div class="resource-meta">
+                                <span>${file.total_points || 0} XP</span>
+                                <span>${file.block_count || 0} questions</span>
+                                ${file.uploaded_at ? `<span>${formatDate(file.uploaded_at)}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         const isPinned = file.is_pinned;
         const isAnnotatable = ['pdf', 'png', 'jpg', 'jpeg'].includes(file.file_type.toLowerCase());
-        
+
         html += `
             <div class="resource-item ${isPinned ? 'pinned' : ''}" data-file-id="${file.id}">
                 <div class="resource-icon ${getResourceIconClass(file.file_type)}">
@@ -2157,7 +2763,7 @@ function renderResourceTree(files) {
                 </div>
                 <div class="resource-info">
                     <div class="resource-main">
-                        <div class="resource-name ${isAnnotatable ? 'clickable-file' : ''}" 
+                        <div class="resource-name ${isAnnotatable ? 'clickable-file' : ''}"
                              ${isAnnotatable ? `onclick="openFileViewer(${file.id}, '${file.original_filename}', '${file.file_type}')"` : ''}>
                             ${file.original_filename}
                         </div>
@@ -2182,10 +2788,120 @@ function renderResourceTree(files) {
     treeElement.innerHTML = html || '<p style="text-align: center; color: #6B7280; padding: 2rem;">Aucun fichier dans ce dossier</p>';
 }
 
+// Fonction pour charger et afficher les feuilles blanches de la leçon
+async function renderBlankSheets() {
+    const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") if lesson_date else "" }}';
+    const periodNumber = {{ lesson.period_number if lesson else 0 }};
+    const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
+
+    console.log('📄 renderBlankSheets appelée - date:', lessonDate, 'période:', periodNumber, 'classe:', classroomId);
+
+    if (!lessonDate || !periodNumber) {
+        console.warn('⚠️ renderBlankSheets: lessonDate ou periodNumber manquant');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        console.log('📋 renderBlankSheets: Données reçues:', data);
+
+        if (data.success && data.sheets && data.sheets.length > 0) {
+            console.log('✅ renderBlankSheets: Affichage de', data.sheets.length, 'feuilles blanches');
+            const resourcesTree = document.getElementById('resourcesTree');
+            if (!resourcesTree) return;
+
+            // Créer la section des feuilles blanches
+            const blankSheetsSection = document.createElement('div');
+            blankSheetsSection.className = 'blank-sheets-section';
+            blankSheetsSection.innerHTML = `
+                <h4 class="section-subtitle">
+                    <i class="fas fa-file"></i> Feuilles blanches
+                </h4>
+                <div class="blank-sheets-list">
+                    ${data.sheets.map(sheet => `
+                        <div class="resource-item blank-sheet" data-sheet-id="${sheet.id}">
+                            <div class="resource-icon blank-sheet-icon">
+                                <i class="fas fa-file"></i>
+                            </div>
+                            <div class="resource-info">
+                                <div class="resource-main">
+                                    <div class="resource-name clickable-file">${escapeHtml(sheet.title)}</div>
+                                    <div class="resource-meta">
+                                        <span>${formatDateTime(sheet.created_at)}</span>
+                                        <span class="annotatable-badge">✏️ Annotable</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-delete-blank-sheet" data-sheet-id="${sheet.id}" title="Supprimer la feuille blanche">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            // Insérer avant le contenu actuel (au début de l'arborescence)
+            resourcesTree.insertBefore(blankSheetsSection, resourcesTree.firstChild);
+            console.log('✅ renderBlankSheets: Section ajoutée au DOM');
+
+            // Attacher les event listeners après l'insertion dans le DOM
+            blankSheetsSection.querySelectorAll('.resource-item.blank-sheet').forEach(item => {
+                const sheetId = parseInt(item.dataset.sheetId);
+                const icon = item.querySelector('.resource-icon');
+                const info = item.querySelector('.resource-info');
+
+                // Click sur l'icône ou les infos pour ouvrir la feuille
+                if (icon) {
+                    icon.addEventListener('click', () => {
+                        console.log('🖱️ Click sur feuille blanche ID:', sheetId);
+                        openExistingBlankSheet(sheetId);
+                    });
+                }
+                if (info) {
+                    info.addEventListener('click', () => {
+                        console.log('🖱️ Click sur feuille blanche ID:', sheetId);
+                        openExistingBlankSheet(sheetId);
+                    });
+                }
+            });
+
+            // Attacher les event listeners pour les boutons de suppression
+            blankSheetsSection.querySelectorAll('.btn-delete-blank-sheet').forEach(btn => {
+                const sheetId = parseInt(btn.dataset.sheetId);
+                btn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    deleteBlankSheet(sheetId);
+                });
+            });
+        } else {
+            console.log('ℹ️ renderBlankSheets: Aucune feuille blanche à afficher');
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des feuilles blanches:', error);
+    }
+}
+
+// Fonction utilitaire pour échapper le HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Fonction pour formater une date ISO en format lisible
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+
 // Fonction pour naviguer vers un dossier
-function navigateToFolder(folderPath) {
+async function navigateToFolder(folderPath) {
     currentFolderPath = folderPath;
-    
+
     // Utiliser la même logique que dans renderResources
     let filesToDisplay;
     if (!currentFolderPath) {
@@ -2195,8 +2911,14 @@ function navigateToFolder(folderPath) {
         // Dans un dossier : filtrer
         filesToDisplay = filterFilesByFolder(classResources, currentFolderPath);
     }
-    
+
     renderBreadcrumb();
+
+    // Afficher les feuilles blanches seulement à la racine
+    if (!currentFolderPath) {
+        await renderBlankSheets();
+    }
+
     renderResourceTree(filesToDisplay);
 }
 
@@ -2390,19 +3112,20 @@ if (typeof pdfjsLib === 'undefined') {
 // Fonction openFileViewer redirigée vers le nouveau lecteur unifié
 async function openFileViewer(fileId, filename, fileType) {
     console.log('🔄 Redirection vers le lecteur unifié:', filename, fileType);
-    
-    // Si l'éditeur de planification est actif, ouvrir en vue split
-    if (isEditingPlanning) {
-        openSplitView(fileId, filename, fileType);
-        return;
-    }
-    
-    // Pour les PDF, utiliser le nouveau lecteur unifié
+
+    // Pour les PDF, toujours utiliser le lecteur unifié en modal overlay
+    // (fonctionne aussi pendant l'édition de la planification)
     if (fileType.toLowerCase() === 'pdf') {
         openFileWithUnifiedViewer(fileId, filename);
         return;
     }
-    
+
+    // Pour les images annotables, ouvrir aussi avec le viewer unifié
+    if (['png', 'jpg', 'jpeg'].includes(fileType.toLowerCase())) {
+        openFileWithUnifiedViewer(fileId, filename);
+        return;
+    }
+
     // Pour les autres types de fichiers, rediriger vers l'ouverture simple
     window.open(`/file_manager/serve_file/${encodeURIComponent(fileId)}`, '_blank');
 }
@@ -5355,35 +6078,18 @@ async function closeFileViewer() {
     try {
         console.log('🔄 Fermeture du viewer - début');
 
-        // IMPORTANT: Si unifiedPDFViewer existe, utiliser son système de fermeture
-        if (typeof unifiedPDFViewer !== 'undefined' && unifiedPDFViewer) {
-            console.log('  📦 Utilisation du lecteur PDF unifié pour la fermeture');
+        // IMPORTANT: Si cleanPDFViewer existe, utiliser son système de fermeture
+        if (typeof cleanPDFViewer !== 'undefined' && cleanPDFViewer) {
+            console.log('  📦 Utilisation du nouveau lecteur PDF Clean pour la fermeture');
 
-            const modal = document.getElementById('fileViewerModal');
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = '';
-            }
-
-            // CRITIQUE: Await destroy() pour sauvegarder les annotations
+            // Le viewer gère automatiquement la fermeture via son callback onClose
             try {
-                console.log('  🔧 Appel de unifiedPDFViewer.destroy()...');
-                console.log('  📊 Type de unifiedPDFViewer:', typeof unifiedPDFViewer);
-                console.log('  📊 Type de destroy:', typeof unifiedPDFViewer.destroy);
-                console.log('  📊 unifiedPDFViewer:', unifiedPDFViewer);
-
-                const destroyResult = await unifiedPDFViewer.destroy();
-                console.log('  ✅ destroy() terminé avec succès, résultat:', destroyResult);
+                await cleanPDFViewer.close();
+                console.log('  ✅ Lecteur PDF Clean fermé avec succès');
             } catch (error) {
-                console.error('  ❌ Erreur lors de destroy():', error);
-                console.error('  📊 Stack:', error.stack);
+                console.error('  ❌ Erreur lors de la fermeture:', error);
             }
 
-            console.log('  ✅ Lecteur PDF unifié nettoyé');
-
-            // IMPORTANT: Réinitialiser la variable pour permettre une nouvelle création
-            unifiedPDFViewer = null;
-            currentPDFUrl = null;
             return;
         }
 
@@ -6090,8 +6796,9 @@ function loadSeatingPlan() {
                 if (student) {
                     // Utiliser le format abrégé pour l'affichage
                     const displayName = formatStudentName(student.full_name);
-                    slot.innerHTML = `<div class="student-placed">${displayName}</div>`;
+                    slot.innerHTML = `<div class="student-placed" draggable="true" data-student-id="${student.id}">${displayName}</div>`;
                     slot.classList.add('occupied');
+                    slot.dataset.studentId = student.id;
                     console.log(`DEBUG lesson_view: Placed student ${displayName} (${student.full_name}) in slot`);
                 } else {
                     // Si l'étudiant n'est pas trouvé, laisser le slot vide
@@ -6106,11 +6813,14 @@ function loadSeatingPlan() {
     setTimeout(() => {
         adjustSeatingScale();
     }, 200);
-    
+
     // Initialiser l'état du système d'avertissements
     currentWarnings = {};
     warningHistory = [];
     updateUndoButton();
+
+    // Initialiser le drag-and-drop pour échanger les places
+    initializeDragAndDrop();
     
     // Observer les changements de taille du conteneur
     if (window.ResizeObserver) {
@@ -6205,6 +6915,247 @@ function handleSlotClick(elementId, slotIndex) {
     applyWarningStates();
     
     console.log(`Slot cliqué: ${elementId}, index: ${slotIndex}, niveau: ${nextLevel}`);
+}
+
+// Variables pour le drag-and-drop
+let draggedStudent = null;
+let sourceSlot = null;
+
+// Fonction pour initialiser le drag-and-drop
+function initializeDragAndDrop() {
+    const workspace = document.getElementById('seating-workspace');
+    if (!workspace) return;
+
+    // Ajouter les événements à tous les slots (occupés et vides)
+    const allSlots = workspace.querySelectorAll('.student-slot');
+    allSlots.forEach(slot => {
+        // Activer drag si le slot est occupé
+        if (slot.classList.contains('occupied')) {
+            enableDragOnSlot(slot);
+        }
+        // Activer drop sur tous les slots
+        enableDropOnSlot(slot);
+    });
+}
+
+// Activer le drag sur un slot occupé
+function enableDragOnSlot(slot) {
+    const studentElement = slot.querySelector('.student-placed');
+    if (!studentElement) return;
+
+    studentElement.addEventListener('dragstart', function(e) {
+        draggedStudent = {
+            id: this.dataset.studentId,
+            name: this.textContent
+        };
+        sourceSlot = slot;
+        this.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+        console.log('Drag started:', draggedStudent);
+    });
+
+    studentElement.addEventListener('dragend', function(e) {
+        this.style.opacity = '1';
+        // Retirer les classes de survol
+        document.querySelectorAll('.student-slot').forEach(s => {
+            s.classList.remove('drag-over');
+        });
+    });
+}
+
+// Activer le drop sur un slot (occupé ou vide)
+function enableDropOnSlot(slot) {
+    slot.addEventListener('dragover', function(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+        return false;
+    });
+
+    slot.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+
+    slot.addEventListener('drop', function(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        this.classList.remove('drag-over');
+
+        if (!draggedStudent || !sourceSlot) return false;
+
+        const targetSlot = this;
+
+        // Si on drop sur le slot source, ne rien faire
+        if (targetSlot === sourceSlot) {
+            return false;
+        }
+
+        // Cas 1: Drop sur un slot vide - déplacer l'étudiant
+        if (!targetSlot.classList.contains('occupied')) {
+            moveStudent(sourceSlot, targetSlot);
+        }
+        // Cas 2: Drop sur un slot occupé - échanger les étudiants
+        else {
+            swapStudents(sourceSlot, targetSlot);
+        }
+
+        // Réinitialiser
+        draggedStudent = null;
+        sourceSlot = null;
+
+        return false;
+    });
+}
+
+// Déplacer un étudiant vers un slot vide
+function moveStudent(fromSlot, toSlot) {
+    const studentElement = fromSlot.querySelector('.student-placed');
+    if (!studentElement) return;
+
+    const studentId = fromSlot.dataset.studentId;
+    const studentName = studentElement.textContent;
+
+    // Déplacer l'élément
+    toSlot.innerHTML = fromSlot.innerHTML;
+    toSlot.classList.add('occupied');
+    toSlot.dataset.studentId = studentId;
+
+    // Vider le slot source
+    fromSlot.innerHTML = '';
+    fromSlot.classList.remove('occupied');
+    delete fromSlot.dataset.studentId;
+
+    // Réactiver les événements
+    enableDragOnSlot(toSlot);
+    enableDropOnSlot(fromSlot);
+
+    console.log(`Déplacé ${studentName} vers un slot vide`);
+
+    // Sauvegarder les changements
+    saveSeatingChanges();
+}
+
+// Échanger deux étudiants
+function swapStudents(slot1, slot2) {
+    const student1Element = slot1.querySelector('.student-placed');
+    const student2Element = slot2.querySelector('.student-placed');
+
+    if (!student1Element || !student2Element) return;
+
+    const student1Id = slot1.dataset.studentId;
+    const student2Id = slot2.dataset.studentId;
+    const student1HTML = slot1.innerHTML;
+    const student2HTML = slot2.innerHTML;
+
+    // Échanger les contenus
+    slot1.innerHTML = student2HTML;
+    slot1.dataset.studentId = student2Id;
+
+    slot2.innerHTML = student1HTML;
+    slot2.dataset.studentId = student1Id;
+
+    // Réactiver les événements sur les deux slots
+    enableDragOnSlot(slot1);
+    enableDragOnSlot(slot2);
+    enableDropOnSlot(slot1);
+    enableDropOnSlot(slot2);
+
+    console.log(`Échangé ${student1Element.textContent} avec ${student2Element.textContent}`);
+
+    // Sauvegarder les changements
+    saveSeatingChanges();
+}
+
+// Sauvegarder les changements du plan de classe
+function saveSeatingChanges() {
+    const workspace = document.getElementById('seating-workspace');
+    if (!workspace) return;
+
+    // Construire les données du plan
+    const elements = [];
+    const studentsPlacement = [];
+
+    // Récupérer tous les éléments (tables, bureau prof, etc.)
+    workspace.querySelectorAll('.seating-element').forEach(element => {
+        const elementId = element.dataset.elementId;
+        const x = parseFloat(element.style.left) || 0;
+        const y = parseFloat(element.style.top) || 0;
+
+        let type = 'desk-single';
+        if (element.classList.contains('desk-double')) type = 'desk-double';
+        if (element.classList.contains('teacher-desk')) type = 'teacher-desk';
+
+        elements.push({
+            id: elementId,
+            type: type,
+            x: x,
+            y: y
+        });
+
+        // Récupérer les placements d'étudiants
+        const slots = element.querySelectorAll('.student-slot');
+        slots.forEach((slot, index) => {
+            if (slot.classList.contains('occupied') && slot.dataset.studentId) {
+                const studentId = parseInt(slot.dataset.studentId);
+                const student = studentsData.find(s => s.id === studentId);
+
+                if (student) {
+                    studentsPlacement.push({
+                        element_id: elementId,
+                        slot_index: index,
+                        student_id: studentId,
+                        student_name: student.full_name
+                    });
+                }
+            }
+        });
+    });
+
+    const planData = {
+        elements: elements,
+        students_placement: studentsPlacement
+    };
+
+    // Récupérer l'ID de la classe depuis les variables globales
+    {% if lesson_classroom %}
+    const classroomId = {{ lesson_classroom.id }};
+    {% else %}
+    const classroomId = null;
+    {% endif %}
+
+    if (!classroomId) {
+        console.error('Impossible de sauvegarder: ID de classe non disponible');
+        return;
+    }
+
+    // Envoyer au serveur
+    fetch('/planning/save-seating-plan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            classroom_id: classroomId,
+            plan_data: planData,
+            name: 'Plan par défaut'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Plan de classe sauvegardé avec succès');
+            // Notification visuelle discrète (optionnelle)
+        } else {
+            console.error('Erreur lors de la sauvegarde:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur réseau:', error);
+    });
 }
 
 // Fonction pour ajuster l'échelle du plan pour qu'il s'adapte au conteneur
@@ -6339,6 +7290,267 @@ function adjustSeatingScale() {
 #planningForm textarea.form-control {
     resize: vertical;
     min-height: 120px;
+}
+
+/* Styles pour l'autocomplétion des mémos */
+.memo-autocomplete {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.375rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 300px;
+}
+
+.memo-autocomplete-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #F3F4F6;
+    transition: background-color 0.15s;
+}
+
+.memo-autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.memo-autocomplete-item:hover, .memo-autocomplete-item.selected {
+    background-color: #F3F4F6;
+}
+
+.memo-autocomplete-item.header {
+    background-color: #F9FAFB;
+    font-weight: 600;
+    color: #374151;
+    cursor: default;
+    padding: 0.5rem 1rem;
+}
+
+.memo-autocomplete-item.header:hover {
+    background-color: #F9FAFB;
+}
+
+.memo-autocomplete-student {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.memo-autocomplete-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.memo-autocomplete-name {
+    flex: 1;
+}
+
+/* Liste des mémos/remarques */
+.memos-list-container {
+    margin-top: 1rem;
+}
+
+.memo-item, .remark-item {
+    background: #F9FAFB;
+    border-left: 4px solid #3B82F6;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    transition: all 0.2s;
+}
+
+.remark-item {
+    border-left-color: #8B5CF6;
+}
+
+.memo-item:hover, .remark-item:hover {
+    background: #F3F4F6;
+    transform: translateX(2px);
+}
+
+.memo-content {
+    flex: 1;
+}
+
+.memo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.memo-type-badge {
+    background: #3B82F6;
+    color: white;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.remark-item .memo-type-badge {
+    background: #8B5CF6;
+}
+
+.memo-student-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.memo-date {
+    color: #6B7280;
+    font-size: 0.875rem;
+}
+
+.memo-text {
+    color: #374151;
+    margin-top: 0.25rem;
+}
+
+.memo-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.memo-action-btn {
+    background: none;
+    border: none;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.memo-action-btn:hover {
+    background: #E5E7EB;
+    color: #374151;
+}
+
+.memo-action-btn.delete:hover {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+/* Nouveaux styles pour les boutons d'action mémo/remarque */
+.memos-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.btn-memo, .btn-remark {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid #D1D5DB;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-memo:hover {
+    background: #DBEAFE;
+    border-color: #3B82F6;
+    color: #1E40AF;
+}
+
+.btn-remark:hover {
+    background: #EDE9FE;
+    border-color: #8B5CF6;
+    color: #6D28D9;
+}
+
+/* Formulaire de création */
+.memo-form {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-radius: 0.5rem;
+    border: 1px solid #E5E7EB;
+}
+
+.memo-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.memo-form .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.memo-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.memo-form-actions button {
+    flex: 1;
+}
+
+/* Tags d'élèves sélectionnés */
+.selected-students {
+    margin-top: 1rem;
+}
+
+.selected-students-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.student-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #EDE9FE;
+    color: #6D28D9;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.remove-student {
+    background: none;
+    border: none;
+    color: #6D28D9;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.remove-student:hover {
+    background: #DDD6FE;
 }
 
 .form-actions {
@@ -6852,12 +8064,26 @@ function adjustSeatingScale() {
     overflow: visible;
     text-overflow: unset;
     padding: 0 2px;
+    cursor: move;
+    cursor: grab;
+}
+
+.student-placed:active {
+    cursor: grabbing;
 }
 
 .student-not-found {
     color: #dc3545 !important;
     font-style: italic;
     opacity: 0.7;
+}
+
+/* Effet de drag-and-drop */
+.student-slot.drag-over {
+    background-color: #e3f2fd !important;
+    border: 2px dashed #2196F3 !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
 }
 
 /* Vue côte-à-côte pour édition de planification avec visualisation PDF */
@@ -7361,6 +8587,7 @@ function adjustSeatingScale() {
     left: 0;
     border-radius: 0.5rem;
     pointer-events: auto;
+    touch-action: none;
     z-index: 2;
 }
 
@@ -7391,6 +8618,7 @@ function adjustSeatingScale() {
     width: 100%;
     height: 100%;
     pointer-events: auto;
+    touch-action: none;
 }
 
 /* États des boutons */
@@ -7837,28 +9065,27 @@ body .thumbnail-canvas {
 
 <!-- Simple Pen Annotation System - Chargé après perfect-freehand -->
 <script>
-    // Attendre que perfect-freehand soit chargé avant de charger le système d'annotation
+    // Charger le nouveau système d'annotation optimisé (ne nécessite plus perfect-freehand)
     function loadAnnotationEngine() {
-        if (window.perfectFreehandReady) {
-            const script = document.createElement('script');
-            script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
-            document.head.appendChild(script);
-        } else {
-            window.addEventListener('perfectFreehandLoaded', function() {
-                const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/simple-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
-                document.head.appendChild(script);
-            }, { once: true });
-        }
+        const script = document.createElement('script');
+        script.src = "{{ url_for('static', filename='js/optimized-pen-annotation.js') }}?v=3.0.0&cache_bust={{ range(1000000, 9999999) | random }}";
+        script.onload = function() {
+            console.log('✨ Système d\'annotation optimisé chargé avec succès');
+        };
+        document.head.appendChild(script);
     }
     loadAnnotationEngine();
 </script>
 
-<!-- Lecteur PDF Unifié -->
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=2.0.1&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<!-- Système de mémos et remarques -->
+<script src="{{ url_for('static', filename='js/lesson-memos.js') }}?cache_bust={{ range(1000000, 9999999) | random }}"></script>
+
+<!-- Nouveau Lecteur PDF Clean -->
+<script src="{{ url_for('static', filename='js/clean-pdf-tools.js') }}?v=5.5.3&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.3&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 <script>
-// Variables globales pour le lecteur PDF unifié
-let unifiedPDFViewer = null;
+// Variables globales pour le lecteur PDF
+let cleanPDFViewer = null;
 let currentPDFUrl = null;
 
 // Données des étudiants (définies globalement pour le PDF viewer)
@@ -7866,9 +9093,9 @@ let studentsData = [
     {% for student in students %}
     {
         id: {{ student.id }},
-        first_name: "{{ student.first_name }}",
-        last_name: "{{ student.last_name or '' }}",
-        full_name: "{{ student.full_name }}"
+        first_name: {{ student.first_name | tojson }},
+        last_name: {{ (student.last_name or '') | tojson }},
+        full_name: {{ student.full_name | tojson }}
     }{% if not loop.last %},{% endif %}
     {% endfor %}
 ];
@@ -7876,15 +9103,57 @@ let studentsData = [
 // Fonction pour ouvrir un fichier avec le nouveau lecteur unifié
 function openFileWithUnifiedViewer(filePath, fileName) {
     console.log('🎯 Ouverture avec le lecteur unifié:', fileName);
-    
-    // Afficher la modal
-    const modal = document.getElementById('fileViewerModal');
+
+    // Vérifier et obtenir la modal parente d'abord
+    // Utiliser querySelector directement car c'est plus fiable
+    let modal = document.querySelector('.file-viewer-modal');
+    console.log('🔍 Modal trouvée (querySelector):', modal);
+
+    // Fallback sur getElementById si querySelector ne fonctionne pas
     if (!modal) {
-        console.error('Modal fileViewerModal non trouvée');
+        modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée (getElementById):', modal);
+    }
+
+    if (!modal) {
+        console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
+        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
         return;
     }
-    
-    modal.style.display = 'block';
+
+    // Afficher la modal d'abord
+    modal.style.display = 'flex';
+
+    // Maintenant chercher le container à l'intérieur de la modal
+    let viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    console.log('🔍 Container trouvé:', viewerContainer);
+
+    if (!viewerContainer) {
+        console.warn('⚠️ Container non trouvé par ID, recherche dans la modal...');
+        // Chercher le container dans la modal
+        viewerContainer = modal.querySelector('#unified-pdf-viewer-container');
+        if (!viewerContainer) {
+            console.error('❌ Container toujours introuvable, tentative de recréation...');
+            // Essayer de recréer le container
+            const wrapper = modal.querySelector('.unified-pdf-viewer-wrapper');
+            if (wrapper) {
+                console.log('🔧 Wrapper trouvé, recréation du container...');
+                viewerContainer = document.createElement('div');
+                viewerContainer.id = 'unified-pdf-viewer-container';
+                wrapper.appendChild(viewerContainer);
+                console.log('✅ Container recréé avec succès');
+            } else {
+                console.error('❌ Wrapper introuvable, impossible de recréer le container');
+                alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                modal.style.display = 'none';
+                return;
+            }
+        } else {
+            console.log('✅ Container trouvé dans la modal via querySelector');
+        }
+    }
+
+    viewerContainer.style.display = 'block';
     document.body.style.overflow = 'hidden';
     
     // Vérifier la disponibilité des données des élèves
@@ -7919,55 +9188,552 @@ function openFileWithUnifiedViewer(filePath, fileName) {
     } catch (error) {
         console.warn('Erreur lors de la récupération du plan de classe:', error);
     }
-    
-    // Créer l'instance du lecteur unifié s'il n'existe pas
-    if (!unifiedPDFViewer) {
+
+    // Le viewerContainer est déjà défini et affiché au début de la fonction (ligne 8977)
+    // Pas besoin de le redéclarer ici
+
+    // Créer l'instance du nouveau lecteur clean s'il n'existe pas
+    if (!cleanPDFViewer) {
         try {
-            unifiedPDFViewer = new UnifiedPDFViewer('unified-pdf-viewer-container', {
-                mode: 'teacher',
-                enableKeyboardShortcuts: true,
-                enableTouchGestures: true,
-                autoSave: true,
-                saveDelay: 3000,
-                debug: true,
-                studentData: studentsData, // Utiliser les données globales des élèves
-                sanctionsData: sanctionsData,
-                seatingPlanHTML: seatingPlanHTML,
-                apiEndpoints: {
-                    saveAnnotations: '/file_manager/api/save-annotations',
-                    loadAnnotations: '/file_manager/api/load-annotations',
-                    search: '/api/search-pdf'
+            // Préparer l'URL du PDF
+            const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+            currentPDFUrl = pdfUrl;
+
+            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                fileId: filePath, // Utiliser filePath comme ID pour les annotations
+                pdfUrl: pdfUrl,
+                showSidebar: true,
+                enableAnnotations: true,
+                autoSaveInterval: 5000,
+                studentData: studentsData, // Données des élèves
+                onClose: () => {
+                    if (viewerContainer) {
+                        viewerContainer.style.display = 'none';
+                    }
+                    // Masquer la modal parente
+                    const modalToClose = document.getElementById('fileViewerModal');
+                    if (modalToClose) {
+                        modalToClose.style.display = 'none';
+                    }
+                    document.body.style.overflow = '';
+                    cleanPDFViewer = null;
+                    currentPDFUrl = null;
                 }
             });
-            console.log('✅ Lecteur PDF unifié créé avec données des élèves');
+
+            console.log('✅ Nouveau lecteur PDF Clean créé');
         } catch (error) {
             console.error('❌ Erreur lors de la création du lecteur:', error);
+            alert('Erreur lors de la création du lecteur PDF: ' + error.message);
             return;
         }
+    } else {
+        // Si le viewer existe déjà, charger le nouveau PDF
+        const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+        currentPDFUrl = pdfUrl;
+
+        cleanPDFViewer.loadPDF(pdfUrl)
+            .catch(error => {
+                console.error('❌ Erreur lors du chargement du PDF:', error);
+                alert('Erreur lors du chargement du PDF: ' + error.message);
+            });
     }
-    
-    // Charger le PDF en utilisant la même URL que l'ancien système
-    const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
-    currentPDFUrl = pdfUrl;
-    
-    // Passer filePath comme fileId pour permettre le chargement des annotations
-    unifiedPDFViewer.loadPDF(pdfUrl, filePath)
-        .then(() => {
-            console.log('✅ PDF chargé avec succès dans le lecteur unifié');
-        })
-        .catch(error => {
-            console.error('❌ Erreur lors du chargement du PDF:', error);
-            alert('Erreur lors du chargement du PDF: ' + error.message);
-        });
 }
 
 // closeFileViewer() est défini plus haut dans le fichier (ligne ~5354)
 // Ne pas dupliquer la fonction ici
 
+// ============================================================================
+// GESTION DES FEUILLES BLANCHES
+// ============================================================================
+
+/**
+ * Affiche le menu de sélection des feuilles blanches
+ */
+async function showBlankSheetsMenu() {
+    const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") if lesson_date else "" }}';
+    const periodNumber = {{ lesson.period_number if lesson else 0 }};
+    const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
+
+    if (!lessonDate || !periodNumber) {
+        alert('Informations de leçon manquantes');
+        return;
+    }
+
+    try {
+        // Charger les feuilles blanches existantes
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${lessonDate}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            console.error('Erreur chargement feuilles blanches:', data.error);
+            // Créer directement une nouvelle feuille en cas d'erreur
+            openNewBlankSheet(lessonDate, periodNumber, classroomId);
+            return;
+        }
+
+        if (data.sheets.length === 0) {
+            // Aucune feuille existante, créer directement
+            openNewBlankSheet(lessonDate, periodNumber, classroomId);
+        } else {
+            // Afficher menu de sélection
+            displayBlankSheetsMenu(data.sheets, lessonDate, periodNumber, classroomId);
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des feuilles blanches:', error);
+        // Créer directement une nouvelle feuille en cas d'erreur
+        openNewBlankSheet(lessonDate, periodNumber, classroomId);
+    }
+}
+
+/**
+ * Affiche un menu pour sélectionner ou créer une feuille blanche
+ */
+function displayBlankSheetsMenu(sheets, lessonDate, periodNumber, classroomId) {
+    // Supprimer menu existant si présent
+    const existingMenu = document.querySelector('.blank-sheets-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    // Créer le menu
+    const menu = document.createElement('div');
+    menu.className = 'blank-sheets-menu';
+    menu.innerHTML = `
+        <div class="menu-header">
+            <h4>Feuilles blanches de la leçon</h4>
+            <button class="close-menu-btn">×</button>
+        </div>
+        <div class="menu-list">
+            ${sheets.map(sheet => `
+                <div class="sheet-item" data-sheet-id="${sheet.id}">
+                    <i class="fas fa-file"></i>
+                    <div class="sheet-info">
+                        <span class="sheet-title">${sheet.title}</span>
+                        <small class="sheet-date">${formatDateTime(sheet.created_at)}</small>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-primary new-sheet-btn">
+            <i class="fas fa-plus"></i> Nouvelle feuille
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Attacher les event listeners après l'ajout au DOM
+    const closeBtn = menu.querySelector('.close-menu-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            menu.remove();
+        });
+    }
+
+    // Event listeners pour les feuilles existantes
+    menu.querySelectorAll('.sheet-item').forEach(item => {
+        const sheetId = parseInt(item.dataset.sheetId);
+        item.addEventListener('click', () => {
+            console.log('🖱️ Click menu: Ouverture feuille', sheetId);
+            menu.remove(); // Fermer le menu d'abord
+            openExistingBlankSheet(sheetId); // Puis ouvrir la feuille
+        });
+    });
+
+    // Event listener pour le bouton nouvelle feuille
+    const newSheetBtn = menu.querySelector('.new-sheet-btn');
+    if (newSheetBtn) {
+        newSheetBtn.addEventListener('click', () => {
+            console.log('🖱️ Click menu: Nouvelle feuille');
+            menu.remove(); // Fermer le menu d'abord
+            openNewBlankSheet(lessonDate, periodNumber, classroomId); // Puis créer nouvelle feuille
+        });
+    }
+}
+
+/**
+ * Ouvre le viewer pour créer une nouvelle feuille blanche
+ */
+function openNewBlankSheet(lessonDate, periodNumber, classroomId) {
+    console.log('📄 Création nouvelle feuille blanche');
+
+    // Vérifier et obtenir la modal parente d'abord
+    // Utiliser querySelector directement car c'est plus fiable
+    let modal = document.querySelector('.file-viewer-modal');
+    console.log('🔍 Modal trouvée (querySelector):', modal);
+
+    // Fallback sur getElementById si querySelector ne fonctionne pas
+    if (!modal) {
+        modal = document.getElementById('fileViewerModal');
+        console.log('🔍 Modal trouvée (getElementById):', modal);
+    }
+
+    if (!modal) {
+        console.error('❌ Impossible de trouver la modal avec querySelector et getElementById');
+        alert('Erreur: La modal de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+        return;
+    }
+
+    // Afficher la modal d'abord
+    modal.style.display = 'flex';
+
+    // Maintenant chercher le container à l'intérieur de la modal
+    let viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    console.log('🔍 Container trouvé:', viewerContainer);
+
+    if (!viewerContainer) {
+        console.warn('⚠️ Container non trouvé par ID, recherche dans la modal...');
+        // Chercher le container dans la modal
+        viewerContainer = modal.querySelector('#unified-pdf-viewer-container');
+        if (!viewerContainer) {
+            console.error('❌ Container toujours introuvable, tentative de recréation...');
+            // Essayer de recréer le container
+            const wrapper = modal.querySelector('.unified-pdf-viewer-wrapper');
+            if (wrapper) {
+                console.log('🔧 Wrapper trouvé, recréation du container...');
+                viewerContainer = document.createElement('div');
+                viewerContainer.id = 'unified-pdf-viewer-container';
+                wrapper.appendChild(viewerContainer);
+                console.log('✅ Container recréé avec succès');
+            } else {
+                console.error('❌ Wrapper introuvable, impossible de recréer le container');
+                alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                modal.style.display = 'none';
+                return;
+            }
+        } else {
+            console.log('✅ Container trouvé dans la modal via querySelector');
+        }
+    }
+
+    viewerContainer.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Vérifier la disponibilité des données des élèves
+    if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
+        console.warn("studentsData non défini, utilisation d'un tableau vide");
+        studentsData = [];
+    }
+
+    // Détruire le viewer existant s'il y en a un
+    if (cleanPDFViewer) {
+        console.log('🔄 Destruction du viewer existant...');
+        try {
+            cleanPDFViewer.destroy();
+        } catch (e) {
+            console.warn('Erreur lors de la destruction du viewer:', e);
+        }
+        cleanPDFViewer = null;
+    }
+
+    try {
+        cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+            blankSheetId: null,  // Nouvelle feuille
+                lessonDate: lessonDate,
+                periodNumber: periodNumber,
+                classroomId: classroomId,
+                title: 'Feuille blanche',
+                pdfUrl: null,
+                showSidebar: true,
+                enableAnnotations: true,
+                autoSaveInterval: 5000,
+                studentData: studentsData,
+                onClose: () => {
+                    // Fermer la modal si elle existe
+                    const modalToClose = document.getElementById('fileViewerModal');
+                    if (modalToClose) {
+                        modalToClose.style.display = 'none';
+                    }
+
+                    // Fermer le container
+                    const containerToClose = document.getElementById('unified-pdf-viewer-container');
+                    if (containerToClose) {
+                        containerToClose.style.display = 'none';
+                    }
+
+                    document.body.style.overflow = '';
+                    cleanPDFViewer = null;
+
+                    // Recharger la liste des ressources pour afficher la nouvelle feuille
+                    loadClassResources();
+                }
+            });
+
+        console.log('✅ Nouvelle feuille blanche créée');
+    } catch (error) {
+        console.error('❌ Erreur lors de la création du viewer:', error);
+        alert('Erreur lors de la création du viewer: ' + error.message);
+        return;
+    }
+}
+
+/**
+ * Ouvre une feuille blanche existante
+ */
+async function openExistingBlankSheet(sheetId) {
+    console.log('📄 Ouverture feuille blanche:', sheetId);
+
+    try {
+        // Charger les données de la feuille
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Erreur lors du chargement de la feuille: ' + (data.message || 'Erreur inconnue'));
+            return;
+        }
+
+        const sheet = data.sheet;
+        console.log('📋 Données de la feuille chargées:', sheet);
+
+        // Attendre que tous les scripts et événements en cours soient terminés
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Vérifier et obtenir la modal parente d'abord
+        // Essayer plusieurs méthodes pour trouver la modal
+        let modal = document.querySelector('.file-viewer-modal');
+        console.log('🔍 Modal trouvée (querySelector):', modal);
+
+        if (!modal) {
+            modal = document.getElementById('fileViewerModal');
+            console.log('🔍 Modal trouvée (getElementById):', modal);
+        }
+
+        // Si toujours pas trouvée, chercher dans tout le document
+        if (!modal) {
+            console.warn('⚠️ Modal non trouvée, recherche exhaustive...');
+            const allDivs = document.querySelectorAll('div');
+            for (const div of allDivs) {
+                if (div.id === 'fileViewerModal' || div.classList.contains('file-viewer-modal')) {
+                    modal = div;
+                    console.log('✅ Modal trouvée via recherche exhaustive');
+                    break;
+                }
+            }
+        }
+
+        if (!modal) {
+            console.error('❌ Modal introuvable après recherche exhaustive');
+            console.error('📊 État du DOM:', {
+                body: document.body ? 'existe' : 'null',
+                childElementCount: document.body ? document.body.childElementCount : 0,
+                allModals: document.querySelectorAll('[id*="modal"]').length,
+                allViewers: document.querySelectorAll('[id*="viewer"]').length
+            });
+            alert('Erreur: La modal de visualisation n\'existe pas dans le DOM.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+            return;
+        }
+
+        // Afficher la modal d'abord
+        modal.style.display = 'flex';
+
+        // Maintenant chercher le container à l'intérieur de la modal
+        let viewerContainer = document.getElementById('unified-pdf-viewer-container');
+        console.log('🔍 Container trouvé:', viewerContainer);
+
+        if (!viewerContainer) {
+            console.warn('⚠️ Container non trouvé par ID, recherche dans la modal...');
+            // Chercher le container dans la modal
+            viewerContainer = modal.querySelector('#unified-pdf-viewer-container');
+            if (!viewerContainer) {
+                console.error('❌ Container toujours introuvable, tentative de recréation...');
+                // Essayer de recréer le container
+                const wrapper = modal.querySelector('.unified-pdf-viewer-wrapper');
+                if (wrapper) {
+                    console.log('🔧 Wrapper trouvé, recréation du container...');
+                    viewerContainer = document.createElement('div');
+                    viewerContainer.id = 'unified-pdf-viewer-container';
+                    wrapper.appendChild(viewerContainer);
+                    console.log('✅ Container recréé avec succès');
+                } else {
+                    console.error('❌ Wrapper introuvable, impossible de recréer le container');
+                    alert('Erreur: Le container de visualisation n\'existe pas.\n\nVeuillez recharger la page (Ctrl/Cmd+R).');
+                    modal.style.display = 'none';
+                    return;
+                }
+            } else {
+                console.log('✅ Container trouvé dans la modal via querySelector');
+            }
+        }
+
+        viewerContainer.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+
+        // Vérifier la disponibilité des données des élèves
+        if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
+            console.warn("studentsData non défini, utilisation d'un tableau vide");
+            window.studentsData = [];
+        }
+
+        // Détruire le viewer existant s'il y en a un
+        if (window.cleanPDFViewer) {
+            console.log('🔄 Destruction du viewer existant...');
+            try {
+                window.cleanPDFViewer.destroy();
+            } catch (e) {
+                console.warn('Erreur lors de la destruction du viewer:', e);
+            }
+            window.cleanPDFViewer = null;
+        }
+
+        try {
+            console.log('🚀 Création du CleanPDFViewer avec blankSheetId:', sheet.id);
+            window.cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                    blankSheetId: sheet.id,
+                    lessonDate: sheet.lesson_date,
+                    periodNumber: sheet.period_number,
+                    classroomId: sheet.classroom_id,
+                    title: sheet.title,
+                    pdfUrl: null,
+                    showSidebar: true,
+                    enableAnnotations: true,
+                    autoSaveInterval: 5000,
+                    studentData: window.studentsData,
+                    onClose: () => {
+                        console.log('🔒 Fermeture du viewer');
+
+                        // Fermer la modal si elle existe
+                        const modalToClose = document.getElementById('fileViewerModal');
+                        if (modalToClose) {
+                            modalToClose.style.display = 'none';
+                        }
+
+                        // Fermer le container
+                        const containerToClose = document.getElementById('unified-pdf-viewer-container');
+                        if (containerToClose) {
+                            containerToClose.style.display = 'none';
+                        }
+
+                        document.body.style.overflow = '';
+                        window.cleanPDFViewer = null;
+
+                        // Recharger la liste des ressources pour afficher les modifications
+                        loadClassResources();
+                    }
+                });
+
+            console.log('✅ Feuille blanche chargée');
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement du viewer:', error);
+            alert('Erreur lors du chargement du viewer: ' + error.message);
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+            return;
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement de la feuille blanche:', error);
+        alert('Erreur lors du chargement de la feuille blanche: ' + error.message);
+    }
+}
+
+/**
+ * Formate une date ISO en format lisible
+ */
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+
+/**
+ * Supprime une feuille blanche
+ */
+async function deleteBlankSheet(sheetId) {
+    console.log('🗑️ Suppression feuille blanche:', sheetId);
+
+    // Confirmer la suppression
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Feuille blanche supprimée');
+            // Recharger la liste des ressources
+            await loadClassResources();
+        } else {
+            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la feuille blanche:', error);
+        alert('Erreur lors de la suppression de la feuille blanche');
+    }
+}
+
+// Fonction pour ouvrir le viewer avec des pages blanches (LEGACY - gardée pour compatibilité)
+function openBlankPages() {
+    console.log('📄 Ouverture du viewer avec des pages blanches');
+
+    // Afficher la modal
+    const modal = document.getElementById('fileViewerModal');
+    if (!modal) {
+        console.error('Modal fileViewerModal non trouvée');
+        return;
+    }
+
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Vérifier la disponibilité des données des élèves
+    if (typeof studentsData === 'undefined' || !Array.isArray(studentsData)) {
+        console.warn("studentsData non défini, utilisation d'un tableau vide");
+        studentsData = [];
+    }
+
+    // Afficher le container du viewer
+    const viewerContainer = document.getElementById('unified-pdf-viewer-container');
+    if (viewerContainer) {
+        viewerContainer.style.display = 'block';
+    }
+
+    // Créer un ID spécial pour les pages blanches basé sur la leçon actuelle
+    {% if lesson %}
+    const blankPagesId = 'blank_lesson_{{ lesson.id }}';
+    {% else %}
+    const blankPagesId = 'blank_lesson_new';
+    {% endif %}
+
+    // Créer l'instance du viewer pour pages blanches
+    if (!cleanPDFViewer) {
+        try {
+            cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                fileId: blankPagesId, // ID spécial pour sauvegarder les pages blanches
+                pdfUrl: null, // Pas de PDF à charger
+                showSidebar: true,
+                enableAnnotations: true,
+                autoSaveInterval: 5000,
+                studentData: studentsData,
+                onClose: () => {
+                    if (viewerContainer) {
+                        viewerContainer.style.display = 'none';
+                    }
+                    cleanPDFViewer = null;
+                }
+            });
+
+            console.log('✅ Viewer avec pages blanches créé, ID:', blankPagesId);
+        } catch (error) {
+            console.error('❌ Erreur lors de la création du viewer:', error);
+            alert('Erreur lors de la création du viewer: ' + error.message);
+            return;
+        }
+    } else {
+        console.warn('Le viewer est déjà ouvert. Fermez-le d\'abord.');
+    }
+}
+
 // Fonction modifiée pour ouvrir les fichiers (remplace l'ancienne fonction openFile)
 function openFile(filePath, fileName, fileType) {
     console.log('📁 Ouverture du fichier:', fileName, 'Type:', fileType);
-    
+
     if (fileType === 'pdf') {
         // Utiliser le nouveau lecteur unifié pour les PDF
         openFileWithUnifiedViewer(filePath, fileName);
@@ -7994,5 +9760,723 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAttendanceButtons({{ student.id }});
     {% endfor %}
 });
+</script>
+{% endif %}
+
+<!-- Modal ajout ressource -->
+<div id="add-resource-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:16px;padding:1.5rem;max-width:600px;width:90%;max-height:85vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h3 style="margin:0;font-size:1.1rem;"><i class="fas fa-plus-circle" style="color:#10b981;"></i> Ajouter une ressource</h3>
+            <button onclick="closeAddResourceModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Onglets -->
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;">
+            <button id="tab-files-btn" onclick="switchResourceTab('files')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid #10b981;color:#10b981;transition:all 0.2s;">
+                <i class="fas fa-folder-open"></i> Fichiers de classe
+            </button>
+            <button id="tab-exercises-btn" onclick="switchResourceTab('exercises')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;color:#9ca3af;transition:all 0.2s;">
+                <i class="fas fa-gamepad"></i> Exercices
+            </button>
+        </div>
+
+        <!-- Contenu des onglets (scrollable) -->
+        <div style="flex:1;overflow-y:auto;padding-right:0.5rem;">
+            <!-- Onglet Fichiers -->
+            <div id="resource-files-tab" style="display:block;">
+                {% if lesson_classroom %}
+                <div id="class-files-tree-container" style="min-height:100px;">
+                    <div style="text-align:center;padding:2rem;color:#9ca3af;">
+                        <i class="fas fa-spinner fa-spin"></i> Chargement des fichiers...
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
+                    Aucune classe sélectionnée
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Onglet Exercices -->
+            <div id="resource-exercises-tab" style="display:none;">
+                {% if user_exercises %}
+                <div id="exercises-list-container">
+                    {% for ex in user_exercises %}
+                    <div class="resource-item" onclick="addExerciseToPlanning({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
+                        <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
+                        <div style="flex:1;">
+                            <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
+                            <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
+                        </div>
+                        <span style="background:#f0fdf4;color:#10b981;padding:0.3rem 0.6rem;border-radius:6px;font-size:0.7rem;font-weight:600;">Non publié</span>
+                        <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;"></i>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
+                    Aucun exercice disponible
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal choix du mode (classique vs combat) -->
+<div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
+
+        <!-- Option Classique -->
+        <div id="mode-classique-btn" onclick="selectMode('classique')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:0.75rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
+                        Les élèves font l'exercice à leur rythme. Pas de suivi en direct.
+                    </div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <!-- Option Combat -->
+        <div id="mode-combat-btn" onclick="selectMode('combat')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">
+                        Mission en direct ! Suivez la progression de chaque élève en temps réel.
+                    </div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <button id="launch-exercise-btn" onclick="launchExercise()" disabled
+                style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
+            <i class="fas fa-play"></i> Lancer la mission
+        </button>
+    </div>
+</div>
+
+<!-- Modal suivi en direct (combat) -->
+<div id="tracking-modal" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(15,12,41,0.95);backdrop-filter:blur(8px);overflow-y:auto;">
+    <div style="max-width:700px;margin:1rem auto;padding:1rem;">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div>
+                <h2 id="tracking-title" style="margin:0;color:white;font-size:1.2rem;"></h2>
+                <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
+            </div>
+            <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-times"></i> Fermer
+            </button>
+        </div>
+
+        <!-- Stats résumé -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+            </div>
+        </div>
+
+        <!-- Liste des élèves -->
+        <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+
+        <!-- Bouton ouvrir arène RPG (visible uniquement en mode combat) -->
+        <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
+                <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
+                </div>
+                <button id="open-arena-btn" onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
+                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                </button>
+            </div>
+        </div>
+
+        <!-- Bouton arrêter -->
+        <div style="text-align:center;margin-top:1.5rem;">
+            <button id="stop-mission-btn" onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-stop-circle"></i> Arrêter la mission
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// Ajout ressource (NOUVEAU SYSTÈME)
+// ============================================================
+function showAddResourceModal() {
+    document.getElementById('add-resource-modal').style.display = 'flex';
+    // Initialiser sur l'onglet des fichiers
+    switchResourceTab('files');
+    {% if lesson_classroom %}
+    loadClassFilesTree({{ lesson_classroom.id }});
+    {% endif %}
+}
+
+function closeAddResourceModal() {
+    document.getElementById('add-resource-modal').style.display = 'none';
+}
+
+function switchResourceTab(tabName) {
+    // Masquer tous les onglets
+    document.getElementById('resource-files-tab').style.display = 'none';
+    document.getElementById('resource-exercises-tab').style.display = 'none';
+
+    // Réinitialiser les styles des boutons
+    document.getElementById('tab-files-btn').style.borderBottomColor = 'transparent';
+    document.getElementById('tab-files-btn').style.color = '#9ca3af';
+    document.getElementById('tab-exercises-btn').style.borderBottomColor = 'transparent';
+    document.getElementById('tab-exercises-btn').style.color = '#9ca3af';
+
+    // Afficher l'onglet demandé et modifier le style du bouton
+    if (tabName === 'files') {
+        document.getElementById('resource-files-tab').style.display = 'block';
+        document.getElementById('tab-files-btn').style.borderBottomColor = '#10b981';
+        document.getElementById('tab-files-btn').style.color = '#10b981';
+    } else {
+        document.getElementById('resource-exercises-tab').style.display = 'block';
+        document.getElementById('tab-exercises-btn').style.borderBottomColor = '#667eea';
+        document.getElementById('tab-exercises-btn').style.color = '#667eea';
+    }
+}
+
+{% if lesson_classroom %}
+async function loadClassFilesTree(classroomId) {
+    const container = document.getElementById('class-files-tree-container');
+    try {
+        const res = await fetch(`/planning/get-class-resources/${classroomId}`);
+        const data = await res.json();
+
+        if (data.success) {
+            // Combiner fichiers épinglés et normaux
+            const allFiles = [...(data.pinned_files || []), ...(data.files || [])];
+
+            if (allFiles.length > 0) {
+                // Organiser par dossiers
+                const filesByFolder = {};
+                allFiles.forEach(file => {
+                    const folder = file.folder_path || 'Racine';
+                    if (!filesByFolder[folder]) {
+                        filesByFolder[folder] = [];
+                    }
+                    filesByFolder[folder].push(file);
+                });
+
+                // Créer l'HTML de l'arborescence
+                let html = '';
+                Object.keys(filesByFolder).sort().forEach(folder => {
+                    html += `<div style="margin-bottom:1rem;">
+                        <div style="font-weight:600;font-size:0.85rem;color:#374151;padding:0.5rem 0;border-bottom:1px solid #e5e7eb;margin-bottom:0.5rem;">
+                            <i class="fas fa-folder" style="color:#f59e0b;margin-right:0.3rem;"></i> ${folder}
+                        </div>`;
+
+                    filesByFolder[folder].forEach(file => {
+                        if (file.is_exercise) {
+                            html += `<div style="padding:0.6rem 0.8rem;border:1px solid #c7d2fe;border-left:3px solid #667eea;border-radius:8px;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.6rem;background:#f5f3ff;">
+                                <i class="fas fa-gamepad" style="color:#667eea;"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                        <span style="background:#eef2ff;color:#4338ca;font-size:0.55rem;font-weight:700;padding:0.1rem 0.2rem;border-radius:3px;margin-right:0.2rem;">EXERCICE</span>
+                                        ${file.original_filename}
+                                    </div>
+                                    <div style="font-size:0.7rem;color:#6b7280;">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
+                                </div>
+                            </div>`;
+                        } else {
+                            const icon = getFileIcon(file.file_type);
+                            const iconColor = getFileIconColor(file.file_type);
+                            html += `<div onclick="addFileResourceToPlanning(${file.id}, '${file.original_filename.replace(/'/g, "\\'")}', '${file.file_type}')" style="padding:0.6rem 0.8rem;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:0.4rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;hover:background:#f9fafb;">
+                                <i class="fas fa-${icon}" style="color:${iconColor};"></i>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
+                                </div>
+                                <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
+                            </div>`;
+                        }
+                    });
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">Aucun fichier dans cette classe</div>';
+            }
+        } else {
+            container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement</div>';
+        }
+    } catch(e) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444;">Erreur de chargement: ' + e.message + '</div>';
+        console.error('Erreur loadClassFilesTree:', e);
+    }
+}
+
+function getFileIcon(fileType) {
+    if (!fileType) return 'file';
+    if (fileType === 'pdf') return 'file-pdf';
+    if (fileType.match(/png|jpg|jpeg|gif/)) return 'file-image';
+    if (fileType.match(/doc|docx|txt/)) return 'file-word';
+    return 'file';
+}
+
+function getFileIconColor(fileType) {
+    if (!fileType) return '#6b7280';
+    if (fileType === 'pdf') return '#dc2626';
+    if (fileType.match(/png|jpg|jpeg|gif/)) return '#3b82f6';
+    if (fileType.match(/doc|docx|txt/)) return '#2563eb';
+    return '#6b7280';
+}
+
+async function addFileResourceToPlanning(fileId, fileName, fileType) {
+    const planningId = {{ planning.id if planning else 'null' }};
+
+    if (!planningId) {
+        alert('Veuillez d\'abord créer une planification');
+        return;
+    }
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/planning/add-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                planning_id: planningId,
+                resource_type: 'file',
+                resource_id: fileId,
+                display_name: fileName,
+                file_type: fileType
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Recharger la vue de planification
+            location.reload();
+        } else {
+            alert(data.error || data.message || 'Erreur lors de l\'ajout du fichier');
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        console.error('Erreur addFileResourceToPlanning:', e);
+    }
+}
+{% endif %}
+
+async function addExerciseToPlanning(exerciseId, exerciseTitle) {
+    const planningId = {{ planning.id if planning else 'null' }};
+
+    if (!planningId) {
+        alert('Veuillez d\'abord créer une planification');
+        return;
+    }
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/planning/add-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({
+                planning_id: planningId,
+                resource_type: 'exercise',
+                resource_id: exerciseId,
+                display_name: exerciseTitle
+            }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            // Recharger la vue de planification
+            location.reload();
+        } else {
+            alert(data.error || data.message || 'Erreur lors de l\'ajout de l\'exercice');
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        console.error('Erreur addExerciseToPlanning:', e);
+    }
+}
+
+// ============================================================
+// Mode selection (classique vs combat)
+// ============================================================
+let selectedExerciseId = null;
+let selectedExerciseTitle = '';
+let selectedMode = null;
+let selectedPlanningResourceId = null;  // Pour tracker si on publie depuis la planification
+let modeModalContext = 'add';  // 'add' (ajout via modal) ou 'publish' (depuis la planification)
+
+function showModeModal(exerciseId, title, context = 'add', resourceId = null) {
+    selectedExerciseId = exerciseId;
+    selectedExerciseTitle = title;
+    selectedMode = null;
+    modeModalContext = context;
+    selectedPlanningResourceId = resourceId;
+    document.getElementById('mode-exercise-title').textContent = title;
+    document.getElementById('mode-classique-check').style.display = 'none';
+    document.getElementById('mode-combat-check').style.display = 'none';
+    document.getElementById('mode-classique-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-combat-btn').style.borderColor = '#e5e7eb';
+    const btn = document.getElementById('launch-exercise-btn');
+    btn.disabled = true;
+    btn.style.background = '#d1d5db';
+    document.getElementById('mode-modal').style.display = 'flex';
+}
+
+function closeModeModal() {
+    document.getElementById('mode-modal').style.display = 'none';
+}
+
+function selectMode(mode) {
+    selectedMode = mode;
+    const classiqueCheck = document.getElementById('mode-classique-check');
+    const combatCheck = document.getElementById('mode-combat-check');
+    const classiqueBtn = document.getElementById('mode-classique-btn');
+    const combatBtn = document.getElementById('mode-combat-btn');
+    const launchBtn = document.getElementById('launch-exercise-btn');
+
+    classiqueCheck.style.display = 'none';
+    combatCheck.style.display = 'none';
+    classiqueBtn.style.borderColor = '#e5e7eb';
+    combatBtn.style.borderColor = '#e5e7eb';
+
+    if (mode === 'classique') {
+        classiqueCheck.style.display = 'inline';
+        classiqueBtn.style.borderColor = '#10b981';
+        classiqueBtn.style.background = '#f0fdf4';
+        combatBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        launchBtn.innerHTML = modeModalContext === 'publish' ? '<i class="fas fa-play"></i> Publier et lancer' : '<i class="fas fa-plus"></i> Ajouter en mode classique';
+    } else {
+        combatCheck.style.display = 'inline';
+        combatBtn.style.borderColor = '#ef4444';
+        combatBtn.style.background = '#fef2f2';
+        classiqueBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+    }
+    launchBtn.disabled = false;
+}
+
+async function launchExercise() {
+    if (!selectedExerciseId || !selectedMode) return;
+
+    const launchBtn = document.getElementById('launch-exercise-btn');
+    launchBtn.disabled = true;
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+        // Si on publie depuis la planification (exercice déjà lié)
+        if (modeModalContext === 'publish' && selectedPlanningResourceId) {
+            const res = await fetch('/planning/publish-resource', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    resource_id: selectedPlanningResourceId,
+                    exercise_id: selectedExerciseId,
+                    classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
+                    mode: selectedMode,
+                }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                closeModeModal();
+
+                // Si combat RPG, ouvrir l'arène Phaser dans un nouvel onglet
+                if (selectedMode === 'combat' && data.combat_session_id) {
+                    window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+                }
+
+                // Ouvrir le suivi live pour tous les modes
+                openTracking(data.publication_id);
+            } else {
+                alert(data.error || data.message || 'Erreur lors de la publication');
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+            }
+        } else {
+            // Ancien comportement: ajouter et publier immédiatement (via add-resource modal)
+            const res = await fetch('/exercises/launch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    exercise_id: selectedExerciseId,
+                    classroom_id: {{ lesson_classroom.id if lesson_classroom else 'null' }},
+                    mode: selectedMode,
+                }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                // Ajouter le lien dans la description
+                const descEl = document.getElementById('planningDescriptionDisplay');
+                if (descEl) {
+                    const link = document.createElement('div');
+                    const modeLabel = selectedMode === 'combat' ? '⚔️ Combat' : '📖 Classique';
+                    const modeColor = selectedMode === 'combat' ? '#fef2f2;border:1px solid #fecaca' : '#eef2ff;border:1px solid #c7d2fe';
+                    link.style.cssText = `margin-top:0.5rem;padding:0.5rem 0.8rem;background:${modeColor};border-radius:8px;display:flex;align-items:center;justify-content:space-between;`;
+                    link.innerHTML = `
+                        <span><i class="fas fa-gamepad" style="color:#667eea;"></i> <strong>${selectedExerciseTitle}</strong>
+                        <span style="font-size:0.7rem;padding:0.1rem 0.4rem;border-radius:6px;background:${selectedMode==='combat'?'#ef4444':'#10b981'};color:white;margin-left:0.3rem;">${modeLabel}</span></span>
+                        ${selectedMode === 'combat' ? `<button onclick="openTracking(${data.publication_id})" style="background:#667eea;color:white;border:none;padding:0.3rem 0.6rem;border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:600;"><i class="fas fa-eye"></i> Suivi live</button>` : ''}
+                    `;
+                    descEl.appendChild(link);
+                }
+
+                closeModeModal();
+                closeAddResourceModal();
+
+                // Si combat RPG, ouvrir l'arène Phaser dans un nouvel onglet
+                if (selectedMode === 'combat' && data.combat_session_id) {
+                    window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+                }
+
+                // Ouvrir le suivi live pour tous les modes
+                openTracking(data.publication_id);
+            } else {
+                alert(data.error || data.message || 'Erreur lors du lancement');
+                launchBtn.disabled = false;
+                launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+            }
+        }
+    } catch(e) {
+        alert('Erreur de connexion');
+        launchBtn.disabled = false;
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        console.error('Erreur launchExercise:', e);
+    }
+}
+
+// ============================================================
+// Ouverture des ressources de fichier
+// ============================================================
+function openResourceFile(fileId, fileName) {
+    // Ouvrir le fichier dans le visualiseur PDF intégré ou dans un nouvel onglet
+    window.open(`/file_manager/preview/${fileId}`, '_blank');
+}
+
+async function deleteResource(resourceId, btn) {
+    if (!confirm('Supprimer cette ressource de la planification ?')) return;
+    try {
+        const res = await fetch('/planning/delete-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resource_id: resourceId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const item = btn.closest('.planning-resource-item');
+            if (item) item.remove();
+            // Si plus de ressources, masquer la section
+            const list = document.getElementById('planning-resources-list');
+            if (list && list.children.length === 0) {
+                const section = document.getElementById('planning-resources-section');
+                if (section) section.remove();
+            }
+        } else {
+            alert(data.error || 'Erreur lors de la suppression');
+        }
+    } catch (e) {
+        console.error('Erreur lors de la suppression:', e);
+        alert('Erreur de connexion');
+    }
+}
+
+// Attachez les event listeners aux boutons de suppression
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-delete-resource').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const resourceId = parseInt(this.dataset.resourceId);
+            deleteResource(resourceId, this);
+        });
+    });
+});
+
+// ============================================================
+// Suivi en direct (tracking modal)
+// ============================================================
+let trackingInterval = null;
+let currentPubId = null;
+let currentCombatSessionId = null;
+
+function openTracking(pubId) {
+    currentPubId = pubId;
+    currentCombatSessionId = null;
+    document.getElementById('tracking-modal').style.display = 'block';
+    document.getElementById('combat-arena-section').style.display = 'none';
+    refreshTracking();
+    // Rafraîchir toutes les 4 secondes
+    trackingInterval = setInterval(refreshTracking, 4000);
+}
+
+function openCombatArena() {
+    if (currentCombatSessionId) {
+        window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
+    } else {
+        alert('Aucune session de combat active trouvée.');
+    }
+}
+
+function closeTrackingModal() {
+    document.getElementById('tracking-modal').style.display = 'none';
+    if (trackingInterval) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+    }
+}
+
+async function refreshTracking() {
+    if (!currentPubId) return;
+    try {
+        const res = await fetch(`/exercises/publication/${currentPubId}/live-tracking`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('tracking-title').textContent = data.exercise_title;
+        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('track-total').textContent = data.total_students;
+        document.getElementById('track-started').textContent = data.started;
+        document.getElementById('track-completed').textContent = data.completed;
+        document.getElementById('track-avg').textContent = data.completed > 0 ? data.average_score + '%' : '—';
+
+        // Afficher la section arène RPG si mode combat
+        if (data.mode === 'combat' && data.combat_session_id) {
+            currentCombatSessionId = data.combat_session_id;
+            document.getElementById('combat-arena-section').style.display = 'block';
+            const phaseLabels = {
+                'waiting': 'En attente des élèves',
+                'question': 'Question en cours',
+                'action': 'Choix des actions',
+                'execute': 'Exécution du round',
+                'monster_turn': 'Tour des monstres',
+                'round_end': 'Fin du round',
+            };
+            const statusLabel = data.combat_status === 'active'
+                ? `Round ${data.combat_round} — ${phaseLabels[data.combat_phase] || data.combat_phase}`
+                : 'En attente des élèves';
+            document.getElementById('combat-status-text').textContent = statusLabel;
+            document.getElementById('combat-participants-text').textContent =
+                data.combat_participants > 0 ? `(${data.combat_participants} combattant${data.combat_participants > 1 ? 's' : ''})` : '';
+        } else {
+            document.getElementById('combat-arena-section').style.display = 'none';
+        }
+
+        const container = document.getElementById('tracking-students');
+        const isCombat = data.mode === 'combat';
+        container.innerHTML = data.students.map(s => {
+            let statusIcon, statusColor, statusText, progressWidth;
+
+            if (isCombat) {
+                // Mode combat : afficher le statut de connexion au combat
+                if (s.in_combat && s.combat_info) {
+                    const ci = s.combat_info;
+                    statusIcon = ci.is_alive ? 'shield-alt' : 'skull-crossbones';
+                    statusColor = ci.is_alive ? '#10b981' : '#ef4444';
+                    const hpPct = ci.max_hp > 0 ? Math.round((ci.current_hp / ci.max_hp) * 100) : 100;
+                    statusText = `${ci.avatar_class} — ${ci.current_hp}/${ci.max_hp} HP`;
+                    progressWidth = hpPct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'Pas connecté';
+                    progressWidth = 0;
+                }
+            } else {
+                // Mode classique
+                if (s.status === 'completed') {
+                    statusIcon = 'check-circle';
+                    statusColor = '#10b981';
+                    statusText = `${s.score_percentage}%`;
+                    progressWidth = 100;
+                } else if (s.status === 'in_progress') {
+                    statusIcon = 'spinner fa-pulse';
+                    statusColor = '#f59e0b';
+                    const pct = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
+                    statusText = `${s.answers_count}/${s.blocks_count}`;
+                    progressWidth = pct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'En attente';
+                    progressWidth = 0;
+                }
+            }
+
+            const hpBarColor = isCombat && s.in_combat
+                ? (progressWidth > 50 ? '#10b981' : progressWidth > 25 ? '#f59e0b' : '#ef4444')
+                : statusColor;
+
+            return `
+                <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:0.65rem 0.8rem;display:flex;align-items:center;gap:0.6rem;">
+                    <i class="fas fa-${statusIcon}" style="color:${statusColor};font-size:1rem;width:20px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">
+                            <span style="color:white;font-weight:600;font-size:0.85rem;">${s.name}</span>
+                            <span style="color:${statusColor};font-weight:700;font-size:0.8rem;">${statusText}</span>
+                        </div>
+                        <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                            <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
+                        </div>
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch(e) {
+        console.error('Erreur tracking:', e);
+    }
+}
+
+async function stopMission() {
+    if (!currentPubId) return;
+    if (!confirm('Arrêter la mission en direct ?')) return;
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        await fetch(`/exercises/publication/${currentPubId}/toggle-active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        });
+        closeTrackingModal();
+    } catch(e) {
+        alert('Erreur');
+    }
+}
 </script>
 {% endblock %}

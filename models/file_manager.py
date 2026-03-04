@@ -129,6 +129,7 @@ class FileAnnotation(db.Model):
     file_type = db.Column(db.String(20), default='class_file')  # 'class_file' ou 'user_file'
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     annotations_data = db.Column(db.JSON, nullable=False)  # Stockage JSON des annotations
+    custom_pages_data = db.Column(db.JSON, nullable=True)  # Stockage JSON des pages custom (vierges, graphiques)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

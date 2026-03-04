@@ -145,10 +145,8 @@ async function toggleClassTree(classId) {
     const toggle = document.getElementById(`toggle-${classId}`);
 
     if (tree.style.display === 'none') {
-        // Charger l'arborescence si pas encore fait
-        if (tree.innerHTML.trim() === '') {
-            await loadClassTree(classId);
-        }
+        // Toujours recharger l'arborescence pour avoir les données à jour
+        await loadClassTree(classId);
         tree.style.display = 'block';
         toggle.classList.add('expanded');
     } else {
@@ -280,17 +278,30 @@ function renderFileStructure(structure, classId, level = 0) {
         if (file.file_type === 'folder' && file.original_filename.startsWith('[Dossier vide:')) {
             return; // Ignorer ce fichier marqueur
         }
-        
-        const icon = getFileIcon(file.file_type);
-        html += `
-            <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
-                <i class="${icon} tree-item-icon"></i>
-                <span class="tree-item-name">${file.original_filename}</span>
-                <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId})" title="Supprimer">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
+
+        if (file.is_exercise) {
+            html += `
+                <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
+                    <i class="fas fa-gamepad tree-item-icon" style="color:#667eea;"></i>
+                    <span class="tree-item-name" style="color:#4338ca;font-weight:600;">${file.original_filename}</span>
+                    <span style="font-size:0.65rem;color:#6b7280;margin-left:0.3rem;">${file.total_points || 0} XP</span>
+                    <button class="tree-file-delete" onclick="unlinkExerciseFromClass(${file.exercise_id}, ${classId})" title="Retirer de la classe">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            const icon = getFileIcon(file.file_type);
+            html += `
+                <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
+                    <i class="${icon} tree-item-icon"></i>
+                    <span class="tree-item-name">${file.original_filename}</span>
+                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId})" title="Supprimer">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }
     });
 
     return html;
@@ -674,15 +685,22 @@ function handleFolderDragStart(e) {
     e.target.classList.add('dragging');
 }
 
-// Gestion du début de drag d'un fichier
+// Gestion du début de drag d'un fichier ou exercice
 function handleFileDragStart(e) {
     if (isDeleteMode) {
         e.preventDefault();
         return;
     }
 
-    const fileId = e.target.dataset.id;
-    e.dataTransfer.setData('text/plain', `file:${fileId}`);
+    const item = e.target.closest('.file-item');
+    const itemId = item ? item.dataset.id : e.target.dataset.id;
+    const itemType = item ? item.dataset.type : 'file';
+
+    if (itemType === 'exercise') {
+        e.dataTransfer.setData('text/plain', `exercise:${itemId}`);
+    } else {
+        e.dataTransfer.setData('text/plain', `file:${itemId}`);
+    }
     e.target.classList.add('dragging');
 }
 
@@ -718,7 +736,76 @@ async function handleClassDrop(e) {
         } else if (dragData.startsWith('folder:')) {
             const folderId = dragData.replace('folder:', '');
             await copyFolderToClass(folderId, classId);
+        } else if (dragData.startsWith('exercise:')) {
+            const exerciseId = dragData.replace('exercise:', '');
+            await publishExerciseToClass(exerciseId, classId);
         }
+    }
+}
+
+// Publier un exercice dans une classe via drag & drop
+async function publishExerciseToClass(exerciseId, classId) {
+    try {
+        const response = await fetch('/exercises/publish-to-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_id: exerciseId, classroom_id: classId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('success', 'Exercice publié dans la classe !');
+            await loadClassTree(classId);
+        } else {
+            showNotification('error', result.error || 'Erreur');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la publication');
+    }
+}
+
+// Publier un exercice dans un dossier spécifique d'une classe via drag & drop
+async function publishExerciseToClassFolder(exerciseId, classId, folderPath) {
+    try {
+        // Note: Les exercices sont publiés au niveau de la classe, pas dans des dossiers spécifiques
+        // On utilise la même endpoint que publishExerciseToClass
+        const response = await fetch('/exercises/publish-to-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                exercise_id: exerciseId,
+                classroom_id: classId
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('success', `Exercice publié dans la classe`);
+            await loadClassTree(classId);
+        } else {
+            showNotification('error', result.error || 'Erreur');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors de la publication');
+    }
+}
+
+// Retirer un exercice d'une classe (sans le supprimer)
+async function unlinkExerciseFromClass(exerciseId, classId) {
+    if (!confirm('Retirer cet exercice de la classe ? (L\'exercice ne sera pas supprimé)')) return;
+    try {
+        const response = await fetch('/exercises/unlink-from-class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exercise_id: exerciseId, classroom_id: classId })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showNotification('success', 'Exercice retiré de la classe');
+            await loadClassTree(classId);
+        } else {
+            showNotification('error', result.error || 'Erreur');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors du retrait');
     }
 }
 
@@ -762,6 +849,9 @@ async function handleTreeFolderDrop(e) {
             } else if (dragData.startsWith('folder:')) {
                 const folderId = dragData.replace('folder:', '');
                 await copyFolderToClassFolder(folderId, classId, folderPath);
+            } else if (dragData.startsWith('exercise:')) {
+                const exerciseId = dragData.replace('exercise:', '');
+                await publishExerciseToClassFolder(exerciseId, classId, folderPath);
             }
         }
     }

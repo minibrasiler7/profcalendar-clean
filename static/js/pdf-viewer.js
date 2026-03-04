@@ -1,7 +1,7 @@
 /**
  * PDFViewer - Composant réutilisable pour l'affichage et l'annotation de PDF
  * Version: 1.0.0
- * Auteur: TeacherPlanner
+ * Auteur: ProfCalendar
  */
 
 class PDFViewer {

@@ -1,0 +1,938 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Chihuahua RPG{% endblock %}
+
+{% block extra_css %}
+<style>
+.rpg-container { max-width: 900px; margin: 0 auto; padding: 1rem; }
+
+.rpg-hero {
+    background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca);
+    border-radius: 20px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.rpg-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+}
+
+.avatar-display {
+    width: 200px; height: 200px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+    border: 4px solid rgba(255,255,255,0.3);
+    overflow: hidden;
+}
+
+.avatar-display img {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: white;
+}
+
+.avatar-display .no-avatar { font-size: 2.5rem; opacity: 0.5; }
+
+.level-display { font-size: 2.5rem; font-weight: 900; color: #f59e0b; margin: 0.5rem 0; }
+
+.xp-bar-large {
+    width: 80%; max-width: 400px; height: 12px;
+    background: rgba(255,255,255,0.2); border-radius: 6px;
+    margin: 0.5rem auto; overflow: hidden;
+}
+
+.xp-bar-large .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    border-radius: 6px; transition: width 1s ease;
+}
+
+.xp-label { font-size: 0.85rem; opacity: 0.8; }
+
+.stats-row {
+    display: flex; justify-content: center;
+    gap: 2rem; margin-top: 1.5rem;
+}
+
+.stat-item { text-align: center; }
+.stat-value { font-size: 1.5rem; font-weight: 800; }
+.stat-label { font-size: 0.75rem; opacity: 0.7; }
+
+.section-card {
+    background: white; border-radius: 16px; padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;
+}
+
+.section-card h2 {
+    margin: 0 0 1rem; font-size: 1.2rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+
+.choose-alert {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border: 2px solid #f59e0b; border-radius: 12px;
+    padding: 1rem 1.5rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    animation: pulse-border 2s infinite;
+}
+.choose-alert i { color: #f59e0b; font-size: 1.5rem; }
+.choose-alert p { margin: 0; font-weight: 600; color: #92400e; }
+
+@keyframes pulse-border {
+    0%, 100% { border-color: #f59e0b; }
+    50% { border-color: #fbbf24; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3); }
+}
+
+/* Class cards with expandable descriptions */
+.class-card {
+    border: 3px solid #e5e7eb; border-radius: 14px;
+    margin-bottom: 0.75rem; overflow: hidden; cursor: pointer;
+    transition: all 0.2s;
+}
+.class-card:hover { border-color: #a5b4fc; }
+.class-card.selected { border-color: #667eea; background: #eef2ff; }
+
+.class-card-header {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem;
+}
+.class-card-header img {
+    width: 60px; height: 60px; border-radius: 50%;
+    object-fit: contain; background: white;
+}
+.class-card-info { flex: 1; }
+.class-card-name { font-weight: 700; font-size: 1rem; }
+.class-card-subtitle { font-size: 0.8rem; color: #6b7280; }
+
+.class-card-badge {
+    background: #667eea; color: white; font-size: 0.7rem;
+    font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 8px;
+}
+
+.class-card-expand {
+    background: #f8fafc; padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb;
+    display: none;
+}
+.class-card.expanded .class-card-expand { display: block; }
+
+.class-desc-text { font-size: 0.85rem; color: #374151; line-height: 1.5; margin-bottom: 0.75rem; }
+
+.pros-cons { display: flex; gap: 1.5rem; margin-bottom: 0.75rem; }
+.pros-cons > div { flex: 1; }
+.pros-title { font-size: 0.8rem; font-weight: 700; color: #10b981; margin-bottom: 0.3rem; }
+.cons-title { font-size: 0.8rem; font-weight: 700; color: #ef4444; margin-bottom: 0.3rem; }
+.pros-item { font-size: 0.75rem; color: #065f46; line-height: 1.4; }
+.cons-item { font-size: 0.75rem; color: #991b1b; line-height: 1.4; }
+
+.playstyle { font-size: 0.8rem; font-weight: 600; color: #667eea; font-style: italic; }
+
+.choose-btn {
+    display: inline-block; background: #667eea; color: white;
+    padding: 0.5rem 1.5rem; border-radius: 10px; border: none;
+    font-weight: 700; cursor: pointer; margin-top: 0.75rem;
+    transition: background 0.2s;
+}
+.choose-btn:hover { background: #4338ca; }
+
+/* Character stats bars */
+.char-stats { display: flex; flex-direction: column; gap: 0.6rem; }
+.char-stat-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: #f8fafc; border-radius: 10px; padding: 0.6rem 1rem;
+    border: 1px solid #e5e7eb;
+}
+.char-stat-icon { width: 28px; text-align: center; }
+.char-stat-label { width: 100px; font-size: 0.8rem; font-weight: 600; }
+.char-stat-bar { flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+.char-stat-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+.char-stat-val { width: 30px; font-size: 0.9rem; font-weight: 800; text-align: right; }
+
+/* Skills */
+.skills-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+.skill-card {
+    text-align: center; padding: 0.8rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb; transition: all 0.2s;
+}
+.skill-card.active { border-color: #667eea; background: #eef2ff; }
+.skill-icon-wrap {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.4rem; color: white; font-size: 1.1rem;
+}
+.skill-name { font-weight: 700; font-size: 0.8rem; }
+.skill-type { font-size: 0.65rem; color: #6b7280; margin-top: 0.15rem; }
+.skill-dmg { font-size: 0.7rem; color: #ef4444; font-weight: 700; margin-top: 0.2rem; }
+.skill-heal { font-size: 0.7rem; color: #10b981; font-weight: 700; margin-top: 0.2rem; }
+
+/* Equipment */
+.equip-slots { display: flex; flex-direction: column; gap: 0.75rem; }
+.equip-slot {
+    display: flex; align-items: center; gap: 1rem;
+    background: #f8fafc; border-radius: 12px; padding: 1rem;
+    border: 2px solid #e5e7eb;
+}
+.equip-slot-label {
+    font-size: 0.7rem; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 1px; width: 80px;
+}
+.equip-slot-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem;
+}
+.equip-slot-name { font-weight: 700; font-size: 0.85rem; flex: 1; }
+.equip-bonus { font-size: 0.7rem; color: #10b981; font-weight: 600; }
+.equip-empty { color: #9ca3af; font-style: italic; font-size: 0.85rem; }
+
+/* Inventory */
+.inventory-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+}
+.item-card {
+    text-align: center; padding: 0.8rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb;
+    position: relative; transition: all 0.2s; cursor: pointer;
+}
+.item-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.item-card.equipable { border-style: dashed; border-color: #3b82f6; }
+.item-icon {
+    width: 48px; height: 48px; margin: 0 auto 0.4rem;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.2rem; color: white;
+}
+.item-name { font-weight: 700; font-size: 0.8rem; margin-bottom: 0.15rem; }
+.item-desc { font-size: 0.65rem; color: #6b7280; }
+.item-rarity { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
+.item-quantity {
+    position: absolute; top: 4px; right: 6px;
+    background: #1e1b4b; color: white; font-size: 0.65rem;
+    font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 8px;
+}
+.item-equip-tag {
+    background: #dbeafe; color: #1d4ed8; font-size: 0.6rem;
+    font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px;
+    display: inline-block; margin-top: 0.3rem;
+}
+.empty-inventory { text-align: center; padding: 2rem; color: #9ca3af; font-style: italic; }
+
+/* Badges */
+.badges-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+.badge-card {
+    text-align: center; padding: 1rem; border-radius: 12px;
+    background: #f8fafc; border: 2px solid #e5e7eb; transition: all 0.2s;
+}
+.badge-card.earned { background: #fffbeb; border-color: #fbbf24; }
+.badge-card.locked { opacity: 0.5; }
+.badge-icon {
+    width: 50px; height: 50px; margin: 0 auto 0.5rem;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.3rem; color: white;
+}
+.badge-card.locked .badge-icon { background: #9ca3af !important; }
+.badge-name { font-weight: 700; font-size: 0.8rem; margin-bottom: 0.2rem; }
+.badge-desc { font-size: 0.7rem; color: #6b7280; }
+.badge-earned-date { font-size: 0.65rem; color: #f59e0b; font-weight: 600; margin-top: 0.3rem; }
+
+/* Navbar */
+.navbar-student { background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 1rem 0; }
+.navbar-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+.navbar-links { display: flex; gap: 2rem; }
+.navbar-links a { color: #4a5568; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+.navbar-links a:hover, .navbar-links a.active { color: #667eea; }
+.logout-btn { background-color: #f7fafc; color: #4a5568; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
+.logout-btn:hover { background-color: #edf2f7; color: #2d3748; }
+
+/* Evolution alert */
+.evolution-alert {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border: 2px solid #f59e0b; border-radius: 12px;
+    padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    animation: pulse-border 2s infinite;
+}
+.evolution-alert:hover { transform: translateY(-1px); }
+
+.evo-modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    justify-content: center; align-items: center;
+}
+.evo-modal-overlay.active { display: flex; }
+.evo-modal {
+    background: white; border-radius: 16px; padding: 2rem;
+    max-width: 500px; width: 90%;
+}
+.evo-choice {
+    background: #f0f9ff; border: 2px solid #bae6fd;
+    border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem;
+    cursor: pointer; transition: all 0.2s;
+}
+.evo-choice:hover { border-color: #667eea; background: #eef2ff; }
+.evo-choice-name { font-size: 1.1rem; font-weight: 800; color: #667eea; }
+.evo-choice-desc { font-size: 0.85rem; color: #374151; margin: 0.3rem 0; }
+.evo-choice-bonus { font-size: 0.8rem; font-weight: 700; color: #10b981; }
+
+/* Evolution Tree */
+.evolution-tree-btn {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.evolution-tree-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.3);
+}
+
+.evolution-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+.evolution-modal-overlay.active {
+    display: flex;
+}
+
+.evolution-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 900px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.evolution-modal-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.evolution-modal-header h2 {
+    font-size: 1.8rem;
+    margin: 0 0 0.5rem;
+    color: #1e1b4b;
+}
+.evolution-modal-header p {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.evolution-close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.evolution-close-btn:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.evolution-tree-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1rem 0;
+}
+
+.evolution-tree-node {
+    text-align: center;
+    padding: 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    background: #f9fafb;
+    transition: all 0.3s;
+    cursor: default;
+}
+.evolution-tree-node.base {
+    border: 3px solid #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(102, 126, 234, 0.02));
+}
+.evolution-tree-node.unlocked {
+    border: 2px solid #10b981;
+}
+.evolution-tree-node.locked {
+    opacity: 0.5;
+    border: 2px dashed #9ca3af;
+}
+.evolution-tree-node.chosen {
+    border: 3px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.04));
+}
+
+.evolution-node-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin-bottom: 0.3rem;
+}
+.evolution-node-subtitle {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 0.8rem;
+}
+.evolution-node-description {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    text-align: left;
+}
+
+.evolution-node-level-badge {
+    display: inline-block;
+    background: #667eea;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+.evolution-node-level-badge.locked {
+    background: #9ca3af;
+}
+.evolution-node-level-badge.available {
+    background: #10b981;
+}
+
+.evolution-node-stats {
+    background: white;
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    text-align: left;
+}
+.evolution-stat-item {
+    font-size: 0.8rem;
+    color: #374151;
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.evolution-stat-item.bonus {
+    color: #10b981;
+    font-weight: 600;
+}
+.evolution-stat-item.negative {
+    color: #ef4444;
+}
+
+.evolution-choices-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.evolution-choice-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.3s;
+}
+.evolution-choice-card.available {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    cursor: pointer;
+}
+.evolution-choice-card.available:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.evolution-choice-card.chosen {
+    border: 2px solid #f59e0b;
+    background: #fef3c7;
+}
+.evolution-choice-card.locked {
+    opacity: 0.6;
+}
+
+.evolution-choice-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #667eea;
+    margin-bottom: 0.3rem;
+}
+.evolution-choice-desc {
+    font-size: 0.8rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+.evolution-choice-bonus-list {
+    font-size: 0.75rem;
+    color: #10b981;
+    font-weight: 600;
+}
+.evolution-choice-bonus-list .bonus-item {
+    display: block;
+    padding: 0.15rem 0;
+}
+
+.evolution-tree-arrow {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #d1d5db;
+    margin: 0.5rem 0;
+}
+
+@media (max-width: 600px) {
+    .stats-row { gap: 1rem; }
+    .inventory-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .skills-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .pros-cons { flex-direction: column; gap: 0.5rem; }
+    .evolution-modal { padding: 1.5rem; }
+    .evolution-choices-group { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<nav class="navbar-student">
+    <div class="navbar-content">
+        <div class="navbar-links">
+            <a href="{{ url_for('student_auth.dashboard') }}"><i class="fas fa-home"></i> Accueil</a>
+            <a href="{{ url_for('student_auth.grades') }}"><i class="fas fa-chart-line"></i> Notes</a>
+            <a href="{{ url_for('student_auth.files') }}"><i class="fas fa-folder"></i> Fichiers</a>
+            <a href="{{ url_for('student_auth.teachers') }}"><i class="fas fa-chalkboard-teacher"></i> Enseignants</a>
+            <a href="{{ url_for('student_auth.missions') }}"><i class="fas fa-scroll"></i> Missions</a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="active"><i class="fas fa-gamepad"></i> RPG</a>
+        </div>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+    </div>
+</nav>
+
+<div class="rpg-container">
+
+    <!-- Hero -->
+    <div class="rpg-hero">
+        <div class="avatar-display">
+            {% if rpg.avatar_class %}
+            <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}">
+            {% else %}
+            <span class="no-avatar">❓</span>
+            {% endif %}
+        </div>
+        <h1>{{ student.first_name or 'Aventurier' }}</h1>
+        <div class="level-display">Niveau {{ rpg.level }}</div>
+        <div class="xp-bar-large">
+            <div class="fill" style="width: {{ rpg.xp_progress }}%;"></div>
+        </div>
+        <div class="xp-label">{{ rpg.xp_total }} / {{ rpg.xp_for_next_level }} XP</div>
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="stat-value" style="color:#f59e0b;">{{ rpg.xp_total }}</div>
+                <div class="stat-label">XP Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color:#fbbf24;">{{ rpg.gold }}</div>
+                <div class="stat-label">Or</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ rpg.level }}</div>
+                <div class="stat-label">Niveau</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evolution Tree Button -->
+    {% if rpg.avatar_class %}
+    <button class="evolution-tree-btn" onclick="openEvolutionTree()">
+        <i class="fas fa-sitemap"></i> Arbre d'évolution
+    </button>
+    {% endif %}
+
+    <!-- Evolution Tree Modal -->
+    <div id="evolutionTreeModal" class="evolution-modal-overlay">
+        <div class="evolution-modal">
+            <div class="evolution-modal-header">
+                <button class="evolution-close-btn" onclick="closeEvolutionTree()"><i class="fas fa-times"></i></button>
+                <h2>Arbre d'évolution</h2>
+                <p>Voir ta progression et tes possibilités d'évolution</p>
+            </div>
+            <div class="evolution-tree-container" id="evolutionTreeContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Selection -->
+    <div class="section-card">
+        <h2><i class="fas fa-dog" style="color:#667eea;"></i> Classe</h2>
+        {% if not rpg.avatar_class %}
+        <div class="choose-alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p>Tu dois choisir un personnage avant de pouvoir lancer des missions !</p>
+        </div>
+        {% endif %}
+        {% set classes_info = [
+            ('guerrier', 'Guerrier', 'Maître du combat rapproché', 'Le Guerrier est un combattant redoutable au corps à corps.', 'Force élevée, Grande résistance, Bonne défense', 'Faible déf. magique, Intelligence basse, Lent', 'Tank / DPS mêlée'),
+            ('mage', 'Mage', 'Maître des éléments', 'Le Mage contrôle les forces élémentaires avec des sorts dévastateurs.', 'Intelligence max, Dégâts de zone, Forte déf. magique', 'Très fragile, Peu de vie, Force très basse', 'DPS magique / Contrôle'),
+            ('archer', 'Archer', 'Tireur d\'élite agile', 'L\'Archer frappe de loin avec précision et agilité.', 'Attaques à distance, Stats équilibrées, Bonne agilité', 'Défense moyenne, Fragile au CaC, Vie moyenne', 'DPS distance / Support'),
+            ('guerisseur', 'Moine', 'Gardien sacré', 'Le Moine soigne et protège ses alliés avec la magie sacrée.', 'Soins puissants, Buffs d\'équipe, Bonne déf. magique', 'Force faible, Dégâts limités, Déf. physique moyenne', 'Healer / Support'),
+        ] %}
+        {% for cls_id, cls_name, cls_sub, cls_desc, cls_pros, cls_cons, cls_play in classes_info %}
+        <div class="class-card {{ 'selected' if rpg.avatar_class == cls_id }}" onclick="toggleClassExpand(this)" data-class-id="{{ cls_id }}">
+            <div class="class-card-header">
+                <img src="{{ url_for('static', filename='img/chihuahua/' ~ cls_id ~ '.png') }}" alt="{{ cls_name }}">
+                <div class="class-card-info">
+                    <div class="class-card-name">{{ cls_name }}</div>
+                    <div class="class-card-subtitle">{{ cls_sub }}</div>
+                </div>
+                {% if rpg.avatar_class == cls_id %}
+                <span class="class-card-badge">Actif</span>
+                {% endif %}
+                <i class="fas fa-chevron-down" style="color:#9ca3af;"></i>
+            </div>
+            <div class="class-card-expand">
+                <p class="class-desc-text">{{ cls_desc }}</p>
+                <div class="pros-cons">
+                    <div>
+                        <div class="pros-title">✓ Forces</div>
+                        {% for p in cls_pros.split(', ') %}
+                        <div class="pros-item">✓ {{ p }}</div>
+                        {% endfor %}
+                    </div>
+                    <div>
+                        <div class="cons-title">✗ Faiblesses</div>
+                        {% for c in cls_cons.split(', ') %}
+                        <div class="cons-item">✗ {{ c }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="playstyle">Style : {{ cls_play }}</div>
+                {% if rpg.avatar_class != cls_id %}
+                <button class="choose-btn" onclick="event.stopPropagation(); selectAvatar('{{ cls_id }}')">
+                    Choisir cette classe
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Character Stats -->
+    {% if rpg.avatar_class %}
+    <div class="section-card">
+        <h2><i class="fas fa-chart-bar" style="color:#667eea;"></i> Caractéristiques</h2>
+        <div class="char-stats">
+            {% set char_stats = [
+                ('Force', rpg.stat_force or 5, '#ef4444', 'fist-raised'),
+                ('Défense', rpg.stat_defense or 5, '#3b82f6', 'shield-alt'),
+                ('Déf. Magique', rpg.stat_defense_magique or 5, '#a855f7', 'magic'),
+                ('Vie', rpg.stat_vie or 5, '#10b981', 'heart'),
+                ('Intelligence', rpg.stat_intelligence or 5, '#f59e0b', 'brain'),
+            ] %}
+            {% for name, val, color, icon in char_stats %}
+            <div class="char-stat-row">
+                <div class="char-stat-icon"><i class="fas fa-{{ icon }}" style="color:{{ color }};"></i></div>
+                <div class="char-stat-label">{{ name }}</div>
+                <div class="char-stat-bar">
+                    <div class="char-stat-fill" style="width: {{ [val * 2, 100]|min }}%; background: {{ color }};"></div>
+                </div>
+                <div class="char-stat-val">{{ val }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Skills -->
+    {% set all_skills = rpg.get_all_skills() %}
+    {% if all_skills %}
+    <div class="section-card">
+        <h2><i class="fas fa-bolt" style="color:#f59e0b;"></i> Compétences ({{ all_skills|length }})</h2>
+        <div class="skills-grid">
+            {% set active_ids = active_skills_list or [] %}
+            {% for skill in all_skills %}
+            <div class="skill-card {{ 'active' if skill.id in active_ids or loop.index <= 3 }}">
+                <div class="skill-icon-wrap" style="background: {{ '#ef4444' if skill.type == 'attack' else '#10b981' if skill.type == 'heal' else '#3b82f6' if skill.type == 'defense' else '#f59e0b' }};">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="skill-name">{{ skill.name }}</div>
+                <div class="skill-type">{{ 'Attaque' if skill.type == 'attack' else 'Soin' if skill.type == 'heal' else 'Défense' if skill.type == 'defense' else 'Utilitaire' }}</div>
+                {% if skill.damage > 0 %}<div class="skill-dmg">{{ skill.damage }} dég.</div>{% endif %}
+                {% if skill.get('heal', 0) > 0 %}<div class="skill-heal">+{{ skill.heal }} PV</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Equipment -->
+    <div class="section-card">
+        <h2><i class="fas fa-tshirt" style="color:#667eea;"></i> Équipement</h2>
+        <div class="equip-slots">
+            {% set equip = equipment_dict or {} %}
+            {% for slot_name, slot_label in [('arme', 'Arme'), ('bouclier', 'Bouclier'), ('accessoire', 'Accessoire')] %}
+            <div class="equip-slot">
+                <div class="equip-slot-label">{{ slot_label }}</div>
+                {% set equipped_id = equip.get(slot_name) %}
+                {% if equipped_id %}
+                    {% set eq_item = none %}
+                    {% for si in inventory %}
+                        {% if si.item and si.item.id == equipped_id %}
+                            {% set eq_item = si.item %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if eq_item %}
+                    <div class="equip-slot-icon" style="background: {{ eq_item.color }};"><i class="fas fa-{{ eq_item.icon }}"></i></div>
+                    <div class="equip-slot-name">{{ eq_item.name }}</div>
+                    {% if eq_item.stat_bonus_json %}
+                    <div class="equip-bonus">
+                        {% for k, v in eq_item.stat_bonus_json.items() %}+{{ v }} {{ k }}{% if not loop.last %}, {% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <span class="equip-empty">Équipé (objet #{{ equipped_id }})</span>
+                    {% endif %}
+                {% else %}
+                <span class="equip-empty">— Vide —</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Inventaire -->
+    <div class="section-card">
+        <h2><i class="fas fa-box-open" style="color:#667eea;"></i> Inventaire ({{ inventory|length }} objets)</h2>
+        {% if inventory %}
+        <div class="inventory-grid">
+            {% for si in inventory %}
+            <div class="item-card {{ 'equipable' if si.item.equip_slot }}" onclick="{% if si.item.equip_slot %}equipItem({{ si.item.id }}, '{{ si.item.name }}'){% endif %}">
+                {% if si.quantity > 1 %}<span class="item-quantity">x{{ si.quantity }}</span>{% endif %}
+                <div class="item-icon" style="background: {{ si.item.color }};"><i class="fas fa-{{ si.item.icon }}"></i></div>
+                <div class="item-name">{{ si.item.name }}</div>
+                <div class="item-desc">{{ si.item.description }}</div>
+                <div class="item-rarity" style="color: {{ si.item.rarity_color }};">{{ si.item.rarity_label }}</div>
+                {% if si.item.equip_slot %}
+                <span class="item-equip-tag">Équipable</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-inventory">
+            <i class="fas fa-ghost" style="font-size:2rem;"></i>
+            <p>Ton inventaire est vide ! Complète des missions pour gagner des objets.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Badges -->
+    <div class="section-card">
+        <h2><i class="fas fa-medal" style="color:#f59e0b;"></i> Badges ({{ badges|selectattr('earned')|list|length }}/{{ badges|length }})</h2>
+        <div class="badges-grid">
+            {% for b in badges %}
+            <div class="badge-card {{ 'earned' if b.earned else 'locked' }}">
+                <div class="badge-icon" style="background: {{ b.badge.color }};"><i class="fas fa-{{ b.badge.icon }}"></i></div>
+                <div class="badge-name">{{ b.badge.name }}</div>
+                <div class="badge-desc">{{ b.badge.description }}</div>
+                {% if b.earned %}
+                <div class="badge-earned-date"><i class="fas fa-check"></i> Obtenu</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleClassExpand(el) {
+    el.classList.toggle('expanded');
+}
+
+async function selectAvatar(avatarClass) {
+    const currentClass = '{{ rpg.avatar_class or "" }}';
+    let confirmReset = false;
+
+    if (currentClass && currentClass !== avatarClass) {
+        if (!confirm('Changer de classe réinitialisera ton niveau, équipement et or. Continuer ?')) return;
+        confirmReset = true;
+    }
+
+    try {
+        const res = await fetch('{{ url_for("student_auth.update_avatar") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_class: avatarClass, confirm_reset: confirmReset }),
+        });
+        const data = await res.json();
+        if (data.needs_confirmation) {
+            if (confirm(data.message)) {
+                await fetch('{{ url_for("student_auth.update_avatar") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar_class: avatarClass, confirm_reset: true }),
+                });
+            } else return;
+        }
+        location.reload();
+    } catch(e) { alert('Erreur lors du changement de classe'); }
+}
+
+async function equipItem(itemId, itemName) {
+    if (!confirm('Équiper ' + itemName + ' ?')) return;
+    try {
+        await fetch('{{ url_for("student_auth.update_avatar") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ equip_item_id: itemId }),
+        });
+        location.reload();
+    } catch(e) {}
+}
+
+// Evolution Tree Modal Functions
+function openEvolutionTree() {
+    const modal = document.getElementById('evolutionTreeModal');
+    modal.classList.add('active');
+    loadEvolutionTree();
+}
+
+function closeEvolutionTree() {
+    const modal = document.getElementById('evolutionTreeModal');
+    modal.classList.remove('active');
+}
+
+function loadEvolutionTree() {
+    const treeData = {{ evolution_tree | tojson if evolution_tree else 'null' }};
+    if (treeData) {
+        renderEvolutionTree(treeData);
+    }
+}
+
+function renderEvolutionTree(tree) {
+    const container = document.getElementById('evolutionTreeContent');
+    let html = '';
+
+    if (!tree.base_class) {
+        container.innerHTML = '<p>Pas de données disponibles</p>';
+        return;
+    }
+
+    const base = tree.base_class;
+    html += `
+        <div class="evolution-tree-node base">
+            <div class="evolution-node-title">${base.name}</div>
+            <div class="evolution-node-subtitle">${base.subtitle}</div>
+            <div class="evolution-node-level-badge" style="background: #667eea;">Niveau 1 (classe de base)</div>
+            <div class="evolution-node-description">${base.description}</div>
+            <div class="evolution-node-stats">
+                <strong style="font-size: 0.9rem;">Forces :</strong>
+                ${base.strengths.map(s => `<div class="evolution-stat-item bonus">✓ ${s}</div>`).join('')}
+                <strong style="font-size: 0.9rem; margin-top: 0.5rem;">Faiblesses :</strong>
+                ${base.weaknesses.map(w => `<div class="evolution-stat-item negative">✗ ${w}</div>`).join('')}
+            </div>
+        </div>
+        <div class="evolution-tree-arrow">↓</div>
+    `;
+
+    if (tree.evolution_levels && tree.evolution_levels.length > 0) {
+        tree.evolution_levels.forEach((group, idx) => {
+            const isUnlocked = group.is_unlocked;
+            const isChosen = group.is_chosen;
+
+            html += `
+                <div class="evolution-tree-node ${isChosen ? 'chosen' : isUnlocked ? 'unlocked' : 'locked'}">
+                    <div class="evolution-node-level-badge ${!isUnlocked ? 'locked' : isUnlocked && !isChosen ? 'available' : ''}">
+                        Niveau ${group.level} ${isChosen ? '✓ Choisi' : ''}
+                    </div>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin: 0.5rem 0;">
+                        ${!isUnlocked ? `Déverrouille au niveau ${group.level}` : isChosen ? 'Tu as évolué ici' : 'Choisis une spécialisation'}
+                    </p>
+                    <div class="evolution-choices-group">
+                        ${group.evolutions.map(evo => `
+                            <div class="evolution-choice-card ${evo.is_chosen ? 'chosen' : evo.is_available ? 'available' : 'locked'}">
+                                <div class="evolution-choice-name">${evo.name}</div>
+                                <div class="evolution-choice-desc">${evo.description}</div>
+                                ${evo.stat_bonus && Object.keys(evo.stat_bonus).length > 0 ? `
+                                    <div class="evolution-choice-bonus-list">
+                                        ${Object.entries(evo.stat_bonus).map(([stat, val]) => {
+                                            const sign = val > 0 ? '+' : '';
+                                            const color = val > 0 ? '#10b981' : '#ef4444';
+                                            return `<span class="bonus-item" style="color: ${color};">${sign}${val} ${stat}</span>`;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+                                ${evo.is_chosen ? '<p style="margin: 0.5rem 0; color: #f59e0b; font-weight: 700;">✓ Évolution choisie</p>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (idx < tree.evolution_levels.length - 1) {
+                html += '<div class="evolution-tree-arrow">↓</div>';
+            }
+        });
+    }
+
+    container.innerHTML = html;
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('evolutionTreeModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeEvolutionTree();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -3,7 +3,7 @@
  * Spécialement conçu pour iPad et tablettes
  * 
  * @version 1.0.0
- * @author TeacherPlanner
+ * @author ProfCalendar
  */
 
 (function() {

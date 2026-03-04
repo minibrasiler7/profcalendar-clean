@@ -9,7 +9,9 @@ from models.attendance import Attendance
 from models.student_sanctions import StudentSanctionCount
 from models.sanctions import StudentSanctionRecord, SanctionTemplate
 from models.evaluation import Evaluation, EvaluationGrade
-from datetime import datetime, date
+from models.email_verification import EmailVerification
+from services.email_service import send_verification_code
+from datetime import datetime, date, timedelta
 import re
 import os
 import uuid
@@ -17,6 +19,34 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 
 parent_auth_bp = Blueprint('parent_auth', __name__, url_prefix='/parent')
+
+@parent_auth_bp.before_request
+def check_parent_email_verified():
+    """Vérifier que l'email est vérifié pour toutes les routes protégées."""
+    public_routes = [
+        'parent_auth.login', 'parent_auth.register',
+        'parent_auth.verify_email', 'parent_auth.resend_code',
+        'parent_auth.logout'
+    ]
+    if request.endpoint in public_routes:
+        return None
+
+    if current_user.is_authenticated and isinstance(current_user, Parent):
+        if not current_user.email_verified:
+            try:
+                verification = EmailVerification.create_verification(current_user.email, 'parent')
+                db.session.commit()
+                send_verification_code(current_user.email, verification.code, 'parent')
+            except Exception:
+                pass
+            session['pending_user_id'] = current_user.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = current_user.email
+            logout_user()
+            session.pop('user_type', None)
+            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            return redirect(url_for('parent_auth.verify_email'))
+    return None
 
 def get_all_linked_students(original_student_id):
     """Récupérer tous les élèves liés (original + copies dans les classes dérivées)"""
@@ -56,9 +86,28 @@ def parent_required(f):
             # Pour les requêtes AJAX, retourner une erreur JSON
             if request.is_json or request.headers.get('Accept') == 'application/json':
                 return jsonify({'error': 'Accès réservé aux parents'}), 403
-            
+
             flash('Accès réservé aux parents', 'error')
             return redirect(url_for('parent_auth.login'))
+
+        # Vérifier que l'email est vérifié
+        if not current_user.email_verified:
+            try:
+                verification = EmailVerification.create_verification(current_user.email, 'parent')
+                db.session.commit()
+                send_verification_code(current_user.email, verification.code, 'parent')
+            except Exception:
+                pass
+            session['pending_user_id'] = current_user.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = current_user.email
+            logout_user()
+            session.pop('user_type', None)
+            if request.is_json or request.headers.get('Accept') == 'application/json':
+                return jsonify({'error': 'Email non vérifié', 'redirect': url_for('parent_auth.verify_email')}), 403
+            flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+            return redirect(url_for('parent_auth.verify_email'))
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -82,10 +131,49 @@ def login():
             flash('Email et mot de passe requis', 'error')
             return render_template('parent/login.html')
         
-        # Rechercher le parent d'abord
-        parent = Parent.query.filter_by(email=email).first()
-        
+        # Rechercher le parent par hash d'email
+        from utils.encryption import encryption_engine
+
+        computed_hash = encryption_engine.hash_email(email)
+        parent = Parent.query.filter_by(email_hash=computed_hash).first()
+
+        # Fallback : recherche par email en clair si le hash ne correspond pas
+        if not parent:
+            all_parents = Parent.query.all()
+            for p in all_parents:
+                try:
+                    decrypted = p.email.strip().lower() if p.email else ''
+                except Exception:
+                    continue
+                if decrypted == email:
+                    parent = p
+                    # Mettre à jour le hash pour les prochaines connexions
+                    try:
+                        parent.email_hash = encryption_engine.hash_email(email)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                    break
+
         if parent and parent.check_password(password):
+            # Vérifier si l'email est vérifié
+            if not parent.email_verified:
+                verification = EmailVerification.create_verification(email, 'parent')
+                db.session.commit()
+                email_sent = send_verification_code(email, verification.code, 'parent')
+
+                session['pending_user_id'] = parent.id
+                session['pending_user_type'] = 'parent'
+                session['verification_email'] = email
+
+                if request.is_json:
+                    return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
+                if email_sent:
+                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                else:
+                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
+                return redirect(url_for('parent_auth.verify_email'))
+
             # C'est bien un parent avec le bon mot de passe
             # Connexion réussie
             session.clear()  # Nettoyer la session pour éviter les conflits
@@ -93,10 +181,10 @@ def login():
             login_user(parent, remember=True)
             parent.last_login = datetime.utcnow()
             db.session.commit()
-            
+
             if request.is_json:
                 return jsonify({'success': True, 'redirect': url_for('parent_auth.dashboard')})
-            
+
             # Rediriger selon l'état du parent
             if not parent.teacher_id:
                 return redirect(url_for('parent_auth.link_teacher'))
@@ -155,7 +243,24 @@ def register():
             return render_template('parent/register.html')
         
         # Vérifier si l'email existe déjà
-        if Parent.query.filter_by(email=email).first():
+        from utils.encryption import encryption_engine
+        existing_parent = Parent.query.filter_by(email_hash=encryption_engine.hash_email(email)).first()
+        if existing_parent:
+            # Si l'email n'est pas vérifié, renvoyer un code et rediriger vers la vérification
+            if not existing_parent.email_verified:
+                try:
+                    verification = EmailVerification.create_verification(email, 'parent')
+                    db.session.commit()
+                    send_verification_code(email, verification.code, 'parent')
+                    session['pending_user_id'] = existing_parent.id
+                    session['pending_user_type'] = 'parent'
+                    session['verification_email'] = email
+                    if request.is_json:
+                        return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email'), 'message': 'Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.'})
+                    flash('Un compte existe déjà mais l\'email n\'est pas vérifié. Un nouveau code vous a été envoyé.', 'info')
+                    return redirect(url_for('parent_auth.verify_email'))
+                except Exception:
+                    pass
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Un compte avec cet email existe déjà'}), 400
             flash('Un compte avec cet email existe déjà', 'error')
@@ -169,21 +274,29 @@ def register():
                 last_name=last_name
             )
             parent.set_password(password)
-            
+
             db.session.add(parent)
+            db.session.flush()
+
+            # Générer et envoyer le code de vérification email
+            verification = EmailVerification.create_verification(email, 'parent')
             db.session.commit()
-            
-            # Connexion automatique
-            session['user_type'] = 'parent'  # Marquer comme parent dans la session
-            login_user(parent, remember=True)
-            parent.last_login = datetime.utcnow()
-            db.session.commit()
-            
+
+            email_sent = send_verification_code(email, verification.code, 'parent')
+
+            # Stocker l'ID en session pour la vérification
+            session['pending_user_id'] = parent.id
+            session['pending_user_type'] = 'parent'
+            session['verification_email'] = email
+
             if request.is_json:
-                return jsonify({'success': True, 'redirect': url_for('parent_auth.link_teacher')})
-            
-            flash('Compte créé avec succès !', 'success')
-            return redirect(url_for('parent_auth.link_teacher'))
+                return jsonify({'success': True, 'redirect': url_for('parent_auth.verify_email')})
+
+            if email_sent:
+                flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            else:
+                flash('Compte créé, mais impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+            return redirect(url_for('parent_auth.verify_email'))
             
         except Exception as e:
             db.session.rollback()
@@ -267,31 +380,36 @@ def link_teacher():
 def link_children_automatically(parent, classroom_id):
     """Lier automatiquement les enfants selon l'email du parent"""
     children_linked = 0
-    
-    # Rechercher les élèves avec l'email du parent (mère ou père)
-    students = Student.query.filter(
-        Student.classroom_id == classroom_id,
-        db.or_(
-            Student.parent_email_mother == parent.email,
-            Student.parent_email_father == parent.email
-        )
-    ).all()
-    
-    for student in students:
+
+    # Les emails sont chiffrés (non déterministe), donc on filtre en Python
+    # On charge tous les élèves de la classe et on compare les emails déchiffrés
+    parent_email = parent.email.strip().lower() if parent.email else None
+    if not parent_email:
+        return 0
+
+    all_students = Student.query.filter_by(classroom_id=classroom_id).all()
+
+    for student in all_students:
+        mother_email = (student.parent_email_mother or '').strip().lower()
+        father_email = (student.parent_email_father or '').strip().lower()
+
+        if mother_email != parent_email and father_email != parent_email:
+            continue
+
         # Vérifier si la liaison n'existe pas déjà
         existing_link = ParentChild.query.filter_by(
             parent_id=parent.id,
             student_id=student.id
         ).first()
-        
+
         if not existing_link:
             # Déterminer le type de relation
             relationship = 'parent'  # Par défaut
-            if student.parent_email_mother == parent.email:
+            if mother_email == parent_email:
                 relationship = 'mother'
-            elif student.parent_email_father == parent.email:
+            elif father_email == parent_email:
                 relationship = 'father'
-            
+
             # Créer la liaison
             parent_child = ParentChild(
                 parent_id=parent.id,
@@ -301,30 +419,138 @@ def link_children_automatically(parent, classroom_id):
             )
             db.session.add(parent_child)
             children_linked += 1
-    
+
     return children_linked
+
+@parent_auth_bp.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Vérification du code email pour les parents"""
+    parent_id = session.get('pending_user_id')
+    if not parent_id or session.get('pending_user_type') != 'parent':
+        return redirect(url_for('parent_auth.register'))
+
+    parent = Parent.query.get(parent_id)
+    if not parent:
+        session.pop('pending_user_id', None)
+        return redirect(url_for('parent_auth.register'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+
+        verification = EmailVerification.query.filter_by(
+            email=parent.email,
+            code=code,
+            user_type='parent',
+            is_used=False
+        ).first()
+
+        if verification and verification.is_valid():
+            verification.is_used = True
+            parent.email_verified = True
+            db.session.commit()
+
+            # Connecter le parent
+            session.clear()
+            session['user_type'] = 'parent'
+            login_user(parent, remember=True)
+            parent.last_login = datetime.utcnow()
+            db.session.commit()
+
+            flash('Email vérifié avec succès !', 'success')
+            if parent.teacher_id:
+                return redirect(url_for('parent_auth.dashboard'))
+            return redirect(url_for('parent_auth.link_teacher'))
+        else:
+            flash('Code invalide ou expiré.', 'error')
+
+    return render_template('parent/verify_email.html', email=parent.email)
+
+@parent_auth_bp.route('/resend-code', methods=['POST'])
+def resend_code():
+    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    parent_id = session.get('pending_user_id')
+    if not parent_id or session.get('pending_user_type') != 'parent':
+        return redirect(url_for('parent_auth.register'))
+
+    parent = Parent.query.get(parent_id)
+    if not parent:
+        return redirect(url_for('parent_auth.register'))
+
+    last_verification = EmailVerification.query.filter_by(
+        email=parent.email,
+        user_type='parent'
+    ).order_by(EmailVerification.created_at.desc()).first()
+
+    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
+        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
+        return redirect(url_for('parent_auth.verify_email'))
+
+    verification = EmailVerification.create_verification(parent.email, 'parent')
+    db.session.commit()
+
+    email_sent = send_verification_code(parent.email, verification.code, 'parent')
+    if email_sent:
+        flash('Un nouveau code a été envoyé.', 'success')
+    else:
+        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+    return redirect(url_for('parent_auth.verify_email'))
 
 @parent_auth_bp.route('/dashboard')
 @parent_required
 def dashboard():
     """Tableau de bord des parents"""
+    # Double vérification : email vérifié (sécurité supplémentaire)
+    if not current_user.email_verified:
+        try:
+            verification = EmailVerification.create_verification(current_user.email, 'parent')
+            db.session.commit()
+            send_verification_code(current_user.email, verification.code, 'parent')
+        except Exception:
+            pass
+        session['pending_user_id'] = current_user.id
+        session['pending_user_type'] = 'parent'
+        session['verification_email'] = current_user.email
+        logout_user()
+        session.pop('user_type', None)
+        flash('Veuillez vérifier votre adresse email avant de continuer.', 'info')
+        return redirect(url_for('parent_auth.verify_email'))
+
     if not current_user.teacher_id:
         return redirect(url_for('parent_auth.link_teacher'))
-    
+
     # Récupérer les enfants du parent
     children = db.session.query(Student, ParentChild).join(
         ParentChild, Student.id == ParentChild.student_id
     ).filter(
         ParentChild.parent_id == current_user.id
     ).all()
-    
+
     # Récupérer les justifications d'absence soumises par ce parent
     from models.absence_justification import AbsenceJustification
     justifications = AbsenceJustification.query.filter_by(
         parent_id=current_user.id
     ).order_by(AbsenceJustification.created_at.desc()).limit(10).all()
-    
-    return render_template('parent/dashboard.html', children=children, justifications=justifications)
+
+    # Récupérer les remarques envoyées aux parents
+    from models.lesson_memo import StudentRemark
+    student_ids = [child.id for child, _ in children]
+    remarks = StudentRemark.query.filter(
+        StudentRemark.student_id.in_(student_ids),
+        StudentRemark.send_to_parent_and_student == True
+    ).order_by(StudentRemark.created_at.desc()).limit(20).all()
+
+    # Compter les remarques non lues
+    unread_remarks_count = StudentRemark.query.filter(
+        StudentRemark.student_id.in_(student_ids),
+        StudentRemark.send_to_parent_and_student == True,
+        StudentRemark.is_viewed_by_parent == False
+    ).count()
+
+    return render_template('parent/dashboard.html',
+                         children=children,
+                         justifications=justifications,
+                         remarks=remarks,
+                         unread_remarks_count=unread_remarks_count)
 
 @parent_auth_bp.route('/logout')
 @parent_required

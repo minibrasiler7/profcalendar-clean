@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Missions - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+.missions-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.missions-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.missions-header h1 { margin: 0; font-size: 1.5rem; }
+
+.rpg-mini {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255,255,255,0.15);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+}
+
+.rpg-mini .avatar-mini {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.rpg-mini .avatar-mini img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+}
+
+.rpg-mini .level-badge {
+    width: 40px; height: 40px;
+    background: #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.no-character-banner {
+    background: linear-gradient(135deg, #fef3c7, #fffbeb);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.no-character-banner h2 {
+    color: #92400e; margin: 0 0 0.5rem; font-size: 1.2rem;
+}
+
+.no-character-banner p {
+    color: #a16207; margin: 0 0 1rem; font-size: 0.9rem;
+}
+
+.no-character-banner a {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.6rem 1.5rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    transition: transform 0.2s;
+}
+
+.no-character-banner a:hover { transform: translateY(-2px); }
+
+.rpg-mini-info { font-size: 0.85rem; }
+.rpg-mini-info strong { display: block; }
+
+.xp-bar {
+    width: 100px;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.2rem;
+}
+
+.xp-bar-fill {
+    height: 100%;
+    background: #f59e0b;
+    border-radius: 3px;
+    transition: width 0.5s;
+}
+
+/* Nav tabs */
+.nav-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.nav-tab {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: #4b5563;
+}
+
+.nav-tab:hover, .nav-tab.active { border-color: #667eea; background: #eef2ff; color: #667eea; }
+
+/* Mission card */
+.mission-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-left: 4px solid #667eea;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.mission-card:hover { transform: translateX(4px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+.mission-card.completed { border-left-color: #10b981; opacity: 0.85; }
+.mission-card.expired { border-left-color: #9ca3af; opacity: 0.6; }
+
+.mission-icon {
+    width: 50px; height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.mission-icon.todo { background: #eef2ff; color: #667eea; }
+.mission-icon.in_progress { background: #fef3c7; color: #f59e0b; }
+.mission-icon.completed { background: #dcfce7; color: #10b981; }
+
+.mission-info { flex: 1; }
+.mission-info h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+
+.mission-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.mission-meta span { display: flex; align-items: center; gap: 0.2rem; }
+
+.mission-reward {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.mission-xp {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #f59e0b;
+}
+
+.mission-score {
+    font-size: 0.8rem;
+    color: #10b981;
+    font-weight: 600;
+}
+
+.status-tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-tag.todo { background: #eef2ff; color: #667eea; }
+.status-tag.in_progress { background: #fef3c7; color: #92400e; }
+.status-tag.completed { background: #dcfce7; color: #166534; }
+
+.empty-missions {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #9ca3af;
+}
+
+.empty-missions i { font-size: 4rem; margin-bottom: 1rem; }
+
+/* Cooldown */
+.mission-card.cooldown { border-left-color: #f59e0b; opacity: 0.7; pointer-events: none; }
+.mission-icon.completed .fa-hourglass-half { color: #f59e0b; }
+.cooldown-tag {
+    background: #fef3c7 !important; color: #92400e !important;
+    display: inline-flex; align-items: center; gap: 0.3rem;
+}
+.cooldown-timer { font-variant-numeric: tabular-nums; font-weight: 800; }
+
+/* Navbar */
+.navbar-student {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 1rem 0;
+    margin-bottom: 0;
+}
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar-links {
+    display: flex;
+    gap: 2rem;
+}
+.navbar-links a {
+    color: #4a5568;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.navbar-links a:hover,
+.navbar-links a.active {
+    color: #667eea;
+}
+.logout-btn {
+    background-color: #f7fafc;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.logout-btn:hover {
+    background-color: #edf2f7;
+    color: #2d3748;
+}
+
+/* White bg for chihuahua images */
+.avatar-mini img, .rpg-topbar-avatar img {
+    background: white;
+    border-radius: 50%;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar-student">
+    <div class="navbar-content">
+        <div class="navbar-links">
+            <a href="{{ url_for('student_auth.dashboard') }}">
+                <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="{{ url_for('student_auth.grades') }}">
+                <i class="fas fa-chart-line"></i> Notes
+            </a>
+            <a href="{{ url_for('student_auth.files') }}">
+                <i class="fas fa-folder"></i> Fichiers
+            </a>
+            <a href="{{ url_for('student_auth.teachers') }}">
+                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+            </a>
+            <a href="{{ url_for('student_auth.missions') }}" class="active">
+                <i class="fas fa-scroll"></i> Missions
+            </a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}">
+                <i class="fas fa-gamepad"></i> RPG
+            </a>
+        </div>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </a>
+    </div>
+</nav>
+
+<div class="missions-container">
+    <div class="missions-header">
+        <div style="display:flex;align-items:center;gap:1rem;">
+            {% if rpg and rpg.avatar_class %}
+            <div class="avatar-mini" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,0.4);flex-shrink:0;">
+                <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}" style="width:100%;height:100%;object-fit:contain;background:white;border-radius:50%;">
+            </div>
+            {% endif %}
+            <h1><i class="fas fa-scroll"></i> Mes Missions</h1>
+        </div>
+        {% if rpg %}
+        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="rpg-mini" style="text-decoration:none;color:white;">
+            <div class="level-badge">{{ rpg.level }}</div>
+            <div class="rpg-mini-info">
+                <strong>Niveau {{ rpg.level }} — {{ rpg.xp_total }} XP</strong>
+                <div class="xp-bar"><div class="xp-bar-fill" style="width: {{ rpg.xp_progress }}%;"></div></div>
+            </div>
+            <div class="rpg-mini-info">
+                <span><i class="fas fa-coins" style="color:#f59e0b;"></i> {{ rpg.gold }}</span>
+            </div>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="filterMissions('all', this)">Toutes</button>
+        <button class="nav-tab" onclick="filterMissions('todo', this)">À faire</button>
+        <button class="nav-tab" onclick="filterMissions('completed', this)">Terminées</button>
+        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="nav-tab">
+            <i class="fas fa-gamepad"></i> Mon RPG
+        </a>
+    </div>
+
+    {% if rpg and not rpg.avatar_class %}
+    <div class="no-character-banner">
+        <h2><i class="fas fa-dog"></i> Choisis ton personnage !</h2>
+        <p>Tu dois d'abord choisir ta classe de chihuahua avant de pouvoir lancer des missions.</p>
+        <a href="{{ url_for('student_auth.rpg_dashboard') }}"><i class="fas fa-gamepad"></i> Choisir mon personnage</a>
+    </div>
+    {% endif %}
+
+    {% if missions %}
+        {% for m in missions %}
+        {% if rpg and rpg.avatar_class and not m.on_cooldown %}
+        <a href="{{ url_for('student_auth.solve_exercise', exercise_id=m.exercise.id) }}"
+           class="mission-card {{ m.status }}" data-status="{{ m.status }}">
+        {% elif m.on_cooldown %}
+        <div class="mission-card {{ m.status }} cooldown" data-status="{{ m.status }}" data-cooldown="{{ m.cooldown_remaining }}">
+        {% else %}
+        <div class="mission-card {{ m.status }}" data-status="{{ m.status }}" style="pointer-events:none;opacity:0.5;">
+        {% endif %}
+            <div class="mission-icon {{ m.status }}">
+                {% if m.on_cooldown %}
+                    <i class="fas fa-hourglass-half"></i>
+                {% elif m.status == 'completed' %}
+                    <i class="fas fa-check"></i>
+                {% elif m.status == 'in_progress' %}
+                    <i class="fas fa-spinner"></i>
+                {% else %}
+                    <i class="fas fa-scroll"></i>
+                {% endif %}
+            </div>
+            <div class="mission-info">
+                <h3>{{ m.exercise.title }}</h3>
+                <div class="mission-meta">
+                    {% if m.exercise.subject %}<span><i class="fas fa-book"></i> {{ m.exercise.subject }}</span>{% endif %}
+                    {% if m.on_cooldown %}
+                    <span class="status-tag cooldown-tag">
+                        <i class="fas fa-clock"></i> <span class="cooldown-timer" data-seconds="{{ m.cooldown_remaining }}">--:--:--</span>
+                    </span>
+                    {% else %}
+                    <span class="status-tag {{ m.status }}">
+                        {% if m.status == 'completed' %}Terminé{% elif m.status == 'in_progress' %}En cours{% else %}À faire{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mission-reward">
+                {% if m.attempt and m.attempt.is_completed %}
+                    <div class="mission-score">{{ m.attempt.score_percentage }}%</div>
+                    <div class="mission-xp">+{{ m.attempt.xp_earned }} XP</div>
+                {% else %}
+                    <div class="mission-xp">{{ m.exercise.total_points }} XP</div>
+                {% endif %}
+            </div>
+        {% if rpg and rpg.avatar_class and not m.on_cooldown %}
+        </a>
+        {% else %}
+        </div>
+        {% endif %}
+        {% endfor %}
+    {% else %}
+        <div class="empty-missions">
+            <i class="fas fa-scroll"></i>
+            <h2>Aucune mission pour l'instant</h2>
+            <p>Ton enseignant n'a pas encore publié d'exercices.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function filterMissions(status, btn) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.mission-card').forEach(c => {
+        c.style.display = (status === 'all' || c.dataset.status === status) ? '' : 'none';
+    });
+}
+
+// Cooldown timers
+function updateCooldownTimers() {
+    document.querySelectorAll('.cooldown-timer').forEach(el => {
+        let secs = parseInt(el.dataset.seconds);
+        if (isNaN(secs) || secs <= 0) {
+            el.textContent = 'Prêt !';
+            const card = el.closest('.mission-card');
+            if (card) { card.classList.remove('cooldown'); card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
+            return;
+        }
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        el.textContent = `${h}h${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        el.dataset.seconds = secs - 1;
+    });
+}
+updateCooldownTimers();
+setInterval(updateCooldownTimers, 1000);
+</script>
+{% endblock %}

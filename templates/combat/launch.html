@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Lancer un Combat RPG{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0" style="background: #1a1a2e; color: #e2e8f0;">
+                <div class="card-header text-center" style="background: #16213e; border-bottom: 2px solid #ef4444;">
+                    <h3 class="mb-0">
+                        <i class="fas fa-swords me-2"></i>⚔️ Lancer un Combat RPG
+                    </h3>
+                    <p class="text-muted mt-1 mb-0">Les élèves combattent des monstres en répondant à des questions</p>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Sélection de la classe -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" style="color: #94a3b8;">
+                            🏫 Classe
+                        </label>
+                        <select id="classroomSelect" class="form-select"
+                                style="background: #16213e; color: #e2e8f0; border-color: #334155;">
+                            <option value="">— Choisir une classe —</option>
+                            {% for classroom in classrooms %}
+                            <option value="{{ classroom.id }}">{{ classroom.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Sélection de l'exercice -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" style="color: #94a3b8;">
+                            📝 Exercice (questions pour le combat)
+                        </label>
+                        <select id="exerciseSelect" class="form-select"
+                                style="background: #16213e; color: #e2e8f0; border-color: #334155;">
+                            <option value="">— Choisir un exercice —</option>
+                            {% for exercise in exercises %}
+                            <option value="{{ exercise.id }}">{{ exercise.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Difficulté -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" style="color: #94a3b8;">
+                            ⚡ Difficulté
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-3">
+                                <input type="radio" class="btn-check" name="difficulty" id="diff-easy" value="easy">
+                                <label class="btn btn-outline-success w-100" for="diff-easy">
+                                    🟢 Facile<br><small>3 Slimes</small>
+                                </label>
+                            </div>
+                            <div class="col-3">
+                                <input type="radio" class="btn-check" name="difficulty" id="diff-medium" value="medium" checked>
+                                <label class="btn btn-outline-warning w-100" for="diff-medium">
+                                    🟡 Moyen<br><small>Gobelins + Slimes</small>
+                                </label>
+                            </div>
+                            <div class="col-3">
+                                <input type="radio" class="btn-check" name="difficulty" id="diff-hard" value="hard">
+                                <label class="btn btn-outline-danger w-100" for="diff-hard">
+                                    🔴 Difficile<br><small>Orcs + Squelettes</small>
+                                </label>
+                            </div>
+                            <div class="col-3">
+                                <input type="radio" class="btn-check" name="difficulty" id="diff-boss" value="boss">
+                                <label class="btn btn-outline-primary w-100" for="diff-boss">
+                                    🐉 Boss<br><small>Dragon + Gobelins</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bouton de lancement -->
+                    <div class="text-center mt-4">
+                        <button id="launchBtn" class="btn btn-lg px-5 py-3"
+                                style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 12px; font-size: 1.2rem;"
+                                onclick="launchCombat()">
+                            ⚔️ Lancer le Combat !
+                        </button>
+                    </div>
+
+                    <div id="errorMsg" class="alert alert-danger mt-3 d-none"></div>
+                    <div id="successMsg" class="alert alert-success mt-3 d-none"></div>
+                </div>
+            </div>
+
+            <!-- Combats actifs -->
+            {% if active_sessions %}
+            <div class="card shadow-sm border-0 mt-4" style="background: #1a1a2e; color: #e2e8f0;">
+                <div class="card-header" style="background: #16213e;">
+                    <h5 class="mb-0">🎮 Combats en cours</h5>
+                </div>
+                <div class="card-body">
+                    {% for s in active_sessions %}
+                    <div class="d-flex justify-content-between align-items-center p-3 mb-2 rounded"
+                         style="background: #16213e;">
+                        <div>
+                            <strong>Combat #{{ s.id }}</strong> — Round {{ s.current_round }}
+                            <br>
+                            <small class="text-muted">{{ s.participants.count() }} élèves — {{ s.difficulty }}</small>
+                        </div>
+                        <a href="{{ url_for('combat.arena', session_id=s.id) }}"
+                           class="btn btn-outline-light btn-sm" target="_blank">
+                            📺 Ouvrir l'arène
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function launchCombat() {
+    const classroomId = document.getElementById('classroomSelect').value;
+    const exerciseId = document.getElementById('exerciseSelect').value;
+    const difficulty = document.querySelector('input[name="difficulty"]:checked')?.value || 'medium';
+
+    if (!classroomId || !exerciseId) {
+        showError('Veuillez sélectionner une classe et un exercice.');
+        return;
+    }
+
+    const btn = document.getElementById('launchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Création...';
+
+    fetch('/combat/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+        body: JSON.stringify({
+            classroom_id: parseInt(classroomId),
+            exercise_id: parseInt(exerciseId),
+            difficulty: difficulty,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(`Combat créé ! Redirection vers l'arène...`);
+            setTimeout(() => {
+                window.location.href = `/combat/${data.session.id}/arena`;
+            }, 1000);
+        } else {
+            showError(data.error || 'Erreur lors de la création');
+            btn.disabled = false;
+            btn.innerHTML = '⚔️ Lancer le Combat !';
+        }
+    })
+    .catch(err => {
+        showError('Erreur réseau: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '⚔️ Lancer le Combat !';
+    });
+}
+
+function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+    document.getElementById('successMsg').classList.add('d-none');
+}
+
+function showSuccess(msg) {
+    const el = document.getElementById('successMsg');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+    document.getElementById('errorMsg').classList.add('d-none');
+}
+</script>
+{% endblock %}

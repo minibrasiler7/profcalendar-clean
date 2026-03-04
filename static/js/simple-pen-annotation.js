@@ -25,12 +25,20 @@ class SimplePenAnnotation {
             opacity: options.opacity || 1.0
         };
 
+        // Callback pour notifier le parent quand un pinch-to-zoom est détecté
+        this.onPinchZoom = options.onPinchZoom || null;
+
         // État du dessin
         this.isDrawing = false;
         this.isEnabled = true;
         this.currentPoints = [];
         this.strokes = []; // Historique de tous les strokes
+        this.originalStrokes = []; // Copie des strokes à la résolution de base (pour re-scaling)
         this.pointerId = null;
+
+        // État du pinch-to-zoom
+        this.isPinching = false;
+        this.pinchTimeout = null;
 
         // IMPORTANT: Initialiser backgroundImageData mais NE PAS sauvegarder automatiquement
         // Le background sera sauvegardé manuellement après le chargement des annotations
@@ -60,6 +68,7 @@ class SimplePenAnnotation {
         this.handlePointerLeave = this.handlePointerLeave.bind(this);
         this.handleTouchStart = this.handleTouchStart.bind(this);
         this.handleTouchMove = this.handleTouchMove.bind(this);
+        this.handleTouchEnd = this.handleTouchEnd.bind(this);
 
         // Ajouter les event listeners
         // IMPORTANT: passive: false pour pouvoir appeler preventDefault()
@@ -74,9 +83,17 @@ class SimplePenAnnotation {
         // Safari génère parfois des événements touch même pour le stylet
         this.canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
         this.canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+        this.canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
     }
 
     handleTouchStart(e) {
+        // IMPORTANT: Autoriser le pinch (2+ doigts) pour le zoom
+        if (e.touches.length >= 2) {
+            console.log('👆 Pinch détecté dans SimplePenAnnotation - autorisation du zoom');
+            this.isPinching = true;
+            return; // Ne pas bloquer le pinch
+        }
+
         // Bloquer touchstart si c'est un stylet (détecté par touchType stylus)
         const touch = e.touches[0];
         const isStylus = touch && touch.touchType === 'stylus';
@@ -90,11 +107,33 @@ class SimplePenAnnotation {
     }
 
     handleTouchMove(e) {
+        // IMPORTANT: Autoriser le pinch (2+ doigts) pour le zoom
+        if (e.touches.length >= 2) {
+            return; // Ne pas bloquer le pinch
+        }
+
         // Toujours bloquer touchmove si touchAction est none (stylet actif)
         if (this.canvas.style.touchAction === 'none' || this.isDrawing) {
             e.preventDefault();
             e.stopPropagation();
             return false;
+        }
+    }
+
+    handleTouchEnd(e) {
+        // Détecter la fin d'un pinch-to-zoom et notifier le parent
+        if (this.isPinching && e.touches.length < 2) {
+            console.log('🤏 Fin du pinch détectée dans SimplePenAnnotation');
+            this.isPinching = false;
+
+            // Attendre un peu que le zoom CSS soit appliqué, puis notifier
+            clearTimeout(this.pinchTimeout);
+            this.pinchTimeout = setTimeout(() => {
+                if (this.onPinchZoom && typeof this.onPinchZoom === 'function') {
+                    console.log('📢 Notification du parent pour re-rendu après pinch');
+                    this.onPinchZoom();
+                }
+            }, 500);
         }
     }
 
@@ -123,7 +162,16 @@ class SimplePenAnnotation {
     }
 
     handlePointerDown(e) {
+        console.log(`🖊️ [SimplePen] POINTERDOWN START:`, {
+            isEnabled: this.isEnabled,
+            pointerType: e.pointerType,
+            buttons: e.buttons,
+            pressure: e.pressure,
+            timestamp: performance.now()
+        });
+
         if (!this.isEnabled) {
+            console.log(`⛔ [SimplePen] Dessin désactivé, retour`);
             return;
         }
 
@@ -133,16 +181,20 @@ class SimplePenAnnotation {
 
         if (isFinger) {
             // Doigt détecté - ne rien faire, laisser le scroll/zoom natif
+            console.log(`👆 [SimplePen] Doigt détecté, ignorer`);
             return;
         }
 
         if (!isStylus && !isMouse) {
             // Type de pointeur inconnu - ignorer
+            console.log(`❓ [SimplePen] Type de pointeur inconnu, ignorer`);
             return;
         }
 
-        // Stylet ou souris - bloquer le scroll et dessiner
-        this.canvas.style.touchAction = 'none';
+        // CRITIQUE: NE JAMAIS changer touchAction dynamiquement
+        // Cela cause des blocages Safari iOS qui throttle les pointermove
+        // touchAction doit être défini en CSS avant le début de la séquence tactile
+        // this.canvas.style.touchAction = 'none'; // SUPPRIMÉ
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
@@ -151,49 +203,83 @@ class SimplePenAnnotation {
         // CRITIQUE: Capturer le pointeur pour recevoir tous les événements
         try {
             this.canvas.setPointerCapture(e.pointerId);
+            console.log(`🎯 [SimplePen] Pointer capturé: ${e.pointerId}`);
         } catch (err) {
-            // Silently fail
+            console.warn(`⚠️ [SimplePen] Échec capture pointer:`, err);
         }
 
         this.isDrawing = true;
         this.pointerId = e.pointerId;
 
         // Coordonnées relatives au canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Utiliser offsetX/offsetY qui sont plus précis que getBoundingClientRect
+        // surtout après un pinch-to-zoom
+        const x = e.offsetX;
+        const y = e.offsetY;
 
         // Initialiser avec le premier point
         this.currentPoints = [[x, y, e.pressure || 0.5]];
+        console.log(`✅ [SimplePen] isDrawing=true, premier point ajouté (${x.toFixed(1)}, ${y.toFixed(1)})`);
+
+        // OPTIMISATION: Sauvegarder l'état du canvas avant de commencer le nouveau stroke
+        // Cela permet de dessiner seulement le stroke en cours sans redessiner tous les anciens
+        this.saveCanvasState();
     }
 
     handlePointerMove(e) {
-        if (!this.isDrawing) return;
-        if (e.buttons !== 1) return; // Seulement si le bouton est enfoncé
+        // Throttle logs - log seulement 1 sur 20
+        if (!this._pointerMoveCounter) this._pointerMoveCounter = 0;
+        this._pointerMoveCounter++;
+        const shouldLog = this._pointerMoveCounter % 20 === 0;
+
+        if (shouldLog) {
+            console.log(`🔵 [SimplePen] POINTERMOVE #${this._pointerMoveCounter}:`, {
+                isDrawing: this.isDrawing,
+                buttons: e.buttons,
+                pressure: e.pressure,
+                pointsCount: this.currentPoints ? this.currentPoints.length : 0,
+                timestamp: performance.now()
+            });
+        }
+
+        if (!this.isDrawing) {
+            if (shouldLog) console.log(`⚠️ [SimplePen] POINTERMOVE ignoré: isDrawing=false`);
+            return;
+        }
+        if (e.buttons !== 1) {
+            if (shouldLog) console.log(`⚠️ [SimplePen] POINTERMOVE ignoré: buttons=${e.buttons}`);
+            return;
+        }
 
         // IMPORTANT: Empêcher le comportement par défaut ET la propagation
         e.preventDefault();
         e.stopPropagation();
 
         // Coordonnées relatives au canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Utiliser offsetX/offsetY qui sont plus précis que getBoundingClientRect
+        const x = e.offsetX;
+        const y = e.offsetY;
 
         // Ajouter le point
         this.currentPoints.push([x, y, e.pressure || 0.5]);
 
-        // OPTIMISATION: Throttle redraws à ~60fps pour éviter la dégradation de performance
-        // Cela limite le nombre de redraws complets tout en collectant tous les points
-        const now = Date.now();
-        if (now - this.lastRedrawTime > this.redrawThrottle) {
-            this.redraw();
-            this.lastRedrawTime = now;
-        }
+        // OPTIMISATION: Dessiner seulement le stroke en cours (pas tous les strokes précédents)
+        // Cela évite de recalculer 22-23 strokes à chaque mouvement
+        this.drawCurrentStrokeOnly();
     }
 
     handlePointerUp(e) {
+        console.log(`🟢 [SimplePen] POINTERUP:`, {
+            isDrawing: this.isDrawing,
+            pointsCount: this.currentPoints ? this.currentPoints.length : 0,
+            totalMoves: this._pointerMoveCounter || 0,
+            timestamp: performance.now()
+        });
+        // Reset counter
+        this._pointerMoveCounter = 0;
+
         if (!this.isDrawing) {
+            console.log(`⚠️ [SimplePen] POINTERUP ignoré: isDrawing=false`);
             return;
         }
 
@@ -204,29 +290,37 @@ class SimplePenAnnotation {
         // Libérer la capture du pointeur
         try {
             this.canvas.releasePointerCapture(e.pointerId);
+            console.log(`🎯 [SimplePen] Pointer libéré: ${e.pointerId}`);
         } catch (err) {
-            // Silently fail
+            console.warn(`⚠️ [SimplePen] Échec libération pointer:`, err);
         }
 
         this.isDrawing = false;
         this.pointerId = null;
 
-        // Réactiver le scroll/zoom après le dessin
-        this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
+        // CRITIQUE: NE JAMAIS changer touchAction dynamiquement
+        // Cela cause des blocages Safari iOS qui throttle les pointermove
+        // touchAction doit rester 'none' défini en CSS
+        // this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom'; // SUPPRIMÉ
 
         // Sauvegarder le stroke complet
         if (this.currentPoints.length > 0) {
-            this.strokes.push({
+            const newStroke = {
                 points: this.currentPoints.slice(),
                 options: { ...this.options }
-            });
+            };
+            this.strokes.push(newStroke);
+            console.log(`✅ [SimplePen] Stroke sauvegardé: ${this.currentPoints.length} points, total ${this.strokes.length} strokes`);
+            // IMPORTANT: Sauvegarder aussi dans originalStrokes pour le re-scaling
+            this.originalStrokes.push(JSON.parse(JSON.stringify(newStroke)));
         }
 
         this.currentPoints = [];
         this.redraw();
 
-        // Mettre à jour le background pour inclure le nouveau stroke
-        this.saveBackground();
+        // NE PAS sauvegarder le background car on travaille en mode vectoriel
+        // Les strokes se redessinent automatiquement à partir des données vectorielles
+        // this.saveBackground(); // DÉSACTIVÉ pour préserver la qualité vectorielle
     }
 
     saveBackground() {
@@ -239,6 +333,9 @@ class SimplePenAnnotation {
     }
 
     redraw() {
+        // DÉSACTIVÉ: Logs trop verbeux qui ralentissent le navigateur
+        // console.log(`🎨 SimplePenAnnotation.redraw() - ${this.strokes.length} strokes à redessiner`);
+
         // IMPORTANT: Effacer le canvas et restaurer le background
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -248,7 +345,7 @@ class SimplePenAnnotation {
         }
 
         // Redessiner tous les strokes sauvegardés de SimplePenAnnotation
-        this.strokes.forEach(strokeData => {
+        this.strokes.forEach((strokeData) => {
             this.drawStroke(strokeData.points, strokeData.options);
         });
 
@@ -295,9 +392,43 @@ class SimplePenAnnotation {
         this.ctx.restore();
     }
 
+    /**
+     * OPTIMISATION: Sauvegarde l'état actuel du canvas avant de commencer un nouveau stroke
+     * Permet de dessiner seulement le stroke en cours sans redessiner tous les anciens
+     */
+    saveCanvasState() {
+        try {
+            this.savedCanvasState = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        } catch (e) {
+            console.error('Erreur lors de la sauvegarde du canvas state:', e);
+            this.savedCanvasState = null;
+        }
+    }
+
+    /**
+     * OPTIMISATION: Dessine seulement le stroke en cours, sans redessiner tous les anciens
+     * Restaure l'état du canvas sauvegardé puis dessine uniquement le stroke actuel
+     */
+    drawCurrentStrokeOnly() {
+        if (!this.savedCanvasState) {
+            // Fallback: si pas de canvas sauvegardé, utiliser redraw complet
+            this.redraw();
+            return;
+        }
+
+        // Restaurer le canvas à l'état avant le début du stroke
+        this.ctx.putImageData(this.savedCanvasState, 0, 0);
+
+        // Dessiner seulement le stroke en cours
+        if (this.currentPoints.length > 0) {
+            this.drawStroke(this.currentPoints, this.options);
+        }
+    }
+
     // Méthodes utilitaires
     clear() {
         this.strokes = [];
+        this.originalStrokes = [];
         this.currentPoints = [];
         // Effacer tout le canvas (y compris les annotations des autres outils)
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -307,12 +438,14 @@ class SimplePenAnnotation {
         // Effacer seulement les strokes de SimplePenAnnotation, pas le canvas
         // Utilisé après un undo/redo pour éviter que les strokes réapparaissent
         this.strokes = [];
+        this.originalStrokes = [];
         this.currentPoints = [];
     }
 
     undo() {
         if (this.strokes.length > 0) {
             this.strokes.pop();
+            this.originalStrokes.pop();
             this.redraw();
             return true;
         }
@@ -323,19 +456,71 @@ class SimplePenAnnotation {
         Object.assign(this.options, newOptions);
     }
 
+    /**
+     * Exporte les strokes vectoriels pour sauvegarde
+     */
+    exportStrokes() {
+        return {
+            strokes: this.strokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }))
+        };
+    }
+
+    /**
+     * Exporte les strokes originaux (à la résolution de base)
+     * Utilisé pour le re-scaling après pinch-to-zoom
+     */
+    exportOriginalStrokes() {
+        return {
+            strokes: this.originalStrokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }))
+        };
+    }
+
+    /**
+     * Importe des strokes vectoriels et les redessine
+     */
+    importStrokes(data, preserveOriginals = false) {
+        if (data && Array.isArray(data.strokes)) {
+            this.strokes = data.strokes.map(stroke => ({
+                points: stroke.points,
+                options: stroke.options
+            }));
+
+            console.log(`📥 Imported ${this.strokes.length} vector strokes`);
+
+            // IMPORTANT: Ne pas écraser originalStrokes si on est en train de re-scaler
+            // (preserveOriginals = true lors du re-render après pinch-to-zoom)
+            if (!preserveOriginals) {
+                this.originalStrokes = JSON.parse(JSON.stringify(this.strokes));
+            }
+
+            // IMPORTANT: Vider le backgroundImageData car il peut contenir
+            // une ancienne image à basse résolution (avant zoom)
+            // On redessine uniquement les strokes vectoriels à la nouvelle résolution
+            this.backgroundImageData = null;
+
+            this.redraw();
+        }
+    }
+
     enable() {
         this.isEnabled = true;
         this.canvas.style.touchAction = 'pan-x pan-y pinch-zoom';
-        // Sauvegarder le background actuel pour préserver les autres annotations
-        this.saveBackground();
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // this.saveBackground();
     }
 
     disable() {
         this.isEnabled = false;
         this.isDrawing = false;
         this.canvas.style.touchAction = this.originalTouchAction || 'auto';
-        // Sauvegarder à nouveau pour capturer les nouveaux strokes au background
-        this.saveBackground();
+        // DÉSACTIVÉ: Ne pas sauvegarder le background pour préserver la qualité vectorielle
+        // this.saveBackground();
     }
 
     destroy() {
@@ -347,6 +532,7 @@ class SimplePenAnnotation {
         this.canvas.removeEventListener('pointerleave', this.handlePointerLeave);
         this.canvas.removeEventListener('touchstart', this.handleTouchStart);
         this.canvas.removeEventListener('touchmove', this.handleTouchMove);
+        this.canvas.removeEventListener('touchend', this.handleTouchEnd);
 
         // Restaurer les styles originaux
         this.canvas.style.touchAction = this.originalTouchAction;

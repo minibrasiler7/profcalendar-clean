@@ -1,0 +1,732 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelle année scolaire - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+.wizard-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Barre de progression */
+.wizard-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    padding: 0 1rem;
+}
+
+.wizard-progress::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    right: 40px;
+    height: 3px;
+    background-color: var(--light-gray);
+    z-index: 0;
+}
+
+.wizard-progress::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    height: 3px;
+    background-color: var(--primary-color);
+    z-index: 1;
+    transition: width 0.3s ease;
+    {% if step == 1 %}
+    width: 0%;
+    {% elif step == 2 %}
+    width: 30%;
+    {% elif step == 3 %}
+    width: 63%;
+    {% elif step == 4 %}
+    width: calc(100% - 80px);
+    {% endif %}
+}
+
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 2;
+    text-decoration: none;
+    color: inherit;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background-color: var(--light-gray);
+    color: var(--gray-color);
+    transition: all 0.3s ease;
+}
+
+.step-circle.active {
+    background-color: var(--primary-color);
+    color: white;
+    transform: scale(1.1);
+}
+
+.step-circle.completed {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.8rem;
+    color: var(--gray-color);
+    text-align: center;
+    max-width: 90px;
+}
+
+.step-label.active {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Sections */
+.wizard-section {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.wizard-section h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+}
+
+.wizard-section .section-desc {
+    color: var(--gray-color);
+    margin-bottom: 1.5rem;
+}
+
+/* Avertissement */
+.warning-box {
+    background-color: #FEF3C7;
+    border: 1px solid #F59E0B;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.warning-box i {
+    color: #D97706;
+    margin-right: 0.5rem;
+}
+
+.danger-box {
+    background-color: #FEE2E2;
+    border: 1px solid #EF4444;
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.danger-box i {
+    color: #DC2626;
+    margin-right: 0.5rem;
+}
+
+/* Liste des classes pour archivage */
+.class-archive-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.class-archive-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #F9FAFB;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--light-gray);
+}
+
+.class-archive-item .class-name {
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.class-archive-item .student-count {
+    color: var(--gray-color);
+    font-size: 0.875rem;
+}
+
+/* Choix par classe (étape 2) */
+.class-action-card {
+    border: 1px solid var(--light-gray);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+}
+
+.class-action-card:hover {
+    border-color: var(--primary-color);
+}
+
+.class-action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.class-action-header .name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.class-action-header .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background-color: var(--light-gray);
+    color: var(--gray-color);
+}
+
+.action-options {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.action-option {
+    flex: 1;
+    min-width: 150px;
+}
+
+.action-option input[type="radio"] {
+    display: none;
+}
+
+.action-option label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--light-gray);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.action-option label:hover {
+    border-color: var(--primary-color);
+    background-color: #F5F3FF;
+}
+
+.action-option input[type="radio"]:checked + label {
+    border-color: var(--primary-color);
+    background-color: #EEF2FF;
+    font-weight: 500;
+}
+
+.action-option input[type="radio"]:checked + label.option-delete {
+    border-color: var(--danger-color);
+    background-color: #FEF2F2;
+}
+
+.rename-field {
+    margin-top: 0.75rem;
+    display: none;
+}
+
+.rename-field.visible {
+    display: block;
+}
+
+/* Dates */
+.date-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Récapitulatif */
+.recap-list {
+    list-style: none;
+    padding: 0;
+}
+
+.recap-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.recap-list li:last-child {
+    border-bottom: none;
+}
+
+.recap-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 500;
+}
+
+.recap-badge.keep { background-color: #D1FAE5; color: #065F46; }
+.recap-badge.rename { background-color: #DBEAFE; color: #1E40AF; }
+.recap-badge.delete { background-color: #FEE2E2; color: #991B1B; }
+
+/* Confirmation */
+.confirm-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: #FEF2F2;
+    border-radius: var(--border-radius);
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.confirm-checkbox input[type="checkbox"] {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--danger-color);
+}
+
+/* Boutons de navigation */
+.wizard-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    .date-inputs {
+        grid-template-columns: 1fr;
+    }
+    .action-options {
+        flex-direction: column;
+    }
+    .step-label {
+        font-size: 0.7rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+
+    <!-- Barre de progression -->
+    <div class="wizard-progress">
+        <div class="wizard-step">
+            <div class="step-circle {% if step == 1 %}active{% elif step > 1 %}completed{% endif %}">
+                {% if step > 1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
+            </div>
+            <span class="step-label {% if step == 1 %}active{% endif %}">Archivage</span>
+        </div>
+        <div class="wizard-step">
+            <div class="step-circle {% if step == 2 %}active{% elif step > 2 %}completed{% endif %}">
+                {% if step > 2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
+            </div>
+            <span class="step-label {% if step == 2 %}active{% endif %}">Classes</span>
+        </div>
+        <div class="wizard-step">
+            <div class="step-circle {% if step == 3 %}active{% elif step > 3 %}completed{% endif %}">
+                {% if step > 3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
+            </div>
+            <span class="step-label {% if step == 3 %}active{% endif %}">Dates</span>
+        </div>
+        <div class="wizard-step">
+            <div class="step-circle {% if step == 4 %}active{% endif %}">
+                4
+            </div>
+            <span class="step-label {% if step == 4 %}active{% endif %}">Confirmation</span>
+        </div>
+    </div>
+
+    <!-- ========================== ÉTAPE 1 : Archivage ========================== -->
+    {% if step == 1 %}
+    <div class="wizard-section">
+        <i class="fas fa-graduation-cap" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
+        <h2>Nouvelle année scolaire</h2>
+        <p class="section-desc">
+            Bienvenue dans l'assistant de fin d'année. Ce processus va vous guider pour préparer la transition vers la nouvelle année scolaire.
+        </p>
+
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Avant de continuer :</strong> Ce processus va supprimer les données de l'année en cours (plannings, présences, notes, sanctions, mémos, remarques). Pensez à archiver vos rapports avant de continuer.
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">Télécharger les rapports de classe</h3>
+        <p style="color: var(--gray-color); margin-bottom: 1rem; font-size: 0.9rem;">
+            Chaque rapport contient pour chaque élève : notes, absences, retards, sanctions et remarques.
+        </p>
+
+        {% if class_info %}
+        <div class="class-archive-list">
+            {% for ci in class_info %}
+            <div class="class-archive-item">
+                <div>
+                    <span class="class-name">{{ ci.classroom.name }}</span>
+                    {% if ci.classroom.subject %}
+                    <span style="color: var(--gray-color);"> — {{ ci.classroom.subject }}</span>
+                    {% endif %}
+                    <br>
+                    <span class="student-count">{{ ci.student_count }} élève{{ 's' if ci.student_count != 1 }}</span>
+                </div>
+                <a href="{{ url_for('year_end.export_class_pdf', classroom_id=ci.classroom.id) }}" class="btn btn-sm btn-outline">
+                    <i class="fas fa-download"></i> Télécharger PDF
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-top: 1.5rem; text-align: center;">
+            <a href="{{ url_for('year_end.export_all_pdf') }}" class="btn btn-primary">
+                <i class="fas fa-file-pdf"></i> Télécharger tous les rapports
+            </a>
+        </div>
+        {% else %}
+        <p style="color: var(--gray-color); text-align: center; padding: 2rem;">
+            <i class="fas fa-info-circle"></i> Aucune classe trouvée.
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="wizard-buttons">
+        <a href="{{ url_for('planning.dashboard') }}" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+        <a href="{{ url_for('year_end.step2') }}" class="btn btn-primary">
+            Suivant <i class="fas fa-arrow-right"></i>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- ========================== ÉTAPE 2 : Gestion des classes ========================== -->
+    {% if step == 2 %}
+    <form method="POST" action="{{ url_for('year_end.step2_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="wizard-section">
+            <i class="fas fa-school" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
+            <h2>Gestion des classes</h2>
+            <p class="section-desc">
+                Pour chaque classe, choisissez ce que vous souhaitez faire pour la prochaine année.
+            </p>
+
+            {% if class_info %}
+            <h3 style="margin-bottom: 1rem;">Classes</h3>
+            {% for ci in class_info %}
+            <div class="class-action-card">
+                <div class="class-action-header">
+                    <span class="name">
+                        <i class="fas fa-chalkboard" style="color: var(--primary-color);"></i>
+                        {{ ci.classroom.name }}
+                        {% if ci.classroom.subject %}<span style="color: var(--gray-color); font-weight: normal;"> — {{ ci.classroom.subject }}</span>{% endif %}
+                    </span>
+                    <span class="badge">{{ ci.student_count }} élève{{ 's' if ci.student_count != 1 }}</span>
+                    {% if ci.collaboration and ci.collaboration.has_collaborations %}
+                    <span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">
+                        <i class="fas fa-link"></i> {{ ci.collaboration.count }} enseignant{{ 's' if ci.collaboration.count != 1 }} lié{{ 's' if ci.collaboration.count != 1 }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if ci.collaboration and ci.collaboration.has_collaborations %}
+                <div class="collab-warning" style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i>
+                    <strong>Attention :</strong> Cette classe est partagée avec
+                    {% for t in ci.collaboration.teachers %}{{ t.username }}{% if not loop.last %}, {% endif %}{% endfor %}.
+                    Si vous la supprimez, les classes dérivées de ces enseignants seront aussi supprimées
+                    ({% for dc in ci.collaboration.derived_classrooms %}{{ dc.name }} - {{ dc.subject }}{% if not loop.last %}, {% endif %}{% endfor %}).
+                </div>
+                {% endif %}
+
+                <div class="action-options">
+                    <div class="action-option">
+                        <input type="radio" name="action_{{ ci.classroom.id }}" value="keep" id="keep_{{ ci.classroom.id }}" checked>
+                        <label for="keep_{{ ci.classroom.id }}">
+                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> Garder
+                        </label>
+                    </div>
+                    <div class="action-option">
+                        <input type="radio" name="action_{{ ci.classroom.id }}" value="rename" id="rename_{{ ci.classroom.id }}"
+                            onchange="toggleRename('{{ ci.classroom.id }}')">
+                        <label for="rename_{{ ci.classroom.id }}">
+                            <i class="fas fa-pen" style="color: var(--primary-color);"></i> Renommer
+                        </label>
+                    </div>
+                    <div class="action-option">
+                        <input type="radio" name="action_{{ ci.classroom.id }}" value="delete" id="delete_{{ ci.classroom.id }}"
+                            onchange="toggleRename('{{ ci.classroom.id }}')">
+                        <label for="delete_{{ ci.classroom.id }}" class="option-delete">
+                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> Supprimer
+                        </label>
+                    </div>
+                </div>
+
+                <div class="rename-field" id="rename_field_{{ ci.classroom.id }}">
+                    <label class="form-label">Nouveau nom :</label>
+                    <input type="text" name="rename_{{ ci.classroom.id }}" class="form-control"
+                        placeholder="Ex: {{ ci.classroom.name }}" value="{{ ci.classroom.name }}">
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if mg_info %}
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Groupes mixtes</h3>
+            {% for mi in mg_info %}
+            <div class="class-action-card">
+                <div class="class-action-header">
+                    <span class="name">
+                        <i class="fas fa-users" style="color: var(--secondary-color);"></i>
+                        {{ mi.mixed_group.name }}
+                        {% if mi.mixed_group.subject %}<span style="color: var(--gray-color); font-weight: normal;"> — {{ mi.mixed_group.subject }}</span>{% endif %}
+                    </span>
+                    <span class="badge">{{ mi.student_count }} élève{{ 's' if mi.student_count != 1 }}</span>
+                </div>
+
+                <div class="action-options">
+                    <div class="action-option">
+                        <input type="radio" name="action_mg_{{ mi.mixed_group.id }}" value="keep" id="keep_mg_{{ mi.mixed_group.id }}" checked>
+                        <label for="keep_mg_{{ mi.mixed_group.id }}">
+                            <i class="fas fa-check-circle" style="color: var(--success-color);"></i> Garder
+                        </label>
+                    </div>
+                    <div class="action-option">
+                        <input type="radio" name="action_mg_{{ mi.mixed_group.id }}" value="delete" id="delete_mg_{{ mi.mixed_group.id }}">
+                        <label for="delete_mg_{{ mi.mixed_group.id }}" class="option-delete">
+                            <i class="fas fa-trash" style="color: var(--danger-color);"></i> Supprimer
+                        </label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="wizard-buttons">
+            <a href="{{ url_for('year_end.step1') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Précédent
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Suivant <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- ========================== ÉTAPE 3 : Nouvelles dates ========================== -->
+    {% if step == 3 %}
+    <form method="POST" action="{{ url_for('year_end.step3_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="wizard-section">
+            <i class="fas fa-calendar-alt" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
+            <h2>Nouvelle année scolaire</h2>
+            <p class="section-desc">
+                Définissez les dates de la prochaine année scolaire.
+            </p>
+
+            <div class="date-inputs">
+                <div class="form-group">
+                    <label class="form-label">Début de l'année scolaire</label>
+                    <input type="date" name="school_year_start" class="form-control" required
+                        value="{{ default_start.isoformat() if default_start else '' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fin de l'année scolaire</label>
+                    <input type="date" name="school_year_end" class="form-control" required
+                        value="{{ default_end.isoformat() if default_end else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-section">
+            <i class="fas fa-umbrella-beach" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 1rem; display: block;"></i>
+            <h2>Vacances scolaires</h2>
+            <p class="section-desc">
+                Que souhaitez-vous faire avec les périodes de vacances ?
+            </p>
+
+            <div class="action-options" style="flex-direction: column;">
+                <div class="action-option">
+                    <input type="radio" name="holiday_action" value="shift" id="holiday_shift">
+                    <label for="holiday_shift">
+                        <i class="fas fa-calendar-plus" style="color: var(--primary-color);"></i>
+                        <div>
+                            <strong>Décaler d'un an</strong>
+                            <br><small style="color: var(--gray-color);">Les mêmes vacances sont reportées à l'année suivante. Vous pourrez les ajuster ensuite.</small>
+                        </div>
+                    </label>
+                </div>
+                <div class="action-option">
+                    <input type="radio" name="holiday_action" value="clear" id="holiday_clear" checked>
+                    <label for="holiday_clear">
+                        <i class="fas fa-eraser" style="color: var(--warning-color);"></i>
+                        <div>
+                            <strong>Effacer et reconfigurer</strong>
+                            <br><small style="color: var(--gray-color);">Supprimer les vacances actuelles. Vous les reconfigurerez dans les paramètres.</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-buttons">
+            <a href="{{ url_for('year_end.step2') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Précédent
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Suivant <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- ========================== ÉTAPE 4 : Confirmation ========================== -->
+    {% if step == 4 %}
+    <form method="POST" action="{{ url_for('year_end.execute') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="wizard-section">
+            <i class="fas fa-clipboard-check" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem; display: block;"></i>
+            <h2>Récapitulatif</h2>
+            <p class="section-desc">
+                Vérifiez les actions qui seront effectuées avant de confirmer.
+            </p>
+
+            <!-- Nouvelles dates -->
+            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> Nouvelles dates</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Du <strong>{{ new_start }}</strong> au <strong>{{ new_end }}</strong>
+                {% if holiday_action == 'shift' %}
+                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront décalées d'un an.</small>
+                {% else %}
+                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront supprimées (à reconfigurer).</small>
+                {% endif %}
+            </p>
+
+            <!-- Actions par classe -->
+            {% if recap_classes %}
+            <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-school"></i> Classes et groupes</h3>
+            <ul class="recap-list">
+                {% for rc in recap_classes %}
+                <li>
+                    {% if rc.action == 'keep' %}
+                    <span class="recap-badge keep">Garder</span>
+                    {% elif rc.action == 'rename' %}
+                    <span class="recap-badge rename">Renommer</span>
+                    {% elif rc.action == 'delete' %}
+                    <span class="recap-badge delete">Supprimer</span>
+                    {% endif %}
+
+                    <span>
+                        <strong>{{ rc.name }}</strong>
+                        <span style="color: var(--gray-color); font-size: 0.85rem;">({{ rc.type }})</span>
+                        {% if rc.action == 'rename' and rc.new_name %}
+                        → <strong style="color: var(--primary-color);">{{ rc.new_name }}</strong>
+                        {% endif %}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <!-- Données supprimées -->
+            <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-trash-alt"></i> Données qui seront supprimées</h3>
+            <div class="danger-box">
+                <i class="fas fa-exclamation-circle"></i>
+                Les données suivantes seront <strong>définitivement supprimées</strong> :
+                <ul style="margin-top: 0.5rem; margin-bottom: 0; padding-left: 1.5rem;">
+                    <li>Tous les plannings de cours</li>
+                    <li>Toutes les présences et absences</li>
+                    <li>Toutes les évaluations et notes</li>
+                    <li>Tous les mémos de cours</li>
+                    <li>Toutes les remarques d'élèves</li>
+                    <li>Tous les enregistrements de sanctions (compteurs remis à 0)</li>
+                    <li>Tous les plans de classe</li>
+                </ul>
+            </div>
+
+            <div class="confirm-checkbox">
+                <input type="checkbox" name="confirm_checkbox" id="confirm_checkbox" value="1">
+                <label for="confirm_checkbox">
+                    <strong>Je confirme vouloir procéder à la transition vers la nouvelle année scolaire.</strong>
+                    Je comprends que les données de l'année en cours seront définitivement supprimées et que cette action est irréversible.
+                </label>
+            </div>
+        </div>
+
+        <div class="wizard-buttons">
+            <a href="{{ url_for('year_end.step3') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> Précédent
+            </a>
+            <button type="submit" class="btn btn-danger" id="btn-execute" disabled onclick="return confirmExecution();">
+                <i class="fas fa-rocket"></i> Lancer la nouvelle année
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+</div>
+
+<script>
+{% if step == 2 %}
+function toggleRename(classId) {
+    const renameRadio = document.getElementById('rename_' + classId);
+    const renameField = document.getElementById('rename_field_' + classId);
+
+    if (renameRadio && renameRadio.checked) {
+        renameField.classList.add('visible');
+    } else {
+        renameField.classList.remove('visible');
+    }
+}
+
+// Initialiser les radio buttons au chargement
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const classId = this.name.replace('action_', '').replace('mg_', '');
+        toggleRename(classId);
+    });
+});
+{% endif %}
+
+{% if step == 4 %}
+const checkbox = document.getElementById('confirm_checkbox');
+const btnExecute = document.getElementById('btn-execute');
+
+checkbox.addEventListener('change', function() {
+    btnExecute.disabled = !this.checked;
+});
+
+function confirmExecution() {
+    return confirm('Êtes-vous absolument sûr de vouloir procéder ? Cette action est irréversible.');
+}
+{% endif %}
+</script>
+{% endblock %}

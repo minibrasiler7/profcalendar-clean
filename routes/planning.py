@@ -4,6 +4,9 @@ from extensions import db
 from models.planning import Planning
 from models.classroom import Classroom
 from models.schedule import Schedule
+from models.lesson_memo import LessonMemo, StudentRemark
+from models.student import Student
+from models.student_info_history import StudentInfoHistory
 from datetime import datetime, timedelta
 from datetime import date as date_type
 import calendar
@@ -11,8 +14,34 @@ from routes import teacher_required
 import secrets
 import string
 from models.classroom_access_code import ClassroomAccessCode
+import re
 
 planning_bp = Blueprint('planning', __name__, url_prefix='/planning')
+
+def extract_numeric_id(value):
+    """Extraire l'ID numérique d'une valeur qui peut être:
+    - Un entier: 123
+    - Une chaîne numérique: "123"
+    - Un format préfixé: "classroom_123" ou "mixed_group_456"
+    Retourne l'entier ou None si conversion impossible.
+    """
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        # Essayer d'abord une conversion directe
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        # Essayer d'extraire l'ID après un underscore (format "prefix_123")
+        if '_' in value:
+            try:
+                return int(value.split('_')[-1])
+            except ValueError:
+                pass
+    return None
 
 @planning_bp.route('/migrate-pinning')
 @login_required 
@@ -112,8 +141,11 @@ def can_add_student_to_class(classroom_id, current_user):
 
 def user_can_access_classroom(user_id, classroom_id):
     """Vérifie si un utilisateur peut accéder à une classe (directement ou via collaboration)"""
-    print(f"DEBUG user_can_access_classroom: user_id={user_id}, classroom_id={classroom_id}")
-    
+    try:
+        classroom_id = int(classroom_id)
+    except (TypeError, ValueError):
+        return False
+
     classroom = Classroom.query.filter_by(id=classroom_id).first()
     if not classroom:
         print(f"DEBUG user_can_access_classroom: classroom {classroom_id} not found")
@@ -670,6 +702,65 @@ def dashboard():
             invitation_id=invitation.id
         ).all()
 
+    # Récupérer les mémos pour aujourd'hui et cette semaine
+    from models.lesson_memo import LessonMemo
+
+    # Mémos pour aujourd'hui
+    today_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date == today,
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).order_by(LessonMemo.target_period).all()
+
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"DEBUG Dashboard - today: {today}")
+    logger.error(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
+    for memo in today_memos:
+        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+
+    # Mémos pour cette semaine ET la semaine prochaine (sans compter aujourd'hui)
+    # On affiche les mémos jusqu'à 14 jours dans le futur
+    next_two_weeks = today + timedelta(days=14)
+    week_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date > today,
+        LessonMemo.target_date <= next_two_weeks,
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
+
+    logger.error(f"DEBUG Dashboard - week_dates: {week_dates}")
+    logger.error(f"DEBUG Dashboard - Searching memos from {today} to {next_two_weeks}")
+    logger.error(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
+    for memo in week_memos:
+        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+
+    # Récupérer les rapports de fin d'année archivés (pour enseignants spécialisés)
+    from models.file_manager import UserFile, FileFolder
+    archive_folder = FileFolder.query.filter_by(
+        user_id=current_user.id,
+        name="Archives de fin d'année",
+        parent_id=None
+    ).first()
+    backup_reports = []
+    if archive_folder:
+        backup_reports = UserFile.query.filter_by(
+            user_id=current_user.id,
+            folder_id=archive_folder.id
+        ).order_by(UserFile.uploaded_at.desc()).limit(5).all()
+
+    # Récupérer la liste des classes pour le filtre
+    from models.mixed_group import MixedGroup
+    mixed_groups = MixedGroup.query.filter_by(teacher_id=current_user.id, is_active=True).all()
+    auto_classroom_ids = {group.auto_classroom_id for group in mixed_groups if group.auto_classroom_id}
+    user_classrooms = [c for c in current_user.classrooms.filter_by(is_temporary=False).all() if c.id not in auto_classroom_ids]
+
     return render_template('planning/dashboard.html',
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
@@ -678,10 +769,16 @@ def dashboard():
                          current_lesson=lesson if is_current_lesson else None,
                          next_lesson=lesson if not is_current_lesson else None,
                          lesson_date=lesson_date,
-                         received_invitations=received_invitations)
+                         received_invitations=received_invitations,
+                         today_memos=today_memos,
+                         week_memos=week_memos,
+                         user_classrooms=user_classrooms,
+                         user_mixed_groups=mixed_groups,
+                         backup_reports=backup_reports)
 
 @planning_bp.route('/calendar')
 @login_required
+@teacher_required
 def calendar_view():
     # Vérifier la configuration
     if not current_user.setup_completed:
@@ -701,6 +798,10 @@ def calendar_view():
             current_week = date_type.today()
     else:
         current_week = date_type.today()
+        # Si on est samedi ou dimanche, afficher la semaine suivante
+        if current_week.weekday() >= 5:  # 5 = samedi, 6 = dimanche
+            days_until_monday = 7 - current_week.weekday()
+            current_week = current_week + timedelta(days=days_until_monday)
 
     # Obtenir les dates de la semaine
     week_dates = get_week_dates(current_week)
@@ -890,6 +991,40 @@ def calendar_view():
                 'type': 'custom'
             }
 
+    # Récupérer les mémos pour la semaine AFFICHÉE (pas forcément la semaine actuelle)
+    from models.lesson_memo import LessonMemo
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.error(f"DEBUG Calendar - week_dates: {week_dates}")
+    logger.error(f"DEBUG Calendar - Searching memos from {week_dates[0]} to {week_dates[4]}")
+
+    week_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date >= week_dates[0],
+        LessonMemo.target_date <= week_dates[4],
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).all()
+
+    logger.error(f"DEBUG Calendar - Found {len(week_memos)} memos")
+
+    # Organiser les mémos par date ET période
+    memos_by_date_period = {}
+    for memo in week_memos:
+        date_str = memo.target_date.strftime('%Y-%m-%d')
+        period = memo.target_period
+        key = f"{date_str}_{period}" if period else f"{date_str}_none"
+
+        if key not in memos_by_date_period:
+            memos_by_date_period[key] = []
+        memos_by_date_period[key].append(memo)
+        logger.error(f"DEBUG Calendar - Memo ID {memo.id}: date={date_str}, period={period}, key={key}")
+
+    logger.error(f"DEBUG Calendar - memos_by_date_period keys: {list(memos_by_date_period.keys())}")
+
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
                          current_week=current_week,
@@ -905,7 +1040,107 @@ def calendar_view():
                          selected_classroom_id=selected_classroom_id,
                          days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
                          today=date_type.today(),
-                         merged_info=merged_info)  # Passer les infos de fusion par jour
+                         merged_info=merged_info,  # Passer les infos de fusion par jour
+                         memos_by_date_period=memos_by_date_period)  # Ajouter les mémos par date et période
+
+@planning_bp.route('/get_period_attendance', methods=['GET'])
+@login_required
+@teacher_required
+def get_period_attendance():
+    """Récupère les présences/absences/retards pour une période donnée"""
+    try:
+        date_str = request.args.get('date')
+        period_number = request.args.get('period')
+        classroom_id = request.args.get('classroom_id')
+        is_mixed_group = request.args.get('is_mixed_group') == 'true'
+
+        if not date_str or not period_number:
+            return jsonify({'success': False, 'error': 'Date et période requis'}), 400
+
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        period_num = int(period_number)
+
+        # Vérifier que la période est dans le passé
+        now = current_user.get_local_datetime()
+        today = now.date()
+
+        if date_obj > today:
+            return jsonify({'success': False, 'error': 'Cette période n\'est pas encore passée'}), 400
+
+        # Récupérer les élèves de la classe ou du groupe mixte
+        students = []
+        if classroom_id:
+            classroom_id_int = int(classroom_id)
+            if is_mixed_group:
+                from models.mixed_group import MixedGroup
+                mixed_group = MixedGroup.query.get(classroom_id_int)
+                if mixed_group and mixed_group.teacher_id == current_user.id:
+                    students = mixed_group.get_students()
+            else:
+                classroom = Classroom.query.get(classroom_id_int)
+                if classroom and classroom.user_id == current_user.id:
+                    students = classroom.students.all()
+
+        if not students:
+            return jsonify({'success': False, 'error': 'Aucun élève trouvé'}), 404
+
+        # Récupérer les présences pour cette période
+        from models.attendance import Attendance
+        attendances = Attendance.query.filter_by(
+            user_id=current_user.id,
+            date=date_obj,
+            period_number=period_num
+        ).all()
+
+        # Créer un dictionnaire des présences par student_id
+        attendance_by_student = {att.student_id: att for att in attendances}
+
+        # Construire la liste des élèves avec leur statut
+        students_data = []
+        for student in students:
+            attendance = attendance_by_student.get(student.id)
+            status = attendance.status if attendance else 'present'
+            late_minutes = attendance.late_minutes if attendance and attendance.status == 'late' else None
+
+            students_data.append({
+                'id': student.id,
+                'first_name': student.first_name,
+                'last_name': student.last_name,
+                'status': status,
+                'late_minutes': late_minutes
+            })
+
+        # Trier par nom de famille puis prénom
+        students_data.sort(key=lambda s: (s['last_name'], s['first_name']))
+
+        # Récupérer la planification pour cette période
+        planning = Planning.query.filter_by(
+            user_id=current_user.id,
+            date=date_obj,
+            period_number=period_num
+        ).first()
+
+        planning_data = None
+        if planning:
+            # Récupérer les items de checklist avec leur état
+            checklist_items = planning.get_checklist_items_with_states()
+
+            planning_data = {
+                'title': planning.title,
+                'description': planning.description,
+                'checklist_items': checklist_items,
+                'has_checklist': len(checklist_items) > 0
+            }
+
+        return jsonify({
+            'success': True,
+            'students': students_data,
+            'planning': planning_data
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erreur get_period_attendance: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def calculate_periods(user):
     """Calcule les périodes en fonction de la configuration de l'utilisateur"""
@@ -966,10 +1201,91 @@ def check_day_planning(date, classroom_id):
             'message': str(e)
         })
 
+def get_decoupage_for_week(classroom_id, week_number):
+    """
+    Récupère les informations de découpage pour une semaine donnée d'une classe.
+    Gère les demi-semaines: retourne un dict avec first_half et second_half.
+    Chaque moitié peut avoir un thème différent ou être None.
+    """
+    from models.decoupage import DecoupageAssignment, DecoupagePeriod
+
+    if not classroom_id or not week_number:
+        return None
+
+    # Trouver l'assignation de découpage pour cette classe
+    assignment = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).first()
+
+    if not assignment:
+        return None
+
+    decoupage = assignment.decoupage
+    start_week = assignment.start_week
+
+    # Calculer quelle période correspond à cette semaine
+    periods = DecoupagePeriod.query.filter_by(
+        decoupage_id=decoupage.id
+    ).order_by(DecoupagePeriod.order).all()
+
+    if not periods:
+        return None
+
+    # Calculer l'offset depuis le début du découpage (en semaines)
+    # week_offset = 0 pour la première semaine du découpage
+    week_offset = week_number - start_week
+
+    if week_offset < 0:
+        return None  # Avant le début du découpage
+
+    # Positions dans le découpage pour cette semaine
+    # first_half: de week_offset à week_offset + 0.5
+    # second_half: de week_offset + 0.5 à week_offset + 1
+    first_half_start = week_offset
+    first_half_end = week_offset + 0.5
+    second_half_start = week_offset + 0.5
+    second_half_end = week_offset + 1
+
+    def find_theme_at_position(pos):
+        """Trouve le thème qui couvre une position donnée"""
+        cumulative = 0
+        for period in periods:
+            period_end = cumulative + period.duration
+            if cumulative <= pos < period_end:
+                return {
+                    'name': period.name,
+                    'color': period.color,
+                    'subject': decoupage.subject
+                }
+            cumulative = period_end
+        return None  # Position après la fin du découpage
+
+    first_half_theme = find_theme_at_position(first_half_start)
+    second_half_theme = find_theme_at_position(second_half_start)
+
+    # Si aucun thème pour les deux moitiés, retourner None
+    if not first_half_theme and not second_half_theme:
+        return None
+
+    # Si les deux moitiés ont le même thème, retourner un seul ruban pleine largeur
+    if first_half_theme and second_half_theme and first_half_theme['name'] == second_half_theme['name']:
+        return {
+            'type': 'full',
+            'name': first_half_theme['name'],
+            'color': first_half_theme['color'],
+            'subject': first_half_theme['subject']
+        }
+
+    # Sinon, retourner les deux moitiés séparément
+    return {
+        'type': 'split',
+        'first_half': first_half_theme,
+        'second_half': second_half_theme
+    }
+
+
 def generate_annual_calendar(item, item_type='classroom'):
     """Génère les données du calendrier annuel pour une classe ou un groupe mixte"""
     print(f"🗓️ generate_annual_calendar called for {item_type}: {item.name} (ID: {item.id})")
-    
+
     # Calculer toutes les semaines de l'année scolaire
     start_date = current_user.school_year_start
     end_date = current_user.school_year_end
@@ -1039,6 +1355,11 @@ def generate_annual_calendar(item, item_type='classroom'):
         if not week_holiday and current_date >= start_date:
             week_number += 1
 
+        # Récupérer le ruban de découpage pour cette semaine (uniquement pour les classrooms)
+        decoupage_ribbon = None
+        if item_type == 'classroom' and week_number and not week_holiday:
+            decoupage_ribbon = get_decoupage_for_week(item.id, week_number)
+
         week_info = {
             'start_date': week_dates[0],
             'dates': week_dates,
@@ -1049,7 +1370,8 @@ def generate_annual_calendar(item, item_type='classroom'):
             'holiday_name': week_holiday,
             'holiday_name_short': week_holiday.replace("Vacances d'", "Vac.").replace("Vacances de ", "Vac. ").replace("Relâches de ", "Relâches ") if week_holiday else None,
             'week_number': week_number if not week_holiday else None,
-            'formatted_date': week_dates[0].strftime('%d/%m')  # Date du lundi
+            'formatted_date': week_dates[0].strftime('%d/%m'),  # Date du lundi
+            'decoupage_ribbon': decoupage_ribbon  # Info du ruban de découpage
         }
 
         # Vérifier pour chaque jour si la classe a cours et s'il y a des vacances
@@ -1114,24 +1436,11 @@ def save_planning():
         checklist_states = data.get('checklist_states', {})  # Récupérer les états des checkboxes
         group_id = data.get('group_id')  # Récupérer l'ID du groupe
 
-        # Convertir les IDs en entiers
-        if classroom_id:
-            try:
-                classroom_id = int(classroom_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
-        
-        if mixed_group_id:
-            try:
-                mixed_group_id = int(mixed_group_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe mixte invalide'}), 400
-        
-        if group_id:
-            try:
-                group_id = int(group_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
+        # Convertir les IDs en entiers (supporte formats: 123, "123", "classroom_123")
+        classroom_id = extract_numeric_id(classroom_id)
+        mixed_group_id = extract_numeric_id(mixed_group_id)
+        group_id = extract_numeric_id(group_id)
+        period_number = extract_numeric_id(period_number)
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -1317,9 +1626,20 @@ def lesson_view():
     
     if not lesson:
         current_app.logger.error("=== LESSON VIEW === No lesson found")
-        return render_template('planning/lesson_view.html', 
-                             lesson=None, 
-                             is_current_lesson=False)
+        return render_template('planning/lesson_view.html',
+                             lesson=None,
+                             is_current_lesson=False,
+                             lesson_date=date_type.today(),
+                             periods=[],
+                             planning=None,
+                             students=[],
+                             attendances={},
+                             remarks=[],
+                             sanctions_data={},
+                             imported_sanctions=[],
+                             classroom_preferences={},
+                             is_class_master=False,
+                             next_lesson_info=None)
     
     current_app.logger.error(f"=== LESSON VIEW === Found lesson: P{lesson.period_number} on {lesson_date}")
 
@@ -1362,6 +1682,61 @@ def lesson_view():
                 if not (schedule and hasattr(schedule, 'has_merged_next') and schedule.has_merged_next):
                     # Cette période n'est pas fusionnée, arrêter la recherche
                     break
+
+    # Vérifier s'il y a des mémos pour cette leçon et les ajouter à la planification si elle n'existe pas
+    from models.lesson_memo import LessonMemo
+    lesson_memos = LessonMemo.query.filter_by(
+        user_id=current_user.id,
+        target_date=lesson_date,
+        target_period=lesson.period_number,
+        is_completed=False
+    ).all()
+
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Found {len(lesson_memos)} memos for date={lesson_date}, period={lesson.period_number}")
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning exists: {planning is not None}")
+    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === lesson.classroom_id: {getattr(lesson, 'classroom_id', None)}")
+
+    # Si on a des mémos et pas de planification, en créer une avec les mémos comme tâches
+    if lesson_memos and not planning and hasattr(lesson, 'classroom_id') and lesson.classroom_id:
+        # Créer le contenu avec les mémos
+        memo_tasks = []
+        for memo in lesson_memos:
+            # Ajouter chaque mémo comme une tâche non cochée
+            memo_tasks.append(f"[ ] {memo.content}")
+
+        memo_content = "\n".join(memo_tasks)
+
+        # Créer une nouvelle planification avec les mémos
+        planning = Planning(
+            user_id=current_user.id,
+            classroom_id=lesson.classroom_id,
+            date=lesson_date,
+            period_number=lesson.period_number,
+            title="Mémos du jour",
+            description=memo_content
+        )
+        db.session.add(planning)
+        db.session.commit()
+        current_app.logger.error(f"=== MEMO AUTO-ADD === Created planning with {len(lesson_memos)} memo(s)")
+    elif lesson_memos and planning:
+        # Si une planification existe déjà, vérifier si les mémos y sont déjà
+        # Initialiser description si elle n'existe pas
+        if not planning.description:
+            planning.description = ""
+
+        current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning.description exists: {bool(planning.description)}, value: '{planning.description}'")
+
+        for memo in lesson_memos:
+            memo_task = f"[ ] {memo.content}"
+            if memo.content not in planning.description:
+                # Ajouter le mémo à la fin de la planification existante
+                if planning.description.strip():
+                    planning.description += f"\n{memo_task}"
+                else:
+                    planning.description = memo_task
+                current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Added memo: {memo.content}")
+        db.session.commit()
+        current_app.logger.error(f"=== MEMO AUTO-ADD === Updated planning with memo(s)")
 
     # Déterminer la classroom à utiliser
     lesson_classroom = None
@@ -1436,13 +1811,63 @@ def lesson_view():
     students = []
     if planning:
         # Si on a une planification, utiliser sa méthode get_students() pour gérer les groupes
+        current_app.logger.error(f"=== STUDENTS DEBUG === Using planning.get_students(), group_id={planning.group_id}")
         students = planning.get_students()
     elif lesson_classroom:
-        # Sinon, utiliser tous les élèves de la classe
-        students = lesson_classroom.get_students()
-    
+        # Pas de planification pour cette date - chercher le groupe dans les planifications précédentes
+        # pour ce même jour de la semaine et cette même période
+        current_app.logger.error(f"=== STUDENTS DEBUG === No planning, searching for group pattern...")
+
+        from models.student_group import StudentGroup
+
+        # Chercher une planification récente avec un groupe pour cette classe/jour/période
+        recent_planning_with_group = Planning.query.filter(
+            Planning.user_id == current_user.id,
+            Planning.classroom_id == lesson_classroom.id,
+            Planning.group_id.isnot(None),
+            Planning.date < lesson_date,
+            db.func.extract('dow', Planning.date) == (lesson_date.weekday() + 1) % 7,  # PostgreSQL dow: 0=Sunday
+            Planning.period_number == lesson.period_number
+        ).order_by(Planning.date.desc()).first()
+
+        # Si pas trouvé avec PostgreSQL dow, essayer avec SQLite strftime
+        if not recent_planning_with_group:
+            try:
+                recent_planning_with_group = Planning.query.filter(
+                    Planning.user_id == current_user.id,
+                    Planning.classroom_id == lesson_classroom.id,
+                    Planning.group_id.isnot(None),
+                    Planning.date < lesson_date,
+                    Planning.period_number == lesson.period_number
+                ).order_by(Planning.date.desc()).first()
+
+                # Vérifier que c'est le même jour de la semaine
+                if recent_planning_with_group and recent_planning_with_group.date.weekday() != lesson_date.weekday():
+                    recent_planning_with_group = None
+            except Exception as e:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Error searching for group pattern: {e}")
+                recent_planning_with_group = None
+
+        if recent_planning_with_group and recent_planning_with_group.group_id:
+            # Utiliser le groupe de la planification précédente
+            group = StudentGroup.query.get(recent_planning_with_group.group_id)
+            if group:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Found group pattern from {recent_planning_with_group.date}: group_id={group.id}, name={group.name}")
+                students = [membership.student for membership in group.memberships.all()]
+            else:
+                current_app.logger.error(f"=== STUDENTS DEBUG === Group {recent_planning_with_group.group_id} not found, using all students")
+                students = lesson_classroom.get_students()
+        else:
+            # Aucun pattern trouvé, utiliser tous les élèves de la classe
+            current_app.logger.error(f"=== STUDENTS DEBUG === No group pattern found, using all students")
+            students = lesson_classroom.get_students()
+
     if students:
-        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+        # Appliquer la préférence de tri de l'utilisateur
+        if current_user.student_sort_pref == 'first_name':
+            students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+        else:
+            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
 
     # Récupérer les présences existantes pour ce cours
     attendance_records = {}
@@ -1515,8 +1940,89 @@ def lesson_view():
     seating_plan = None
     current_group = None
 
+    # Récupérer les préférences d'affichage des aménagements
+    from models.user_preferences import UserPreferences
+    from models.accommodation import StudentAccommodation
+
+    user_preferences = UserPreferences.get_or_create_for_user(current_user.id)
+    accommodation_display = user_preferences.show_accommodations  # 'none', 'emoji', ou 'name'
+
+    # Charger les aménagements des élèves si l'affichage est activé
+    if accommodation_display != 'none' and students:
+        for student in students:
+            accommodations = StudentAccommodation.query.filter_by(
+                student_id=student.id,
+                is_active=True
+            ).all()
+            if accommodations:
+                student_accommodations[student.id] = [
+                    {'name': acc.name, 'emoji': acc.emoji}
+                    for acc in accommodations
+                ]
+
+    # Récupérer les sanctions (coches) si classroom disponible
+    if lesson_classroom:
+        from models.sanctions import SanctionTemplate, ClassroomSanctionImport
+        from models.student_sanctions import StudentSanctionCount
+
+        # Vérifier si mode centralisé
+        class_master = ClassMaster.query.filter_by(classroom_id=lesson_classroom.id).first()
+
+        if class_master:
+            # Mode centralisé : récupérer les sanctions du maître de classe
+            imported_sanctions = SanctionTemplate.query.filter_by(
+                user_id=class_master.master_teacher_id,
+                is_active=True
+            ).order_by(SanctionTemplate.name).all()
+        else:
+            # Mode normal : récupérer les sanctions importées pour cette classe
+            imported_sanctions = db.session.query(SanctionTemplate).join(ClassroomSanctionImport).filter(
+                ClassroomSanctionImport.classroom_id == lesson_classroom.id,
+                ClassroomSanctionImport.is_active == True,
+                SanctionTemplate.user_id == current_user.id,
+                SanctionTemplate.is_active == True
+            ).distinct().order_by(SanctionTemplate.name).all()
+
+        # Créer le tableau des coches pour chaque élève/sanction
+        if imported_sanctions and students:
+            for student in students:
+                sanctions_data[student.id] = {}
+                for sanction in imported_sanctions:
+                    count = StudentSanctionCount.query.filter_by(
+                        student_id=student.id,
+                        template_id=sanction.id
+                    ).first()
+                    sanctions_data[student.id][sanction.id] = count.check_count if count else 0
+
+    # Récupérer le plan de classe si disponible
+    if lesson_classroom:
+        from models.seating_plan import SeatingPlan
+        seating_plan_obj = SeatingPlan.query.filter_by(
+            classroom_id=lesson_classroom.id,
+            is_active=True
+        ).first()
+
+        # Convertir en dictionnaire pour la sérialisation JSON
+        if seating_plan_obj:
+            import json
+            seating_plan = {
+                'id': seating_plan_obj.id,
+                'name': seating_plan_obj.name,
+                'plan_data': json.loads(seating_plan_obj.plan_data) if isinstance(seating_plan_obj.plan_data, str) else seating_plan_obj.plan_data
+            }
+        else:
+            seating_plan = None
+
     # Importer la fonction de rendu des checkboxes
     from utils.jinja_filters import render_planning_with_checkboxes
+
+    # Exercices de l'enseignant pour le bouton +
+    user_exercises = []
+    try:
+        from models.exercise import Exercise
+        user_exercises = Exercise.query.filter_by(user_id=current_user.id, is_draft=False).order_by(Exercise.title).all()
+    except Exception:
+        pass
 
     return render_template('planning/lesson_view.html',
                          lesson=lesson,
@@ -1533,8 +2039,9 @@ def lesson_view():
                          current_group=current_group,
                          lesson_classroom=lesson_classroom,
                          student_accommodations=student_accommodations,
-                         accommodation_display=True,
-                         render_planning_with_checkboxes=render_planning_with_checkboxes)
+                         accommodation_display=accommodation_display,
+                         render_planning_with_checkboxes=render_planning_with_checkboxes,
+                         user_exercises=user_exercises)
 
 @planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required
@@ -1544,22 +2051,26 @@ def get_class_resources(classroom_id):
         from models.class_file import ClassFile
         from models.student import LegacyClassFile
         from models.classroom import Classroom
-        
+        from models.exercise import Exercise
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=classroom_id,
             user_id=current_user.id
         ).first()
-        
+
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-        
+
         # Récupérer les fichiers des DEUX systèmes
         new_class_files = ClassFile.query.filter_by(classroom_id=classroom_id).all()
         legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=classroom_id).all()
-        
-        total_files = len(new_class_files) + len(legacy_class_files)
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files = {total_files} total for classroom {classroom_id}")
+
+        # Récupérer les exercices liés à cette classe
+        class_exercises = Exercise.query.filter_by(classroom_id=classroom_id).all()
+
+        total_files = len(new_class_files) + len(legacy_class_files) + len(class_exercises)
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {classroom_id}")
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
         
         # Organiser les fichiers par structure hiérarchique
@@ -1609,9 +2120,27 @@ def get_class_resources(classroom_id):
             else:
                 files_data.append(file_data)
         
+        # Ajouter les exercices comme des fichiers spéciaux
+        for ex in class_exercises:
+            ex_data = {
+                'id': f'exercise-{ex.id}',
+                'exercise_id': ex.id,
+                'original_filename': ex.title or 'Exercice sans titre',
+                'file_type': 'exercise',
+                'file_size': 0,
+                'folder_path': '',
+                'is_pinned': False,
+                'pin_order': 0,
+                'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
+                'total_points': ex.total_points,
+                'block_count': ex.blocks.count() if ex.blocks else 0,
+                'is_exercise': True
+            }
+            files_data.append(ex_data)
+
         # Trier les fichiers épinglés par pin_order
         pinned_files.sort(key=lambda x: x['pin_order'])
-        
+
         return jsonify({
             'success': True,
             'pinned_files': pinned_files,
@@ -2007,9 +2536,12 @@ def manage_classes():
             # Pour les classes avec une seule discipline
             students = primary_classroom.get_students()
             print(f"DEBUG: Single subject class - found {len(students)} students")
-    
-    # Trier les élèves par nom
-    students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+
+    # Trier les élèves selon la préférence de l'utilisateur
+    if current_user.student_sort_pref == 'first_name':
+        students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+    else:
+        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
     
     # Convertir les étudiants en dictionnaires pour le JSON (utilisé en JavaScript)
     students_json = []
@@ -2170,7 +2702,11 @@ def manage_classes():
         
         # Récupérer les élèves de la classe du maître
         students = primary_classroom.get_students()
-        students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+        # Appliquer la préférence de tri de l'utilisateur
+        if current_user.student_sort_pref == 'first_name':
+            students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+        else:
+            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         print(f"DEBUG: Retrieved {len(students)} students from master's classroom")
         
         # Redéfinir students_json avec les nouveaux élèves
@@ -2307,16 +2843,21 @@ def manage_classes():
     # Pour les enseignants spécialisés, récupérer les élèves disponibles de la classe du maître
     available_students = []
     is_specialized_teacher = False
-    print(f"DEBUG manage_classes - shared_classroom exists: {shared_classroom is not None}")
-    print(f"DEBUG manage_classes - collaboration exists: {collaboration is not None}")
+    master_teacher_name = None
+    linked_teachers_info = None  # Info pour le maître : quels enseignants spécialisés sont liés
     if shared_classroom and collaboration:
         is_specialized_teacher = True
+        # Récupérer le nom du maître de classe
+        from models.user import User
+        master_teacher = User.query.get(collaboration.master_teacher_id)
+        if master_teacher:
+            master_teacher_name = master_teacher.username
         # Récupérer tous les élèves de la classe originale (maître)
         master_students = Student.query.filter_by(classroom_id=shared_classroom.original_classroom_id).all()
-        
+
         # Récupérer les élèves déjà présents dans la classe dérivée
         current_student_names = {(s.first_name, s.last_name) for s in students}
-        
+
         # Filtrer pour ne garder que ceux qui ne sont pas déjà dans la classe dérivée
         for master_student in master_students:
             if (master_student.first_name, master_student.last_name) not in current_student_names:
@@ -2327,6 +2868,31 @@ def manage_classes():
                     'full_name': master_student.full_name,
                     'email': master_student.email
                 })
+    else:
+        # Si l'utilisateur est maître de classe, vérifier s'il y a des enseignants spécialisés liés
+        from models.user import User
+        from models.class_collaboration import ClassMaster as CM_check
+        cm_record = CM_check.query.filter_by(
+            classroom_id=primary_classroom.id,
+            master_teacher_id=current_user.id
+        ).first()
+        if cm_record:
+            # C'est le maître — chercher les enseignants spécialisés liés via SharedClassroom
+            linked_shared = SharedClassroom.query.filter_by(
+                original_classroom_id=primary_classroom.id
+            ).all()
+            if linked_shared:
+                linked_names = []
+                for ls in linked_shared:
+                    lc = TeacherCollaboration.query.filter_by(
+                        id=ls.collaboration_id, is_active=True
+                    ).first()
+                    if lc:
+                        spec = User.query.get(lc.specialized_teacher_id)
+                        if spec:
+                            linked_names.append(f"{spec.username} ({ls.subject})")
+                if linked_names:
+                    linked_teachers_info = ', '.join(linked_names)
 
     # Récupérer les données des enseignants de la classe (pour les maîtres de classe et enseignants spécialisés)
     class_teachers = []
@@ -2502,10 +3068,13 @@ def manage_classes():
                          can_edit_students=can_edit_students,
                          available_students=available_students,
                          is_specialized_teacher=is_specialized_teacher,
+                         master_teacher_name=master_teacher_name,
+                         linked_teachers_info=linked_teachers_info,
                          is_mixed_group_class=is_mixed_group_class,
                          mixed_group=mixed_group,
                          classroom_preferences=classroom_preferences,
                          is_class_master=is_class_master,
+                         has_any_class_master=actual_class_master_id is not None,
                          can_manage_access_codes=can_manage_access_codes,
                          show_teachers_tab=show_teachers_tab,
                          class_teachers=class_teachers)
@@ -3143,72 +3712,115 @@ def delete_student(student_id):
 @planning_bp.route('/generate-class-code/<int:classroom_id>', methods=['POST'])
 @login_required
 def generate_class_code(classroom_id):
-    """Générer un code d'accès pour toute une classe"""
-    
+    """Afficher le code d'accès existant ou en créer un s'il n'existe pas"""
+
     try:
-        print(f"Tentative de génération de code pour la classe ID: {classroom_id}")  # Debug
-        
-        # Vérifier que l'utilisateur a le droit de générer un code pour cette classe
-        # Soit il est maître de classe, soit il est le créateur et il n'y a pas de maître
         from models.class_collaboration import ClassMaster
-        
+
         classroom = Classroom.query.get(classroom_id)
         if not classroom:
-            print(f"Classe non trouvée pour ID: {classroom_id}")  # Debug
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
-        
-        # Vérifier si l'utilisateur est maître de classe
+
         class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
         is_class_master = class_master and class_master.master_teacher_id == current_user.id
-        
-        # Vérifier si l'utilisateur est le créateur et qu'il n'y a pas de maître
         is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
-        
+
         if not (is_class_master or is_creator_no_master):
-            print(f"Accès refusé - User {current_user.id} n'est ni maître ni créateur sans maître")  # Debug
-            return jsonify({'success': False, 'message': 'Seul le maître de classe peut générer les codes d\'accès'}), 403
-        
-        print(f"Classe trouvée: {classroom.name}")  # Debug
-        
-        # Générer un code unique de 6 caractères
-        def generate_code():
+            return jsonify({'success': False, 'message': 'Seul le maître de classe peut gérer les codes d\'accès'}), 403
+
+        # Chercher un code existant et valide
+        existing_code = ClassroomAccessCode.query.filter_by(classroom_id=classroom_id).first()
+
+        if existing_code and existing_code.expires_at and existing_code.expires_at > datetime.utcnow():
+            return jsonify({
+                'success': True,
+                'code': existing_code.code,
+                'classroom_name': f"{classroom.name} - {classroom.subject}",
+                'message': 'Code d\'accès existant'
+            })
+
+        # Pas de code valide : en créer un nouveau
+        def gen_code():
             return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        
-        # S'assurer que le code est unique
+
         while True:
-            code = generate_code()
-            existing = ClassroomAccessCode.query.filter_by(code=code).first()
-            if not existing:
+            code = gen_code()
+            if not ClassroomAccessCode.query.filter_by(code=code).first():
                 break
-        
-        # Supprimer l'ancien code s'il existe
-        old_code = ClassroomAccessCode.query.filter_by(classroom_id=classroom_id).first()
-        if old_code:
-            db.session.delete(old_code)
-        
-        # Créer le nouveau code d'accès
+
+        if existing_code:
+            db.session.delete(existing_code)
+
         access_code = ClassroomAccessCode(
             classroom_id=classroom_id,
             code=code,
             created_by_user_id=current_user.id,
-            expires_at=datetime.utcnow() + timedelta(days=30)  # Valide pendant 30 jours
+            expires_at=datetime.utcnow() + timedelta(days=365)
         )
-        
+
         db.session.add(access_code)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'code': code,
             'classroom_name': f"{classroom.name} - {classroom.subject}",
             'message': 'Code d\'accès généré avec succès'
         })
-        
+
     except Exception as e:
         db.session.rollback()
-        print(f"Erreur lors de la génération du code de classe: {e}")  # Debug
-        import traceback
-        traceback.print_exc()  # Debug
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/get-parent-code/<int:classroom_id>', methods=['POST'])
+@login_required
+def get_parent_code(classroom_id):
+    """Récupérer ou créer le code parent pour une classe"""
+    try:
+        from models.parent import ClassCode
+        from models.class_collaboration import ClassMaster
+
+        classroom = Classroom.query.get(classroom_id)
+        if not classroom:
+            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+        class_master = ClassMaster.query.filter_by(classroom_id=classroom_id).first()
+        is_class_master = class_master and class_master.master_teacher_id == current_user.id
+        is_creator_no_master = (classroom.user_id == current_user.id and not class_master)
+
+        if not (is_class_master or is_creator_no_master):
+            return jsonify({'success': False, 'message': 'Seul le maître de classe peut voir les codes parents'}), 403
+
+        # Chercher un code existant
+        parent_code = ClassCode.query.filter_by(classroom_id=classroom_id).first()
+
+        if not parent_code:
+            # Créer un nouveau code
+            parent_code = ClassCode(
+                classroom_id=classroom_id,
+                user_id=current_user.id,
+                code=ClassCode.generate_code(),
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(parent_code)
+            db.session.commit()
+        elif parent_code.is_expired():
+            # Renouveler le code expiré
+            parent_code.code = ClassCode.generate_code()
+            parent_code.created_at = datetime.utcnow()
+            db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'code': parent_code.code,
+            'classroom_name': f"{classroom.name} - {classroom.subject}",
+            'teacher_name': current_user.username
+        })
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -3495,21 +4107,24 @@ def save_lesson_planning():
         title = data.get('title', '').strip()
         description = data.get('description', '').strip()
         checklist_states = data.get('checklist_states', {})
-        
-        # Convertir classroom_id en entier
+
+        # Convertir classroom_id en entier ou None (pour les périodes "Autre")
         if classroom_id:
             try:
-                classroom_id = int(classroom_id)
+                classroom_id = int(classroom_id) if classroom_id else None
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+                classroom_id = None  # Valeur invalide = période "Autre"
+        else:
+            classroom_id = None  # Pas de classroom = période "Autre"
 
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-        # Vérifier la classe
-        classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
-        if not classroom:
-            return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+        # Vérifier la classe SEULEMENT si classroom_id est fourni
+        if classroom_id:
+            classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+            if not classroom:
+                return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
 
         # Chercher un planning existant
         existing = Planning.query.filter_by(
@@ -4327,19 +4942,41 @@ def load_seating_plan(classroom_param):
                 classroom_id = int(classroom_param)
                 classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
             except ValueError:
-                # Format nom de classe normale - chercher par nom
-                # Pour les classes normales, le paramètre est le nom du groupe de classe
-                # On doit chercher la première classroom de ce groupe
-                from models.classroom import Classroom
-                classrooms = Classroom.query.filter_by(
-                    user_id=current_user.id,
-                    class_group=classroom_param
-                ).all()
-                
-                if classrooms:
-                    classroom = classrooms[0]  # Prendre la première
+                # Format nom de classe - chercher d'abord par nom, puis par class_group
+                classroom = Classroom.query.filter_by(
+                    name=classroom_param,
+                    user_id=current_user.id
+                ).first()
+
+                if not classroom:
+                    # Essayer aussi par class_group
+                    classrooms = Classroom.query.filter_by(
+                        user_id=current_user.id,
+                        class_group=classroom_param
+                    ).all()
+                    if classrooms:
+                        classroom = classrooms[0]
+
+                # Si pas trouvé directement, vérifier les classes dérivées (collaboration)
+                if not classroom:
+                    from models.class_collaboration import SharedClassroom, TeacherCollaboration
+                    derived_classroom = Classroom.query.filter_by(name=classroom_param).first()
+                    if derived_classroom:
+                        shared = SharedClassroom.query.filter_by(
+                            derived_classroom_id=derived_classroom.id
+                        ).first()
+                        if shared:
+                            collaboration = TeacherCollaboration.query.filter_by(
+                                shared_classroom_id=shared.id,
+                                specialized_teacher_id=current_user.id,
+                                is_active=True
+                            ).first()
+                            if collaboration:
+                                classroom = derived_classroom
+
+                if classroom:
                     classroom_id = classroom.id
-        
+
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
@@ -4690,19 +5327,17 @@ def apply_group_pattern():
         pattern_type = data.get('pattern_type')  # 'same' ou 'alternate'
         selected_group_id = data.get('group_id')
         
-        # Convertir les IDs en entiers
-        if classroom_id:
-            try:
-                classroom_id = int(classroom_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
-        
-        if selected_group_id:
-            try:
-                selected_group_id = int(selected_group_id)
-            except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'ID de groupe invalide'}), 400
-        
+        # Convertir les IDs en entiers (supporte formats: 123, "123", "classroom_123")
+        classroom_id = extract_numeric_id(classroom_id)
+        selected_group_id = extract_numeric_id(selected_group_id)
+        period_number = extract_numeric_id(period_number)
+        current_app.logger.info(f"apply-group-pattern: classroom_id={classroom_id}, period={period_number}, group_id={selected_group_id}, pattern={pattern_type}")
+
+        if not classroom_id:
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+        if not period_number:
+            return jsonify({'success': False, 'message': 'Numéro de période invalide'}), 400
+
         # Convertir la date de début
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         start_weekday = start_date.weekday()
@@ -4735,18 +5370,20 @@ def apply_group_pattern():
             if not all_groups:
                 return jsonify({'success': False, 'message': 'Aucun groupe trouvé pour cette classe'}), 400
         
-        # Calculer toutes les dates jusqu'à la fin de l'année scolaire
-        current_date = start_date
+        # Calculer toutes les dates à partir de la SEMAINE SUIVANTE jusqu'à la fin de l'année scolaire
+        # La semaine actuelle est déjà sauvegardée par saveDaySlot
+        current_date = start_date + timedelta(days=7)
         created_count = 0
         group_index = 0  # Pour l'alternance
-        
+
         # Si on fait de l'alternance, trouver l'index du groupe sélectionné
+        # et commencer au groupe SUIVANT (car la semaine actuelle a déjà le groupe sélectionné)
         if pattern_type == 'alternate' and selected_group_id:
             try:
-                group_index = all_groups.index(int(selected_group_id))
+                group_index = all_groups.index(int(selected_group_id)) + 1  # +1 pour commencer au groupe suivant
             except (ValueError, TypeError):
-                group_index = 0
-        
+                group_index = 1
+
         while current_date <= current_user.school_year_end:
             # Vérifier si c'est un jour de vacances
             if is_holiday(current_date, current_user):
@@ -4762,32 +5399,30 @@ def apply_group_pattern():
             else:
                 group_to_assign = selected_group_id
             
-            # Chercher une planification existante
+            # Chercher une planification existante pour cette classe spécifique
             existing = Planning.query.filter_by(
                 user_id=current_user.id,
                 date=current_date,
-                period_number=period_number
+                period_number=period_number,
+                classroom_id=classroom_id
             ).first()
-            
+
             if existing:
-                # Mettre à jour la planification existante
-                existing.classroom_id = classroom_id
-                existing.title = title
-                existing.description = description
+                # Mettre à jour seulement le group_id de la planification existante
+                # Ne pas écraser le titre et la description
                 existing.group_id = group_to_assign
-                existing.set_checklist_states(checklist_states)
             else:
-                # Créer une nouvelle planification
+                # Créer une nouvelle planification avec seulement le group_id
+                # Le titre et la description restent vides pour que l'utilisateur les remplisse
                 planning = Planning(
                     user_id=current_user.id,
                     classroom_id=classroom_id,
                     date=current_date,
                     period_number=period_number,
-                    title=title,
-                    description=description,
+                    title='',  # Vide intentionnellement
+                    description='',  # Vide intentionnellement
                     group_id=group_to_assign
                 )
-                planning.set_checklist_states(checklist_states)
                 db.session.add(planning)
             
             created_count += 1
@@ -4950,7 +5585,11 @@ def get_student_accommodations(classroom_param):
                 
             # Pour les groupes mixtes, récupérer les élèves via get_students()
             students = mixed_group.get_students()
-            students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+            # Appliquer la préférence de tri de l'utilisateur
+            if current_user.student_sort_pref == 'first_name':
+                students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+            else:
+                students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         else:
             # Format numérique ou nom de classe normale
             try:
@@ -4959,7 +5598,11 @@ def get_student_accommodations(classroom_param):
                 classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
                 if not classroom:
                     return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
-                students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.last_name, Student.first_name).all()
+                # Appliquer la préférence de tri de l'utilisateur
+                if current_user.student_sort_pref == 'first_name':
+                    students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.first_name, Student.last_name).all()
+                else:
+                    students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.last_name, Student.first_name).all()
             except ValueError:
                 # Format nom de classe normale - chercher par nom
                 print(f"DEBUG: Searching for classrooms with class_group='{classroom_param}' for user {current_user.id}")
@@ -4994,7 +5637,11 @@ def get_student_accommodations(classroom_param):
                         else:
                             print(f"DEBUG: Skipped duplicate student {student.full_name}")
                 print(f"DEBUG: Final student count after deduplication: {len(students)}")
-                students = sorted(students, key=lambda s: (s.last_name, s.first_name))
+                # Appliquer la préférence de tri de l'utilisateur
+                if current_user.student_sort_pref == 'first_name':
+                    students = sorted(students, key=lambda s: (s.first_name, s.last_name))
+                else:
+                    students = sorted(students, key=lambda s: (s.last_name, s.first_name))
         
         students_data = []
         for student in students:
@@ -5155,21 +5802,30 @@ def get_slot_data(date_str, period):
     try:
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         weekday = planning_date.weekday()
-        
+
+        # Convertir classroom_id en entier (supporte formats: 123, "123", "classroom_123")
+        raw_classroom_id = request.args.get('classroom_id')
+        classroom_id = extract_numeric_id(raw_classroom_id)
+        current_app.logger.info(f"get_slot_data: date={date_str}, period={period}, raw_classroom_id={raw_classroom_id}, classroom_id={classroom_id}")
+
         # Récupérer la période pour les horaires
         periods = calculate_periods(current_user)
         period_info = next((p for p in periods if p['number'] == period), None)
-        
+
         if not period_info:
             return jsonify({'success': False, 'message': 'Période invalide'}), 400
-        
-        # Chercher un planning existant
-        planning = Planning.query.filter_by(
+
+        # Chercher un planning existant (filtrer par classroom_id si fourni)
+        query = Planning.query.filter_by(
             user_id=current_user.id,
             date=planning_date,
             period_number=period
-        ).first()
-        
+        )
+        if classroom_id:
+            query = query.filter_by(classroom_id=classroom_id)
+        planning = query.first()
+        current_app.logger.info(f"get_slot_data: planning found={planning is not None}, group_id={planning.group_id if planning else None}")
+
         # Récupérer l'horaire type par défaut
         schedule = Schedule.query.filter_by(
             user_id=current_user.id,
@@ -6758,3 +7414,1307 @@ def delete_mixed_group_student():
         print(f"ERROR in delete_mixed_group_student: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
+# ==================== ROUTES POUR LES MÉMOS ET REMARQUES ====================
+
+@planning_bp.route('/create_lesson_memo', methods=['POST'])
+@login_required
+@teacher_required
+def create_lesson_memo():
+    """Créer un nouveau mémo de classe"""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("=" * 80)
+    logger.error("DEBUG create_lesson_memo - DEBUT")
+    try:
+        data = request.get_json()
+        logger.error(f"DEBUG - Raw data: {data}")
+
+        classroom_id = data.get('classroom_id')
+        mixed_group_id = data.get('mixed_group_id')
+        source_date_str = data.get('source_date')
+        source_period = data.get('source_period')
+        content = data.get('content')
+        date_type_param = data.get('date_type')
+        target_date_str = data.get('target_date')
+
+        logger.error(f"DEBUG - Parsed values:")
+        logger.error(f"  classroom_id: {classroom_id}")
+        logger.error(f"  mixed_group_id: {mixed_group_id}")
+        logger.error(f"  source_date_str: {source_date_str}")
+        logger.error(f"  source_period: {source_period}")
+        logger.error(f"  content: {content}")
+        logger.error(f"  date_type_param: {date_type_param}")
+
+        if not content:
+            print("DEBUG - ERROR: Content is empty!")
+            return jsonify({'success': False, 'error': 'Contenu requis'}), 400
+
+        # Si appelé depuis le dashboard, source_date_str peut être None
+        if source_date_str:
+            source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        else:
+            source_date = datetime.now().date()
+        print(f"DEBUG - source_date parsed: {source_date}")
+        
+        # Calculer la date cible selon le type
+        target_date = None
+        target_period = None
+        
+        if date_type_param == 'next_lesson':
+            # Trouver le prochain cours avec cette classe
+            logger.error(f"DEBUG - Calculating next_lesson from source_date={source_date}, classroom_id={classroom_id}, mixed_group_id={mixed_group_id}")
+            next_schedule = None
+            current_day = source_date + timedelta(days=1)
+
+            # Chercher dans les 30 prochains jours
+            for day_count in range(30):
+                weekday = current_day.weekday()
+                logger.error(f"DEBUG - Checking day {day_count}: {current_day}, weekday={weekday}")
+
+                # Chercher un créneau pour cette classe ce jour-là
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+
+                logger.error(f"DEBUG - Found {len(schedules)} schedules for this day")
+
+                if schedules:
+                    # Prendre la première période non fusionnée avec la précédente
+                    for sched in schedules:
+                        logger.error(f"DEBUG - Checking schedule period={sched.period_number}, merged_with_previous={sched.merged_with_previous}")
+                        if not sched.merged_with_previous:
+                            next_schedule = sched
+                            target_date = current_day
+                            target_period = sched.period_number
+                            logger.error(f"DEBUG - FOUND next lesson: date={target_date}, period={target_period}")
+                            break
+
+                    if next_schedule:
+                        break
+
+                current_day += timedelta(days=1)
+
+            if not next_schedule:
+                logger.error("DEBUG - WARNING: No next lesson found in the next 30 days!")
+                
+        elif date_type_param == 'next_week':
+            target_date = source_date + timedelta(days=7)
+
+        elif date_type_param == 'custom' and target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+
+            # Chercher s'il y a un cours ce jour-là avec cette classe
+            weekday = target_date.weekday()
+            logger.error(f"DEBUG - Custom date: {target_date}, weekday={weekday}")
+
+            if classroom_id:
+                schedules = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    classroom_id=classroom_id,
+                    weekday=weekday
+                ).order_by(Schedule.period_number).all()
+            else:
+                schedules = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    mixed_group_id=mixed_group_id,
+                    weekday=weekday
+                ).order_by(Schedule.period_number).all()
+
+            logger.error(f"DEBUG - Found {len(schedules)} schedules for custom date")
+
+            if schedules:
+                # Prendre la première période non fusionnée
+                for sched in schedules:
+                    if not sched.merged_with_previous:
+                        target_period = sched.period_number
+                        logger.error(f"DEBUG - Using period {target_period} for custom date")
+                        break
+
+        # Debug
+        print(f"DEBUG create_lesson_memo:")
+        print(f"  date_type: {date_type_param}")
+        print(f"  source_date: {source_date}")
+        print(f"  target_date: {target_date}")
+        print(f"  target_period: {target_period}")
+        print(f"  content: {content}")
+
+        # Créer le mémo
+        # Si source_period est None (création depuis dashboard), mettre 1 par défaut
+        if source_period is None:
+            source_period = 1
+
+        memo = LessonMemo(
+            user_id=current_user.id,
+            classroom_id=classroom_id,
+            mixed_group_id=mixed_group_id,
+            source_date=source_date,
+            source_period=source_period,
+            target_date=target_date,
+            target_period=target_period,
+            content=content
+        )
+
+        db.session.add(memo)
+        db.session.commit()
+
+        print(f"  Mémo créé avec ID: {memo.id}")
+
+        return jsonify({'success': True, 'memo_id': memo.id})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"DEBUG - EXCEPTION in create_lesson_memo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/create_student_remark', methods=['POST'])
+@login_required
+@teacher_required
+def create_student_remark():
+    """Créer une nouvelle remarque élève"""
+    print("=" * 80)
+    print("DEBUG create_student_remark - DEBUT")
+    try:
+        data = request.get_json()
+        print(f"DEBUG - Raw data: {data}")
+
+        student_id = data.get('student_id')
+        source_date_str = data.get('source_date')
+        source_period = data.get('source_period')
+        content = data.get('content')
+        send_to_parent_and_student = data.get('send_to_parent_and_student', False)
+
+        print(f"DEBUG - Parsed values:")
+        print(f"  student_id: {student_id}")
+        print(f"  source_date_str: {source_date_str}")
+        print(f"  source_period: {source_period}")
+        print(f"  content: {content}")
+        print(f"  send_to_parent_and_student: {send_to_parent_and_student}")
+
+        if not student_id or not content:
+            print("DEBUG - ERROR: student_id or content is missing!")
+            return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+
+        source_date = datetime.strptime(source_date_str, '%Y-%m-%d').date()
+        print(f"DEBUG - source_date parsed: {source_date}")
+
+        # Créer la remarque
+        remark = StudentRemark(
+            user_id=current_user.id,
+            student_id=student_id,
+            source_date=source_date,
+            source_period=source_period,
+            content=content,
+            send_to_parent_and_student=send_to_parent_and_student
+        )
+        
+        db.session.add(remark)
+        
+        # Ajouter également à l'historique des informations supplémentaires
+        info_entry = StudentInfoHistory(
+            student_id=student_id,
+            user_id=current_user.id,
+            content=f"[{source_date.strftime('%d/%m/%Y')}] {content}"
+        )
+        db.session.add(info_entry)
+        
+        db.session.commit()
+
+        print(f"DEBUG - Remark created with ID: {remark.id}")
+        print("=" * 80)
+        return jsonify({'success': True, 'remark_id': remark.id})
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"DEBUG - EXCEPTION in create_student_remark: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 80)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/get_lesson_memos_remarks', methods=['GET'])
+@login_required
+@teacher_required
+def get_lesson_memos_remarks():
+    """Récupérer tous les mémos et remarques pour une leçon"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        date_str = request.args.get('date')
+        period = request.args.get('period', type=int)
+        mode = request.args.get('mode', 'target')  # 'source' ou 'target'
+
+        logger.error(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}, mode={mode}")
+
+        lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        # Mode 'source' : mémos créés DEPUIS cette leçon (pour page /lesson)
+        # Mode 'target' : mémos destinés À cette leçon (pour modaux calendrier)
+        if mode == 'source':
+            memos = LessonMemo.query.filter_by(
+                user_id=current_user.id,
+                source_date=lesson_date,
+                source_period=period
+            ).all()
+            logger.error(f"DEBUG - Found {len(memos)} memos for source_date={lesson_date}, source_period={period}")
+        else:
+            memos = LessonMemo.query.filter_by(
+                user_id=current_user.id,
+                target_date=lesson_date,
+                target_period=period,
+                is_completed=False
+            ).all()
+            logger.error(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
+
+        # Récupérer les remarques (toujours par source_date)
+        remarks = StudentRemark.query.filter_by(
+            user_id=current_user.id,
+            source_date=lesson_date,
+            source_period=period
+        ).all()
+
+        logger.error(f"DEBUG - Found {len(remarks)} remarks for source_date={lesson_date}, source_period={period}")
+
+        # Formater les données
+        memos_data = [{
+            'id': m.id,
+            'content': m.content,
+            'target_date': m.target_date.isoformat() if m.target_date else None,
+            'is_completed': m.is_completed
+        } for m in memos]
+
+        remarks_data = [{
+            'id': r.id,
+            'content': r.content,
+            'student_id': r.student_id,
+            'student_name': f"{r.student.first_name} {r.student.last_name}"
+        } for r in remarks]
+
+        logger.error(f"DEBUG - Returning {len(memos_data)} memos and {len(remarks_data)} remarks")
+
+        return jsonify({
+            'success': True,
+            'memos': memos_data,
+            'remarks': remarks_data
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des mémos/remarques: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/update_lesson_memo/<int:memo_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_lesson_memo(memo_id):
+    """Mettre à jour un mémo"""
+    try:
+        memo = LessonMemo.query.get_or_404(memo_id)
+
+        if memo.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+        data = request.get_json()
+
+        # Mise à jour simple du contenu ou statut
+        if 'content' in data:
+            memo.content = data['content']
+        if 'is_completed' in data:
+            memo.is_completed = data['is_completed']
+
+        # Mise à jour complète (depuis le dashboard)
+        if 'classroom_id' in data or 'mixed_group_id' in data:
+            memo.classroom_id = data.get('classroom_id')
+            memo.mixed_group_id = data.get('mixed_group_id')
+
+        if 'date_type' in data:
+            date_type_param = data.get('date_type')
+            target_date_str = data.get('target_date')
+
+            # Réinitialiser les dates
+            memo.target_date = None
+            memo.target_period = None
+
+            if date_type_param == 'next_lesson':
+                # Trouver le prochain cours
+                classroom_id = memo.classroom_id
+                mixed_group_id = memo.mixed_group_id
+
+                today = datetime.now().date()
+                current_weekday = today.weekday()
+
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id
+                    ).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id
+                    ).all()
+
+                found = False
+                for days_ahead in range(0, 14):
+                    check_date = today + timedelta(days=days_ahead)
+                    check_weekday = check_date.weekday()
+
+                    day_schedules = [s for s in schedules if s.weekday == check_weekday]
+                    if day_schedules:
+                        day_schedules.sort(key=lambda x: x.period_number)
+
+                        for sched in day_schedules:
+                            if not sched.merged_with_previous:
+                                memo.target_date = check_date
+                                memo.target_period = sched.period_number
+                                found = True
+                                break
+
+                    if found:
+                        break
+
+            elif date_type_param == 'custom' and target_date_str:
+                target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+                weekday = target_date.weekday()
+
+                classroom_id = memo.classroom_id
+                mixed_group_id = memo.mixed_group_id
+
+                if classroom_id:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        classroom_id=classroom_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+                else:
+                    schedules = Schedule.query.filter_by(
+                        user_id=current_user.id,
+                        mixed_group_id=mixed_group_id,
+                        weekday=weekday
+                    ).order_by(Schedule.period_number).all()
+
+                memo.target_date = target_date
+
+                if schedules:
+                    for sched in schedules:
+                        if not sched.merged_with_previous:
+                            memo.target_period = sched.period_number
+                            break
+
+            # 'no_date' => target_date et target_period restent None
+
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete_lesson_memo/<int:memo_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_lesson_memo(memo_id):
+    """Supprimer un mémo"""
+    try:
+        memo = LessonMemo.query.get_or_404(memo_id)
+        
+        if memo.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        db.session.delete(memo)
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/update_student_remark/<int:remark_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_student_remark(remark_id):
+    """Mettre à jour une remarque"""
+    try:
+        remark = StudentRemark.query.get_or_404(remark_id)
+        
+        if remark.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+        
+        data = request.get_json()
+        if 'content' in data:
+            remark.content = data['content']
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete_student_remark/<int:remark_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_student_remark(remark_id):
+    """Supprimer une remarque"""
+    try:
+        remark = StudentRemark.query.get_or_404(remark_id)
+
+        if remark.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+        db.session.delete(remark)
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/mark_remark_read/<int:remark_id>', methods=['POST'])
+@login_required
+def mark_remark_read(remark_id):
+    """Marquer une remarque comme lue (parents ou élèves)"""
+    try:
+        from models.parent import Parent
+
+        remark = StudentRemark.query.get_or_404(remark_id)
+
+        # Vérifier que l'utilisateur a le droit de marquer cette remarque
+        if isinstance(current_user, Parent):
+            # Vérifier que le parent a accès à cet élève
+            from models.parent import ParentChild
+            has_access = ParentChild.query.filter_by(
+                parent_id=current_user.id,
+                student_id=remark.student_id
+            ).first()
+
+            if not has_access:
+                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+            remark.is_viewed_by_parent = True
+
+        elif isinstance(current_user, Student):
+            # Vérifier que c'est bien l'élève concerné
+            if current_user.id != remark.student_id:
+                return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+
+            remark.is_viewed_by_student = True
+        else:
+            return jsonify({'success': False, 'error': 'Type d\'utilisateur non autorisé'}), 403
+
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# FEUILLES BLANCHES DE LEÇON
+# ============================================================================
+
+@planning_bp.route('/api/blank-sheets/list', methods=['GET'])
+@login_required
+def list_blank_sheets():
+    """Récupère les feuilles blanches pour une date + période"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        lesson_date_str = request.args.get('date')  # Format: YYYY-MM-DD
+        period_number = request.args.get('period', type=int)
+        classroom_id = request.args.get('classroom_id', type=int)
+
+        if not lesson_date_str or not period_number:
+            return jsonify({'success': False, 'message': 'Date et période requises'}), 400
+
+        # Convertir la date
+        lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
+
+        # Requête
+        query = LessonBlankSheet.query.filter_by(
+            user_id=current_user.id,
+            lesson_date=lesson_date,
+            period_number=period_number
+        )
+
+        # Filtrer par classroom si fourni
+        if classroom_id:
+            query = query.filter_by(classroom_id=classroom_id)
+
+        sheets = query.order_by(LessonBlankSheet.created_at).all()
+
+        return jsonify({
+            'success': True,
+            'sheets': [sheet.to_dict() for sheet in sheets]
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/<int:sheet_id>', methods=['GET'])
+@login_required
+def get_blank_sheet(sheet_id):
+    """Charge les données d'une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        sheet = LessonBlankSheet.query.filter_by(
+            id=sheet_id,
+            user_id=current_user.id
+        ).first()
+
+        if not sheet:
+            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+        return jsonify({
+            'success': True,
+            'sheet': {
+                'id': sheet.id,
+                'title': sheet.title,
+                'sheet_data': sheet.sheet_data,
+                'lesson_date': sheet.lesson_date.isoformat(),
+                'period_number': sheet.period_number,
+                'classroom_id': sheet.classroom_id,
+                'created_at': sheet.created_at.isoformat() if sheet.created_at else None,
+                'updated_at': sheet.updated_at.isoformat() if sheet.updated_at else None
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/save', methods=['POST'])
+@login_required
+def save_blank_sheet():
+    """Crée ou met à jour une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        data = request.get_json()
+
+        sheet_id = data.get('sheet_id')  # None si nouvelle feuille
+        lesson_date_str = data.get('lesson_date')
+        period_number = data.get('period_number')
+        classroom_id = data.get('classroom_id')
+        title = data.get('title', 'Feuille blanche')
+        sheet_data = data.get('sheet_data')
+
+        if not lesson_date_str or not period_number or not sheet_data:
+            return jsonify({'success': False, 'message': 'Données incomplètes'}), 400
+
+        lesson_date = datetime.strptime(lesson_date_str, '%Y-%m-%d').date()
+
+        if sheet_id:
+            # Mise à jour
+            sheet = LessonBlankSheet.query.filter_by(
+                id=sheet_id,
+                user_id=current_user.id
+            ).first()
+
+            if not sheet:
+                return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+            sheet.title = title
+            sheet.sheet_data = sheet_data
+            sheet.updated_at = datetime.utcnow()
+
+        else:
+            # Création
+            sheet = LessonBlankSheet(
+                user_id=current_user.id,
+                classroom_id=classroom_id,
+                lesson_date=lesson_date,
+                period_number=period_number,
+                title=title,
+                sheet_data=sheet_data
+            )
+            db.session.add(sheet)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'sheet_id': sheet.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/blank-sheets/<int:sheet_id>', methods=['DELETE'])
+@login_required
+def delete_blank_sheet(sheet_id):
+    """Supprime une feuille blanche"""
+    try:
+        from models.lesson_blank_sheet import LessonBlankSheet
+
+        sheet = LessonBlankSheet.query.filter_by(
+            id=sheet_id,
+            user_id=current_user.id
+        ).first()
+
+        if not sheet:
+            return jsonify({'success': False, 'message': 'Feuille non trouvée'}), 404
+
+        db.session.delete(sheet)
+        db.session.commit()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# DÉCOUPAGE ANNUEL - Routes pour la gestion des découpages thématiques
+# ============================================================================
+
+@planning_bp.route('/decoupage')
+@login_required
+@teacher_required
+def decoupage():
+    """Page principale de gestion des découpages annuels"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+    from models.classroom import Classroom
+
+    # Récupérer tous les découpages de l'utilisateur
+    decoupages = Decoupage.query.filter_by(user_id=current_user.id).order_by(Decoupage.created_at.desc()).all()
+
+    # Récupérer toutes les classes de l'utilisateur
+    classrooms = Classroom.query.filter_by(user_id=current_user.id, is_temporary=False).order_by(Classroom.name).all()
+
+    return render_template('planning/decoupage.html',
+                          decoupages=decoupages,
+                          classrooms=classrooms)
+
+
+@planning_bp.route('/api/decoupage', methods=['POST'])
+@login_required
+@teacher_required
+def create_decoupage():
+    """Créer un nouveau découpage"""
+    from models.decoupage import Decoupage
+
+    data = request.get_json()
+
+    name = data.get('name', '').strip()
+    subject = data.get('subject', '').strip()
+
+    if not name or not subject:
+        return jsonify({'success': False, 'message': 'Nom et discipline requis'}), 400
+
+    try:
+        decoupage = Decoupage(
+            user_id=current_user.id,
+            name=name,
+            subject=subject
+        )
+        db.session.add(decoupage)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Découpage créé',
+            'data': decoupage.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['GET'])
+@login_required
+@teacher_required
+def get_decoupage(decoupage_id):
+    """Récupérer un découpage avec ses périodes et assignations"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    return jsonify({
+        'success': True,
+        'data': decoupage.to_dict()
+    })
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_decoupage(decoupage_id):
+    """Modifier un découpage"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+
+    if 'name' in data:
+        decoupage.name = data['name'].strip()
+    if 'subject' in data:
+        decoupage.subject = data['subject'].strip()
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage mis à jour',
+            'data': decoupage.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_decoupage(decoupage_id):
+    """Supprimer un découpage"""
+    from models.decoupage import Decoupage
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    try:
+        db.session.delete(decoupage)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage supprimé'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods', methods=['POST'])
+@login_required
+@teacher_required
+def add_period(decoupage_id):
+    """Ajouter une période à un découpage"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+
+    name = data.get('name', '').strip()
+    duration = data.get('duration')
+    color = data.get('color', '#3B82F6')
+
+    if not name or duration is None:
+        return jsonify({'success': False, 'message': 'Nom et durée requis'}), 400
+
+    try:
+        duration = float(duration)
+        if duration <= 0:
+            return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+
+    # Calculer l'ordre (ajouter à la fin)
+    max_order = db.session.query(db.func.max(DecoupagePeriod.order)).filter_by(decoupage_id=decoupage_id).scalar() or 0
+
+    try:
+        period = DecoupagePeriod(
+            decoupage_id=decoupage_id,
+            name=name,
+            duration=duration,
+            color=color,
+            order=max_order + 1
+        )
+        db.session.add(period)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Période ajoutée',
+            'data': period.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/<int:period_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_period(decoupage_id, period_id):
+    """Modifier une période"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+
+    if not period:
+        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+
+    data = request.get_json()
+
+    if 'name' in data:
+        period.name = data['name'].strip()
+    if 'duration' in data:
+        try:
+            duration = float(data['duration'])
+            if duration <= 0:
+                return jsonify({'success': False, 'message': 'La durée doit être positive'}), 400
+            period.duration = duration
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Durée invalide'}), 400
+    if 'color' in data:
+        period.color = data['color']
+    if 'order' in data:
+        period.order = int(data['order'])
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Période mise à jour',
+            'data': period.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/<int:period_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def delete_period(decoupage_id, period_id):
+    """Supprimer une période"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+
+    if not period:
+        return jsonify({'success': False, 'message': 'Période non trouvée'}), 404
+
+    deleted_order = period.order
+
+    try:
+        db.session.delete(period)
+
+        # Réordonner les périodes restantes
+        remaining_periods = DecoupagePeriod.query.filter(
+            DecoupagePeriod.decoupage_id == decoupage_id,
+            DecoupagePeriod.order > deleted_order
+        ).all()
+
+        for p in remaining_periods:
+            p.order -= 1
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Période supprimée'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/periods/reorder', methods=['POST'])
+@login_required
+@teacher_required
+def reorder_periods(decoupage_id):
+    """Réordonner les périodes d'un découpage"""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+    period_ids = data.get('period_ids', [])
+
+    if not period_ids:
+        return jsonify({'success': False, 'message': 'Liste des périodes requise'}), 400
+
+    try:
+        for idx, period_id in enumerate(period_ids):
+            period = DecoupagePeriod.query.filter_by(id=period_id, decoupage_id=decoupage_id).first()
+            if period:
+                period.order = idx + 1
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Périodes réordonnées'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/assign', methods=['POST'])
+@login_required
+@teacher_required
+def assign_decoupage(decoupage_id):
+    """Assigner un découpage à une classe"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+    from models.classroom import Classroom
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json()
+    classroom_id = data.get('classroom_id')
+    start_week = data.get('start_week', 1)
+
+    if not classroom_id:
+        return jsonify({'success': False, 'message': 'Classe requise'}), 400
+
+    # Vérifier que la classe appartient à l'utilisateur
+    classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+    if not classroom:
+        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+    # Vérifier qu'il n'y a pas déjà une assignation
+    existing = DecoupageAssignment.query.filter_by(
+        decoupage_id=decoupage_id,
+        classroom_id=classroom_id
+    ).first()
+
+    if existing:
+        return jsonify({'success': False, 'message': 'Ce découpage est déjà assigné à cette classe'}), 400
+
+    try:
+        assignment = DecoupageAssignment(
+            decoupage_id=decoupage_id,
+            classroom_id=classroom_id,
+            start_week=start_week
+        )
+        db.session.add(assignment)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Découpage assigné à la classe',
+            'data': assignment.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/unassign/<int:classroom_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def unassign_decoupage(decoupage_id, classroom_id):
+    """Retirer un découpage d'une classe"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    assignment = DecoupageAssignment.query.filter_by(
+        decoupage_id=decoupage_id,
+        classroom_id=classroom_id
+    ).first()
+
+    if not assignment:
+        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+
+    try:
+        db.session.delete(assignment)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Découpage retiré de la classe'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/assignment/<int:assignment_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_assignment(decoupage_id, assignment_id):
+    """Modifier une assignation (ex: changer la semaine de début)"""
+    from models.decoupage import Decoupage, DecoupageAssignment
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    assignment = DecoupageAssignment.query.filter_by(id=assignment_id, decoupage_id=decoupage_id).first()
+
+    if not assignment:
+        return jsonify({'success': False, 'message': 'Assignation non trouvée'}), 404
+
+    data = request.get_json()
+
+    if 'start_week' in data:
+        try:
+            start_week = int(data['start_week'])
+            if start_week < 1 or start_week > 52:
+                return jsonify({'success': False, 'message': 'Semaine invalide (1-52)'}), 400
+            assignment.start_week = start_week
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'message': 'Semaine invalide'}), 400
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Assignation mise à jour',
+            'data': assignment.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/api/classroom/<int:classroom_id>/decoupages', methods=['GET'])
+@login_required
+@teacher_required
+def get_classroom_decoupages(classroom_id):
+    """Récupérer les découpages assignés à une classe"""
+    from models.decoupage import DecoupageAssignment
+    from models.classroom import Classroom
+
+    # Vérifier que la classe appartient à l'utilisateur
+    classroom = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+    if not classroom:
+        return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
+
+    assignments = DecoupageAssignment.query.filter_by(classroom_id=classroom_id).all()
+
+    result = []
+    for assignment in assignments:
+        decoupage_data = assignment.decoupage.to_dict()
+        decoupage_data['start_week'] = assignment.start_week
+        decoupage_data['assignment_id'] = assignment.id
+        result.append(decoupage_data)
+
+    return jsonify({
+        'success': True,
+        'data': result
+    })
+
+
+# ============================================================
+# Nouvelles routes pour la gestion des ressources de planification
+# ============================================================
+
+@planning_bp.route('/add-resource', methods=['POST'])
+@login_required
+def add_resource():
+    """Ajouter une ressource (fichier ou exercice) à une planification"""
+    from models.planning import PlanningResource
+    from models.class_file import ClassFile
+
+    data = request.get_json()
+    planning_id = data.get('planning_id')
+    resource_type = data.get('resource_type')  # 'file' ou 'exercise'
+    resource_id = data.get('resource_id')
+    display_name = data.get('display_name')
+    file_type = data.get('file_type')  # Pour les fichiers
+
+    # Vérifier que la planification existe et appartient à l'utilisateur
+    planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
+    if not planning:
+        return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
+
+    try:
+        # Déterminer l'icône en fonction du type
+        display_icon = None
+        if resource_type == 'file':
+            if file_type == 'pdf':
+                display_icon = 'file-pdf'
+            elif file_type and re.match(r'png|jpg|jpeg|gif', file_type):
+                display_icon = 'file-image'
+            else:
+                display_icon = 'file'
+        elif resource_type == 'exercise':
+            display_icon = 'gamepad'
+
+        # Créer la ressource
+        resource = PlanningResource(
+            planning_id=planning_id,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            display_name=display_name,
+            display_icon=display_icon,
+            status='linked',  # Par défaut: lié mais pas publié
+            position=planning.resources.count()
+        )
+
+        db.session.add(resource)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Ressource "{display_name}" ajoutée',
+            'resource_id': resource.id
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur add-resource: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/publish-resource', methods=['POST'])
+@login_required
+def publish_resource():
+    """Publier un exercice lié à une planification"""
+    from models.planning import PlanningResource
+    from models.exercise import Exercise
+    from models.exercise_progress import ExercisePublication
+
+    data = request.get_json()
+    resource_id = data.get('resource_id')
+    exercise_id = data.get('exercise_id')
+    classroom_id = data.get('classroom_id')
+    mode = data.get('mode')  # 'classique' ou 'combat'
+
+    # Vérifier la ressource
+    resource = PlanningResource.query.get(resource_id)
+    if not resource:
+        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+
+    # Vérifier que la planification appartient à l'utilisateur
+    if resource.planning.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+
+    # Vérifier l'exercice
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Exercice introuvable'}), 404
+
+    try:
+        # Publier l'exercice (logique similaire à launch_exercise)
+        existing = ExercisePublication.query.filter_by(
+            exercise_id=exercise.id,
+            classroom_id=classroom_id
+        ).first()
+
+        if existing:
+            # Mettre à jour le mode et activer
+            existing.mode = mode
+            existing.is_active = (mode == 'combat')
+            pub_obj = existing
+        else:
+            pub = ExercisePublication(
+                exercise_id=exercise.id,
+                classroom_id=classroom_id,
+                published_by=current_user.id,
+                published_at=datetime.utcnow(),
+                mode=mode,
+                is_active=(mode == 'combat'),
+            )
+            db.session.add(pub)
+            pub_obj = pub
+
+        exercise.is_published = True
+        exercise.is_draft = False
+
+        # Mettre à jour la ressource
+        resource.status = 'published'
+        resource.mode = mode
+        resource.publication_id = pub_obj.id
+
+        db.session.commit()
+
+        result = {
+            'success': True,
+            'message': f'Exercice publié en mode {mode}',
+            'publication_id': pub_obj.id
+        }
+
+        # Si mode combat, créer une CombatSession automatiquement
+        if mode == 'combat':
+            try:
+                from services.combat_engine import CombatEngine
+                combat_session = CombatEngine.create_session(
+                    teacher_id=current_user.id,
+                    classroom_id=classroom_id,
+                    exercise_id=exercise_id,
+                    difficulty='medium',
+                )
+                result['combat_session_id'] = combat_session.id
+            except Exception as e2:
+                import traceback
+                traceback.print_exc()
+                result['combat_error'] = str(e2)
+
+        return jsonify(result)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Erreur publish-resource: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/delete-resource', methods=['POST'])
+@login_required
+def delete_resource():
+    """Supprimer une ressource d'une planification"""
+    from models.planning import PlanningResource
+
+    data = request.get_json()
+    resource_id = data.get('resource_id')
+
+    resource = PlanningResource.query.get(resource_id)
+    if not resource:
+        return jsonify({'success': False, 'error': 'Ressource introuvable'}), 404
+
+    if resource.planning.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
+
+    try:
+        db.session.delete(resource)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

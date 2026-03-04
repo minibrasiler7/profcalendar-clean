@@ -1,33 +1,27 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
 from models.class_file import ClassFile
 from models.file_sharing import StudentFileShare
 from models.classroom import Classroom
 from models.student import Student
-from datetime import datetime
-import os
-import uuid
-from werkzeug.utils import secure_filename
 
 send_to_students_bp = Blueprint('send_to_students', __name__, url_prefix='/api')
 
 @send_to_students_bp.route('/send-to-students', methods=['POST'])
 @login_required
 def send_pdf_to_students():
-    """Envoie un PDF annoté aux élèves sélectionnés depuis le lecteur PDF"""
+    """Partage un fichier existant avec les élèves sélectionnés"""
     try:
-        print("📧 Début de l'envoi du PDF aux élèves")
-        
+        print("📧 Début du partage du fichier avec les élèves")
+
         # Récupérer les données du formulaire
-        pdf_file = request.files.get('pdf_file')
-        action = request.form.get('action')
-        send_mode = request.form.get('send_mode')
+        file_id = request.form.get('file_id')  # ID du fichier à partager
         selected_students_json = request.form.get('selected_students')
         current_class_id = request.form.get('current_class_id')  # ID de classe fourni par le calendrier
-        
-        if not pdf_file:
-            return jsonify({'success': False, 'message': 'Aucun fichier PDF fourni'}), 400
+
+        if not file_id:
+            return jsonify({'success': False, 'message': 'Aucun fichier spécifié'}), 400
         
         if not selected_students_json:
             return jsonify({'success': False, 'message': 'Aucun élève sélectionné'}), 400
@@ -44,36 +38,17 @@ def send_pdf_to_students():
         
         student_ids = [int(student['id']) for student in selected_students]
         print(f"📋 Élèves sélectionnés: {student_ids}")
-        print(f"🏫 Classe fournie par le calendrier: {current_class_id}")
-        
-        # Déterminer la classe à utiliser
-        classroom = None
-        
-        if current_class_id:
-            # Utiliser la classe fournie par le calendrier
-            # Parser l'ID de classe (peut être "classroom_4" ou "mixed_group_2" ou "4")
-            class_id_to_use = current_class_id
-            if isinstance(current_class_id, str) and '_' in current_class_id:
-                parts = current_class_id.split('_')
-                class_id_to_use = int(parts[-1])  # Prendre le dernier élément (l'ID numérique)
-            else:
-                class_id_to_use = int(current_class_id)
-            
-            classroom = Classroom.query.get(class_id_to_use)
-            print(f"🏫 Classe trouvée depuis l'ID du calendrier: {classroom.name if classroom else 'Non trouvée'}")
-        
-        if not classroom:
-            # Fallback: trouver la classe à partir du premier élève
-            first_student = Student.query.get(student_ids[0])
-            if not first_student:
-                return jsonify({'success': False, 'message': 'Élève introuvable'}), 404
-            
-            classroom = first_student.classroom
-            print(f"🏫 Classe trouvée depuis l'élève: {classroom.name if classroom else 'Non trouvée'}")
-        
-        if not classroom:
-            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-        
+        print(f"📁 Fichier à partager: ID {file_id}")
+
+        # Récupérer le fichier à partager
+        class_file = ClassFile.query.get(int(file_id))
+        if not class_file:
+            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+
+        # Récupérer la classe depuis le fichier
+        classroom = class_file.classroom
+        print(f"🏫 Classe du fichier: {classroom.name}")
+
         # Vérifier que l'utilisateur a accès à cette classe
         if classroom.user_id != current_user.id:
             # Vérifier s'il s'agit d'une collaboration (enseignant spécialisé)
@@ -81,7 +56,7 @@ def send_pdf_to_students():
             shared_classroom = SharedClassroom.query.filter_by(
                 derived_classroom_id=classroom.id
             ).first()
-            
+
             is_authorized = False
             if shared_classroom:
                 collaboration = TeacherCollaboration.query.filter_by(
@@ -91,74 +66,38 @@ def send_pdf_to_students():
                 ).first()
                 if collaboration:
                     is_authorized = True
-            
+
             if not is_authorized:
                 return jsonify({'success': False, 'message': 'Accès non autorisé à cette classe'}), 403
-        
-        # Vérifier que tous les élèves appartiennent à la même classe
+
+        # Vérifier que tous les élèves appartiennent à la classe ou à une classe liée
+        from models.class_collaboration import SharedClassroom
+
+        # Collecter tous les classroom_ids liés (original + dérivés)
+        valid_classroom_ids = [classroom.id]
+        # Chercher les classes dérivées de cette classe
+        derived = SharedClassroom.query.filter_by(original_classroom_id=classroom.id).all()
+        for d in derived:
+            valid_classroom_ids.append(d.derived_classroom_id)
+        # Chercher si cette classe est une dérivée (pour trouver l'originale)
+        original = SharedClassroom.query.filter_by(derived_classroom_id=classroom.id).first()
+        if original:
+            valid_classroom_ids.append(original.original_classroom_id)
+            # Et aussi les autres dérivées de la même originale
+            siblings = SharedClassroom.query.filter_by(
+                original_classroom_id=original.original_classroom_id
+            ).all()
+            for s in siblings:
+                if s.derived_classroom_id not in valid_classroom_ids:
+                    valid_classroom_ids.append(s.derived_classroom_id)
+
         students = Student.query.filter(
             Student.id.in_(student_ids),
-            Student.classroom_id == classroom.id
+            Student.classroom_id.in_(valid_classroom_ids)
         ).all()
-        
+
         if len(students) != len(student_ids):
             return jsonify({'success': False, 'message': 'Certains élèves ne sont pas dans cette classe'}), 400
-        
-        # Debug: afficher les informations du fichier reçu
-        print(f"📄 Fichier reçu: {pdf_file}")
-        print(f"📄 Nom du fichier: {pdf_file.filename}")
-        print(f"📄 Type MIME: {pdf_file.content_type}")
-        
-        # Sauvegarder le fichier PDF
-        original_filename = secure_filename(pdf_file.filename)
-        if not original_filename or original_filename == '':
-            original_filename = 'document_annote.pdf'
-        
-        # Si le nom du fichier est juste un nombre, essayer de récupérer le vrai nom depuis la DB
-        if original_filename.isdigit():
-            print(f"🔍 Le nom du fichier est un ID: {original_filename}, recherche du nom réel...")
-            try:
-                class_file = ClassFile.query.get(int(original_filename))
-                if class_file and class_file.original_filename:
-                    original_filename = class_file.original_filename
-                    print(f"✅ Nom réel trouvé: {original_filename}")
-                else:
-                    original_filename = 'document_annote.pdf'
-            except:
-                original_filename = 'document_annote.pdf'
-        
-        # Pour les fichiers envoyés aux élèves, conserver le nom original mais ajouter un UUID pour éviter les conflits
-        name, ext = os.path.splitext(original_filename)
-        # Garder le nom original mais ajouter un UUID pour l'unicité dans le système de fichiers
-        unique_filename = f"{uuid.uuid4().hex[:8]}_{original_filename}"
-        
-        # Créer le dossier de destination pour les fichiers partagés avec les élèves
-        shared_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(classroom.id))
-        os.makedirs(shared_folder, exist_ok=True)
-        
-        # Chemin complet du fichier
-        file_path = os.path.join(shared_folder, unique_filename)
-        
-        # Sauvegarder le fichier
-        pdf_file.save(file_path)
-        
-        # Calculer la taille du fichier
-        file_size = os.path.getsize(file_path)
-        
-        # Créer l'entrée ClassFile (marqué comme fichier partagé avec les élèves)
-        class_file = ClassFile(
-            classroom_id=classroom.id,
-            filename=unique_filename,
-            original_filename=original_filename,  # Conserver le nom original
-            file_type='pdf',
-            file_size=file_size,
-            description=f"Document annoté envoyé aux élèves le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
-            uploaded_at=datetime.utcnow(),
-            is_student_shared=True  # Marquer comme fichier partagé aux élèves
-        )
-        
-        db.session.add(class_file)
-        db.session.flush()  # Pour obtenir l'ID
         
         # Créer les partages avec les élèves
         shares_created = 0
@@ -183,12 +122,10 @@ def send_pdf_to_students():
                 shares_created += 1
         
         db.session.commit()
-        
-        print(f"✅ PDF sauvegardé et partagé avec {shares_created} élève(s)")
-        print(f"📁 Fichier physique: {file_path}")
-        print(f"📁 Nom dans le système: {unique_filename}")
-        print(f"📁 Nom original: {original_filename}")
-        print(f"📋 ClassFile ID: {class_file.id}")
+
+        print(f"✅ Fichier partagé avec {shares_created} élève(s)")
+        print(f"📁 ClassFile ID: {class_file.id}")
+        print(f"📁 Nom: {class_file.user_file.original_filename}")
         
         return jsonify({
             'success': True,

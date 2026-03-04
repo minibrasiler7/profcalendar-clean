@@ -41,8 +41,14 @@ class Planning(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('user_id', 'date', 'period_number', name='_user_date_period_uc'),
-        db.CheckConstraint('(classroom_id IS NOT NULL AND mixed_group_id IS NULL) OR (classroom_id IS NULL AND mixed_group_id IS NOT NULL)', 
-                          name='_classroom_or_mixed_group_planning'),
+        # Permet les périodes "Autre" sans classe ni groupe (les deux peuvent être NULL)
+        # Syntaxe explicite pour garantir la compatibilité PostgreSQL
+        db.CheckConstraint(
+            '(classroom_id IS NULL AND mixed_group_id IS NULL) OR '
+            '(classroom_id IS NOT NULL AND mixed_group_id IS NULL) OR '
+            '(classroom_id IS NULL AND mixed_group_id IS NOT NULL)',
+            name='_classroom_or_mixed_group_planning'
+        ),
     )
 
     def get_checklist_states(self):
@@ -135,7 +141,7 @@ class Planning(db.Model):
             return self.classroom.name
         elif self.mixed_group_id:
             return self.mixed_group.name
-        return "Non défini"
+        return "Autre"  # Période sans classe ni groupe
     
     def get_subject(self):
         """Retourne la matière enseignée"""
@@ -143,7 +149,7 @@ class Planning(db.Model):
             return self.classroom.subject
         elif self.mixed_group_id:
             return self.mixed_group.subject
-        return "Non défini"
+        return None  # Pas de matière pour les périodes "Autre"
     
     def get_students(self):
         """Retourne la liste des élèves concernés par cette planification"""
@@ -167,8 +173,49 @@ class Planning(db.Model):
         """Retourne la couleur pour l'affichage"""
         if self.mixed_group_id:
             return self.mixed_group.color
-        return '#4a90e2'  # Couleur par défaut pour les classes
+        elif self.classroom_id:
+            return '#4a90e2'  # Couleur par défaut pour les classes
+        return '#9ca3af'  # Couleur grise pour les périodes "Autre"
 
     def __repr__(self):
         name = self.get_display_name()
         return f'<Planning {self.date} P{self.period_number} - {name}>'
+
+
+class PlanningResource(db.Model):
+    """Modèle pour les ressources (fichiers ou exercices) ajoutées à la planification"""
+    __tablename__ = 'planning_resources'
+
+    id = db.Column(db.Integer, primary_key=True)
+    planning_id = db.Column(db.Integer, db.ForeignKey('plannings.id', ondelete='CASCADE'), nullable=False)
+
+    # Type de ressource: 'file' (PDF/document) ou 'exercise'
+    resource_type = db.Column(db.String(20), nullable=False)  # 'file' ou 'exercise'
+
+    # Pour les fichiers: stocke l'ID du UserFile ou ClassFile
+    # Pour les exercices: stocke l'ID de l'Exercise
+    resource_id = db.Column(db.Integer, nullable=False)
+
+    # Métadonnées stockées pour affichage rapide
+    display_name = db.Column(db.String(255), nullable=False)
+    display_icon = db.Column(db.String(50))  # p.ex. 'file-pdf', 'file-image', 'gamepad'
+
+    # Status: 'linked' (ajouté mais pas publié) ou 'published' (exercice lancé)
+    status = db.Column(db.String(20), default='linked')  # 'linked' ou 'published'
+
+    # Pour les exercices publiés, stocke les informations de lancement
+    mode = db.Column(db.String(20))  # 'classique' ou 'combat'
+    publication_id = db.Column(db.Integer)  # ID de la publication de l'exercice
+
+    # Position dans la planification (pour tri)
+    position = db.Column(db.Integer, default=0)
+
+    # Métadonnées
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    planning = db.relationship('Planning', backref=db.backref('resources', lazy='dynamic', cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<PlanningResource {self.resource_type}:{self.resource_id} - {self.display_name}>'

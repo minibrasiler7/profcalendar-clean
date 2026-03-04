@@ -1,0 +1,2720 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if exercise else 'Créer' }} un exercice - L'Atelier{% endblock %}
+
+{% block extra_head %}
+<!-- KaTeX for math rendering in questions -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script>
+function renderAllMath() {
+    if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+        });
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(renderAllMath, 500);
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.atelier-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.atelier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.atelier-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.atelier-header h1 i { color: #667eea; }
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Layout 3 zones */
+.atelier-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .atelier-layout {
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .zone-params { grid-column: 1; grid-row: 1; }
+    .zone-blocks { grid-column: 2; grid-row: 1 / span 2; }
+    .zone-gamification { grid-column: 1; grid-row: 2; }
+}
+
+/* Zones */
+.zone-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.zone-title {
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zone-title.green { background: linear-gradient(135deg, #10b981, #059669); }
+.zone-title.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.zone-body { padding: 1.25rem; }
+
+/* Form fields */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.3rem;
+}
+
+.radio-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.radio-btn.active {
+    border-color: #667eea;
+    background: #eef2ff;
+    color: #4338ca;
+}
+.radio-btn input[type="radio"] {
+    width: auto;
+    margin: 0;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+/* Boîte à outils */
+.toolbox {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 2px dashed #d1d5db;
+}
+
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #4b5563;
+    text-align: center;
+}
+
+.tool-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102,126,234,0.2);
+}
+
+.tool-btn i {
+    font-size: 1.3rem;
+    color: #667eea;
+}
+
+/* Zone de blocs */
+.blocks-area {
+    min-height: 300px;
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #fafbfc;
+    transition: border-color 0.2s;
+}
+
+.blocks-area.has-blocks {
+    border-style: solid;
+    border-color: #e5e7eb;
+}
+
+.blocks-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.blocks-empty i { font-size: 3rem; margin-bottom: 1rem; }
+
+/* Bloc individuel */
+.exercise-block {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.exercise-block:hover { border-color: #667eea; }
+.exercise-block.dragging { opacity: 0.5; border-color: #667eea; border-style: dashed; }
+
+.block-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    cursor: pointer;
+    user-select: none;
+}
+
+.block-drag-handle {
+    cursor: grab;
+    color: #9ca3af;
+    font-size: 1.1rem;
+}
+
+.block-drag-handle:active { cursor: grabbing; }
+
+.block-type-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.block-type-badge.qcm { background: #dbeafe; color: #1d4ed8; }
+.block-type-badge.short_answer { background: #dcfce7; color: #166534; }
+.block-type-badge.fill_blank { background: #fef3c7; color: #92400e; }
+.block-type-badge.sorting { background: #ede9fe; color: #5b21b6; }
+.block-type-badge.image_position { background: #fce7f3; color: #9d174d; }
+.block-type-badge.graph { background: #cffafe; color: #155e75; }
+
+.block-title-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1f2937;
+    outline: none;
+}
+
+.block-title-input::placeholder { color: #9ca3af; }
+
+.block-points {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f59e0b;
+}
+
+.block-points input {
+    width: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0.15rem 0.3rem;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.block-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.block-actions button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.block-actions button:hover { background: #f3f4f6; color: #1f2937; }
+.block-actions button.delete:hover { background: #fef2f2; color: #dc2626; }
+
+.block-content {
+    padding: 1rem;
+    display: none;
+}
+
+.block-content.open { display: block; }
+
+/* QCM option */
+.qcm-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafbfc;
+}
+
+.qcm-option input[type="checkbox"],
+.qcm-option input[type="radio"] {
+    margin-top: 0.3rem;
+    width: auto;
+}
+
+.qcm-option .option-fields { flex: 1; }
+
+.qcm-option .option-fields input,
+.qcm-option .option-fields textarea {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+}
+
+.qcm-option .remove-option {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #dc2626;
+    padding: 0.25rem;
+}
+
+/* Synonymes / items list */
+.items-list .item-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.items-list .item-row input { flex: 1; }
+
+.items-list .remove-item {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #dc2626;
+    font-size: 0.9rem;
+}
+
+.add-item-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px dashed #667eea;
+    border-radius: 6px;
+    background: transparent;
+    color: #667eea;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+}
+
+.add-item-btn:hover { background: #eef2ff; }
+
+/* Categories for sorting */
+.category-box {
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.category-box .cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.category-box .cat-header input {
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    outline: none;
+    background: transparent;
+}
+
+/* Image position bloc */
+.image-upload-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafbfc;
+}
+
+.image-upload-area:hover { border-color: #667eea; background: #eef2ff; }
+
+.image-preview-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.image-preview-container img {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+}
+
+.image-zone {
+    position: absolute;
+    border: 3px solid #dc2626;
+    border-radius: 50%;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(220,38,38,0.3);
+}
+
+/* Graph config */
+.graph-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+/* Fill blank preview */
+.fill-blank-preview {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    line-height: 2;
+    font-size: 0.95rem;
+}
+
+.fill-blank-preview .blank-slot {
+    display: inline-block;
+    min-width: 80px;
+    border-bottom: 2px solid #667eea;
+    text-align: center;
+    color: #667eea;
+    font-weight: 600;
+    padding: 0 0.3rem;
+    margin: 0 0.2rem;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.btn-primary { background: #667eea; color: white; }
+.btn-primary:hover { background: #5a67d8; }
+.btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; }
+.btn-secondary { background: #f3f4f6; color: #374151; }
+.btn-secondary:hover { background: #e5e7eb; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+
+/* Notification toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.toast.success { background: #10b981; }
+.toast.error { background: #ef4444; }
+
+@keyframes slideIn {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Publish modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+}
+
+.modal-box {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-box h3 { margin: 0 0 1rem; }
+
+.class-checkbox-list { list-style: none; padding: 0; margin: 1rem 0; }
+
+.class-checkbox-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+}
+
+.class-checkbox-list li:hover { background: #f3f4f6; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+/* KaTeX Math Toolbar */
+.katex-toolbar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    padding: 1rem;
+    z-index: 8000;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    min-width: 280px;
+}
+
+.katex-toolbar.collapsed {
+    min-width: auto;
+    width: auto;
+}
+
+.katex-toolbar.collapsed .katex-toolbar-content {
+    display: none;
+}
+
+.katex-toolbar.collapsed .katex-toolbar-header {
+    margin: 0;
+}
+
+.katex-toolbar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.katex-toolbar-title {
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.katex-toolbar-title i {
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+.katex-toolbar-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.katex-toolbar-toggle:hover {
+    background: #f3f4f6;
+    color: #667eea;
+}
+
+.katex-toolbar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.katex-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.katex-button-group-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.katex-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+}
+
+.katex-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4b5563;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.katex-btn:hover {
+    border-color: #667eea;
+    background: #eef2ff;
+    color: #667eea;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102,126,234,0.2);
+}
+
+.katex-btn i {
+    font-size: 0.9rem;
+}
+
+.katex-preview-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid #f3f4f6;
+}
+
+.katex-preview-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+}
+
+.katex-preview-box {
+    padding: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.katex-formula-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    margin-top: 0.3rem;
+}
+
+.katex-formula-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .toolbox { grid-template-columns: repeat(2, 1fr); }
+    .form-row { grid-template-columns: 1fr; }
+    .atelier-header { flex-direction: column; gap: 1rem; }
+    .katex-toolbar {
+        bottom: 10px;
+        right: 10px;
+        max-width: calc(100vw - 20px);
+        min-width: 250px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="atelier-container">
+    <!-- Header -->
+    <div class="atelier-header">
+        <h1><i class="fas fa-flask"></i> L'Atelier d'Exercices</h1>
+        <div class="header-actions">
+            <a href="{{ url_for('exercises.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+            <button class="btn btn-secondary" onclick="saveExercise(true)">
+                <i class="fas fa-save"></i> Brouillon
+            </button>
+            <button class="btn btn-primary" onclick="saveExercise(false)">
+                <i class="fas fa-save"></i> Sauvegarder
+            </button>
+            {% if exercise and exercise.id %}
+            <button class="btn btn-success" onclick="showPublishModal()">
+                <i class="fas fa-paper-plane"></i> Publier
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="atelier-layout">
+        <!-- Zone 1 : Paramètres généraux -->
+        <div class="zone-params">
+            <div class="zone-card">
+                <div class="zone-title"><i class="fas fa-cog"></i> Paramètres</div>
+                <div class="zone-body">
+                    <div class="form-group">
+                        <label>Titre</label>
+                        <input type="text" id="ex-title" placeholder="Titre de l'exercice" value="{{ exercise.title if exercise else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="ex-description" rows="3" placeholder="Description...">{{ exercise.description if exercise else '' }}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Matière</label>
+                            <input type="text" id="ex-subject" placeholder="Maths, Sciences..." value="{{ exercise.subject if exercise else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Niveau</label>
+                            <input type="text" id="ex-level" placeholder="6e, 5e..." value="{{ exercise.level if exercise else '' }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="ex-accept-typos" {{ 'checked' if exercise and exercise.accept_typos }} style="width: auto;">
+                            Tolérer les fautes d'orthographe
+                        </label>
+                        <small style="color: #6b7280; font-size: 0.75rem;">Si activé, les réponses texte proches seront acceptées</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone 3 : Gamification -->
+            <div class="zone-card" style="margin-top: 1rem;">
+                <div class="zone-title orange"><i class="fas fa-gamepad"></i> Gamification</div>
+                <div class="zone-body">
+                    <div class="form-group">
+                        <label>Seuil bonus or (%)</label>
+                        <input type="number" id="ex-gold-threshold" min="50" max="100" value="{{ exercise.bonus_gold_threshold if exercise else 80 }}">
+                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne de l'or si son score dépasse ce seuil</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Seuil badge (%)</label>
+                        <input type="number" id="ex-badge-threshold" min="10" max="100" value="{{ exercise.badge_threshold if exercise else 100 }}">
+                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne un badge s'il atteint ce pourcentage</small>
+                    </div>
+                    <div style="padding: 0.75rem; background: #fffbeb; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
+                        <i class="fas fa-star" style="color: #f59e0b;"></i>
+                        <strong>XP total : <span id="total-xp">0</span></strong>
+                        <br><small>La somme des points de chaque bloc</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone 2 : Construction de l'exercice -->
+        <div class="zone-blocks">
+            <div class="zone-card">
+                <div class="zone-title green"><i class="fas fa-puzzle-piece"></i> Construction de l'exercice</div>
+                <div class="zone-body">
+                    <!-- Boîte à outils -->
+                    <div class="toolbox">
+                        <button class="tool-btn" onclick="addBlock('qcm')">
+                            <i class="fas fa-list-check"></i>
+                            QCM
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('short_answer')">
+                            <i class="fas fa-pen"></i>
+                            Réponse courte
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('fill_blank')">
+                            <i class="fas fa-paragraph"></i>
+                            Texte à trous
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('sorting')">
+                            <i class="fas fa-sort"></i>
+                            Classement
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('matching')">
+                            <i class="fas fa-arrows-alt-h"></i>
+                            Associations
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('image_position')">
+                            <i class="fas fa-image"></i>
+                            Image interactive
+                        </button>
+                        <button class="tool-btn" onclick="addBlock('graph')">
+                            <i class="fas fa-chart-line"></i>
+                            Graphique
+                        </button>
+                    </div>
+
+                    <!-- Zone des blocs -->
+                    <div class="blocks-area" id="blocks-area">
+                        <div class="blocks-empty" id="blocks-empty">
+                            <i class="fas fa-puzzle-piece"></i>
+                            <p>Cliquez sur un outil ci-dessus pour ajouter des blocs</p>
+                            <small>Chaque exercice est un assemblage de blocs interactifs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Publish modal -->
+<div class="modal-overlay" id="publish-modal" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fas fa-paper-plane"></i> Publier l'exercice</h3>
+        <p>Sélectionnez les classes pour lesquelles publier cet exercice :</p>
+        <ul class="class-checkbox-list" id="publish-class-list">
+            {% for classroom in classrooms %}
+            <li>
+                <input type="checkbox" id="pub-class-{{ classroom.id }}" value="{{ classroom.id }}">
+                <label for="pub-class-{{ classroom.id }}">{{ classroom.name }} - {{ classroom.subject }}</label>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closePublishModal()">Annuler</button>
+            <button class="btn btn-success" onclick="publishExercise()">
+                <i class="fas fa-paper-plane"></i> Publier
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Folder picker modal -->
+<div class="modal-overlay" id="folder-modal" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fas fa-folder-open"></i> Ranger dans un dossier</h3>
+        <p style="color:#6b7280;font-size:0.9rem;">Choisissez un dossier du gestionnaire de fichiers pour y ranger cet exercice :</p>
+        <div id="folder-list" style="max-height:300px;overflow-y:auto;margin:1rem 0;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeFolderModal()">Passer</button>
+            <button class="btn btn-primary" id="folder-confirm-btn" onclick="confirmFolder()" disabled>
+                <i class="fas fa-check"></i> Ranger ici
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KaTeX Math Toolbar -->
+<div class="katex-toolbar collapsed" id="katex-toolbar">
+    <div class="katex-toolbar-header">
+        <div class="katex-toolbar-title">
+            <i class="fas fa-calculator"></i>
+            <span>Formules Mathématiques</span>
+        </div>
+        <button class="katex-toolbar-toggle" onclick="toggleKaTeXToolbar()" title="Réduire/Agrandir">
+            <i class="fas fa-chevron-up" id="toolbar-toggle-icon"></i>
+        </button>
+    </div>
+
+    <div class="katex-toolbar-content">
+        <!-- Symbols -->
+        <div class="katex-button-group">
+            <div class="katex-button-group-title"><i class="fas fa-icons"></i> Symboles</div>
+            <div class="katex-buttons-grid">
+                <button class="katex-btn" onclick="insertKaTeX('\\frac{}{}')" title="Fraction">
+                    <i class="fas fa-divide"></i>
+                    <span>Fraction</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('^{}')" title="Exposant">
+                    <i class="fas fa-superscript"></i>
+                    <span>Exposant</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('_{}')" title="Indice">
+                    <i class="fas fa-subscript"></i>
+                    <span>Indice</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\sqrt{}')" title="Racine carrée">
+                    <i class="fas fa-square-root-alt"></i>
+                    <span>Racine</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\pi')" title="Pi">
+                    <span>π</span>
+                    <span>Pi</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\times')" title="Multiplication">
+                    <span>×</span>
+                    <span>Mult.</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\div')" title="Division">
+                    <span>÷</span>
+                    <span>Div.</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\pm')" title="Plus ou moins">
+                    <span>±</span>
+                    <span>±</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\infty')" title="Infini">
+                    <span>∞</span>
+                    <span>Infini</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\leq')" title="Inférieur ou égal">
+                    <span>≤</span>
+                    <span>≤</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\geq')" title="Supérieur ou égal">
+                    <span>≥</span>
+                    <span>≥</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\neq')" title="Différent de">
+                    <span>≠</span>
+                    <span>≠</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\rightarrow')" title="Flèche">
+                    <span>→</span>
+                    <span>Flèche</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Structures -->
+        <div class="katex-button-group">
+            <div class="katex-button-group-title"><i class="fas fa-building"></i> Structures</div>
+            <div class="katex-buttons-grid">
+                <button class="katex-btn" onclick="insertKaTeX('\\int')" title="Intégrale">
+                    <span>∫</span>
+                    <span>Intégrale</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\sum')" title="Somme">
+                    <span>∑</span>
+                    <span>Somme</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\lim')" title="Limite">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Limite</span>
+                </button>
+                <button class="katex-btn" onclick="insertKaTeX('\\begin{pmatrix}\\end{pmatrix}')" title="Matrice">
+                    <i class="fas fa-border-all"></i>
+                    <span>Matrice</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="katex-preview-section">
+            <div class="katex-preview-label">Aperçu en temps réel</div>
+            <input type="text" id="katex-formula-input" class="katex-formula-input" placeholder="Entrez la formule KaTeX..." oninput="updateKaTeXPreview()">
+            <div class="katex-preview-box" id="katex-preview-box">
+                <span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let exerciseId = {{ exercise.id if exercise else 'null' }};
+let blocks = [];
+let blockCounter = 0;
+
+const BLOCK_TYPES = {
+    qcm: { label: 'QCM', icon: 'list-check' },
+    short_answer: { label: 'Réponse courte', icon: 'pen' },
+    fill_blank: { label: 'Texte à trous', icon: 'paragraph' },
+    sorting: { label: 'Classement', icon: 'sort' },
+    matching: { label: 'Associations', icon: 'arrows-alt-h' },
+    image_position: { label: 'Image interactive', icon: 'image' },
+    graph: { label: 'Graphique', icon: 'chart-line' },
+};
+
+// ============================================================
+// INIT : charger l'exercice existant
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    {% if exercise %}
+    fetch(`{{ url_for('exercises.get_exercise_data', exercise_id=exercise.id) }}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.exercise.blocks) {
+                data.exercise.blocks.forEach(b => {
+                    addBlock(b.block_type, b);
+                });
+            }
+            updateTotalXP();
+        });
+    {% endif %}
+    updateTotalXP();
+});
+
+// ============================================================
+// ADD BLOCK
+// ============================================================
+function addBlock(type, existingData) {
+    blockCounter++;
+    const uid = 'block_' + blockCounter;
+    const block = {
+        uid: uid,
+        id: existingData ? existingData.id : null,
+        block_type: type,
+        title: existingData ? existingData.title : '',
+        duration: existingData ? existingData.duration : 60,
+        points: existingData ? existingData.points : 10,
+        config_json: existingData ? existingData.config_json : getDefaultConfig(type),
+    };
+    blocks.push(block);
+
+    document.getElementById('blocks-empty').style.display = 'none';
+    document.getElementById('blocks-area').classList.add('has-blocks');
+
+    const el = document.createElement('div');
+    el.className = 'exercise-block';
+    el.id = uid;
+    el.draggable = false;
+    el.dataset.uid = uid;
+    el.innerHTML = renderBlock(block);
+    document.getElementById('blocks-area').appendChild(el);
+
+    // Drag events — only the grip handle initiates drag
+    const handle = el.querySelector('.block-drag-handle');
+    if (handle) {
+        handle.addEventListener('mousedown', () => { el.draggable = true; });
+        handle.addEventListener('touchstart', () => { el.draggable = true; }, { passive: true });
+    }
+    el.addEventListener('dragstart', onDragStart);
+    el.addEventListener('dragover', onDragOver);
+    el.addEventListener('drop', onDrop);
+    el.addEventListener('dragend', (e) => { el.draggable = false; onDragEnd(e); });
+
+    updateTotalXP();
+
+    // Auto-preview graph blocks after DOM insertion
+    if (block.block_type === 'graph') {
+        setTimeout(() => previewGraph(uid), 50);
+    }
+}
+
+function getDefaultConfig(type) {
+    switch(type) {
+        case 'qcm':
+            return { question: '', options: [
+                { text: '', is_correct: true, feedback: '' },
+                { text: '', is_correct: false, feedback: '' },
+            ], multiple_answers: false };
+        case 'short_answer':
+            return { question: '', answer_type: 'text', correct_answer: '', tolerance: 0, synonyms: [] };
+        case 'fill_blank':
+            return { text_template: '', blanks: [], mode: 'text', word_pool: [] };
+        case 'matching':
+            return { pairs: [{ left: '', right: '' }] };
+        case 'sorting':
+            return { mode: 'order', items: ['', ''], correct_order: [0, 1], categories: [] };
+        case 'image_position':
+            return { image_file_id: null, image_url: '', zones: [], default_radius: 50 };
+        case 'graph':
+            return { graph_type: 'cartesian', x_label: 'x', y_label: 'y',
+                     x_min: -7, x_max: 7, y_min: -7, y_max: 7,
+                     grid: true, question_type: 'draw_line',
+                     correct_answer: { a: 1, b: 0 }, tolerance: 0 };
+        default: return {};
+    }
+}
+
+// ============================================================
+// RENDER BLOCK
+// ============================================================
+function renderBlock(block) {
+    const typeInfo = BLOCK_TYPES[block.block_type];
+    return `
+        <div class="block-header" onclick="toggleBlockContent('${block.uid}')">
+            <span class="block-drag-handle" onclick="event.stopPropagation()"><i class="fas fa-grip-vertical"></i></span>
+            <span class="block-type-badge ${block.block_type}">${typeInfo.label}</span>
+            <input class="block-title-input" type="text" placeholder="Titre / Question du bloc..."
+                value="${escapeHtml(block.title || '')}"
+                onclick="event.stopPropagation()"
+                onchange="updateBlockField('${block.uid}', 'title', this.value)">
+            <div class="block-points" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:0.5rem;">
+                <span style="display:flex;align-items:center;gap:0.2rem;color:#667eea;">
+                    <i class="fas fa-clock"></i>
+                    <input type="number" min="5" style="width:65px;border:1px solid #d1d5db;border-radius:4px;padding:0.15rem 0.3rem;text-align:center;font-size:0.8rem;font-weight:600;" value="${block.duration || 60}"
+                        onchange="updateBlockField('${block.uid}', 'duration', parseInt(this.value))">s
+                </span>
+                <span style="display:flex;align-items:center;gap:0.2rem;">
+                    <i class="fas fa-star"></i>
+                    <input type="number" min="0" style="width:40px;border:1px solid #d1d5db;border-radius:4px;padding:0.15rem 0.3rem;text-align:center;font-size:0.8rem;font-weight:600;" value="${block.points}"
+                        onchange="updateBlockField('${block.uid}', 'points', parseInt(this.value))"> XP
+                </span>
+            </div>
+            <div class="block-actions" onclick="event.stopPropagation()">
+                <button onclick="toggleBlockContent('${block.uid}')" title="Déplier"><i class="fas fa-chevron-down"></i></button>
+                <button class="delete" onclick="removeBlock('${block.uid}')" title="Supprimer"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+        <div class="block-content" id="content-${block.uid}">
+            ${renderBlockEditor(block)}
+        </div>
+    `;
+}
+
+function renderBlockEditor(block) {
+    switch(block.block_type) {
+        case 'qcm': return renderQCMEditor(block);
+        case 'short_answer': return renderShortAnswerEditor(block);
+        case 'fill_blank': return renderFillBlankEditor(block);
+        case 'matching': return renderMatchingEditor(block);
+        case 'sorting': return renderSortingEditor(block);
+        case 'image_position': return renderImagePositionEditor(block);
+        case 'graph': return renderGraphEditor(block);
+        default: return '<p>Type de bloc inconnu</p>';
+    }
+}
+
+// ============================================================
+// QCM EDITOR
+// ============================================================
+function renderQCMEditor(block) {
+    const c = block.config_json;
+    let html = `
+        <div class="form-group">
+            <label>Question</label>
+            <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
+                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+        </div>
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:0.5rem;">
+                <input type="checkbox" style="width:auto;" ${c.multiple_answers ? 'checked' : ''}
+                    onchange="updateConfig('${block.uid}', 'multiple_answers', this.checked)">
+                Plusieurs bonnes réponses
+            </label>
+        </div>
+        <div id="qcm-options-${block.uid}">
+    `;
+    (c.options || []).forEach((opt, i) => {
+        html += renderQCMOption(block.uid, i, opt, c.multiple_answers);
+    });
+    html += `</div>
+        <button class="add-item-btn" onclick="addQCMOption('${block.uid}')">
+            <i class="fas fa-plus"></i> Ajouter une option
+        </button>`;
+    return html;
+}
+
+function renderQCMOption(uid, index, opt, isMultiple) {
+    const inputType = isMultiple ? 'checkbox' : 'radio';
+    return `
+        <div class="qcm-option" data-index="${index}">
+            <input type="${inputType}" name="qcm-correct-${uid}" ${opt.is_correct ? 'checked' : ''}
+                onchange="updateQCMCorrect('${uid}', ${index}, this.checked)">
+            <div class="option-fields">
+                <input type="text" placeholder="Texte de l'option" value="${escapeHtml(opt.text || '')}"
+                    onchange="updateQCMOptionField('${uid}', ${index}, 'text', this.value)">
+                <input type="text" placeholder="Feedback (optionnel)" value="${escapeHtml(opt.feedback || '')}"
+                    onchange="updateQCMOptionField('${uid}', ${index}, 'feedback', this.value)">
+            </div>
+            <button class="remove-option" onclick="removeQCMOption('${uid}', ${index})"><i class="fas fa-times"></i></button>
+        </div>`;
+}
+
+function addQCMOption(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options.push({ text: '', is_correct: false, feedback: '' });
+    refreshBlockContent(uid);
+}
+
+function removeQCMOption(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateQCMCorrect(uid, index, checked) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.multiple_answers) {
+        block.config_json.options.forEach((o, i) => o.is_correct = (i === index));
+    } else {
+        block.config_json.options[index].is_correct = checked;
+    }
+}
+
+function updateQCMOptionField(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.options[index][field] = value;
+}
+
+// ============================================================
+// SHORT ANSWER EDITOR
+// ============================================================
+function renderShortAnswerEditor(block) {
+    const c = block.config_json;
+    let synHtml = '';
+    (c.synonyms || []).forEach((s, i) => {
+        synHtml += `<div class="item-row">
+            <input type="text" value="${escapeHtml(s)}" onchange="updateSynonym('${block.uid}', ${i}, this.value)">
+            <button class="remove-item" onclick="removeSynonym('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        </div>`;
+    });
+
+    return `
+        <div class="form-group">
+            <label>Question</label>
+            <textarea rows="2" onchange="updateConfig('${block.uid}', 'question', this.value)"
+                placeholder="Posez votre question...">${escapeHtml(c.question || '')}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Type de réponse</label>
+                <select onchange="updateConfig('${block.uid}', 'answer_type', this.value)">
+                    <option value="text" ${c.answer_type === 'text' ? 'selected' : ''}>Texte exact</option>
+                    <option value="number" ${c.answer_type === 'number' ? 'selected' : ''}>Nombre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Réponse correcte</label>
+                <input type="text" value="${escapeHtml(c.correct_answer || '')}"
+                    onchange="updateConfig('${block.uid}', 'correct_answer', this.value)">
+            </div>
+        </div>
+        ${c.answer_type === 'number' ? `
+        <div class="form-group">
+            <label>Tolérance (±)</label>
+            <input type="number" step="0.01" value="${c.tolerance || 0}"
+                onchange="updateConfig('${block.uid}', 'tolerance', parseFloat(this.value))">
+        </div>` : ''}
+        <div class="form-group">
+            <label>Synonymes acceptés</label>
+            <div class="items-list" id="synonyms-${block.uid}">${synHtml}</div>
+            <button class="add-item-btn" onclick="addSynonym('${block.uid}')">
+                <i class="fas fa-plus"></i> Ajouter un synonyme
+            </button>
+        </div>`;
+}
+
+function addSynonym(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.synonyms) block.config_json.synonyms = [];
+    block.config_json.synonyms.push('');
+    refreshBlockContent(uid);
+}
+
+function removeSynonym(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.synonyms.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateSynonym(uid, index, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.synonyms[index] = value;
+}
+
+// ============================================================
+// FILL BLANK EDITOR
+// ============================================================
+function renderFillBlankEditor(block) {
+    const c = block.config_json;
+    if (!c.mode) c.mode = 'text';
+    if (!c.word_pool) c.word_pool = [];
+    const preview = parseFillBlank(c.text_template || '');
+
+    let wordPoolHtml = '';
+    if (c.mode === 'choices') {
+        const blanks = c.blanks || [];
+        // Each blank can have its own choices list
+        const blanksHtml = blanks.map((blank, bi) => {
+            const choices = blank.choices || [blank.word];
+            const choicesItems = choices.map((w, ci) => `
+                <div style="display:flex;align-items:center;gap:0.3rem;margin-bottom:0.2rem;">
+                    <input type="text" value="${escapeHtml(w)}" placeholder="Choix ${ci+1}"
+                        onchange="updateBlankChoice('${block.uid}', ${bi}, ${ci}, this.value)"
+                        style="flex:1;padding:0.3rem 0.5rem;border:1px solid #d1d5db;border-radius:4px;font-size:0.85rem;">
+                    ${ci === 0 ? '<span style="font-size:0.65rem;color:#16a34a;font-weight:700;white-space:nowrap;">✓ correct</span>' : ''}
+                    <button class="remove-item" style="padding:2px 4px;" onclick="removeBlankChoice('${block.uid}', ${bi}, ${ci})"><i class="fas fa-times" style="font-size:0.7rem;"></i></button>
+                </div>`).join('');
+
+            return `
+            <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                    <span style="font-weight:700;color:#667eea;font-size:0.85rem;">Trou ${bi+1} : <em>${escapeHtml(blank.word)}</em></span>
+                    <button class="add-item-btn" style="padding:0.2rem 0.5rem;font-size:0.75rem;" onclick="addBlankChoice('${block.uid}', ${bi})">
+                        <i class="fas fa-plus"></i> Distracteur
+                    </button>
+                </div>
+                ${choicesItems}
+            </div>`;
+        }).join('');
+
+        wordPoolHtml = blanks.length > 0 ? `
+        <div class="form-group">
+            <label>Listes de mots par trou</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque trou a sa propre liste de choix. Le premier mot (✓) est la bonne réponse. Ajoutez des distracteurs pour augmenter la difficulté.</small>
+            ${blanksHtml}
+            <button class="add-item-btn" style="margin-top:0.5rem;background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;" onclick="autoGenerateBlankChoices('${block.uid}')">
+                <i class="fas fa-magic"></i> Auto-générer les listes
+            </button>
+        </div>` : '';
+    }
+
+    return `
+        <div class="form-group">
+            <label>Mode de réponse</label>
+            <div style="display:flex;gap:0.5rem;">
+                <label class="radio-btn ${c.mode === 'text' ? 'active' : ''}">
+                    <input type="radio" name="fill-mode-${block.uid}" value="text" ${c.mode === 'text' ? 'checked' : ''}
+                        onchange="updateFillBlankMode('${block.uid}', 'text')"> Saisie libre
+                </label>
+                <label class="radio-btn ${c.mode === 'choices' ? 'active' : ''}">
+                    <input type="radio" name="fill-mode-${block.uid}" value="choices" ${c.mode === 'choices' ? 'checked' : ''}
+                        onchange="updateFillBlankMode('${block.uid}', 'choices')"> Liste de mots
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Texte avec trous</label>
+            <textarea rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: Le {soleil} brille dans le {ciel}."
+                onchange="updateFillBlankTemplate('${block.uid}', this.value)">${escapeHtml(c.text_template || '')}</textarea>
+            <small style="color:#6b7280;">Syntaxe : entourez les mots à deviner avec des accolades {mot}</small>
+        </div>
+        ${wordPoolHtml}
+        <div class="form-group">
+            <label>Aperçu</label>
+            <div class="fill-blank-preview">${preview}</div>
+        </div>`;
+}
+
+function parseFillBlank(template) {
+    if (!template) return '<em style="color:#9ca3af;">Aucun texte</em>';
+    return template.replace(/\{([^}]+)\}/g, '<span class="blank-slot">____</span>');
+}
+
+function updateFillBlankTemplate(uid, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.text_template = value;
+    // Parse blanks, preserving existing choices if the word hasn't changed
+    const matches = [...value.matchAll(/\{([^}]+)\}/g)];
+    const oldBlanks = block.config_json.blanks || [];
+    block.config_json.blanks = matches.map((m, i) => {
+        const word = m[1];
+        // Try to find existing blank with same word to preserve choices
+        const existing = oldBlanks.find(b => b.word === word);
+        if (existing && existing.choices) {
+            return { word, position: i, choices: existing.choices };
+        }
+        return { word, position: i };
+    });
+    refreshBlockContent(uid);
+}
+
+function updateFillBlankMode(uid, mode) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.mode = mode;
+    if (mode === 'choices') {
+        // Auto-generate choices for blanks that don't have any
+        const blanks = block.config_json.blanks || [];
+        blanks.forEach(b => {
+            if (!b.choices || b.choices.length === 0) {
+                b.choices = [b.word];
+            }
+        });
+    }
+    refreshBlockContent(uid);
+}
+
+function addBlankChoice(uid, blankIndex) {
+    const block = blocks.find(b => b.uid === uid);
+    const blank = block.config_json.blanks[blankIndex];
+    if (!blank.choices) blank.choices = [blank.word];
+    blank.choices.push('');
+    refreshBlockContent(uid);
+}
+
+function removeBlankChoice(uid, blankIndex, choiceIndex) {
+    const block = blocks.find(b => b.uid === uid);
+    const blank = block.config_json.blanks[blankIndex];
+    if (blank.choices && blank.choices.length > 1) {
+        blank.choices.splice(choiceIndex, 1);
+    }
+    refreshBlockContent(uid);
+}
+
+function updateBlankChoice(uid, blankIndex, choiceIndex, value) {
+    const block = blocks.find(b => b.uid === uid);
+    const blank = block.config_json.blanks[blankIndex];
+    if (!blank.choices) blank.choices = [blank.word];
+    blank.choices[choiceIndex] = value;
+    // If it's the first choice (correct answer), also update the word
+    if (choiceIndex === 0) {
+        blank.word = value;
+    }
+}
+
+function autoGenerateBlankChoices(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const blanks = block.config_json.blanks || [];
+    blanks.forEach(b => {
+        if (!b.choices || b.choices.length === 0) {
+            b.choices = [b.word];
+        }
+    });
+    refreshBlockContent(uid);
+}
+
+// ============================================================
+// MATCHING EDITOR
+// ============================================================
+function renderMatchingEditor(block) {
+    const c = block.config_json;
+    if (!c.pairs) c.pairs = [{ left: '', right: '' }];
+
+    const pairsHtml = c.pairs.map((p, i) => `
+        <div class="item-row" style="margin-bottom:0.5rem;align-items:center;">
+            <span style="font-weight:700;color:#667eea;width:20px;">${i + 1}.</span>
+            <input type="text" value="${escapeHtml(p.left || '')}" placeholder="Élément gauche"
+                onchange="updateMatchingPair('${block.uid}', ${i}, 'left', this.value)" style="flex:1;">
+            <i class="fas fa-arrows-alt-h" style="color:#9ca3af;margin:0 0.3rem;"></i>
+            <input type="text" value="${escapeHtml(p.right || '')}" placeholder="Élément droit"
+                onchange="updateMatchingPair('${block.uid}', ${i}, 'right', this.value)" style="flex:1;">
+            <button class="remove-item" onclick="removeMatchingPair('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+        </div>`).join('');
+
+    return `
+        <div class="form-group">
+            <label>Paires d'associations</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Chaque ligne représente une association correcte entre un élément gauche et un élément droit.</small>
+            <div class="items-list">${pairsHtml}</div>
+            <button class="add-item-btn" onclick="addMatchingPair('${block.uid}')" style="margin-top:0.5rem;">
+                <i class="fas fa-plus"></i> Ajouter une paire
+            </button>
+        </div>`;
+}
+
+function addMatchingPair(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs.push({ left: '', right: '' });
+    refreshBlockContent(uid);
+}
+
+function removeMatchingPair(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs.splice(index, 1);
+    if (block.config_json.pairs.length === 0) block.config_json.pairs.push({ left: '', right: '' });
+    refreshBlockContent(uid);
+}
+
+function updateMatchingPair(uid, index, side, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.pairs[index][side] = value;
+}
+
+// ============================================================
+// SORTING EDITOR
+// ============================================================
+function renderSortingEditor(block) {
+    const c = block.config_json;
+    let itemsHtml = '';
+
+    if (c.mode === 'order') {
+        (c.items || []).forEach((item, i) => {
+            itemsHtml += `<div class="item-row">
+                <span style="color:#9ca3af;font-weight:700;width:20px;">${i + 1}.</span>
+                <input type="text" value="${escapeHtml(item)}" placeholder="Élément ${i + 1}"
+                    onchange="updateSortingItem('${block.uid}', ${i}, this.value)">
+                <button class="remove-item" onclick="removeSortingItem('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>`;
+        });
+    } else {
+        // Categories mode
+        (c.categories || []).forEach((cat, ci) => {
+            let catItems = '';
+            (cat.items || []).forEach((itemIdx, ii) => {
+                const itemText = c.items[itemIdx] || '';
+                catItems += `<div class="item-row">
+                    <input type="text" value="${escapeHtml(itemText)}" onchange="updateCategoryItem('${block.uid}', ${ci}, ${ii}, this.value)">
+                    <button class="remove-item" onclick="removeCategoryItem('${block.uid}', ${ci}, ${ii})"><i class="fas fa-times"></i></button>
+                </div>`;
+            });
+            itemsHtml += `<div class="category-box">
+                <div class="cat-header">
+                    <input type="text" value="${escapeHtml(cat.name || '')}" placeholder="Nom de la catégorie"
+                        onchange="updateCategoryName('${block.uid}', ${ci}, this.value)">
+                    <button class="remove-item" onclick="removeCategory('${block.uid}', ${ci})"><i class="fas fa-times"></i></button>
+                </div>
+                ${catItems}
+                <button class="add-item-btn" onclick="addCategoryItem('${block.uid}', ${ci})">
+                    <i class="fas fa-plus"></i> Élément
+                </button>
+            </div>`;
+        });
+    }
+
+    return `
+        <div class="form-group">
+            <label>Mode de tri</label>
+            <select onchange="updateSortingMode('${block.uid}', this.value)">
+                <option value="order" ${c.mode === 'order' ? 'selected' : ''}>Ordre (chronologique, croissant...)</option>
+                <option value="categories" ${c.mode === 'categories' ? 'selected' : ''}>Catégories (trier dans des boîtes)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>${c.mode === 'order' ? 'Éléments (dans l\'ordre correct)' : 'Catégories'}</label>
+            <div class="items-list">${itemsHtml}</div>
+            ${c.mode === 'order' ?
+                `<button class="add-item-btn" onclick="addSortingItem('${block.uid}')"><i class="fas fa-plus"></i> Ajouter un élément</button>` :
+                `<button class="add-item-btn" onclick="addCategory('${block.uid}')"><i class="fas fa-plus"></i> Ajouter une catégorie</button>`
+            }
+        </div>
+        <p style="font-size:0.75rem;color:#6b7280;">
+            ${c.mode === 'order' ? 'Entrez les éléments dans l\'ordre correct. L\'élève les verra mélangés.' : 'Glissez les éléments dans les bonnes catégories.'}
+        </p>`;
+}
+
+function updateSortingMode(uid, mode) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.mode = mode;
+    if (mode === 'categories' && (!block.config_json.categories || block.config_json.categories.length === 0)) {
+        block.config_json.categories = [{ name: 'Catégorie 1', items: [] }];
+    }
+    refreshBlockContent(uid);
+}
+
+function addSortingItem(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items.push('');
+    block.config_json.correct_order = block.config_json.items.map((_, i) => i);
+    refreshBlockContent(uid);
+}
+
+function removeSortingItem(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items.splice(index, 1);
+    block.config_json.correct_order = block.config_json.items.map((_, i) => i);
+    refreshBlockContent(uid);
+}
+
+function updateSortingItem(uid, index, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.items[index] = value;
+}
+
+function addCategory(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories.push({ name: '', items: [] });
+    refreshBlockContent(uid);
+}
+
+function removeCategory(uid, ci) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories.splice(ci, 1);
+    refreshBlockContent(uid);
+}
+
+function updateCategoryName(uid, ci, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories[ci].name = value;
+}
+
+function addCategoryItem(uid, ci) {
+    const block = blocks.find(b => b.uid === uid);
+    const newIdx = block.config_json.items.length;
+    block.config_json.items.push('');
+    block.config_json.categories[ci].items.push(newIdx);
+    refreshBlockContent(uid);
+}
+
+function removeCategoryItem(uid, ci, ii) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.categories[ci].items.splice(ii, 1);
+    refreshBlockContent(uid);
+}
+
+function updateCategoryItem(uid, ci, ii, value) {
+    const block = blocks.find(b => b.uid === uid);
+    const itemIdx = block.config_json.categories[ci].items[ii];
+    block.config_json.items[itemIdx] = value;
+}
+
+// ============================================================
+// IMAGE POSITION EDITOR
+// ============================================================
+function renderImagePositionEditor(block) {
+    const c = block.config_json;
+    if (!c.interaction_type) c.interaction_type = 'zones';
+
+    if (c.interaction_type === 'labels') {
+        return renderImageLabelsEditor(block);
+    }
+
+    // zones = [{label: "Coeur", points: [{x,y}, ...], radius: 30}, ...]
+    let zonesHtml = '';
+    (c.zones || []).forEach((z, i) => {
+        const pointCount = (z.points || []).length;
+        zonesHtml += `<div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+            <div class="item-row" style="margin-bottom:0.3rem;">
+                <span style="font-weight:700;color:#dc2626;">${i + 1}.</span>
+                <input type="text" placeholder="Label (ex: Coeur)" value="${escapeHtml(z.label || '')}"
+                    onchange="updateZoneField('${block.uid}', ${i}, 'label', this.value)" style="flex:1;">
+                <span style="font-size:0.75rem;color:#6b7280;">${pointCount} point(s)</span>
+                <button class="remove-item" onclick="removeZone('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>
+            <small style="color:#6b7280;">Cliquez sur l'image pour ajouter des points à cette zone. <strong>Zone active</strong> = sélectionnée ci-dessous.</small>
+        </div>`;
+    });
+
+    return `
+        ${renderInteractionTypeSelector(block)}
+        <div class="form-group">
+            <label>Zone active à placer</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                <select id="active-zone-${block.uid}" style="flex:1;padding:0.4rem;border:1px solid #d1d5db;border-radius:6px;">
+                    ${(c.zones || []).map((z, i) => `<option value="${i}">${z.label || 'Zone ' + (i+1)}</option>`).join('')}
+                </select>
+                <button class="add-item-btn" onclick="addNewZone('${block.uid}')">
+                    <i class="fas fa-plus"></i> Nouvelle zone
+                </button>
+            </div>
+        </div>
+        <div class="form-group">
+            ${c.image_url ?
+                `<div class="image-preview-container" id="img-container-${block.uid}"
+                    onclick="addPointToZone(event, '${block.uid}')">
+                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous"
+                        onload="repositionZones('${block.uid}')">
+                    ${renderAllZonePoints(c)}
+                </div>
+                <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
+                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                </button>` :
+                `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
+                    <p>Cliquez pour téléverser une image</p>
+                    <small>PNG, JPG, GIF</small>
+                </div>`
+            }
+            <input type="file" id="file-input-${block.uid}" accept="image/*" style="display:none;"
+                onchange="handleImageUpload('${block.uid}', this)">
+        </div>
+        ${c.image_url ? `
+        <div class="form-group">
+            <label>Zones et points</label>
+            <div class="items-list">${zonesHtml}</div>
+            <div class="form-group" style="margin-top:0.5rem;">
+                <label>Rayon de tolérance (px)</label>
+                <input type="number" value="${c.default_radius || 30}" min="10" max="100"
+                    onchange="updateDefaultRadius('${block.uid}', parseInt(this.value))">
+            </div>
+        </div>` : ''}`;
+}
+
+function renderInteractionTypeSelector(block) {
+    const c = block.config_json;
+    const it = c.interaction_type || 'zones';
+    return `
+        <div class="form-group">
+            <label>Type d'interaction</label>
+            <div style="display:flex;gap:0.5rem;">
+                <label class="radio-btn ${it === 'zones' ? 'active' : ''}">
+                    <input type="radio" name="interaction-type-${block.uid}" value="zones" ${it === 'zones' ? 'checked' : ''}
+                        onchange="updateInteractionType('${block.uid}', 'zones')"> Zones cliquables
+                </label>
+                <label class="radio-btn ${it === 'labels' ? 'active' : ''}">
+                    <input type="radio" name="interaction-type-${block.uid}" value="labels" ${it === 'labels' ? 'checked' : ''}
+                        onchange="updateInteractionType('${block.uid}', 'labels')"> Labels sur image
+                </label>
+            </div>
+        </div>`;
+}
+
+function updateInteractionType(uid, type) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.interaction_type = type;
+    if (type === 'labels' && !block.config_json.labels) {
+        block.config_json.labels = [];
+    }
+    refreshBlockContent(uid);
+}
+
+function renderImageLabelsEditor(block) {
+    const c = block.config_json;
+    if (!c.labels) c.labels = [];
+
+    const labelsHtml = c.labels.map((lbl, i) => `
+        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:0.5rem;margin-bottom:0.5rem;">
+            <div class="item-row" style="margin-bottom:0.3rem;">
+                <span style="font-weight:700;color:#16a34a;">${i + 1}.</span>
+                <input type="text" placeholder="Réponse attendue" value="${escapeHtml(lbl.text || '')}"
+                    onchange="updateImageLabel('${block.uid}', ${i}, 'text', this.value)" style="flex:1;">
+                <input type="text" placeholder="Indice (optionnel)" value="${escapeHtml(lbl.hint || '')}"
+                    onchange="updateImageLabel('${block.uid}', ${i}, 'hint', this.value)" style="flex:0.6;">
+                <button class="remove-item" onclick="removeImageLabel('${block.uid}', ${i})"><i class="fas fa-times"></i></button>
+            </div>
+            <small style="color:#6b7280;">Position : (${Math.round(lbl.x || 0)}%, ${Math.round(lbl.y || 0)}%) — Cliquez sur l'image pour repositionner.</small>
+        </div>`).join('');
+
+    return `
+        ${renderInteractionTypeSelector(block)}
+        <div class="form-group">
+            ${c.image_url ?
+                `<div class="image-preview-container" id="img-container-${block.uid}"
+                    onclick="addImageLabel(event, '${block.uid}')" style="cursor:crosshair;">
+                    <img src="${c.image_url}" id="img-preview-${block.uid}" crossorigin="anonymous"
+                        onload="repositionLabels('${block.uid}')">
+                    ${renderAllLabelMarkers(c, block.uid)}
+                </div>
+                <button class="btn btn-sm btn-secondary" style="margin-top:0.5rem;" onclick="changeBlockImage('${block.uid}')">
+                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                </button>` :
+                `<div class="image-upload-area" onclick="uploadBlockImage('${block.uid}')">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:#667eea;"></i>
+                    <p>Cliquez pour téléverser une image</p>
+                    <small>PNG, JPG, GIF</small>
+                </div>`
+            }
+            <input type="file" id="file-input-${block.uid}" accept="image/*" style="display:none;"
+                onchange="handleImageUpload('${block.uid}', this)">
+        </div>
+        ${c.image_url ? `
+        <div class="form-group">
+            <label>Labels positionnés</label>
+            <small style="color:#6b7280;display:block;margin-bottom:0.5rem;">Cliquez sur l'image pour ajouter un label. L'élève devra taper la réponse attendue dans un champ positionné à cet endroit.</small>
+            <div class="items-list">${labelsHtml}</div>
+        </div>` : ''}`;
+}
+
+function renderAllLabelMarkers(config, uid) {
+    let html = '';
+    (config.labels || []).forEach((lbl, i) => {
+        html += `<div class="image-label-marker" style="position:absolute;left:${lbl.x}%;top:${lbl.y}%;transform:translate(-50%,-50%);background:rgba(102,126,234,0.85);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;pointer-events:none;">
+            ${i + 1}
+        </div>`;
+    });
+    return html;
+}
+
+function addImageLabel(event, uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const container = event.currentTarget;
+    const img = container.querySelector('img');
+    if (!img) return;
+
+    const rect = img.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    if (!block.config_json.labels) block.config_json.labels = [];
+    block.config_json.labels.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, text: '', hint: '' });
+    refreshBlockContent(uid);
+}
+
+function removeImageLabel(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.labels.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateImageLabel(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.labels[index][field] = value;
+}
+
+function repositionLabels(uid) {
+    // Labels use percentage positioning, no repositioning needed
+}
+
+function renderAllZonePoints(config) {
+    const colors = ['#dc2626', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#ec4899'];
+    let html = '';
+    // Zone points are stored in natural image dimensions
+    // Initially hidden; repositionZones() will scale them to display coordinates on image load
+    (config.zones || []).forEach((zone, zi) => {
+        const color = colors[zi % colors.length];
+        (zone.points || []).forEach((pt, pi) => {
+            const r = zone.radius || config.default_radius || 30;
+            html += `<div class="image-zone" style="display:none;border-color:${color};background:${color}33;" data-natural-x="${pt.x}" data-natural-y="${pt.y}" data-radius="${r}" data-zone-idx="${zi}">
+                ${zi + 1}
+            </div>`;
+        });
+    });
+    return html;
+}
+
+function repositionZones(uid) {
+    const img = document.getElementById('img-preview-' + uid);
+    const container = document.getElementById('img-container-' + uid);
+    if (!img || !container) return;
+
+    const natW = img.naturalWidth || img.clientWidth;
+    const natH = img.naturalHeight || img.clientHeight;
+    const dispW = img.clientWidth;
+    const dispH = img.clientHeight;
+    const scaleX = dispW / natW;
+    const scaleY = dispH / natH;
+
+    console.log('repositionZones:', uid, 'natural:', natW, 'x', natH, 'display:', dispW, 'x', dispH, 'scale:', scaleX, scaleY);
+
+    const zones = container.querySelectorAll('.image-zone');
+    zones.forEach(zone => {
+        const natX = parseFloat(zone.dataset.naturalX);
+        const natY = parseFloat(zone.dataset.naturalY);
+        const natR = parseFloat(zone.dataset.radius);
+
+        // Convert natural coordinates to display coordinates
+        const dispX = natX * scaleX;
+        const dispY = natY * scaleY;
+        const dispR = natR * Math.min(scaleX, scaleY);
+
+        zone.style.left = dispX + 'px';
+        zone.style.top = dispY + 'px';
+        zone.style.width = (dispR * 2) + 'px';
+        zone.style.height = (dispR * 2) + 'px';
+        zone.style.display = 'flex';
+    });
+}
+
+function addNewZone(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const idx = (block.config_json.zones || []).length;
+    block.config_json.zones.push({ label: 'Zone ' + (idx + 1), points: [], radius: block.config_json.default_radius || 30 });
+    refreshBlockContent(uid);
+    // Auto-sélectionner la nouvelle zone et repositionner
+    setTimeout(() => {
+        const select = document.getElementById('active-zone-' + uid);
+        if (select) select.value = String(idx);
+        repositionZones(uid);
+    }, 100);
+}
+
+// Stocke la zone active par bloc pour ne pas la perdre au refresh
+let activeZoneByBlock = {};
+
+function addPointToZone(event, uid) {
+    // Empêcher la propagation si clic sur un autre élément interactif
+    if (event.target.tagName === 'SELECT' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return;
+
+    const container = document.getElementById('img-container-' + uid);
+    const img = document.getElementById('img-preview-' + uid);
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    // Store coordinates in NATURAL image dimensions for consistency across displays
+    const scaleX = (img.naturalWidth || rect.width) / rect.width;
+    const scaleY = (img.naturalHeight || rect.height) / rect.height;
+    const x = Math.round((event.clientX - rect.left) * scaleX);
+    const y = Math.round((event.clientY - rect.top) * scaleY);
+
+    const block = blocks.find(b => b.uid === uid);
+    const select = document.getElementById('active-zone-' + uid);
+    if (!select || block.config_json.zones.length === 0) return;
+    const zoneIdx = parseInt(select.value);
+    if (isNaN(zoneIdx) || !block.config_json.zones[zoneIdx]) return;
+
+    // Mémoriser la zone active avant le refresh
+    activeZoneByBlock[uid] = zoneIdx;
+
+    block.config_json.zones[zoneIdx].points.push({ x, y });
+    refreshBlockContent(uid);
+
+    // Restaurer la zone active et repositionner les zones après le refresh
+    setTimeout(() => {
+        const sel = document.getElementById('active-zone-' + uid);
+        if (sel) sel.value = String(zoneIdx);
+        repositionZones(uid);
+    }, 100);
+}
+
+function updateDefaultRadius(uid, radius) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.default_radius = radius;
+    block.config_json.zones.forEach(z => z.radius = radius);
+    refreshBlockContent(uid);
+    setTimeout(() => repositionZones(uid), 100);
+}
+
+function uploadBlockImage(uid) {
+    document.getElementById('file-input-' + uid).click();
+}
+
+function changeBlockImage(uid) {
+    document.getElementById('file-input-' + uid).click();
+}
+
+async function handleImageUpload(uid, input) {
+    if (!input.files || !input.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    try {
+        const res = await fetch('{{ url_for("exercises.upload_block_image") }}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            const block = blocks.find(b => b.uid === uid);
+            block.config_json.image_file_id = data.file_id;
+            block.config_json.image_url = data.url;  // URL publique via exercises.exercise_block_image
+            block.config_json.zones = [];
+            refreshBlockContent(uid);
+            showToast('Image téléversée', 'success');
+        } else {
+            showToast(data.message || 'Erreur upload', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur upload', 'error');
+    }
+}
+
+function removeZone(uid, index) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones.splice(index, 1);
+    refreshBlockContent(uid);
+}
+
+function updateZoneField(uid, index, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.zones[index][field] = value;
+}
+
+// ============================================================
+// GRAPH EDITOR
+// ============================================================
+function renderGraphEditor(block) {
+    const c = block.config_json;
+    const isQuadratic = c.question_type === 'draw_quadratic';
+    const isLine = c.question_type === 'draw_line';
+
+    return `
+        <div class="form-group">
+            <label>Type de question</label>
+            <select onchange="changeGraphType('${block.uid}', this.value)">
+                <option value="draw_line" ${isLine ? 'selected' : ''}>Tracer une droite (f(x) = ax + b)</option>
+                <option value="draw_quadratic" ${isQuadratic ? 'selected' : ''}>Tracer une courbe quadratique (f(x) = ax² + bx + c)</option>
+                <option value="find_expression" ${c.question_type === 'find_expression' ? 'selected' : ''}>Trouver l'expression à partir du graphique</option>
+            </select>
+        </div>
+        <div class="graph-config-grid">
+            <div class="form-group">
+                <label>Axe X : label</label>
+                <input type="text" value="${escapeHtml(c.x_label || 'x')}" onchange="updateConfig('${block.uid}', 'x_label', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Axe Y : label</label>
+                <input type="text" value="${escapeHtml(c.y_label || 'y')}" onchange="updateConfig('${block.uid}', 'y_label', this.value)">
+            </div>
+            <div class="form-group">
+                <label>X min</label>
+                <input type="number" value="${c.x_min ?? -7}" onchange="updateConfig('${block.uid}', 'x_min', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>X max</label>
+                <input type="number" value="${c.x_max ?? 7}" onchange="updateConfig('${block.uid}', 'x_max', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>Y min</label>
+                <input type="number" value="${c.y_min ?? -7}" onchange="updateConfig('${block.uid}', 'y_min', parseFloat(this.value))">
+            </div>
+            <div class="form-group">
+                <label>Y max</label>
+                <input type="number" value="${c.y_max ?? 7}" onchange="updateConfig('${block.uid}', 'y_max', parseFloat(this.value))">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Expression fonctionnelle correcte</label>
+            ${isQuadratic ? `
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x² + <strong>b</strong>x + <strong>c</strong></p>
+                <div class="graph-config-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="form-group">
+                        <label>a</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}"
+                            onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                    <div class="form-group">
+                        <label>b</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                    <div class="form-group">
+                        <label>c</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.c ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'c', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                </div>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>3 points</strong> pour retrouver la courbe.</p>
+            ` : c.question_type === 'find_expression' ? `
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">Type de fonction :</p>
+                <select onchange="updateConfig('${block.uid}', 'find_type', this.value); if(this.value==='quadratic'){updateGraphAnswer('${block.uid}','c',0);} refreshBlockContent('${block.uid}');" style="margin-bottom:0.5rem;">
+                    <option value="linear" ${(c.find_type||'linear')==='linear'?'selected':''}>Linéaire : f(x) = ax + b</option>
+                    <option value="quadratic" ${c.find_type==='quadratic'?'selected':''}>Quadratique : f(x) = ax² + bx + c</option>
+                </select>
+                ${c.find_type === 'quadratic' ? `
+                <div class="graph-config-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="form-group"><label>a</label><input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}" onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                    <div class="form-group"><label>b</label><input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                    <div class="form-group"><label>c</label><input type="number" step="0.1" value="${c.correct_answer?.c ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'c', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                </div>` : `
+                <div class="form-row">
+                    <div class="form-group"><label>a (pente)</label><input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}" onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                    <div class="form-group"><label>b (ordonnée)</label><input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}" onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');"></div>
+                </div>`}
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">Le graphique sera affiché, l'élève devra trouver les coefficients.</p>
+            ` : `
+                <p style="font-size:0.85rem;color:#4b5563;margin-bottom:0.5rem;">f(x) = <strong>a</strong>x + <strong>b</strong></p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>a (pente)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.a ?? 1}"
+                            onchange="updateGraphAnswer('${block.uid}', 'a', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                    <div class="form-group">
+                        <label>b (ordonnée à l'origine)</label>
+                        <input type="number" step="0.1" value="${c.correct_answer?.b ?? 0}"
+                            onchange="updateGraphAnswer('${block.uid}', 'b', parseFloat(this.value)); previewGraph('${block.uid}');">
+                    </div>
+                </div>
+                <p style="font-size:0.8rem;color:#6b7280;margin-top:0.3rem;">L'élève devra déplacer <strong>2 points</strong> pour retrouver la droite.</p>
+            `}
+        </div>
+        <input type="hidden" value="0" onchange="updateConfig('${block.uid}', 'tolerance', 0)">
+        <div class="form-group">
+            <label style="display:flex;align-items:center;gap:0.5rem;">
+                <input type="checkbox" style="width:auto;" ${c.grid !== false ? 'checked' : ''}
+                    onchange="updateConfig('${block.uid}', 'grid', this.checked); previewGraph('${block.uid}');">
+                Afficher la grille
+            </label>
+        </div>
+        <div class="form-group">
+            <label>Aperçu du graphique</label>
+            <div style="border:2px solid #e5e7eb;border-radius:8px;overflow:hidden;text-align:center;">
+                <canvas id="graph-preview-${block.uid}" width="500" height="350"></canvas>
+            </div>
+        </div>
+        <div class="graph-auto-preview" data-uid="${block.uid}"></div>`;
+}
+
+function changeGraphType(uid, type) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.question_type = type;
+    if (type === 'draw_quadratic') {
+        block.config_json.correct_answer = { a: 1, b: 0, c: 0 };
+        block.config_json.find_type = undefined;
+    } else if (type === 'find_expression') {
+        block.config_json.correct_answer = { a: 1, b: 0 };
+        block.config_json.find_type = 'linear'; // default to linear
+    } else {
+        block.config_json.correct_answer = { a: 1, b: 0 };
+        block.config_json.find_type = undefined;
+    }
+    refreshBlockContent(uid);
+}
+
+function updateGraphAnswer(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block.config_json.correct_answer) block.config_json.correct_answer = {};
+    block.config_json.correct_answer[field] = value;
+}
+
+function previewGraph(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    if (!block) return;
+    const canvas = document.getElementById('graph-preview-' + uid);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const c = block.config_json;
+    const w = canvas.width, h = canvas.height;
+    const margin = 40;
+    const gw = w - 2 * margin, gh = h - 2 * margin;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#fafbfc';
+    ctx.fillRect(0, 0, w, h);
+
+    function toPixelX(xVal) { return margin + ((xVal - c.x_min) / (c.x_max - c.x_min)) * gw; }
+    function toPixelY(yVal) { return h - margin - ((yVal - c.y_min) / (c.y_max - c.y_min)) * gh; }
+
+    // Grid
+    if (c.grid !== false) {
+        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
+        for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+            const px = toPixelX(x);
+            ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke();
+        }
+        for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+            const py = toPixelY(y);
+            ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke();
+        }
+    }
+
+    // Axes
+    ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
+    const ox = toPixelX(0), oy = toPixelY(0);
+    ctx.beginPath(); ctx.moveTo(margin, oy); ctx.lineTo(w - margin, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, margin); ctx.lineTo(ox, h - margin); ctx.stroke();
+    ctx.fillStyle = '#4b5563'; ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(c.x_label || 'x', w - margin + 5, oy + 4);
+    ctx.fillText(c.y_label || 'y', ox + 5, margin - 8);
+
+    // Axis numbers
+    ctx.font = '10px Inter, sans-serif'; ctx.fillStyle = '#9ca3af';
+    for (let x = Math.ceil(c.x_min); x <= c.x_max; x++) {
+        if (x === 0) continue;
+        ctx.fillText(x, toPixelX(x) - 4, oy + 14);
+    }
+    for (let y = Math.ceil(c.y_min); y <= c.y_max; y++) {
+        if (y === 0) continue;
+        ctx.fillText(y, ox - 18, toPixelY(y) + 4);
+    }
+
+    // Draw function
+    const ans = c.correct_answer || {};
+    ctx.strokeStyle = '#667eea'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let started = false;
+    const step = (c.x_max - c.x_min) / 200;
+    for (let x = c.x_min; x <= c.x_max; x += step) {
+        let y;
+        if (c.question_type === 'draw_quadratic') {
+            y = (ans.a || 0) * x * x + (ans.b || 0) * x + (ans.c || 0);
+        } else {
+            y = (ans.a || 0) * x + (ans.b || 0);
+        }
+        const px = toPixelX(x), py = toPixelY(y);
+        if (py < margin || py > h - margin) { started = false; continue; }
+        if (!started) { ctx.moveTo(px, py); started = true; } else { ctx.lineTo(px, py); }
+    }
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#667eea'; ctx.font = 'bold 13px Inter, sans-serif';
+    if (c.question_type === 'draw_quadratic') {
+        ctx.fillText(`f(x) = ${ans.a || 0}x² + ${ans.b || 0}x + ${ans.c || 0}`, margin + 10, margin + 18);
+    } else {
+        ctx.fillText(`f(x) = ${ans.a || 0}x + ${ans.b || 0}`, margin + 10, margin + 18);
+    }
+}
+
+// ============================================================
+// BLOCK UTILITIES
+// ============================================================
+function toggleBlockContent(uid) {
+    const el = document.getElementById('content-' + uid);
+    el.classList.toggle('open');
+}
+
+function updateBlockField(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (block) {
+        block[field] = value;
+        if (field === 'points') updateTotalXP();
+    }
+}
+
+function updateConfig(uid, field, value) {
+    const block = blocks.find(b => b.uid === uid);
+    if (block) block.config_json[field] = value;
+}
+
+function refreshBlockContent(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    const el = document.getElementById(uid);
+    if (block && el) {
+        // Sauvegarder la zone active avant le re-render
+        const prevSelect = document.getElementById('active-zone-' + uid);
+        if (prevSelect) {
+            activeZoneByBlock[uid] = parseInt(prevSelect.value);
+        }
+
+        el.innerHTML = renderBlock(block);
+        // Re-open the content
+        document.getElementById('content-' + uid).classList.add('open');
+        // Auto-preview graph blocks
+        if (block.block_type === 'graph') {
+            setTimeout(() => previewGraph(uid), 50);
+        }
+        // Restaurer la zone active après le re-render
+        if (block.block_type === 'image_position' && activeZoneByBlock[uid] !== undefined) {
+            setTimeout(() => {
+                const sel = document.getElementById('active-zone-' + uid);
+                if (sel && activeZoneByBlock[uid] < sel.options.length) {
+                    sel.value = String(activeZoneByBlock[uid]);
+                }
+            }, 50);
+        }
+    }
+}
+
+function removeBlock(uid) {
+    blocks = blocks.filter(b => b.uid !== uid);
+    const el = document.getElementById(uid);
+    if (el) el.remove();
+    if (blocks.length === 0) {
+        document.getElementById('blocks-empty').style.display = '';
+        document.getElementById('blocks-area').classList.remove('has-blocks');
+    }
+    updateTotalXP();
+}
+
+function updateTotalXP() {
+    const total = blocks.reduce((sum, b) => sum + (b.points || 0), 0);
+    document.getElementById('total-xp').textContent = total;
+}
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+let draggedUid = null;
+
+function onDragStart(e) {
+    draggedUid = e.currentTarget.dataset.uid;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    const targetUid = e.currentTarget.dataset.uid;
+    if (draggedUid && draggedUid !== targetUid) {
+        const fromIdx = blocks.findIndex(b => b.uid === draggedUid);
+        const toIdx = blocks.findIndex(b => b.uid === targetUid);
+        const [moved] = blocks.splice(fromIdx, 1);
+        blocks.splice(toIdx, 0, moved);
+        // Reorder DOM
+        const area = document.getElementById('blocks-area');
+        blocks.forEach(b => {
+            const el = document.getElementById(b.uid);
+            if (el) area.appendChild(el);
+        });
+    }
+}
+
+function onDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    draggedUid = null;
+}
+
+// ============================================================
+// SAVE / PUBLISH
+// ============================================================
+async function saveExercise(asDraft) {
+    const data = {
+        id: exerciseId,
+        title: document.getElementById('ex-title').value || 'Sans titre',
+        description: document.getElementById('ex-description').value,
+        subject: document.getElementById('ex-subject').value,
+        level: document.getElementById('ex-level').value,
+        accept_typos: document.getElementById('ex-accept-typos').checked,
+        bonus_gold_threshold: parseInt(document.getElementById('ex-gold-threshold').value) || 80,
+        badge_threshold: parseInt(document.getElementById('ex-badge-threshold').value) || 100,
+        is_draft: asDraft,
+        blocks: blocks.map((b, i) => ({
+            id: b.id,
+            block_type: b.block_type,
+            position: i,
+            title: b.title,
+            duration: b.duration,
+            config_json: b.config_json,
+            points: b.points,
+        })),
+    };
+
+    try {
+        const res = await fetch('{{ url_for("exercises.save") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+        if (result.success) {
+            const isNew = !data.id;
+            exerciseId = result.exercise_id;
+            showToast(asDraft ? 'Brouillon sauvegardé' : 'Exercice sauvegardé', 'success');
+            // Update URL if new exercise
+            if (isNew) {
+                history.replaceState(null, '', `{{ url_for('exercises.edit', exercise_id=0) }}`.replace('0', exerciseId));
+                // Proposer de ranger dans un dossier
+                showFolderModal();
+            }
+        } else {
+            showToast(result.message || 'Erreur', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+    }
+}
+
+function showPublishModal() {
+    document.getElementById('publish-modal').style.display = 'flex';
+}
+
+function closePublishModal() {
+    document.getElementById('publish-modal').style.display = 'none';
+}
+
+async function publishExercise() {
+    const checkboxes = document.querySelectorAll('#publish-class-list input:checked');
+    const classroomIds = [...checkboxes].map(cb => parseInt(cb.value));
+
+    if (classroomIds.length === 0) {
+        showToast('Sélectionnez au moins une classe', 'error');
+        return;
+    }
+
+    // Save first
+    await saveExercise(false);
+
+    try {
+        const res = await fetch(`/exercises/${exerciseId}/publish`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ classroom_ids: classroomIds }),
+        });
+        const result = await res.json();
+        if (result.success) {
+            showToast(result.message, 'success');
+            closePublishModal();
+        } else {
+            showToast(result.message || 'Erreur', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+    }
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// ============================================================
+// FOLDER PICKER
+// ============================================================
+let selectedFolderId = null;
+
+async function showFolderModal() {
+    const listEl = document.getElementById('folder-list');
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    document.getElementById('folder-modal').style.display = 'flex';
+    selectedFolderId = null;
+    document.getElementById('folder-confirm-btn').disabled = true;
+
+    try {
+        const res = await fetch('{{ url_for("exercises.list_folders") }}');
+        const data = await res.json();
+        const folders = data.folders || [];
+
+        if (folders.length === 0) {
+            listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier. Créez un dossier dans le gestionnaire de fichiers d\'abord.</p>';
+            return;
+        }
+
+        // Build tree: root folders then children
+        const rootFolders = folders.filter(f => !f.parent_id);
+        const childMap = {};
+        folders.forEach(f => {
+            if (f.parent_id) {
+                if (!childMap[f.parent_id]) childMap[f.parent_id] = [];
+                childMap[f.parent_id].push(f);
+            }
+        });
+
+        function renderFolder(f, depth) {
+            let html = `<div class="folder-pick-item" data-folder-id="${f.id}" onclick="pickFolder(${f.id}, this)" style="padding:0.6rem 0.8rem;padding-left:${0.8 + depth * 1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
+                <i class="fas fa-folder" style="color:${f.color || '#4F46E5'};"></i>
+                <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.name)}</span>
+            </div>`;
+            if (childMap[f.id]) {
+                childMap[f.id].forEach(child => { html += renderFolder(child, depth + 1); });
+            }
+            return html;
+        }
+
+        listEl.innerHTML = rootFolders.map(f => renderFolder(f, 0)).join('');
+    } catch(e) {
+        listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>';
+    }
+}
+
+function pickFolder(folderId, el) {
+    document.querySelectorAll('.folder-pick-item').forEach(item => {
+        item.style.background = '';
+        item.style.color = '';
+    });
+    el.style.background = '#eef2ff';
+    el.style.color = '#4338ca';
+    selectedFolderId = folderId;
+    document.getElementById('folder-confirm-btn').disabled = false;
+}
+
+async function confirmFolder() {
+    if (!selectedFolderId || !exerciseId) return;
+    try {
+        await fetch('{{ url_for("exercises.save") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ id: exerciseId, folder_id: selectedFolderId }),
+        });
+        showToast('Exercice rangé dans le dossier', 'success');
+        closeFolderModal();
+    } catch(e) {
+        showToast('Erreur', 'error');
+    }
+}
+
+function closeFolderModal() {
+    document.getElementById('folder-modal').style.display = 'none';
+}
+
+// ============================================================
+// KaTeX MATH TOOLBAR
+// ============================================================
+
+// Track which textarea is currently focused for math insertion
+let activeTextArea = null;
+
+// Initialize toolbar: attach focus listeners to all textareas in exercise blocks
+document.addEventListener('DOMContentLoaded', function() {
+    // Attach listeners to existing textareas and other input fields
+    attachKaTeXListeners();
+
+    // Also monitor for new textareas added dynamically
+    const observer = new MutationObserver(function(mutations) {
+        attachKaTeXListeners();
+    });
+    observer.observe(document.getElementById('blocks-area'), {
+        childList: true,
+        subtree: true,
+        attributes: false,
+        characterData: false
+    });
+
+    // Attach focus listeners to toolbar buttons to prevent focus stealing
+    const toolbarButtons = document.querySelectorAll('.katex-btn');
+    toolbarButtons.forEach(button => {
+        button.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // Prevent button from stealing focus
+        });
+    });
+});
+
+function attachKaTeXListeners() {
+    // Find all textareas and text inputs in block content and add focus/blur listeners
+    document.querySelectorAll('.block-content textarea, .block-content input[type="text"]').forEach(field => {
+        if (!field.hasAttribute('data-katex-listener')) {
+            field.setAttribute('data-katex-listener', 'true');
+            field.addEventListener('focusin', function() {
+                activeTextArea = this;
+            });
+            field.addEventListener('focusout', function() {
+                // Don't clear activeTextArea immediately - keep it for button clicks
+                setTimeout(() => {
+                    if (document.activeElement !== this &&
+                        !document.activeElement.closest('.katex-toolbar') &&
+                        !document.activeElement.classList.contains('katex-btn')) {
+                        if (activeTextArea === this) {
+                            activeTextArea = null;
+                        }
+                    }
+                }, 100);
+            });
+            // Live math preview below fields containing $...$
+            field.addEventListener('input', function() {
+                updateInlineMathPreview(this);
+            });
+            // Initial preview on attach
+            if (field.value && field.value.includes('$')) {
+                setTimeout(() => updateInlineMathPreview(field), 50);
+            }
+        }
+    });
+}
+
+function updateInlineMathPreview(field) {
+    // Show/update a rendered math preview below the field if it contains LaTeX ($...$)
+    let preview = field.nextElementSibling;
+    if (!preview || !preview.classList.contains('inline-math-preview')) {
+        preview = document.createElement('div');
+        preview.className = 'inline-math-preview';
+        preview.style.cssText = 'padding:6px 10px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;margin-top:4px;min-height:28px;font-size:0.9rem;color:#1e1b4b;';
+        field.parentNode.insertBefore(preview, field.nextSibling);
+    }
+    const val = field.value || '';
+    if (!val.includes('$')) {
+        preview.style.display = 'none';
+        return;
+    }
+    preview.style.display = 'block';
+    // Replace $...$ with rendered KaTeX
+    const html = val.replace(/\$([^$]+)\$/g, (m, latex) => {
+        try {
+            return katex.renderToString(latex, { throwOnError: false, displayMode: false });
+        } catch(e) {
+            return '<span style="color:#ef4444">' + latex + '</span>';
+        }
+    }).replace(/\n/g, '<br>');
+    preview.innerHTML = html;
+}
+
+function insertKaTeX(latexCode) {
+    if (!activeTextArea) {
+        // Show warning if no textarea focused
+        showToast('Veuillez cliquer dans un champ de texte d\'abord', 'error');
+        return;
+    }
+
+    const textarea = activeTextArea;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    // If text is selected, wrap it in the KaTeX command
+    let newText;
+    let insertedLatex;
+    if (start !== end) {
+        const selectedText = text.substring(start, end);
+        if (latexCode === '\\frac{}{}') {
+            insertedLatex = '\\frac{' + selectedText + '}{}';
+        } else if (latexCode === '^{}') {
+            insertedLatex = selectedText + '^{}';
+        } else if (latexCode === '_{}') {
+            insertedLatex = selectedText + '_{}';
+        } else {
+            insertedLatex = latexCode;
+        }
+        newText = text.substring(0, start) + '$' + insertedLatex + '$' + text.substring(end);
+    } else {
+        // Insert at cursor position - wrap in $ delimiters
+        insertedLatex = latexCode;
+        newText = text.substring(0, start) + '$' + insertedLatex + '$' + text.substring(start);
+    }
+
+    // Update textarea and trigger change event
+    textarea.value = newText;
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // Place cursor inside the command (after opening brace/parenthesis)
+    let newCursorPos = start + 1 + insertedLatex.length; // +1 for opening $
+
+    // For commands with placeholders, position cursor inside first placeholder
+    if (latexCode === '\\frac{}{}') {
+        newCursorPos = start + 1 + latexCode.indexOf('{') + 1; // Inside first {} (+1 for opening $)
+    } else if (latexCode === '^{}' || latexCode === '_{}') {
+        newCursorPos = start + 1 + insertedLatex.length - 1; // Inside {} (+1 for opening $)
+    } else if (latexCode === '\\sqrt{}') {
+        newCursorPos = start + 1 + latexCode.indexOf('{') + 1; // Inside {} (+1 for opening $)
+    } else if (latexCode === '\\begin{pmatrix}\\end{pmatrix}') {
+        newCursorPos = start + 1 + latexCode.indexOf('}') + 1; // After first pmatrix (+1 for opening $)
+    }
+
+    setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
+
+    // Update preview
+    updateInlineMathPreview(textarea);
+    updateKaTeXPreview();
+}
+
+function toggleKaTeXToolbar() {
+    const toolbar = document.getElementById('katex-toolbar');
+    const icon = document.getElementById('toolbar-toggle-icon');
+
+    toolbar.classList.toggle('collapsed');
+
+    if (toolbar.classList.contains('collapsed')) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+function updateKaTeXPreview() {
+    const input = document.getElementById('katex-formula-input');
+    const previewBox = document.getElementById('katex-preview-box');
+    const formula = input.value.trim();
+
+    if (!formula) {
+        previewBox.innerHTML = '<span style="color:#9ca3af; font-style: italic;">Aperçu ici...</span>';
+        return;
+    }
+
+    try {
+        previewBox.innerHTML = '';
+        // Wrap in $ delimiters for KaTeX rendering
+        const element = document.createElement('div');
+        element.innerHTML = '$' + formula + '$';
+        previewBox.appendChild(element);
+
+        // Render KaTeX if available
+        if (window.renderMathInElement) {
+            renderMathInElement(previewBox, {
+                delimiters: [
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
+    } catch (error) {
+        previewBox.innerHTML = '<span style="color:#dc2626; font-size: 0.75rem;">Erreur: formule invalide</span>';
+    }
+}
+</script>
+{% endblock %}

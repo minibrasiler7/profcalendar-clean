@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Calendrier - TeacherPlanner{% endblock %}
+{% block title %}Calendrier - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <!-- Cache busting pour forcer le rechargement -->
@@ -13,7 +13,7 @@
 <!-- Font Awesome pour les icônes -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
-<!-- Lecteur PDF unifié -->
+<!-- Lecteur PDF unifié (inclut les styles pour clean-pdf-viewer) -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
 <script>
 // Configuration du worker PDF.js
@@ -184,10 +184,21 @@ if (typeof pdfjsLib !== 'undefined') {
     font-weight: 500;
 }
 
+/* Fichiers épinglés */
+.file-item.pinned {
+    background-color: #FFFBEB;
+    border-left: 3px solid #F59E0B;
+}
+
+.file-item.pinned:hover {
+    background-color: #FEF3C7;
+}
+
 .file-icon {
     font-size: 1.125rem;
     width: 20px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .file-icon.fa-folder {
@@ -202,10 +213,85 @@ if (typeof pdfjsLib !== 'undefined') {
     color: #10b981;
 }
 
-.file-name {
+.file-info {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.file-name {
     font-size: 0.875rem;
     color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-item:hover .file-actions {
+    opacity: 1;
+}
+
+.file-action-btn {
+    padding: 0.25rem 0.5rem;
+    background: none;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.file-action-btn:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.file-action-btn.pinned {
+    color: #F59E0B;
+    opacity: 1;
+}
+
+.file-action-btn.pinned:hover {
+    background-color: #FEF3C7;
+}
+
+/* Section des fichiers épinglés */
+.pinned-resources {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.pinned-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+    color: #F59E0B;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.pinned-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .no-files {
@@ -640,6 +726,7 @@ if (typeof pdfjsLib !== 'undefined') {
     left: 0;
     border-radius: 0.5rem;
     pointer-events: auto;
+    touch-action: none;
     z-index: 2;
 }
 
@@ -670,6 +757,7 @@ if (typeof pdfjsLib !== 'undefined') {
     width: 100%;
     height: 100%;
     pointer-events: auto;
+    touch-action: none;
 }
 
 /* États des boutons */
@@ -839,6 +927,28 @@ if (typeof pdfjsLib !== 'undefined') {
 .checklist-count {
     color: rgba(255, 255, 255, 0.8);
     font-weight: 500;
+}
+
+/* Badge pour les mémos */
+.memo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background-color: rgba(245, 158, 11, 0.9);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    margin-top: 0.25rem;
+    color: white;
+    font-weight: 600;
+}
+
+.memo-badge i {
+    font-size: 0.75rem;
+}
+
+.memo-count {
+    font-size: 0.7rem;
 }
 
 /* Pour la vue annuelle */
@@ -1189,6 +1299,315 @@ if (typeof pdfjsLib !== 'undefined') {
     border-left: 3px solid rgba(59, 130, 246, 0.4);
     pointer-events: none;
 }
+
+/* Ajustements pour le CleanPDFViewer dans le conteneur calendar à 50% */
+#pdf-viewer-container-calendar,
+#pdf-viewer-container-day {
+    width: 50% !important;
+    right: 0 !important;
+    left: auto !important;
+}
+
+/* FORCER le viewer à rester dans son conteneur */
+#pdf-viewer-container-calendar .clean-pdf-viewer,
+#pdf-viewer-container-day .clean-pdf-viewer {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+}
+
+/* Forcer la toolbar à rester relative au conteneur */
+#pdf-viewer-container-calendar .pdf-toolbar,
+#pdf-viewer-container-day .pdf-toolbar {
+    position: relative !important;
+    left: 0 !important;
+    right: 0 !important;
+}
+
+/* Réduire TOUTES les tailles pour s'adapter à 50% d'écran */
+#pdf-viewer-container-calendar .pdf-toolbar,
+#pdf-viewer-container-day .pdf-toolbar {
+    height: 40px !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+}
+
+#pdf-viewer-container-calendar .toolbar-btn,
+#pdf-viewer-container-day .toolbar-btn,
+#pdf-viewer-container-calendar button,
+#pdf-viewer-container-day button {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    height: auto !important;
+    min-height: 28px !important;
+}
+
+#pdf-viewer-container-calendar .toolbar-group,
+#pdf-viewer-container-day .toolbar-group {
+    gap: 4px !important;
+}
+
+#pdf-viewer-container-calendar .pdf-sidebar,
+#pdf-viewer-container-day .pdf-sidebar {
+    width: 160px !important;
+    font-size: 11px !important;
+}
+
+#pdf-viewer-container-calendar .thumbnail-item,
+#pdf-viewer-container-day .thumbnail-item {
+    min-height: 80px !important;
+    padding: 6px !important;
+}
+
+#pdf-viewer-container-calendar .thumbnail-canvas,
+#pdf-viewer-container-day .thumbnail-canvas {
+    width: 100% !important;
+    min-height: 80px !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+#pdf-viewer-container-calendar .thumbnail-number,
+#pdf-viewer-container-day .thumbnail-number {
+    font-size: 9px !important;
+    padding: 2px 4px !important;
+}
+
+/* S'assurer que le conteneur des vignettes est visible */
+#pdf-viewer-container-calendar .thumbnails-container,
+#pdf-viewer-container-day .thumbnails-container {
+    display: grid !important;
+    min-height: 200px !important;
+    height: auto !important;
+}
+
+#pdf-viewer-container-calendar .thumbnail-wrapper,
+#pdf-viewer-container-day .thumbnail-wrapper {
+    display: block !important;
+}
+
+#pdf-viewer-container-calendar .pdf-main,
+#pdf-viewer-container-day .pdf-main {
+    width: 100% !important;
+}
+
+#pdf-viewer-container-calendar .pdf-canvas-container,
+#pdf-viewer-container-day .pdf-canvas-container {
+    max-width: 100% !important;
+}
+
+/* Augmenter la largeur du pdf-pages-container à 100% */
+#pdf-viewer-container-calendar .pdf-pages-container,
+#pdf-viewer-container-day .pdf-pages-container {
+    max-width: 100% !important;
+}
+
+/* Retirer le padding du pdf-viewer qui crée un décalage des annotations */
+#pdf-viewer-container-calendar .pdf-viewer,
+#pdf-viewer-container-day .pdf-viewer {
+    padding: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Ajouter un petit padding uniquement autour du contenu si nécessaire */
+#pdf-viewer-container-calendar .pdf-pages-container,
+#pdf-viewer-container-day .pdf-pages-container {
+    padding: 8px !important;
+}
+
+#pdf-viewer-container-calendar input[type="number"],
+#pdf-viewer-container-day input[type="number"],
+#pdf-viewer-container-calendar select,
+#pdf-viewer-container-day select {
+    font-size: 11px !important;
+    padding: 3px 6px !important;
+    height: 28px !important;
+}
+
+#pdf-viewer-container-calendar .page-controls,
+#pdf-viewer-container-day .page-controls {
+    font-size: 11px !important;
+}
+
+#pdf-viewer-container-calendar .zoom-controls,
+#pdf-viewer-container-day .zoom-controls {
+    font-size: 11px !important;
+}
+
+/* Réduire les icônes */
+#pdf-viewer-container-calendar i,
+#pdf-viewer-container-day i {
+    font-size: 12px !important;
+}
+
+/* Ajuster les annotations */
+#pdf-viewer-container-calendar .annotation-item,
+#pdf-viewer-container-day .annotation-item {
+    font-size: 10px !important;
+    padding: 4px !important;
+}
+
+/* Ajuster le header du sidebar */
+#pdf-viewer-container-calendar .sidebar-header,
+#pdf-viewer-container-day .sidebar-header {
+    font-size: 12px !important;
+    padding: 6px !important;
+}
+
+/* Ajuster les tabs */
+#pdf-viewer-container-calendar .sidebar-tabs,
+#pdf-viewer-container-day .sidebar-tabs {
+    font-size: 10px !important;
+}
+
+#pdf-viewer-container-calendar .sidebar-tab,
+#pdf-viewer-container-day .sidebar-tab {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
+}
+
+/* Masquer les outils non essentiels dans calendar (garder seulement stylo, gomme, fermer) */
+/* Masquer tous les boutons sauf pen, eraser et close */
+#pdf-viewer-container-calendar .toolbar-btn:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close),
+#pdf-viewer-container-calendar button:not([data-tool="pen"]):not([data-tool="eraser"]):not(#btn-close):not(.toolbar-separator) {
+    display: none !important;
+}
+
+/* Masquer les groupes d'outils non nécessaires */
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="highlighter"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="ruler"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="compass"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="angle"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="arc"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="arrow"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="rectangle"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="disk"]),
+#pdf-viewer-container-calendar .toolbar-group:has(button[data-tool="grid"]),
+#pdf-viewer-container-calendar .toolbar-group:has(select),
+#pdf-viewer-container-calendar .toolbar-group:has(input[type="color"]),
+#pdf-viewer-container-calendar .page-controls,
+#pdf-viewer-container-calendar .zoom-controls {
+    display: none !important;
+}
+
+/* Afficher la sidebar */
+#pdf-viewer-container-calendar .pdf-sidebar {
+    display: block !important;
+}
+
+/* Ajuster le pdf-main pour prendre toute la largeur sans sidebar */
+#pdf-viewer-container-calendar .pdf-content {
+    margin-left: 0 !important;
+}
+
+/* Masquer les séparateurs (traits verticaux) */
+#pdf-viewer-container-calendar .toolbar-separator,
+#pdf-viewer-container-calendar .separator {
+    display: none !important;
+}
+
+/* Réorganiser la toolbar pour mettre fermer à côté de la gomme */
+#pdf-viewer-container-calendar .pdf-toolbar {
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+}
+
+/* Déplacer le bouton fermer dans le flux normal (pas à droite) */
+#pdf-viewer-container-calendar #btn-close {
+    position: relative !important;
+    margin-left: 0 !important;
+    order: 3 !important;
+}
+
+/* Ordonner les boutons : stylo, gomme, fermer */
+#pdf-viewer-container-calendar button[data-tool="pen"] {
+    order: 1 !important;
+}
+
+#pdf-viewer-container-calendar button[data-tool="eraser"] {
+    order: 2 !important;
+}
+
+/* Styles pour le menu de sélection des feuilles blanches */
+.blank-sheets-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    z-index: 12000;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.blank-sheets-menu .menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.blank-sheets-menu .menu-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.blank-sheets-menu .sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: 1px solid #e5e7eb;
+}
+
+.blank-sheets-menu .sheet-item:hover {
+    background-color: #f3f4f6;
+}
+
+.blank-sheets-menu .sheet-item i {
+    color: #f59e0b;
+    font-size: 1.25rem;
+}
+
+.blank-sheets-menu .sheet-item span {
+    flex: 1;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.blank-sheets-menu .sheet-item small {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+
+/* Style pour les feuilles blanches dans la liste de fichiers */
+.file-item.blank-sheet {
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+}
+
+.file-item.blank-sheet .file-icon {
+    color: #f59e0b;
+}
 </style>
 {% endblock %}
 
@@ -1340,6 +1759,14 @@ if (typeof pdfjsLib !== 'undefined') {
                                                 <span class="checklist-count">{{ planning.checklist_summary.checked }}/{{ planning.checklist_summary.total }}</span>
                                             </div>
                                             {% endif %}
+                                            {% set date_str = date.strftime('%Y-%m-%d') %}
+                                            {% set memo_key = date_str ~ '_' ~ period.number %}
+                                            {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                            <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                                <i class="fas fa-sticky-note"></i>
+                                                <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     {% elif schedule_key in schedule_grid %}
                                         <!-- Horaire type -->
@@ -1348,16 +1775,40 @@ if (typeof pdfjsLib !== 'undefined') {
                                             <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
                                                 <div class="class-name">{{ schedule.classroom.name }}</div>
                                                 <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                                    <i class="fas fa-sticky-note"></i>
+                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         {% elif schedule.mixed_group_id %}
                                             <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
                                                 <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
                                                 <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                                    <i class="fas fa-sticky-note"></i>
+                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         {% elif schedule.custom_task_title %}
                                             <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280; opacity: 0.7;">
                                                 <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
                                                 <div class="class-subject">Autre</div>
+                                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                                    <i class="fas fa-sticky-note"></i>
+                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                                </div>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                     {% endif %}
@@ -1409,70 +1860,111 @@ if (typeof pdfjsLib !== 'undefined') {
                     {% endif %}
                     <div class="annual-grid" data-classroom-color="{{ selected_item.color if selected_item else '#4F46E5' }}">
                         {% for week in annual_data[selected_classroom_id] %}
-                        <div class="annual-week {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
-                            <div class="week-info">
-                                <div class="week-date">{{ week.formatted_date }}</div>
-                                <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
-                                    {% if week.is_holiday %}
-                                        <span class="holiday-label" title="{{ week.holiday_name }}">
-                                            {% if week.holiday_name_short %}
-                                                {{ week.holiday_name_short }}
-                                            {% else %}
-                                                {% set holiday_parts = week.holiday_name.split(' ') %}
-                                                {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
-                                                    {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
+                        <div class="annual-week-wrapper {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
+                            <div class="annual-week-row">
+                                <div class="week-info">
+                                    <div class="week-date">{{ week.formatted_date }}</div>
+                                    <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
+                                        {% if week.is_holiday %}
+                                            <span class="holiday-label" title="{{ week.holiday_name }}">
+                                                {% if week.holiday_name_short %}
+                                                    {{ week.holiday_name_short }}
                                                 {% else %}
-                                                    {{ week.holiday_name }}
+                                                    {% set holiday_parts = week.holiday_name.split(' ') %}
+                                                    {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
+                                                        {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
+                                                    {% else %}
+                                                        {{ week.holiday_name }}
+                                                    {% endif %}
                                                 {% endif %}
-                                            {% endif %}
-                                        </span>
-                                    {% else %}
-                                        <span class="week-number-link">S{{ week.week_number }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="week-days">
-                                {% for has_class in week.has_class %}
-                                {% set i = loop.index0 %}
-                                {% set date = week.dates[i] %}
-                                {% set date_str = date.strftime('%Y-%m-%d') %}
-                                {% set holiday_name = week.holidays_by_day[i] %}
-                                <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
-                                     data-date="{{ date_str }}"
-                                     data-weekday="{{ i }}"
-                                     data-has-class="{{ 'true' if has_class else 'false' }}"
-                                     onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
-                                     title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
-                                    <div class="annual-day-content">
-                                        {% if holiday_name %}
-                                            <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
-                                        {% elif week.plannings and date_str in week.plannings %}
-                                            <div class="annual-plannings">
-                                                {% for planning in week.plannings[date_str][:3] %}
-                                                    <div class="annual-planning-item" title="{{ planning.title }}">
-                                                        {% if planning.checklist_summary %}
-                                                        <div class="annual-planning-checklist">
-                                                            {% if planning.checklist_summary.all_checked %}
-                                                                <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
-                                                            {% elif planning.checklist_summary.checked > 0 %}
-                                                                <i class="fas fa-tasks annual-checklist-icon partial"></i>
-                                                            {% else %}
-                                                                <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
-                                                            {% endif %}
-                                                        </div>
-                                                        {% endif %}
-                                                        <span class="annual-planning-text">{{ planning.title }}</span>
-                                                    </div>
-                                                {% endfor %}
-                                                {% if week.plannings[date_str]|length > 3 %}
-                                                    <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
-                                                {% endif %}
-                                            </div>
+                                            </span>
+                                        {% else %}
+                                            <span class="week-number-link">S{{ week.week_number }}</span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                {% endfor %}
+                                <div class="week-days">
+                                    {% for has_class in week.has_class %}
+                                    {% set i = loop.index0 %}
+                                    {% set date = week.dates[i] %}
+                                    {% set date_str = date.strftime('%Y-%m-%d') %}
+                                    {% set holiday_name = week.holidays_by_day[i] %}
+                                    <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
+                                         data-date="{{ date_str }}"
+                                         data-weekday="{{ i }}"
+                                         data-has-class="{{ 'true' if has_class else 'false' }}"
+                                         onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
+                                         title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
+                                        <div class="annual-day-content">
+                                            {% if holiday_name %}
+                                                <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
+                                            {% elif week.plannings and date_str in week.plannings %}
+                                                <div class="annual-plannings">
+                                                    {% for planning in week.plannings[date_str][:3] %}
+                                                        <div class="annual-planning-item" title="{{ planning.title }}">
+                                                            {% if planning.checklist_summary %}
+                                                            <div class="annual-planning-checklist">
+                                                                {% if planning.checklist_summary.all_checked %}
+                                                                    <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
+                                                                {% elif planning.checklist_summary.checked > 0 %}
+                                                                    <i class="fas fa-tasks annual-checklist-icon partial"></i>
+                                                                {% else %}
+                                                                    <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
+                                                                {% endif %}
+                                                            </div>
+                                                            {% endif %}
+                                                            <span class="annual-planning-text">{{ planning.title }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                    {% if week.plannings[date_str]|length > 3 %}
+                                                        <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             </div>
+                            {% if week.decoupage_ribbon %}
+                            <div class="decoupage-ribbon-row">
+                                <div class="ribbon-spacer"></div>
+                                {% if week.decoupage_ribbon.type == 'full' %}
+                                <div class="decoupage-ribbon full"
+                                     style="background-color: {{ week.decoupage_ribbon.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.color }};"
+                                     title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }})">
+                                    <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
+                                        {{ week.decoupage_ribbon.name }}
+                                    </span>
+                                </div>
+                                {% elif week.decoupage_ribbon.type == 'split' %}
+                                <div class="decoupage-ribbon-split">
+                                    {% if week.decoupage_ribbon.first_half %}
+                                    <div class="decoupage-ribbon half first-half"
+                                         style="background-color: {{ week.decoupage_ribbon.first_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.first_half.color }};"
+                                         title="{{ week.decoupage_ribbon.first_half.name }}">
+                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.first_half.color }};">
+                                            {{ week.decoupage_ribbon.first_half.name }}
+                                        </span>
+                                    </div>
+                                    {% else %}
+                                    <div class="decoupage-ribbon half first-half empty"></div>
+                                    {% endif %}
+                                    {% if week.decoupage_ribbon.second_half %}
+                                    <div class="decoupage-ribbon half second-half"
+                                         style="background-color: {{ week.decoupage_ribbon.second_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.second_half.color }};"
+                                         title="{{ week.decoupage_ribbon.second_half.name }}">
+                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.second_half.color }};">
+                                            {{ week.decoupage_ribbon.second_half.name }}
+                                        </span>
+                                    </div>
+                                    {% else %}
+                                    <div class="decoupage-ribbon half second-half empty"></div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -1529,6 +2021,22 @@ if (typeof pdfjsLib !== 'undefined') {
         </div>
 
         <div class="modal-body">
+            <!-- Section feuilles blanches (en premier) -->
+            <div class="form-group" id="modalBlankSheetsSection" style="display: none; margin-bottom: 1.5rem;">
+                <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>
+                        <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
+                        Feuilles blanches (<span id="modalBlankSheetsCount">0</span>)
+                    </span>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromPlanningModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                        <i class="fas fa-plus"></i> Nouvelle
+                    </button>
+                </h4>
+                <div id="modalBlankSheetsList" style="display: grid; gap: 0.5rem;">
+                    <!-- Les feuilles blanches seront ajoutées ici -->
+                </div>
+            </div>
+
             <div class="form-group">
                 <label class="form-label">Classe</label>
                 <select id="modalClassroom" class="form-control" onchange="loadGroupsForClass(this.value)">
@@ -1578,10 +2086,20 @@ if (typeof pdfjsLib !== 'undefined') {
                        placeholder="Ex: Introduction aux fractions">
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="modalDescriptionContainer">
                 <label class="form-label">Description</label>
                 <textarea id="modalDescription" class="form-control" rows="3"
                           placeholder="Détails du cours, exercices prévus..."></textarea>
+            </div>
+
+            <!-- Section mémos -->
+            <div class="form-group" id="modalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                <label class="form-label" style="color: #92400E; font-weight: 600;">
+                    <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                </label>
+                <div id="modalMemosList" style="margin-top: 10px;">
+                    <!-- Les mémos seront insérés ici par JavaScript -->
+                </div>
             </div>
         </div>
 
@@ -1597,15 +2115,31 @@ if (typeof pdfjsLib !== 'undefined') {
     <div class="file-manager-panel" id="fileManagerPanel" style="display: none;">
         <div class="file-manager-header">
             <h3><i class="fas fa-folder-open"></i> Fichiers de la classe</h3>
-            <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-icon" onclick="openBlankPagesCalendar()" title="Créer des feuilles blanches">
+                    <i class="fas fa-file-medical"></i>
+                </button>
+                <button class="btn-icon" onclick="toggleSplitView()" title="Fermer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="file-manager-content" id="fileManagerContent">
             <!-- Chargement initial -->
             <div class="file-loading" id="fileLoading">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Chargement des fichiers...</p>
+            </div>
+
+            <!-- Fichiers épinglés -->
+            <div class="pinned-resources" id="pinnedResources" style="display: none;">
+                <div class="pinned-header">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>Fichiers épinglés</span>
+                </div>
+                <div class="pinned-list" id="pinnedList">
+                    <!-- Les fichiers épinglés seront chargés ici -->
+                </div>
             </div>
 
             <!-- Navigation des dossiers -->
@@ -1630,8 +2164,8 @@ if (typeof pdfjsLib !== 'undefined') {
         </div>
     </div>
 
-    <!-- Conteneur pour le lecteur PDF unifié en mode split -->
-    <div id="pdf-viewer-container" style="display: none; z-index: 11000; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: #F8FAFC;"></div>
+    <!-- Conteneur pour le lecteur PDF Clean en mode split 50% -->
+    <div id="pdf-viewer-container-calendar" style="display: none; position: fixed; top: 0; right: 0; width: 50%; height: 100vh; z-index: 11000; background: #F8FAFC; box-shadow: -4px 0 12px rgba(0,0,0,0.1);"></div>
 
 </div>
 
@@ -1688,6 +2222,17 @@ if (typeof pdfjsLib !== 'undefined') {
                 <p>Chargement des fichiers...</p>
             </div>
 
+            <!-- Fichiers épinglés -->
+            <div class="pinned-resources" id="dayPinnedResources" style="display: none;">
+                <div class="pinned-header">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>Fichiers épinglés</span>
+                </div>
+                <div class="pinned-list" id="dayPinnedList">
+                    <!-- Les fichiers épinglés seront chargés ici -->
+                </div>
+            </div>
+
             <!-- Navigation des dossiers -->
             <div class="file-navigation" id="dayFileNavigation" style="display: none;">
                 <div class="breadcrumb" id="dayFileBreadcrumb">
@@ -1713,6 +2258,201 @@ if (typeof pdfjsLib !== 'undefined') {
 
 </div>
 
+<!-- Modal des présences pour périodes passées -->
+<div class="planning-modal" id="attendanceModal" style="display: none;">
+    <div class="modal-content" id="attendanceModalContent">
+        <div class="modal-header">
+            <h3 id="attendanceModalTitle">Présences de la période</h3>
+            <div class="modal-header-actions">
+                <button class="modal-close" onclick="closeAttendanceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div id="attendanceLoadingState" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
+                <p style="margin-top: 1rem; color: var(--text-muted);">Chargement des présences...</p>
+            </div>
+
+            <div id="attendanceContent" style="display: none;">
+                <!-- Feuilles blanches -->
+                <div id="blankSheetsSection" style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #f59e0b; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>
+                            <i class="fas fa-file" style="margin-right: 0.5rem;"></i>
+                            Feuilles blanches (<span id="blankSheetsCount">0</span>)
+                        </span>
+                        <button class="btn btn-sm btn-primary" onclick="createNewBlankSheetFromModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                            <i class="fas fa-plus"></i> Nouvelle
+                        </button>
+                    </h4>
+                    <div id="blankSheetsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les feuilles blanches seront ajoutées ici -->
+                    </div>
+                    <div id="noBlankSheetsMessage" style="display: none; text-align: center; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; color: #92400e;">
+                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                        Aucune feuille blanche pour cette période
+                    </div>
+                </div>
+
+                <!-- Planification de la période -->
+                <div id="planningSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--primary-color); margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-clipboard-list" style="margin-right: 0.5rem;"></i>
+                        Planification
+                    </h4>
+                    <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
+                        <div id="planningTitle" style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);"></div>
+                        <div id="planningDescription" style="color: var(--text-secondary); white-space: pre-wrap;"></div>
+                    </div>
+                </div>
+
+                <!-- Tâches complétées -->
+                <div id="completedTasksSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #16a34a; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>
+                        Tâches réalisées (<span id="completedCount">0</span>)
+                    </h4>
+                    <div id="completedTasksList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les tâches complétées seront ajoutées ici -->
+                    </div>
+                </div>
+
+                <!-- Tâches non réalisées -->
+                <div id="incompleteTasksSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-times-circle" style="margin-right: 0.5rem;"></i>
+                        Tâches non réalisées (<span id="incompleteCount">0</span>)
+                    </h4>
+                    <div id="incompleteTasksList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les tâches non complétées seront ajoutées ici -->
+                    </div>
+                </div>
+
+                <!-- Liste des élèves absents -->
+                <div id="absentStudentsSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #dc2626; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-user-times" style="margin-right: 0.5rem;"></i>
+                        Élèves absents (<span id="absentCount">0</span>)
+                    </h4>
+                    <div id="absentStudentsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les élèves absents seront ajoutés ici -->
+                    </div>
+                </div>
+
+                <!-- Liste des élèves en retard -->
+                <div id="lateStudentsSection" style="display: none; margin-bottom: 1.5rem;">
+                    <h4 style="color: #ea580c; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
+                        <i class="fas fa-clock" style="margin-right: 0.5rem;"></i>
+                        Élèves en retard (<span id="lateCount">0</span>)
+                    </h4>
+                    <div id="lateStudentsList" style="display: grid; gap: 0.5rem;">
+                        <!-- Les élèves en retard seront ajoutés ici -->
+                    </div>
+                </div>
+
+                <!-- Message si tous présents -->
+                <div id="allPresentMessage" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: #16a34a; margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary); font-size: 1.1rem;">Tous les élèves étaient présents</p>
+                </div>
+
+                <!-- Message d'erreur -->
+                <div id="attendanceErrorMessage" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #dc2626; margin-bottom: 1rem;"></i>
+                    <p id="attendanceErrorText" style="color: var(--text-secondary);"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeAttendanceModal()">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-item {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid;
+}
+
+.student-item.absent {
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
+.student-item.late {
+    border-left-color: #ea580c;
+    background: #fff7ed;
+}
+
+.student-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.late-badge {
+    background: #ea580c;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.task-item {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-left: 4px solid;
+}
+
+.task-item.completed {
+    border-left-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.task-item.incomplete {
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
+.task-checkbox {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.task-checkbox.completed {
+    color: #16a34a;
+}
+
+.task-checkbox.incomplete {
+    color: #dc2626;
+}
+
+.task-content {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.task-item.completed .task-content {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+</style>
+
 <form id="weekNavigationForm" method="GET" style="display: none;">
     <input type="hidden" name="week" id="weekInput">
     <input type="hidden" name="classroom" value="{{ selected_classroom_id }}">
@@ -1721,17 +2461,28 @@ if (typeof pdfjsLib !== 'undefined') {
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/planning.js') }}"></script>
-<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
 <script>
+// Définir les variables globales AVANT de charger planning.js qui les utilise
 const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
 const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
 const periodsData = {{ periods_json | tojson }};
 const classrooms = {{ classrooms_json | tojson }};
 const scheduleGrid = {{ schedule_grid_json | tojson }};
 const mergedInfo = {{ merged_info | tojson }};
+</script>
+
+<!-- Charger planning.js APRÈS avoir défini les variables globales -->
+<script src="{{ url_for('static', filename='js/planning.js') }}"></script>
+<script src="{{ url_for('static', filename='js/unified-pdf-viewer.js') }}?v=NATIVE20250923&cache_bust={{ range(1000000, 9999999) | random }}&native=true&nopf=true&simple=drawing"></script>
+
+<script>
 let currentPlanningCell = null;
 let isExtendedView = false;
+
+// Variables globales pour le contexte modal actuel (pour feuilles blanches)
+let currentModalDate = null;
+let currentModalPeriod = null;
+let currentModalClassroomId = null;
 
 // Variables globales pour les mises à jour dynamiques
 window.selectedClassroomId = selectedClassroomId;
@@ -2129,38 +2880,61 @@ async function loadClassFiles(classroomId) {
     const fileNavigation = document.getElementById('fileNavigation');
     const fileTree = document.getElementById('fileTree');
     const noFiles = document.getElementById('noFiles');
-    
+    const pinnedResources = document.getElementById('pinnedResources');
+
     console.log('Chargement des fichiers pour la classe:', classroomId);
-    
+
     // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
     const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
-    
+
     // Afficher le chargement
     fileLoading.style.display = 'block';
     fileNavigation.style.display = 'none';
     fileTree.style.display = 'none';
     noFiles.style.display = 'none';
-    
+    pinnedResources.style.display = 'none';
+
     try {
+        // Charger les fichiers de la classe
         const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Données reçues:', data);
-        
+
+        // Charger les feuilles blanches si on a une date et période
+        currentBlankSheets = []; // Réinitialiser
+        if (currentModalDate && currentModalPeriod && numericId) {
+            try {
+                const blankResponse = await fetch(`/planning/api/blank-sheets/list?date=${currentModalDate}&period=${currentModalPeriod}&classroom_id=${numericId}`);
+                const blankData = await blankResponse.json();
+                if (blankData.success && blankData.sheets) {
+                    currentBlankSheets = blankData.sheets;
+                }
+            } catch (error) {
+                console.warn('Erreur lors du chargement des feuilles blanches:', error);
+            }
+        }
+
         fileLoading.style.display = 'none';
-        
+
+        // Afficher les fichiers épinglés s'il y en a
+        if (data.success && data.pinned_files && data.pinned_files.length > 0) {
+            renderPinnedFiles(data.pinned_files);
+            pinnedResources.style.display = 'block';
+        }
+
         if (data.success && data.files && data.files.length > 0) {
             // Stocker tous les fichiers globalement
             allClassFiles = data.files;
             fileNavigation.style.display = 'block';
             fileTree.style.display = 'block';
             renderFileTree(data.files, currentFilePath);
-        } else {
+        } else if (!data.pinned_files || data.pinned_files.length === 0) {
             console.log('Aucun fichier trouvé ou erreur dans la réponse');
             noFiles.style.display = 'block';
         }
@@ -2171,11 +2945,90 @@ async function loadClassFiles(classroomId) {
     }
 }
 
+// Afficher les fichiers épinglés
+function renderPinnedFiles(pinnedFiles) {
+    const pinnedList = document.getElementById('pinnedList');
+    if (!pinnedList) return;
+
+    pinnedList.innerHTML = pinnedFiles.map(file => {
+        const icon = getFileIconByType(file.file_type);
+        return `
+            <div class="file-item pinned" data-file-id="${file.id}">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                    <span class="file-size">${formatFileSize(file.file_size)}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn pinned"
+                            onclick="togglePinFile(${file.id})"
+                            title="Désépingler">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="file-action-btn"
+                            onclick="openPdfInViewer(${file.id}, '${file.original_filename}')"
+                            title="Ouvrir">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Épingler/Désépingler un fichier
+async function togglePinFile(fileId) {
+    console.log('🔧 togglePinFile appelé avec fileId:', fileId);
+    try {
+        const response = await fetch('/planning/toggle-pin-resource', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: fileId
+            })
+        });
+
+        const result = await response.json();
+        console.log('✅ Résultat de l\'épinglage:', result);
+
+        if (result.success) {
+            // Recharger les fichiers pour mettre à jour l'affichage
+            const modalClassroom = document.getElementById('modalClassroom');
+            if (modalClassroom && modalClassroom.value) {
+                console.log('🔄 Rechargement des fichiers pour la classe:', modalClassroom.value);
+                await loadClassFiles(modalClassroom.value);
+            } else {
+                console.warn('⚠️ modalClassroom non trouvé ou sans valeur');
+            }
+        } else {
+            console.error('❌ Erreur:', result.message);
+            alert('Erreur lors de l\'épinglage: ' + result.message);
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de l\'épinglage:', error);
+        alert('Erreur lors de l\'épinglage du fichier');
+    }
+}
+
+// Formater la taille du fichier
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
 // Afficher l'arborescence des fichiers
 function renderFileTree(files, currentPath = '') {
     const fileTree = document.getElementById('fileTree');
     fileTree.innerHTML = '';
-    
+
+    // Note: Les feuilles blanches sont maintenant affichées uniquement dans le modal de période
+    // (pas dans le file-manager-panel)
+
     // Organiser les fichiers par dossier
     const folders = {};
     const currentLevelFiles = [];
@@ -2268,18 +3121,30 @@ function renderFileTree(files, currentPath = '') {
     currentLevelFiles.forEach(file => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
-        
+
         const icon = getFileIconByType(file.file_type);
-        
+
         fileItem.innerHTML = `
-            <i class="${icon} file-icon"></i>
-            <span class="file-name">${file.original_filename}</span>
+            <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                </div>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
+                        onclick="event.stopPropagation(); togglePinFile(${file.id})"
+                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         `;
-        
+
         if (file.file_type === 'pdf') {
-            fileItem.onclick = () => openPdfInViewer(file.id, file.original_filename);
+            const clickableArea = fileItem.querySelector('.file-clickable-area');
+            clickableArea.onclick = () => openPdfInViewer(file.id, file.original_filename);
         }
-        
+
         fileTree.appendChild(fileItem);
     });
     
@@ -2289,6 +3154,7 @@ function renderFileTree(files, currentPath = '') {
 
 // Variable globale pour stocker tous les fichiers
 let allClassFiles = [];
+let currentBlankSheets = []; // Pour stocker les feuilles blanches de la période en cours
 
 // Obtenir l'icône appropriée pour un type de fichier
 function getFileIconByType(fileType) {
@@ -2309,9 +3175,10 @@ function getFileIconByType(fileType) {
 function navigateToFolder(folderPath) {
     currentFilePath = folderPath;
     console.log('Navigation vers le dossier:', folderPath);
-    
+
     // Re-render l'arbre avec le nouveau chemin
-    renderFileTree(allClassFiles, folderPath);
+    // Afficher les feuilles blanches seulement à la racine
+    renderFileTree(allClassFiles, folderPath, folderPath === '' ? currentBlankSheets : []);
 }
 
 // Mettre à jour le fil d'Ariane
@@ -2373,117 +3240,337 @@ let annotationCtx = null;
 let pdfCanvas = null;
 let pdfCtx = null;
 
-// Ouvrir un PDF avec le lecteur unifié en mode split
+// Ouvrir un PDF avec le nouveau lecteur CleanPDFViewer en mode split 50%
 async function openPdfInViewer(fileId, fileName) {
-    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split:', fileName);
-    console.log('📍 FileId:', fileId, 'FileName:', fileName);
-    
+    console.log('📄 Ouverture du PDF avec CleanPDFViewer:', fileName);
+
     try {
-        // Utiliser la même approche que openDayPdfInViewer
-        let container = document.getElementById('pdf-viewer-container-main');
-        if (container) {
-            document.body.removeChild(container);
+        const container = document.getElementById('pdf-viewer-container-calendar');
+        if (!container) {
+            console.error('❌ Conteneur PDF non trouvé');
+            return;
         }
-        
-        container = document.createElement('div');
-        container.id = 'pdf-viewer-container-main';
-        container.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            width: 50vw !important;
-            height: 100vh !important;
-            z-index: 15000 !important;
-            background: #F8FAFC !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
-        `;
-        
-        document.body.appendChild(container);
-        console.log('✅ Nouveau conteneur principal créé dans le body');
-        
-        // Vérifier les dimensions après ajout au body
-        console.log('🔍 Debug nouveau conteneur principal:', {
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-            visible: container.offsetParent !== null
-        });
-        
-        // Déterminer quelle classe utiliser pour l'envoi de fichiers
-        let currentClassId = selectedClassroomId;
-        
-        // Récupérer les étudiants de la classe actuelle
-        const studentsData = await getStudentsForClass(currentClassId);
-        
-        // Configuration pour le mode split sans suivi d'élèves
-        const options = {
-            mode: 'split',
-            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
-            enableSendToStudents: true,   // Activer l'envoi aux élèves
-            currentClassId: currentClassId,
-            studentData: studentsData,
-            autoSave: true,
-            saveDelay: 3000,
-            apiEndpoints: {
-                saveAnnotations: '/file_manager/api/save-annotations',
-                loadAnnotations: '/file_manager/api/load-annotations',
-                search: '/api/search-pdf'
-            }
-        };
-        
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
         // Détruire l'instance précédente si elle existe
-        if (window.currentPdfViewer) {
-            window.currentPdfViewer.destroy();
+        if (window.cleanPDFViewerCalendar) {
+            window.cleanPDFViewerCalendar.destroy();
+            window.cleanPDFViewerCalendar = null;
         }
-        
-        // Créer la nouvelle instance avec le nouveau conteneur
-        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-main', options);
-        
-        // Attendre que le DOM se mette à jour
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Forcer les dimensions des conteneurs internes
-        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
-        const pdfMain = container.querySelector('.pdf-main');
-        
-        if (pdfViewerArea) {
-            pdfViewerArea.style.width = '100%';
-            pdfViewerArea.style.height = '100%';
-            pdfViewerArea.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-viewer-area principal:', {
-                width: pdfViewerArea.offsetWidth,
-                height: pdfViewerArea.offsetHeight
-            });
-        }
-        if (pdfMain) {
-            pdfMain.style.width = '100%';
-            pdfMain.style.height = '100%';
-            pdfMain.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-main principal:', {
-                width: pdfMain.offsetWidth,
-                height: pdfMain.offsetHeight
-            });
-        }
-        
-        // Charger le PDF avec fileId pour la sauvegarde
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Préparer l'URL du PDF
         const pdfUrl = `/file_manager/serve_file/${fileId}`;
-        console.log('📎 URL du PDF:', pdfUrl);
-        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
-        
-        // Forcer le recalcul des dimensions après le chargement
-        setTimeout(() => {
-            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
-                console.log('🔧 Recalcul forcé des dimensions de la toolbar principal');
-                window.currentPdfViewer.handleToolbarResize();
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            if (selectedClassroomId) {
+                studentsData = await getStudentsForClass(selectedClassroomId);
             }
-        }, 200);
-        
-        console.log('✅ PDF chargé avec succès en mode split unifié');
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean
+        window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+            fileId: fileId,
+            pdfUrl: pdfUrl,
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            annotationOffsetY: -10, // Décaler les annotations légèrement vers le haut
+            annotationScaleMultiplier: 1.05, // Augmenter le zoom des annotations de 5%
+            studentData: studentsData,
+            onClose: () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerCalendar = null;
+            }
+        });
+
+        console.log('✅ CleanPDFViewer créé avec succès');
     } catch (error) {
         console.error('❌ Erreur lors du chargement du PDF:', error);
+        alert('Erreur lors du chargement du PDF: ' + error.message);
     }
+}
+
+// Ouvrir le viewer avec des pages blanches (mode split 50%)
+/**
+ * Affiche le menu de sélection des feuilles blanches pour la leçon en cours
+ */
+async function openBlankPagesCalendar() {
+    console.log('📄 Ouverture du menu des feuilles blanches');
+
+    // Vérifier qu'on a les informations nécessaires
+    if (!currentModalDate || !currentModalPeriod) {
+        alert('Veuillez d\'abord sélectionner une date et une période');
+        return;
+    }
+
+    // Récupérer l'ID de la classe sélectionnée dans le modal
+    const modalClassroom = document.getElementById('modalClassroom');
+    if (!modalClassroom || !modalClassroom.value) {
+        alert('Veuillez d\'abord sélectionner une classe');
+        return;
+    }
+
+    // Extraire l'ID numérique de la classe
+    let classroomId = null;
+    const classroomValue = modalClassroom.value;
+    if (classroomValue.startsWith('classroom_')) {
+        classroomId = classroomValue.replace('classroom_', '');
+    } else if (classroomValue.startsWith('mixed_group_')) {
+        classroomId = classroomValue.replace('mixed_group_', '');
+    } else {
+        alert('Type de classe non supporté');
+        return;
+    }
+
+    try {
+        // Charger les feuilles blanches existantes
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${currentModalDate}&period=${currentModalPeriod}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (data.sheets && data.sheets.length === 0) {
+            // Aucune feuille existante, créer directement
+            openNewBlankSheetCalendar(currentModalDate, currentModalPeriod, classroomId);
+        } else {
+            // Afficher menu de sélection
+            displayBlankSheetsMenuCalendar(data.sheets, currentModalDate, currentModalPeriod, classroomId);
+        }
+    } catch (error) {
+        console.error('Erreur lors du chargement des feuilles blanches:', error);
+        alert('Erreur lors du chargement des feuilles blanches');
+    }
+}
+
+/**
+ * Affiche un menu pour sélectionner une feuille blanche existante ou en créer une nouvelle
+ */
+function displayBlankSheetsMenuCalendar(sheets, lessonDate, periodNumber, classroomId) {
+    // Créer le menu modal
+    const menu = document.createElement('div');
+    menu.className = 'blank-sheets-menu';
+    menu.innerHTML = `
+        <div class="menu-header">
+            <h4>Feuilles blanches de la leçon</h4>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">×</button>
+        </div>
+        <div class="menu-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
+            ${sheets.map(sheet => `
+                <div class="sheet-item" onclick="openExistingBlankSheetCalendar(${sheet.id}); this.parentElement.parentElement.parentElement.remove();">
+                    <i class="fas fa-file"></i>
+                    <span>${escapeHtmlCalendar(sheet.title)}</span>
+                    <small>${formatDateTimeCalendar(sheet.created_at)}</small>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn-primary" onclick="openNewBlankSheetCalendar('${lessonDate}', ${periodNumber}, ${classroomId}); this.parentElement.remove();" style="width: 100%; margin-top: 1rem;">
+            <i class="fas fa-plus"></i> Nouvelle feuille
+        </button>
+    `;
+
+    document.body.appendChild(menu);
+}
+
+/**
+ * Ouvre une nouvelle feuille blanche
+ */
+async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) {
+    console.log('📄 Création nouvelle feuille blanche');
+
+    const container = document.getElementById('pdf-viewer-container-calendar');
+    if (!container) {
+        console.error('❌ Conteneur PDF non trouvé');
+        return;
+    }
+
+    // Afficher le conteneur
+    container.style.display = 'block';
+
+    // Détruire l'instance précédente si elle existe
+    if (window.cleanPDFViewerCalendar) {
+        window.cleanPDFViewerCalendar.destroy();
+        window.cleanPDFViewerCalendar = null;
+    }
+
+    // Vider le conteneur
+    container.innerHTML = '';
+
+    // Récupérer les étudiants de la classe actuelle si disponible
+    let studentsData = [];
+    try {
+        if (classroomId) {
+            studentsData = await getStudentsForClass(classroomId);
+        }
+    } catch (error) {
+        console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+    }
+
+    // Créer l'instance du nouveau lecteur clean pour pages blanches
+    window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+        blankSheetId: null, // Nouvelle feuille
+        lessonDate: lessonDate,
+        periodNumber: periodNumber,
+        classroomId: classroomId,
+        title: 'Feuille blanche',
+        pdfUrl: null,
+        showSidebar: true,
+        enableAnnotations: true,
+        autoSaveInterval: 5000,
+        // Pour les feuilles blanches, laisser le système automatique calculer le redimensionnement
+        // (les paramètres annotationOffsetY et annotationScaleMultiplier sont désactivés)
+        studentData: studentsData,
+        onClose: async () => {
+            container.style.display = 'none';
+            window.cleanPDFViewerCalendar = null;
+
+            // Si on est dans le contexte d'un modal de planification, recharger la liste des feuilles blanches
+            if (window.currentPlanningContext) {
+                const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+            } else {
+                // Sinon recharger les fichiers de la classe (comportement original)
+                const modalClassroom = document.getElementById('modalClassroom');
+                if (modalClassroom && modalClassroom.value) {
+                    const classroomValue = modalClassroom.value;
+                    let id = null;
+                    if (classroomValue.startsWith('classroom_')) {
+                        id = classroomValue.replace('classroom_', '');
+                    } else if (classroomValue.startsWith('mixed_group_')) {
+                        id = classroomValue.replace('mixed_group_', '');
+                    }
+                    if (id) {
+                        loadClassFiles(id);
+                    }
+                }
+            }
+        }
+    });
+
+    console.log('✅ Nouvelle feuille blanche créée');
+}
+
+/**
+ * Ouvre une feuille blanche existante
+ */
+async function openExistingBlankSheetCalendar(sheetId) {
+    console.log('📄 Ouverture feuille blanche:', sheetId);
+
+    try {
+        // Charger les données de la feuille
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            alert('Erreur lors du chargement de la feuille: ' + (data.message || 'Erreur inconnue'));
+            return;
+        }
+
+        const sheet = data.sheet;
+
+        const container = document.getElementById('pdf-viewer-container-calendar');
+        if (!container) {
+            console.error('❌ Conteneur PDF non trouvé');
+            return;
+        }
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
+        // Détruire l'instance précédente si elle existe
+        if (window.cleanPDFViewerCalendar) {
+            window.cleanPDFViewerCalendar.destroy();
+            window.cleanPDFViewerCalendar = null;
+        }
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            if (sheet.classroom_id) {
+                studentsData = await getStudentsForClass(sheet.classroom_id);
+            }
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean
+        window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
+            blankSheetId: sheet.id,
+            lessonDate: sheet.lesson_date,
+            periodNumber: sheet.period_number,
+            classroomId: sheet.classroom_id,
+            title: sheet.title,
+            pdfUrl: null,
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            // Pour les feuilles blanches, laisser le système automatique calculer le redimensionnement
+            // (les paramètres annotationOffsetY et annotationScaleMultiplier sont désactivés)
+            studentData: studentsData,
+            onClose: async () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerCalendar = null;
+
+                // Si on est dans le contexte d'un modal de planification, recharger la liste des feuilles blanches
+                if (window.currentPlanningContext) {
+                    const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                    await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+                } else {
+                    // Sinon recharger les fichiers de la classe (comportement original)
+                    const modalClassroom = document.getElementById('modalClassroom');
+                    if (modalClassroom && modalClassroom.value) {
+                        const classroomValue = modalClassroom.value;
+                        let id = null;
+                        if (classroomValue.startsWith('classroom_')) {
+                            id = classroomValue.replace('classroom_', '');
+                        } else if (classroomValue.startsWith('mixed_group_')) {
+                            id = classroomValue.replace('mixed_group_', '');
+                        }
+                        if (id) {
+                            loadClassFiles(id);
+                        }
+                    }
+                }
+            }
+        });
+
+        console.log('✅ Feuille blanche chargée');
+    } catch (error) {
+        console.error('Erreur lors du chargement de la feuille blanche:', error);
+        alert('Erreur lors du chargement de la feuille blanche');
+    }
+}
+
+/**
+ * Fonction utilitaire pour échapper le HTML (calendar version)
+ */
+function escapeHtmlCalendar(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Fonction utilitaire pour formater la date/heure (calendar version)
+ */
+function formatDateTimeCalendar(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 // Charger un document PDF (copié de lesson_view.html)
@@ -3205,8 +4292,112 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.addEventListener('click', function() {
             closePlanningModal();
             closeDayPlanningModal();
+            closeAttendanceModal();
         });
     }
+});
+
+// Intercepter les clics sur les cellules du calendrier pour afficher les présences si période passée
+document.addEventListener('DOMContentLoaded', function() {
+    // Attendre que planning.js soit chargé
+    setTimeout(function() {
+        const originalOpenPlanningModal2 = window.openPlanningModal;
+
+        window.openPlanningModal = function(cell, fromAnnualView = false) {
+            const date = cell.dataset.date;
+            const period = cell.dataset.period;
+
+            // Stocker le contexte modal pour les feuilles blanches
+            currentModalDate = date;
+            currentModalPeriod = period ? period.split('-')[0] : null; // Prendre le premier numéro pour périodes fusionnées
+
+            console.log('🔍 openPlanningModal intercepted:', {
+                date,
+                period,
+                cellDataset: cell.dataset
+            });
+
+            // Vérifier si c'est une période passée
+            const periodDate = new Date(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            console.log('📅 Date comparison:', {
+                periodDate: periodDate.toISOString(),
+                today: today.toISOString(),
+                isPast: periodDate < today
+            });
+
+            // Récupérer les informations de la classe/groupe
+            const defaultClassroom = cell.dataset.defaultClassroom;
+            const defaultMixedGroup = cell.dataset.defaultMixedGroup;
+            const defaultCustomTask = cell.dataset.defaultCustomTask;
+
+            console.log('📚 Classroom info:', {
+                defaultClassroom,
+                defaultMixedGroup,
+                defaultCustomTask
+            });
+
+            // Ne pas afficher les présences pour les tâches personnalisées (périodes "Autre")
+            if (defaultCustomTask === 'true') {
+                // Continuer avec le modal de planification normal
+                if (typeof originalOpenPlanningModal2 === 'function') {
+                    originalOpenPlanningModal2(cell, fromAnnualView);
+                }
+                return;
+            }
+
+            // Si il y a une classe/groupe, afficher le modal de période (présences + feuilles blanches)
+            if (defaultClassroom || defaultMixedGroup) {
+                // Extraire l'ID et le type de la classe/groupe
+                let classroomId = null;
+                let isMixedGroup = false;
+
+                if (defaultMixedGroup) {
+                    // Format: "mixed_group_123" ou juste "123"
+                    if (defaultMixedGroup.includes('_')) {
+                        const parts = defaultMixedGroup.split('_');
+                        classroomId = parts[parts.length - 1]; // Prendre la dernière partie
+                    } else {
+                        classroomId = defaultMixedGroup;
+                    }
+                    isMixedGroup = true;
+                } else if (defaultClassroom) {
+                    // Format: "classroom_123" ou juste "123"
+                    if (defaultClassroom.includes('_')) {
+                        const parts = defaultClassroom.split('_');
+                        classroomId = parts[parts.length - 1]; // Prendre la dernière partie
+                    } else {
+                        classroomId = defaultClassroom;
+                    }
+                    isMixedGroup = false;
+                }
+
+                console.log('🎯 Calling showPeriodAttendance with:', {
+                    date,
+                    period: period.split('-')[0],
+                    classroomId,
+                    isMixedGroup
+                });
+
+                if (classroomId) {
+                    // Récupérer le titre de la période depuis le contenu de la cellule
+                    const titleElement = cell.querySelector('.planning-title');
+                    const periodTitle = titleElement ? titleElement.textContent : null;
+
+                    // Afficher le modal de présences
+                    showPeriodAttendance(date, period.split('-')[0], classroomId, isMixedGroup, periodTitle);
+                    return;
+                }
+            }
+
+            // Sinon, continuer avec le modal de planification normal
+            if (typeof originalOpenPlanningModal2 === 'function') {
+                originalOpenPlanningModal2(cell, fromAnnualView);
+            }
+        };
+    }, 200);
 });
 
 // ============================================
@@ -3491,12 +4682,18 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
     
     // Récupérer les données existantes pour ce créneau (utiliser la période de base)
     getDaySlotData(dateStr, basePeriodNumber, classroomId).then(data => {
-        if (data.success && data.planning) {
-            // Pré-remplir avec les données existantes
-            showDaySlotEditModal(data.planning.title || '', data.planning.description || '');
+        if (data.success && data.slot) {
+            const slot = data.slot;
+            if (slot.has_planning) {
+                // Pré-remplir avec les données existantes (y compris le group_id)
+                showDaySlotEditModal(slot.title || '', slot.description || '', slot.group_id || null);
+            } else {
+                // Nouveau créneau vide mais vérifier s'il y a un group_id défini (pattern de groupe)
+                showDaySlotEditModal('', '', slot.group_id || null);
+            }
         } else {
-            // Nouveau créneau vide
-            showDaySlotEditModal('', '');
+            // Erreur ou pas de données
+            showDaySlotEditModal('', '', null);
         }
     });
 }
@@ -3504,9 +4701,13 @@ function editDaySlot(periodNumber, dateStr, classroomId) {
 // Récupérer les données d'un créneau spécifique
 async function getDaySlotData(dateStr, periodNumber, classroomId) {
     try {
+        console.log(`🔍 getDaySlotData: date=${dateStr}, period=${periodNumber}, classroom=${classroomId}`);
         const response = await fetch(`/planning/api/slot/${dateStr}/${periodNumber}?classroom_id=${classroomId}`);
         if (response.ok) {
-            return await response.json();
+            const data = await response.json();
+            console.log(`🔍 getDaySlotData response:`, data);
+            console.log(`🔍 group_id from API: ${data.slot?.group_id}`);
+            return data;
         }
         return { success: false };
     } catch (error) {
@@ -3516,7 +4717,9 @@ async function getDaySlotData(dateStr, periodNumber, classroomId) {
 }
 
 // Afficher le modal d'édition de créneau
-function showDaySlotEditModal(title, description) {
+function showDaySlotEditModal(title, description, groupId = null) {
+    // Stocker le group_id pour la présélection
+    currentEditingSlot.groupId = groupId;
     // Créer un modal d'édition simple
     const modalHtml = `
         <div class="day-edit-modal" id="dayEditModal">
@@ -3564,6 +4767,16 @@ function showDaySlotEditModal(title, description) {
                         <textarea id="daySlotDescription" class="form-control" rows="4"
                                   placeholder="Détails du cours, exercices prévus...">${description}</textarea>
                     </div>
+
+                    <!-- Section mémos pour modal annuel -->
+                    <div class="form-group" id="dayModalMemosSection" style="display: none; margin-top: 20px; padding: 15px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                        <label class="form-label" style="color: #92400E; font-weight: 600;">
+                            <i class="fas fa-sticky-note"></i> Mémos pour ce créneau
+                        </label>
+                        <div id="dayModalMemosList" style="margin-top: 10px;">
+                            <!-- Les mémos seront insérés ici par JavaScript -->
+                        </div>
+                    </div>
                 </div>
                 <div class="day-edit-footer">
                     <button class="btn btn-outline" onclick="closeDayEditModal()">Annuler</button>
@@ -3583,10 +4796,15 @@ function showDaySlotEditModal(title, description) {
     
     // Charger les groupes pour cette classe
     loadGroupsForDayModal(currentEditingSlot.classroomId);
-    
+
     // Afficher le modal
     setTimeout(() => {
         document.getElementById('dayEditModal').classList.add('show');
+
+        // Charger les mémos pour cette date/période
+        if (typeof loadMemosForModal === 'function') {
+            loadMemosForModal(currentEditingSlot.date, currentEditingSlot.basePeriod, 'dayModalMemosList', 'dayModalMemosSection');
+        }
     }, 10);
 }
 
@@ -3672,6 +4890,7 @@ async function saveDaySlot() {
             
             // Si une option de répétition est sélectionnée, appliquer le pattern
             if (shouldApplyPattern) {
+                console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${groupId}, classroomId=${currentEditingSlot.classroomId}`);
                 const patternResponse = await fetch('/planning/apply-group-pattern', {
                     method: 'POST',
                     headers: {
@@ -3806,22 +5025,22 @@ async function loadGroupsForClass(classroomId) {
 async function loadGroupsForDayModal(classroomId) {
     const groupDiv = document.getElementById('dayGroupSelectionDiv');
     const groupSelect = document.getElementById('dayModalGroup');
-    
+
     if (!classroomId) {
         groupDiv.style.display = 'none';
         return;
     }
-    
+
     try {
         // Extraire l'ID numérique si classroomId contient un préfixe
         const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
         const response = await fetch(`/planning/get-groups/${numericId}`);
         const data = await response.json();
-        
+
         if (data.success && data.groups.length > 0) {
             // Réinitialiser les options
             groupSelect.innerHTML = '<option value="">Classe entière</option>';
-            
+
             // Ajouter les groupes
             data.groups.forEach(group => {
                 const option = document.createElement('option');
@@ -3830,7 +5049,14 @@ async function loadGroupsForDayModal(classroomId) {
                 option.style.color = group.color;
                 groupSelect.appendChild(option);
             });
-            
+
+            // Présélectionner le groupe si un group_id existe
+            console.log(`🎯 Pre-selecting group: groupId=${currentEditingSlot?.groupId}`);
+            if (currentEditingSlot && currentEditingSlot.groupId) {
+                groupSelect.value = currentEditingSlot.groupId;
+                console.log(`🎯 Group select value after setting: ${groupSelect.value}`);
+            }
+
             groupDiv.style.display = 'block';
         } else {
             groupDiv.style.display = 'none';
@@ -3899,31 +5125,39 @@ async function loadDayClassFiles(classroomId) {
     const fileNavigation = document.getElementById('dayFileNavigation');
     const fileTree = document.getElementById('dayFileTree');
     const noFiles = document.getElementById('dayNoFiles');
-    
+    const pinnedResources = document.getElementById('dayPinnedResources');
+
     console.log('Chargement des fichiers pour la classe:', classroomId);
-    
+
     // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
     const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
-    
+
     // Afficher le chargement
     fileLoading.style.display = 'block';
     fileNavigation.style.display = 'none';
     fileTree.style.display = 'none';
     noFiles.style.display = 'none';
-    
+    pinnedResources.style.display = 'none';
+
     try {
         const response = await fetch(`/planning/get-class-resources/${numericId}`);
         console.log('Réponse API:', response);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Données reçues:', data);
-        
+
         fileLoading.style.display = 'none';
-        
+
+        // Afficher les fichiers épinglés s'il y en a
+        if (data.success && data.pinned_files && data.pinned_files.length > 0) {
+            renderDayPinnedFiles(data.pinned_files);
+            pinnedResources.style.display = 'block';
+        }
+
         if (data.success && data.files && data.files.length > 0) {
             allDayClassFiles = data.files;
             fileNavigation.style.display = 'block';
@@ -3937,6 +5171,73 @@ async function loadDayClassFiles(classroomId) {
         console.error('Erreur lors du chargement des fichiers:', error);
         fileLoading.style.display = 'none';
         noFiles.style.display = 'block';
+    }
+}
+
+// Afficher les fichiers épinglés pour la vue journalière
+function renderDayPinnedFiles(pinnedFiles) {
+    const pinnedList = document.getElementById('dayPinnedList');
+    if (!pinnedList) return;
+
+    pinnedList.innerHTML = pinnedFiles.map(file => {
+        const icon = getFileIconByType(file.file_type);
+        return `
+            <div class="file-item pinned" data-file-id="${file.id}">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                    <span class="file-size">${formatFileSize(file.file_size)}</span>
+                </div>
+                <div class="file-actions">
+                    <button class="file-action-btn pinned"
+                            onclick="toggleDayPinFile(${file.id})"
+                            title="Désépingler">
+                        <i class="fas fa-thumbtack"></i>
+                    </button>
+                    <button class="file-action-btn"
+                            onclick="openDayPdfInViewer(${file.id}, '${file.original_filename}')"
+                            title="Ouvrir">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Épingler/désépingler un fichier pour la vue journalière
+async function toggleDayPinFile(fileId) {
+    console.log('🔧 toggleDayPinFile appelé avec fileId:', fileId);
+    try {
+        const response = await fetch('/planning/toggle-pin-resource', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                file_id: fileId
+            })
+        });
+
+        const result = await response.json();
+        console.log('✅ Résultat de l\'épinglage (day):', result);
+
+        if (result.success) {
+            // Recharger les fichiers pour mettre à jour l'affichage
+            const dayModalClassroom = document.getElementById('dayModalClassroom');
+            if (dayModalClassroom && dayModalClassroom.value) {
+                console.log('🔄 Rechargement des fichiers (day) pour la classe:', dayModalClassroom.value);
+                await loadDayClassFiles(dayModalClassroom.value);
+            } else {
+                console.warn('⚠️ dayModalClassroom non trouvé ou sans valeur');
+            }
+        } else {
+            console.error('❌ Erreur:', result.message);
+            alert('Erreur lors de l\'épinglage: ' + result.message);
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors de l\'épinglage:', error);
+        alert('Erreur lors de l\'épinglage du fichier');
     }
 }
 
@@ -4032,22 +5333,34 @@ function renderDayFileTree(files, currentPath = '') {
     currentLevelFiles.forEach(file => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
-        
+
         const icon = getFileIconByType(file.file_type);
-        
+
         fileItem.innerHTML = `
-            <i class="${icon} file-icon"></i>
-            <span class="file-name">${file.original_filename}</span>
+            <div class="file-clickable-area" style="display: flex; align-items: center; flex: 1; cursor: pointer;">
+                <i class="${icon} file-icon"></i>
+                <div class="file-info">
+                    <span class="file-name">${file.original_filename}</span>
+                </div>
+            </div>
+            <div class="file-actions">
+                <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
+                        onclick="event.stopPropagation(); toggleDayPinFile(${file.id})"
+                        title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+            </div>
         `;
-        
+
         if (file.file_type === 'pdf') {
             console.log('📄 Création du gestionnaire de clic pour le PDF:', file.original_filename, 'ID:', file.id);
-            fileItem.onclick = () => {
+            const clickableArea = fileItem.querySelector('.file-clickable-area');
+            clickableArea.onclick = () => {
                 console.log('🖱️ Clic sur le fichier PDF:', file.original_filename);
                 openDayPdfInViewer(file.id, file.original_filename);
             };
         }
-        
+
         fileTree.appendChild(fileItem);
     });
     
@@ -4105,152 +5418,89 @@ function updateDayBreadcrumb(path) {
     }
 }
 
-// Ouvrir un PDF dans le lecteur intégré en mode split pour la vue journalière
+// Ouvrir un PDF avec le nouveau lecteur CleanPDFViewer pour la vue journalière (modal)
 async function openDayPdfInViewer(fileId, fileName) {
-    console.log('📄 Ouverture du PDF avec lecteur unifié en mode split journalier:', fileName);
-    console.log('📍 FileId:', fileId, 'FileName:', fileName);
-    
+    console.log('📄 Ouverture du PDF journalier avec CleanPDFViewer:', fileName);
+
     try {
-        // Approche alternative : créer un nouveau conteneur directement dans le body
+        // Créer un conteneur dédié pour la vue journalière si nécessaire
         let container = document.getElementById('pdf-viewer-container-day');
-        if (container) {
-            document.body.removeChild(container);
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'pdf-viewer-container-day';
+            container.style.cssText = `
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 50%;
+                height: 100vh;
+                z-index: 15000;
+                background: #F8FAFC;
+                box-shadow: -4px 0 12px rgba(0,0,0,0.1);
+                display: none;
+            `;
+            document.body.appendChild(container);
         }
-        
-        container = document.createElement('div');
-        container.id = 'pdf-viewer-container-day';
-        container.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            width: 50vw !important;
-            height: 100vh !important;
-            z-index: 15000 !important;
-            background: #F8FAFC !important;
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1) !important;
-        `;
-        
-        document.body.appendChild(container);
-        console.log('✅ Nouveau conteneur créé dans le body');
-        
-        // Vérifier les dimensions après ajout au body
-        console.log('🔍 Debug nouveau conteneur:', {
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-            visible: container.offsetParent !== null
-        });
-        
-        // Déterminer quelle classe utiliser pour l'envoi de fichiers selon le contexte journalier
-        let currentClassId = getDayViewSelectedClassId();
-        
-        // Récupérer les étudiants de la classe actuelle
-        const studentsData = await getStudentsForClass(currentClassId);
-        
-        // Configuration pour le mode split sans suivi d'élèves
-        const options = {
-            mode: 'split',
-            enableStudentTracking: false, // Désactiver le bouton de suivi d'élèves
-            enableSendToStudents: true,   // Activer l'envoi aux élèves
-            currentClassId: currentClassId,
-            studentData: studentsData,
-            autoSave: true,
-            saveDelay: 3000,
-            apiEndpoints: {
-                saveAnnotations: '/file_manager/api/save-annotations',
-                loadAnnotations: '/file_manager/api/load-annotations',
-                search: '/api/search-pdf'
-            }
-        };
-        
+
+        // Afficher le conteneur
+        container.style.display = 'block';
+
         // Détruire l'instance précédente si elle existe
-        if (window.currentPdfViewer) {
-            window.currentPdfViewer.destroy();
+        if (window.cleanPDFViewerDay) {
+            window.cleanPDFViewerDay.destroy();
+            window.cleanPDFViewerDay = null;
         }
-        
-        // Créer la nouvelle instance avec le nouveau conteneur
-        window.currentPdfViewer = new UnifiedPDFViewer('pdf-viewer-container-day', options);
-        
-        // Attendre que le DOM se mette à jour
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Vérifier et forcer tous les styles de visibilité
-        const computedStyle = window.getComputedStyle(container);
-        console.log('🔍 Debug conteneur principal avant correction:', {
-            containerDisplay: container.style.display,
-            containerWidth: container.offsetWidth,
-            containerHeight: container.offsetHeight,
-            containerVisible: container.offsetParent !== null,
-            computedDisplay: computedStyle.display,
-            computedVisibility: computedStyle.visibility,
-            computedOpacity: computedStyle.opacity
-        });
-        
-        // Forcer absolument la visibilité
-        container.style.display = 'block !important';
-        container.style.visibility = 'visible !important';
-        container.style.opacity = '1 !important';
-        container.style.zIndex = '11000';
-        
-        // Re-check après forçage
-        setTimeout(() => {
-            console.log('🔍 Debug conteneur après forçage:', {
-                containerWidth: container.offsetWidth,
-                containerHeight: container.offsetHeight,
-                containerVisible: container.offsetParent !== null
-            });
-        }, 50);
-        
-        // Forcer les dimensions des conteneurs internes
-        const pdfViewerArea = container.querySelector('.pdf-viewer-area');
-        const pdfMain = container.querySelector('.pdf-main');
-        const unifiedViewer = container.querySelector('.unified-pdf-viewer');
-        
-        if (unifiedViewer) {
-            console.log('🔍 Debug unified-pdf-viewer:', {
-                width: unifiedViewer.offsetWidth,
-                height: unifiedViewer.offsetHeight,
-                computedStyle: window.getComputedStyle(unifiedViewer).display
-            });
-        }
-        
-        if (pdfViewerArea) {
-            pdfViewerArea.style.width = '100%';
-            pdfViewerArea.style.height = '100%';
-            pdfViewerArea.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-viewer-area:', {
-                width: pdfViewerArea.offsetWidth,
-                height: pdfViewerArea.offsetHeight
-            });
-        }
-        if (pdfMain) {
-            pdfMain.style.width = '100%';
-            pdfMain.style.height = '100%';
-            pdfMain.style.display = 'flex';
-            console.log('🔧 Dimensions forcées pour pdf-main:', {
-                width: pdfMain.offsetWidth,
-                height: pdfMain.offsetHeight
-            });
-        }
-        
-        // Charger le PDF avec fileId pour la sauvegarde  
+
+        // Vider le conteneur
+        container.innerHTML = '';
+
+        // Préparer l'URL du PDF
         const pdfUrl = `/file_manager/serve_file/${fileId}`;
-        console.log('📎 URL du PDF:', pdfUrl);
-        await window.currentPdfViewer.loadPDF(pdfUrl, fileId);
-        
-        // Forcer le recalcul des dimensions après le chargement
-        setTimeout(() => {
-            if (window.currentPdfViewer && window.currentPdfViewer.handleToolbarResize) {
-                console.log('🔧 Recalcul forcé des dimensions de la toolbar');
-                window.currentPdfViewer.handleToolbarResize();
+
+        // Récupérer les étudiants de la classe actuelle si disponible
+        let studentsData = [];
+        try {
+            const currentClassId = getDayViewSelectedClassId();
+            if (currentClassId) {
+                studentsData = await getStudentsForClass(currentClassId);
             }
-        }, 200);
-        
-        console.log('✅ PDF chargé avec succès');
+        } catch (error) {
+            console.warn('⚠️ Impossible de récupérer les étudiants:', error);
+        }
+
+        // Créer l'instance du nouveau lecteur clean pour la vue journalière
+        window.cleanPDFViewerDay = new CleanPDFViewer('pdf-viewer-container-day', {
+            fileId: fileId,
+            pdfUrl: pdfUrl,
+            showSidebar: true,
+            enableAnnotations: true,
+            autoSaveInterval: 5000,
+            annotationOffsetY: -10, // Décaler les annotations légèrement vers le haut
+            annotationScaleMultiplier: 1.05, // Augmenter le zoom des annotations de 5%
+            studentData: studentsData,
+            onClose: () => {
+                container.style.display = 'none';
+                window.cleanPDFViewerDay = null;
+            }
+        });
+
+        // Définir le zoom initial à 50% après chargement du PDF
+        if (window.cleanPDFViewerDay) {
+            // Attendre que le PDF soit chargé pour ajuster le zoom
+            setTimeout(() => {
+                if (window.cleanPDFViewerDay && window.cleanPDFViewerDay.scale) {
+                    window.cleanPDFViewerDay.scale = 0.6; // 60% pour meilleure lisibilité
+                    if (window.cleanPDFViewerDay.renderCurrentPage) {
+                        window.cleanPDFViewerDay.renderCurrentPage();
+                    }
+                }
+            }, 500);
+        }
+
+        console.log('✅ CleanPDFViewer journalier créé avec succès');
     } catch (error) {
-        console.error('❌ Erreur lors du chargement du PDF:', error);
+        console.error('❌ Erreur lors du chargement du PDF journalier:', error);
+        alert('Erreur lors du chargement du PDF: ' + error.message);
     }
 }
 
@@ -5017,11 +6267,11 @@ function toggleGroupRepeatOptions() {
 function toggleDayGroupRepeatOptions() {
     const groupSelect = document.getElementById('dayModalGroup');
     const repeatOptions = document.getElementById('dayGroupRepeatOptions');
-    
+
     if (groupSelect && repeatOptions) {
         const hasGroupSelected = groupSelect.value && groupSelect.value !== '';
         repeatOptions.style.display = hasGroupSelected ? 'block' : 'none';
-        
+
         // Réinitialiser les boutons radio quand on cache les options
         if (!hasGroupSelected) {
             const noneOption = document.querySelector('input[name="dayGroupRepeat"][value="none"]');
@@ -5032,5 +6282,764 @@ function toggleDayGroupRepeatOptions() {
     }
 }
 
+// Charger et afficher les mémos pour une date/période donnée
+async function loadMemosForModal(date, period, targetContainerId, targetSectionId) {
+    console.log('🔍 loadMemosForModal called with:', {date, period, targetContainerId, targetSectionId});
+    try {
+        const url = `/planning/get_lesson_memos_remarks?date=${date}&period=${period}`;
+        console.log('📡 Fetching memos from:', url);
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('📊 Received data:', data);
+
+        const container = document.getElementById(targetContainerId);
+        const section = document.getElementById(targetSectionId);
+
+        console.log('🎯 DOM elements:', {container: !!container, section: !!section});
+
+        if (!container || !section) {
+            console.error('❌ Container or section not found!');
+            return;
+        }
+
+        if (data.success && data.memos && data.memos.length > 0) {
+            console.log('✅ Found', data.memos.length, 'memos');
+            let html = '';
+            data.memos.forEach(memo => {
+                const dateStr = memo.target_date ? new Date(memo.target_date).toLocaleDateString('fr-FR') : 'Non défini';
+                html += `
+                    <div style="background-color: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #F59E0B;">
+                        <div style="font-size: 0.75rem; color: #92400E; font-weight: 600; margin-bottom: 4px;">
+                            📅 ${dateStr}
+                        </div>
+                        <div style="color: #1F2937;">${escapeHtml(memo.content)}</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            section.style.display = 'block';
+            console.log('✅ Memos displayed successfully');
+        } else {
+            console.log('ℹ️ No memos found or empty response');
+            section.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des mémos:', error);
+    }
+}
+
+// Fonction helper pour échapper le HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Fonction pour formater une date ISO en format lisible
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+
+// ============ GESTION DES PRÉSENCES POUR PÉRIODES PASSÉES ============
+
+/**
+ * Charge les feuilles blanches pour une période
+ */
+async function loadBlankSheetsForPeriod(date, periodNumber, classroomId) {
+    console.log('📄 loadBlankSheetsForPeriod appelée - date:', date, 'période:', periodNumber, 'classe:', classroomId);
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        console.log('📋 loadBlankSheetsForPeriod: Données reçues:', data);
+
+        const blankSheetsList = document.getElementById('blankSheetsList');
+        const noBlankSheetsMessage = document.getElementById('noBlankSheetsMessage');
+        const blankSheetsCount = document.getElementById('blankSheetsCount');
+
+        console.log('🔍 Éléments DOM trouvés:', {
+            blankSheetsList: !!blankSheetsList,
+            noBlankSheetsMessage: !!noBlankSheetsMessage,
+            blankSheetsCount: !!blankSheetsCount
+        });
+
+        if (data.success && data.sheets && data.sheets.length > 0) {
+            console.log('✅ loadBlankSheetsForPeriod: Affichage de', data.sheets.length, 'feuilles blanches');
+            // Afficher les feuilles blanches
+            blankSheetsList.innerHTML = '';
+            data.sheets.forEach(sheet => {
+                const sheetItem = document.createElement('div');
+                sheetItem.className = 'blank-sheet-item';
+                sheetItem.style.cssText = 'padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f59e0b; cursor: pointer;';
+                sheetItem.innerHTML = `
+                    <div onclick="openBlankSheetFromModal(${sheet.id})" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; cursor: pointer;">
+                        <i class="fas fa-file" style="color: #f59e0b;"></i>
+                        <div>
+                            <div style="font-weight: 500; color: #78350f;">${sheet.title}</div>
+                            <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); openBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Ouvrir">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #dc2626; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                blankSheetsList.appendChild(sheetItem);
+            });
+
+            blankSheetsList.style.display = 'grid';
+            noBlankSheetsMessage.style.display = 'none';
+            blankSheetsCount.textContent = data.sheets.length;
+            console.log('✅ loadBlankSheetsForPeriod: Liste affichée avec', data.sheets.length, 'feuilles');
+        } else {
+            // Aucune feuille blanche
+            console.log('ℹ️ loadBlankSheetsForPeriod: Aucune feuille blanche, affichage du message');
+            blankSheetsList.style.display = 'none';
+            noBlankSheetsMessage.style.display = 'block';
+            blankSheetsCount.textContent = '0';
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des feuilles blanches:', error);
+    }
+}
+
+/**
+ * Crée une nouvelle feuille blanche depuis le modal de période
+ */
+function createNewBlankSheetFromModal() {
+    if (!window.currentAttendanceContext) {
+        alert('Contexte de période non disponible');
+        return;
+    }
+
+    const { date, periodNumber, classroomId } = window.currentAttendanceContext;
+
+    // Fermer le modal de période
+    closeAttendanceModal();
+
+    // Ouvrir le viewer avec une nouvelle feuille blanche
+    openNewBlankSheetCalendar(date, periodNumber, classroomId);
+}
+
+/**
+ * Ouvre une feuille blanche existante depuis le modal
+ */
+async function openBlankSheetFromModal(sheetId) {
+    console.log('📄 Ouverture feuille blanche depuis modal:', sheetId);
+
+    // Fermer le modal de période
+    closeAttendanceModal();
+
+    // Ouvrir la feuille blanche existante
+    openExistingBlankSheetCalendar(sheetId);
+}
+
+/**
+ * Supprime une feuille blanche depuis le modal
+ */
+async function deleteBlankSheetFromModal(sheetId) {
+    console.log('🗑️ Suppression feuille blanche:', sheetId);
+
+    // Confirmer la suppression
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette feuille blanche ? Cette action est irréversible.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/${sheetId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Feuille blanche supprimée');
+            // Recharger la liste des feuilles blanches selon le contexte
+            if (window.currentPlanningContext) {
+                // Dans le modal de planification (périodes futures)
+                const { date, periodNumber, classroomId } = window.currentPlanningContext;
+                await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+            } else if (window.currentAttendanceContext) {
+                // Dans le modal d'attendance (périodes passées)
+                const { date, periodNumber, classroomId } = window.currentAttendanceContext;
+                await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
+            }
+        } else {
+            alert('Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la feuille blanche:', error);
+        alert('Erreur lors de la suppression de la feuille blanche');
+    }
+}
+
+function closeAttendanceModal() {
+    const modal = document.getElementById('attendanceModal');
+    const overlay = document.getElementById('modalOverlay');
+    modal.style.display = 'none';
+    overlay.style.display = 'none';
+}
+
+/**
+ * Ouvre le gestionnaire de fichiers depuis le modal d'attendance
+ */
+/**
+ * Charge les feuilles blanches pour le planningModal
+ */
+async function loadBlankSheetsForPlanningModal(date, periodNumber, classroomId) {
+    console.log('📄 loadBlankSheetsForPlanningModal - date:', date, 'période:', periodNumber);
+
+    try {
+        const response = await fetch(`/planning/api/blank-sheets/list?date=${date}&period=${periodNumber}&classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        const blankSheetsList = document.getElementById('modalBlankSheetsList');
+        const blankSheetsCount = document.getElementById('modalBlankSheetsCount');
+        const blankSheetsSection = document.getElementById('modalBlankSheetsSection');
+
+        if (data.success && data.sheets && data.sheets.length > 0) {
+            console.log('✅ Affichage de', data.sheets.length, 'feuilles blanches dans planningModal');
+            blankSheetsList.innerHTML = '';
+            blankSheetsCount.textContent = data.sheets.length;
+
+            data.sheets.forEach(sheet => {
+                const sheetItem = document.createElement('div');
+                sheetItem.className = 'blank-sheet-item';
+                sheetItem.style.cssText = 'padding: 0.75rem 1rem; background: #fef3c7; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f59e0b; cursor: pointer;';
+                sheetItem.innerHTML = `
+                    <div onclick="openBlankSheetFromModal(${sheet.id})" style="display: flex; align-items: center; gap: 0.75rem; flex: 1; cursor: pointer;">
+                        <i class="fas fa-file" style="color: #f59e0b;"></i>
+                        <div>
+                            <div style="font-weight: 500; color: #78350f;">${sheet.title}</div>
+                            <div style="font-size: 0.875rem; color: #92400e;">${formatDateTime(sheet.created_at)}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm" onclick="event.stopPropagation(); deleteBlankSheetFromModal(${sheet.id})" style="padding: 0.25rem 0.5rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer;" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                blankSheetsList.appendChild(sheetItem);
+            });
+
+            blankSheetsSection.style.display = 'block';
+        } else {
+            console.log('ℹ️ Aucune feuille blanche pour cette période');
+            blankSheetsCount.textContent = '0';
+            blankSheetsList.innerHTML = '';
+            blankSheetsSection.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('❌ Erreur lors du chargement des feuilles blanches:', error);
+    }
+}
+
+/**
+ * Crée une nouvelle feuille blanche depuis le planningModal
+ */
+function createNewBlankSheetFromPlanningModal() {
+    if (!window.currentPlanningContext) {
+        alert('Contexte de période non disponible');
+        return;
+    }
+
+    const { date, periodNumber, classroomId } = window.currentPlanningContext;
+    openNewBlankSheetCalendar(date, periodNumber, classroomId);
+}
+
+/**
+ * Ouvre le modal de planification pour une période spécifique (périodes futures)
+ */
+async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
+    console.log('📝 Ouverture modal planification pour période:', {date, periodNumber, classroomId});
+
+    const modal = document.getElementById('planningModal');
+    const overlay = document.getElementById('modalOverlay');
+    const modalTitleElem = document.getElementById('modalTitle');
+
+    // Mettre à jour le titre
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    modalTitleElem.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+
+    // Stocker le contexte pour la sauvegarde
+    window.currentPlanningContext = {
+        date: date,
+        periodNumber: periodNumber,
+        classroomId: classroomId,
+        isMixedGroup: isMixedGroup
+    };
+
+    // Pré-sélectionner la classe
+    const classroomSelect = document.getElementById('modalClassroom');
+    const classroomValue = isMixedGroup ? `mixed_group_${classroomId}` : `classroom_${classroomId}`;
+    classroomSelect.value = classroomValue;
+
+    // Charger la planification existante si elle existe (avant de charger les groupes)
+    let existingGroupId = null;
+    try {
+        const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
+        const data = await response.json();
+
+        if (data.success && data.slot) {
+            // Pré-remplir les champs avec la planification existante
+            document.getElementById('modalPlanningTitle').value = data.slot.title || '';
+            document.getElementById('modalDescription').value = data.slot.description || '';
+            existingGroupId = data.slot.group_id;
+
+            console.log('📄 Planification chargée:', {
+                title: data.slot.title,
+                description: data.slot.description,
+                has_planning: data.slot.has_planning,
+                group_id: data.slot.group_id
+            });
+        } else {
+            // Vider les champs pour une nouvelle planification
+            document.getElementById('modalPlanningTitle').value = '';
+            document.getElementById('modalDescription').value = '';
+        }
+    } catch (error) {
+        console.warn('Erreur lors du chargement de la planification:', error);
+        // Vider les champs en cas d'erreur
+        document.getElementById('modalPlanningTitle').value = '';
+        document.getElementById('modalDescription').value = '';
+    }
+
+    // Charger les groupes si c'est une classe normale
+    if (!isMixedGroup) {
+        await loadGroupsForClass(classroomValue);
+
+        // Pré-sélectionner le groupe si un group_id existe
+        if (existingGroupId) {
+            const groupSelect = document.getElementById('modalGroup');
+            if (groupSelect) {
+                groupSelect.value = existingGroupId;
+                console.log(`🎯 Groupe pré-sélectionné: ${existingGroupId}`);
+                // Afficher les options de répétition si un groupe est sélectionné
+                toggleGroupRepeatOptions();
+            }
+        }
+    }
+
+    // Charger les feuilles blanches pour cette période
+    await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
+
+    // Afficher le modal
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+}
+
+/**
+ * Ferme le modal de planification (surcharge la fonction de planning.js)
+ */
+function closePlanningModal() {
+    const modal = document.getElementById('planningModal');
+    const overlay = document.getElementById('modalOverlay');
+
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+    }
+
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+
+    // Nettoyer le contexte
+    window.currentPlanningContext = null;
+    currentPlanningCell = null;
+}
+
+/**
+ * Sauvegarde la planification (surcharge la fonction de planning.js pour gérer les périodes)
+ */
+async function savePlanning() {
+    // Si on a un contexte de période (modal ouvert via showPeriodAttendance), utiliser ce contexte
+    if (window.currentPlanningContext) {
+        const { date, periodNumber, classroomId, isMixedGroup } = window.currentPlanningContext;
+        const classroomSelectValue = document.getElementById('modalClassroom').value;
+        const title = document.getElementById('modalPlanningTitle').value;
+        const description = document.getElementById('modalDescription').value;
+        const groupId = document.getElementById('modalGroup') ? document.getElementById('modalGroup').value : null;
+
+        // Extraire l'ID numérique de la classe depuis 'classroom_2' -> 2
+        let finalClassroomId = null;
+        if (classroomSelectValue && classroomSelectValue.startsWith('classroom_')) {
+            finalClassroomId = parseInt(classroomSelectValue.replace('classroom_', ''));
+        } else if (classroomSelectValue && !isNaN(classroomSelectValue)) {
+            finalClassroomId = parseInt(classroomSelectValue);
+        }
+
+        // Convertir periodNumber en entier
+        const finalPeriodNumber = parseInt(periodNumber);
+
+        // Convertir groupId en entier ou null
+        let finalGroupId = null;
+        if (groupId && !isNaN(groupId)) {
+            finalGroupId = parseInt(groupId);
+        }
+
+        // Vérifier les options de répétition des groupes
+        const groupRepeatOption = document.querySelector('input[name="groupRepeat"]:checked');
+        const shouldApplyPattern = groupRepeatOption && groupRepeatOption.value !== 'none' && finalGroupId;
+
+        console.log('💾 Sauvegarde planification période:', {date, periodNumber: finalPeriodNumber, classroomSelectValue, finalClassroomId, title, groupId: finalGroupId, pattern: groupRepeatOption?.value});
+
+        try {
+            const response = await fetch('/planning/save_planning', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date: date,
+                    period_number: finalPeriodNumber,
+                    classroom_id: finalClassroomId,
+                    title: title,
+                    description: description,
+                    group_id: finalGroupId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ Planification sauvegardée avec succès');
+
+                // Si une option de répétition est sélectionnée, appliquer le pattern
+                if (shouldApplyPattern) {
+                    console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${finalGroupId}, classroomId=${finalClassroomId}`);
+                    const patternResponse = await fetch('/planning/apply-group-pattern', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            start_date: date,
+                            period_number: finalPeriodNumber,
+                            classroom_id: finalClassroomId,
+                            pattern_type: groupRepeatOption.value,
+                            group_id: finalGroupId
+                        })
+                    });
+
+                    const patternResult = await patternResponse.json();
+
+                    if (patternResult.success) {
+                        console.log(`✅ Pattern appliqué: ${patternResult.message}`);
+                    } else {
+                        console.log(`⚠️ Erreur lors de l'application du pattern: ${patternResult.message}`);
+                    }
+                }
+
+                closePlanningModal();
+                // Recharger la page pour afficher la mise à jour
+                location.reload();
+            } else {
+                alert('Erreur lors de la sauvegarde: ' + (data.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
+            alert('Erreur de connexion au serveur');
+        }
+        return;
+    }
+
+    // Sinon, utiliser la logique pour les cases vides (ouvertes via planning.js)
+    if (!currentPlanningCell) {
+        console.error('Pas de cellule de planification sélectionnée');
+        return;
+    }
+
+    // Récupérer les données depuis la cellule et le modal
+    const date = currentPlanningCell.dataset.date;
+    const period = currentPlanningCell.dataset.period;
+    const classroomSelectValue = document.getElementById('modalClassroom').value;
+    const title = document.getElementById('modalPlanningTitle').value;
+    const descriptionElem = document.getElementById('modalDescription');
+    const description = descriptionElem ? descriptionElem.value : '';
+    const groupSelect = document.getElementById('modalGroup');
+    const groupId = groupSelect ? groupSelect.value : null;
+
+    // Extraire le numéro de période de base (pour "3-4", prendre "3")
+    const basePeriod = period.includes('-') ? period.split('-')[0] : period;
+
+    // Extraire l'ID de classe
+    let finalClassroomId = null;
+    if (classroomSelectValue && classroomSelectValue.startsWith('classroom_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('classroom_', ''));
+    } else if (classroomSelectValue && classroomSelectValue.startsWith('mixed_group_')) {
+        finalClassroomId = parseInt(classroomSelectValue.replace('mixed_group_', ''));
+    } else if (classroomSelectValue && classroomSelectValue !== 'custom_task' && !isNaN(classroomSelectValue)) {
+        finalClassroomId = parseInt(classroomSelectValue);
+    }
+
+    // Convertir groupId en entier ou null
+    let finalGroupId = null;
+    if (groupId && !isNaN(groupId)) {
+        finalGroupId = parseInt(groupId);
+    }
+
+    console.log('💾 Sauvegarde planification (case vide):', {
+        date,
+        period: basePeriod,
+        classroomId: finalClassroomId,
+        title,
+        groupId: finalGroupId
+    });
+
+    try {
+        const response = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                date: date,
+                period_number: parseInt(basePeriod),
+                classroom_id: finalClassroomId,
+                title: title,
+                description: description,
+                group_id: finalGroupId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Planification sauvegardée avec succès');
+            closePlanningModal();
+            // Recharger la page pour afficher la mise à jour
+            location.reload();
+        } else {
+            alert('Erreur lors de la sauvegarde: ' + (data.error || data.message || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur de connexion au serveur');
+    }
+}
+
+/**
+ * Affiche le modal de présences pour les périodes passées OU le modal de planification pour les périodes futures
+ */
+async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGroup, periodTitle) {
+    // Vérifier si la période est dans le passé
+    const periodDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPastPeriod = periodDate <= today;
+
+    // Pour les périodes futures, ouvrir le modal de planification
+    if (!isPastPeriod) {
+        await openPeriodPlanningModal(date, periodNumber, classroomId, isMixedGroup, periodTitle);
+        return;
+    }
+
+    // Pour les périodes passées, afficher le modal de présences
+    const modal = document.getElementById('attendanceModal');
+    const overlay = document.getElementById('modalOverlay');
+    const modalTitle = document.getElementById('attendanceModalTitle');
+
+    // Mettre à jour le titre
+    const dateObj = new Date(date);
+    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    modalTitle.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
+
+    // Stocker les informations pour les feuilles blanches
+    window.currentAttendanceContext = {
+        date: date,
+        periodNumber: periodNumber,
+        classroomId: classroomId
+    };
+
+    // Afficher le modal avec l'état de chargement
+    document.getElementById('attendanceLoadingState').style.display = 'block';
+    document.getElementById('attendanceContent').style.display = 'none';
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+
+    // Note: isPastPeriod est déjà vérifié au début de la fonction (ligne 6528)
+    // On est ici seulement pour les périodes passées
+
+    try {
+        // Charger les feuilles blanches (toujours)
+        await loadBlankSheetsForPeriod(date, periodNumber, classroomId);
+
+        // Charger les données (présences + planification) - toujours appeler pour avoir la planification
+        const response = await fetch(
+            `/planning/get_period_attendance?date=${date}&period=${periodNumber}&classroom_id=${classroomId}&is_mixed_group=${isMixedGroup}`
+        );
+        const data = await response.json();
+
+        // Masquer l'état de chargement
+        document.getElementById('attendanceLoadingState').style.display = 'none';
+        document.getElementById('attendanceContent').style.display = 'block';
+
+        // Masquer tous les messages d'abord
+        document.getElementById('planningSection').style.display = 'none';
+        document.getElementById('completedTasksSection').style.display = 'none';
+        document.getElementById('incompleteTasksSection').style.display = 'none';
+        document.getElementById('absentStudentsSection').style.display = 'none';
+        document.getElementById('lateStudentsSection').style.display = 'none';
+        document.getElementById('allPresentMessage').style.display = 'none';
+        document.getElementById('attendanceErrorMessage').style.display = 'none';
+
+        if (!data || !data.success) {
+            showAttendanceError(data?.error || 'Erreur lors du chargement des présences');
+            return;
+        }
+
+        // Filtrer les élèves par statut
+        const absentStudents = data.students.filter(s => s.status === 'absent');
+        const lateStudents = data.students.filter(s => s.status === 'late');
+
+        // Afficher la planification si elle existe
+        if (data.planning) {
+            const planning = data.planning;
+
+            // Afficher la planification générale (titre + description sans checklist)
+            if (planning.title || (planning.description && !planning.has_checklist)) {
+                document.getElementById('planningTitle').textContent = planning.title || '';
+                // Si description sans checklist, l'afficher
+                if (!planning.has_checklist) {
+                    document.getElementById('planningDescription').textContent = planning.description || '';
+                } else {
+                    document.getElementById('planningDescription').textContent = '';
+                }
+                document.getElementById('planningSection').style.display = 'block';
+            }
+
+            // Afficher les tâches (checklist items)
+            if (planning.has_checklist && planning.checklist_items) {
+                const completedTasks = planning.checklist_items.filter(item => item.checked);
+                const incompleteTasks = planning.checklist_items.filter(item => !item.checked);
+
+                // Tâches complétées
+                if (completedTasks.length > 0) {
+                    document.getElementById('completedCount').textContent = completedTasks.length;
+                    const completedList = document.getElementById('completedTasksList');
+                    completedList.innerHTML = '';
+
+                    completedTasks.forEach(task => {
+                        const item = document.createElement('div');
+                        item.className = 'task-item completed';
+                        item.innerHTML = `
+                            <span class="task-checkbox completed">
+                                <i class="fas fa-check-square"></i>
+                            </span>
+                            <span class="task-content">${task.content}</span>
+                        `;
+                        completedList.appendChild(item);
+                    });
+
+                    document.getElementById('completedTasksSection').style.display = 'block';
+                }
+
+                // Tâches non complétées
+                if (incompleteTasks.length > 0) {
+                    document.getElementById('incompleteCount').textContent = incompleteTasks.length;
+                    const incompleteList = document.getElementById('incompleteTasksList');
+                    incompleteList.innerHTML = '';
+
+                    incompleteTasks.forEach(task => {
+                        const item = document.createElement('div');
+                        item.className = 'task-item incomplete';
+                        item.innerHTML = `
+                            <span class="task-checkbox incomplete">
+                                <i class="far fa-square"></i>
+                            </span>
+                            <span class="task-content">${task.content}</span>
+                        `;
+                        incompleteList.appendChild(item);
+                    });
+
+                    document.getElementById('incompleteTasksSection').style.display = 'block';
+                }
+            }
+        }
+
+        // Afficher les présences (on est toujours sur une période passée ici)
+        if (absentStudents.length === 0 && lateStudents.length === 0) {
+            // Tous présents
+            document.getElementById('allPresentMessage').style.display = 'block';
+        } else {
+            // Afficher les élèves absents
+            if (absentStudents.length > 0) {
+                document.getElementById('absentCount').textContent = absentStudents.length;
+                const absentList = document.getElementById('absentStudentsList');
+                absentList.innerHTML = '';
+
+                absentStudents.forEach(student => {
+                    const item = document.createElement('div');
+                    item.className = 'student-item absent';
+                    item.innerHTML = `
+                        <span class="student-name">${student.first_name} ${student.last_name}</span>
+                    `;
+                    absentList.appendChild(item);
+                });
+
+                document.getElementById('absentStudentsSection').style.display = 'block';
+            }
+
+            // Afficher les élèves en retard
+            if (lateStudents.length > 0) {
+                document.getElementById('lateCount').textContent = lateStudents.length;
+                const lateList = document.getElementById('lateStudentsList');
+                lateList.innerHTML = '';
+
+                lateStudents.forEach(student => {
+                    const item = document.createElement('div');
+                    item.className = 'student-item late';
+                    const lateText = student.late_minutes ? `${student.late_minutes} min` : 'En retard';
+                    item.innerHTML = `
+                        <span class="student-name">${student.first_name} ${student.last_name}</span>
+                        <span class="late-badge">${lateText}</span>
+                    `;
+                    lateList.appendChild(item);
+                });
+
+                document.getElementById('lateStudentsSection').style.display = 'block';
+            }
+        }
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des présences:', error);
+        showAttendanceError('Erreur de connexion au serveur');
+    }
+}
+
+function showAttendanceError(message) {
+    document.getElementById('attendanceLoadingState').style.display = 'none';
+    document.getElementById('attendanceContent').style.display = 'block';
+    document.getElementById('absentStudentsSection').style.display = 'none';
+    document.getElementById('lateStudentsSection').style.display = 'none';
+    document.getElementById('allPresentMessage').style.display = 'none';
+    document.getElementById('attendanceErrorMessage').style.display = 'block';
+    document.getElementById('attendanceErrorText').textContent = message;
+}
+
 </script>
+
+<!-- Nouveau lecteur PDF Clean -->
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.3&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+
 {% endblock %}

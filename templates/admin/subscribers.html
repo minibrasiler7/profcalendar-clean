@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Utilisateurs - Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="admin-header">
+        <h1><i class="fas fa-shield-alt"></i> Administration</h1>
+        <div class="admin-nav">
+            <a href="{{ url_for('admin.dashboard') }}" class="admin-tab">Tableau de bord</a>
+            <a href="{{ url_for('admin.vouchers') }}" class="admin-tab">Bons</a>
+            <a href="{{ url_for('admin.subscribers') }}" class="admin-tab active">Utilisateurs</a>
+        </div>
+    </div>
+
+    <!-- Utilisateurs Premium -->
+    <div class="admin-section">
+        <h2><i class="fas fa-crown"></i> Utilisateurs Premium ({{ premium_users|length }})</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Premium jusqu'au</th>
+                    <th>Inscrit le</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in premium_users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.premium_until.strftime('%d/%m/%Y') if user.premium_until else 'Illimité' }}</td>
+                    <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        <button class="btn-danger-sm" onclick="revokeAccess({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-ban"></i> Révoquer
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not premium_users %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #999; padding: 2rem;">
+                        Aucun utilisateur premium
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Tous les utilisateurs -->
+    <div class="admin-section">
+        <h2><i class="fas fa-users"></i> Tous les utilisateurs ({{ all_users|length }})</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Inscrit le</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in all_users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        {% if user.subscription_tier == 'premium' %}
+                        <span class="badge-active">Premium</span>
+                        {% else %}
+                        <span class="badge-free">Gratuit</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if user.subscription_tier != 'premium' %}
+                        <button class="btn-success-sm" onclick="grantAccess({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-crown"></i> Accorder Premium
+                        </button>
+                        {% else %}
+                        <button class="btn-danger-sm" onclick="revokeAccess({{ user.id }}, '{{ user.username }}')">
+                            <i class="fas fa-ban"></i> Révoquer
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function grantAccess(userId, username) {
+    const days = prompt('Nombre de jours de premium à accorder (vide = illimité) :', '365');
+    if (days === null) return;
+
+    try {
+        const response = await fetch('/admin/subscribers/' + userId + '/grant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ days: days || null })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Erreur: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+
+async function revokeAccess(userId, username) {
+    if (!confirm('Révoquer l\'accès premium de ' + username + ' ?')) return;
+
+    try {
+        const response = await fetch('/admin/subscribers/' + userId + '/revoke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert('Erreur: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+</script>
+{% endblock %}

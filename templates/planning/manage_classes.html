@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des classes - TeacherPlanner{% endblock %}
+{% block title %}Gestion des classes - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -1128,6 +1128,7 @@
     position: relative;
     min-height: 500px;
     overflow: hidden;
+    touch-action: none;
 }
 
 .students-sidebar {
@@ -1163,6 +1164,7 @@
     flex: 1;
     overflow-y: auto;
     max-height: 400px;
+    user-select: none;
 }
 
 .student-label {
@@ -1177,6 +1179,7 @@
     cursor: grab;
     transition: all 0.2s ease;
     user-select: none;
+    -webkit-user-select: none;
 }
 
 .student-label:hover {
@@ -1202,6 +1205,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Éléments du plan de classe */
@@ -1212,7 +1217,8 @@
     border-radius: 8px;
     cursor: grab;
     user-select: none;
-    transition: all 0.2s ease;
+    touch-action: none;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .seating-element:hover {
@@ -1224,6 +1230,7 @@
     opacity: 0.8;
     z-index: 1000;
     cursor: grabbing;
+    transition: none;
 }
 
 .desk-single {
@@ -1515,6 +1522,7 @@
     background-image: 
         radial-gradient(circle, #e9ecef 1px, transparent 1px);
     background-size: 20px 20px;
+    touch-action: none;
 }
 
 .toolbar-section {
@@ -1672,6 +1680,8 @@
     color: #2e7d32;
     font-size: 0.75rem;
     border-radius: 15px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .student-label.placed {
@@ -1693,126 +1703,7 @@
 }
 
 /* Styles d'impression */
-@media print {
-    @page {
-        size: landscape;
-        margin: 10mm;
-    }
-    
-    /* Styles pour l'impression - permettre plusieurs pages */
-    html, body {
-        width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        background: white !important;
-    }
-    
-    /* Règles spécifiques pour l'impression du plan de classe */
-    body.printing-seating-plan * {
-        visibility: hidden !important;
-    }
-    
-    /* Rendre visible seulement le workspace et son contenu pour le plan de classe */
-    body.printing-seating-plan .seating-workspace,
-    body.printing-seating-plan .seating-workspace *,
-    body.printing-seating-plan #print-title,
-    body.printing-seating-plan #print-title * {
-        visibility: visible !important;
-    }
-    
-    /* Masquer spécifiquement le message d'aide même s'il est dans le workspace */
-    body.printing-seating-plan #seating-help,
-    body.printing-seating-plan #seating-help * {
-        visibility: hidden !important;
-        display: none !important;
-    }
-    
-    /* Positionner le workspace - décalé vers la droite pour le plan de classe */
-    body.printing-seating-plan .seating-workspace {
-        position: fixed !important;
-        top: 0 !important;
-        left: 15% !important;
-        width: 80% !important;
-        height: 100% !important;
-        margin: 0 !important;
-        padding: 50px 20px 20px 20px !important;
-        border: none !important;
-        background: white !important;
-        background-image: none !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        display: block !important;
-        transform: none !important;
-    }
-    
-    /* Titre d'impression */
-    #print-title {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        text-align: center !important;
-        margin: 0 !important;
-        padding: 0 0 10px 0 !important;
-        z-index: 1000 !important;
-    }
-    
-    #print-title h2 {
-        color: #333 !important;
-        font-size: 1.2rem !important;
-        margin: 0 !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-    }
-    
-    /* Éléments du plan de classe - préserver leur position absolue */
-    .seating-element {
-        position: absolute !important;
-        border: 2px solid !important;
-        border-radius: 8px !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-    }
-    
-    /* Tables et slots */
-    .student-slot {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: 1px solid #999 !important;
-        border-radius: 4px !important;
-        background: rgba(255,255,255,0.9) !important;
-    }
-    
-    .student-slot.occupied {
-        background: #4caf50 !important;
-        border-color: #388e3c !important;
-    }
-    
-    /* Noms des étudiants */
-    .student-placed {
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        color: white !important;
-        text-align: center !important;
-        line-height: 1.2 !important;
-    }
-    
-    /* Masquer les boutons de suppression */
-    .remove-student {
-        display: none !important;
-    }
-    
-    /* Bureau du professeur */
-    .teacher-desk {
-        font-weight: 700 !important;
-        text-align: center !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-}
+/* L'impression du plan de classe utilise une fenêtre dédiée (voir printSeatingPlan()) */
 
 /* ===== STYLES POUR LES GROUPES ===== */
 .groups-container {
@@ -3144,6 +3035,15 @@
             <div class="header-title">
                 <h1><i class="fas fa-users"></i> Gestion des classes</h1>
             </div>
+            {% if is_specialized_teacher and master_teacher_name %}
+            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #1E40AF;">
+                <i class="fas fa-link"></i> Classe liée — Maître de classe : <strong>{{ master_teacher_name }}</strong>
+            </div>
+            {% elif linked_teachers_info %}
+            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: #166534;">
+                <i class="fas fa-users"></i> Enseignants liés à cette classe : <strong>{{ linked_teachers_info }}</strong>
+            </div>
+            {% endif %}
             <div class="class-selector">
                 <label for="classSelect">Classe :</label>
                 <select id="classSelect" onchange="changeClass(this.value)">
@@ -3211,7 +3111,10 @@
                 <div class="header-actions">
                     {% if not is_mixed_group_class and can_manage_access_codes %}
                     <button class="btn btn-secondary" onclick="generateClassCode()">
-                        <i class="fas fa-key"></i> Code d'accès pour élèves
+                        <i class="fas fa-key"></i> Code élèves
+                    </button>
+                    <button class="btn btn-secondary" onclick="showParentCode()">
+                        <i class="fas fa-users"></i> Code parents
                     </button>
                     {% endif %}
                     {% if not is_mixed_group_class %}
@@ -3752,13 +3655,47 @@
                 </div>
             </div>
             
+            {% set first_classroom = selected_group.classrooms[0] %}
+            {% set has_preferences = first_classroom.id in classroom_preferences %}
+            {% set user_is_master = is_class_master %}
+            {% set user_is_specialized = is_specialized_teacher %}
+
+            {# Afficher le mode d'affichage si : maître de classe existe ET (plusieurs disciplines OU utilisateur est maître) #}
+            {# Le maître de classe peut toujours centraliser, même avec une seule discipline #}
+            {% if (has_any_class_master|default(false) or user_is_master) and (selected_group.is_multi_subject or user_is_master) %}
             <div class="display-mode-selector">
                         <label class="form-label">Mode d'affichage :</label>
+                        {% if user_is_specialized and not user_is_master %}
+                        {# Enseignant spécialisé : affichage en lecture seule #}
+                        <div class="radio-group" style="opacity: 0.7; pointer-events: none;">
+                            <div class="radio-option">
+                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified"
+                                       {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'unified' %}checked{% endif %}
+                                       disabled>
+                                <label for="mode-unified">Tableau unifié (toutes disciplines)</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="mode-separated" name="sanctionDisplayMode" value="separated"
+                                       {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'separated' %}checked{% endif %}
+                                       disabled>
+                                <label for="mode-separated">Tableaux séparés par discipline</label>
+                            </div>
+                            {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'centralized' %}
+                            <div class="radio-option">
+                                <input type="radio" id="mode-centralized" name="sanctionDisplayMode" value="centralized" checked disabled>
+                                <label for="mode-centralized">Coches centralisées (maître de classe)</label>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="lock-warning">
+                            <i class="fas fa-lock"></i>
+                            Seul le maître de classe peut modifier le mode d'affichage
+                        </div>
+                        {% else %}
+                        {# Maître de classe : peut modifier #}
                         <div class="radio-group">
                             <div class="radio-option">
-                                {% set first_classroom = selected_group.classrooms[0] %}
-                                {% set has_preferences = first_classroom.id in classroom_preferences %}
-                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified" 
+                                <input type="radio" id="mode-unified" name="sanctionDisplayMode" value="unified"
                                        {% if has_preferences and classroom_preferences[first_classroom.id].display_mode == 'unified' %}checked{% endif %}
                                        {% if has_preferences and not classroom_preferences[first_classroom.id].can_change_mode() %}disabled{% endif %}
                                        onclick="handleModeChange(this, '{{ first_classroom.id }}')">
@@ -3782,11 +3719,13 @@
                         </div>
                         {% if has_preferences and not classroom_preferences[first_classroom.id].can_change_mode() %}
                         <div class="lock-warning">
-                            <i class="fas fa-lock"></i> 
+                            <i class="fas fa-lock"></i>
                             Mode verrouillé par {{ classroom_preferences[first_classroom.id].locked_by_user.username if classroom_preferences[first_classroom.id].locked_by_user else 'le maître de classe' }}
                         </div>
                         {% endif %}
+                        {% endif %}
                     </div>
+            {% endif %}
 
             {% if imported_sanctions and students %}
             {% set first_classroom = selected_group.classrooms[0] %}
@@ -4576,7 +4515,7 @@ let isDragging = false;
 let currentDragElement = null;
 let dragOffset = { x: 0, y: 0 };
 let currentStudents = [];
-let magnetRadius = 100; // Distance pour l'aimantation en pixels (augmenté pour plus de facilité)
+let magnetRadius = 140; // Distance pour l'aimantation en pixels (un peu plus large pour le tactile)
 
 // Initialisation du plan de classe
 function initializeSeatingPlan() {
@@ -4668,21 +4607,75 @@ function setupSeatingEventListeners() {
     // Event listeners pour l'espace de travail
     seatingWorkspace.addEventListener('dragover', handleWorkspaceDragOver);
     seatingWorkspace.addEventListener('drop', handleWorkspaceDrop);
-    
-    // Event listeners globaux pour le drag des tables
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousemove', handleMouseMove);
-    
-    // Support tactile pour les tablettes
-    document.addEventListener('touchmove', handleTouchMove, {passive: false});
-    document.addEventListener('touchend', handleTouchEnd);
-    
+
     // Event listener pour empêcher la sélection de texte pendant le drag
     document.addEventListener('selectstart', function(e) {
         if (isDragging) {
             e.preventDefault();
         }
     });
+}
+
+// Drag des tables avec Pointer Events (souris + tactile)
+function attachElementPointerDrag(element) {
+    let activePointerId = null;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    const endDrag = (e) => {
+        if (activePointerId === null || (e && e.pointerId !== activePointerId)) return;
+        element.classList.remove('dragging');
+        element.style.cursor = 'grab';
+        element.style.zIndex = '';
+        isDragging = false;
+        currentDragElement = null;
+        if (element.releasePointerCapture && activePointerId !== null) {
+            try { element.releasePointerCapture(activePointerId); } catch (err) {}
+        }
+        element.removeEventListener('pointermove', onPointerMove);
+        element.removeEventListener('pointerup', endDrag);
+        element.removeEventListener('pointercancel', endDrag);
+        activePointerId = null;
+    };
+
+    const onPointerMove = (e) => {
+        if (e.pointerId !== activePointerId) return;
+        e.preventDefault();
+        const workspaceRect = seatingWorkspace.getBoundingClientRect();
+        let newX = e.clientX - workspaceRect.left - offsetX;
+        let newY = e.clientY - workspaceRect.top - offsetY;
+
+        newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
+        newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
+
+        element.style.left = newX + 'px';
+        element.style.top = newY + 'px';
+    };
+
+    element.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        if (e.target.closest('.element-delete')) return;
+        e.preventDefault();
+
+        isDragging = true;
+        currentDragElement = element;
+        const rect = element.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        activePointerId = e.pointerId;
+
+        element.style.cursor = 'grabbing';
+        element.style.zIndex = '1000';
+        element.classList.add('dragging');
+        element.setPointerCapture?.(activePointerId);
+
+        element.addEventListener('pointermove', onPointerMove);
+        element.addEventListener('pointerup', endDrag);
+        element.addEventListener('pointercancel', endDrag);
+    });
+
+    // Curseur au repos
+    element.style.cursor = 'grab';
 }
 
 // Ajouter un élément (table ou bureau)
@@ -4757,55 +4750,9 @@ function addElement(elementType) {
             `;
             break;
     }
-    
-    // Système de drag-and-drop simplifié directement sur l'élément
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDraggingElement = false;
-    
-    element.onmousedown = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        isDraggingElement = true;
-        
-        const rect = element.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveElement(e) {
-            if (!isDraggingElement) return;
-            
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = e.clientX - workspaceRect.left - offsetX;
-            let newY = e.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('mousemove', moveElement);
-            document.removeEventListener('mouseup', stopDragging);
-        }
-        
-        document.addEventListener('mousemove', moveElement);
-        document.addEventListener('mouseup', stopDragging);
-    };
-    
+
     seatingWorkspace.appendChild(element);
+    attachElementPointerDrag(element);
     
     // Ajuster la largeur pour les tables doubles vides dès la création
     if (elementType === 'desk-double') {
@@ -5513,101 +5460,6 @@ function createTeacherDesk(customId = null) {
 }
 
 // Configurer le drag-and-drop pour un élément
-function setupElementDragging(element) {
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDraggingElement = false;
-    
-    element.onmousedown = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        isDraggingElement = true;
-        
-        const rect = element.getBoundingClientRect();
-        offsetX = e.clientX - rect.left;
-        offsetY = e.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveElement(e) {
-            if (!isDraggingElement) return;
-            
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = e.clientX - workspaceRect.left - offsetX;
-            let newY = e.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('mousemove', moveElement);
-            document.removeEventListener('mouseup', stopDragging);
-        }
-        
-        document.addEventListener('mousemove', moveElement);
-        document.addEventListener('mouseup', stopDragging);
-    };
-    
-    // Support tactile pour tablettes
-    element.ontouchstart = function(e) {
-        if (e.target.classList.contains('element-delete') || e.target.closest('.element-delete')) {
-            return;
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
-        isDraggingElement = true;
-        
-        const touch = e.touches[0];
-        const rect = element.getBoundingClientRect();
-        offsetX = touch.clientX - rect.left;
-        offsetY = touch.clientY - rect.top;
-        
-        element.style.cursor = 'grabbing';
-        element.style.zIndex = '1000';
-        
-        function moveTouchElement(e) {
-            if (!isDraggingElement) return;
-            
-            e.preventDefault();
-            const touch = e.touches[0];
-            const workspaceRect = seatingWorkspace.getBoundingClientRect();
-            let newX = touch.clientX - workspaceRect.left - offsetX;
-            let newY = touch.clientY - workspaceRect.top - offsetY;
-            
-            // Contraindre aux limites
-            newX = Math.max(0, Math.min(newX, seatingWorkspace.offsetWidth - element.offsetWidth));
-            newY = Math.max(0, Math.min(newY, seatingWorkspace.offsetHeight - element.offsetHeight));
-            
-            element.style.left = newX + 'px';
-            element.style.top = newY + 'px';
-        }
-        
-        function stopTouchDragging() {
-            isDraggingElement = false;
-            element.style.cursor = 'grab';
-            element.style.zIndex = '';
-            document.removeEventListener('touchmove', moveTouchElement);
-            document.removeEventListener('touchend', stopTouchDragging);
-        }
-        
-        document.addEventListener('touchmove', moveTouchElement, {passive: false});
-        document.addEventListener('touchend', stopTouchDragging);
-    };
-}
-
 // Charger un plan de classe depuis le serveur
 function loadSeatingPlan(classroomId) {
     if (!classroomId) {
@@ -5649,7 +5501,7 @@ function loadSeatingPlan(classroomId) {
                         element.style.left = elementData.x + 'px';
                         element.style.top = elementData.y + 'px';
                         seatingWorkspace.appendChild(element);
-                        setupElementDragging(element);
+                        attachElementPointerDrag(element);
                     }
                 });
             }
@@ -5738,7 +5590,7 @@ function loadMasterSeatingPlan() {
                         element.style.left = elementData.x + 'px';
                         element.style.top = elementData.y + 'px';
                         seatingWorkspace.appendChild(element);
-                        setupElementDragging(element);
+                        attachElementPointerDrag(element);
                     }
                 });
             }
@@ -5911,20 +5763,21 @@ let studentTouchStartPos = null;
 let isDraggingStudent = false;
 
 document.addEventListener('touchstart', function(e) {
-    if (e.target.classList.contains('student-label')) {
-        e.preventDefault();
-        touchDraggedStudent = e.target;
-        isDraggingStudent = false; // Pas encore en cours de drag
-        
-        const touch = e.touches[0];
-        studentTouchStartPos = {
-            x: touch.clientX,
-            y: touch.clientY,
-            startTime: Date.now()
-        };
-        
-        console.log('Touch start on student:', touchDraggedStudent.dataset.studentId);
-    }
+    const label = e.target.closest('.student-label');
+    if (!label) return;
+
+    e.preventDefault();
+    touchDraggedStudent = label;
+    isDraggingStudent = false; // Pas encore en cours de drag
+    
+    const touch = e.touches[0];
+    studentTouchStartPos = {
+        x: touch.clientX,
+        y: touch.clientY,
+        startTime: Date.now()
+    };
+    
+    console.log('Touch start on student:', touchDraggedStudent.dataset.studentId);
 });
 
 document.addEventListener('touchmove', function(e) {
@@ -5952,18 +5805,27 @@ document.addEventListener('touchend', function(e) {
     if (!touchDraggedStudent) return;
     
     const touch = e.changedTouches[0];
+    let targetDesk = null;
     const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
-    
-    if (isDraggingStudent && elementUnderTouch) {
-        // Trouver le bureau le plus proche
-        const desk = elementUnderTouch.closest('.seating-element');
-        if (desk) {
-            console.log('Touch drop student on desk:', desk.id);
-            // Utiliser la même logique que le drop souris
-            const studentId = touchDraggedStudent.dataset.studentId || touchDraggedStudent.dataset.studentid;
-            if (studentId) {
-                placeStudentOnDesk(touchDraggedStudent, desk, touch.clientX);
-            }
+
+    if (isDraggingStudent) {
+        if (!seatingWorkspace) {
+            seatingWorkspace = document.getElementById('seating-workspace');
+        }
+        if (!seatingWorkspace) return;
+        // Chercher une table sous le doigt ou à proximité (aimantation)
+        const workspaceRect = seatingWorkspace.getBoundingClientRect();
+        const dropX = touch.clientX - workspaceRect.left;
+        const dropY = touch.clientY - workspaceRect.top;
+        const nearestDesk = findClosestDesk(dropX, dropY);
+        targetDesk = elementUnderTouch?.closest('.seating-element') || nearestDesk;
+    }
+
+    if (isDraggingStudent && targetDesk) {
+        console.log('Touch drop student on desk:', targetDesk.id);
+        const studentId = touchDraggedStudent.dataset.studentId || touchDraggedStudent.dataset.studentid;
+        if (studentId) {
+            placeStudentOnDesk(touchDraggedStudent, targetDesk, touch.clientX);
         }
     }
     
@@ -6102,61 +5964,138 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour imprimer le plan de classe
 function printSeatingPlan() {
-    // Vérifier s'il y a des éléments dans le plan
     const seatingWorkspace = document.getElementById('seating-workspace');
     if (!seatingWorkspace) {
         showNotification('error', 'Espace de travail non trouvé');
         return;
     }
-    
+
     const elements = seatingWorkspace.querySelectorAll('.seating-element');
     if (elements.length === 0) {
         showNotification('warning', 'Aucun élément à imprimer. Veuillez d\'abord créer votre plan de classe.');
         return;
     }
-    
-    // Obtenir le nom de la classe sélectionnée pour le titre
+
+    // Nom de la classe pour le titre
     const classSelector = document.getElementById('classroomSelector');
     const selectedClassroom = classSelector ? classSelector.options[classSelector.selectedIndex]?.text : 'Classe';
-    
-    // Créer un titre temporaire pour l'impression
-    const printTitle = document.createElement('div');
-    printTitle.innerHTML = `<h2>Plan de classe - ${selectedClassroom}</h2>`;
-    printTitle.id = 'print-title';
-    printTitle.style.position = 'absolute';
-    printTitle.style.top = '0px';
-    printTitle.style.left = '0px';
-    printTitle.style.width = '100%';
-    printTitle.style.textAlign = 'center';
-    printTitle.style.zIndex = '1000';
-    printTitle.style.backgroundColor = 'white';
-    
-    // Ajouter le titre au workspace
-    seatingWorkspace.appendChild(printTitle);
-    
-    // Ajuster temporairement le padding du workspace pour faire de la place au titre
-    const originalPadding = seatingWorkspace.style.paddingTop;
-    seatingWorkspace.style.paddingTop = '40px';
-    
-    try {
-        // Lancer l'impression
-        window.print();
-    } catch (error) {
-        console.error('Erreur lors de l\'impression:', error);
-        showNotification('error', 'Erreur lors de l\'impression');
-    } finally {
-        // Nettoyer après impression
-        setTimeout(() => {
-            // Supprimer le titre temporaire
-            const titleElement = document.getElementById('print-title');
-            if (titleElement) {
-                titleElement.remove();
-            }
-            
-            // Restaurer le padding original
-            seatingWorkspace.style.paddingTop = originalPadding;
-        }, 500);
+
+    // Calculer les bornes du contenu pour centrer le plan
+    let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+    elements.forEach(el => {
+        const left = el.offsetLeft;
+        const top = el.offsetTop;
+        const right = left + el.offsetWidth;
+        const bottom = top + el.offsetHeight;
+        if (left < minX) minX = left;
+        if (top < minY) minY = top;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+    });
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+    const padding = 40;
+    const titleHeight = 50;
+
+    // Ouvrir une nouvelle fenêtre avec uniquement le plan
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+        showNotification('error', 'Impossible d\'ouvrir la fenêtre d\'impression. Vérifiez que les pop-ups sont autorisés.');
+        return;
     }
+
+    // Fonction pour copier les styles calculés en inline sur un élément et ses enfants
+    function copyComputedStyles(source, target) {
+        const computed = window.getComputedStyle(source);
+        // Propriétés clés à copier pour préserver le rendu
+        const props = [
+            'display', 'position', 'width', 'height', 'min-width', 'min-height',
+            'max-width', 'max-height', 'padding', 'margin', 'border',
+            'border-radius', 'background', 'background-color', 'color',
+            'font-family', 'font-size', 'font-weight', 'text-align',
+            'line-height', 'white-space', 'overflow', 'flex-direction',
+            'justify-content', 'align-items', 'gap', 'flex-shrink', 'flex',
+            'box-sizing', 'opacity'
+        ];
+        props.forEach(prop => {
+            target.style.setProperty(prop, computed.getPropertyValue(prop));
+        });
+        // Récursivement copier pour les enfants
+        const sourceChildren = source.children;
+        const targetChildren = target.children;
+        for (let i = 0; i < sourceChildren.length && i < targetChildren.length; i++) {
+            copyComputedStyles(sourceChildren[i], targetChildren[i]);
+        }
+    }
+
+    // Construire les éléments clonés avec styles inline
+    let elementsHTML = '';
+    elements.forEach(el => {
+        const clone = el.cloneNode(true);
+        // Injecter dans le DOM temporairement pour accéder aux styles calculés
+        document.body.appendChild(clone);
+        // Ce n'est pas nécessaire car on va copier depuis l'original
+        document.body.removeChild(clone);
+
+        // Recréer le clone et copier les styles
+        const clone2 = el.cloneNode(true);
+        // Copier les styles calculés de l'original vers le clone
+        // On doit ajouter le clone au document temporairement
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        tempDiv.appendChild(clone2);
+        document.body.appendChild(tempDiv);
+
+        // Copier les styles depuis l'élément original
+        copyComputedStyles(el, clone2);
+
+        document.body.removeChild(tempDiv);
+
+        // Repositionner par rapport aux bornes
+        const newLeft = el.offsetLeft - minX + padding;
+        const newTop = el.offsetTop - minY + padding + titleHeight;
+        clone2.style.left = newLeft + 'px';
+        clone2.style.top = newTop + 'px';
+        clone2.style.position = 'absolute';
+        clone2.style.cursor = 'default';
+
+        // Retirer les boutons interactifs
+        clone2.querySelectorAll('.remove-student, .delete-element-btn, .element-delete').forEach(btn => btn.remove());
+
+        elementsHTML += clone2.outerHTML;
+    });
+
+    const totalWidth = contentWidth + padding * 2;
+    const totalHeight = contentHeight + padding * 2 + titleHeight;
+
+    printWindow.document.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        '<title>Plan de classe - ' + selectedClassroom + '</title>' +
+        '<style>' +
+        '@page { size: landscape; margin: 8mm; }' +
+        '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+        'body { background: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+        '.print-container { position: relative; width: ' + totalWidth + 'px; height: ' + totalHeight + 'px; margin: 0 auto; }' +
+        '.print-title { text-align: center; padding: 15px 0 10px 0; font-size: 1.3rem; font-weight: bold; color: #333; }' +
+        '</style>' +
+        '</head><body>' +
+        '<div class="print-container">' +
+        '<div class="print-title">Plan de classe \\u2013 ' + selectedClassroom + '</div>' +
+        elementsHTML +
+        '</div>' +
+        '<scr' + 'ipt>' +
+        'window.onload = function() {' +
+        '  setTimeout(function() {' +
+        '    window.print();' +
+        '    window.onafterprint = function() { window.close(); };' +
+        '    setTimeout(function() { window.close(); }, 2000);' +
+        '  }, 300);' +
+        '};' +
+        '</scr' + 'ipt>' +
+        '</body></html>');
+    printWindow.document.close();
 }
 
 // ===== SYSTÈME D'AMÉNAGEMENTS =====
@@ -7782,7 +7721,7 @@ function showClassCodeModal(code, classroomName) {
                     <h2 style="margin: 0; font-size: 2rem; letter-spacing: 0.5rem; color: #667eea;">${code}</h2>
                 </div>
                 <p style="color: #6b7280; font-size: 0.875rem;">
-                    Ce code est valide pendant 30 jours.<br>
+                    Ce code est valide pendant 1 an.<br>
                     Tous les élèves de la classe peuvent utiliser ce code pour créer leur compte.<br>
                     Ils doivent utiliser l'email que vous avez enregistré pour eux.
                 </p>
@@ -7796,6 +7735,58 @@ function showClassCodeModal(code, classroomName) {
     `;
     
     document.body.appendChild(modal);
+}
+
+// Fonction pour afficher le code parents
+async function showParentCode() {
+    const classroomId = "{{ primary_classroom.id }}";
+
+    try {
+        const response = await fetch(`{{ url_for("planning.get_parent_code", classroom_id=0) }}`.replace('0', classroomId), {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Code d'accès parents</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="margin-bottom: 1rem;">Code pour les parents de la classe <strong>${result.classroom_name}</strong> :</p>
+                        <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0;">
+                            <h2 style="margin: 0; font-size: 2rem; letter-spacing: 0.5rem; color: #667eea;">${result.code}</h2>
+                        </div>
+                        <p style="color: #6b7280; font-size: 0.875rem;">
+                            Les parents doivent utiliser ce code ainsi que le nom de l'enseignant (<strong>${result.teacher_name}</strong>) pour se lier à la classe.<br>
+                            Ce code est valide pendant 1 an.
+                        </p>
+                        <div style="margin-top: 1.5rem;">
+                            <button class="btn btn-secondary" onclick="copyToClipboard('${result.code}', this)">
+                                <i class="fas fa-copy"></i> Copier le code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la récupération du code parents');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showNotification('error', 'Erreur lors de la communication avec le serveur');
+    }
 }
 
 // Fonction pour copier dans le presse-papier
@@ -8339,38 +8330,59 @@ function renderClassFiles(currentPath, classroomId = null) {
     
     // Afficher les fichiers
     filesToShow.forEach(file => {
-        const icon = getFileIcon(file.file_type);
-        const iconColor = getFileIconColor(file.file_type);
-        
-        html += `
-            <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}')">
-                <div class="item-icon">
-                    ${file.thumbnail 
-                        ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1" alt="${file.original_filename}" class="thumbnail">`
-                        : `<i class="${icon}" style="color: ${iconColor};"></i>`
-                    }
+        if (file.is_exercise) {
+            // Afficher les exercices avec un style spécial
+            html += `
+                <div class="file-item file" data-id="${file.exercise_id}" data-type="exercise" ondblclick="window.location.href='/exercises/edit/${file.exercise_id}'" style="border-left:3px solid #667eea;">
+                    <div class="item-icon">
+                        <i class="fas fa-gamepad" style="color: #667eea;"></i>
+                    </div>
+                    <div class="item-name" title="${file.original_filename}">
+                        <span style="background:#eef2ff;color:#4338ca;font-size:0.6rem;font-weight:700;padding:0.1rem 0.3rem;border-radius:4px;margin-right:0.3rem;">EXERCICE</span>
+                        ${file.original_filename}
+                    </div>
+                    <div class="item-info">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
+                    <div class="item-actions">
+                        <a href="/exercises/edit/${file.exercise_id}" class="action-btn" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
-                <div class="item-info">${formatFileSize(file.file_size)}</div>
-                <div class="item-actions">
-                    <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}')" title="Aperçu">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <a href="/api/class-files/download/${file.id}" class="action-btn" title="Télécharger">
-                        <i class="fas fa-download"></i>
-                    </a>
-                    <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
-                        <i class="fas fa-share"></i>
-                    </button>
-                    <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId})" title="Supprimer">
-                        <i class="fas fa-trash"></i>
-                    </button>
+            `;
+        } else {
+            const icon = getFileIcon(file.file_type);
+            const iconColor = getFileIconColor(file.file_type);
+
+            html += `
+                <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}')">
+                    <div class="item-icon">
+                        ${file.thumbnail
+                            ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1" alt="${file.original_filename}" class="thumbnail">`
+                            : `<i class="${icon}" style="color: ${iconColor};"></i>`
+                        }
+                    </div>
+                    <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
+                    <div class="item-info">${formatFileSize(file.file_size)}</div>
+                    <div class="item-actions">
+                        <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}')" title="Aperçu">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <a href="/api/class-files/download/${file.id}" class="action-btn" title="Télécharger">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
+                            <i class="fas fa-share"></i>
+                        </button>
+                        <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId})" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     });
     
     fileGrid.innerHTML = html;
