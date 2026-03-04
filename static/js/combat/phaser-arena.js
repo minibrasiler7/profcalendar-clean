@@ -308,7 +308,7 @@ class CombatArena extends Phaser.Scene {
         let isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
         if (includeElevation && this.elevation) {
             const elev = (this.elevation[gy] && this.elevation[gy][gx]) || 0;
-            isoY -= elev * 10; // 10px per elevation level
+            isoY -= elev * 20; // 20px per elevation level
         }
         return { x: isoX, y: isoY };
     }
@@ -401,7 +401,7 @@ class CombatArena extends Phaser.Scene {
         };
 
         // Height offset per elevation level (pixels upward)
-        const ELEV_OFFSET = 10;
+        const ELEV_OFFSET = 20;
 
         // Draw tiles from back to front (painter's algorithm)
         for (let gy = 0; gy < this.gridH; gy++) {

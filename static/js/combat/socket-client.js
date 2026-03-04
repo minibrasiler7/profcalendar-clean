@@ -16,7 +16,7 @@ class CombatSocket {
 
     connect() {
         this.socket = io({
-            transports: ['websocket', 'polling'],
+            transports: ['polling', 'websocket'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
@@ -156,6 +156,31 @@ class CombatSocket {
             this.showError(errorData.error || 'Une erreur est survenue');
             this._fire('onError', errorData);
         });
+
+        // ── HTTP fallback state polling (backup sync if SocketIO events are missed) ──
+        this._statePollInterval = setInterval(() => {
+            if (!this.connected) return;
+            fetch(`/combat/${SESSION_ID}/state`)
+                .then(r => r.json())
+                .then(state => {
+                    if (this.gameInstance && state && state.phase) {
+                        // Only apply if phase or round changed (avoid overwriting animation state)
+                        const currentPhase = document.getElementById('phase-name')?.textContent;
+                        const phaseLabels = {
+                            'waiting': 'Attente', 'question': 'Question', 'move': 'Déplacement',
+                            'action': 'Action', 'execute': 'Exécution', 'monster_turn': 'Tour Monstres',
+                            'round_end': 'Fin du Round',
+                        };
+                        const expectedLabel = phaseLabels[state.phase] || state.phase;
+                        if (currentPhase !== expectedLabel) {
+                            console.log('[Fallback Poll] Phase mismatch, syncing:', state.phase);
+                            this.gameInstance.updateState(state);
+                            this.updatePhaseIndicator(state.phase);
+                        }
+                    }
+                })
+                .catch(() => {}); // Silent fail for polling
+        }, 5000); // Poll every 5 seconds as backup
     }
 
     _fire(event, data) {
@@ -378,6 +403,7 @@ class CombatSocket {
     }
 
     disconnect() {
+        if (this._statePollInterval) clearInterval(this._statePollInterval);
         if (this.socket) {
             this.socket.disconnect();
             this.connected = false;

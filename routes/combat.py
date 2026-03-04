@@ -116,6 +116,8 @@ def api_active_combat(classroom_id):
 
 def register_combat_events(socketio):
     """Enregistre les événements SocketIO pour le combat."""
+    from flask import current_app
+    app_ref = current_app._get_current_object()
 
     @socketio.on('combat:teacher_join')
     def on_teacher_join(data):
@@ -562,8 +564,7 @@ def register_combat_events(socketio):
 
     def _auto_timeout_move_phase(sio, session_id, room, phase_token, timeout_sec):
         """Auto-force move phase end after timeout."""
-        from flask import current_app
-        app = current_app._get_current_object()
+        app = app_ref
 
         def _do_timeout():
             time.sleep(timeout_sec)
@@ -594,8 +595,7 @@ def register_combat_events(socketio):
 
     def _auto_timeout_question_phase(sio, session_id, room, phase_token, timeout_sec):
         """Auto-force question phase end after timeout."""
-        from flask import current_app
-        app = current_app._get_current_object()
+        app = app_ref
 
         def _do_timeout():
             time.sleep(timeout_sec)
@@ -640,8 +640,7 @@ def register_combat_events(socketio):
 
     def _auto_timeout_action_phase(sio, session_id, room, phase_token, timeout_sec):
         """Auto-force action phase end after timeout."""
-        from flask import current_app
-        app = current_app._get_current_object()
+        app = app_ref
 
         def _do_timeout():
             time.sleep(timeout_sec)
@@ -666,8 +665,7 @@ def register_combat_events(socketio):
 
     def _auto_advance_round(sio, session_id, room):
         """Auto-avance au prochain round après un court délai."""
-        from flask import current_app
-        app = current_app._get_current_object()
+        app = app_ref
 
         def _do_advance():
             time.sleep(3)

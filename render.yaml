@@ -3,7 +3,7 @@ services:
     name: profcalendar-clean
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "flask db upgrade && gunicorn --threads 100 -w 1 app:app"
+    startCommand: "flask db upgrade && gunicorn -k eventlet -w 1 --timeout 120 app:app"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
