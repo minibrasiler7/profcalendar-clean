@@ -99,6 +99,31 @@ def current_question(session_id):
     })
 
 
+@combat_bp.route('/<int:session_id>/fix_skills', methods=['POST'])
+@login_required
+def fix_skills(session_id):
+    """Temporary admin: patch participant snapshots to add default class skills."""
+    session = CombatSession.query.get_or_404(session_id)
+    from models.rpg import CLASS_BASE_SKILLS
+    fixed = []
+    for p in session.participants:
+        snap = p.snapshot_json or {}
+        if not snap.get('skills'):
+            avatar_class = snap.get('avatar_class', 'guerrier')
+            default_skills = list(CLASS_BASE_SKILLS.get(avatar_class, CLASS_BASE_SKILLS.get('guerrier', [])))
+            snap['skills'] = default_skills
+            p.snapshot_json = snap
+            fixed.append({'participant_id': p.id, 'student_id': p.student_id, 'class': avatar_class, 'skills_count': len(default_skills)})
+    db.session.commit()
+    return jsonify({'fixed': fixed, 'total': len(fixed)})
+
+
+@combat_bp.route('/version')
+def combat_version():
+    """Quick version check to verify deploy."""
+    return jsonify({'version': '2026-03-04-v3', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills']})
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  API REST pour le mobile (JWT auth)
 # ═══════════════════════════════════════════════════════════════════
