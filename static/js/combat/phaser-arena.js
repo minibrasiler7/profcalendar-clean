@@ -15,6 +15,8 @@ class CombatArena extends Phaser.Scene {
         this.gridW = 10;
         this.gridH = 8;
         this.tileSprites = {};    // {`${x}_${y}`: sprite}
+        this.elevationGfx = {};   // {`${x}_${y}`: graphics} — side face graphics for elevated tiles
+        this.tileEffects = [];    // lava glows, water tweens, etc.
         this.highlightSprites = {}; // {`${x}_${y}`: sprite}
         this.entitySprites = {};  // {id: {sprite, hpBar, nameText, ...}}
         this.participants = [];
@@ -128,6 +130,11 @@ class CombatArena extends Phaser.Scene {
         this.load.image('fx_fireball', '/static/img/combat/effects/iso_fireball.png');
         this.load.image('fx_heal', '/static/img/combat/effects/iso_heal.png');
         this.load.image('fx_shield', '/static/img/combat/effects/iso_shield.png');
+
+        // ── Handle failed sprite loads gracefully ──
+        this.load.on('loaderror', (fileObj) => {
+            console.warn('[Arena] Failed to load:', fileObj.key, fileObj.url);
+        });
     }
 
     create() {
@@ -343,6 +350,18 @@ class CombatArena extends Phaser.Scene {
         }
         this.tileSprites = {};
 
+        // Destroy old elevation side-face graphics
+        for (const key in this.elevationGfx) {
+            this.elevationGfx[key].destroy();
+        }
+        this.elevationGfx = {};
+
+        // Destroy old tile effects (lava glows, etc.)
+        for (const fx of (this.tileEffects || [])) {
+            if (fx && fx.destroy) fx.destroy();
+        }
+        this.tileEffects = [];
+
         // Destroy old entity sprites
         for (const id in this.entitySprites) {
             const ent = this.entitySprites[id];
@@ -414,35 +433,38 @@ class CombatArena extends Phaser.Scene {
                 if (elev > 0 && tileKey !== 'iso_wall') {
                     const hw = TILE_W / 2;  // 32
                     const hh = TILE_H / 2;  // 16
-                    const totalElevPx = elevPx;
+                    const groundY = y;       // The y position if this tile had no elevation
                     const sideGfx = this.add.graphics();
                     sideGfx.setDepth((gx + gy) * 10 + elev - 0.5);
 
                     // Right face (south-east side) — lighter brown
-                    sideGfx.fillStyle(0x8B7355, 0.9);
+                    sideGfx.fillStyle(0x8B7355, 0.95);
                     sideGfx.beginPath();
-                    sideGfx.moveTo(x, tileY + hh);             // top: bottom-center of tile
-                    sideGfx.lineTo(x + hw, tileY);              // top: right-center of tile
-                    sideGfx.lineTo(x + hw, tileY + totalElevPx); // bottom: same + elevation
-                    sideGfx.lineTo(x, tileY + hh + totalElevPx); // bottom: center + elevation
+                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of elevated tile
+                    sideGfx.lineTo(x + hw, tileY);               // top: right-center of elevated tile
+                    sideGfx.lineTo(x + hw, groundY);             // bottom: right-center at ground level
+                    sideGfx.lineTo(x, groundY + hh);             // bottom: bottom-center at ground level
                     sideGfx.closePath();
                     sideGfx.fillPath();
 
                     // Left face (south-west side) — darker brown for depth
-                    sideGfx.fillStyle(0x6B5740, 0.9);
+                    sideGfx.fillStyle(0x6B5740, 0.95);
                     sideGfx.beginPath();
-                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of tile
-                    sideGfx.lineTo(x - hw, tileY);              // top: left-center of tile
-                    sideGfx.lineTo(x - hw, tileY + totalElevPx); // bottom: same + elevation
-                    sideGfx.lineTo(x, tileY + hh + totalElevPx); // bottom: center + elevation
+                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of elevated tile
+                    sideGfx.lineTo(x - hw, tileY);               // top: left-center of elevated tile
+                    sideGfx.lineTo(x - hw, groundY);             // bottom: left-center at ground level
+                    sideGfx.lineTo(x, groundY + hh);             // bottom: bottom-center at ground level
                     sideGfx.closePath();
                     sideGfx.fillPath();
 
                     // Thin edge lines for definition
-                    sideGfx.lineStyle(1, 0x4a3c2a, 0.4);
-                    sideGfx.lineBetween(x, tileY + hh, x, tileY + hh + totalElevPx);
-                    sideGfx.lineBetween(x + hw, tileY, x + hw, tileY + totalElevPx);
-                    sideGfx.lineBetween(x - hw, tileY, x - hw, tileY + totalElevPx);
+                    sideGfx.lineStyle(1, 0x4a3c2a, 0.5);
+                    sideGfx.lineBetween(x, tileY + hh, x, groundY + hh);
+                    sideGfx.lineBetween(x + hw, tileY, x + hw, groundY);
+                    sideGfx.lineBetween(x - hw, tileY, x - hw, groundY);
+
+                    // Track for cleanup
+                    this.elevationGfx[key] = sideGfx;
                 }
 
                 // Water shimmer effect
@@ -468,6 +490,7 @@ class CombatArena extends Phaser.Scene {
                         targets: glow, alpha: { from: 0.1, to: 0.25 },
                         duration: 600, yoyo: true, repeat: -1,
                     });
+                    this.tileEffects.push(glow);
                 }
             }
         }

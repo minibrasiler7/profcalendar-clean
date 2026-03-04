@@ -138,12 +138,12 @@ class ProductionConfig:
             # CSP de base
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://js.stripe.com; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
                 "font-src 'self' https://cdnjs.cloudflare.com; "
                 "img-src 'self' data: https://*.stripe.com; "
                 "frame-src https://js.stripe.com https://hooks.stripe.com; "
-                "connect-src 'self' https://api.stripe.com; "
+                "connect-src 'self' wss: ws: https://api.stripe.com; "
             )
             
             # HTTPS obligatoire si configuré
