@@ -1195,6 +1195,12 @@ class CombatArena extends Phaser.Scene {
      * Display round counter
      */
     _showRoundBanner(roundNum) {
+        // Destroy previous round banner if it exists
+        if (this._roundBannerText && this._roundBannerText.active) {
+            this._roundBannerText.destroy();
+            this._roundBannerText = null;
+        }
+
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
@@ -1206,6 +1212,7 @@ class CombatArena extends Phaser.Scene {
             stroke: '#92400e',
             strokeThickness: 4,
         }).setOrigin(0.5).setDepth(10000).setScrollFactor(0);
+        this._roundBannerText = roundText;
 
         // Scale up, stay, then fade away
         roundText.setScale(0.5);
@@ -1225,6 +1232,7 @@ class CombatArena extends Phaser.Scene {
                             ease: 'Linear',
                             onComplete: () => {
                                 if (roundText && roundText.active) roundText.destroy();
+                                if (this._roundBannerText === roundText) this._roundBannerText = null;
                             },
                         });
                     }
