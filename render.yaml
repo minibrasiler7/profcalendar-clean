@@ -6,7 +6,7 @@ services:
     startCommand: "flask db upgrade && gunicorn -k eventlet -w 1 --timeout 120 app:app"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.12
+        value: 3.11.10
       - key: FLASK_ENV
         value: production
       - key: UPLOAD_FOLDER
