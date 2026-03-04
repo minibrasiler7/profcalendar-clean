@@ -191,20 +191,24 @@ def register_combat_events(socketio, app=None):
         room = f'combat_{session_id}'
         join_room(room)
 
-        participant, error = CombatEngine.join_session(session_id, student_id)
-        if error:
-            logger.error(f"[Combat:{session_id}] join_session ERROR: {error}")
-            emit('combat:error', {'error': error})
-            return
+        try:
+            participant, error = CombatEngine.join_session(session_id, student_id)
+            if error:
+                logger.error(f"[Combat:{session_id}] join_session ERROR: {error}")
+                emit('combat:error', {'error': error})
+                return
 
-        logger.info(f"[Combat:{session_id}] Élève {student_id} rejoint — hp={participant.current_hp}/{participant.max_hp} class={participant.snapshot_json.get('avatar_class','?')}")
+            logger.info(f"[Combat:{session_id}] Élève {student_id} rejoint — hp={participant.current_hp}/{participant.max_hp} class={participant.snapshot_json.get('avatar_class','?')}")
 
-        # Notifier tout le monde
-        session = CombatSession.query.get(session_id)
-        emit('combat:student_joined', {
-            'participant': participant.to_dict(),
-        }, room=room)
-        emit('combat:state_update', session.get_state(), room=room)
+            # Notifier tout le monde
+            session = CombatSession.query.get(session_id)
+            emit('combat:student_joined', {
+                'participant': participant.to_dict(),
+            }, room=room)
+            emit('combat:state_update', session.get_state(), room=room)
+        except Exception as e:
+            logger.error(f"[Combat:{session_id}] student_join EXCEPTION: {e}", exc_info=True)
+            emit('combat:error', {'error': f'Erreur serveur: {str(e)}'})
 
     @socketio.on('combat:start_round')
     def on_start_round(data):

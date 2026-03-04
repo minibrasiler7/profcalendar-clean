@@ -739,8 +739,11 @@ def create_app(config_name='development'):
 
     return app
 
-# Création de l'instance par défaut
-app = create_app()
+# Création de l'instance par défaut (sauf si importé par render_production.py)
+import os as _os
+if _os.environ.get('FLASK_ENV') != 'production':
+    app = create_app()
 
 if __name__ == '__main__':
+    app = create_app()
     app.run(debug=True, port=5000)
