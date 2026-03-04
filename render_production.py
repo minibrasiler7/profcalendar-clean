@@ -5,7 +5,7 @@ Version: 1bc396b - Force Gunicorn reload for template fix
 """
 import os
 from app import create_app
-from extensions import db
+from extensions import db, socketio
 
 # Configuration pour la production
 os.environ['FLASK_ENV'] = 'production'
@@ -122,6 +122,6 @@ if __name__ == "__main__":
     print(f"Demarrage ProfCalendar sur le port {port}")
     print(f"Mode: Production")
     
-    # Lancer l'application
-    app.run(host="0.0.0.0", port=port, debug=False)
+    # Lancer l'application via SocketIO (nécessaire pour eventlet)
+    socketio.run(app, host="0.0.0.0", port=port, debug=False)
 
