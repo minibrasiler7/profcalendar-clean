@@ -547,15 +547,16 @@ def register_combat_events(socketio, app=None):
         on_start_round(data)
 
     def _transition_to_question_phase(session_id, room):
-        """Helper: transition move → question. Envoie la question à tous."""
+        """Helper: transition move → question. Envoie la question à tous.
+        NOTE: Uses socketio.emit() not emit() because this can be called from background tasks."""
         question_data, error = CombatEngine.transition_to_question(session_id)
         if error:
-            emit('combat:error', {'error': error}, room=room)
+            socketio.emit('combat:error', {'error': error}, room=room)
             return
         logger.info(f"[Combat] All moved → sending question to room {room}")
-        emit('combat:question', question_data, room=room)
+        socketio.emit('combat:question', question_data, room=room)
         session = CombatSession.query.get(session_id)
-        emit('combat:state_update', session.get_state(), room=room)
+        socketio.emit('combat:state_update', session.get_state(), room=room)
         # Start 45-second auto-timeout for question phase
         phase_token = str(uuid.uuid4())
         phase_tokens[session_id] = phase_token
@@ -563,13 +564,14 @@ def register_combat_events(socketio, app=None):
         _auto_timeout_question_phase(socketio, session_id, room, phase_token, 45)
 
     def _execute_and_broadcast(session_id, room):
-        """Exécute le round et broadcast les résultats."""
+        """Exécute le round et broadcast les résultats.
+        NOTE: Uses socketio.emit() not emit() because this can be called from background tasks."""
         logger.info(f"[Combat:{session_id}] === EXECUTE_AND_BROADCAST START ===")
 
         animations, error = CombatEngine.execute_round(session_id)
         if error:
             logger.error(f"[Combat:{session_id}] execute_round ERROR: {error}")
-            emit('combat:error', {'error': error}, room=room)
+            socketio.emit('combat:error', {'error': error}, room=room)
             return
 
         logger.info(f"[Combat:{session_id}] execute_round OK: {len(animations)} animations")
@@ -580,7 +582,7 @@ def register_combat_events(socketio, app=None):
                         f"killed={anim.get('killed', False)}")
 
         # Envoyer les animations
-        emit('combat:execute', {
+        socketio.emit('combat:execute', {
             'animations': animations,
         }, room=room)
 
@@ -591,14 +593,14 @@ def register_combat_events(socketio, app=None):
         if end_result == 'victory':
             rewards = CombatEngine.distribute_rewards(session_id)
             logger.info(f"[Combat:{session_id}] VICTORY! rewards={rewards}")
-            emit('combat:finished', {
+            socketio.emit('combat:finished', {
                 'result': 'victory',
                 'rewards': {str(k): v for k, v in rewards.items()},
             }, room=room)
         elif end_result == 'defeat':
             rewards = CombatEngine.end_combat_defeat(session_id)
             logger.info(f"[Combat:{session_id}] DEFEAT! rewards={rewards}")
-            emit('combat:finished', {
+            socketio.emit('combat:finished', {
                 'result': 'defeat',
                 'rewards': {str(k): v for k, v in rewards.items()},
             }, room=room)
@@ -606,7 +608,7 @@ def register_combat_events(socketio, app=None):
             # Envoyer l'état mis à jour
             session = CombatSession.query.get(session_id)
             logger.info(f"[Combat:{session_id}] Round end — phase={session.current_phase}, round={session.current_round}")
-            emit('combat:state_update', session.get_state(), room=room)
+            socketio.emit('combat:state_update', session.get_state(), room=room)
 
             # Auto-avance au prochain round via background task
             logger.info(f"[Combat:{session_id}] Scheduling auto-advance in 3 seconds...")
