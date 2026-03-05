@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 # Track phase tokens to prevent stale timeouts
 phase_tokens = {}  # session_id -> current_phase_token
 
+# Module-level references to closure functions (populated by register_combat_events)
+_combat_helpers = {}  # 'execute_and_broadcast', 'auto_timeout_action'
+
 combat_bp = Blueprint('combat', __name__, url_prefix='/combat')
 
 
@@ -121,7 +124,7 @@ def fix_skills(session_id):
 @combat_bp.route('/version')
 def combat_version():
     """Quick version check to verify deploy."""
-    return jsonify({'version': '2026-03-04-v6', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit']})
+    return jsonify({'version': '2026-03-05-v7', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix']})
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -168,7 +171,7 @@ def api_submit_answer():
             correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
             if not correct_alive:
                 logger.info(f"[Combat:{session_id}] REST: No correct → direct execute")
-                _execute_and_broadcast(session_id, room)
+                _combat_helpers['execute_and_broadcast'](session_id, room)
             else:
                 logger.info(f"[Combat:{session_id}] REST: → ACTION phase")
                 CombatEngine.transition_to_action(session_id)
@@ -177,7 +180,7 @@ def api_submit_answer():
                 socketio.emit('combat:state_update', session.get_state(), room=room)
                 phase_token = str(uuid.uuid4())
                 phase_tokens[session_id] = phase_token
-                _auto_timeout_action_phase(socketio, session_id, room, phase_token, 30)
+                _combat_helpers['auto_timeout_action'](socketio, session_id, room, phase_token, 30)
 
         return jsonify({
             'is_correct': is_correct,
@@ -830,3 +833,7 @@ def register_combat_events(socketio, app=None):
                     traceback.print_exc()
 
         sio.start_background_task(_do_advance)
+
+    # Store closure functions in module-level dict for REST endpoint access
+    _combat_helpers['execute_and_broadcast'] = _execute_and_broadcast
+    _combat_helpers['auto_timeout_action'] = _auto_timeout_action_phase
