@@ -308,7 +308,7 @@ class CombatArena extends Phaser.Scene {
         let isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
         if (includeElevation && this.elevation) {
             const elev = (this.elevation[gy] && this.elevation[gy][gx]) || 0;
-            isoY -= elev * 16; // 16px per elevation level
+            isoY -= elev * 14; // 14px per elevation level
         }
         return { x: isoX, y: isoY };
     }
@@ -401,7 +401,15 @@ class CombatArena extends Phaser.Scene {
         };
 
         // Height offset per elevation level (pixels upward)
-        const ELEV_OFFSET = 16;
+        const ELEV_OFFSET = 14;
+
+        // ── SOLID TERRAIN: every tile sits on a dirt column down to a common floor ──
+        // BASE_FILL = number of dirt layers below elevation-0 tiles.
+        // Elevated tiles get (BASE_FILL + elev) layers total.
+        const BASE_FILL = 2;
+
+        // Tile origin: center of top face (y=16 in a 44px-tall tile image)
+        const tileOriginY = 16 / 44;
 
         // Draw tiles from back to front (painter's algorithm)
         for (let gy = 0; gy < this.gridH; gy++) {
@@ -422,33 +430,27 @@ class CombatArena extends Phaser.Scene {
                     tileKey = tileTextures[tiles[gy][gx]] || 'iso_grass';
                 }
 
-                // Tile origin: center of top face (y=16 in a 44px tile → 0.364)
-                const tileOriginY = 16 / 44;
-
-                // For elevated tiles, stack dirt tiles underneath to fill the gap
-                if (elev > 0 && tileKey !== 'iso_wall') {
-                    for (let e = 0; e < elev; e++) {
-                        const stackY = y - e * ELEV_OFFSET;
-                        const stackTile = this.add.image(x, stackY, 'iso_dirt');
-                        stackTile.setOrigin(0.5, tileOriginY);
-                        stackTile.setDepth((gx + gy) * 10 + e - 0.5);
-                        // Darken stacked tiles for depth effect
-                        stackTile.setTint(0x999999);
-                    }
+                // ── Draw solid dirt column below EVERY tile ──
+                // Surface tile sits at tileY = y - elevPx
+                // Below it, stack (BASE_FILL + elev) dirt layers going downward
+                const tileY = y - elevPx;
+                const totalFill = BASE_FILL + elev;
+                for (let d = 1; d <= totalFill; d++) {
+                    const fillY = tileY + d * ELEV_OFFSET;
+                    const fillTile = this.add.image(x, fillY, 'iso_dirt');
+                    fillTile.setOrigin(0.5, tileOriginY);
+                    // Deeper layers get progressively darker
+                    const darkness = Math.max(0x55, 0xBB - d * 0x1A);
+                    const tintHex = (darkness << 16) | (darkness << 8) | darkness;
+                    fillTile.setTint(tintHex);
+                    fillTile.setDepth((gx + gy) * 10 - d * 0.1);
                 }
 
-                // Render the actual tile on top at elevated position
-                const tileY = y - elevPx;
+                // ── Render the surface tile on top ──
                 const tile = this.add.image(x, tileY, tileKey);
                 tile.setOrigin(0.5, tileOriginY);
                 tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
-
-                // Subtle shadow under elevated tiles for depth perception
-                if (elev > 0 && tileKey !== 'iso_wall') {
-                    const shadow = this.add.ellipse(x, tileY + TILE_H / 2 + 2, TILE_W * 0.6, TILE_H * 0.3, 0x000000, 0.15);
-                    shadow.setDepth((gx + gy) * 10 + elev - 0.1);
-                }
 
                 // Water shimmer effect
                 if (tileKey === 'iso_water') {
