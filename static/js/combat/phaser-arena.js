@@ -7,6 +7,9 @@ const TILE_W = 64;
 const TILE_H = 32;
 const TILE_DEPTH = 12;
 const SPRITE_SIZE = 72;
+const ELEV_PX = 14;       // pixels per elevation level
+const HP_BAR_OFFSET = 62;  // how far above sprite anchor the HP bar sits
+const NAME_OFFSET = 74;    // how far above sprite anchor the name sits
 
 class CombatArena extends Phaser.Scene {
     constructor() {
@@ -308,7 +311,7 @@ class CombatArena extends Phaser.Scene {
         let isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
         if (includeElevation && this.elevation) {
             const elev = (this.elevation[gy] && this.elevation[gy][gx]) || 0;
-            isoY -= elev * 14; // 14px per elevation level
+            isoY -= elev * ELEV_PX;
         }
         return { x: isoX, y: isoY };
     }
@@ -369,6 +372,7 @@ class CombatArena extends Phaser.Scene {
             if (ent.name) ent.name.destroy();
             if (ent.hpBg) ent.hpBg.destroy();
             if (ent.hpFill) ent.hpFill.destroy();
+            if (ent.shadow) ent.shadow.destroy();
         }
         this.entitySprites = {};
 
@@ -401,17 +405,41 @@ class CombatArena extends Phaser.Scene {
         };
 
         // Height offset per elevation level (pixels upward)
-        const ELEV_OFFSET = 14;
+        const ELEV_OFFSET = ELEV_PX;
 
         // ── SOLID TERRAIN: every tile sits on a dirt column down to a common floor ──
-        // BASE_FILL = number of dirt layers below elevation-0 tiles.
-        // Elevated tiles get (BASE_FILL + elev) layers total.
         const BASE_FILL = 2;
 
         // Tile origin: center of top face (y=16 in a 44px-tall tile image)
         const tileOriginY = 16 / 44;
 
-        // Draw tiles from back to front (painter's algorithm)
+        // ── First pass: draw shadows under elevated tiles (cast onto lower neighbors) ──
+        for (let gy = 0; gy < this.gridH; gy++) {
+            for (let gx = 0; gx < this.gridW; gx++) {
+                const elev = (elevation[gy] && elevation[gy][gx]) || 0;
+                if (elev > 0) {
+                    // Cast shadow to the SE (light comes from NW)
+                    const shadowCells = [
+                        { sx: gx + 1, sy: gy },
+                        { sx: gx, sy: gy + 1 },
+                        { sx: gx + 1, sy: gy + 1 },
+                    ];
+                    for (const sc of shadowCells) {
+                        if (sc.sx >= this.gridW || sc.sy >= this.gridH) continue;
+                        const neighborElev = (elevation[sc.sy] && elevation[sc.sy][sc.sx]) || 0;
+                        if (neighborElev < elev) {
+                            const { x: sx, y: sy } = this.gridToIso(sc.sx, sc.sy);
+                            const shadowY = sy - neighborElev * ELEV_OFFSET;
+                            const shadow = this.add.ellipse(sx, shadowY + 4, 50, 22, 0x000000, 0.18);
+                            shadow.setDepth((sc.sx + sc.sy) * 10 + neighborElev + 0.5);
+                            this.tileEffects.push(shadow);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Second pass: draw tile columns and surfaces ──
         for (let gy = 0; gy < this.gridH; gy++) {
             for (let gx = 0; gx < this.gridW; gx++) {
                 const { x, y } = this.gridToIso(gx, gy);
@@ -431,8 +459,6 @@ class CombatArena extends Phaser.Scene {
                 }
 
                 // ── Draw solid dirt column below EVERY tile ──
-                // Surface tile sits at tileY = y - elevPx
-                // Below it, stack (BASE_FILL + elev) dirt layers going downward
                 const tileY = y - elevPx;
                 const totalFill = BASE_FILL + elev;
                 for (let d = 1; d <= totalFill; d++) {
@@ -452,8 +478,15 @@ class CombatArena extends Phaser.Scene {
                 tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
 
+                // ── Ambient lighting: tiles further from light are slightly darker ──
+                const lightTint = Math.max(0xBB, 0xFF - (gx + gy) * 3);
+                if (lightTint < 0xFF) {
+                    tile.setTint((lightTint << 16) | (lightTint << 8) | lightTint);
+                }
+
                 // Water shimmer effect
                 if (tileKey === 'iso_water') {
+                    tile.clearTint(); // water has its own color
                     this.tweens.add({
                         targets: tile, alpha: { from: 0.85, to: 1.0 },
                         duration: 1500 + Math.random() * 500,
@@ -463,6 +496,7 @@ class CombatArena extends Phaser.Scene {
 
                 // Lava glow pulse
                 if (tileKey === 'iso_lava') {
+                    tile.clearTint(); // lava has its own color
                     this.tweens.add({
                         targets: tile, alpha: { from: 0.8, to: 1.0 },
                         duration: 800 + Math.random() * 400,
@@ -476,6 +510,13 @@ class CombatArena extends Phaser.Scene {
                         duration: 600, yoyo: true, repeat: -1,
                     });
                     this.tileEffects.push(glow);
+                }
+
+                // Forest canopy: add small shadow under trees
+                if (tileKey === 'iso_forest') {
+                    const treeShadow = this.add.ellipse(x + 6, tileY + 8, 30, 14, 0x000000, 0.12);
+                    treeShadow.setDepth((gx + gy) * 10 + elev + 0.3);
+                    this.tileEffects.push(treeShadow);
                 }
             }
         }
@@ -563,28 +604,27 @@ class CombatArena extends Phaser.Scene {
         const spriteKey = `chi_${cls}_${dir}_idle`;
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
-        const sprite = this.add.image(x, y - TILE_DEPTH, usedKey);
-        sprite.setOrigin(0.5, 0.85);
+        const sprite = this.add.image(x, y, usedKey);
+        sprite.setOrigin(0.5, 0.9);  // bottom-center so feet touch the tile
         sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
         sprite.setDepth((p.grid_x + p.grid_y) * 10 + elev + 5);
 
-        // Name label
-        const spriteY = y - TILE_DEPTH;
-        const nameY = spriteY - 45;
+        // Name label — well above sprite to not overlap
+        const nameY = y - NAME_OFFSET;
         const name = this.add.text(x, nameY, p.student_name || 'Élève', {
-            fontSize: '11px',
-            fontFamily: 'Arial',
+            fontSize: '10px',
+            fontFamily: '"Press Start 2P", monospace',
             color: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 2,
+            strokeThickness: 3,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar (larger for visibility on projectors)
-        const barWidth = 48;
-        const barHeight = 6;
-        const barY = nameY + 12;
-        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x1a1a2e).setDepth(9999);
-        hpBg.setStrokeStyle(1, 0x333355);
+        // HP bar — below name, still above sprite head
+        const barWidth = 44;
+        const barHeight = 5;
+        const barY = y - HP_BAR_OFFSET;
+        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x000000, 0.6).setDepth(9999);
+        hpBg.setStrokeStyle(1, 0x444466);
         const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
         const curHp = p.current_hp !== undefined ? p.current_hp : maxHp;
         const hpPct = Math.max(0, curHp / maxHp);
@@ -597,8 +637,12 @@ class CombatArena extends Phaser.Scene {
             hpColor
         ).setDepth(9999);
 
+        // Entity shadow (small ellipse under feet)
+        const shadow = this.add.ellipse(x, y + 4, 28, 12, 0x000000, 0.25);
+        shadow.setDepth((p.grid_x + p.grid_y) * 10 + elev + 4);
+
         this.entitySprites[id] = {
-            sprite, name, hpBg, hpFill,
+            sprite, name, hpBg, hpFill, shadow,
             data: p,
             type: 'player',
             cls: cls,
@@ -693,6 +737,7 @@ class CombatArena extends Phaser.Scene {
         if (ent.name) ent.name.destroy();
         if (ent.hpBg) ent.hpBg.destroy();
         if (ent.hpFill) ent.hpFill.destroy();
+        if (ent.shadow) ent.shadow.destroy();
         // Clean up any extra references (mana bars, etc.)
         if (ent.manaBg) ent.manaBg.destroy();
         if (ent.manaFill) ent.manaFill.destroy();
@@ -712,31 +757,30 @@ class CombatArena extends Phaser.Scene {
         // Default direction: sw (facing players who are on the left)
         const defaultDir = 'sw';
         const spriteKey = `mon_${monType}_${defaultDir}`;
-        const sprite = this.add.image(x, y - TILE_DEPTH, spriteKey);
-        sprite.setOrigin(0.5, 0.85);
+        const sprite = this.add.image(x, y, spriteKey);
+        sprite.setOrigin(0.5, 0.9);  // bottom-center so feet touch tile
         sprite.setDepth((m.grid_x + m.grid_y) * 10 + elev + 5);
 
         // Scale the PixelLab sprites up (they're 56×56 or 48×48, we want ~SPRITE_SIZE)
         const baseScale = SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1);
         sprite.setScale(baseScale);
 
-        // Name
-        const spriteY = y - TILE_DEPTH;
-        const nameY = spriteY - 45;
+        // Name — well above sprite head
+        const nameY = y - NAME_OFFSET;
         const name = this.add.text(x, nameY, m.name || monType, {
             fontSize: '10px',
-            fontFamily: 'Arial',
+            fontFamily: '"Press Start 2P", monospace',
             color: '#ff6b6b',
             stroke: '#000000',
-            strokeThickness: 2,
+            strokeThickness: 3,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar (larger + color-coded by HP percentage)
-        const barWidth = 48;
-        const barHeight = 6;
-        const barY = nameY + 12;
-        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x1a1a2e).setDepth(9999);
-        hpBg.setStrokeStyle(1, 0x333355);
+        // HP bar — below name, above sprite
+        const barWidth = 44;
+        const barHeight = 5;
+        const barY = y - HP_BAR_OFFSET;
+        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x000000, 0.6).setDepth(9999);
+        hpBg.setStrokeStyle(1, 0x444466);
         const maxHp = m.max_hp || 100;
         const curHp = m.current_hp !== undefined ? m.current_hp : maxHp;
         const hpPct = Math.max(0, curHp / maxHp);
@@ -749,8 +793,12 @@ class CombatArena extends Phaser.Scene {
             hpColor
         ).setDepth(9999);
 
+        // Entity shadow
+        const shadow = this.add.ellipse(x, y + 4, 28, 12, 0x000000, 0.25);
+        shadow.setDepth((m.grid_x + m.grid_y) * 10 + elev + 4);
+
         this.entitySprites[id] = {
-            sprite, name, hpBg, hpFill,
+            sprite, name, hpBg, hpFill, shadow,
             data: m,
             type: 'monster',
             monType: monType,
@@ -776,7 +824,7 @@ class CombatArena extends Phaser.Scene {
         if (!ent) return;
 
         const { x, y } = this.gridToIso(gx, gy, true);
-        const targetY = y - TILE_DEPTH;
+        const targetY = y;  // sprite feet on tile center
         const elev = this.getElevation(gx, gy);
 
         // Update direction for players and monsters
@@ -801,10 +849,11 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Standardized positioning: nameY = spriteY - 45, barY = nameY + 12 = spriteY - 33
-        const nameY = targetY - 45;
-        const barY = nameY + 12;
+        // Consistent offsets for name and HP bar
+        const nameY = targetY - NAME_OFFSET;
+        const barY = targetY - HP_BAR_OFFSET;
 
+        const shadowY = targetY + 4;
         if (animate) {
             this.tweens.add({
                 targets: [ent.sprite],
@@ -815,12 +864,14 @@ class CombatArena extends Phaser.Scene {
             this.tweens.add({ targets: ent.name, x: x, y: nameY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpBg], x: x, y: barY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpFill], x: x, y: barY, duration: 300, ease: 'Linear' });
+            if (ent.shadow) this.tweens.add({ targets: ent.shadow, x: x, y: shadowY, duration: 300, ease: 'Linear' });
         } else {
             ent.sprite.setPosition(x, targetY);
             ent.sprite.setDepth((gx + gy) * 10 + elev + 5);
             ent.name.setPosition(x, nameY);
             ent.hpBg.setPosition(x, barY);
             ent.hpFill.setPosition(x, barY);
+            if (ent.shadow) { ent.shadow.setPosition(x, shadowY); ent.shadow.setDepth((gx + gy) * 10 + elev + 4); }
         }
     }
 
@@ -871,8 +922,8 @@ class CombatArena extends Phaser.Scene {
 
             const prevCell = path[stepIdx - 1];
             const cell = path[stepIdx];
-            const { x, y } = this.gridToIso(cell.x, cell.y);
-            const targetY = y - TILE_DEPTH;
+            const { x, y } = this.gridToIso(cell.x, cell.y, true);
+            const targetY = y;  // feet on tile
 
             // Update direction based on movement
             const newDir = this._getDirection(prevCell.x, prevCell.y, cell.x, cell.y);
@@ -881,10 +932,9 @@ class CombatArena extends Phaser.Scene {
                 walkFrame = 0; // Reset walk frame on direction change
             }
 
-            // Tween sprite + name + HP bars to next cell
-            // Standardized positioning: nameY = spriteY - 45, barY = nameY + 12 = spriteY - 33
-            const nameY = targetY - 45;
-            const barY = nameY + 12;
+            // Consistent offsets
+            const nameY = targetY - NAME_OFFSET;
+            const barY = targetY - HP_BAR_OFFSET;
 
             this.tweens.add({
                 targets: [ent.sprite],
@@ -912,6 +962,13 @@ class CombatArena extends Phaser.Scene {
                 x: x, y: barY,
                 duration: stepDuration, ease: 'Linear',
             });
+            if (ent.shadow) {
+                this.tweens.add({
+                    targets: ent.shadow,
+                    x: x, y: targetY + 4,
+                    duration: stepDuration, ease: 'Linear',
+                });
+            }
         };
 
         doStep();
@@ -921,7 +978,7 @@ class CombatArena extends Phaser.Scene {
         const ent = this.entitySprites[id];
         if (!ent) return;
 
-        const barWidth = 48;
+        const barWidth = 44;
         const pct = Math.max(0, Math.min(1, curHp / maxHp));
         let hpColor;
         if (ent.type === 'monster') {
