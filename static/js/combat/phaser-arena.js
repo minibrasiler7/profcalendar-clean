@@ -5,7 +5,7 @@
 
 const TILE_W = 64;
 const TILE_H = 32;
-const TILE_DEPTH = 8;
+const TILE_DEPTH = 12;
 const SPRITE_SIZE = 72;
 
 class CombatArena extends Phaser.Scene {
@@ -308,7 +308,7 @@ class CombatArena extends Phaser.Scene {
         let isoY = (gx + gy) * (TILE_H / 2) + this.offsetY;
         if (includeElevation && this.elevation) {
             const elev = (this.elevation[gy] && this.elevation[gy][gx]) || 0;
-            isoY -= elev * 20; // 20px per elevation level
+            isoY -= elev * 16; // 16px per elevation level
         }
         return { x: isoX, y: isoY };
     }
@@ -401,7 +401,7 @@ class CombatArena extends Phaser.Scene {
         };
 
         // Height offset per elevation level (pixels upward)
-        const ELEV_OFFSET = 20;
+        const ELEV_OFFSET = 16;
 
         // Draw tiles from back to front (painter's algorithm)
         for (let gy = 0; gy < this.gridH; gy++) {
@@ -422,49 +422,32 @@ class CombatArena extends Phaser.Scene {
                     tileKey = tileTextures[tiles[gy][gx]] || 'iso_grass';
                 }
 
-                // Render base tile at elevated position
+                // Tile origin: center of top face (y=16 in a 44px tile → 0.364)
+                const tileOriginY = 16 / 44;
+
+                // For elevated tiles, stack dirt tiles underneath to fill the gap
+                if (elev > 0 && tileKey !== 'iso_wall') {
+                    for (let e = 0; e < elev; e++) {
+                        const stackY = y - e * ELEV_OFFSET;
+                        const stackTile = this.add.image(x, stackY, 'iso_dirt');
+                        stackTile.setOrigin(0.5, tileOriginY);
+                        stackTile.setDepth((gx + gy) * 10 + e - 0.5);
+                        // Darken stacked tiles for depth effect
+                        stackTile.setTint(0x999999);
+                    }
+                }
+
+                // Render the actual tile on top at elevated position
                 const tileY = y - elevPx;
                 const tile = this.add.image(x, tileY, tileKey);
-                tile.setOrigin(0.5, 0.5);
+                tile.setOrigin(0.5, tileOriginY);
                 tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
 
-                // Draw isometric side faces to connect elevated tile to ground level
+                // Subtle shadow under elevated tiles for depth perception
                 if (elev > 0 && tileKey !== 'iso_wall') {
-                    const hw = TILE_W / 2;  // 32
-                    const hh = TILE_H / 2;  // 16
-                    const groundY = y;       // The y position if this tile had no elevation
-                    const sideGfx = this.add.graphics();
-                    sideGfx.setDepth((gx + gy) * 10 + elev - 0.5);
-
-                    // Right face (south-east side) — lighter brown
-                    sideGfx.fillStyle(0x8B7355, 0.95);
-                    sideGfx.beginPath();
-                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of elevated tile
-                    sideGfx.lineTo(x + hw, tileY);               // top: right-center of elevated tile
-                    sideGfx.lineTo(x + hw, groundY);             // bottom: right-center at ground level
-                    sideGfx.lineTo(x, groundY + hh);             // bottom: bottom-center at ground level
-                    sideGfx.closePath();
-                    sideGfx.fillPath();
-
-                    // Left face (south-west side) — darker brown for depth
-                    sideGfx.fillStyle(0x6B5740, 0.95);
-                    sideGfx.beginPath();
-                    sideGfx.moveTo(x, tileY + hh);              // top: bottom-center of elevated tile
-                    sideGfx.lineTo(x - hw, tileY);               // top: left-center of elevated tile
-                    sideGfx.lineTo(x - hw, groundY);             // bottom: left-center at ground level
-                    sideGfx.lineTo(x, groundY + hh);             // bottom: bottom-center at ground level
-                    sideGfx.closePath();
-                    sideGfx.fillPath();
-
-                    // Thin edge lines for definition
-                    sideGfx.lineStyle(1, 0x4a3c2a, 0.5);
-                    sideGfx.lineBetween(x, tileY + hh, x, groundY + hh);
-                    sideGfx.lineBetween(x + hw, tileY, x + hw, groundY);
-                    sideGfx.lineBetween(x - hw, tileY, x - hw, groundY);
-
-                    // Track for cleanup
-                    this.elevationGfx[key] = sideGfx;
+                    const shadow = this.add.ellipse(x, tileY + TILE_H / 2 + 2, TILE_W * 0.6, TILE_H * 0.3, 0x000000, 0.15);
+                    shadow.setDepth((gx + gy) * 10 + elev - 0.1);
                 }
 
                 // Water shimmer effect
