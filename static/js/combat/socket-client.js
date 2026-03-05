@@ -55,6 +55,10 @@ class CombatSocket {
                 const el = document.getElementById('alive-count');
                 if (el) el.textContent = alive;
             }
+            // Hide question overlay when phase changes away from question
+            if (state.current_phase && state.current_phase !== 'question') {
+                this.hideQuestionOverlay();
+            }
             this._fire('onStateUpdate', state);
         });
 

@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 # Track phase tokens to prevent stale timeouts
 phase_tokens = {}  # session_id -> current_phase_token
 
+# Module-level references to closure functions (populated by register_combat_events)
+_combat_helpers = {}  # 'execute_and_broadcast', 'auto_timeout_action'
+
 combat_bp = Blueprint('combat', __name__, url_prefix='/combat')
 
 
@@ -121,12 +124,72 @@ def fix_skills(session_id):
 @combat_bp.route('/version')
 def combat_version():
     """Quick version check to verify deploy."""
-    return jsonify({'version': '2026-03-04-v3', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills']})
+    return jsonify({'version': '2026-03-05-v7', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix']})
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  API REST pour le mobile (JWT auth)
 # ═══════════════════════════════════════════════════════════════════
+
+@combat_bp.route('/api/submit_answer', methods=['POST'])
+def api_submit_answer():
+    """REST fallback for submitting answers (bypasses SocketIO).
+    Used when SocketIO emit is unreliable."""
+    from extensions import socketio
+    data = request.get_json() or {}
+    session_id = data.get('session_id')
+    student_id = data.get('student_id')
+    answer = data.get('answer', {})
+
+    if not session_id or not student_id:
+        return jsonify({'error': 'Missing session_id or student_id'}), 400
+
+    room = f'combat_{session_id}'
+    logger.info(f"[Combat:{session_id}] REST submit_answer: student={student_id}")
+
+    try:
+        result, error = CombatEngine.submit_answer(session_id, student_id, answer)
+        if error:
+            logger.error(f"[Combat:{session_id}] REST submit_answer ERROR: {error}")
+            return jsonify({'error': error}), 400
+
+        is_correct = result.get('is_correct', False)
+        all_answered = result.get('all_answered', False)
+        logger.info(f"[Combat:{session_id}] REST submit_answer OK: student={student_id} correct={is_correct} all_answered={all_answered}")
+
+        # Broadcast progress to room via SocketIO
+        session = CombatSession.query.get(session_id)
+        alive_count = sum(1 for p in session.participants if p.is_alive)
+        answered_count = sum(1 for p in session.participants if p.is_alive and p.answered)
+        socketio.emit('combat:answer_progress', {
+            'answered': answered_count, 'total': alive_count,
+            'student_id': student_id, 'is_correct': is_correct,
+        }, room=room)
+
+        # If all answered, transition
+        if all_answered:
+            correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+            if not correct_alive:
+                logger.info(f"[Combat:{session_id}] REST: No correct → direct execute")
+                _combat_helpers['execute_and_broadcast'](session_id, room)
+            else:
+                logger.info(f"[Combat:{session_id}] REST: → ACTION phase")
+                CombatEngine.transition_to_action(session_id)
+                session = CombatSession.query.get(session_id)
+                socketio.emit('combat:all_answered', {'phase': 'action'}, room=room)
+                socketio.emit('combat:state_update', session.get_state(), room=room)
+                phase_token = str(uuid.uuid4())
+                phase_tokens[session_id] = phase_token
+                _combat_helpers['auto_timeout_action'](socketio, session_id, room, phase_token, 30)
+
+        return jsonify({
+            'is_correct': is_correct,
+            'all_answered': all_answered,
+        })
+    except Exception as e:
+        logger.error(f"[Combat:{session_id}] REST submit_answer EXCEPTION: {e}", exc_info=True)
+        return jsonify({'error': str(e), 'is_correct': False}), 500
+
 
 @combat_bp.route('/api/join', methods=['POST'])
 def api_join_combat():
@@ -198,12 +261,16 @@ def register_combat_events(socketio, app=None):
                 emit('combat:error', {'error': error})
                 return
 
-            logger.info(f"[Combat:{session_id}] Élève {student_id} rejoint — hp={participant.current_hp}/{participant.max_hp} class={participant.snapshot_json.get('avatar_class','?')}")
+            snapshot = participant.snapshot_json or {}
+            skills = snapshot.get('skills', [])
+            logger.info(f"[Combat:{session_id}] Élève {student_id} rejoint — hp={participant.current_hp}/{participant.max_hp} class={snapshot.get('avatar_class','?')} skills={len(skills)}")
 
             # Notifier tout le monde
             session = CombatSession.query.get(session_id)
             emit('combat:student_joined', {
                 'participant': participant.to_dict(),
+                'participant_id': participant.id,
+                'skills': skills,
             }, room=room)
             emit('combat:state_update', session.get_state(), room=room)
         except Exception as e:
@@ -250,66 +317,84 @@ def register_combat_events(socketio, app=None):
     @socketio.on('combat:submit_answer')
     def on_submit_answer(data):
         """Un élève soumet sa réponse."""
+        import time as _time
+        _entry_time = _time.time()
         session_id = data.get('session_id')
         student_id = data.get('student_id')
         answer = data.get('answer', {})
+        caller_sid = request.sid  # capture caller's socket ID for reliable emit
 
         if not session_id or not student_id:
             return
 
         room = f'combat_{session_id}'
-        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} answer_keys={list(answer.keys()) if isinstance(answer, dict) else type(answer)}")
+        logger.info(f"[Combat:{session_id}] submit_answer ENTRY: student={student_id} sid={caller_sid} answer_type={type(answer).__name__} time={_entry_time:.3f}")
 
-        result, error = CombatEngine.submit_answer(session_id, student_id, answer)
-        if error:
-            logger.error(f"[Combat:{session_id}] submit_answer ERROR: {error}")
-            emit('combat:error', {'error': error})
-            return
+        try:
+            _t0 = _time.time()
+            result, error = CombatEngine.submit_answer(session_id, student_id, answer)
+            _t1 = _time.time()
+            logger.info(f"[Combat:{session_id}] submit_answer engine took {(_t1-_t0)*1000:.1f}ms entry_lag={(_t0-_entry_time)*1000:.1f}ms")
+            if error:
+                logger.error(f"[Combat:{session_id}] submit_answer ERROR: {error} (total {(_t1-_entry_time)*1000:.1f}ms)")
+                socketio.emit('combat:error', {'error': error}, to=caller_sid)
+                return
 
-        is_correct = result.get('is_correct', False)
-        logger.info(f"[Combat:{session_id}] submit_answer: student={student_id} correct={is_correct} all_answered={result.get('all_answered')}")
+            is_correct = result.get('is_correct', False)
+            logger.info(f"[Combat:{session_id}] submit_answer OK: student={student_id} correct={is_correct} all_answered={result.get('all_answered')}")
 
-        # Envoyer le résultat à l'élève
-        emit('combat:answer_result', {
-            'student_id': student_id,
-            'is_correct': is_correct,
-        })
+            # Envoyer le résultat à l'élève (via socketio.emit + to=sid for reliability)
+            socketio.emit('combat:answer_result', {
+                'student_id': student_id,
+                'is_correct': is_correct,
+            }, to=caller_sid)
 
-        # Notifier la progression à tout le monde
-        session = CombatSession.query.get(session_id)
-        alive_count = sum(1 for p in session.participants if p.is_alive)
-        answered_count = sum(1 for p in session.participants if p.is_alive and p.answered)
-        logger.info(f"[Combat:{session_id}] Answer progress: {answered_count}/{alive_count}")
-        emit('combat:answer_progress', {
-            'answered': answered_count,
-            'total': alive_count,
-            'student_id': student_id,
-            'is_correct': is_correct,
-        }, room=room)
-
-        # Si tous ont répondu, passer en phase action
-        if result.get('all_answered'):
-            # Check if any correct players can attack
+            # Notifier la progression à tout le monde
             session = CombatSession.query.get(session_id)
-            correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
-            logger.info(f"[Combat:{session_id}] All answered! correct_alive={len(correct_alive)}")
-            if not correct_alive:
-                # Personne n'a bien répondu → exécuter directement (monstres seulement)
-                logger.info(f"[Combat:{session_id}] No correct answers → direct execute (monsters only)")
-                _execute_and_broadcast(session_id, room)
-            else:
-                logger.info(f"[Combat:{session_id}] → transition to ACTION phase")
-                CombatEngine.transition_to_action(session_id)
+            alive_count = sum(1 for p in session.participants if p.is_alive)
+            answered_count = sum(1 for p in session.participants if p.is_alive and p.answered)
+            logger.info(f"[Combat:{session_id}] Answer progress: {answered_count}/{alive_count}")
+            socketio.emit('combat:answer_progress', {
+                'answered': answered_count,
+                'total': alive_count,
+                'student_id': student_id,
+                'is_correct': is_correct,
+            }, room=room)
+
+            # Si tous ont répondu, passer en phase action
+            if result.get('all_answered'):
+                # Check if any correct players can attack
                 session = CombatSession.query.get(session_id)
-                emit('combat:all_answered', {
-                    'phase': 'action',
-                }, room=room)
-                emit('combat:state_update', session.get_state(), room=room)
-                # Start 30-second auto-timeout for action phase
-                phase_token = str(uuid.uuid4())
-                phase_tokens[session_id] = phase_token
-                logger.info(f"[Combat:{session_id}] Starting 30s auto-timeout for action phase (token={phase_token})")
-                _auto_timeout_action_phase(socketio, session_id, room, phase_token, 30)
+                correct_alive = [p for p in session.participants if p.is_alive and p.is_correct]
+                logger.info(f"[Combat:{session_id}] All answered! correct_alive={len(correct_alive)}")
+                if not correct_alive:
+                    # Personne n'a bien répondu → exécuter directement (monstres seulement)
+                    logger.info(f"[Combat:{session_id}] No correct answers → direct execute (monsters only)")
+                    _execute_and_broadcast(session_id, room)
+                else:
+                    logger.info(f"[Combat:{session_id}] → transition to ACTION phase")
+                    CombatEngine.transition_to_action(session_id)
+                    session = CombatSession.query.get(session_id)
+                    socketio.emit('combat:all_answered', {
+                        'phase': 'action',
+                    }, room=room)
+                    socketio.emit('combat:state_update', session.get_state(), room=room)
+                    # Start 30-second auto-timeout for action phase
+                    phase_token = str(uuid.uuid4())
+                    phase_tokens[session_id] = phase_token
+                    logger.info(f"[Combat:{session_id}] Starting 30s auto-timeout for action phase (token={phase_token})")
+                    _auto_timeout_action_phase(socketio, session_id, room, phase_token, 30)
+        except Exception as e:
+            _te = _time.time()
+            logger.error(f"[Combat:{session_id}] submit_answer EXCEPTION after {(_te-_entry_time)*1000:.1f}ms: {e}", exc_info=True)
+            socketio.emit('combat:answer_result', {
+                'student_id': student_id,
+                'is_correct': False,
+                'error': str(e),
+            }, to=caller_sid)
+
+        _total = _time.time() - _entry_time
+        logger.info(f"[Combat:{session_id}] submit_answer EXIT: student={student_id} total={_total*1000:.1f}ms")
 
     @socketio.on('combat:request_move_tiles')
     def on_request_move_tiles(data):
@@ -736,9 +821,19 @@ def register_combat_events(socketio, app=None):
                     session = CombatSession.query.get(session_id)
                     sio.emit('combat:state_update', session.get_state(), room=room)
                     logger.info(f"[Combat:{session_id}] Auto-advance: state_update sent, phase={session.current_phase}")
+
+                    # Start move phase timeout for the new round
+                    new_phase_token = str(uuid.uuid4())
+                    phase_tokens[session_id] = new_phase_token
+                    logger.info(f"[Combat:{session_id}] Auto-advance: Starting 20s move phase timeout (token={new_phase_token})")
+                    _auto_timeout_move_phase(sio, session_id, room, new_phase_token, 20)
                 except Exception as e:
                     logger.error(f"[Combat:{session_id}] Auto-advance EXCEPTION: {e}")
                     import traceback
                     traceback.print_exc()
 
         sio.start_background_task(_do_advance)
+
+    # Store closure functions in module-level dict for REST endpoint access
+    _combat_helpers['execute_and_broadcast'] = _execute_and_broadcast
+    _combat_helpers['auto_timeout_action'] = _auto_timeout_action_phase

@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
 ProfCalendar - Production App for Render
-Version: 1bc396b - Force Gunicorn reload for template fix
+Version: v6 - Eventlet monkey_patch fix for SocketIO concurrency
 """
+# CRITICAL: monkey_patch MUST be called BEFORE any other imports
+# Without this, time.sleep/socket/DB operations block the eventlet loop
+# and SocketIO events get queued instead of processed in real-time
+import eventlet
+eventlet.monkey_patch()
+
 import os
 from app import create_app
 from extensions import db, socketio
