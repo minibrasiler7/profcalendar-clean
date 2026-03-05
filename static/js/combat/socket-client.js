@@ -333,9 +333,9 @@ class CombatSocket {
         const title = document.getElementById('overlay-title');
         const isVictory = result.result === 'victory';
 
-        // Show Phaser end screen with particles
+        // Show Phaser end screen with particles + rewards
         if (this.gameInstance && typeof this.gameInstance.showCombatEndScreen === 'function') {
-            this.gameInstance.showCombatEndScreen(isVictory);
+            this.gameInstance.showCombatEndScreen(isVictory, result.rewards || {});
         }
 
         if (overlay && title) {
@@ -345,6 +345,20 @@ class CombatSocket {
             overlay.style.borderColor = isVictory ? '#10b981' : '#ef4444';
         }
         this.addCombatLogEntry(isVictory ? '🎉 VICTOIRE!' : '💀 DÉFAITE...', 'phase');
+
+        // Log rewards in combat log
+        if (result.rewards) {
+            const rewardValues = Object.values(result.rewards);
+            const totalXP = rewardValues.reduce((sum, r) => sum + (r.xp || 0), 0);
+            const totalGold = rewardValues.reduce((sum, r) => sum + (r.gold || 0), 0);
+            if (totalXP > 0 || totalGold > 0) {
+                this.addCombatLogEntry(`Récompenses : +${totalXP} XP, +${totalGold} or`, 'reward');
+            }
+            const levelUps = rewardValues.filter(r => r.leveled_up);
+            if (levelUps.length > 0) {
+                this.addCombatLogEntry(`🌟 ${levelUps.length} héros ont monté de niveau !`, 'reward');
+            }
+        }
     }
 
     addCombatLogEntry(message, type = 'default') {

@@ -124,7 +124,7 @@ def fix_skills(session_id):
 @combat_bp.route('/version')
 def combat_version():
     """Quick version check to verify deploy."""
-    return jsonify({'version': '2026-03-05-v7', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix']})
+    return jsonify({'version': '2026-03-05-v8', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix', 'visual_upgrade_v1']})
 
 
 # ═══════════════════════════════════════════════════════════════════

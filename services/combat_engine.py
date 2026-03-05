@@ -342,10 +342,15 @@ class CombatEngine:
         random.shuffle(monster_entries)
         logger.info(f"[Combat] Spawning {len(monster_entries)} monsters for {num_players} players (avg_level={avg_level})")
 
-        # Placer sur le côté droit de la grille
-        spawn_x_start = grid_w - 3
+        # Placer sur le côté droit de la grille (un peu plus près du centre pour des combats plus rapides)
+        spawn_x_start = max(grid_w - 4, grid_w // 2 + 1)
         available_positions = []
-        for gx in range(spawn_x_start, grid_w):
+        for gx in range(spawn_x_start, grid_w - 1):
+            for gy in range(grid_h):
+                if (gx, gy) not in obstacle_set:
+                    available_positions.append((gx, gy))
+        # Also add edge positions as fallback
+        for gx in [grid_w - 1]:
             for gy in range(grid_h):
                 if (gx, gy) not in obstacle_set:
                     available_positions.append((gx, gy))
@@ -454,16 +459,21 @@ class CombatEngine:
         tiles = map_config.get('tiles', [])
         obstacle_set = {(o['x'], o['y']) for o in map_config.get('obstacles', [])}
 
-        # Trouver les positions libres côté gauche
+        # Trouver les positions libres côté gauche (columns 1-3 for better positioning)
         existing_positions = set()
         for p in session.participants:
             existing_positions.add((p.grid_x, p.grid_y))
 
+        grid_w = map_config.get('width', 10)
         available = []
-        for gx in range(0, 3):
+        for gx in range(1, min(4, grid_w // 2)):
             for gy in range(grid_h):
                 if (gx, gy) not in obstacle_set and (gx, gy) not in existing_positions:
                     available.append((gx, gy))
+        # Fallback: column 0
+        for gy in range(grid_h):
+            if (0, gy) not in obstacle_set and (0, gy) not in existing_positions:
+                available.append((0, gy))
 
         if available:
             grid_x, grid_y = available[0]
@@ -553,19 +563,37 @@ class CombatEngine:
 
         CombatEngine._spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles)
 
-        # Replacer les joueurs sur le côté gauche si nécessaire
+        # Replacer TOUS les joueurs sur le côté gauche pour éviter les chevauchements
+        # et assurer une bonne distribution spatiale (columns 1-3, closer to center)
         existing_positions = set()
-        for p in session.participants:
-            if p.grid_x >= grid_w or p.grid_y >= grid_h:
-                # Player is outside new grid, reposition
-                available = []
-                for gx in range(0, 3):
-                    for gy in range(grid_h):
-                        if (gx, gy) not in obstacle_set and (gx, gy) not in existing_positions:
-                            available.append((gx, gy))
-                if available:
-                    p.grid_x, p.grid_y = available[0]
-            existing_positions.add((p.grid_x, p.grid_y))
+        all_available = []
+        for gx in range(1, min(4, grid_w // 2)):
+            for gy in range(grid_h):
+                if (gx, gy) not in obstacle_set:
+                    all_available.append((gx, gy))
+        # Fallback: column 0
+        for gy in range(grid_h):
+            if (0, gy) not in obstacle_set:
+                all_available.append((0, gy))
+
+        # Sort to spread players vertically: prefer column 2 center, then spread out
+        mid_y = grid_h // 2
+        all_available.sort(key=lambda pos: (abs(pos[0] - 2), abs(pos[1] - mid_y)))
+
+        for i, p in enumerate(session.participants):
+            # Find best available position for this player
+            placed = False
+            for pos in all_available:
+                if pos not in existing_positions:
+                    p.grid_x, p.grid_y = pos
+                    existing_positions.add(pos)
+                    placed = True
+                    break
+            if not placed:
+                # Fallback: stack at (i%3, i)
+                p.grid_x = i % 3
+                p.grid_y = min(i, grid_h - 1)
+                existing_positions.add((p.grid_x, p.grid_y))
 
         db.session.commit()
 

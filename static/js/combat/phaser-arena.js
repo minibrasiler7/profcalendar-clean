@@ -594,10 +594,12 @@ class CombatArena extends Phaser.Scene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar
-        const barWidth = 36;
+        // HP bar (larger for visibility on projectors)
+        const barWidth = 48;
+        const barHeight = 6;
         const barY = nameY + 12;
-        const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
+        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x1a1a2e).setDepth(9999);
+        hpBg.setStrokeStyle(1, 0x333355);
         const maxHp = (p.snapshot_json && p.snapshot_json.max_hp) || p.max_hp || 100;
         const curHp = p.current_hp !== undefined ? p.current_hp : maxHp;
         const hpPct = Math.max(0, curHp / maxHp);
@@ -606,7 +608,7 @@ class CombatArena extends Phaser.Scene {
             x - barWidth / 2 + (barWidth * hpPct) / 2,
             barY,
             barWidth * hpPct,
-            4,
+            barHeight,
             hpColor
         ).setDepth(9999);
 
@@ -744,19 +746,22 @@ class CombatArena extends Phaser.Scene {
             strokeThickness: 2,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar
-        const barWidth = 30;
+        // HP bar (larger + color-coded by HP percentage)
+        const barWidth = 48;
+        const barHeight = 6;
         const barY = nameY + 12;
-        const hpBg = this.add.rectangle(x, barY, barWidth, 4, 0x333333).setDepth(9999);
+        const hpBg = this.add.rectangle(x, barY, barWidth, barHeight, 0x1a1a2e).setDepth(9999);
+        hpBg.setStrokeStyle(1, 0x333355);
         const maxHp = m.max_hp || 100;
         const curHp = m.current_hp !== undefined ? m.current_hp : maxHp;
         const hpPct = Math.max(0, curHp / maxHp);
+        const hpColor = hpPct > 0.5 ? 0xef4444 : hpPct > 0.25 ? 0xf97316 : 0x7f1d1d;
         const hpFill = this.add.rectangle(
             x - barWidth / 2 + (barWidth * hpPct) / 2,
             barY,
             barWidth * hpPct,
-            4,
-            0xef4444
+            barHeight,
+            hpColor
         ).setDepth(9999);
 
         this.entitySprites[id] = {
@@ -931,10 +936,16 @@ class CombatArena extends Phaser.Scene {
         const ent = this.entitySprites[id];
         if (!ent) return;
 
-        const barWidth = 30;
+        const barWidth = 48;
         const pct = Math.max(0, Math.min(1, curHp / maxHp));
-        const hpColor = ent.type === 'monster' ? 0xef4444
-            : (pct > 0.5 ? 0x10b981 : pct > 0.25 ? 0xf59e0b : 0xef4444);
+        let hpColor;
+        if (ent.type === 'monster') {
+            // Monsters: red → orange → dark red as HP drops
+            hpColor = pct > 0.5 ? 0xef4444 : pct > 0.25 ? 0xf97316 : 0x7f1d1d;
+        } else {
+            // Players: green → amber → red
+            hpColor = pct > 0.5 ? 0x10b981 : pct > 0.25 ? 0xf59e0b : 0xef4444;
+        }
 
         ent.hpFill.width = barWidth * pct;
         ent.hpFill.fillColor = hpColor;
@@ -1794,7 +1805,7 @@ class CombatArena extends Phaser.Scene {
     /**
      * Show victory or defeat screen on the Phaser canvas
      */
-    showCombatEndScreen(isVictory) {
+    showCombatEndScreen(isVictory, rewards = {}) {
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
@@ -1806,7 +1817,7 @@ class CombatArena extends Phaser.Scene {
 
         // Emoji burst
         const emoji = isVictory ? '🎉' : '💀';
-        const emojiText = this.add.text(canvasW / 2, canvasH / 2 - 60, emoji, {
+        const emojiText = this.add.text(canvasW / 2, canvasH / 2 - 80, emoji, {
             fontSize: '72px',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setScale(0);
         this.tweens.add({
@@ -1818,7 +1829,7 @@ class CombatArena extends Phaser.Scene {
         const resultColor = isVictory ? '#fbbf24' : '#ef4444';
         const resultStroke = isVictory ? '#b45309' : '#7f1d1d';
 
-        const text = this.add.text(canvasW / 2, canvasH / 2 + 20, resultText, {
+        const text = this.add.text(canvasW / 2, canvasH / 2, resultText, {
             fontSize: '80px',
             fontFamily: 'Arial Black',
             fontStyle: 'bold',
@@ -1835,7 +1846,6 @@ class CombatArena extends Phaser.Scene {
             delay: 200,
             ease: 'Back.out',
             onComplete: () => {
-                // Gentle pulsing glow effect
                 this.tweens.add({
                     targets: text, scale: 1.05, duration: 1000,
                     yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
@@ -1847,24 +1857,60 @@ class CombatArena extends Phaser.Scene {
         const subtitle = isVictory
             ? 'Tous les monstres ont été vaincus !'
             : 'Tous les héros sont tombés...';
-        const subText = this.add.text(canvasW / 2, canvasH / 2 + 80, subtitle, {
+        const subText = this.add.text(canvasW / 2, canvasH / 2 + 60, subtitle, {
             fontSize: '20px', fontFamily: 'Arial', color: '#94a3b8',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
         this.tweens.add({ targets: subText, alpha: 1, duration: 500, delay: 800 });
 
         // Round count
-        const roundInfo = this.add.text(canvasW / 2, canvasH / 2 + 110, `Combat terminé en ${this.currentRound} rounds`, {
+        const roundInfo = this.add.text(canvasW / 2, canvasH / 2 + 90, `Combat terminé en ${this.currentRound} rounds`, {
             fontSize: '16px', fontFamily: 'Arial', color: '#667eea',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
         this.tweens.add({ targets: roundInfo, alpha: 1, duration: 500, delay: 1000 });
 
+        // ── Rewards display ──
+        const rewardValues = Object.values(rewards);
+        if (rewardValues.length > 0) {
+            const totalXP = rewardValues.reduce((sum, r) => sum + (r.xp || 0), 0);
+            const totalGold = rewardValues.reduce((sum, r) => sum + (r.gold || 0), 0);
+            const levelUps = rewardValues.filter(r => r.leveled_up);
+
+            let rewardY = canvasH / 2 + 125;
+
+            // XP and Gold
+            if (totalXP > 0 || totalGold > 0) {
+                const xpText = totalXP > 0 ? `+${totalXP} XP` : '';
+                const goldText = totalGold > 0 ? `+${totalGold} or` : '';
+                const rewardStr = [xpText, goldText].filter(Boolean).join('  ·  ');
+                const rewardDisplay = this.add.text(canvasW / 2, rewardY, rewardStr, {
+                    fontSize: '24px', fontFamily: 'Arial Black', fontStyle: 'bold',
+                    color: '#fbbf24', stroke: '#000000', strokeThickness: 4,
+                }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0).setScale(0.5);
+                this.tweens.add({
+                    targets: rewardDisplay, alpha: 1, scale: 1,
+                    duration: 500, delay: 1200, ease: 'Back.out',
+                });
+                rewardY += 35;
+            }
+
+            // Level up notification
+            if (levelUps.length > 0) {
+                const lvlText = this.add.text(canvasW / 2, rewardY,
+                    `🌟 ${levelUps.length} héros ont monté de niveau !`, {
+                    fontSize: '18px', fontFamily: 'Arial', fontStyle: 'bold',
+                    color: '#a78bfa',
+                }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
+                this.tweens.add({ targets: lvlText, alpha: 1, duration: 500, delay: 1500 });
+            }
+        }
+
         // Camera effects
         if (isVictory) {
-            this.cameras.main.flash(400, 255, 215, 0, true); // Golden flash
+            this.cameras.main.flash(400, 255, 215, 0, true);
         } else {
             this.cameras.main.shake(300, 0.01);
             this.time.delayedCall(300, () => {
-                this.cameras.main.flash(300, 255, 0, 0, true); // Red flash
+                this.cameras.main.flash(300, 255, 0, 0, true);
             });
         }
 
