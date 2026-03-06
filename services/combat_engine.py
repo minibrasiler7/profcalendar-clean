@@ -36,22 +36,9 @@ class CombatEngine:
     # ─── Création de session ─────────────────────────────────
     @staticmethod
     def create_session(teacher_id, classroom_id, exercise_id, difficulty='medium'):
-        """Crée une session de combat avec grille dynamique et monstres adaptés."""
-        config = DIFFICULTY_CONFIGS.get(difficulty, DIFFICULTY_CONFIGS['medium'])
-
-        # Calculer le niveau moyen des élèves de la classe
-        from models.rpg import StudentRPGProfile
-        from models.student import Student
-        students = Student.query.filter_by(classroom_id=classroom_id).all()
-        student_ids = [s.id for s in students]
-        rpg_profiles = StudentRPGProfile.query.filter(
-            StudentRPGProfile.student_id.in_(student_ids)
-        ).all() if student_ids else []
-        avg_level = max(1, int(sum(p.level for p in rpg_profiles) / len(rpg_profiles))) if rpg_profiles else 1
-
-        # NOTE: Use 1 as default - the grid will be resized when combat actually starts
-        # This prevents oversized grids when only 1 player connects out of a large class
-        num_students = 1  # Will be adjusted in resize_for_players()
+        """Crée une session de combat avec grille et terrain.
+        Les monstres ne sont PAS créés ici — ils seront spawn au démarrage
+        du combat quand on connaît le nombre réel de joueurs."""
 
         # Grille de taille correcte dès le départ pour un bel aperçu
         grid_w = 10
@@ -60,7 +47,7 @@ class CombatEngine:
         # Générer la carte avec obstacles et élévation
         tile_map, obstacles, elevation, template_name = CombatEngine._generate_map(grid_w, grid_h, difficulty)
 
-        # Créer la session
+        # Créer la session SANS monstres
         session = CombatSession(
             teacher_id=teacher_id,
             classroom_id=classroom_id,
@@ -80,11 +67,6 @@ class CombatEngine:
             },
         )
         db.session.add(session)
-        db.session.flush()
-
-        # Calculer et placer les monstres dynamiquement
-        CombatEngine._spawn_monsters(session, config, num_students, avg_level, grid_w, grid_h, obstacles)
-
         db.session.commit()
         return session
 
@@ -850,16 +832,37 @@ class CombatEngine:
         session.used_block_ids_json = used_block_ids
         logger.info(f"[Combat] Selected block: id={block.id} type={block.block_type} title='{block.title}' (used: {len(used_block_ids)}/{len(blocks)})")
 
-        # Au premier round, redimensionner la grille AVANT de modifier le round
+        # Au premier round, redimensionner la grille ET spawn les monstres
         if session.current_round == 0:
             try:
-                logger.info(f"[Combat] Resizing for {session.participants.count() if hasattr(session.participants, 'count') else len(session.participants)} players")
+                num_players = session.participants.count() if hasattr(session.participants, 'count') else len(list(session.participants))
+                logger.info(f"[Combat] Resizing for {num_players} players")
                 CombatEngine.resize_for_players(session_id)
                 # Re-fetch session after resize (it did its own commit)
                 session = CombatSession.query.get(session_id)
                 logger.info(f"[Combat] Resize complete, new grid: {session.map_config_json.get('width')}x{session.map_config_json.get('height')}")
+
+                # Spawn monsters now that we know number of players
+                existing_monsters = session.monsters.count() if hasattr(session.monsters, 'count') else len(list(session.monsters))
+                if existing_monsters == 0:
+                    config = DIFFICULTY_CONFIGS.get(session.difficulty, DIFFICULTY_CONFIGS['medium'])
+                    # Calculate avg level from actual participants
+                    from models.rpg import StudentRPGProfile
+                    participant_ids = [p.student_id for p in session.participants]
+                    rpg_profiles = StudentRPGProfile.query.filter(
+                        StudentRPGProfile.student_id.in_(participant_ids)
+                    ).all() if participant_ids else []
+                    avg_level = max(1, int(sum(p.level for p in rpg_profiles) / len(rpg_profiles))) if rpg_profiles else 1
+                    map_cfg = session.map_config_json or {}
+                    grid_w = map_cfg.get('width', 10)
+                    grid_h = map_cfg.get('height', 8)
+                    obstacles = map_cfg.get('obstacles', [])
+                    CombatEngine._spawn_monsters(session, config, num_players, avg_level, grid_w, grid_h, obstacles)
+                    db.session.commit()
+                    session = CombatSession.query.get(session_id)
+                    logger.info(f"[Combat] Spawned {session.monsters.count()} monsters for {num_players} players (avg_level={avg_level})")
             except Exception as e:
-                logger.error(f"[Combat] resize_for_players FAILED: {e}", exc_info=True)
+                logger.error(f"[Combat] resize_for_players/spawn FAILED: {e}", exc_info=True)
                 return None, f"Erreur resize: {str(e)}"
 
         # Nouveau round — commence par la phase de déplacement
@@ -1114,7 +1117,7 @@ class CombatEngine:
                                     if is_critical:
                                         damage = int(damage * 1.5)
                                     actual = m.take_damage(damage)
-                                    animations.append({
+                                    anim = {
                                         'type': 'attack',
                                         'attacker_type': 'player', 'attacker_id': p.id,
                                         'attacker_name': (p.snapshot_json or {}).get('name', '?'),
@@ -1127,7 +1130,13 @@ class CombatEngine:
                                         'is_aoe': True,
                                         'critical': is_critical,
                                         'combo_streak': combo_streak,
-                                    })
+                                    }
+                                    # Loot si le monstre est tué
+                                    if not m.is_alive:
+                                        loot = CombatEngine._generate_loot(p, m)
+                                        if loot:
+                                            anim['loot'] = loot
+                                    animations.append(anim)
                 else:
                     # Single target attack
                     target = CombatMonster.query.get(target_id) if target_type == 'monster' else None
@@ -1137,7 +1146,7 @@ class CombatEngine:
                         if is_critical:
                             damage = int(damage * 1.5)
                         actual = target.take_damage(damage)
-                        animations.append({
+                        anim = {
                             'type': 'attack',
                             'attacker_type': 'player', 'attacker_id': p.id,
                             'attacker_name': (p.snapshot_json or {}).get('name', '?'),
@@ -1149,7 +1158,13 @@ class CombatEngine:
                             'killed': not target.is_alive,
                             'critical': is_critical,
                             'combo_streak': combo_streak,
-                        })
+                        }
+                        # Loot si le monstre est tué
+                        if not target.is_alive:
+                            loot = CombatEngine._generate_loot(p, target)
+                            if loot:
+                                anim['loot'] = loot
+                        animations.append(anim)
 
             elif skill_type == 'heal':
                 if target_type == 'player':
@@ -1377,3 +1392,85 @@ class CombatEngine:
         session.ended_at = datetime.utcnow()
         db.session.commit()
         return rewards
+
+    # ─── Système de loot à la mort d'un monstre ───────────────
+    @staticmethod
+    def _generate_loot(killer_participant, monster):
+        """
+        Génère du loot quand un joueur tue un monstre.
+        80% chance → or (1-10 pièces basé sur niveau du monstre)
+        20% chance → équipement (adapté à la classe du tueur, pondéré par rareté)
+        Retourne un dict décrivant le loot obtenu, ou None.
+        """
+        from models.rpg import StudentRPGProfile, RPGItem, StudentItem
+
+        student_id = killer_participant.student_id
+        rpg = StudentRPGProfile.query.filter_by(student_id=student_id).first()
+        if not rpg:
+            return None
+
+        # Classe du joueur
+        player_class = (killer_participant.snapshot_json or {}).get('rpg_class', None)
+        if not player_class:
+            player_class = rpg.rpg_class
+
+        monster_level = monster.level or 1
+        roll = random.random()
+
+        if roll < 0.80:
+            # ── OR : 1-10 pièces basé sur le niveau du monstre ──
+            min_gold = max(1, monster_level // 2)
+            max_gold = max(min_gold + 1, min(10, monster_level + 2))
+            gold_amount = random.randint(min_gold, max_gold)
+            rpg.add_gold(gold_amount)
+            db.session.flush()
+            return {
+                'type': 'gold',
+                'amount': gold_amount,
+                'student_id': student_id,
+            }
+        else:
+            # ── ÉQUIPEMENT : adapté à la classe du tueur ──
+            all_items = RPGItem.query.filter_by(is_active=True).all()
+            if not all_items:
+                gold_amount = random.randint(2, 8)
+                rpg.add_gold(gold_amount)
+                db.session.flush()
+                return {'type': 'gold', 'amount': gold_amount, 'student_id': student_id}
+
+            # Filtrer : items compatibles avec la classe OU sans restriction
+            compatible = [
+                item for item in all_items
+                if not item.class_restriction or item.class_restriction == player_class
+            ]
+            if not compatible:
+                compatible = all_items
+
+            # Pondération par rareté (monstres forts → meilleure chance de rare/epic)
+            rarity_weights = {
+                'common': max(10, 60 - monster_level * 3),
+                'rare': 20 + monster_level * 2,
+                'epic': 5 + monster_level,
+                'legendary': max(1, monster_level // 3),
+            }
+
+            weights = [rarity_weights.get(item.rarity, 10) for item in compatible]
+            chosen = random.choices(compatible, weights=weights, k=1)[0]
+
+            # Ajouter à l'inventaire du joueur
+            existing = StudentItem.query.filter_by(student_id=student_id, item_id=chosen.id).first()
+            if existing:
+                existing.quantity += 1
+            else:
+                new_item = StudentItem(student_id=student_id, item_id=chosen.id)
+                db.session.add(new_item)
+            db.session.flush()
+
+            return {
+                'type': 'item',
+                'item_name': chosen.name,
+                'item_rarity': chosen.rarity,
+                'item_icon': chosen.icon,
+                'item_color': chosen.color,
+                'student_id': student_id,
+            }

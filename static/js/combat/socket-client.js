@@ -389,6 +389,14 @@ class CombatSocket {
             const crit = anim.critical ? ' 💥CRIT!' : '';
             const combo = (anim.combo_streak >= 2) ? ` [x${anim.combo_streak} COMBO]` : '';
             this.addCombatLogEntry(`⚔ ${attacker} → ${target} : ${skillName} (-${dmg} HP)${crit}${combo}${killed}`, 'damage');
+            // Log loot if monster was killed and dropped something
+            if (anim.loot) {
+                const loot = anim.loot;
+                const lootMsg = loot.type === 'gold'
+                    ? `🪙 ${attacker} récupère ${loot.amount} pièce(s) d'or !`
+                    : `🎁 ${attacker} obtient : ${loot.item_name} (${loot.item_rarity}) !`;
+                this.addCombatLogEntry(lootMsg, 'loot');
+            }
         } else if (type === 'monster_attack') {
             const dmg = anim.damage || 0;
             const skillName = anim.skill_name || 'Attaque';

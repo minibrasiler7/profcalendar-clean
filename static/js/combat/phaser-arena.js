@@ -6,10 +6,10 @@
 const TILE_W = 64;
 const TILE_H = 32;
 const TILE_DEPTH = 12;
-const SPRITE_SIZE = 72;
-const ELEV_PX = 14;       // pixels per elevation level
-const HP_BAR_OFFSET = 62;  // how far above sprite anchor the HP bar sits
-const NAME_OFFSET = 74;    // how far above sprite anchor the name sits
+const SPRITE_SIZE = 64;    // slightly smaller sprites to fit tiles better
+const ELEV_PX = 12;        // must match TILE_DEPTH exactly for seamless stacking
+const HP_BAR_OFFSET = 52;  // how far above sprite anchor the HP bar sits
+const NAME_OFFSET = 64;    // how far above sprite anchor the name sits
 
 class CombatArena extends Phaser.Scene {
     constructor() {
@@ -605,7 +605,7 @@ class CombatArena extends Phaser.Scene {
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
         const sprite = this.add.image(x, y, usedKey);
-        sprite.setOrigin(0.5, 0.9);  // bottom-center so feet touch the tile
+        sprite.setOrigin(0.5, 0.95);  // bottom-center so feet touch the tile
         sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
         sprite.setDepth((p.grid_x + p.grid_y) * 10 + elev + 5);
 
@@ -1377,6 +1377,15 @@ class CombatArena extends Phaser.Scene {
                 msg = `${anim.attacker_name || '?'} utilise ${anim.skill_name || 'compétence'}`;
             }
             CombatSocketInstance.addCombatLogEntry(msg, logType);
+
+            // Log loot drops
+            if (anim.loot) {
+                const loot = anim.loot;
+                const lootMsg = loot.type === 'gold'
+                    ? `🪙 ${anim.attacker_name || '?'} récupère ${loot.amount} pièce(s) d'or !`
+                    : `🎁 ${anim.attacker_name || '?'} obtient : ${loot.item_name} (${loot.item_rarity}) !`;
+                CombatSocketInstance.addCombatLogEntry(lootMsg, 'loot');
+            }
         }
     }
 
@@ -1488,6 +1497,12 @@ class CombatArena extends Phaser.Scene {
                 this.time.delayedCall(400, () => {
                     if (anim.killed) {
                         this._playKOAnimation(targetId);
+                        // Show loot drop if any
+                        if (anim.loot && target) {
+                            this.time.delayedCall(600, () => {
+                                this._showLootDrop(target.sprite.x, target.sprite.y, anim.loot);
+                            });
+                        }
                     } else {
                         this.setEntityState(targetId, 'idle');
                     }
@@ -1749,6 +1764,82 @@ class CombatArena extends Phaser.Scene {
                     duration: Phaser.Math.Between(600, 1000),
                     ease: 'Power2.out',
                     onComplete: () => p.destroy(),
+                });
+            }
+        }
+    }
+
+    _showLootDrop(x, y, loot) {
+        // Animated loot popup when a monster is killed
+        const isGold = loot.type === 'gold';
+        const label = isGold
+            ? `+${loot.amount} or`
+            : `${loot.item_name}`;
+
+        // Rarity colors for items
+        const rarityColors = {
+            'common': '#9ca3af',
+            'rare': '#3b82f6',
+            'epic': '#a855f7',
+            'legendary': '#f59e0b',
+        };
+        const color = isGold ? '#fbbf24' : (rarityColors[loot.item_rarity] || '#ffffff');
+        const bgColor = isGold ? 0x92400e : 0x1e1b4b;
+        const icon = isGold ? '🪙' : '🎁';
+
+        // Background pill
+        const bg = this.add.graphics().setDepth(10001);
+        const textWidth = label.length * 8 + 40;
+        bg.fillStyle(bgColor, 0.85);
+        bg.fillRoundedRect(x - textWidth / 2, y - 14, textWidth, 28, 8);
+        bg.setAlpha(0);
+
+        // Text
+        const text = this.add.text(x, y, `${icon} ${label}`, {
+            fontSize: isGold ? '16px' : '14px',
+            fontFamily: '"Press Start 2P", monospace',
+            color: color,
+            stroke: '#000000',
+            strokeThickness: 3,
+        }).setOrigin(0.5).setDepth(10002).setAlpha(0);
+
+        // Animate: pop in, float up, fade out
+        this.tweens.add({
+            targets: [bg, text],
+            alpha: 1,
+            duration: 300,
+            ease: 'Back.out',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: [bg, text],
+                    y: '-=40',
+                    alpha: 0,
+                    duration: 2000,
+                    delay: 1000,
+                    ease: 'Power2.out',
+                    onComplete: () => { bg.destroy(); text.destroy(); },
+                });
+            },
+        });
+
+        // Sparkle particles for rare+ items
+        if (!isGold && loot.item_rarity !== 'common') {
+            const sparkleColor = loot.item_rarity === 'legendary' ? 0xf59e0b
+                : loot.item_rarity === 'epic' ? 0xa855f7 : 0x3b82f6;
+            for (let i = 0; i < 8; i++) {
+                const px = x + Phaser.Math.Between(-25, 25);
+                const py = y + Phaser.Math.Between(-15, 15);
+                const star = this.add.star(px, py, 4, 2, 5, sparkleColor).setDepth(10000).setAlpha(0);
+                this.tweens.add({
+                    targets: star,
+                    alpha: { from: 0, to: 1 },
+                    scale: { from: 0, to: Phaser.Math.FloatBetween(0.5, 1.2) },
+                    y: py - Phaser.Math.Between(20, 50),
+                    duration: Phaser.Math.Between(500, 900),
+                    delay: Phaser.Math.Between(0, 300),
+                    ease: 'Power2.out',
+                    yoyo: true,
+                    onComplete: () => star.destroy(),
                 });
             }
         }
