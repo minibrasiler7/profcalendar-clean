@@ -40,6 +40,17 @@ class CombatEngine:
         Les monstres ne sont PAS créés ici — ils seront spawn au démarrage
         du combat quand on connaît le nombre réel de joueurs."""
 
+        # Fermer toutes les anciennes sessions de combat pour cette classe
+        old_sessions = CombatSession.query.filter(
+            CombatSession.classroom_id == classroom_id,
+            CombatSession.status.in_(['waiting', 'active']),
+        ).all()
+        for old in old_sessions:
+            old.status = 'completed'
+            old.ended_at = datetime.utcnow()
+        if old_sessions:
+            db.session.commit()
+
         # Grille de taille correcte dès le départ pour un bel aperçu
         grid_w = 10
         grid_h = 8
