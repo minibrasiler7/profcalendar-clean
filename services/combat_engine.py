@@ -717,6 +717,11 @@ class CombatEngine:
         participant.grid_x = target_x
         participant.grid_y = target_y
         participant.has_moved = True
+        # Save pre-move position for execute phase replay
+        snap = dict(participant.snapshot_json or {})
+        snap['_prev_x'] = old_x
+        snap['_prev_y'] = old_y
+        participant.snapshot_json = snap
         db.session.commit()
 
         return {
@@ -1062,6 +1067,25 @@ class CombatEngine:
 
         session.current_phase = 'execute'
         animations = []
+
+        # --- Phase 0 : Animations de déplacement des joueurs (replay) ---
+        for p in session.participants:
+            if p.is_alive and p.has_moved:
+                snap = p.snapshot_json or {}
+                prev_x = snap.get('_prev_x')
+                prev_y = snap.get('_prev_y')
+                if prev_x is not None and prev_y is not None:
+                    if prev_x != p.grid_x or prev_y != p.grid_y:
+                        animations.append({
+                            'type': 'player_move',
+                            'participant_id': p.id,
+                            'student_id': p.student_id,
+                            'player_name': snap.get('name', f'Joueur'),
+                            'from_x': prev_x,
+                            'from_y': prev_y,
+                            'to_x': p.grid_x,
+                            'to_y': p.grid_y,
+                        })
 
         # --- Phase 1 : Actions des élèves (tri par intelligence) ---
         acting_participants = [

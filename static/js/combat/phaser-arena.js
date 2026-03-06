@@ -1350,7 +1350,9 @@ class CombatArena extends Phaser.Scene {
     _playOneAnimation(anim) {
         const type = anim.type;
 
-        if (type === 'monster_move') {
+        if (type === 'player_move') {
+            this._playPlayerMoveAnim(anim);
+        } else if (type === 'monster_move') {
             this._playMonsterMoveAnim(anim);
         } else if (type === 'attack' || type === 'monster_attack') {
             this._playAttackAnim(anim);
@@ -1365,7 +1367,9 @@ class CombatArena extends Phaser.Scene {
             const dmg = anim.damage || anim.heal || 0;
             const logType = type === 'heal' ? 'heal' : 'damage';
             let msg = '';
-            if (type === 'monster_move') {
+            if (type === 'player_move') {
+                msg = `${anim.player_name || 'Joueur'} se déplace`;
+            } else if (type === 'monster_move') {
                 msg = `${anim.monster_name || 'Monstre'} se déplace`;
             } else if (type === 'attack') {
                 msg = `${anim.attacker_name || '?'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
@@ -1389,6 +1393,64 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
+    _playPlayerMoveAnim(anim) {
+        // Find the player entity by participant_id or student_id
+        let playerId = null;
+        for (const id in this.entitySprites) {
+            const ent = this.entitySprites[id];
+            if (ent.type === 'player' && ent.data &&
+                (ent.data.id === anim.participant_id || ent.data.student_id === anim.student_id)) {
+                playerId = id;
+                break;
+            }
+        }
+        if (!playerId) return;
+
+        const entity = this.entitySprites[playerId];
+        if (!entity) return;
+
+        // First teleport to from position (in case state polling already moved them)
+        const fromIso = this.gridToIso(anim.from_x, anim.from_y);
+        this._teleportEntity(entity, fromIso.x, fromIso.y - TILE_DEPTH);
+
+        // Then animate to target position
+        const toIso = this.gridToIso(anim.to_x, anim.to_y);
+        entity.data = entity.data || {};
+        entity.data.grid_x = anim.to_x;
+        entity.data.grid_y = anim.to_y;
+
+        const dx = toIso.x - fromIso.x;
+        const dy = (toIso.y - TILE_DEPTH) - (fromIso.y - TILE_DEPTH);
+
+        // Move all parts
+        const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
+        for (const part of parts) {
+            this.tweens.add({
+                targets: part,
+                x: part.x + dx,
+                y: part.y + dy,
+                duration: 500,
+                ease: 'Power2',
+            });
+        }
+
+        // Update depth after move
+        this.time.delayedCall(520, () => {
+            if (entity.sprite) entity.sprite.setDepth(anim.to_x + anim.to_y + 1);
+        });
+    }
+
+    _teleportEntity(entity, x, y) {
+        // Instantly reposition entity and all its parts to given position
+        const dx = x - entity.sprite.x;
+        const dy = y - entity.sprite.y;
+        const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
+        for (const part of parts) {
+            part.x += dx;
+            part.y += dy;
+        }
+    }
+
     _playMonsterMoveAnim(anim) {
         const monsterId = `monster_${anim.monster_id}`;
         const entity = this.entitySprites[monsterId];
@@ -1402,8 +1464,8 @@ class CombatArena extends Phaser.Scene {
         const dx = newIso.x - entity.sprite.x;
         const dy = (newIso.y - TILE_DEPTH) - entity.sprite.y;
 
-        // Move all parts of the entity together
-        const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name].filter(Boolean);
+        // Move all parts of the entity together (including shadow)
+        const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
         for (const part of parts) {
             this.tweens.add({
                 targets: part,

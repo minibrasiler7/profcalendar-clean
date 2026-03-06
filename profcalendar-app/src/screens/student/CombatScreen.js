@@ -135,6 +135,22 @@ export default function CombatScreen({ route, navigation }) {
   const lastPinchDist = useRef(0);
   const mapDoubleTapTimer = useRef(null);
 
+  // Battle animation state (Pokémon-style)
+  const [battleAnims, setBattleAnims] = useState([]); // current execute animations
+  const [currentAnimIndex, setCurrentAnimIndex] = useState(-1);
+  const playerShakeAnim = useRef(new Animated.Value(0)).current;
+  const enemyShakeAnim = useRef(new Animated.Value(0)).current;
+  const playerFlashAnim = useRef(new Animated.Value(1)).current;
+  const enemyFlashAnim = useRef(new Animated.Value(1)).current;
+  const damagePopAnim = useRef(new Animated.Value(0)).current;
+  const lootPopAnim = useRef(new Animated.Value(0)).current;
+  const [battleDamageText, setBattleDamageText] = useState('');
+  const [battleLootText, setBattleLootText] = useState('');
+  const [battleMessage, setBattleMessage] = useState('');
+  const [currentEnemySprite, setCurrentEnemySprite] = useState(null);
+  const [currentEnemyName, setCurrentEnemyName] = useState('');
+  const [currentEnemyHp, setCurrentEnemyHp] = useState({ hp: 0, max: 0 });
+
   // Debug log for troubleshooting
   const [debugLog, setDebugLog] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
@@ -293,13 +309,20 @@ export default function CombatScreen({ route, navigation }) {
     socketRef.current.on('combat:execute', (data) => {
       addDebug(`EXECUTE: ${(data.animations||[]).length} animations`);
       setCombatPhase('execute');
-      // Convert animations to combat log entries
-      const logEntries = (data.animations || []).map(anim => {
-        if (anim.type === 'monster_move') {
+      const anims = data.animations || [];
+      setBattleAnims(anims);
+      setCurrentAnimIndex(0); // Start playing from first animation
+
+      // Also build combat log
+      const logEntries = anims.map(anim => {
+        if (anim.type === 'player_move') {
+          return `🏃 ${anim.player_name || 'Joueur'} se déplace`;
+        } else if (anim.type === 'monster_move') {
           return `🦶 ${anim.monster_name || 'Monstre'} se déplace`;
         } else if (anim.type === 'attack' || anim.type === 'monster_attack') {
           const killed = anim.killed ? ' 💀 K.O.!' : '';
-          return `⚔️ ${anim.attacker_name} utilise ${anim.skill_name} sur ${anim.target_name} → ${anim.damage} dégâts${killed}`;
+          const loot = anim.loot ? (anim.loot.type === 'gold' ? ` 🪙+${anim.loot.amount}` : ` 🎁${anim.loot.item_name}`) : '';
+          return `⚔️ ${anim.attacker_name} → ${anim.target_name} : ${anim.skill_name} (-${anim.damage})${killed}${loot}`;
         } else if (anim.type === 'heal') {
           return `💚 ${anim.attacker_name} soigne ${anim.target_name} → +${anim.heal} PV`;
         } else if (anim.type === 'defense' || anim.type === 'buff') {
@@ -374,6 +397,126 @@ export default function CombatScreen({ route, navigation }) {
       useNativeDriver: false,
     }).start();
   }, [timer, timerAnimation]);
+
+  // ── Pokémon-style battle animation playback ──
+  useEffect(() => {
+    if (currentAnimIndex < 0 || currentAnimIndex >= battleAnims.length) return;
+
+    const anim = battleAnims[currentAnimIndex];
+    const isPlayerAttacking = anim.type === 'attack';
+    const isMonsterAttacking = anim.type === 'monster_attack';
+    const isHeal = anim.type === 'heal';
+
+    // Skip non-combat animations quickly
+    if (anim.type === 'player_move' || anim.type === 'monster_move' || anim.type === 'buff' || anim.type === 'defense') {
+      setBattleMessage(
+        anim.type === 'player_move' ? `${anim.player_name || 'Joueur'} se déplace !` :
+        anim.type === 'monster_move' ? `${anim.monster_name || 'Monstre'} se déplace !` :
+        `${anim.attacker_name || '?'} utilise ${anim.skill_name || '?'} !`
+      );
+      const skipTimer = setTimeout(() => {
+        setCurrentAnimIndex(prev => prev + 1);
+      }, 800);
+      return () => clearTimeout(skipTimer);
+    }
+
+    // Set enemy sprite for attack animations
+    if (isPlayerAttacking && anim.target_type === 'monster') {
+      const monsterData = monsters.find(m => m.id === anim.target_id);
+      if (monsterData) {
+        setCurrentEnemySprite(getMonsterSpriteUrl(monsterData.monster_type, 'idle'));
+        setCurrentEnemyName(anim.target_name || monsterData.name);
+        setCurrentEnemyHp({ hp: anim.target_hp || 0, max: anim.target_max_hp || 1 });
+      }
+    } else if (isMonsterAttacking) {
+      const monsterData = monsters.find(m => m.id === anim.attacker_id);
+      if (monsterData) {
+        setCurrentEnemySprite(getMonsterSpriteUrl(monsterData.monster_type, 'idle'));
+        setCurrentEnemyName(anim.attacker_name || monsterData.name);
+      }
+    }
+
+    // Build message
+    if (isPlayerAttacking) {
+      setBattleMessage(`${anim.attacker_name} utilise ${anim.skill_name} !`);
+    } else if (isMonsterAttacking) {
+      setBattleMessage(`${anim.attacker_name} attaque ${anim.target_name} !`);
+    } else if (isHeal) {
+      setBattleMessage(`${anim.attacker_name} soigne ${anim.target_name} !`);
+    }
+
+    // Play animation sequence
+    const sequence = [];
+    setBattleDamageText('');
+    setBattleLootText('');
+    damagePopAnim.setValue(0);
+    lootPopAnim.setValue(0);
+
+    // Step 1: Show message (500ms delay)
+    // Step 2: Shake the target (enemy or player)
+    const shakeTarget = isMonsterAttacking ? playerShakeAnim : enemyShakeAnim;
+    const flashTarget = isMonsterAttacking ? playerFlashAnim : enemyFlashAnim;
+
+    const animTimer = setTimeout(() => {
+      // Shake animation
+      Animated.sequence([
+        Animated.timing(shakeTarget, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeTarget, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeTarget, { toValue: 8, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeTarget, { toValue: -8, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeTarget, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]).start();
+
+      // Flash (blink) animation
+      Animated.sequence([
+        Animated.timing(flashTarget, { toValue: 0.2, duration: 80, useNativeDriver: true }),
+        Animated.timing(flashTarget, { toValue: 1, duration: 80, useNativeDriver: true }),
+        Animated.timing(flashTarget, { toValue: 0.2, duration: 80, useNativeDriver: true }),
+        Animated.timing(flashTarget, { toValue: 1, duration: 80, useNativeDriver: true }),
+      ]).start();
+
+      // Damage number popup
+      const dmgText = isHeal ? `+${anim.heal || 0}` : `-${anim.damage || 0}`;
+      setBattleDamageText(anim.critical ? `💥 CRIT! ${dmgText}` : dmgText);
+      Animated.sequence([
+        Animated.timing(damagePopAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.delay(600),
+        Animated.timing(damagePopAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start();
+
+      // Loot popup (if monster killed and has loot)
+      if (anim.killed && anim.loot) {
+        setTimeout(() => {
+          const loot = anim.loot;
+          setBattleLootText(
+            loot.type === 'gold' ? `🪙 +${loot.amount} or !` : `🎁 ${loot.item_name} (${loot.item_rarity}) !`
+          );
+          Animated.sequence([
+            Animated.timing(lootPopAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+            Animated.delay(1000),
+            Animated.timing(lootPopAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+          ]).start();
+        }, 800);
+      }
+
+      // Update player HP if they were attacked
+      if (isMonsterAttacking && anim.target_hp !== undefined) {
+        setPlayerStats(prev => ({
+          ...prev,
+          hp: Math.max(0, anim.target_hp),
+          maxHp: anim.target_max_hp || prev.maxHp,
+        }));
+      }
+
+      // Next animation after delay
+      const nextDelay = (anim.killed && anim.loot) ? 2800 : 1800;
+      setTimeout(() => {
+        setCurrentAnimIndex(prev => prev + 1);
+      }, nextDelay);
+    }, 600);
+
+    return () => clearTimeout(animTimer);
+  }, [currentAnimIndex, battleAnims]);
 
   const handleSubmitAnswer = useCallback(() => {
     if (answering || !currentQuestion) return;
@@ -1099,28 +1242,104 @@ export default function CombatScreen({ route, navigation }) {
     );
   };
 
-  // Render execute phase
-  const renderExecute = () => (
-    <View style={styles.container}>
-      <Text style={styles.sectionTitle}>⚔️ Combat</Text>
-      <ScrollView style={styles.combatLogContainer}>
-        {combatLog.map((entry, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.logEntry,
-              {
-                opacity: new Animated.Value(1),
-              },
-            ]}
-          >
-            <Text style={styles.logText}>{entry}</Text>
+  // Render execute phase — Pokémon-style battle view
+  const renderExecute = () => {
+    const me = participants.find(p => p.student_id === studentId);
+    const myClass = me?.avatar_class || 'guerrier';
+    const myName = me?.student_name || 'Héros';
+    const hpPercent = playerStats.maxHp > 0 ? (playerStats.hp / playerStats.maxHp) : 1;
+    const hpColor = hpPercent > 0.5 ? '#10b981' : hpPercent > 0.2 ? '#f59e0b' : '#ef4444';
+    const enemyHpPercent = currentEnemyHp.max > 0 ? (currentEnemyHp.hp / currentEnemyHp.max) : 1;
+
+    return (
+      <View style={styles.container}>
+        {/* Battle Arena */}
+        <View style={battleStyles.arena}>
+          {/* Enemy (top-right) */}
+          <View style={battleStyles.enemySection}>
+            {/* Enemy info bar */}
+            <View style={battleStyles.infoBar}>
+              <Text style={battleStyles.entityName}>{currentEnemyName || '???'}</Text>
+              <View style={battleStyles.hpBarBg}>
+                <View style={[battleStyles.hpBarFill, {
+                  width: `${Math.max(0, enemyHpPercent * 100)}%`,
+                  backgroundColor: enemyHpPercent > 0.5 ? '#10b981' : enemyHpPercent > 0.2 ? '#f59e0b' : '#ef4444',
+                }]} />
+              </View>
+            </View>
+            {/* Enemy sprite */}
+            <Animated.View style={{
+              transform: [{ translateX: enemyShakeAnim }],
+              opacity: enemyFlashAnim,
+            }}>
+              {currentEnemySprite ? (
+                <Image source={{ uri: currentEnemySprite }} style={battleStyles.enemySprite} resizeMode="contain" />
+              ) : (
+                <View style={[battleStyles.enemySprite, { backgroundColor: '#333', borderRadius: 12 }]}>
+                  <Text style={{ fontSize: 40, textAlign: 'center', lineHeight: 90 }}>👾</Text>
+                </View>
+              )}
+            </Animated.View>
+          </View>
+
+          {/* Player (bottom-left) */}
+          <View style={battleStyles.playerSection}>
+            {/* Player sprite */}
+            <Animated.View style={{
+              transform: [{ translateX: playerShakeAnim }],
+              opacity: playerFlashAnim,
+            }}>
+              <Image
+                source={{ uri: getSpriteUrl(myClass) }}
+                style={battleStyles.playerSprite}
+                resizeMode="contain"
+              />
+            </Animated.View>
+            {/* Player info bar */}
+            <View style={battleStyles.infoBar}>
+              <Text style={battleStyles.entityName}>{myName}</Text>
+              <View style={battleStyles.hpBarBg}>
+                <View style={[battleStyles.hpBarFill, { width: `${Math.max(0, hpPercent * 100)}%`, backgroundColor: hpColor }]} />
+              </View>
+              <Text style={battleStyles.hpText}>{playerStats.hp}/{playerStats.maxHp}</Text>
+            </View>
+          </View>
+
+          {/* Damage popup */}
+          <Animated.View style={[battleStyles.damagePopup, {
+            opacity: damagePopAnim,
+            transform: [{ scale: damagePopAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.2] }) }],
+          }]}>
+            <Text style={[battleStyles.damageText, battleDamageText.startsWith('+') && { color: '#10b981' }]}>
+              {battleDamageText}
+            </Text>
           </Animated.View>
-        ))}
-      </ScrollView>
-      <Text style={styles.phaseSubtitle}>Exécution des actions...</Text>
-    </View>
-  );
+
+          {/* Loot popup */}
+          <Animated.View style={[battleStyles.lootPopup, {
+            opacity: lootPopAnim,
+            transform: [{
+              translateY: lootPopAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }),
+            }],
+          }]}>
+            <Text style={battleStyles.lootText}>{battleLootText}</Text>
+          </Animated.View>
+        </View>
+
+        {/* Battle message box */}
+        <View style={battleStyles.messageBox}>
+          <Text style={battleStyles.messageText}>{battleMessage || 'Exécution des actions...'}</Text>
+        </View>
+
+        {/* Combat log (scrollable) */}
+        <ScrollView style={battleStyles.logScroll} contentContainerStyle={{ paddingBottom: 8 }}>
+          {combatLog.slice(-8).map((entry, index) => (
+            <Text key={index} style={battleStyles.logEntry}>{entry}</Text>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
 
   // Render round end phase
   const renderRoundEnd = () => (
@@ -1281,6 +1500,133 @@ export default function CombatScreen({ route, navigation }) {
     </View>
   );
 }
+
+// Pokémon-style battle view styles
+const battleStyles = StyleSheet.create({
+  arena: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    borderRadius: 16,
+    margin: 8,
+    padding: 12,
+    position: 'relative',
+    overflow: 'hidden',
+    // Gradient-like background with border
+    borderWidth: 2,
+    borderColor: '#334155',
+  },
+  enemySection: {
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  playerSection: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    marginTop: 'auto',
+  },
+  infoBar: {
+    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+    borderRadius: 10,
+    padding: 8,
+    minWidth: 160,
+    borderWidth: 1,
+    borderColor: '#475569',
+  },
+  entityName: {
+    color: '#f8fafc',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  hpBarBg: {
+    height: 8,
+    backgroundColor: '#1e293b',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  hpBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  hpText: {
+    color: '#94a3b8',
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  enemySprite: {
+    width: 96,
+    height: 96,
+    marginRight: 20,
+    marginTop: 4,
+  },
+  playerSprite: {
+    width: 96,
+    height: 96,
+    marginLeft: 20,
+    marginRight: 12,
+    transform: [{ scaleX: -1 }], // Face right
+  },
+  damagePopup: {
+    position: 'absolute',
+    top: '40%',
+    left: '30%',
+    right: '30%',
+    alignItems: 'center',
+  },
+  damageText: {
+    color: '#ef4444',
+    fontSize: 28,
+    fontWeight: '900',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  lootPopup: {
+    position: 'absolute',
+    bottom: '25%',
+    left: '15%',
+    right: '15%',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+  },
+  lootText: {
+    color: '#fbbf24',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  messageBox: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 8,
+    padding: 14,
+    borderWidth: 2,
+    borderColor: '#475569',
+  },
+  messageText: {
+    color: '#f8fafc',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  logScroll: {
+    maxHeight: 100,
+    marginHorizontal: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  logEntry: {
+    color: '#94a3b8',
+    fontSize: 11,
+    paddingVertical: 2,
+  },
+});
 
 // Combat question-specific styles (matching ExerciseSolveScreen look)
 const styles = StyleSheet.create({

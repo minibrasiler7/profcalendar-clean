@@ -184,7 +184,7 @@ class CombatSocket {
                     }
                 })
                 .catch(() => {}); // Silent fail for polling
-        }, 5000); // Poll every 5 seconds as backup
+        }, 3000); // Poll every 3 seconds as backup
     }
 
     _fire(event, data) {
@@ -382,7 +382,9 @@ class CombatSocket {
         const attacker = anim.attacker_name || '???';
         const target = anim.target_name || '???';
 
-        if (type === 'attack') {
+        if (type === 'player_move') {
+            this.addCombatLogEntry(`🏃 ${anim.player_name || 'Joueur'} se déplace`, 'default');
+        } else if (type === 'attack') {
             const dmg = anim.damage || 0;
             const skillName = anim.skill_name || 'Attaque';
             const killed = anim.killed ? ' 💀 KO!' : '';
