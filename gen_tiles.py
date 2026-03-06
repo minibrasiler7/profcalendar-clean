@@ -3,7 +3,7 @@
 from PIL import Image, ImageDraw
 import random, os
 
-OUT = '/sessions/zen-optimistic-gauss/mnt/profcalendar-clean/static/img/combat/tiles'
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img', 'combat', 'tiles')
 os.makedirs(OUT, exist_ok=True)
 
 W, H_TOP, H_SIDE = 64, 32, 12  # tile width, top face height, side depth
