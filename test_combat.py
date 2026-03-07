@@ -23,20 +23,15 @@ TEACHER_EMAIL = 'loic.strauch@edu-vd.ch'
 TEACHER_PASSWORD = 'Mondoudou7'
 CLASSROOM_ID = 5  # 11VP6
 
-# Fake students for testing (IDs that exist in the classroom)
-# We'll discover real student IDs from the API
-FAKE_STUDENTS = [
-    {'id': None, 'name': 'TestBot1'},
-    {'id': None, 'name': 'TestBot2'},
-]
 
 
 class CombatTester:
     """Manages a full combat test simulation."""
 
-    def __init__(self, server_url, session_id=None):
+    def __init__(self, server_url, session_id=None, student_ids=None):
         self.server_url = server_url.rstrip('/')
         self.session_id = session_id
+        self.forced_student_ids = student_ids or []
         self.room = None
         self.phase = 'waiting'
         self.round_num = 0
@@ -473,14 +468,14 @@ class CombatTester:
                 self._log("No participants yet. Connecting students...")
 
             # Step 2: Get student IDs
-            # We need real student IDs from the classroom
-            # For now, we'll try IDs from the existing participants or use known ones
             student_ids = []
-            if self.participants:
+            if self.forced_student_ids:
+                student_ids = self.forced_student_ids
+            elif self.participants:
                 student_ids = [p['student_id'] for p in self.participants[:2]]
             else:
-                # Use specific student IDs known to exist
-                student_ids = [1, 2]  # Adjust these!
+                self._log("ERROR: No student IDs! Use --students <ID1> <ID2>", 'ERROR')
+                return False
 
             self._log(f"Using student IDs: {student_ids}")
 
@@ -565,8 +560,6 @@ def main():
     parser.add_argument('--students', nargs='+', type=int, help='Student IDs to use')
     args = parser.parse_args()
 
-    tester = CombatTester(args.url, args.session)
-
     if not args.session:
         print("No --session provided.")
         print("Create a combat session from the teacher interface first, then run:")
@@ -576,9 +569,12 @@ def main():
         print(f"  python test_combat.py --session 62 --students 34 35 --rounds 3")
         sys.exit(1)
 
-    if args.students:
-        FAKE_STUDENTS[:] = [{'id': sid, 'name': f'Bot_{i+1}'} for i, sid in enumerate(args.students)]
+    if not args.students:
+        print("No --students provided.")
+        print("Specify student IDs with: --students <ID1> <ID2>")
+        sys.exit(1)
 
+    tester = CombatTester(args.url, args.session, student_ids=args.students)
     success = tester.run_full_test(max_rounds=args.rounds)
     sys.exit(0 if success else 1)
 
