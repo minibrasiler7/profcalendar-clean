@@ -1410,17 +1410,17 @@ class CombatArena extends Phaser.Scene {
         if (!entity) return;
 
         // First teleport to from position (in case state polling already moved them)
-        const fromIso = this.gridToIso(anim.from_x, anim.from_y);
-        this._teleportEntity(entity, fromIso.x, fromIso.y - TILE_DEPTH);
+        const fromIso = this.gridToIso(anim.from_x, anim.from_y, true);
+        this._teleportEntity(entity, fromIso.x, fromIso.y);
 
         // Then animate to target position
-        const toIso = this.gridToIso(anim.to_x, anim.to_y);
+        const toIso = this.gridToIso(anim.to_x, anim.to_y, true);
         entity.data = entity.data || {};
         entity.data.grid_x = anim.to_x;
         entity.data.grid_y = anim.to_y;
 
         const dx = toIso.x - fromIso.x;
-        const dy = (toIso.y - TILE_DEPTH) - (fromIso.y - TILE_DEPTH);
+        const dy = toIso.y - fromIso.y;
 
         // Move all parts
         const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
@@ -1456,13 +1456,13 @@ class CombatArena extends Phaser.Scene {
         const entity = this.entitySprites[monsterId];
         if (!entity) return;
 
-        const newIso = this.gridToIso(anim.to_x, anim.to_y);
+        const newIso = this.gridToIso(anim.to_x, anim.to_y, true);
         entity.data = entity.data || {};
         entity.data.grid_x = anim.to_x;
         entity.data.grid_y = anim.to_y;
 
         const dx = newIso.x - entity.sprite.x;
-        const dy = (newIso.y - TILE_DEPTH) - entity.sprite.y;
+        const dy = newIso.y - entity.sprite.y;
 
         // Move all parts of the entity together (including shadow)
         const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);

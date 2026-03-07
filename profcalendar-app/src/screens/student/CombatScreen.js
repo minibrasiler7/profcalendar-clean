@@ -191,7 +191,15 @@ export default function CombatScreen({ route, navigation }) {
     // Listen for state updates
     socketRef.current.on('combat:state_update', (state) => {
       addDebug(`STATE_UPDATE phase=${state.phase} round=${state.round} participants=${(state.participants||[]).length} monsters=${(state.monsters||[]).length}`);
-      setCombatPhase(state.phase || 'waiting');
+      // Don't override execute phase while animations are playing (monster_turn comes via state_update
+      // and would replace the Pokémon battle view mid-animation)
+      const newPhase = state.phase || 'waiting';
+      setCombatPhase(prev => {
+        if (prev === 'execute' && (newPhase === 'monster_turn' || newPhase === 'round_end')) {
+          return prev; // Keep execute view while animations play
+        }
+        return newPhase;
+      });
       setParticipants(state.participants || []);
       setMonsters(state.all_monsters || state.monsters || []);
 
@@ -1048,7 +1056,13 @@ export default function CombatScreen({ route, navigation }) {
           </Text>
         )}
 
-        <ScrollView style={styles.questionContainer}>
+        <ScrollView
+          style={styles.questionContainer}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={true}
+        >
           <View style={styles.questionCardWrapper}>
             <QuestionRenderer
               block={block}
@@ -1461,8 +1475,13 @@ export default function CombatScreen({ route, navigation }) {
         return renderAction();
       case 'execute':
         return renderExecute();
-      case 'round_end':
       case 'monster_turn':
+        // If we still have battle animations playing, show the battle view
+        if (battleAnims.length > 0 && currentAnimIndex < battleAnims.length) {
+          return renderExecute();
+        }
+        return renderRoundEnd();
+      case 'round_end':
         return renderRoundEnd();
       case 'finished':
         return renderFinished();
@@ -1494,7 +1513,7 @@ export default function CombatScreen({ route, navigation }) {
 
   return (
     <View style={styles.screen}>
-      {combatPhase !== 'finished' && renderStatsBar()}
+      {combatPhase !== 'finished' && combatPhase !== 'question' && combatPhase !== 'execute' && renderStatsBar()}
       {renderPhase()}
       {renderDebugPanel()}
     </View>
