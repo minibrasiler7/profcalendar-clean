@@ -624,11 +624,12 @@ def register_combat_events(socketio, app=None):
 
     @socketio.on('combat:next_round')
     def on_next_round(data):
-        """Le prof demande le prochain round."""
+        """Le prof demande le prochain round (manual fallback if auto-advance fails)."""
         session_id = data.get('session_id')
         if not session_id:
             return
         room = f'combat_{session_id}'
+        logger.info(f"[Combat:{session_id}] Manual next_round requested by teacher")
         on_start_round(data)
 
     def _transition_to_question_phase(session_id, room):
@@ -801,36 +802,59 @@ def register_combat_events(socketio, app=None):
         sio.start_background_task(_do_timeout)
 
     def _auto_advance_round(sio, session_id, room):
-        """Auto-avance au prochain round après un court délai."""
+        """Auto-avance au prochain round après un court délai.
+        Includes retry logic to prevent combat freeze on transient errors."""
         app = app_ref
 
         def _do_advance():
             time.sleep(3)
-            with app.app_context():
-                try:
-                    logger.info(f"[Combat:{session_id}] Auto-advance: calling start_round...")
-                    result, error = CombatEngine.start_round(session_id)
-                    if error:
-                        logger.error(f"[Combat:{session_id}] Auto-advance start_round ERROR: {error}")
-                        sio.emit('combat:error', {'error': f'Auto-advance failed: {error}'}, room=room)
-                        return
-                    logger.info(f"[Combat:{session_id}] Auto-advance OK: round={result['round']}")
-                    sio.emit('combat:round_started', {
-                        'round': result['round']
-                    }, room=room)
-                    session = CombatSession.query.get(session_id)
-                    sio.emit('combat:state_update', session.get_state(), room=room)
-                    logger.info(f"[Combat:{session_id}] Auto-advance: state_update sent, phase={session.current_phase}")
+            max_retries = 3
+            for attempt in range(1, max_retries + 1):
+                with app.app_context():
+                    try:
+                        # Check session is still valid and in round_end
+                        session = CombatSession.query.get(session_id)
+                        if not session:
+                            logger.error(f"[Combat:{session_id}] Auto-advance: session not found!")
+                            return
+                        if session.status == 'completed':
+                            logger.info(f"[Combat:{session_id}] Auto-advance: session already completed, skipping")
+                            return
+                        if session.current_phase == 'move':
+                            logger.info(f"[Combat:{session_id}] Auto-advance: already in move phase, skipping (likely another advance ran)")
+                            return
 
-                    # Start move phase timeout for the new round
-                    new_phase_token = str(uuid.uuid4())
-                    phase_tokens[session_id] = new_phase_token
-                    logger.info(f"[Combat:{session_id}] Auto-advance: Starting 20s move phase timeout (token={new_phase_token})")
-                    _auto_timeout_move_phase(sio, session_id, room, new_phase_token, 20)
-                except Exception as e:
-                    logger.error(f"[Combat:{session_id}] Auto-advance EXCEPTION: {e}")
-                    import traceback
-                    traceback.print_exc()
+                        logger.info(f"[Combat:{session_id}] Auto-advance attempt {attempt}/{max_retries}: calling start_round... (current phase={session.current_phase})")
+                        result, error = CombatEngine.start_round(session_id)
+                        if error:
+                            logger.error(f"[Combat:{session_id}] Auto-advance start_round ERROR (attempt {attempt}): {error}")
+                            if attempt < max_retries:
+                                time.sleep(2)
+                                continue
+                            sio.emit('combat:error', {'error': f'Auto-advance failed: {error}'}, room=room)
+                            return
+                        logger.info(f"[Combat:{session_id}] Auto-advance OK: round={result['round']}")
+                        sio.emit('combat:round_started', {
+                            'round': result['round']
+                        }, room=room)
+                        session = CombatSession.query.get(session_id)
+                        sio.emit('combat:state_update', session.get_state(), room=room)
+                        logger.info(f"[Combat:{session_id}] Auto-advance: state_update sent, phase={session.current_phase}")
+
+                        # Start move phase timeout for the new round
+                        new_phase_token = str(uuid.uuid4())
+                        phase_tokens[session_id] = new_phase_token
+                        logger.info(f"[Combat:{session_id}] Auto-advance: Starting 20s move phase timeout (token={new_phase_token})")
+                        _auto_timeout_move_phase(sio, session_id, room, new_phase_token, 20)
+                        return  # Success — exit retry loop
+                    except Exception as e:
+                        logger.error(f"[Combat:{session_id}] Auto-advance EXCEPTION (attempt {attempt}): {e}")
+                        import traceback
+                        traceback.print_exc()
+                        if attempt < max_retries:
+                            time.sleep(2)
+                        else:
+                            sio.emit('combat:error', {'error': f'Auto-advance crashed after {max_retries} attempts: {str(e)}'}, room=room)
 
         sio.start_background_task(_do_advance)
 

@@ -451,6 +451,29 @@ document.addEventListener('DOMContentLoaded', () => {
         btnStart.addEventListener('click', () => {
             CombatSocketInstance.startRound();
             btnStart.style.display = 'none'; // Hide after starting
+            // Show emergency buttons after combat starts
+            const btnForceNext = document.getElementById('btn-force-next');
+            const btnForceExec = document.getElementById('btn-force-execute');
+            if (btnForceNext) btnForceNext.style.display = 'block';
+            if (btnForceExec) btnForceExec.style.display = 'block';
+        });
+    }
+
+    // Emergency: Force next round (if auto-advance crashes)
+    const btnForceNext = document.getElementById('btn-force-next');
+    if (btnForceNext) {
+        btnForceNext.addEventListener('click', () => {
+            console.log('[Teacher] Force next round');
+            CombatSocketInstance.startRound();
+        });
+    }
+
+    // Emergency: Force execute (if action phase hangs)
+    const btnForceExec = document.getElementById('btn-force-execute');
+    if (btnForceExec) {
+        btnForceExec.addEventListener('click', () => {
+            console.log('[Teacher] Force execute');
+            CombatSocketInstance.forceExecute();
         });
     }
 

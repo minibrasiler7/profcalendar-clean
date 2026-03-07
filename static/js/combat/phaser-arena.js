@@ -1436,7 +1436,9 @@ class CombatArena extends Phaser.Scene {
 
         // Update depth after move
         this.time.delayedCall(520, () => {
-            if (entity.sprite) entity.sprite.setDepth(anim.to_x + anim.to_y + 1);
+            const elev = this.getElevation(anim.to_x, anim.to_y);
+            if (entity.sprite) entity.sprite.setDepth((anim.to_x + anim.to_y) * 10 + elev + 5);
+            if (entity.shadow) entity.shadow.setDepth((anim.to_x + anim.to_y) * 10 + elev + 4);
         });
     }
 
@@ -1478,7 +1480,9 @@ class CombatArena extends Phaser.Scene {
 
         // Update depth after move
         this.time.delayedCall(420, () => {
-            if (entity.sprite) entity.sprite.setDepth(anim.to_x + anim.to_y + 1);
+            const elev = this.getElevation(anim.to_x, anim.to_y);
+            if (entity.sprite) entity.sprite.setDepth((anim.to_x + anim.to_y) * 10 + elev + 5);
+            if (entity.shadow) entity.shadow.setDepth((anim.to_x + anim.to_y) * 10 + elev + 4);
         });
     }
 
