@@ -1257,8 +1257,11 @@ class CombatEngine:
             skill = random.choice(skills)
             monster_range = 1  # Monstres ont portée mêlée par défaut
 
-            # Cible : joueur avec le moins de HP
-            target = min(alive_players, key=lambda p: p.current_hp)
+            # Cible : joueur le plus proche (distance Manhattan), avec tie-break sur HP
+            target = min(alive_players, key=lambda p: (
+                abs(monster.grid_x - p.grid_x) + abs(monster.grid_y - p.grid_y),
+                p.current_hp
+            ))
 
             # IA : si hors de portée, se déplacer vers la cible
             dist = abs(monster.grid_x - target.grid_x) + abs(monster.grid_y - target.grid_y)

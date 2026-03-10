@@ -859,12 +859,17 @@ class CombatArena extends Phaser.Scene {
                 targets: [ent.sprite],
                 x: x, y: targetY,
                 duration: 300, ease: 'Linear',
-                onComplete: () => { ent.sprite.setDepth((gx + gy) * 10 + elev + 5); },
+                onComplete: () => {
+                    ent.sprite.setDepth((gx + gy) * 10 + elev + 5);
+                },
             });
             this.tweens.add({ targets: ent.name, x: x, y: nameY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpBg], x: x, y: barY, duration: 300, ease: 'Linear' });
             this.tweens.add({ targets: [ent.hpFill], x: x, y: barY, duration: 300, ease: 'Linear' });
-            if (ent.shadow) this.tweens.add({ targets: ent.shadow, x: x, y: shadowY, duration: 300, ease: 'Linear' });
+            if (ent.shadow) this.tweens.add({
+                targets: ent.shadow, x: x, y: shadowY, duration: 300, ease: 'Linear',
+                onComplete: () => { ent.shadow.setDepth((gx + gy) * 10 + elev + 4); },
+            });
         } else {
             ent.sprite.setPosition(x, targetY);
             ent.sprite.setDepth((gx + gy) * 10 + elev + 5);
@@ -942,7 +947,9 @@ class CombatArena extends Phaser.Scene {
                 duration: stepDuration,
                 ease: 'Linear',
                 onComplete: () => {
-                    ent.sprite.setDepth(cell.x + cell.y + 1);
+                    const stepElev = this.getElevation(cell.x, cell.y);
+                    ent.sprite.setDepth((cell.x + cell.y) * 10 + stepElev + 5);
+                    if (ent.shadow) ent.shadow.setDepth((cell.x + cell.y) * 10 + stepElev + 4);
                     stepIdx++;
                     doStep(); // Next step
                 },
@@ -1162,6 +1169,31 @@ class CombatArena extends Phaser.Scene {
                 }
             }
             this.updateMonsterRoster(state.monsters);
+        }
+
+        // Resolve overlapping name labels
+        this._resolveNameOverlaps();
+    }
+
+    /**
+     * Adjust name label positions to avoid overlaps when entities are close.
+     * Entities on the same tile or adjacent tiles get staggered labels.
+     */
+    _resolveNameOverlaps() {
+        const entries = Object.values(this.entitySprites).filter(e => e.name && e.sprite);
+        // Group by approximate screen position (within 50px)
+        for (let i = 0; i < entries.length; i++) {
+            let offset = 0;
+            for (let j = 0; j < i; j++) {
+                const dx = Math.abs(entries[i].sprite.x - entries[j].sprite.x);
+                const dy = Math.abs(entries[i].sprite.y - entries[j].sprite.y);
+                if (dx < 50 && dy < 50) {
+                    offset += 14; // Stagger by 14px per overlapping entity
+                }
+            }
+            if (offset > 0) {
+                entries[i].name.y = entries[i].sprite.y - NAME_OFFSET - offset;
+            }
         }
     }
 
