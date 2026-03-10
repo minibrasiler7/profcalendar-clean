@@ -649,6 +649,8 @@ class CombatArena extends Phaser.Scene {
             direction: dir,
             state: p.is_alive !== false ? 'idle' : 'ko',
             isMoving: false,
+            _baseX: x,   // true grid-aligned position (unaffected by idle bobbing)
+            _baseY: y,
         };
 
         // Start idle animation (bobbing + sprite cycling)
@@ -666,11 +668,13 @@ class CombatArena extends Phaser.Scene {
         // Only skip if the entity is already moving or KO
         if ((ent.type === 'player' && ent.isMoving) || ent.state === 'ko') return;
 
-        // Bobbing tween (gentle up/down)
+        // Bobbing tween (gentle up/down) — use _baseY so it's stable regardless of current tween state
         if (ent._idleTween) ent._idleTween.destroy();
+        // Reset sprite to base position before starting new bob
+        ent.sprite.y = ent._baseY;
         ent._idleTween = this.tweens.add({
             targets: ent.sprite,
-            y: ent.sprite.y - 3,
+            y: ent._baseY - 3,
             duration: 800,
             yoyo: true,
             repeat: -1,
@@ -722,6 +726,10 @@ class CombatArena extends Phaser.Scene {
         if (!ent) return;
         if (ent._idleTween) { ent._idleTween.destroy(); ent._idleTween = null; }
         if (ent._idleTimer) { ent._idleTimer.destroy(); ent._idleTimer = null; }
+        // Reset sprite to base position (undo any mid-bob offset)
+        if (ent._baseY !== undefined && ent.sprite) {
+            ent.sprite.y = ent._baseY;
+        }
     }
 
     /**
@@ -804,6 +812,8 @@ class CombatArena extends Phaser.Scene {
             monType: monType,
             direction: defaultDir,
             state: m.is_alive !== false ? 'idle' : 'ko',
+            _baseX: x,   // true grid-aligned position (unaffected by idle bobbing)
+            _baseY: y,
         };
 
         // If dead on arrival, apply KO state immediately
@@ -823,9 +833,16 @@ class CombatArena extends Phaser.Scene {
         const ent = this.entitySprites[id];
         if (!ent) return;
 
+        // Stop idle animation to prevent tween interference with position
+        this._stopIdleAnimation(id);
+
         const { x, y } = this.gridToIso(gx, gy, true);
         const targetY = y;  // sprite feet on tile center
         const elev = this.getElevation(gx, gy);
+
+        // Update base position tracking
+        ent._baseX = x;
+        ent._baseY = targetY;
 
         // Update direction for players and monsters
         if (ent.data) {
@@ -861,6 +878,8 @@ class CombatArena extends Phaser.Scene {
                 duration: 300, ease: 'Linear',
                 onComplete: () => {
                     ent.sprite.setDepth((gx + gy) * 10 + elev + 5);
+                    // Restart idle animation after move completes
+                    this._startIdleAnimation(id);
                 },
             });
             this.tweens.add({ targets: ent.name, x: x, y: nameY, duration: 300, ease: 'Linear' });
@@ -877,6 +896,8 @@ class CombatArena extends Phaser.Scene {
             ent.hpBg.setPosition(x, barY);
             ent.hpFill.setPosition(x, barY);
             if (ent.shadow) { ent.shadow.setPosition(x, shadowY); ent.shadow.setDepth((gx + gy) * 10 + elev + 4); }
+            // Restart idle animation immediately for non-animated updates
+            this._startIdleAnimation(id);
         }
     }
 
@@ -950,6 +971,9 @@ class CombatArena extends Phaser.Scene {
                     const stepElev = this.getElevation(cell.x, cell.y);
                     ent.sprite.setDepth((cell.x + cell.y) * 10 + stepElev + 5);
                     if (ent.shadow) ent.shadow.setDepth((cell.x + cell.y) * 10 + stepElev + 4);
+                    // Update base position at each step
+                    ent._baseX = x;
+                    ent._baseY = targetY;
                     stepIdx++;
                     doStep(); // Next step
                 },
@@ -1475,14 +1499,28 @@ class CombatArena extends Phaser.Scene {
     }
 
     _teleportEntity(entity, x, y) {
-        // Instantly reposition entity and all its parts to given position
-        const dx = x - entity.sprite.x;
-        const dy = y - entity.sprite.y;
+        // Use _baseX/_baseY for offset calculation to avoid idle bobbing interference
+        const oldBaseX = entity._baseX !== undefined ? entity._baseX : entity.sprite.x;
+        const oldBaseY = entity._baseY !== undefined ? entity._baseY : entity.sprite.y;
+        const dx = x - oldBaseX;
+        const dy = y - oldBaseY;
+
+        // Stop idle to reset sprite to base position first
+        const id = Object.keys(this.entitySprites).find(k => this.entitySprites[k] === entity);
+        if (id) this._stopIdleAnimation(id);
+
         const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
         for (const part of parts) {
             part.x += dx;
             part.y += dy;
         }
+
+        // Update base position
+        entity._baseX = x;
+        entity._baseY = y;
+
+        // Restart idle
+        if (id) this._startIdleAnimation(id);
     }
 
     _playMonsterMoveAnim(anim) {
@@ -1490,13 +1528,23 @@ class CombatArena extends Phaser.Scene {
         const entity = this.entitySprites[monsterId];
         if (!entity) return;
 
+        // Stop idle to get clean base position
+        this._stopIdleAnimation(monsterId);
+
         const newIso = this.gridToIso(anim.to_x, anim.to_y, true);
         entity.data = entity.data || {};
         entity.data.grid_x = anim.to_x;
         entity.data.grid_y = anim.to_y;
 
-        const dx = newIso.x - entity.sprite.x;
-        const dy = newIso.y - entity.sprite.y;
+        // Use _baseX/_baseY for offset calculation
+        const oldBaseX = entity._baseX !== undefined ? entity._baseX : entity.sprite.x;
+        const oldBaseY = entity._baseY !== undefined ? entity._baseY : entity.sprite.y;
+        const dx = newIso.x - oldBaseX;
+        const dy = newIso.y - oldBaseY;
+
+        // Update base position
+        entity._baseX = newIso.x;
+        entity._baseY = newIso.y;
 
         // Move all parts of the entity together (including shadow)
         const parts = [entity.sprite, entity.hpBg, entity.hpFill, entity.name, entity.shadow].filter(Boolean);
@@ -1510,11 +1558,12 @@ class CombatArena extends Phaser.Scene {
             });
         }
 
-        // Update depth after move
+        // Update depth and restart idle after move
         this.time.delayedCall(420, () => {
             const elev = this.getElevation(anim.to_x, anim.to_y);
             if (entity.sprite) entity.sprite.setDepth((anim.to_x + anim.to_y) * 10 + elev + 5);
             if (entity.shadow) entity.shadow.setDepth((anim.to_x + anim.to_y) * 10 + elev + 4);
+            this._startIdleAnimation(monsterId);
         });
     }
 
