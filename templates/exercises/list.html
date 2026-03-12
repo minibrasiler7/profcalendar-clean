@@ -318,16 +318,112 @@
     {% endif %}
 </div>
 
-<!-- Publish modal -->
+<!-- Publish modal — Step 1: Choose class -->
 <div id="publish-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
     <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-paper-plane" style="color:#059669;"></i> Publier l'exercice</h3>
-        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Sélectionnez les classes pour lesquelles publier cet exercice :</p>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Sélectionnez la classe :</p>
         <div id="publish-class-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
             <button class="btn" onclick="closePublishModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
             <button class="btn" id="publish-confirm-btn" onclick="confirmPublish()" style="background:#059669;color:white;">
-                <i class="fas fa-paper-plane"></i> Publier
+                <i class="fas fa-arrow-right"></i> Suivant
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Mode selection modal — Step 2: Choose mode -->
+<div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
+
+        <!-- Option Classique -->
+        <div id="mode-classique-btn" onclick="selectMode('classique')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:0.75rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Les élèves font l'exercice à leur rythme. Pas de suivi en direct.</div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <!-- Option Combat -->
+        <div id="mode-combat-btn" onclick="selectMode('combat')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Mission en direct ! Suivez la progression de chaque élève en temps réel.</div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <button id="launch-exercise-btn" onclick="launchWithMode()" disabled
+                style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
+            <i class="fas fa-play"></i> Lancer la mission
+        </button>
+    </div>
+</div>
+
+<!-- Tracking modal — Live student monitoring -->
+<div id="tracking-modal" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(15,12,41,0.95);backdrop-filter:blur(8px);overflow-y:auto;">
+    <div style="max-width:700px;margin:1rem auto;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div>
+                <h2 id="tracking-title" style="margin:0;color:white;font-size:1.2rem;"></h2>
+                <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
+            </div>
+            <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-times"></i> Fermer
+            </button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+            </div>
+        </div>
+        <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+        <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
+                <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
+                </div>
+                <button onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
+                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                </button>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:1.5rem;">
+            <button onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-stop-circle"></i> Arrêter la mission
             </button>
         </div>
     </div>
@@ -398,9 +494,18 @@ async function duplicateExercise(id) {
 }
 
 let publishExerciseId = null;
+let selectedClassroomId = null;
+let selectedMode = null;
+let trackingInterval = null;
+let currentPubId = null;
+let currentCombatSessionId = null;
 
+// ============================================================
+// Step 1: Choose class (publish modal)
+// ============================================================
 function quickPublish(id) {
     publishExerciseId = id;
+    selectedClassroomId = null;
     const listEl = document.getElementById('publish-class-list');
     listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
     document.getElementById('publish-modal').style.display = 'flex';
@@ -416,7 +521,7 @@ function quickPublish(id) {
             listEl.innerHTML = classes.map(c => `
                 <label style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;border-radius:8px;cursor:pointer;transition:background 0.2s;"
                        onmouseenter="this.style.background='#f0fdf4'" onmouseleave="this.style.background=''">
-                    <input type="checkbox" value="${c.id}" style="width:18px;height:18px;accent-color:#059669;">
+                    <input type="radio" name="publish-class" value="${c.id}" style="width:18px;height:18px;accent-color:#059669;">
                     <span style="font-weight:500;">${c.name}</span>
                     <span style="color:#9ca3af;font-size:0.8rem;">${c.subject || ''}</span>
                 </label>
@@ -430,35 +535,275 @@ function closePublishModal() {
     publishExerciseId = null;
 }
 
-async function confirmPublish() {
+function confirmPublish() {
     if (!publishExerciseId) return;
-    const checkboxes = document.querySelectorAll('#publish-class-list input:checked');
-    const classroomIds = [...checkboxes].map(cb => parseInt(cb.value));
-    if (classroomIds.length === 0) {
-        showToast('Sélectionnez au moins une classe', 'error');
+    const selected = document.querySelector('#publish-class-list input[name="publish-class"]:checked');
+    if (!selected) {
+        showToast('Sélectionnez une classe', 'error');
         return;
     }
+    selectedClassroomId = parseInt(selected.value);
+    closePublishModal();
+
+    // Open mode modal (Step 2)
+    const card = document.querySelector(`.exercise-card[data-id="${publishExerciseId}"]`);
+    const title = card ? card.querySelector('.card-title').textContent : 'Exercice';
+    showModeModal(publishExerciseId, title);
+}
+
+// ============================================================
+// Step 2: Choose mode (mode modal)
+// ============================================================
+function showModeModal(exerciseId, title) {
+    publishExerciseId = exerciseId;
+    selectedMode = null;
+    document.getElementById('mode-exercise-title').textContent = title;
+    document.getElementById('mode-classique-check').style.display = 'none';
+    document.getElementById('mode-combat-check').style.display = 'none';
+    document.getElementById('mode-classique-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-classique-btn').style.background = 'white';
+    document.getElementById('mode-combat-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-combat-btn').style.background = 'white';
+    const btn = document.getElementById('launch-exercise-btn');
+    btn.disabled = true;
+    btn.style.background = '#d1d5db';
+    btn.innerHTML = '<i class="fas fa-play"></i> Lancer la mission';
+    document.getElementById('mode-modal').style.display = 'flex';
+}
+
+function closeModeModal() {
+    document.getElementById('mode-modal').style.display = 'none';
+}
+
+function selectMode(mode) {
+    selectedMode = mode;
+    const classiqueCheck = document.getElementById('mode-classique-check');
+    const combatCheck = document.getElementById('mode-combat-check');
+    const classiqueBtn = document.getElementById('mode-classique-btn');
+    const combatBtn = document.getElementById('mode-combat-btn');
+    const launchBtn = document.getElementById('launch-exercise-btn');
+
+    classiqueCheck.style.display = 'none';
+    combatCheck.style.display = 'none';
+    classiqueBtn.style.borderColor = '#e5e7eb';
+    combatBtn.style.borderColor = '#e5e7eb';
+
+    if (mode === 'classique') {
+        classiqueCheck.style.display = 'inline';
+        classiqueBtn.style.borderColor = '#10b981';
+        classiqueBtn.style.background = '#f0fdf4';
+        combatBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Publier et lancer';
+    } else {
+        combatCheck.style.display = 'inline';
+        combatBtn.style.borderColor = '#ef4444';
+        combatBtn.style.background = '#fef2f2';
+        classiqueBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+    }
+    launchBtn.disabled = false;
+}
+
+// ============================================================
+// Step 3: Launch exercise
+// ============================================================
+async function launchWithMode() {
+    if (!publishExerciseId || !selectedMode || !selectedClassroomId) return;
+
+    const launchBtn = document.getElementById('launch-exercise-btn');
+    launchBtn.disabled = true;
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+
     try {
-        const res = await fetch(`/exercises/${publishExerciseId}/publish`, {
+        const res = await fetch('/exercises/launch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-            body: JSON.stringify({ classroom_ids: classroomIds })
+            body: JSON.stringify({
+                exercise_id: publishExerciseId,
+                classroom_id: selectedClassroomId,
+                mode: selectedMode,
+            }),
         });
         const data = await res.json();
+
         if (data.success) {
-            showToast(data.message || 'Exercice publié !', 'success');
-            closePublishModal();
-            // Mettre à jour le badge de statut
+            closeModeModal();
+
+            // Update card badge
             const card = document.querySelector(`.exercise-card[data-id="${publishExerciseId}"]`);
             if (card) {
                 card.dataset.status = 'published';
                 const badge = card.querySelector('.status-badge');
                 if (badge) { badge.className = 'status-badge published'; badge.textContent = 'Publié'; }
             }
+
+            showToast(data.message || 'Exercice lancé !', 'success');
+
+            // If combat mode, open arena in new tab
+            if (selectedMode === 'combat' && data.combat_session_id) {
+                window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+            }
+
+            // Open live tracking for both modes
+            openTracking(data.publication_id);
         } else {
-            showToast(data.message || 'Erreur', 'error');
+            showToast(data.error || data.message || 'Erreur lors du lancement', 'error');
+            launchBtn.disabled = false;
+            launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
         }
-    } catch(e) { showToast('Erreur de publication', 'error'); }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+        launchBtn.disabled = false;
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        console.error('Erreur launchWithMode:', e);
+    }
+}
+
+// ============================================================
+// Tracking modal — Live student monitoring
+// ============================================================
+function openTracking(pubId) {
+    currentPubId = pubId;
+    currentCombatSessionId = null;
+    document.getElementById('tracking-modal').style.display = 'block';
+    document.getElementById('combat-arena-section').style.display = 'none';
+    refreshTracking();
+    trackingInterval = setInterval(refreshTracking, 4000);
+}
+
+function openCombatArena() {
+    if (currentCombatSessionId) {
+        window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
+    } else {
+        showToast('Aucune session de combat active trouvée.', 'error');
+    }
+}
+
+function closeTrackingModal() {
+    document.getElementById('tracking-modal').style.display = 'none';
+    if (trackingInterval) {
+        clearInterval(trackingInterval);
+        trackingInterval = null;
+    }
+}
+
+async function refreshTracking() {
+    if (!currentPubId) return;
+    try {
+        const res = await fetch(`/exercises/publication/${currentPubId}/live-tracking`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('tracking-title').textContent = data.exercise_title;
+        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('track-total').textContent = data.total_students;
+        document.getElementById('track-started').textContent = data.started;
+        document.getElementById('track-completed').textContent = data.completed;
+        document.getElementById('track-avg').textContent = data.completed > 0 ? data.average_score + '%' : '—';
+
+        // Show RPG arena section if combat mode
+        if (data.mode === 'combat' && data.combat_session_id) {
+            currentCombatSessionId = data.combat_session_id;
+            document.getElementById('combat-arena-section').style.display = 'block';
+            const phaseLabels = {
+                'waiting': 'En attente des élèves',
+                'question': 'Question en cours',
+                'action': 'Choix des actions',
+                'execute': 'Exécution du round',
+                'monster_turn': 'Tour des monstres',
+                'round_end': 'Fin du round',
+            };
+            const statusLabel = data.combat_status === 'active'
+                ? `Round ${data.combat_round} — ${phaseLabels[data.combat_phase] || data.combat_phase}`
+                : 'En attente des élèves';
+            document.getElementById('combat-status-text').textContent = statusLabel;
+            document.getElementById('combat-participants-text').textContent =
+                data.combat_participants > 0 ? `(${data.combat_participants} combattant${data.combat_participants > 1 ? 's' : ''})` : '';
+        } else {
+            document.getElementById('combat-arena-section').style.display = 'none';
+        }
+
+        const container = document.getElementById('tracking-students');
+        const isCombat = data.mode === 'combat';
+        container.innerHTML = data.students.map(s => {
+            let statusIcon, statusColor, statusText, progressWidth;
+
+            if (isCombat) {
+                if (s.in_combat && s.combat_info) {
+                    const ci = s.combat_info;
+                    statusIcon = ci.is_alive ? 'shield-alt' : 'skull-crossbones';
+                    statusColor = ci.is_alive ? '#10b981' : '#ef4444';
+                    const hpPct = ci.max_hp > 0 ? Math.round((ci.current_hp / ci.max_hp) * 100) : 100;
+                    statusText = `${ci.avatar_class} — ${ci.current_hp}/${ci.max_hp} HP`;
+                    progressWidth = hpPct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'Pas connecté';
+                    progressWidth = 0;
+                }
+            } else {
+                if (s.status === 'completed') {
+                    statusIcon = 'check-circle';
+                    statusColor = '#10b981';
+                    statusText = `${s.score_percentage}%`;
+                    progressWidth = 100;
+                } else if (s.status === 'in_progress') {
+                    statusIcon = 'spinner fa-pulse';
+                    statusColor = '#f59e0b';
+                    const pct = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
+                    statusText = `${s.answers_count}/${s.blocks_count}`;
+                    progressWidth = pct;
+                } else {
+                    statusIcon = 'clock';
+                    statusColor = '#6b7280';
+                    statusText = 'En attente';
+                    progressWidth = 0;
+                }
+            }
+
+            const hpBarColor = isCombat && s.in_combat
+                ? (progressWidth > 50 ? '#10b981' : progressWidth > 25 ? '#f59e0b' : '#ef4444')
+                : statusColor;
+
+            return `
+                <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:0.65rem 0.8rem;display:flex;align-items:center;gap:0.6rem;">
+                    <i class="fas fa-${statusIcon}" style="color:${statusColor};font-size:1rem;width:20px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">
+                            <span style="color:white;font-weight:600;font-size:0.85rem;">${s.name}</span>
+                            <span style="color:${statusColor};font-weight:700;font-size:0.8rem;">${statusText}</span>
+                        </div>
+                        <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                            <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
+                        </div>
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch(e) {
+        console.error('Erreur tracking:', e);
+    }
+}
+
+async function stopMission() {
+    if (!currentPubId) return;
+    if (!confirm('Arrêter la mission en direct ?')) return;
+
+    try {
+        await fetch(`/exercises/publication/${currentPubId}/toggle-active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+        });
+        closeTrackingModal();
+        showToast('Mission arrêtée', 'success');
+    } catch(e) {
+        showToast('Erreur', 'error');
+    }
 }
 
 // === Folder/Class picker ===
