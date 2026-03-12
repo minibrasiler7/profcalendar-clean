@@ -290,6 +290,24 @@ export default function CombatScreen({ route, navigation }) {
       setMoveTiles(data.tiles || []);
     });
 
+    // Listen for combat errors (e.g. tile already occupied)
+    socketRef.current.on('combat:error', (data) => {
+      const errMsg = data.error || 'Erreur inconnue';
+      addDebug(`COMBAT_ERROR: ${errMsg}`);
+      // If move was rejected, allow player to re-choose a tile
+      if (errMsg.includes('occup') || errMsg.includes('accessible')) {
+        setHasMoved(false);
+        // Re-request move tiles so player can pick again
+        if (combatPhase === 'move') {
+          socketRef.current.emit('combat:request_move_tiles', {
+            session_id: sessionId,
+            student_id: studentId,
+          });
+        }
+      }
+      Alert.alert('Erreur', errMsg);
+    });
+
     // Listen for move result (server sends: {student_id, participant_id, from_x, from_y, to_x, to_y})
     socketRef.current.on('combat:move_result', (data) => {
       addDebug(`MOVE_RESULT student=${data.student_id} from=(${data.from_x},${data.from_y}) to=(${data.to_x},${data.to_y})`);

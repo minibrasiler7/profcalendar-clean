@@ -720,6 +720,15 @@ class CombatEngine:
         if not target_tile:
             return None, "Case non accessible"
 
+        # Double-check: prevent two players from landing on the same tile (race condition)
+        for p in session.participants:
+            if p.is_alive and p.id != participant.id:
+                if p.grid_x == target_x and p.grid_y == target_y:
+                    return None, "Case d\u00e9j\u00e0 occup\u00e9e par un autre joueur"
+        for m in session.monsters:
+            if m.is_alive and m.grid_x == target_x and m.grid_y == target_y:
+                return None, "Case occup\u00e9e par un monstre"
+
         old_x, old_y = participant.grid_x, participant.grid_y
 
         # Compute the BFS path from current position to target
