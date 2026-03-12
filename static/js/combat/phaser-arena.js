@@ -18,7 +18,7 @@ class CombatArena extends Phaser.Scene {
         this.gridW = 10;
         this.gridH = 8;
         this.tileSprites = {};    // {`${x}_${y}`: sprite}
-        this.elevationGfx = {};   // {`${x}_${y}`: graphics} — side face graphics for elevated tiles
+        this.elevationGfx = {};   // {`${x}_${y}`: graphics} â side face graphics for elevated tiles
         this.tileEffects = [];    // lava glows, water tweens, etc.
         this.highlightSprites = {}; // {`${x}_${y}`: sprite}
         this.entitySprites = {};  // {id: {sprite, hpBar, nameText, ...}}
@@ -31,7 +31,7 @@ class CombatArena extends Phaser.Scene {
     }
 
     preload() {
-        // ── Loading screen ──
+        // ââ Loading screen ââ
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
@@ -75,7 +75,7 @@ class CombatArena extends Phaser.Scene {
             tipText.destroy();
         });
 
-        // ── Assets ──
+        // ââ Assets ââ
 
         // Isometric tiles (base + new terrain types)
         this.load.image('iso_grass', '/static/img/combat/tiles/iso_grass.png');
@@ -93,7 +93,7 @@ class CombatArena extends Phaser.Scene {
         this.load.image('hl_heal', '/static/img/combat/tiles/iso_highlight_heal.png');
         this.load.image('hl_selected', '/static/img/combat/tiles/iso_highlight_selected.png');
 
-        // Directional chihuahua sprites (4 classes × 4 directions × 4 states)
+        // Directional chihuahua sprites (4 classes Ã 4 directions Ã 4 states)
         const classes = ['guerrier', 'mage', 'archer', 'guerisseur'];
         const dirs = ['se', 'sw', 'ne', 'nw'];
         const states = ['idle', 'attack', 'hurt', 'ko'];
@@ -105,7 +105,7 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Walk spritesheets (9 frames per sheet, 576×64)
+        // Walk spritesheets (9 frames per sheet, 576Ã64)
         for (const cls of classes) {
             for (const dir of dirs) {
                 this.load.spritesheet(`walk_${cls}_${dir}`, `/static/img/combat/walk_sheets/${cls}_walk_${dir}.png`, {
@@ -114,7 +114,7 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Monster sprites — directional sprites (se/sw/ne/nw) from PixelLab
+        // Monster sprites â directional sprites (se/sw/ne/nw) from PixelLab
         const monsterTypes = [
             'slime', 'rat', 'kobold', 'bat',
             'goblin', 'wolf', 'zombie', 'mushroom', 'bandit', 'fire_elemental',
@@ -134,7 +134,7 @@ class CombatArena extends Phaser.Scene {
         this.load.image('fx_heal', '/static/img/combat/effects/iso_heal.png');
         this.load.image('fx_shield', '/static/img/combat/effects/iso_shield.png');
 
-        // ── Handle failed sprite loads gracefully ──
+        // ââ Handle failed sprite loads gracefully ââ
         this.load.on('loaderror', (fileObj) => {
             console.warn('[Arena] Failed to load:', fileObj.key, fileObj.url);
         });
@@ -155,10 +155,10 @@ class CombatArena extends Phaser.Scene {
         // Draw the grid
         this.drawGrid();
 
-        // ── Ambient particles ──
+        // ââ Ambient particles ââ
         this._createAmbientParticles();
 
-        // ── Vignette overlay for cinematic feel ──
+        // ââ Vignette overlay for cinematic feel ââ
         this._createVignette();
 
         // Register with socket
@@ -166,7 +166,7 @@ class CombatArena extends Phaser.Scene {
             CombatSocketInstance.setGameInstance(this);
         }
 
-        // ── Camera controls: drag to pan (any button) + scroll to zoom ──
+        // ââ Camera controls: drag to pan (any button) + scroll to zoom ââ
         this._isDragging = false;
         this._dragStartX = 0;
         this._dragStartY = 0;
@@ -194,7 +194,7 @@ class CombatArena extends Phaser.Scene {
             this._isDragging = false;
         });
 
-        // Scroll to zoom — simple centered zoom
+        // Scroll to zoom â simple centered zoom
         this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
             const cam = this.cameras.main;
             const zoomStep = deltaY > 0 ? -0.1 : 0.1;
@@ -205,20 +205,20 @@ class CombatArena extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
     }
 
-    // ── Ambient effects ──
+    // ââ Ambient effects ââ
 
     _createAmbientParticles() {
         const canvasW = this.sys.game.config.width;
         const canvasH = this.sys.game.config.height;
 
-        // ── Dust mote texture ──
+        // ââ Dust mote texture ââ
         const gfx = this.make.graphics({ x: 0, y: 0, add: false });
         gfx.fillStyle(0xffffff, 0.6);
         gfx.fillCircle(3, 3, 3);
         gfx.generateTexture('dust_particle', 6, 6);
         gfx.destroy();
 
-        // ── Soft glow texture ──
+        // ââ Soft glow texture ââ
         const glowGfx = this.make.graphics({ x: 0, y: 0, add: false });
         glowGfx.fillStyle(0x88aaff, 0.3);
         glowGfx.fillCircle(8, 8, 8);
@@ -227,7 +227,7 @@ class CombatArena extends Phaser.Scene {
         glowGfx.generateTexture('glow_particle', 16, 16);
         glowGfx.destroy();
 
-        // ── Floating dust motes (screen-space) ──
+        // ââ Floating dust motes (screen-space) ââ
         for (let i = 0; i < 20; i++) {
             const px = Phaser.Math.Between(0, canvasW);
             const py = Phaser.Math.Between(0, canvasH);
@@ -249,7 +249,7 @@ class CombatArena extends Phaser.Scene {
             });
         }
 
-        // ── Firefly glows near forest tiles (world-space) ──
+        // ââ Firefly glows near forest tiles (world-space) ââ
         if (this.tileMap) {
             const forestTiles = [];
             for (let gy = 0; gy < this.tileMap.length; gy++) {
@@ -289,7 +289,7 @@ class CombatArena extends Phaser.Scene {
     _createVignette() {
         const cw = this.sys.game.config.width;
         const ch = this.sys.game.config.height;
-        // Very subtle vignette — just a hint of darkening at the edges
+        // Very subtle vignette â just a hint of darkening at the edges
         const vig = this.add.graphics();
         vig.setScrollFactor(0).setDepth(9500);
         const cx = cw / 2, cy = ch / 2;
@@ -297,14 +297,14 @@ class CombatArena extends Phaser.Scene {
         const steps = 12;
         for (let i = steps; i >= 0; i--) {
             const r = maxR * (i / steps);
-            // Only darken the outer 30% — max alpha 0.12 (was 0.35)
+            // Only darken the outer 30% â max alpha 0.12 (was 0.35)
             const alpha = i < steps * 0.7 ? 0 : ((i - steps * 0.7) / (steps * 0.3)) * 0.12;
             vig.fillStyle(0x000000, alpha);
             vig.fillEllipse(cx, cy, r * 2, r * 1.5);
         }
     }
 
-    // ── Isometric coordinate conversion ──
+    // ââ Isometric coordinate conversion ââ
 
     gridToIso(gx, gy, includeElevation = false) {
         const isoX = (gx - gy) * (TILE_W / 2) + this.offsetX;
@@ -329,7 +329,7 @@ class CombatArena extends Phaser.Scene {
         return { x: Math.round(gx), y: Math.round(gy) };
     }
 
-    // ── Grid rendering ──
+    // ââ Grid rendering ââ
 
     /**
      * Redraw the entire grid (called when map_config changes, e.g., after resize_for_players).
@@ -407,13 +407,13 @@ class CombatArena extends Phaser.Scene {
         // Height offset per elevation level (pixels upward)
         const ELEV_OFFSET = ELEV_PX;
 
-        // ── SOLID TERRAIN: every tile sits on a dirt column down to a common floor ──
+        // ââ SOLID TERRAIN: every tile sits on a dirt column down to a common floor ââ
         const BASE_FILL = 2;
 
         // Tile origin: center of top face (y=16 in a 44px-tall tile image)
         const tileOriginY = 16 / 44;
 
-        // (Tile elevation shadows removed — they cluttered the map visually)_${gy}`;
+        // (Tile elevation shadows removed â they cluttered the map visually)_${gy}`;
                 const obsType = obstacleMap[key];
 
                 // Get tile elevation
@@ -428,7 +428,7 @@ class CombatArena extends Phaser.Scene {
                     tileKey = tileTextures[tiles[gy][gx]] || 'iso_grass';
                 }
 
-                // ── Draw solid dirt column below EVERY tile ──
+                // ââ Draw solid dirt column below EVERY tile ââ
                 const tileY = y - elevPx;
                 const totalFill = BASE_FILL + elev;
                 for (let d = 1; d <= totalFill; d++) {
@@ -442,13 +442,13 @@ class CombatArena extends Phaser.Scene {
                     fillTile.setDepth((gx + gy) * 10 - d * 0.1);
                 }
 
-                // ── Render the surface tile on top ──
+                // ââ Render the surface tile on top ââ
                 const tile = this.add.image(x, tileY, tileKey);
                 tile.setOrigin(0.5, tileOriginY);
                 tile.setDepth((gx + gy) * 10 + elev);
                 this.tileSprites[key] = tile;
 
-                // ── Ambient lighting: tiles further from light are slightly darker ──
+                // ââ Ambient lighting: tiles further from light are slightly darker ââ
                 const lightTint = Math.max(0xBB, 0xFF - (gx + gy) * 3);
                 if (lightTint < 0xFF) {
                     tile.setTint((lightTint << 16) | (lightTint << 8) | lightTint);
@@ -494,10 +494,10 @@ class CombatArena extends Phaser.Scene {
         // Show template name briefly
         if (this.mapConfig && this.mapConfig.template) {
             const templateNames = {
-                'valley': '🏔️ Vallée',
-                'fortress': '🏰 Forteresse',
-                'river': '🌊 Rivière',
-                'arena': '⚔️ Arène',
+                'valley': 'ðï¸ VallÃ©e',
+                'fortress': 'ð° Forteresse',
+                'river': 'ð RiviÃ¨re',
+                'arena': 'âï¸ ArÃ¨ne',
             };
             const name = templateNames[this.mapConfig.template] || this.mapConfig.template;
             const canvasW = this.sys.game.config.width;
@@ -513,7 +513,7 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    // ── Highlight tiles ──
+    // ââ Highlight tiles ââ
 
     clearHighlights() {
         for (const key in this.highlightSprites) {
@@ -550,7 +550,7 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    // ── Entity sprite management ──
+    // ââ Entity sprite management ââ
 
     _getDirection(fromX, fromY, toX, toY) {
         const dx = toX - fromX;
@@ -575,14 +575,14 @@ class CombatArena extends Phaser.Scene {
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
         const sprite = this.add.image(x, y, usedKey);
-        sprite.setOrigin(0.5, 0.85);  // bottom-center, closer to tile surface
-        const playerScale = (SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1)) * 1.4;
+        sprite.setOrigin(0.5, 0.75);  // bottom-center, feet on tile surface
+        const playerScale = (SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1)) * 1.8;
         sprite.setScale(playerScale);
         sprite.setDepth((p.grid_x + p.grid_y) * 10 + elev + 5);
 
-        // Name label — well above sprite to not overlap
+        // Name label â well above sprite to not overlap
         const nameY = y - NAME_OFFSET;
-        const name = this.add.text(x, nameY, p.student_name || 'Élève', {
+        const name = this.add.text(x, nameY, p.student_name || 'ÃlÃ¨ve', {
             fontSize: '10px',
             fontFamily: '"Press Start 2P", monospace',
             color: '#ffffff',
@@ -590,7 +590,7 @@ class CombatArena extends Phaser.Scene {
             strokeThickness: 3,
         }).setOrigin(0.5).setDepth(9999);
 
-        // HP bar — below name, still above sprite head
+        // HP bar â below name, still above sprite head
         const barWidth = 44;
         const barHeight = 5;
         const barY = y - HP_BAR_OFFSET;
@@ -639,7 +639,7 @@ class CombatArena extends Phaser.Scene {
         // Only skip if the entity is already moving or KO
         if ((ent.type === 'player' && ent.isMoving) || ent.state === 'ko') return;
 
-        // Bobbing tween (gentle up/down) — use _baseY so it's stable regardless of current tween state
+        // Bobbing tween (gentle up/down) â use _baseY so it's stable regardless of current tween state
         if (ent._idleTween) ent._idleTween.destroy();
         // Reset sprite to base position before starting new bob
         ent.sprite.y = ent._baseY;
@@ -740,11 +740,11 @@ class CombatArena extends Phaser.Scene {
         sprite.setOrigin(0.5, 0.9);  // bottom-center so feet touch tile
         sprite.setDepth((m.grid_x + m.grid_y) * 10 + elev + 5);
 
-        // Scale the PixelLab sprites up (they're 56×56 or 48×48, we want ~SPRITE_SIZE)
+        // Scale the PixelLab sprites up (they're 56Ã56 or 48Ã48, we want ~SPRITE_SIZE)
         const baseScale = SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1);
         sprite.setScale(baseScale);
 
-        // Name — well above sprite head
+        // Name â well above sprite head
         const nameY = y - NAME_OFFSET;
         const name = this.add.text(x, nameY, m.name || monType, {
             fontSize: '10px',
@@ -754,7 +754,7 @@ class CombatArena extends Phaser.Scene {
             strokeThickness: 3,
         }).setOrigin(0.5).setDepth(9999).setVisible(false);
 
-        // HP bar — above sprite
+        // HP bar â above sprite
         const barWidth = 44;
         const barHeight = 5;
         const barY = y - HP_BAR_OFFSET;
@@ -797,7 +797,7 @@ class CombatArena extends Phaser.Scene {
     }
 
     /**
-     * Move an entity to a grid position — simple teleport or single-step tween.
+     * Move an entity to a grid position â simple teleport or single-step tween.
      * For path-following, use animateAlongPath() instead.
      */
     updateEntityPosition(id, gx, gy, animate = true) {
@@ -910,7 +910,7 @@ class CombatArena extends Phaser.Scene {
 
         const doStep = () => {
             if (stepIdx >= path.length) {
-                // Movement complete — stop walk cycle, restart idle
+                // Movement complete â stop walk cycle, restart idle
                 walkTimer.destroy();
                 ent.isMoving = false;
                 this._startIdleAnimation(id);
@@ -984,10 +984,10 @@ class CombatArena extends Phaser.Scene {
         const pct = Math.max(0, Math.min(1, curHp / maxHp));
         let hpColor;
         if (ent.type === 'monster') {
-            // Monsters: red → orange → dark red as HP drops
+            // Monsters: red â orange â dark red as HP drops
             hpColor = pct > 0.5 ? 0xef4444 : pct > 0.25 ? 0xf97316 : 0x7f1d1d;
         } else {
-            // Players: green → amber → red
+            // Players: green â amber â red
             hpColor = pct > 0.5 ? 0x10b981 : pct > 0.25 ? 0xf59e0b : 0xef4444;
         }
 
@@ -1066,7 +1066,7 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    // ── Full state update from server ──
+    // ââ Full state update from server ââ
 
     updateState(state) {
         if (!state) return;
@@ -1079,7 +1079,7 @@ class CombatArena extends Phaser.Scene {
             const oldH = this.mapConfig ? this.mapConfig.height : 0;
 
             if (newW !== oldW || newH !== oldH) {
-                console.log(`[Arena] Map size changed: ${oldW}x${oldH} → ${newW}x${newH}, redrawing...`);
+                console.log(`[Arena] Map size changed: ${oldW}x${oldH} â ${newW}x${newH}, redrawing...`);
                 this.redrawGrid(state.map_config);
             }
         }
@@ -1101,7 +1101,7 @@ class CombatArena extends Phaser.Scene {
             }
         }
 
-        // Update participants — first remove stale sprites
+        // Update participants â first remove stale sprites
         if (state.participants) {
             const currentPlayerIds = new Set(state.participants.map(p => `player_${p.student_id}`));
             for (const id of Object.keys(this.entitySprites)) {
@@ -1136,7 +1136,7 @@ class CombatArena extends Phaser.Scene {
             this.updatePlayerRoster(state.participants);
         }
 
-        // Update monsters — first remove stale/ghost sprites
+        // Update monsters â first remove stale/ghost sprites
         if (state.monsters) {
             const currentMonsterIds = new Set(state.monsters.map(m => `monster_${m.id}`));
             for (const id of Object.keys(this.entitySprites)) {
@@ -1192,7 +1192,7 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    // ── Phase change handler ──
+    // ââ Phase change handler ââ
 
     onPhaseChange(phase) {
         this.currentPhase = phase;
@@ -1203,12 +1203,12 @@ class CombatArena extends Phaser.Scene {
 
         if (typeof CombatSocketInstance !== 'undefined') {
             const phaseLabels = {
-                'move': '🏃 Phase de déplacement',
-                'question': '❓ Les élèves répondent...',
-                'action': '⚔️ Phase d\'action — choisissez votre attaque !',
-                'execute': '💥 Exécution des actions !',
-                'monster_turn': '🔴 Tour des monstres !',
-                'round_end': '🔄 Fin du round',
+                'move': 'ð Phase de dÃ©placement',
+                'question': 'â Les Ã©lÃ¨ves rÃ©pondent...',
+                'action': 'âï¸ Phase d\'action â choisissez votre attaque !',
+                'execute': 'ð¥ ExÃ©cution des actions !',
+                'monster_turn': 'ð´ Tour des monstres !',
+                'round_end': 'ð Fin du round',
             };
             const label = phaseLabels[phase] || phase;
             CombatSocketInstance.addCombatLogEntry(label, 'phase');
@@ -1220,10 +1220,10 @@ class CombatArena extends Phaser.Scene {
      */
     _showPhaseBanner(phase) {
         const phaseTexts = {
-            'move': { text: 'DÉPLACEMENT', color: 0x3b82f6, bgColor: '#3b82f6' },
+            'move': { text: 'DÃPLACEMENT', color: 0x3b82f6, bgColor: '#3b82f6' },
             'question': { text: 'QUESTION', color: 0xeab308, bgColor: '#eab308' },
             'action': { text: 'ATTAQUE!', color: 0xdc2626, bgColor: '#dc2626' },
-            'execute': { text: 'EXÉCUTION!', color: 0xf97316, bgColor: '#f97316' },
+            'execute': { text: 'EXÃCUTION!', color: 0xf97316, bgColor: '#f97316' },
             'monster_turn': { text: 'TOUR DES MONSTRES', color: 0xa855f7, bgColor: '#a855f7' },
         };
 
@@ -1321,7 +1321,7 @@ class CombatArena extends Phaser.Scene {
         });
     }
 
-    // ── Move result handler ──
+    // ââ Move result handler ââ
 
     onMoveResult(result) {
         if (!result) return;
@@ -1348,7 +1348,7 @@ class CombatArena extends Phaser.Scene {
 
                 if (typeof CombatSocketInstance !== 'undefined') {
                     CombatSocketInstance.addCombatLogEntry(
-                        `${ent.data.student_name || 'Joueur'} se déplace vers (${toX},${toY})`, 'default'
+                        `${ent.data.student_name || 'Joueur'} se dÃ©place vers (${toX},${toY})`, 'default'
                     );
                 }
                 break;
@@ -1356,7 +1356,7 @@ class CombatArena extends Phaser.Scene {
         }
     }
 
-    // ── Animations from execute phase ──
+    // ââ Animations from execute phase ââ
 
     playAnimations(animations) {
         if (!animations || !Array.isArray(animations)) return;
@@ -1395,17 +1395,17 @@ class CombatArena extends Phaser.Scene {
             const logType = type === 'heal' ? 'heal' : 'damage';
             let msg = '';
             if (type === 'player_move') {
-                msg = `${anim.player_name || 'Joueur'} se déplace`;
+                msg = `${anim.player_name || 'Joueur'} se dÃ©place`;
             } else if (type === 'monster_move') {
-                msg = `${anim.monster_name || 'Monstre'} se déplace`;
+                msg = `${anim.monster_name || 'Monstre'} se dÃ©place`;
             } else if (type === 'attack') {
-                msg = `${anim.attacker_name || '?'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
+                msg = `${anim.attacker_name || '?'} â ${anim.target_name || '?'} : ${dmg} dÃ©gÃ¢ts`;
             } else if (type === 'heal') {
                 msg = `${anim.attacker_name || '?'} soigne ${anim.target_name || '?'} : +${dmg} HP`;
             } else if (type === 'monster_attack') {
-                msg = `${anim.attacker_name || 'Monstre'} → ${anim.target_name || '?'} : ${dmg} dégâts`;
+                msg = `${anim.attacker_name || 'Monstre'} â ${anim.target_name || '?'} : ${dmg} dÃ©gÃ¢ts`;
             } else {
-                msg = `${anim.attacker_name || '?'} utilise ${anim.skill_name || 'compétence'}`;
+                msg = `${anim.attacker_name || '?'} utilise ${anim.skill_name || 'compÃ©tence'}`;
             }
             CombatSocketInstance.addCombatLogEntry(msg, logType);
 
@@ -1413,8 +1413,8 @@ class CombatArena extends Phaser.Scene {
             if (anim.loot) {
                 const loot = anim.loot;
                 const lootMsg = loot.type === 'gold'
-                    ? `🪙 ${anim.attacker_name || '?'} récupère ${loot.amount} pièce(s) d'or !`
-                    : `🎁 ${anim.attacker_name || '?'} obtient : ${loot.item_name} (${loot.item_rarity}) !`;
+                    ? `ðª ${anim.attacker_name || '?'} rÃ©cupÃ¨re ${loot.amount} piÃ¨ce(s) d'or !`
+                    : `ð ${anim.attacker_name || '?'} obtient : ${loot.item_name} (${loot.item_rarity}) !`;
                 CombatSocketInstance.addCombatLogEntry(lootMsg, 'loot');
             }
         }
@@ -1786,7 +1786,7 @@ class CombatArena extends Phaser.Scene {
         // Random horizontal spread to avoid overlap
         offsetX = Phaser.Math.Between(-25, 25);
 
-        const prefix = isCritical ? '💥 ' : '';
+        const prefix = isCritical ? 'ð¥ ' : '';
         const text = this.add.text(x + offsetX, y, prefix + '-' + absVal, {
             fontSize: fontSize,
             fontFamily: 'Arial Black',
@@ -1903,7 +1903,7 @@ class CombatArena extends Phaser.Scene {
         };
         const color = isGold ? '#fbbf24' : (rarityColors[loot.item_rarity] || '#ffffff');
         const bgColor = isGold ? 0x92400e : 0x1e1b4b;
-        const icon = isGold ? '🪙' : '🎁';
+        const icon = isGold ? 'ðª' : 'ð';
 
         // Background pill
         const bg = this.add.graphics().setDepth(10001);
@@ -1985,13 +1985,13 @@ class CombatArena extends Phaser.Scene {
         });
     }
 
-    // ── Side panel updates ──
+    // ââ Side panel updates ââ
 
     updatePlayerRoster(participants) {
         const container = document.getElementById('players-list');
         if (!container) return;
 
-        const classEmojis = { guerrier: '⚔️', mage: '🔮', archer: '🏹', guerisseur: '💚' };
+        const classEmojis = { guerrier: 'âï¸', mage: 'ð®', archer: 'ð¹', guerisseur: 'ð' };
         const classColors = { guerrier: '#ef4444', mage: '#818cf8', archer: '#34d399', guerisseur: '#fbbf24' };
 
         container.innerHTML = participants.map(p => {
@@ -2001,13 +2001,13 @@ class CombatArena extends Phaser.Scene {
             const manaPct = Math.max(0, Math.min(100, Math.round((p.current_mana / maxMana) * 100)));
             const alive = p.is_alive !== false;
             const cls = p.avatar_class || (p.snapshot_json && p.snapshot_json.avatar_class) || 'guerrier';
-            const emoji = classEmojis[cls] || '🛡';
+            const emoji = classEmojis[cls] || 'ð¡';
             const color = classColors[cls] || '#60a5fa';
-            const statusIcon = alive ? (p.answered ? '✅' : '') : '💀';
+            const statusIcon = alive ? (p.answered ? 'â' : '') : 'ð';
 
             return `
                 <div class="entity-card${alive ? '' : ' ko'}">
-                    <div class="entity-name player" style="color:${color}">${emoji} ${p.student_name || 'Élève'} ${statusIcon}
+                    <div class="entity-name player" style="color:${color}">${emoji} ${p.student_name || 'ÃlÃ¨ve'} ${statusIcon}
                         <small style="color:#94a3b8;font-weight:normal">Nv.${p.level || 1}</small>
                     </div>
                     <div class="bar-label"><span>HP</span><span>${p.current_hp}/${maxHp}</span></div>
@@ -2028,16 +2028,16 @@ class CombatArena extends Phaser.Scene {
         if (!container) return;
 
         const monsterEmojis = {
-            slime: '🟢', rat: '🐀', kobold: '🦎', bat: '🦇',
-            goblin: '👺', wolf: '🐺', zombie: '🧟', mushroom: '🍄', bandit: '🗡️', fire_elemental: '🔥',
-            ogre: '👹', vampire: '🧛', witch: '🧙', spider: '🕷️', golem: '🗿',
-            necromancer: '💀', lich: '☠️', dragon: '🐉', hydra: '🐍', shadow: '👻',
+            slime: 'ð¢', rat: 'ð', kobold: 'ð¦', bat: 'ð¦',
+            goblin: 'ðº', wolf: 'ðº', zombie: 'ð§', mushroom: 'ð', bandit: 'ð¡ï¸', fire_elemental: 'ð¥',
+            ogre: 'ð¹', vampire: 'ð§', witch: 'ð§', spider: 'ð·ï¸', golem: 'ð¿',
+            necromancer: 'ð', lich: 'â ï¸', dragon: 'ð', hydra: 'ð', shadow: 'ð»',
         };
 
         container.innerHTML = monsters.map(m => {
             const hpPct = Math.max(0, Math.min(100, Math.round((m.current_hp / m.max_hp) * 100)));
             const alive = m.is_alive !== false;
-            const emoji = monsterEmojis[m.monster_type] || '👾';
+            const emoji = monsterEmojis[m.monster_type] || 'ð¾';
             const hpColor = hpPct > 50 ? '#ef4444' : hpPct > 25 ? '#f59e0b' : '#dc2626';
 
             return `
@@ -2067,7 +2067,7 @@ class CombatArena extends Phaser.Scene {
         this.tweens.add({ targets: overlay, alpha: 0.7, duration: 400 });
 
         // Emoji burst
-        const emoji = isVictory ? '🎉' : '💀';
+        const emoji = isVictory ? 'ð' : 'ð';
         const emojiText = this.add.text(canvasW / 2, canvasH / 2 - 80, emoji, {
             fontSize: '72px',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setScale(0);
@@ -2076,7 +2076,7 @@ class CombatArena extends Phaser.Scene {
         });
 
         // Main result text with dramatic entrance
-        const resultText = isVictory ? 'VICTOIRE!' : 'DÉFAITE...';
+        const resultText = isVictory ? 'VICTOIRE!' : 'DÃFAITE...';
         const resultColor = isVictory ? '#fbbf24' : '#ef4444';
         const resultStroke = isVictory ? '#b45309' : '#7f1d1d';
 
@@ -2106,20 +2106,20 @@ class CombatArena extends Phaser.Scene {
 
         // Subtitle
         const subtitle = isVictory
-            ? 'Tous les monstres ont été vaincus !'
-            : 'Tous les héros sont tombés...';
+            ? 'Tous les monstres ont Ã©tÃ© vaincus !'
+            : 'Tous les hÃ©ros sont tombÃ©s...';
         const subText = this.add.text(canvasW / 2, canvasH / 2 + 60, subtitle, {
             fontSize: '20px', fontFamily: 'Arial', color: '#94a3b8',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
         this.tweens.add({ targets: subText, alpha: 1, duration: 500, delay: 800 });
 
         // Round count
-        const roundInfo = this.add.text(canvasW / 2, canvasH / 2 + 90, `Combat terminé en ${this.currentRound} rounds`, {
+        const roundInfo = this.add.text(canvasW / 2, canvasH / 2 + 90, `Combat terminÃ© en ${this.currentRound} rounds`, {
             fontSize: '16px', fontFamily: 'Arial', color: '#667eea',
         }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
         this.tweens.add({ targets: roundInfo, alpha: 1, duration: 500, delay: 1000 });
 
-        // ── Rewards display ──
+        // ââ Rewards display ââ
         const rewardValues = Object.values(rewards);
         if (rewardValues.length > 0) {
             const totalXP = rewardValues.reduce((sum, r) => sum + (r.xp || 0), 0);
@@ -2132,7 +2132,7 @@ class CombatArena extends Phaser.Scene {
             if (totalXP > 0 || totalGold > 0) {
                 const xpText = totalXP > 0 ? `+${totalXP} XP` : '';
                 const goldText = totalGold > 0 ? `+${totalGold} or` : '';
-                const rewardStr = [xpText, goldText].filter(Boolean).join('  ·  ');
+                const rewardStr = [xpText, goldText].filter(Boolean).join('  Â·  ');
                 const rewardDisplay = this.add.text(canvasW / 2, rewardY, rewardStr, {
                     fontSize: '24px', fontFamily: 'Arial Black', fontStyle: 'bold',
                     color: '#fbbf24', stroke: '#000000', strokeThickness: 4,
@@ -2147,7 +2147,7 @@ class CombatArena extends Phaser.Scene {
             // Level up notification
             if (levelUps.length > 0) {
                 const lvlText = this.add.text(canvasW / 2, rewardY,
-                    `🌟 ${levelUps.length} héros ont monté de niveau !`, {
+                    `ð ${levelUps.length} hÃ©ros ont montÃ© de niveau !`, {
                     fontSize: '18px', fontFamily: 'Arial', fontStyle: 'bold',
                     color: '#a78bfa',
                 }).setOrigin(0.5).setDepth(10012).setScrollFactor(0).setAlpha(0);
@@ -2247,7 +2247,7 @@ class CombatArena extends Phaser.Scene {
     }
 }
 
-// ── Initialize Phaser ──
+// ââ Initialize Phaser ââ
 
 document.addEventListener('DOMContentLoaded', () => {
     const gameContainer = document.getElementById('phaser-game');
