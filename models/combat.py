@@ -1,16 +1,31 @@
 from extensions import db
+from sqlalchemy import orm
 from datetime import datetime
 import json
 
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-#  MONSTER PRESETS â stats de base par type et par niveau
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+def _fix_utf8(s):
+    """Fix double-encoded UTF-8 strings (UTF-8 bytes read as Latin-1).
+    E.g. 'Ã‰lÃ©mentaire' → 'Élémentaire'
+    """
+    if not s or not isinstance(s, str):
+        return s
+    try:
+        # Try to detect double-encoding: encode back to Latin-1, then decode as UTF-8
+        fixed = s.encode('latin-1').decode('utf-8')
+        return fixed
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return s  # Already correct, return as-is
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  MONSTER PRESETS — stats de base par type et par niveau
+# ═══════════════════════════════════════════════════════════════════
 
 MONSTER_PRESETS = {
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    #  TIER EASY â Monstres faibles pour les premiers combats
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ═══════════════════════════════════════════════════════════════
+    #  TIER EASY — Monstres faibles pour les premiers combats
+    # ═══════════════════════════════════════════════════════════════
     'slime': {
         'name': 'Slime',
         'base_hp': 25, 'base_attack': 4, 'base_defense': 1, 'base_magic_defense': 1,
@@ -22,7 +37,7 @@ MONSTER_PRESETS = {
         ],
     },
     'rat': {
-        'name': 'Rat gÃ©ant',
+        'name': 'Rat géant',
         'base_hp': 20, 'base_attack': 5, 'base_defense': 1, 'base_magic_defense': 0,
         'hp_per_level': 5, 'attack_per_level': 2, 'defense_per_level': 0, 'magic_defense_per_level': 0,
         'move_range': 3,
@@ -38,7 +53,7 @@ MONSTER_PRESETS = {
         'move_range': 2,
         'skills': [
             {'id': 'kobold_stab', 'name': 'Coup de dague', 'type': 'physical', 'damage': 7, 'target': 'single', 'range': 1},
-            {'id': 'kobold_trap', 'name': 'PiÃ¨ge sournois', 'type': 'physical', 'damage': 5, 'target': 'single', 'range': 2},
+            {'id': 'kobold_trap', 'name': 'Piège sournois', 'type': 'physical', 'damage': 5, 'target': 'single', 'range': 2},
         ],
     },
     'bat': {
@@ -52,9 +67,9 @@ MONSTER_PRESETS = {
         ],
     },
 
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    #  TIER MEDIUM â Monstres intermÃ©diaires
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ═══════════════════════════════════════════════════════════════
+    #  TIER MEDIUM — Monstres intermédiaires
+    # ═══════════════════════════════════════════════════════════════
     'goblin': {
         'name': 'Gobelin',
         'base_hp': 35, 'base_attack': 8, 'base_defense': 3, 'base_magic_defense': 2,
@@ -71,7 +86,7 @@ MONSTER_PRESETS = {
         'hp_per_level': 9, 'attack_per_level': 3, 'defense_per_level': 1, 'magic_defense_per_level': 1,
         'move_range': 3,
         'skills': [
-            {'id': 'wolf_bite', 'name': 'Morsure fÃ©roce', 'type': 'physical', 'damage': 12, 'target': 'single', 'range': 1},
+            {'id': 'wolf_bite', 'name': 'Morsure féroce', 'type': 'physical', 'damage': 12, 'target': 'single', 'range': 1},
             {'id': 'wolf_howl', 'name': 'Hurlement', 'type': 'buff', 'damage': 0, 'target': 'self', 'range': 0},
         ],
     },
@@ -92,7 +107,7 @@ MONSTER_PRESETS = {
         'move_range': 1,
         'skills': [
             {'id': 'mushroom_spore', 'name': 'Nuage de spores', 'type': 'magical', 'damage': 8, 'target': 'all', 'range': 2},
-            {'id': 'mushroom_heal', 'name': 'RÃ©gÃ©nÃ©ration', 'type': 'heal', 'damage': 10, 'target': 'self', 'range': 0},
+            {'id': 'mushroom_heal', 'name': 'Régénération', 'type': 'heal', 'damage': 10, 'target': 'self', 'range': 0},
         ],
     },
     'bandit': {
@@ -101,12 +116,12 @@ MONSTER_PRESETS = {
         'hp_per_level': 10, 'attack_per_level': 3, 'defense_per_level': 1, 'magic_defense_per_level': 1,
         'move_range': 2,
         'skills': [
-            {'id': 'bandit_stab', 'name': 'Coup en traÃ®tre', 'type': 'physical', 'damage': 12, 'target': 'single', 'range': 1},
-            {'id': 'bandit_arrow', 'name': 'FlÃ¨che empoisonnÃ©e', 'type': 'physical', 'damage': 9, 'target': 'single', 'range': 4},
+            {'id': 'bandit_stab', 'name': 'Coup en traître', 'type': 'physical', 'damage': 12, 'target': 'single', 'range': 1},
+            {'id': 'bandit_arrow', 'name': 'Flèche empoisonnée', 'type': 'physical', 'damage': 9, 'target': 'single', 'range': 4},
         ],
     },
     'fire_elemental': {
-        'name': 'ÃlÃ©mentaire de feu',
+        'name': 'Élémentaire de feu',
         'base_hp': 35, 'base_attack': 6, 'base_defense': 2, 'base_magic_defense': 8,
         'hp_per_level': 8, 'attack_per_level': 3, 'defense_per_level': 1, 'magic_defense_per_level': 3,
         'move_range': 2,
@@ -116,17 +131,17 @@ MONSTER_PRESETS = {
         ],
     },
 
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    #  TIER HARD â Monstres puissants
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ═══════════════════════════════════════════════════════════════
+    #  TIER HARD — Monstres puissants
+    # ═══════════════════════════════════════════════════════════════
     'ogre': {
         'name': 'Ogre',
         'base_hp': 70, 'base_attack': 12, 'base_defense': 7, 'base_magic_defense': 3,
         'hp_per_level': 15, 'attack_per_level': 4, 'defense_per_level': 2, 'magic_defense_per_level': 1,
         'move_range': 2,
         'skills': [
-            {'id': 'ogre_smash', 'name': 'Ãcrasement', 'type': 'physical', 'damage': 18, 'target': 'single', 'range': 1},
-            {'id': 'ogre_stomp', 'name': 'PiÃ©tinement', 'type': 'physical', 'damage': 12, 'target': 'all', 'range': 1},
+            {'id': 'ogre_smash', 'name': 'Écrasement', 'type': 'physical', 'damage': 18, 'target': 'single', 'range': 1},
+            {'id': 'ogre_stomp', 'name': 'Piétinement', 'type': 'physical', 'damage': 12, 'target': 'all', 'range': 1},
         ],
     },
     'vampire': {
@@ -136,29 +151,29 @@ MONSTER_PRESETS = {
         'move_range': 3,
         'skills': [
             {'id': 'vampire_bite', 'name': 'Morsure vampirique', 'type': 'physical', 'damage': 14, 'target': 'single', 'range': 1},
-            {'id': 'vampire_drain', 'name': 'Drain d\'Ã¢me', 'type': 'magical', 'damage': 12, 'target': 'single', 'range': 2},
+            {'id': 'vampire_drain', 'name': 'Drain d\'âme', 'type': 'magical', 'damage': 12, 'target': 'single', 'range': 2},
             {'id': 'vampire_charm', 'name': 'Charme obscur', 'type': 'magical', 'damage': 8, 'target': 'all', 'range': 3},
         ],
     },
     'witch': {
-        'name': 'SorciÃ¨re',
+        'name': 'Sorcière',
         'base_hp': 45, 'base_attack': 6, 'base_defense': 3, 'base_magic_defense': 9,
         'hp_per_level': 10, 'attack_per_level': 3, 'defense_per_level': 1, 'magic_defense_per_level': 3,
         'move_range': 2,
         'skills': [
-            {'id': 'witch_hex', 'name': 'MalÃ©fice', 'type': 'magical', 'damage': 15, 'target': 'single', 'range': 4},
-            {'id': 'witch_curse', 'name': 'MalÃ©diction de masse', 'type': 'magical', 'damage': 10, 'target': 'all', 'range': 3},
+            {'id': 'witch_hex', 'name': 'Maléfice', 'type': 'magical', 'damage': 15, 'target': 'single', 'range': 4},
+            {'id': 'witch_curse', 'name': 'Malédiction de masse', 'type': 'magical', 'damage': 10, 'target': 'all', 'range': 3},
             {'id': 'witch_heal', 'name': 'Potion de soin', 'type': 'heal', 'damage': 15, 'target': 'ally', 'range': 3},
         ],
     },
     'spider': {
-        'name': 'AraignÃ©e gÃ©ante',
+        'name': 'Araignée géante',
         'base_hp': 50, 'base_attack': 10, 'base_defense': 5, 'base_magic_defense': 4,
         'hp_per_level': 11, 'attack_per_level': 3, 'defense_per_level': 2, 'magic_defense_per_level': 1,
         'move_range': 3,
         'skills': [
             {'id': 'spider_bite', 'name': 'Morsure venimeuse', 'type': 'physical', 'damage': 13, 'target': 'single', 'range': 1},
-            {'id': 'spider_web', 'name': 'Toile d\'araignÃ©e', 'type': 'magical', 'damage': 6, 'target': 'single', 'range': 3},
+            {'id': 'spider_web', 'name': 'Toile d\'araignée', 'type': 'magical', 'damage': 6, 'target': 'single', 'range': 3},
         ],
     },
     'golem': {
@@ -168,22 +183,22 @@ MONSTER_PRESETS = {
         'move_range': 1,
         'skills': [
             {'id': 'golem_punch', 'name': 'Poing de pierre', 'type': 'physical', 'damage': 20, 'target': 'single', 'range': 1},
-            {'id': 'golem_quake', 'name': 'SÃ©isme', 'type': 'physical', 'damage': 12, 'target': 'all', 'range': 2},
+            {'id': 'golem_quake', 'name': 'Séisme', 'type': 'physical', 'damage': 12, 'target': 'all', 'range': 2},
         ],
     },
 
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    #  TIER BOSS â Monstres ultimes
-    # âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ═══════════════════════════════════════════════════════════════
+    #  TIER BOSS — Monstres ultimes
+    # ═══════════════════════════════════════════════════════════════
     'necromancer': {
-        'name': 'NÃ©cromancien',
+        'name': 'Nécromancien',
         'base_hp': 65, 'base_attack': 8, 'base_defense': 5, 'base_magic_defense': 10,
         'hp_per_level': 14, 'attack_per_level': 4, 'defense_per_level': 2, 'magic_defense_per_level': 4,
         'move_range': 2,
         'skills': [
-            {'id': 'necro_bolt', 'name': 'Trait nÃ©crotique', 'type': 'magical', 'damage': 16, 'target': 'single', 'range': 4},
+            {'id': 'necro_bolt', 'name': 'Trait nécrotique', 'type': 'magical', 'damage': 16, 'target': 'single', 'range': 4},
             {'id': 'necro_drain', 'name': 'Drain vital', 'type': 'magical', 'damage': 12, 'target': 'single', 'range': 3},
-            {'id': 'necro_curse', 'name': 'MalÃ©diction mortelle', 'type': 'magical', 'damage': 10, 'target': 'all', 'range': 3},
+            {'id': 'necro_curse', 'name': 'Malédiction mortelle', 'type': 'magical', 'damage': 10, 'target': 'all', 'range': 3},
         ],
     },
     'lich': {
@@ -216,7 +231,7 @@ MONSTER_PRESETS = {
         'skills': [
             {'id': 'hydra_bite', 'name': 'Triple morsure', 'type': 'physical', 'damage': 18, 'target': 'single', 'range': 1},
             {'id': 'hydra_acid', 'name': 'Crachat d\'acide', 'type': 'magical', 'damage': 14, 'target': 'all', 'range': 2},
-            {'id': 'hydra_regen', 'name': 'RÃ©gÃ©nÃ©ration', 'type': 'heal', 'damage': 15, 'target': 'self', 'range': 0},
+            {'id': 'hydra_regen', 'name': 'Régénération', 'type': 'heal', 'damage': 15, 'target': 'self', 'range': 0},
         ],
     },
     'shadow': {
@@ -225,20 +240,20 @@ MONSTER_PRESETS = {
         'hp_per_level': 13, 'attack_per_level': 5, 'defense_per_level': 2, 'magic_defense_per_level': 4,
         'move_range': 4,
         'skills': [
-            {'id': 'shadow_strike', 'name': 'Frappe des tÃ©nÃ¨bres', 'type': 'physical', 'damage': 16, 'target': 'single', 'range': 1},
-            {'id': 'shadow_void', 'name': 'Vortex du nÃ©ant', 'type': 'magical', 'damage': 20, 'target': 'single', 'range': 3},
+            {'id': 'shadow_strike', 'name': 'Frappe des ténèbres', 'type': 'physical', 'damage': 16, 'target': 'single', 'range': 1},
+            {'id': 'shadow_void', 'name': 'Vortex du néant', 'type': 'magical', 'damage': 20, 'target': 'single', 'range': 3},
             {'id': 'shadow_cloak', 'name': 'Voile d\'ombre', 'type': 'buff', 'damage': 0, 'target': 'self', 'range': 0},
         ],
     },
 }
 
-# Pools de monstres par tier (pour sÃ©lection alÃ©atoire)
+# Pools de monstres par tier (pour sélection aléatoire)
 TIER_EASY = ['slime', 'rat', 'kobold', 'bat']
 TIER_MEDIUM = ['goblin', 'zombie', 'mushroom', 'bandit', 'fire_elemental']
 TIER_HARD = ['ogre', 'vampire', 'witch', 'spider', 'golem']
 TIER_BOSS = ['necromancer', 'lich', 'dragon', 'hydra', 'shadow']
 
-# Configurations de combat prÃ©dÃ©finies par difficultÃ©
+# Configurations de combat prédéfinies par difficulté
 DIFFICULTY_CONFIGS = {
     'easy': {
         'monsters': [
@@ -276,7 +291,7 @@ DIFFICULTY_CONFIGS = {
 
 
 class CombatSession(db.Model):
-    """Session de combat lancÃ©e par le prof"""
+    """Session de combat lancée par le prof"""
     __tablename__ = 'combat_sessions'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -295,7 +310,7 @@ class CombatSession(db.Model):
     # Bloc d'exercice courant (pour la question du tour)
     current_block_id = db.Column(db.Integer, nullable=True)
 
-    # Suivi des blocs utilisÃ©s pour la rotation des questions
+    # Suivi des blocs utilisés pour la rotation des questions
     used_block_ids_json = db.Column(db.JSON, default=list)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -324,7 +339,7 @@ class CombatSession(db.Model):
         }
 
     def get_state(self):
-        """Ãtat complet pour broadcast SocketIO"""
+        """État complet pour broadcast SocketIO"""
         return {
             'session_id': self.id,
             'status': self.status,
@@ -334,7 +349,7 @@ class CombatSession(db.Model):
             'phase': self.current_phase,
             'map_config': self.map_config_json or {},
             'participants': [p.to_dict() for p in self.participants],
-            'monsters': [m.to_dict() for m in self.monsters],  # All monsters (alive + dead) â client handles is_alive
+            'monsters': [m.to_dict() for m in self.monsters],  # All monsters (alive + dead) — client handles is_alive
         }
 
     def __repr__(self):
@@ -342,17 +357,17 @@ class CombatSession(db.Model):
 
 
 class CombatParticipant(db.Model):
-    """Un Ã©lÃ¨ve dans le combat"""
+    """Un élève dans le combat"""
     __tablename__ = 'combat_participants'
 
     id = db.Column(db.Integer, primary_key=True)
     combat_session_id = db.Column(db.Integer, db.ForeignKey('combat_sessions.id'), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
 
-    # Snapshot des stats au dÃ©but du combat
+    # Snapshot des stats au début du combat
     snapshot_json = db.Column(db.JSON, default=dict)
 
-    # Ãtat pendant le combat
+    # État pendant le combat
     current_hp = db.Column(db.Integer, default=100)
     current_mana = db.Column(db.Integer, default=50)
     max_hp = db.Column(db.Integer, default=100)
@@ -380,7 +395,7 @@ class CombatParticipant(db.Model):
         return {
             'id': self.id,
             'student_id': self.student_id,
-            'student_name': snapshot.get('name', f'ÃlÃ¨ve {self.student_id}'),
+            'student_name': snapshot.get('name', f'Élève {self.student_id}'),
             'avatar_class': snapshot.get('avatar_class', 'guerrier'),
             'level': snapshot.get('level', 1),
             'current_hp': self.current_hp,
@@ -399,7 +414,7 @@ class CombatParticipant(db.Model):
         }
 
     def reset_round(self):
-        """RÃ©initialise l'Ã©tat du tour pour un nouveau round"""
+        """Réinitialise l'état du tour pour un nouveau round"""
         self.answered = False
         self.is_correct = False
         self.selected_action_json = None
@@ -419,6 +434,12 @@ class CombatMonster(db.Model):
 
     monster_type = db.Column(db.String(30), nullable=False)  # see MONSTER_PRESETS keys
     name = db.Column(db.String(100), nullable=False)
+
+    @orm.reconstructor
+    def init_on_load(self):
+        """Fix double-encoded UTF-8 names on load from DB."""
+        if self.name:
+            self.name = _fix_utf8(self.name)
     level = db.Column(db.Integer, default=1)
     max_hp = db.Column(db.Integer, default=50)
     current_hp = db.Column(db.Integer, default=50)
@@ -434,7 +455,7 @@ class CombatMonster(db.Model):
         return {
             'id': self.id,
             'monster_type': self.monster_type,
-            'name': self.name,
+            'name': _fix_utf8(self.name),
             'level': self.level,
             'max_hp': self.max_hp,
             'current_hp': self.current_hp,
@@ -448,7 +469,7 @@ class CombatMonster(db.Model):
         }
 
     def take_damage(self, amount):
-        """Applique des dÃ©gÃ¢ts au monstre"""
+        """Applique des dégâts au monstre"""
         self.current_hp = max(0, self.current_hp - amount)
         if self.current_hp <= 0:
             self.is_alive = False
