@@ -543,12 +543,17 @@ function confirmPublish() {
         return;
     }
     selectedClassroomId = parseInt(selected.value);
-    closePublishModal();
+
+    // Save exercise ID before closing (closePublishModal nullifies it)
+    const exerciseId = publishExerciseId;
+    const card = document.querySelector(`.exercise-card[data-id="${exerciseId}"]`);
+    const title = card ? card.querySelector('.card-title').textContent : 'Exercice';
+
+    // Close step 1 modal
+    document.getElementById('publish-modal').style.display = 'none';
 
     // Open mode modal (Step 2)
-    const card = document.querySelector(`.exercise-card[data-id="${publishExerciseId}"]`);
-    const title = card ? card.querySelector('.card-title').textContent : 'Exercice';
-    showModeModal(publishExerciseId, title);
+    showModeModal(exerciseId, title);
 }
 
 // ============================================================
