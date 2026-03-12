@@ -413,37 +413,7 @@ class CombatArena extends Phaser.Scene {
         // Tile origin: center of top face (y=16 in a 44px-tall tile image)
         const tileOriginY = 16 / 44;
 
-        // ── First pass: draw shadows under elevated tiles (cast onto lower neighbors) ──
-        for (let gy = 0; gy < this.gridH; gy++) {
-            for (let gx = 0; gx < this.gridW; gx++) {
-                const elev = (elevation[gy] && elevation[gy][gx]) || 0;
-                if (elev > 0) {
-                    // Cast shadow to the SE (light comes from NW)
-                    const shadowCells = [
-                        { sx: gx + 1, sy: gy },
-                        { sx: gx, sy: gy + 1 },
-                        { sx: gx + 1, sy: gy + 1 },
-                    ];
-                    for (const sc of shadowCells) {
-                        if (sc.sx >= this.gridW || sc.sy >= this.gridH) continue;
-                        const neighborElev = (elevation[sc.sy] && elevation[sc.sy][sc.sx]) || 0;
-                        if (neighborElev < elev) {
-                            const { x: sx, y: sy } = this.gridToIso(sc.sx, sc.sy);
-                            const shadowY = sy - neighborElev * ELEV_OFFSET;
-                            const shadow = this.add.ellipse(sx, shadowY + 4, 50, 22, 0x000000, 0.18);
-                            shadow.setDepth((sc.sx + sc.sy) * 10 + neighborElev + 0.5);
-                            this.tileEffects.push(shadow);
-                        }
-                    }
-                }
-            }
-        }
-
-        // ── Second pass: draw tile columns and surfaces ──
-        for (let gy = 0; gy < this.gridH; gy++) {
-            for (let gx = 0; gx < this.gridW; gx++) {
-                const { x, y } = this.gridToIso(gx, gy);
-                const key = `${gx}_${gy}`;
+        // (Tile elevation shadows removed — they cluttered the map visually)_${gy}`;
                 const obsType = obstacleMap[key];
 
                 // Get tile elevation
@@ -605,8 +575,9 @@ class CombatArena extends Phaser.Scene {
         const fallbackKey = `chi_${cls}_se_idle`;
         const usedKey = this.textures.exists(spriteKey) ? spriteKey : fallbackKey;
         const sprite = this.add.image(x, y, usedKey);
-        sprite.setOrigin(0.5, 0.95);  // bottom-center so feet touch the tile
-        sprite.setScale(SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1));
+        sprite.setOrigin(0.5, 0.85);  // bottom-center, closer to tile surface
+        const playerScale = (SPRITE_SIZE / Math.max(sprite.width, sprite.height, 1)) * 1.4;
+        sprite.setScale(playerScale);
         sprite.setDepth((p.grid_x + p.grid_y) * 10 + elev + 5);
 
         // Name label — well above sprite to not overlap
@@ -781,9 +752,9 @@ class CombatArena extends Phaser.Scene {
             color: '#ff6b6b',
             stroke: '#000000',
             strokeThickness: 3,
-        }).setOrigin(0.5).setDepth(9999);
+        }).setOrigin(0.5).setDepth(9999).setVisible(false);
 
-        // HP bar — below name, above sprite
+        // HP bar — above sprite
         const barWidth = 44;
         const barHeight = 5;
         const barY = y - HP_BAR_OFFSET;
@@ -853,7 +824,7 @@ class CombatArena extends Phaser.Scene {
                     const texKey = `chi_${ent.cls}_${newDir}_idle`;
                     if (this.textures.exists(texKey)) {
                         ent.sprite.setTexture(texKey);
-                        ent.sprite.setScale(SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1));
+                        ent.sprite.setScale((SPRITE_SIZE / Math.max(ent.sprite.width, ent.sprite.height, 1)) * 1.4);
                     }
                 } else {
                     // Monster: use directional sprite
