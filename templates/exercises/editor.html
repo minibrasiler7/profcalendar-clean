@@ -2449,14 +2449,20 @@ function setupDrawingEvents(canvas) {
         shapeEnd = pos;
 
         if (TWO_POINT_TOOLS.includes(drawingTool)) {
+            // Capture values before async callback
+            const previewStart = shapeStart ? { ...shapeStart } : null;
+            const previewEnd = { ...shapeEnd };
+            const previewTool = drawingTool;
+            const previewSnapshot = preShapeSnapshot;
+            if (!previewStart) return;
             // Restore snapshot then draw preview
             const snap = new Image();
             snap.onload = () => {
                 drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
                 drawingCtx.drawImage(snap, 0, 0);
-                drawShapePreview(drawingCtx, drawingTool, shapeStart, shapeEnd);
+                drawShapePreview(drawingCtx, previewTool, previewStart, previewEnd);
             };
-            snap.src = preShapeSnapshot;
+            snap.src = previewSnapshot;
         } else {
             // Freehand
             drawingCtx.lineTo(pos.x, pos.y);
