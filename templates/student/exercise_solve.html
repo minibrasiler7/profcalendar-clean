@@ -635,18 +635,18 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         {% elif block.block_type == 'short_answer' %}
             {% if c.question %}<p class="question-text">{{ c.question }}</p>{% endif %}
-            <input class="answer-input" type="{{ 'number' if c.answer_type == 'number' else 'text' }}"
+            <input class="answer-input" type="{{ 'number' if c.get('answer_type') == 'number' else 'text' }}"
                 data-block="{{ block.id }}" placeholder="Ta réponse..."
-                {{ 'step=any' if c.answer_type == 'number' else '' }}
+                {{ 'step=any' if c.get('answer_type') == 'number' else '' }}
                 {{ 'disabled' if already_completed }}>
 
         {% elif block.block_type == 'fill_blank' %}
             <div class="fill-blank-text" id="fill-blank-{{ block.id }}"></div>
             <script>
                 (function() {
-                    const template = {{ c.text_template|tojson }};
-                    const mode = {{ (c.mode or 'text')|tojson }};
-                    const blanks = {{ (c.blanks or [])|tojson }};
+                    const template = {{ (c.get('text_template') or c.get('question') or '')|tojson }};
+                    const mode = {{ (c.get('mode') or 'text')|tojson }};
+                    const blanks = {{ (c.get('blanks') or [])|tojson }};
                     let blankIdx = 0;
                     const html = template.replace(/\{([^}]+)\}/g, function() {
                         const i = blankIdx++;
@@ -666,7 +666,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             </script>
 
         {% elif block.block_type == 'sorting' %}
-            {% if c.mode == 'order' %}
+            {% if c.get('mode', 'order') == 'order' %}
                 <p class="question-text" style="color:#6b7280;">Remets ces éléments dans le bon ordre :</p>
                 <ul class="sorting-list" id="sorting-{{ block.id }}" data-block="{{ block.id }}" data-mode="order">
                     {# Les items seront mélangés par JavaScript #}
@@ -681,7 +681,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% else %}
                 <p class="question-text" style="color:#6b7280;">Classe ces éléments dans les bonnes catégories :</p>
                 <div class="categories-wrapper" id="categories-{{ block.id }}" data-block="{{ block.id }}" data-mode="categories">
-                    {% for cat in c.categories %}
+                    {% for cat in c.get('categories', []) %}
                     <div class="category-zone" data-category="{{ loop.index0 }}"
                          ondragover="catDragOver(event)" ondragleave="catDragLeave(event)" ondrop="catDrop(event, '{{ block.id }}')">
                         <h4><i class="fas fa-folder-open"></i> {{ cat.name }}</h4>
@@ -709,13 +709,13 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         {% elif block.block_type == 'matching' %}
             <p class="question-text" style="color:#6b7280;">Associe chaque élément de gauche avec son correspondant à droite :</p>
             <div class="matching-container" id="matching-{{ block.id }}" data-block="{{ block.id }}"
-                 data-pairs='{{ c.pairs|tojson }}'>
+                 data-pairs='{{ c['pairs']|tojson }}'>
                 <div class="matching-left-col" id="matching-left-{{ block.id }}"></div>
                 <div class="matching-right-col" id="matching-right-{{ block.id }}"></div>
             </div>
             <script>
                 (function() {
-                    const pairs = {{ c.pairs|tojson }};
+                    const pairs = {{ c['pairs']|tojson }};
                     const blockId = '{{ block.id }}';
                     const disabled = {{ 'true' if already_completed else 'false' }};
 
