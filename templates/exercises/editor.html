@@ -2469,15 +2469,20 @@ function setupDrawingEvents(canvas) {
         isDrawing = false;
 
         if (TWO_POINT_TOOLS.includes(drawingTool) && shapeStart && shapeEnd) {
+            // Capture values before async callback (they get nulled below)
+            const finalStart = { ...shapeStart };
+            const finalEnd = { ...shapeEnd };
+            const finalTool = drawingTool;
+            const finalSnapshot = preShapeSnapshot;
             // Restore then draw final shape
             const snap = new Image();
             snap.onload = () => {
                 drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
                 drawingCtx.drawImage(snap, 0, 0);
-                drawShapeFinal(drawingCtx, drawingTool, shapeStart, shapeEnd);
+                drawShapeFinal(drawingCtx, finalTool, finalStart, finalEnd);
                 pushDrawingHistory();
             };
-            snap.src = preShapeSnapshot;
+            snap.src = finalSnapshot;
         } else {
             // Freehand end
             drawingCtx.globalAlpha = 1;
