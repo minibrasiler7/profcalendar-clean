@@ -205,7 +205,7 @@
             <div class="fill-blank-text" id="fill-blank-{{ block.id }}"></div>
             <script>
                 (function() {
-                    const template = {{ c.text_template|tojson }};
+                    const template = {{ (c.text_template or c.question or '')|tojson }};
                     const html = template.replace(/\{([^}]+)\}/g, '<input class="blank-input" type="text" placeholder="...">');
                     document.getElementById('fill-blank-{{ block.id }}').innerHTML = html;
                 })();
@@ -213,15 +213,11 @@
 
         {% elif block.block_type == 'sorting' %}
             <p style="color:#6b7280;font-size:0.85rem;">
-                {% if c.mode == 'order' %}
-                Remettez ces éléments dans le bon ordre :
-                {% else %}
-                Classez ces éléments dans les bonnes catégories :
-                {% endif %}
+                {{ c.question or 'Remettez ces éléments dans le bon ordre :' }}
             </p>
             <ul class="sorting-items">
                 {% for item in c.items %}
-                <li><i class="fas fa-grip-vertical"></i> {{ item }}</li>
+                <li><i class="fas fa-grip-vertical"></i> {{ item.text if item is mapping else item }}</li>
                 {% endfor %}
             </ul>
 
