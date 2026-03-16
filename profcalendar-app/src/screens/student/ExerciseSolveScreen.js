@@ -975,6 +975,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return (
           <View>
             {c.question ? <MathText text={c.question} style={styles.questionText} /> : null}
+            {c.block_image_url && (
+                <Image
+                    source={{ uri: c.block_image_url }}
+                    style={{ width: '100%', height: 250, borderRadius: 10, marginBottom: 12, resizeMode: 'contain' }}
+                />
+            )}
             <View style={styles.optionsContainer}>
               {(c.options || []).map((opt, i) => {
                 const isSel = selected.includes(i);
@@ -1018,6 +1024,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         return (
           <View>
             {c.question ? <MathText text={c.question} style={styles.questionText} /> : null}
+            {c.block_image_url && (
+                <Image
+                    source={{ uri: c.block_image_url }}
+                    style={{ width: '100%', height: 250, borderRadius: 10, marginBottom: 12, resizeMode: 'contain' }}
+                />
+            )}
             <TextInput style={styles.textInput} placeholder="Ta réponse..." placeholderTextColor={colors.textLight}
               value={answer.value || ''} onChangeText={(t) => updateAnswer(blockId, { value: t })}
               keyboardType={c.answer_type === 'number' ? 'decimal-pad' : 'default'} editable={!isLocked} />
@@ -1032,7 +1044,14 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         const configBlanks = c.blanks || [];
 
         return (
-          <View><View style={styles.fillBlankWrap}>
+          <View>
+            {c.block_image_url && (
+                <Image
+                    source={{ uri: c.block_image_url }}
+                    style={{ width: '100%', height: 250, borderRadius: 10, marginBottom: 12, resizeMode: 'contain' }}
+                />
+            )}
+            <View style={styles.fillBlankWrap}>
             {parts.map((part, i) => {
               if (part.match(/^\{[^}]+\}$/)) {
                 const bi = blankIdx++;
@@ -1072,7 +1091,8 @@ export default function ExerciseSolveScreen({ route, navigation }) {
               }
               return <Text key={i} style={styles.fillBlankText}>{part}</Text>;
             })}
-          </View></View>
+            </View>
+          </View>
         );
       }
       case 'matching': {
@@ -1100,6 +1120,12 @@ export default function ExerciseSolveScreen({ route, navigation }) {
 
         return (
           <View>
+            {c.block_image_url && (
+                <Image
+                    source={{ uri: c.block_image_url }}
+                    style={{ width: '100%', height: 250, borderRadius: 10, marginBottom: 12, resizeMode: 'contain' }}
+                />
+            )}
             <Text style={{ color: colors.textLight, marginBottom: 12, fontSize: 14 }}>
               Sélectionne un élément à gauche, puis son correspondant à droite :
             </Text>
@@ -1167,13 +1193,26 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           </View>
         );
       }
-      case 'sorting':
-        if (c.mode === 'order') {
-          return <DraggableOrderList items={c.items || []} order={answer.order || []}
-            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked} />;
-        }
-        return <DraggableCategoryList key={blockId} items={c.items || []} categories={c.categories || []}
-          catAssignments={answer.categories || {}} onUpdate={(cats) => updateAnswer(blockId, { categories: cats })} disabled={isLocked} />;
+      case 'sorting': {
+        const sortContent = c.mode === 'order' ? (
+          <DraggableOrderList items={c.items || []} order={answer.order || []}
+            onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked} />
+        ) : (
+          <DraggableCategoryList key={blockId} items={c.items || []} categories={c.categories || []}
+            catAssignments={answer.categories || {}} onUpdate={(cats) => updateAnswer(blockId, { categories: cats })} disabled={isLocked} />
+        );
+        return (
+          <View>
+            {c.block_image_url && (
+                <Image
+                    source={{ uri: c.block_image_url }}
+                    style={{ width: '100%', height: 250, borderRadius: 10, marginBottom: 12, resizeMode: 'contain' }}
+                />
+            )}
+            {sortContent}
+          </View>
+        );
+      }
 
       case 'image_position': {
         const imageUrl = c.image_file_id ? `${BASE_URL}/exercises/block-image/${c.image_file_id}`

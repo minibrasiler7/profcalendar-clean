@@ -764,7 +764,62 @@ document.addEventListener('DOMContentLoaded', function() {
         min-width: 250px;
     }
 }
+
+.drawing-tool-btn.active {
+    border-color: #667eea !important;
+    background: #eef2ff !important;
+    color: #667eea;
+}
 </style>
+
+<!-- Drawing Canvas Modal -->
+<div id="drawing-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:16px;width:95%;max-width:900px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
+        <!-- Header -->
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:1rem;display:flex;align-items:center;gap:0.4rem;">
+                <i class="fas fa-pen-fancy" style="color:#667eea;"></i> Dessiner
+            </h3>
+            <button onclick="closeDrawingModal()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#9ca3af;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- Toolbar -->
+        <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Stylo">
+                <i class="fas fa-pen"></i> Stylo
+            </button>
+            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Surligneur">
+                <i class="fas fa-highlighter"></i> Surligneur
+            </button>
+            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Gomme">
+                <i class="fas fa-eraser"></i> Gomme
+            </button>
+            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
+            <input type="color" value="#000000" onchange="setDrawingColor(this.value)" style="width:32px;height:32px;border:none;cursor:pointer;border-radius:6px;">
+            <div style="display:flex;align-items:center;gap:0.3rem;">
+                <span style="font-size:0.75rem;color:#6b7280;">Taille:</span>
+                <input type="range" min="1" max="20" value="3" onchange="setDrawingStrokeWidth(this.value)" style="width:80px;">
+            </div>
+            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
+            <button onclick="clearDrawingCanvas()" style="padding:0.4rem 0.7rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.8rem;background:#fef2f2;color:#dc2626;display:flex;align-items:center;gap:0.3rem;">
+                <i class="fas fa-trash"></i> Effacer tout
+            </button>
+        </div>
+        <!-- Canvas -->
+        <div style="flex:1;padding:0.5rem;overflow:auto;background:#f9fafb;">
+            <canvas id="drawing-canvas" style="width:100%;border-radius:8px;border:1px solid #d1d5db;cursor:crosshair;touch-action:none;background:white;"></canvas>
+        </div>
+        <!-- Footer -->
+        <div style="padding:0.75rem 1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:0.5rem;">
+            <button onclick="closeDrawingModal()" style="padding:0.5rem 1rem;background:#e5e7eb;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">Annuler</button>
+            <button onclick="saveDrawing()" style="padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                <i class="fas fa-check"></i> Enregistrer le dessin
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block content %}
@@ -1188,16 +1243,69 @@ function renderBlock(block) {
 }
 
 function renderBlockEditor(block) {
+    let editorHtml = '';
     switch(block.block_type) {
-        case 'qcm': return renderQCMEditor(block);
-        case 'short_answer': return renderShortAnswerEditor(block);
-        case 'fill_blank': return renderFillBlankEditor(block);
-        case 'matching': return renderMatchingEditor(block);
-        case 'sorting': return renderSortingEditor(block);
+        case 'qcm': editorHtml = renderQCMEditor(block); break;
+        case 'short_answer': editorHtml = renderShortAnswerEditor(block); break;
+        case 'fill_blank': editorHtml = renderFillBlankEditor(block); break;
+        case 'matching': editorHtml = renderMatchingEditor(block); break;
+        case 'sorting': editorHtml = renderSortingEditor(block); break;
         case 'image_position': return renderImagePositionEditor(block);
         case 'graph': return renderGraphEditor(block);
         default: return '<p>Type de bloc inconnu</p>';
     }
+    // Add optional image/drawing section for these block types
+    editorHtml += renderBlockImageSection(block);
+    return editorHtml;
+}
+
+function renderBlockImageSection(block) {
+    const c = block.config_json;
+    const hasImage = c.block_image_url;
+
+    let html = `
+        <div style="border-top:1px solid #e5e7eb;margin-top:1rem;padding-top:1rem;">
+            <label style="font-size:0.85rem;font-weight:600;color:#374151;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;">
+                <i class="fas fa-image" style="color:#667eea;"></i> Image / Dessin (optionnel)
+            </label>`;
+
+    if (hasImage) {
+        html += `
+            <div style="position:relative;margin-bottom:0.5rem;">
+                <img src="${escapeHtml(c.block_image_url)}" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid #e5e7eb;">
+                <button onclick="removeBlockImage('${block.uid}')" style="position:absolute;top:4px;right:4px;background:#ef4444;color:white;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:0.8rem;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+                <button class="add-item-btn" onclick="changeBlockMediaImage('${block.uid}')" style="font-size:0.75rem;">
+                    <i class="fas fa-exchange-alt"></i> Changer l'image
+                </button>
+                <button class="add-item-btn" onclick="openDrawingCanvas('${block.uid}')" style="font-size:0.75rem;">
+                    <i class="fas fa-pen-fancy"></i> Dessiner
+                </button>
+            </div>`;
+    } else {
+        html += `
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <button class="add-item-btn" onclick="triggerBlockMediaUpload('${block.uid}')" style="font-size:0.8rem;">
+                    <i class="fas fa-upload"></i> Charger une image
+                </button>
+                <button class="add-item-btn" onclick="promptBlockMediaUrl('${block.uid}')" style="font-size:0.8rem;">
+                    <i class="fas fa-link"></i> URL d'image
+                </button>
+                <button class="add-item-btn" onclick="openDrawingCanvas('${block.uid}')" style="font-size:0.8rem;">
+                    <i class="fas fa-pen-fancy"></i> Dessiner
+                </button>
+            </div>`;
+    }
+
+    html += `
+            <input type="file" id="block-media-file-${block.uid}" accept="image/*" style="display:none;"
+                onchange="handleBlockMediaUpload('${block.uid}', this)">
+        </div>`;
+
+    return html;
 }
 
 // ============================================================
@@ -2003,6 +2111,242 @@ function removeZone(uid, index) {
 function updateZoneField(uid, index, field, value) {
     const block = blocks.find(b => b.uid === uid);
     block.config_json.zones[index][field] = value;
+}
+
+// ============================================================
+// BLOCK IMAGE/DRAWING (optional per block)
+// ============================================================
+
+function triggerBlockMediaUpload(uid) {
+    document.getElementById('block-media-file-' + uid).click();
+}
+
+function changeBlockMediaImage(uid) {
+    document.getElementById('block-media-file-' + uid).click();
+}
+
+async function handleBlockMediaUpload(uid, input) {
+    if (!input.files || !input.files[0]) return;
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+    try {
+        const res = await fetch('{{ url_for("exercises.upload_block_image") }}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            const block = blocks.find(b => b.uid === uid);
+            block.config_json.block_image_file_id = data.file_id;
+            block.config_json.block_image_url = data.url;
+            block.config_json.block_image_type = 'upload';
+            refreshBlockContent(uid);
+            showToast('Image ajoutée', 'success');
+        } else {
+            showToast(data.message || 'Erreur upload', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur upload', 'error');
+    }
+}
+
+function promptBlockMediaUrl(uid) {
+    const url = prompt('Entrez l\'URL de l\'image :');
+    if (!url) return;
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.block_image_url = url;
+    block.config_json.block_image_type = 'url';
+    block.config_json.block_image_file_id = null;
+    refreshBlockContent(uid);
+    showToast('Image ajoutée', 'success');
+}
+
+function removeBlockImage(uid) {
+    const block = blocks.find(b => b.uid === uid);
+    block.config_json.block_image_url = null;
+    block.config_json.block_image_file_id = null;
+    block.config_json.block_image_type = null;
+    refreshBlockContent(uid);
+}
+
+// Drawing canvas
+let drawingCanvasBlockUid = null;
+let drawingCtx = null;
+let isDrawing = false;
+let drawingTool = 'pen';
+let drawingColor = '#000000';
+let drawingStrokeWidth = 3;
+let drawingPaths = [];
+let currentPath = null;
+
+function openDrawingCanvas(uid) {
+    drawingCanvasBlockUid = uid;
+    drawingPaths = [];
+
+    const modal = document.getElementById('drawing-modal');
+    modal.style.display = 'flex';
+
+    const canvas = document.getElementById('drawing-canvas');
+    const container = canvas.parentElement;
+
+    // Set canvas size
+    canvas.width = container.offsetWidth;
+    canvas.height = 500;
+
+    drawingCtx = canvas.getContext('2d');
+    drawingCtx.fillStyle = 'white';
+    drawingCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // If block already has a drawing, load it
+    const block = blocks.find(b => b.uid === uid);
+    if (block.config_json.block_image_url && block.config_json.block_image_type === 'drawing') {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            drawingCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = block.config_json.block_image_url;
+    }
+
+    // Reset tools
+    drawingTool = 'pen';
+    drawingColor = '#000000';
+    drawingStrokeWidth = 3;
+    updateDrawingToolUI();
+    setupDrawingEvents(canvas);
+}
+
+function setupDrawingEvents(canvas) {
+    // Remove old listeners
+    canvas.onmousedown = null;
+    canvas.onmousemove = null;
+    canvas.onmouseup = null;
+    canvas.onmouseleave = null;
+    canvas.ontouchstart = null;
+    canvas.ontouchmove = null;
+    canvas.ontouchend = null;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        if (e.touches) {
+            return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+        }
+        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    }
+
+    function startDraw(e) {
+        e.preventDefault();
+        isDrawing = true;
+        const pos = getPos(e);
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(pos.x, pos.y);
+
+        if (drawingTool === 'eraser') {
+            drawingCtx.globalCompositeOperation = 'destination-out';
+            drawingCtx.lineWidth = drawingStrokeWidth * 5;
+        } else if (drawingTool === 'highlighter') {
+            drawingCtx.globalCompositeOperation = 'source-over';
+            drawingCtx.strokeStyle = drawingColor;
+            drawingCtx.lineWidth = drawingStrokeWidth * 3;
+            drawingCtx.globalAlpha = 0.3;
+        } else {
+            drawingCtx.globalCompositeOperation = 'source-over';
+            drawingCtx.strokeStyle = drawingColor;
+            drawingCtx.lineWidth = drawingStrokeWidth;
+            drawingCtx.globalAlpha = 1;
+        }
+        drawingCtx.lineCap = 'round';
+        drawingCtx.lineJoin = 'round';
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        drawingCtx.lineTo(pos.x, pos.y);
+        drawingCtx.stroke();
+    }
+
+    function endDraw(e) {
+        if (!isDrawing) return;
+        isDrawing = false;
+        drawingCtx.globalAlpha = 1;
+        drawingCtx.globalCompositeOperation = 'source-over';
+    }
+
+    canvas.onmousedown = startDraw;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = endDraw;
+    canvas.onmouseleave = endDraw;
+    canvas.ontouchstart = startDraw;
+    canvas.ontouchmove = draw;
+    canvas.ontouchend = endDraw;
+}
+
+function setDrawingTool(tool) {
+    drawingTool = tool;
+    updateDrawingToolUI();
+}
+
+function setDrawingColor(color) {
+    drawingColor = color;
+}
+
+function setDrawingStrokeWidth(w) {
+    drawingStrokeWidth = parseInt(w);
+}
+
+function updateDrawingToolUI() {
+    document.querySelectorAll('.drawing-tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`.drawing-tool-btn[data-tool="${drawingTool}"]`);
+    if (btn) btn.classList.add('active');
+}
+
+function clearDrawingCanvas() {
+    const canvas = document.getElementById('drawing-canvas');
+    drawingCtx.fillStyle = 'white';
+    drawingCtx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function closeDrawingModal() {
+    document.getElementById('drawing-modal').style.display = 'none';
+    drawingCanvasBlockUid = null;
+}
+
+async function saveDrawing() {
+    if (!drawingCanvasBlockUid) return;
+    const canvas = document.getElementById('drawing-canvas');
+
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('file', blob, 'drawing.png');
+
+        try {
+            const res = await fetch('{{ url_for("exercises.upload_block_image") }}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const block = blocks.find(b => b.uid === drawingCanvasBlockUid);
+                block.config_json.block_image_file_id = data.file_id;
+                block.config_json.block_image_url = data.url;
+                block.config_json.block_image_type = 'drawing';
+                refreshBlockContent(drawingCanvasBlockUid);
+                closeDrawingModal();
+                showToast('Dessin sauvegardé', 'success');
+            } else {
+                showToast('Erreur sauvegarde', 'error');
+            }
+        } catch(e) {
+            showToast('Erreur sauvegarde', 'error');
+        }
+    }, 'image/png');
 }
 
 // ============================================================
