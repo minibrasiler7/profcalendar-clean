@@ -977,12 +977,22 @@ def solve_exercise(exercise_id):
             flash(f'Tu dois attendre encore {hours}h{minutes:02d} avant de refaire cette mission !', 'warning')
             return redirect(url_for('student_auth.missions'))
 
-    return render_template('student/exercise_solve.html',
-                           student=student,
-                           exercise=exercise,
-                           rpg=rpg,
-                           already_completed=existing_attempt is not None,
-                           previous_attempt=existing_attempt)
+    try:
+        return render_template('student/exercise_solve.html',
+                               student=student,
+                               exercise=exercise,
+                               rpg=rpg,
+                               already_completed=existing_attempt is not None,
+                               previous_attempt=existing_attempt)
+    except Exception as e:
+        import traceback
+        blocks = exercise.blocks.order_by(ExerciseBlock.position).all()
+        debug_info = f"<pre>Error: {type(e).__name__}: {e}\n\n"
+        debug_info += traceback.format_exc() + "\n\nBlocks:\n"
+        for b in blocks:
+            debug_info += f"Block {b.id}: type={b.block_type}, config_json={b.config_json}\n"
+        debug_info += "</pre>"
+        return debug_info, 500
 
 
 @student_auth_bp.route('/missions/<int:exercise_id>/check-block', methods=['POST'])
