@@ -190,7 +190,7 @@
         {% if block.block_type == 'qcm' %}
             {% if c.question %}<p>{{ c.question }}</p>{% endif %}
             <ul class="qcm-options">
-                {% for opt in c.options %}
+                {% for opt in c['options'] %}
                 <li onclick="this.classList.toggle('selected')">{{ opt.text }}</li>
                 {% endfor %}
             </ul>
@@ -216,7 +216,7 @@
                 {{ c.question or 'Remettez ces éléments dans le bon ordre :' }}
             </p>
             <ul class="sorting-items">
-                {% for item in c.items %}
+                {% for item in c['items'] %}
                 <li><i class="fas fa-grip-vertical"></i> {{ item.text if item is mapping else item }}</li>
                 {% endfor %}
             </ul>
@@ -225,14 +225,14 @@
             <p style="color:#6b7280;font-size:0.85rem;">Associez chaque élément de gauche avec celui de droite :</p>
             <div style="display:flex;gap:2rem;">
                 <div style="flex:1;">
-                    {% for pair in c.pairs %}
+                    {% for pair in c['pairs'] %}
                     <div style="padding:0.75rem 1rem;border:2px solid #e5e7eb;border-radius:8px;margin-bottom:0.5rem;background:white;">
                         {{ pair.left }}
                     </div>
                     {% endfor %}
                 </div>
                 <div style="flex:1;">
-                    {% for pair in c.pairs %}
+                    {% for pair in c['pairs'] %}
                     <div style="padding:0.75rem 1rem;border:2px solid #e5e7eb;border-radius:8px;margin-bottom:0.5rem;background:white;">
                         {{ pair.right }}
                     </div>
