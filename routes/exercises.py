@@ -428,7 +428,16 @@ def preview(exercise_id):
         return redirect(url_for('exercises.index'))
 
     blocks = exercise.blocks.order_by(ExerciseBlock.position).all()
-    return render_template('exercises/preview.html', exercise=exercise, blocks=blocks)
+    try:
+        return render_template('exercises/preview.html', exercise=exercise, blocks=blocks)
+    except Exception as e:
+        import traceback
+        debug_info = f"<pre>Error: {type(e).__name__}: {e}\n\n"
+        debug_info += traceback.format_exc() + "\n\nBlocks:\n"
+        for b in blocks:
+            debug_info += f"Block {b.id}: type={b.block_type}, config_json={b.config_json}\n"
+        debug_info += "</pre>"
+        return debug_info, 500
 
 
 @exercises_bp.route('/<int:exercise_id>/stats')
