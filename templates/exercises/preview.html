@@ -197,9 +197,9 @@
 
         {% elif block.block_type == 'short_answer' %}
             {% if c.question %}<p>{{ c.question }}</p>{% endif %}
-            <input class="answer-input" type="{{ 'number' if c.answer_type == 'number' else 'text' }}"
+            <input class="answer-input" type="{{ 'number' if c.get('answer_type') == 'number' else 'text' }}"
                 placeholder="Votre réponse..."
-                {{ 'step=0.01' if c.answer_type == 'number' else '' }}>
+                {{ 'step=0.01' if c.get('answer_type') == 'number' else '' }}>
 
         {% elif block.block_type == 'fill_blank' %}
             <div class="fill-blank-text" id="fill-blank-{{ block.id }}"></div>
