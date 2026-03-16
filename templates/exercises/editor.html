@@ -784,25 +784,72 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <!-- Toolbar -->
-        <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Stylo">
+        <!-- Toolbar Row 1: Drawing Tools -->
+        <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Stylo">
                 <i class="fas fa-pen"></i> Stylo
             </button>
-            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Surligneur">
+            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Surligneur">
                 <i class="fas fa-highlighter"></i> Surligneur
             </button>
-            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.4rem 0.7rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.8rem;background:white;display:flex;align-items:center;gap:0.3rem;" title="Gomme">
+            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Gomme">
                 <i class="fas fa-eraser"></i> Gomme
             </button>
-            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
-            <input type="color" value="#000000" onchange="setDrawingColor(this.value)" style="width:32px;height:32px;border:none;cursor:pointer;border-radius:6px;">
+            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.1rem;"></div>
+            <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Règle">
+                <i class="fas fa-ruler"></i> Règle
+            </button>
+            <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Flèche">
+                <i class="fas fa-long-arrow-alt-right"></i> Flèche
+            </button>
+            <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rectangle">
+                <i class="far fa-square"></i> Rectangle
+            </button>
+            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Compas (cercle)">
+                <i class="far fa-circle"></i> Compas
+            </button>
+            <button class="drawing-tool-btn" data-tool="disk" onclick="setDrawingTool('disk')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Disque (cercle rempli)">
+                <i class="fas fa-circle" style="font-size:0.65rem;"></i> Disque
+            </button>
+            <button class="drawing-tool-btn" data-tool="angle" onclick="setDrawingTool('angle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rapporteur (angle)">
+                <i class="fas fa-drafting-compass"></i> Angle
+            </button>
+            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Arc de cercle">
+                <i class="fas fa-bezier-curve"></i> Arc
+            </button>
+            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Grille (quadrillage 1cm)">
+                <i class="fas fa-th"></i> Grille
+            </button>
+            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Texte">
+                <i class="fas fa-font"></i> Texte
+            </button>
+        </div>
+        <!-- Toolbar Row 2: Colors, Size, Actions -->
+        <div style="padding:0.4rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <!-- Preset colors -->
             <div style="display:flex;align-items:center;gap:0.3rem;">
-                <span style="font-size:0.75rem;color:#6b7280;">Taille:</span>
-                <input type="range" min="1" max="20" value="3" onchange="setDrawingStrokeWidth(this.value)" style="width:80px;">
+                <button onclick="setDrawingColor('#000000')" class="drawing-color-btn" data-color="#000000" style="width:26px;height:26px;border-radius:50%;border:3px solid #667eea;background:#000000;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#FF0000')" class="drawing-color-btn" data-color="#FF0000" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#FF0000;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#00AA00')" class="drawing-color-btn" data-color="#00AA00" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#00AA00;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#0000FF')" class="drawing-color-btn" data-color="#0000FF" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#0000FF;cursor:pointer;padding:0;"></button>
+                <input type="color" id="drawing-custom-color" value="#000000" onchange="setDrawingColor(this.value)" style="width:26px;height:26px;border:none;cursor:pointer;border-radius:50%;" title="Couleur personnalisée">
             </div>
             <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
-            <button onclick="clearDrawingCanvas()" style="padding:0.4rem 0.7rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.8rem;background:#fef2f2;color:#dc2626;display:flex;align-items:center;gap:0.3rem;">
+            <!-- Preset sizes -->
+            <div style="display:flex;align-items:center;gap:0.25rem;">
+                <span style="font-size:0.7rem;color:#6b7280;">Taille:</span>
+                <button onclick="setDrawingStrokeWidth(2)" class="drawing-size-btn" data-size="2" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:4px;height:4px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(4)" class="drawing-size-btn" data-size="4" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:6px;height:6px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(6)" class="drawing-size-btn" data-size="6" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:8px;height:8px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(8)" class="drawing-size-btn" data-size="8" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:10px;height:10px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(10)" class="drawing-size-btn" data-size="10" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:12px;height:12px;background:#333;border-radius:50%;display:block;"></span></button>
+            </div>
+            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
+            <!-- Undo / Clear -->
+            <button onclick="undoDrawing()" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Annuler">
+                <i class="fas fa-undo"></i> Annuler
+            </button>
+            <button onclick="clearDrawingCanvas()" style="padding:0.35rem 0.6rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;display:flex;align-items:center;gap:0.25rem;">
                 <i class="fas fa-trash"></i> Effacer tout
             </button>
         </div>
@@ -2170,19 +2217,56 @@ function removeBlockImage(uid) {
     refreshBlockContent(uid);
 }
 
-// Drawing canvas
+// ============================================================
+// DRAWING CANVAS - Full annotation tools (matches PDF viewer)
+// ============================================================
 let drawingCanvasBlockUid = null;
 let drawingCtx = null;
 let isDrawing = false;
 let drawingTool = 'pen';
 let drawingColor = '#000000';
-let drawingStrokeWidth = 3;
-let drawingPaths = [];
-let currentPath = null;
+let drawingStrokeWidth = 2;
+// History for undo
+let drawingHistory = [];
+let drawingHistoryIndex = -1;
+// Shape tool state (for two-point tools)
+let shapeStart = null;
+let shapeEnd = null;
+// Angle tool state (needs 3 clicks)
+let anglePoints = [];
+// Grid drawn flag
+let gridDrawn = false;
+
+// Helper: save current canvas state to history
+function pushDrawingHistory() {
+    const canvas = document.getElementById('drawing-canvas');
+    // Trim future states if we undid
+    drawingHistory = drawingHistory.slice(0, drawingHistoryIndex + 1);
+    drawingHistory.push(canvas.toDataURL());
+    drawingHistoryIndex = drawingHistory.length - 1;
+}
+
+function undoDrawing() {
+    if (drawingHistoryIndex <= 0) return;
+    drawingHistoryIndex--;
+    const canvas = document.getElementById('drawing-canvas');
+    const img = new Image();
+    img.onload = () => {
+        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+        drawingCtx.drawImage(img, 0, 0);
+    };
+    img.src = drawingHistory[drawingHistoryIndex];
+}
+
+// Two-point tools that use drag interaction
+const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'disk', 'arc'];
 
 function openDrawingCanvas(uid) {
     drawingCanvasBlockUid = uid;
-    drawingPaths = [];
+    drawingHistory = [];
+    drawingHistoryIndex = -1;
+    anglePoints = [];
+    gridDrawn = false;
 
     const modal = document.getElementById('drawing-modal');
     modal.style.display = 'flex';
@@ -2205,15 +2289,20 @@ function openDrawingCanvas(uid) {
         img.crossOrigin = 'anonymous';
         img.onload = () => {
             drawingCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            pushDrawingHistory();
         };
         img.src = block.config_json.block_image_url;
+    } else {
+        pushDrawingHistory();
     }
 
     // Reset tools
     drawingTool = 'pen';
     drawingColor = '#000000';
-    drawingStrokeWidth = 3;
+    drawingStrokeWidth = 2;
     updateDrawingToolUI();
+    updateDrawingColorUI();
+    updateDrawingSizeUI();
     setupDrawingEvents(canvas);
 }
 
@@ -2237,44 +2326,168 @@ function setupDrawingEvents(canvas) {
         return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
     }
 
+    // Snapshot before shape drawing (to restore during drag preview)
+    let preShapeSnapshot = null;
+
     function startDraw(e) {
         e.preventDefault();
-        isDrawing = true;
         const pos = getPos(e);
-        drawingCtx.beginPath();
-        drawingCtx.moveTo(pos.x, pos.y);
 
-        if (drawingTool === 'eraser') {
-            drawingCtx.globalCompositeOperation = 'destination-out';
-            drawingCtx.lineWidth = drawingStrokeWidth * 5;
-        } else if (drawingTool === 'highlighter') {
-            drawingCtx.globalCompositeOperation = 'source-over';
-            drawingCtx.strokeStyle = drawingColor;
-            drawingCtx.lineWidth = drawingStrokeWidth * 3;
-            drawingCtx.globalAlpha = 0.3;
-        } else {
-            drawingCtx.globalCompositeOperation = 'source-over';
-            drawingCtx.strokeStyle = drawingColor;
-            drawingCtx.lineWidth = drawingStrokeWidth;
-            drawingCtx.globalAlpha = 1;
+        // Grid tool: instant toggle, no drag needed
+        if (drawingTool === 'grid') {
+            if (!gridDrawn) {
+                drawGrid(drawingCtx, canvas.width, canvas.height);
+                gridDrawn = true;
+            }
+            pushDrawingHistory();
+            return;
         }
-        drawingCtx.lineCap = 'round';
-        drawingCtx.lineJoin = 'round';
+
+        // Text tool: prompt for text at click position
+        if (drawingTool === 'text') {
+            const text = prompt('Texte à ajouter :');
+            if (text) {
+                drawingCtx.save();
+                drawingCtx.fillStyle = drawingColor;
+                drawingCtx.font = `${Math.max(14, drawingStrokeWidth * 4)}px Arial`;
+                drawingCtx.textBaseline = 'top';
+                drawingCtx.fillText(text, pos.x, pos.y);
+                drawingCtx.restore();
+                pushDrawingHistory();
+            }
+            return;
+        }
+
+        // Angle tool: needs 3 clicks
+        if (drawingTool === 'angle') {
+            anglePoints.push(pos);
+            if (anglePoints.length === 1) {
+                // Draw a dot at the first click (center of angle)
+                drawingCtx.save();
+                drawingCtx.fillStyle = drawingColor;
+                drawingCtx.beginPath();
+                drawingCtx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+                preShapeSnapshot = canvas.toDataURL();
+            } else if (anglePoints.length === 2) {
+                // Draw line from center to first arm endpoint
+                const snap = new Image();
+                snap.onload = () => {
+                    drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawingCtx.drawImage(snap, 0, 0);
+                    drawingCtx.save();
+                    drawingCtx.strokeStyle = drawingColor;
+                    drawingCtx.lineWidth = drawingStrokeWidth;
+                    drawingCtx.beginPath();
+                    drawingCtx.moveTo(anglePoints[0].x, anglePoints[0].y);
+                    drawingCtx.lineTo(pos.x, pos.y);
+                    drawingCtx.stroke();
+                    drawingCtx.restore();
+                };
+                snap.src = preShapeSnapshot || canvas.toDataURL();
+                preShapeSnapshot = canvas.toDataURL();
+            } else if (anglePoints.length === 3) {
+                // Draw the full angle
+                const center = anglePoints[0];
+                const p1 = anglePoints[1];
+                const p2 = anglePoints[2];
+                // Restore to before we drew the preview lines
+                if (preShapeSnapshot) {
+                    const snap = new Image();
+                    snap.onload = () => {
+                        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                        drawingCtx.drawImage(snap, 0, 0);
+                        drawAngle(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
+                        pushDrawingHistory();
+                    };
+                    snap.src = drawingHistory[drawingHistoryIndex] || preShapeSnapshot;
+                } else {
+                    drawAngle(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
+                    pushDrawingHistory();
+                }
+                anglePoints = [];
+                preShapeSnapshot = null;
+            }
+            return;
+        }
+
+        isDrawing = true;
+        shapeStart = pos;
+        shapeEnd = pos;
+
+        if (TWO_POINT_TOOLS.includes(drawingTool)) {
+            // Save snapshot for preview restore
+            preShapeSnapshot = canvas.toDataURL();
+        } else {
+            // Freehand tools: pen, highlighter, eraser
+            drawingCtx.beginPath();
+            drawingCtx.moveTo(pos.x, pos.y);
+            if (drawingTool === 'eraser') {
+                drawingCtx.globalCompositeOperation = 'destination-out';
+                drawingCtx.lineWidth = drawingStrokeWidth * 5;
+            } else if (drawingTool === 'highlighter') {
+                drawingCtx.globalCompositeOperation = 'source-over';
+                drawingCtx.strokeStyle = drawingColor;
+                drawingCtx.lineWidth = drawingStrokeWidth * 3;
+                drawingCtx.globalAlpha = 0.3;
+            } else {
+                drawingCtx.globalCompositeOperation = 'source-over';
+                drawingCtx.strokeStyle = drawingColor;
+                drawingCtx.lineWidth = drawingStrokeWidth;
+                drawingCtx.globalAlpha = 1;
+            }
+            drawingCtx.lineCap = 'round';
+            drawingCtx.lineJoin = 'round';
+        }
     }
 
     function draw(e) {
         if (!isDrawing) return;
         e.preventDefault();
         const pos = getPos(e);
-        drawingCtx.lineTo(pos.x, pos.y);
-        drawingCtx.stroke();
+        shapeEnd = pos;
+
+        if (TWO_POINT_TOOLS.includes(drawingTool)) {
+            // Restore snapshot then draw preview
+            const snap = new Image();
+            snap.onload = () => {
+                drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                drawingCtx.drawImage(snap, 0, 0);
+                drawShapePreview(drawingCtx, drawingTool, shapeStart, shapeEnd);
+            };
+            snap.src = preShapeSnapshot;
+        } else {
+            // Freehand
+            drawingCtx.lineTo(pos.x, pos.y);
+            drawingCtx.stroke();
+        }
     }
 
     function endDraw(e) {
         if (!isDrawing) return;
         isDrawing = false;
-        drawingCtx.globalAlpha = 1;
-        drawingCtx.globalCompositeOperation = 'source-over';
+
+        if (TWO_POINT_TOOLS.includes(drawingTool) && shapeStart && shapeEnd) {
+            // Restore then draw final shape
+            const snap = new Image();
+            snap.onload = () => {
+                drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                drawingCtx.drawImage(snap, 0, 0);
+                drawShapeFinal(drawingCtx, drawingTool, shapeStart, shapeEnd);
+                pushDrawingHistory();
+            };
+            snap.src = preShapeSnapshot;
+        } else {
+            // Freehand end
+            drawingCtx.globalAlpha = 1;
+            drawingCtx.globalCompositeOperation = 'source-over';
+            pushDrawingHistory();
+        }
+
+        shapeStart = null;
+        shapeEnd = null;
+        preShapeSnapshot = null;
     }
 
     canvas.onmousedown = startDraw;
@@ -2286,29 +2499,316 @@ function setupDrawingEvents(canvas) {
     canvas.ontouchend = endDraw;
 }
 
+// ---- Shape drawing functions (from clean-pdf-tools.js) ----
+
+function drawShapePreview(ctx, tool, start, end) {
+    // Draw with slight transparency for preview
+    const opts = { color: drawingColor, size: drawingStrokeWidth, opacity: 0.6 };
+    switch (tool) {
+        case 'ruler': drawRuler(ctx, start, end, opts); break;
+        case 'arrow': drawArrow(ctx, start, end, opts); break;
+        case 'rectangle': drawRectangle(ctx, start, end, opts); break;
+        case 'compass': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            drawCompass(ctx, start, r, opts);
+            drawCompassRadius(ctx, start, end, r);
+            break;
+        }
+        case 'disk': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            drawDisk(ctx, start, r, opts);
+            break;
+        }
+        case 'arc': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            const startAngle = 0;
+            const endAngle = Math.atan2(end.y - start.y, end.x - start.x);
+            drawArc(ctx, start, r, startAngle, endAngle, opts);
+            break;
+        }
+    }
+}
+
+function drawShapeFinal(ctx, tool, start, end) {
+    const opts = { color: drawingColor, size: drawingStrokeWidth, opacity: 1.0 };
+    switch (tool) {
+        case 'ruler': drawRuler(ctx, start, end, opts); break;
+        case 'arrow': drawArrow(ctx, start, end, opts); break;
+        case 'rectangle': drawRectangle(ctx, start, end, opts); break;
+        case 'compass': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            drawCompass(ctx, start, r, opts);
+            break;
+        }
+        case 'disk': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            drawDisk(ctx, start, r, opts);
+            break;
+        }
+        case 'arc': {
+            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+            const startAngle = 0;
+            const endAngle = Math.atan2(end.y - start.y, end.x - start.x);
+            drawArc(ctx, start, r, startAngle, endAngle, opts);
+            break;
+        }
+    }
+}
+
+// Ruler: straight line with measurement label
+function drawRuler(ctx, start, end, opts = {}) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+
+    // Distance label
+    const distPx = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
+    const distCm = distPx / 37.8;
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    ctx.translate(midX, midY);
+    let textAngle = angle;
+    if (textAngle > Math.PI / 2 || textAngle < -Math.PI / 2) textAngle += Math.PI;
+    ctx.rotate(textAngle);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 14px Arial';
+    const text = `${distCm.toFixed(1)} cm`;
+    const m = ctx.measureText(text);
+    ctx.fillRect(-m.width / 2 - 4, -14 - 4, m.width + 8, 22);
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 0, -7);
+    ctx.restore();
+}
+
+// Arrow
+function drawArrow(ctx, start, end, opts = {}) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+    // Arrowhead
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    const aLen = 20;
+    const aAngle = Math.PI / 6;
+    ctx.beginPath();
+    ctx.moveTo(end.x, end.y);
+    ctx.lineTo(end.x - aLen * Math.cos(angle - aAngle), end.y - aLen * Math.sin(angle - aAngle));
+    ctx.lineTo(end.x - aLen * Math.cos(angle + aAngle), end.y - aLen * Math.sin(angle + aAngle));
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+// Rectangle
+function drawRectangle(ctx, start, end, opts = {}) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    const x = Math.min(start.x, end.x);
+    const y = Math.min(start.y, end.y);
+    ctx.strokeRect(x, y, Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+    ctx.restore();
+}
+
+// Compass (circle)
+function drawCompass(ctx, center, radius, opts = {}) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    // Center dot
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, Math.max(2, opts.size || 2), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+// Compass radius preview
+function drawCompassRadius(ctx, center, currentPoint, radius) {
+    ctx.save();
+    ctx.strokeStyle = '#007aff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y);
+    ctx.lineTo(currentPoint.x, currentPoint.y);
+    ctx.stroke();
+    // Radius label
+    const midX = (center.x + currentPoint.x) / 2;
+    const midY = (center.y + currentPoint.y) / 2;
+    const radiusCm = radius / 37.8;
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 14px Arial';
+    const text = `r = ${radiusCm.toFixed(1)} cm`;
+    const m = ctx.measureText(text);
+    ctx.fillRect(midX - m.width / 2 - 4, midY - 17, m.width + 8, 20);
+    ctx.fillStyle = '#007aff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, midX, midY - 7);
+    ctx.restore();
+}
+
+// Disk (filled circle)
+function drawDisk(ctx, center, radius, opts = {}) {
+    ctx.save();
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.globalAlpha = opts.opacity || 1.0;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+// Arc
+function drawArc(ctx, center, radius, startAngle, endAngle, opts = {}) {
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, startAngle, endAngle);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Angle (3-point)
+function drawAngle(ctx, center, point1, point2, opts = {}) {
+    const angle1 = Math.atan2(point1.y - center.y, point1.x - center.x);
+    const angle2 = Math.atan2(point2.y - center.y, point2.x - center.x);
+    let angleDiff = angle2 - angle1;
+    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+    if (Math.abs(angleDiff) > Math.PI) {
+        angleDiff = angleDiff > 0 ? angleDiff - 2 * Math.PI : angleDiff + 2 * Math.PI;
+    }
+    const angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
+    ctx.save();
+    ctx.strokeStyle = opts.color || '#000000';
+    ctx.lineWidth = opts.size || 2;
+    ctx.globalAlpha = opts.opacity || 1.0;
+    // Two segments
+    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point1.x, point1.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point2.x, point2.y); ctx.stroke();
+    // Arc
+    const radius = Math.min(
+        Math.sqrt((point1.x - center.x) ** 2 + (point1.y - center.y) ** 2),
+        Math.sqrt((point2.x - center.x) ** 2 + (point2.y - center.y) ** 2)
+    );
+    const arcR = Math.min(50, radius * 0.3);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, arcR, angle1, angle2, angleDiff < 0);
+    ctx.stroke();
+    // Label
+    const labelAngle = (angle1 + angle2) / 2;
+    const labelR = arcR + 20;
+    const lx = center.x + labelR * Math.cos(labelAngle);
+    const ly = center.y + labelR * Math.sin(labelAngle);
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${angleDeg.toFixed(1)}°`, lx, ly);
+    ctx.restore();
+}
+
+// Grid (1cm squares)
+function drawGrid(ctx, width, height) {
+    const gridSize = 37.8;
+    ctx.save();
+    ctx.strokeStyle = '#666666';
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.5;
+    for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+    ctx.restore();
+}
+
+// ---- Tool UI updates ----
+
 function setDrawingTool(tool) {
     drawingTool = tool;
+    anglePoints = [];
     updateDrawingToolUI();
+    // Update cursor
+    const canvas = document.getElementById('drawing-canvas');
+    if (canvas) {
+        if (tool === 'text') canvas.style.cursor = 'text';
+        else if (tool === 'eraser') canvas.style.cursor = 'cell';
+        else canvas.style.cursor = 'crosshair';
+    }
 }
 
 function setDrawingColor(color) {
     drawingColor = color;
+    updateDrawingColorUI();
 }
 
 function setDrawingStrokeWidth(w) {
     drawingStrokeWidth = parseInt(w);
+    updateDrawingSizeUI();
 }
 
 function updateDrawingToolUI() {
-    document.querySelectorAll('.drawing-tool-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.drawing-tool-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.borderColor = '#e5e7eb';
+        b.style.background = 'white';
+    });
     const btn = document.querySelector(`.drawing-tool-btn[data-tool="${drawingTool}"]`);
-    if (btn) btn.classList.add('active');
+    if (btn) {
+        btn.classList.add('active');
+        btn.style.borderColor = '#667eea';
+        btn.style.background = '#eef2ff';
+    }
+}
+
+function updateDrawingColorUI() {
+    document.querySelectorAll('.drawing-color-btn').forEach(b => {
+        b.style.borderColor = (b.dataset.color === drawingColor) ? '#667eea' : 'transparent';
+    });
+    const customPicker = document.getElementById('drawing-custom-color');
+    if (customPicker) customPicker.value = drawingColor;
+}
+
+function updateDrawingSizeUI() {
+    document.querySelectorAll('.drawing-size-btn').forEach(b => {
+        const s = parseInt(b.dataset.size);
+        b.style.borderColor = (s === drawingStrokeWidth) ? '#667eea' : '#e5e7eb';
+    });
 }
 
 function clearDrawingCanvas() {
     const canvas = document.getElementById('drawing-canvas');
     drawingCtx.fillStyle = 'white';
     drawingCtx.fillRect(0, 0, canvas.width, canvas.height);
+    gridDrawn = false;
+    pushDrawingHistory();
 }
 
 function closeDrawingModal() {
