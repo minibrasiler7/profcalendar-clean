@@ -178,7 +178,7 @@
         </div>
     </div>
 
-    {% for block in exercise.blocks.order_by('position') %}
+    {% for block in blocks %}
     <div class="block-card">
         <h3>
             <span class="block-number">{{ loop.index }}</span>
@@ -224,6 +224,25 @@
                 <li><i class="fas fa-grip-vertical"></i> {{ item }}</li>
                 {% endfor %}
             </ul>
+
+        {% elif block.block_type == 'matching' %}
+            <p style="color:#6b7280;font-size:0.85rem;">Associez chaque élément de gauche avec celui de droite :</p>
+            <div style="display:flex;gap:2rem;">
+                <div style="flex:1;">
+                    {% for pair in c.pairs %}
+                    <div style="padding:0.75rem 1rem;border:2px solid #e5e7eb;border-radius:8px;margin-bottom:0.5rem;background:white;">
+                        {{ pair.left }}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="flex:1;">
+                    {% for pair in c.pairs %}
+                    <div style="padding:0.75rem 1rem;border:2px solid #e5e7eb;border-radius:8px;margin-bottom:0.5rem;background:white;">
+                        {{ pair.right }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
         {% elif block.block_type == 'image_position' %}
             {% if c.image_url %}

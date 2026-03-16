@@ -427,7 +427,8 @@ def preview(exercise_id):
         flash('Non autorisé', 'error')
         return redirect(url_for('exercises.index'))
 
-    return render_template('exercises/preview.html', exercise=exercise)
+    blocks = exercise.blocks.order_by(ExerciseBlock.position).all()
+    return render_template('exercises/preview.html', exercise=exercise, blocks=blocks)
 
 
 @exercises_bp.route('/<int:exercise_id>/stats')
