@@ -50,8 +50,7 @@ def check_student_email_verified():
     public_routes = [
         'student_auth.login', 'student_auth.register',
         'student_auth.verify_code', 'student_auth.verify_email_code',
-        'student_auth.resend_code', 'student_auth.logout',
-        'student_auth.test_login_debug'
+        'student_auth.resend_code', 'student_auth.logout'
     ]
     if request.endpoint in public_routes:
         return None
@@ -105,24 +104,6 @@ class StudentRegisterForm(FlaskForm):
         Length(min=6, max=6, message='Le code doit contenir exactement 6 caractères')
     ])
     submit = SubmitField('Créer mon compte')
-
-@student_auth_bp.route('/test-login-debug/<int:student_id>')
-def test_login_debug(student_id):
-    """TEMPORAIRE - Route de test pour debug. À SUPPRIMER."""
-    student = Student.query.get_or_404(student_id)
-    session['user_type'] = 'student'
-    login_user(student, remember=False)
-    return redirect(url_for('student_auth.dashboard'))
-
-@student_auth_bp.route('/test-list-students-debug')
-def test_list_students_debug():
-    """TEMPORAIRE - Lister les élèves. À SUPPRIMER."""
-    students = Student.query.filter_by(classroom_id=4).all()
-    result = "<h2>Élèves classe 4 (11VG2)</h2><ul>"
-    for s in students:
-        result += f"<li>ID:{s.id} - {s.first_name} {s.last_name} - auth:{s.is_authenticated} - email_verified:{s.email_verified} - <a href='/student/test-login-debug/{s.id}'>Login</a></li>"
-    result += "</ul>"
-    return result
 
 @student_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

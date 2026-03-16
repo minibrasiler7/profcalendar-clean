@@ -672,8 +672,9 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {# Les items seront mélangés par JavaScript #}
                     {% for item in c['items'] %}
                     {% if item %}
-                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}" data-text="{{ item|e }}">
-                        <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item }}</span>
+                    {% set item_text = item.text if item is mapping else item %}
+                    <li class="sorting-item" draggable="true" data-original-index="{{ loop.index0 }}" data-text="{{ item_text|e }}">
+                        <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item_text }}</span>
                     </li>
                     {% endif %}
                     {% endfor %}
@@ -695,10 +696,11 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                         {# Les items seront mélangés par JavaScript #}
                         {% for item in c['items'] %}
                         {% if item %}
+                        {% set item_text = item.text if item is mapping else item %}
                         <div class="sorting-item" draggable="true" data-item-index="{{ loop.index0 }}"
-                             data-block-id="{{ block.id }}" data-text="{{ item|e }}"
+                             data-block-id="{{ block.id }}" data-text="{{ item_text|e }}"
                              ondragstart="catDragStart(event)">
-                            <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item }}</span>
+                            <i class="fas fa-grip-vertical"></i> <span class="item-text math-render">{{ item_text }}</span>
                         </div>
                         {% endif %}
                         {% endfor %}
