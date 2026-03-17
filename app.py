@@ -427,6 +427,24 @@ def create_app(config_name='development'):
         except Exception:
             db.session.rollback()
 
+        # Table exercise_folders (gestionnaire d'exercices séparé)
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS exercise_folders (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    parent_id INTEGER REFERENCES exercise_folders(id) ON DELETE CASCADE,
+                    name VARCHAR(255) NOT NULL,
+                    color VARCHAR(7) DEFAULT '#667eea',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS exercise_folder_id INTEGER REFERENCES exercise_folders(id)"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         # Insérer les badges par défaut
         try:
             from models.rpg import Badge, DEFAULT_BADGES

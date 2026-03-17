@@ -2,6 +2,39 @@ from extensions import db
 from datetime import datetime
 
 
+class ExerciseFolder(db.Model):
+    """Dossier pour organiser les exercices interactifs (gestionnaire séparé)"""
+    __tablename__ = 'exercise_folders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('exercise_folders.id'), nullable=True)
+    name = db.Column(db.String(255), nullable=False)
+    color = db.Column(db.String(7), default='#667eea')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relations
+    user = db.relationship('User', backref=db.backref('exercise_folders', lazy='dynamic'))
+    parent = db.relationship('ExerciseFolder', remote_side=[id], backref='subfolders')
+
+    def get_path(self):
+        """Retourne le chemin complet du dossier"""
+        if self.parent:
+            return f"{self.parent.get_path()}/{self.name}"
+        return self.name
+
+    def get_exercise_count(self):
+        """Compte le nombre total d'exercices dans le dossier et ses sous-dossiers"""
+        count = Exercise.query.filter_by(exercise_folder_id=self.id).count()
+        for subfolder in self.subfolders:
+            count += subfolder.get_exercise_count()
+        return count
+
+    def __repr__(self):
+        return f'<ExerciseFolder {self.name}>'
+
+
 class Exercise(db.Model):
     """Modèle principal pour les exercices interactifs"""
     __tablename__ = 'exercises'
@@ -18,7 +51,8 @@ class Exercise(db.Model):
     total_points = db.Column(db.Integer, default=0)  # XP total calculé
     bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
     badge_threshold = db.Column(db.Integer, default=100)  # % minimum pour badge
-    folder_id = db.Column(db.Integer, nullable=True)  # Lien vers FileFolder du gestionnaire de fichiers
+    folder_id = db.Column(db.Integer, nullable=True)  # LEGACY - ancien lien vers FileFolder
+    exercise_folder_id = db.Column(db.Integer, db.ForeignKey('exercise_folders.id'), nullable=True)  # Nouveau gestionnaire
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=True)  # Lien vers une classe
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -26,6 +60,7 @@ class Exercise(db.Model):
     # Relations
     user = db.relationship('User', backref=db.backref('exercises', lazy='dynamic'))
     classroom = db.relationship('Classroom', backref=db.backref('exercises', lazy='dynamic'), foreign_keys=[classroom_id])
+    exercise_folder = db.relationship('ExerciseFolder', backref=db.backref('exercises', lazy='dynamic'))
     blocks = db.relationship('ExerciseBlock', backref='exercise', lazy='dynamic',
                              cascade='all, delete-orphan', order_by='ExerciseBlock.position')
 

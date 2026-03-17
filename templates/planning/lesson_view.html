@@ -9777,7 +9777,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-folder-open"></i> Fichiers de classe
             </button>
             <button id="tab-exercises-btn" onclick="switchResourceTab('exercises')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;color:#9ca3af;transition:all 0.2s;">
-                <i class="fas fa-gamepad"></i> Exercices
+                <i class="fas fa-gamepad"></i> Exercices interactifs
             </button>
         </div>
 
@@ -9798,27 +9798,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 {% endif %}
             </div>
 
-            <!-- Onglet Exercices -->
+            <!-- Onglet Exercices interactifs -->
             <div id="resource-exercises-tab" style="display:none;">
-                {% if user_exercises %}
-                <div id="exercises-list-container">
-                    {% for ex in user_exercises %}
-                    <div class="resource-item" onclick="addExerciseToPlanning({{ ex.id }}, '{{ ex.title|e }}')" style="padding:0.8rem;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;">
-                        <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
-                        <div style="flex:1;">
-                            <div style="font-weight:600;font-size:0.85rem;">{{ ex.title }}</div>
-                            <div style="font-size:0.7rem;color:#9ca3af;">{{ ex.total_points }} XP — {{ ex.subject or 'Général' }}</div>
-                        </div>
-                        <span style="background:#f0fdf4;color:#10b981;padding:0.3rem 0.6rem;border-radius:6px;font-size:0.7rem;font-weight:600;">Non publié</span>
-                        <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;"></i>
+                <!-- Breadcrumb navigation -->
+                <div id="exercises-breadcrumb" style="display:none;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:#6b7280;flex-wrap:wrap;">
+                        <button id="breadcrumb-root" onclick="loadExercisesAtFolder(null)" style="background:none;border:none;color:#667eea;cursor:pointer;font-weight:600;padding:0;">
+                            <i class="fas fa-home"></i> Accueil
+                        </button>
+                        <span id="breadcrumb-path"></span>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div style="text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
+
+                <!-- Loading state -->
+                <div id="exercises-loading" style="text-align:center;padding:2rem;color:#9ca3af;">
+                    <i class="fas fa-spinner fa-spin"></i> Chargement des exercices...
+                </div>
+
+                <!-- Content container -->
+                <div id="exercises-content-container" style="display:none;">
+                    <!-- Folders -->
+                    <div id="exercises-folders-container"></div>
+                    <!-- Exercises -->
+                    <div id="exercises-list-container"></div>
+                </div>
+
+                <!-- Error/empty state -->
+                <div id="exercises-empty-state" style="display:none;text-align:center;padding:2rem;color:#9ca3af;font-style:italic;">
                     Aucun exercice disponible
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -9946,6 +9954,11 @@ function showAddResourceModal() {
     {% endif %}
 }
 
+async function initializeExercisesTab() {
+    // Load root folder (null folder_id means root)
+    await loadExercisesAtFolder(null);
+}
+
 function closeAddResourceModal() {
     document.getElementById('add-resource-modal').style.display = 'none';
 }
@@ -9970,6 +9983,8 @@ function switchResourceTab(tabName) {
         document.getElementById('resource-exercises-tab').style.display = 'block';
         document.getElementById('tab-exercises-btn').style.borderBottomColor = '#667eea';
         document.getElementById('tab-exercises-btn').style.color = '#667eea';
+        // Initialize exercises tab on first load
+        initializeExercisesTab();
     }
 }
 
@@ -10125,6 +10140,129 @@ async function addExerciseToPlanning(exerciseId, exerciseTitle) {
     } catch(e) {
         alert('Erreur de connexion');
         console.error('Erreur addExerciseToPlanning:', e);
+    }
+}
+
+// ============================================================
+// Exercise Manager Browser
+// ============================================================
+let currentExercisesFolderId = null;  // Track current folder
+let exerciseFolderHistory = [];  // For navigation
+
+async function loadExercisesAtFolder(folderId) {
+    const loading = document.getElementById('exercises-loading');
+    const container = document.getElementById('exercises-content-container');
+    const empty = document.getElementById('exercises-empty-state');
+    const breadcrumb = document.getElementById('exercises-breadcrumb');
+
+    try {
+        loading.style.display = 'block';
+        container.style.display = 'none';
+        empty.style.display = 'none';
+
+        // Build API URL
+        let apiUrl = '/exercises/manager/contents';
+        if (folderId) {
+            apiUrl += `?folder_id=${folderId}`;
+        }
+
+        // Fetch contents
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+
+        if (data.success) {
+            currentExercisesFolderId = folderId;
+
+            // Update breadcrumb
+            if (folderId) {
+                await updateExercisesBreadcrumb(folderId);
+                breadcrumb.style.display = 'block';
+            } else {
+                breadcrumb.style.display = 'none';
+            }
+
+            // Build HTML for folders and exercises
+            let foldersHtml = '';
+            let exercisesHtml = '';
+
+            // Display folders
+            if (data.folders && data.folders.length > 0) {
+                data.folders.forEach(folder => {
+                    foldersHtml += `
+                        <div onclick="loadExercisesAtFolder(${folder.id})"
+                             style="padding:0.8rem;border:2px solid #e5e7eb;border-radius:10px;margin-bottom:0.6rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;background:#f9fafb;hover:background:#f3f4f6;hover:border-color:#667eea;">
+                            <i class="fas fa-folder" style="color:#f59e0b;font-size:1.1rem;"></i>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">${folder.name}</div>
+                                <div style="font-size:0.7rem;color:#9ca3af;">${folder.exercise_count || 0} exercices</div>
+                            </div>
+                            <i class="fas fa-chevron-right" style="color:#d1d5db;font-size:0.9rem;"></i>
+                        </div>
+                    `;
+                });
+            }
+
+            // Display exercises
+            if (data.exercises && data.exercises.length > 0) {
+                data.exercises.forEach(exercise => {
+                    exercisesHtml += `
+                        <div onclick="addExerciseToPlanning(${exercise.id}, '${exercise.title.replace(/'/g, "\\'")}' )"
+                             style="padding:0.8rem;border:1px solid #c7d2fe;border-left:3px solid #667eea;border-radius:8px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:0.6rem;background:#f5f3ff;hover:background:#ede9fe;">
+                            <i class="fas fa-gamepad" style="color:#667eea;font-size:1.1rem;"></i>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;font-size:0.9rem;color:#1f2937;">${exercise.title}</div>
+                                <div style="font-size:0.7rem;color:#9ca3af;">${exercise.total_points || 0} XP — ${exercise.block_count || 0} questions</div>
+                            </div>
+                            <i class="fas fa-plus-circle" style="color:#667eea;font-size:1rem;"></i>
+                        </div>
+                    `;
+                });
+            }
+
+            // Update DOM
+            document.getElementById('exercises-folders-container').innerHTML = foldersHtml;
+            document.getElementById('exercises-list-container').innerHTML = exercisesHtml;
+
+            // Show appropriate content
+            if (foldersHtml || exercisesHtml) {
+                container.style.display = 'block';
+                loading.style.display = 'none';
+                empty.style.display = 'none';
+            } else {
+                empty.style.display = 'block';
+                loading.style.display = 'none';
+                container.style.display = 'none';
+            }
+        } else {
+            throw new Error(data.error || 'Erreur lors du chargement');
+        }
+    } catch(e) {
+        console.error('Erreur loadExercisesAtFolder:', e);
+        loading.style.display = 'none';
+        container.style.display = 'none';
+        empty.innerHTML = `<div style="color:#ef4444;">Erreur de chargement: ${e.message}</div>`;
+        empty.style.display = 'block';
+    }
+}
+
+async function updateExercisesBreadcrumb(folderId) {
+    try {
+        const res = await fetch(`/exercises/manager/breadcrumb?folder_id=${folderId}`);
+        const data = await res.json();
+
+        if (data.success && data.breadcrumb && data.breadcrumb.length > 0) {
+            let pathHtml = '';
+            data.breadcrumb.forEach((item, index) => {
+                pathHtml += ' <i class="fas fa-chevron-right" style="color:#d1d5db;"></i> ';
+                pathHtml += `<button onclick="loadExercisesAtFolder(${item.id || 'null'})"
+                                     style="background:none;border:none;color:#667eea;cursor:pointer;font-weight:600;padding:0;">
+                                ${item.name}
+                            </button>`;
+            });
+            document.getElementById('breadcrumb-path').innerHTML = pathHtml;
+        }
+    } catch(e) {
+        console.error('Erreur updateExercisesBreadcrumb:', e);
     }
 }
 

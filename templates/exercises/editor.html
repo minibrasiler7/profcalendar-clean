@@ -799,29 +799,29 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Règle">
                 <i class="fas fa-ruler"></i> Règle
             </button>
+            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Compas">
+                <i class="far fa-circle"></i> Compas
+            </button>
+            <button class="drawing-tool-btn" data-tool="protractor" onclick="setDrawingTool('protractor')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rapporteur">
+                <i class="fas fa-drafting-compass"></i> Rapporteur
+            </button>
+            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Arc">
+                <i class="fas fa-bezier-curve"></i> Arc
+            </button>
+            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Texte">
+                <i class="fas fa-font"></i> Texte
+            </button>
             <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Flèche">
                 <i class="fas fa-long-arrow-alt-right"></i> Flèche
             </button>
             <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rectangle">
                 <i class="far fa-square"></i> Rectangle
             </button>
-            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Compas (cercle)">
-                <i class="far fa-circle"></i> Compas
+            <button class="drawing-tool-btn" data-tool="circle" onclick="setDrawingTool('circle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Cercle">
+                <i class="fas fa-circle" style="font-size:0.65rem;"></i> Cercle
             </button>
-            <button class="drawing-tool-btn" data-tool="disk" onclick="setDrawingTool('disk')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Disque (cercle rempli)">
-                <i class="fas fa-circle" style="font-size:0.65rem;"></i> Disque
-            </button>
-            <button class="drawing-tool-btn" data-tool="angle" onclick="setDrawingTool('angle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rapporteur (angle)">
-                <i class="fas fa-drafting-compass"></i> Angle
-            </button>
-            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Arc de cercle">
-                <i class="fas fa-bezier-curve"></i> Arc
-            </button>
-            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Grille (quadrillage 1cm)">
+            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Grille">
                 <i class="fas fa-th"></i> Grille
-            </button>
-            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Texte">
-                <i class="fas fa-font"></i> Texte
             </button>
         </div>
         <!-- Toolbar Row 2: Colors, Size, Actions -->
@@ -829,33 +829,38 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Preset colors -->
             <div style="display:flex;align-items:center;gap:0.3rem;">
                 <button onclick="setDrawingColor('#000000')" class="drawing-color-btn" data-color="#000000" style="width:26px;height:26px;border-radius:50%;border:3px solid #667eea;background:#000000;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#FF0000')" class="drawing-color-btn" data-color="#FF0000" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#FF0000;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#00AA00')" class="drawing-color-btn" data-color="#00AA00" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#00AA00;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#0000FF')" class="drawing-color-btn" data-color="#0000FF" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#0000FF;cursor:pointer;padding:0;"></button>
-                <input type="color" id="drawing-custom-color" value="#000000" onchange="setDrawingColor(this.value)" style="width:26px;height:26px;border:none;cursor:pointer;border-radius:50%;" title="Couleur personnalisée">
+                <button onclick="setDrawingColor('#EF4444')" class="drawing-color-btn" data-color="#EF4444" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#EF4444;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#F59E0B')" class="drawing-color-btn" data-color="#F59E0B" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#F59E0B;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#22C55E')" class="drawing-color-btn" data-color="#22C55E" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#22C55E;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#3B82F6')" class="drawing-color-btn" data-color="#3B82F6" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#3B82F6;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#8B5CF6')" class="drawing-color-btn" data-color="#8B5CF6" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#8B5CF6;cursor:pointer;padding:0;"></button>
+                <button onclick="setDrawingColor('#EC4899')" class="drawing-color-btn" data-color="#EC4899" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#EC4899;cursor:pointer;padding:0;"></button>
             </div>
             <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
             <!-- Preset sizes -->
             <div style="display:flex;align-items:center;gap:0.25rem;">
                 <span style="font-size:0.7rem;color:#6b7280;">Taille:</span>
+                <button onclick="setDrawingStrokeWidth(1)" class="drawing-size-btn" data-size="1" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:2px;height:2px;background:#333;border-radius:50%;display:block;"></span></button>
                 <button onclick="setDrawingStrokeWidth(2)" class="drawing-size-btn" data-size="2" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:4px;height:4px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(4)" class="drawing-size-btn" data-size="4" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:6px;height:6px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(6)" class="drawing-size-btn" data-size="6" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:8px;height:8px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(3)" class="drawing-size-btn" data-size="3" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:6px;height:6px;background:#333;border-radius:50%;display:block;"></span></button>
+                <button onclick="setDrawingStrokeWidth(5)" class="drawing-size-btn" data-size="5" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:8px;height:8px;background:#333;border-radius:50%;display:block;"></span></button>
                 <button onclick="setDrawingStrokeWidth(8)" class="drawing-size-btn" data-size="8" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:10px;height:10px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(10)" class="drawing-size-btn" data-size="10" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:12px;height:12px;background:#333;border-radius:50%;display:block;"></span></button>
             </div>
             <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
-            <!-- Undo / Clear -->
+            <!-- Undo / Redo / Clear -->
             <button onclick="undoDrawing()" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Annuler">
                 <i class="fas fa-undo"></i> Annuler
+            </button>
+            <button onclick="redoDrawing()" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rétablir">
+                <i class="fas fa-redo"></i> Rétablir
             </button>
             <button onclick="clearDrawingCanvas()" style="padding:0.35rem 0.6rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;display:flex;align-items:center;gap:0.25rem;">
                 <i class="fas fa-trash"></i> Effacer tout
             </button>
         </div>
         <!-- Canvas -->
-        <div style="flex:1;padding:0.5rem;overflow:auto;background:#f9fafb;">
-            <canvas id="drawing-canvas" style="width:100%;border-radius:8px;border:1px solid #d1d5db;cursor:crosshair;touch-action:none;background:white;"></canvas>
+        <div style="flex:1;padding:0.5rem;overflow:auto;background:#f9fafb;display:flex;align-items:center;justify-content:center;">
+            <canvas id="drawing-canvas" style="aspect-ratio:1;max-width:100%;max-height:100%;border-radius:8px;border:1px solid #d1d5db;cursor:crosshair;touch-action:none;background:white;"></canvas>
         </div>
         <!-- Footer -->
         <div style="padding:0.75rem 1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:0.5rem;">
@@ -2218,22 +2223,28 @@ function removeBlockImage(uid) {
 }
 
 // ============================================================
-// DRAWING CANVAS - Full annotation tools (matches PDF viewer)
+// DRAWING CANVAS - Full annotation tools with square canvas
 // ============================================================
 let drawingCanvasBlockUid = null;
+let drawingCanvas = null;
 let drawingCtx = null;
 let isDrawing = false;
 let drawingTool = 'pen';
 let drawingColor = '#000000';
 let drawingStrokeWidth = 2;
-// History for undo
+let dpr = window.devicePixelRatio || 1;
+
+// History for undo/redo
 let drawingHistory = [];
 let drawingHistoryIndex = -1;
+
 // Shape tool state (for two-point tools)
 let shapeStart = null;
 let shapeEnd = null;
-// Angle tool state (needs 3 clicks)
-let anglePoints = [];
+
+// Protractor tool state (needs 3 clicks)
+let protractorPoints = [];
+
 // Grid drawn flag
 let gridDrawn = false;
 
@@ -2258,29 +2269,48 @@ function undoDrawing() {
     img.src = drawingHistory[drawingHistoryIndex];
 }
 
+function redoDrawing() {
+    if (drawingHistoryIndex >= drawingHistory.length - 1) return;
+    drawingHistoryIndex++;
+    const canvas = document.getElementById('drawing-canvas');
+    const img = new Image();
+    img.onload = () => {
+        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+        drawingCtx.drawImage(img, 0, 0);
+    };
+    img.src = drawingHistory[drawingHistoryIndex];
+}
+
 // Two-point tools that use drag interaction
-const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'disk', 'arc'];
+const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'circle', 'arc'];
 
 function openDrawingCanvas(uid) {
     drawingCanvasBlockUid = uid;
     drawingHistory = [];
     drawingHistoryIndex = -1;
-    anglePoints = [];
+    protractorPoints = [];
     gridDrawn = false;
 
     const modal = document.getElementById('drawing-modal');
     modal.style.display = 'flex';
 
     const canvas = document.getElementById('drawing-canvas');
-    const container = canvas.parentElement;
 
-    // Set canvas size
-    canvas.width = container.offsetWidth;
-    canvas.height = 500;
+    // Calculate square size based on container
+    const container = canvas.parentElement;
+    const availSize = Math.min(container.offsetWidth, container.offsetHeight);
+    const size = Math.max(300, availSize - 20);
+
+    // Set logical size
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
 
     drawingCtx = canvas.getContext('2d');
+    drawingCtx.scale(dpr, dpr);
     drawingCtx.fillStyle = 'white';
-    drawingCtx.fillRect(0, 0, canvas.width, canvas.height);
+    drawingCtx.fillRect(0, 0, size, size);
 
     // If block already has a drawing, load it
     const block = blocks.find(b => b.uid === uid);
@@ -2288,7 +2318,7 @@ function openDrawingCanvas(uid) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-            drawingCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawingCtx.drawImage(img, 0, 0, size, size);
             pushDrawingHistory();
         };
         img.src = block.config_json.block_image_url;
@@ -2318,12 +2348,11 @@ function setupDrawingEvents(canvas) {
 
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const logicalSize = rect.width;
         if (e.touches) {
-            return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+            return { x: (e.touches[0].clientX - rect.left) / rect.width * logicalSize, y: (e.touches[0].clientY - rect.top) / rect.height * logicalSize };
         }
-        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+        return { x: (e.clientX - rect.left) / rect.width * logicalSize, y: (e.clientY - rect.top) / rect.height * logicalSize };
     }
 
     // Snapshot before shape drawing (to restore during drag preview)
@@ -2336,7 +2365,8 @@ function setupDrawingEvents(canvas) {
         // Grid tool: instant toggle, no drag needed
         if (drawingTool === 'grid') {
             if (!gridDrawn) {
-                drawGrid(drawingCtx, canvas.width, canvas.height);
+                const logicalSize = canvas.width / dpr;
+                drawGrid(drawingCtx, logicalSize, logicalSize);
                 gridDrawn = true;
             }
             pushDrawingHistory();
@@ -2358,10 +2388,10 @@ function setupDrawingEvents(canvas) {
             return;
         }
 
-        // Angle tool: needs 3 clicks
-        if (drawingTool === 'angle') {
-            anglePoints.push(pos);
-            if (anglePoints.length === 1) {
+        // Protractor tool: needs 3 clicks
+        if (drawingTool === 'protractor') {
+            protractorPoints.push(pos);
+            if (protractorPoints.length === 1) {
                 // Draw a dot at the first click (center of angle)
                 drawingCtx.save();
                 drawingCtx.fillStyle = drawingColor;
@@ -2370,7 +2400,7 @@ function setupDrawingEvents(canvas) {
                 drawingCtx.fill();
                 drawingCtx.restore();
                 preShapeSnapshot = canvas.toDataURL();
-            } else if (anglePoints.length === 2) {
+            } else if (protractorPoints.length === 2) {
                 // Draw line from center to first arm endpoint
                 const snap = new Image();
                 snap.onload = () => {
@@ -2380,33 +2410,32 @@ function setupDrawingEvents(canvas) {
                     drawingCtx.strokeStyle = drawingColor;
                     drawingCtx.lineWidth = drawingStrokeWidth;
                     drawingCtx.beginPath();
-                    drawingCtx.moveTo(anglePoints[0].x, anglePoints[0].y);
+                    drawingCtx.moveTo(protractorPoints[0].x, protractorPoints[0].y);
                     drawingCtx.lineTo(pos.x, pos.y);
                     drawingCtx.stroke();
                     drawingCtx.restore();
                 };
                 snap.src = preShapeSnapshot || canvas.toDataURL();
                 preShapeSnapshot = canvas.toDataURL();
-            } else if (anglePoints.length === 3) {
-                // Draw the full angle
-                const center = anglePoints[0];
-                const p1 = anglePoints[1];
-                const p2 = anglePoints[2];
-                // Restore to before we drew the preview lines
+            } else if (protractorPoints.length === 3) {
+                // Draw the full angle with snap-to-integer
+                const center = protractorPoints[0];
+                const p1 = protractorPoints[1];
+                const p2 = protractorPoints[2];
                 if (preShapeSnapshot) {
                     const snap = new Image();
                     snap.onload = () => {
                         drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
                         drawingCtx.drawImage(snap, 0, 0);
-                        drawAngle(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
+                        drawProtractor(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
                         pushDrawingHistory();
                     };
                     snap.src = drawingHistory[drawingHistoryIndex] || preShapeSnapshot;
                 } else {
-                    drawAngle(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
+                    drawProtractor(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
                     pushDrawingHistory();
                 }
-                anglePoints = [];
+                protractorPoints = [];
                 preShapeSnapshot = null;
             }
             return;
@@ -2510,10 +2539,9 @@ function setupDrawingEvents(canvas) {
     canvas.ontouchend = endDraw;
 }
 
-// ---- Shape drawing functions (from clean-pdf-tools.js) ----
+// ---- Shape drawing functions ----
 
 function drawShapePreview(ctx, tool, start, end) {
-    // Draw with slight transparency for preview
     const opts = { color: drawingColor, size: drawingStrokeWidth, opacity: 0.6 };
     switch (tool) {
         case 'ruler': drawRuler(ctx, start, end, opts); break;
@@ -2525,9 +2553,9 @@ function drawShapePreview(ctx, tool, start, end) {
             drawCompassRadius(ctx, start, end, r);
             break;
         }
-        case 'disk': {
+        case 'circle': {
             const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            drawDisk(ctx, start, r, opts);
+            drawCircle(ctx, start, r, opts);
             break;
         }
         case 'arc': {
@@ -2551,9 +2579,9 @@ function drawShapeFinal(ctx, tool, start, end) {
             drawCompass(ctx, start, r, opts);
             break;
         }
-        case 'disk': {
+        case 'circle': {
             const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            drawDisk(ctx, start, r, opts);
+            drawCircle(ctx, start, r, opts);
             break;
         }
         case 'arc': {
@@ -2578,7 +2606,6 @@ function drawRuler(ctx, start, end, opts = {}) {
     ctx.lineTo(end.x, end.y);
     ctx.stroke();
 
-    // Distance label
     const distPx = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
     const distCm = distPx / 37.8;
     const midX = (start.x + end.x) / 2;
@@ -2612,7 +2639,6 @@ function drawArrow(ctx, start, end, opts = {}) {
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
     ctx.stroke();
-    // Arrowhead
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
     const aLen = 20;
     const aAngle = Math.PI / 6;
@@ -2637,7 +2663,7 @@ function drawRectangle(ctx, start, end, opts = {}) {
     ctx.restore();
 }
 
-// Compass (circle)
+// Compass (circle outline with center dot and radius label)
 function drawCompass(ctx, center, radius, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
@@ -2646,7 +2672,6 @@ function drawCompass(ctx, center, radius, opts = {}) {
     ctx.beginPath();
     ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
     ctx.stroke();
-    // Center dot
     ctx.fillStyle = opts.color || '#000000';
     ctx.beginPath();
     ctx.arc(center.x, center.y, Math.max(2, opts.size || 2), 0, Math.PI * 2);
@@ -2654,7 +2679,7 @@ function drawCompass(ctx, center, radius, opts = {}) {
     ctx.restore();
 }
 
-// Compass radius preview
+// Compass radius preview (dashed line with label)
 function drawCompassRadius(ctx, center, currentPoint, radius) {
     ctx.save();
     ctx.strokeStyle = '#007aff';
@@ -2664,7 +2689,6 @@ function drawCompassRadius(ctx, center, currentPoint, radius) {
     ctx.moveTo(center.x, center.y);
     ctx.lineTo(currentPoint.x, currentPoint.y);
     ctx.stroke();
-    // Radius label
     const midX = (center.x + currentPoint.x) / 2;
     const midY = (center.y + currentPoint.y) / 2;
     const radiusCm = radius / 37.8;
@@ -2681,8 +2705,8 @@ function drawCompassRadius(ctx, center, currentPoint, radius) {
     ctx.restore();
 }
 
-// Disk (filled circle)
-function drawDisk(ctx, center, radius, opts = {}) {
+// Circle (filled disk)
+function drawCircle(ctx, center, radius, opts = {}) {
     ctx.save();
     ctx.fillStyle = opts.color || '#000000';
     ctx.globalAlpha = opts.opacity || 1.0;
@@ -2704,24 +2728,33 @@ function drawArc(ctx, center, radius, startAngle, endAngle, opts = {}) {
     ctx.restore();
 }
 
-// Angle (3-point)
-function drawAngle(ctx, center, point1, point2, opts = {}) {
+// Protractor (3-point angle with snap-to-integer)
+function drawProtractor(ctx, center, point1, point2, opts = {}) {
     const angle1 = Math.atan2(point1.y - center.y, point1.x - center.x);
     const angle2 = Math.atan2(point2.y - center.y, point2.x - center.x);
     let angleDiff = angle2 - angle1;
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-    if (Math.abs(angleDiff) > Math.PI) {
-        angleDiff = angleDiff > 0 ? angleDiff - 2 * Math.PI : angleDiff + 2 * Math.PI;
-    }
-    const angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
+    let angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
+
+    // Snap to nearest integer degree
+    angleDeg = Math.round(angleDeg);
+
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
+
     // Two segments
-    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point1.x, point1.y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point2.x, point2.y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y);
+    ctx.lineTo(point1.x, point1.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y);
+    ctx.lineTo(point2.x, point2.y);
+    ctx.stroke();
+
     // Arc
     const radius = Math.min(
         Math.sqrt((point1.x - center.x) ** 2 + (point1.y - center.y) ** 2),
@@ -2731,7 +2764,8 @@ function drawAngle(ctx, center, point1, point2, opts = {}) {
     ctx.beginPath();
     ctx.arc(center.x, center.y, arcR, angle1, angle2, angleDiff < 0);
     ctx.stroke();
-    // Label
+
+    // Label with integer angle
     const labelAngle = (angle1 + angle2) / 2;
     const labelR = arcR + 20;
     const lx = center.x + labelR * Math.cos(labelAngle);
@@ -2740,7 +2774,7 @@ function drawAngle(ctx, center, point1, point2, opts = {}) {
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${angleDeg.toFixed(1)}°`, lx, ly);
+    ctx.fillText(`${angleDeg}°`, lx, ly);
     ctx.restore();
 }
 
@@ -2752,10 +2786,16 @@ function drawGrid(ctx, width, height) {
     ctx.lineWidth = 0.5;
     ctx.globalAlpha = 0.5;
     for (let x = 0; x <= width; x += gridSize) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
     }
     for (let y = 0; y <= height; y += gridSize) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
     }
     ctx.restore();
 }
@@ -2764,9 +2804,8 @@ function drawGrid(ctx, width, height) {
 
 function setDrawingTool(tool) {
     drawingTool = tool;
-    anglePoints = [];
+    protractorPoints = [];
     updateDrawingToolUI();
-    // Update cursor
     const canvas = document.getElementById('drawing-canvas');
     if (canvas) {
         if (tool === 'text') canvas.style.cursor = 'text';
@@ -2803,8 +2842,6 @@ function updateDrawingColorUI() {
     document.querySelectorAll('.drawing-color-btn').forEach(b => {
         b.style.borderColor = (b.dataset.color === drawingColor) ? '#667eea' : 'transparent';
     });
-    const customPicker = document.getElementById('drawing-custom-color');
-    if (customPicker) customPicker.value = drawingColor;
 }
 
 function updateDrawingSizeUI() {
@@ -2816,8 +2853,9 @@ function updateDrawingSizeUI() {
 
 function clearDrawingCanvas() {
     const canvas = document.getElementById('drawing-canvas');
+    const logicalSize = canvas.width / dpr;
     drawingCtx.fillStyle = 'white';
-    drawingCtx.fillRect(0, 0, canvas.width, canvas.height);
+    drawingCtx.fillRect(0, 0, logicalSize, logicalSize);
     gridDrawn = false;
     pushDrawingHistory();
 }
@@ -2831,7 +2869,6 @@ async function saveDrawing() {
     if (!drawingCanvasBlockUid) return;
     const canvas = document.getElementById('drawing-canvas');
 
-    // Convert canvas to blob
     canvas.toBlob(async (blob) => {
         const formData = new FormData();
         formData.append('file', blob, 'drawing.png');
@@ -3306,37 +3343,42 @@ async function showFolderModal() {
     document.getElementById('folder-confirm-btn').disabled = true;
 
     try {
-        const res = await fetch('{{ url_for("exercises.list_folders") }}');
+        const res = await fetch('{{ url_for("exercises.manager_list_folders") }}');
         const data = await res.json();
         const folders = data.folders || [];
 
-        if (folders.length === 0) {
-            listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier. Créez un dossier dans le gestionnaire de fichiers d\'abord.</p>';
-            return;
+        // Option "Racine" always available
+        let html = `<div class="folder-pick-item" data-folder-id="root" onclick="pickFolder(null, this)" style="padding:0.6rem 0.8rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
+            <i class="fas fa-home" style="color:#667eea;"></i>
+            <span style="font-weight:600;font-size:0.9rem;">Racine</span>
+        </div>`;
+
+        if (folders.length > 0) {
+            // Build tree: root folders then children
+            const rootFolders = folders.filter(f => !f.parent_id);
+            const childMap = {};
+            folders.forEach(f => {
+                if (f.parent_id) {
+                    if (!childMap[f.parent_id]) childMap[f.parent_id] = [];
+                    childMap[f.parent_id].push(f);
+                }
+            });
+
+            function renderFolder(f, depth) {
+                let h = `<div class="folder-pick-item" data-folder-id="${f.id}" onclick="pickFolder(${f.id}, this)" style="padding:0.6rem 0.8rem;padding-left:${0.8 + depth * 1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
+                    <i class="fas fa-folder" style="color:${f.color || '#667eea'};"></i>
+                    <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.name)}</span>
+                </div>`;
+                if (childMap[f.id]) {
+                    childMap[f.id].forEach(child => { h += renderFolder(child, depth + 1); });
+                }
+                return h;
+            }
+
+            html += rootFolders.map(f => renderFolder(f, 0)).join('');
         }
 
-        // Build tree: root folders then children
-        const rootFolders = folders.filter(f => !f.parent_id);
-        const childMap = {};
-        folders.forEach(f => {
-            if (f.parent_id) {
-                if (!childMap[f.parent_id]) childMap[f.parent_id] = [];
-                childMap[f.parent_id].push(f);
-            }
-        });
-
-        function renderFolder(f, depth) {
-            let html = `<div class="folder-pick-item" data-folder-id="${f.id}" onclick="pickFolder(${f.id}, this)" style="padding:0.6rem 0.8rem;padding-left:${0.8 + depth * 1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;transition:all 0.15s;display:flex;align-items:center;gap:0.5rem;">
-                <i class="fas fa-folder" style="color:${f.color || '#4F46E5'};"></i>
-                <span style="font-weight:600;font-size:0.9rem;">${escapeHtml(f.name)}</span>
-            </div>`;
-            if (childMap[f.id]) {
-                childMap[f.id].forEach(child => { html += renderFolder(child, depth + 1); });
-            }
-            return html;
-        }
-
-        listEl.innerHTML = rootFolders.map(f => renderFolder(f, 0)).join('');
+        listEl.innerHTML = html;
     } catch(e) {
         listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>';
     }
@@ -3354,7 +3396,7 @@ function pickFolder(folderId, el) {
 }
 
 async function confirmFolder() {
-    if (!selectedFolderId || !exerciseId) return;
+    if (!exerciseId) return;
     try {
         await fetch('{{ url_for("exercises.save") }}', {
             method: 'POST',
@@ -3362,7 +3404,7 @@ async function confirmFolder() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token() }}',
             },
-            body: JSON.stringify({ id: exerciseId, folder_id: selectedFolderId }),
+            body: JSON.stringify({ id: exerciseId, exercise_folder_id: selectedFolderId }),
         });
         showToast('Exercice rangé dans le dossier', 'success');
         closeFolderModal();

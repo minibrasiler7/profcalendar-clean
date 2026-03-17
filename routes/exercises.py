@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from extensions import db
-from models.exercise import Exercise, ExerciseBlock
+from models.exercise import Exercise, ExerciseBlock, ExerciseFolder
 from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
 from models.rpg import StudentRPGProfile, Badge, StudentBadge
 from models.classroom import Classroom
@@ -78,11 +78,14 @@ def save():
             db.session.add(exercise)
 
         # Check if this is a folder-only update (only id + folder_id provided)
-        is_folder_only_update = exercise_id and 'folder_id' in data and 'blocks' not in data and 'title' not in data
+        is_folder_only_update = exercise_id and ('folder_id' in data or 'exercise_folder_id' in data) and 'blocks' not in data and 'title' not in data
 
         if is_folder_only_update:
             # Only update folder association, don't touch anything else
-            exercise.folder_id = data['folder_id'] if data['folder_id'] else None
+            if 'folder_id' in data:
+                exercise.folder_id = data['folder_id'] if data['folder_id'] else None
+            if 'exercise_folder_id' in data:
+                exercise.exercise_folder_id = data['exercise_folder_id'] if data['exercise_folder_id'] else None
             exercise.updated_at = datetime.utcnow()
         else:
             # Full update: update all fields
@@ -97,6 +100,8 @@ def save():
             exercise.is_draft = data.get('is_draft', True)
             if 'folder_id' in data:
                 exercise.folder_id = data['folder_id'] if data['folder_id'] else None
+            if 'exercise_folder_id' in data:
+                exercise.exercise_folder_id = data['exercise_folder_id'] if data['exercise_folder_id'] else None
             exercise.updated_at = datetime.utcnow()
 
             # Sauvegarder d'abord pour obtenir l'ID
@@ -763,3 +768,218 @@ def exercise_block_image(file_id):
             }
         )
     return 'Image non trouvée', 404
+
+
+# ============================================================
+# EXERCISE MANAGER - Gestionnaire d'exercices séparé
+# ============================================================
+
+@exercises_bp.route('/manager')
+@login_required
+@teacher_required
+def manager():
+    """Page principale du gestionnaire d'exercices"""
+    return render_template('exercises/manager.html')
+
+
+@exercises_bp.route('/manager/folders', methods=['GET'])
+@login_required
+@teacher_required
+def manager_list_folders():
+    """API: Lister tous les dossiers d'exercices de l'utilisateur"""
+    from models.exercise import ExerciseFolder
+    folders = ExerciseFolder.query.filter_by(user_id=current_user.id).order_by(ExerciseFolder.name).all()
+    return jsonify({
+        'success': True,
+        'folders': [{
+            'id': f.id,
+            'name': f.name,
+            'parent_id': f.parent_id,
+            'color': f.color,
+        } for f in folders]
+    })
+
+
+@exercises_bp.route('/manager/folder/create', methods=['POST'])
+@login_required
+@teacher_required
+def manager_create_folder():
+    """API: Créer un dossier d'exercices"""
+    from models.exercise import ExerciseFolder
+    data = request.get_json(silent=True) or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Nom requis'}), 400
+
+    parent_id = data.get('parent_id')
+    if parent_id:
+        parent = ExerciseFolder.query.get(parent_id)
+        if not parent or parent.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Dossier parent invalide'}), 400
+
+    folder = ExerciseFolder(
+        user_id=current_user.id,
+        parent_id=parent_id,
+        name=name,
+        color=data.get('color', '#667eea')
+    )
+    db.session.add(folder)
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'folder': {'id': folder.id, 'name': folder.name, 'parent_id': folder.parent_id, 'color': folder.color}
+    })
+
+
+@exercises_bp.route('/manager/folder/<int:folder_id>/rename', methods=['POST'])
+@login_required
+@teacher_required
+def manager_rename_folder(folder_id):
+    """API: Renommer un dossier d'exercices"""
+    from models.exercise import ExerciseFolder
+    folder = ExerciseFolder.query.get_or_404(folder_id)
+    if folder.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+
+    data = request.get_json(silent=True) or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Nom requis'}), 400
+
+    folder.name = name
+    if 'color' in data:
+        folder.color = data['color']
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@exercises_bp.route('/manager/folder/<int:folder_id>', methods=['DELETE'])
+@login_required
+@teacher_required
+def manager_delete_folder(folder_id):
+    """API: Supprimer un dossier d'exercices (et déplacer les exercices à la racine)"""
+    from models.exercise import ExerciseFolder
+    folder = ExerciseFolder.query.get_or_404(folder_id)
+    if folder.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Non autorisé'}), 403
+
+    # Move exercises in this folder to root (null folder)
+    Exercise.query.filter_by(exercise_folder_id=folder_id).update({'exercise_folder_id': None})
+    # Move subfolders to parent
+    for sub in folder.subfolders:
+        sub.parent_id = folder.parent_id
+    db.session.delete(folder)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@exercises_bp.route('/manager/contents', methods=['GET'])
+@login_required
+@teacher_required
+def manager_contents():
+    """API: Obtenir le contenu d'un dossier (sous-dossiers + exercices)"""
+    from models.exercise import ExerciseFolder
+    folder_id = request.args.get('folder_id', type=int)
+
+    # Get subfolders
+    if folder_id:
+        subfolders = ExerciseFolder.query.filter_by(user_id=current_user.id, parent_id=folder_id).order_by(ExerciseFolder.name).all()
+    else:
+        subfolders = ExerciseFolder.query.filter_by(user_id=current_user.id, parent_id=None).order_by(ExerciseFolder.name).all()
+
+    # Get exercises in this folder
+    if folder_id:
+        exercises = Exercise.query.filter_by(user_id=current_user.id, exercise_folder_id=folder_id).order_by(Exercise.updated_at.desc()).all()
+    else:
+        exercises = Exercise.query.filter_by(user_id=current_user.id, exercise_folder_id=None).order_by(Exercise.updated_at.desc()).all()
+
+    return jsonify({
+        'success': True,
+        'folders': [{
+            'id': f.id, 'name': f.name, 'parent_id': f.parent_id, 'color': f.color
+        } for f in subfolders],
+        'exercises': [{
+            'id': e.id,
+            'title': e.title or 'Sans titre',
+            'subject': e.subject,
+            'level': e.level,
+            'is_published': e.is_published,
+            'is_draft': e.is_draft,
+            'total_points': e.total_points,
+            'block_count': e.blocks.count(),
+            'updated_at': e.updated_at.isoformat() if e.updated_at else None,
+            'classroom_id': e.classroom_id,
+        } for e in exercises]
+    })
+
+
+@exercises_bp.route('/manager/move-exercise', methods=['POST'])
+@login_required
+@teacher_required
+def manager_move_exercise():
+    """API: Déplacer un exercice dans un dossier"""
+    data = request.get_json(silent=True) or {}
+    exercise_id = data.get('exercise_id')
+    folder_id = data.get('folder_id')  # None = racine
+
+    exercise = Exercise.query.get(exercise_id)
+    if not exercise or exercise.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Exercice non trouvé'}), 404
+
+    if folder_id:
+        from models.exercise import ExerciseFolder
+        folder = ExerciseFolder.query.get(folder_id)
+        if not folder or folder.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Dossier invalide'}), 400
+
+    exercise.exercise_folder_id = folder_id
+    exercise.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@exercises_bp.route('/manager/move-folder', methods=['POST'])
+@login_required
+@teacher_required
+def manager_move_folder():
+    """API: Déplacer un dossier dans un autre dossier"""
+    from models.exercise import ExerciseFolder
+    data = request.get_json(silent=True) or {}
+    folder_id = data.get('folder_id')
+    new_parent_id = data.get('new_parent_id')  # None = racine
+
+    folder = ExerciseFolder.query.get(folder_id)
+    if not folder or folder.user_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Dossier non trouvé'}), 404
+
+    # Prevent moving a folder into its own subtree
+    if new_parent_id:
+        parent = ExerciseFolder.query.get(new_parent_id)
+        if not parent or parent.user_id != current_user.id:
+            return jsonify({'success': False, 'message': 'Dossier parent invalide'}), 400
+        # Check for circular reference
+        check = parent
+        while check:
+            if check.id == folder.id:
+                return jsonify({'success': False, 'message': 'Référence circulaire'}), 400
+            check = check.parent
+
+    folder.parent_id = new_parent_id
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@exercises_bp.route('/manager/breadcrumb', methods=['GET'])
+@login_required
+@teacher_required
+def manager_breadcrumb():
+    """API: Obtenir le fil d'Ariane pour un dossier"""
+    from models.exercise import ExerciseFolder
+    folder_id = request.args.get('folder_id', type=int)
+    breadcrumb = []
+    if folder_id:
+        folder = ExerciseFolder.query.get(folder_id)
+        while folder and folder.user_id == current_user.id:
+            breadcrumb.insert(0, {'id': folder.id, 'name': folder.name})
+            folder = folder.parent
+    return jsonify({'success': True, 'breadcrumb': breadcrumb})

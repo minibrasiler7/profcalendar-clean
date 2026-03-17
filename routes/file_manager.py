@@ -106,24 +106,13 @@ def index():
             breadcrumb.insert(0, folder)
             folder = folder.parent
 
-    # Exercices rangés dans ce dossier
-    folder_exercises = []
-    try:
-        from models.exercise import Exercise
-        folder_exercises = Exercise.query.filter_by(
-            user_id=current_user.id,
-            folder_id=folder_id
-        ).order_by(Exercise.title).all()
-    except Exception:
-        pass
-
     # Calculer l'espace utilisé
     total_size = sum(f.file_size or 0 for f in current_user.files.all())
 
     return render_template('file_manager/index.html',
                          folders=folders,
                          files=files,
-                         exercises=folder_exercises,
+                         exercises=[],
                          current_folder=current_folder,
                          breadcrumb=breadcrumb,
                          total_size=total_size)
@@ -226,27 +215,7 @@ def get_class_files(class_id):
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             })
 
-        # Ajouter les exercices liés à cette classe
-        try:
-            from models.exercise import Exercise
-            class_exercises = Exercise.query.filter_by(
-                classroom_id=class_id
-            ).all()
-            for ex in class_exercises:
-                files_data.append({
-                    'id': f'exercise-{ex.id}',
-                    'exercise_id': ex.id,
-                    'original_filename': ex.title or 'Exercice sans titre',
-                    'file_type': 'exercise',
-                    'file_size': 0,
-                    'folder_name': None,
-                    'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
-                    'is_exercise': True,
-                    'total_points': ex.total_points,
-                    'block_count': ex.blocks.count() if ex.blocks else 0
-                })
-        except Exception:
-            pass
+        # Exercices interactifs sont maintenant dans le gestionnaire d'exercices séparé (/exercises/manager)
 
         return jsonify({
             'success': True,
