@@ -85,6 +85,9 @@ function shuffleArray(arr) {
 // ============================================================
 // Drag & Drop Sorting — ORDER mode (tap-to-select, tap-to-place)
 // ============================================================
+// Helper to extract text from sorting items (can be string or {text: "..."} objects)
+const getItemText = (item) => (typeof item === 'object' && item !== null && item.text !== undefined) ? item.text : String(item || '');
+
 function DraggableOrderList({ items, order, onReorder, disabled }) {
   const [selectedIdx, setSelectedIdx] = useState(-1);
 
@@ -135,7 +138,7 @@ function DraggableOrderList({ items, order, onReorder, disabled }) {
               <Ionicons name="reorder-three" size={22} color={isSelected ? '#FFF' : '#9ca3af'} />
             </View>
             <Text style={dndStyles.num}>{pos + 1}.</Text>
-            <MathText text={items[origIdx]} style={[dndStyles.text, isSelected && dndStyles.textSelected]} />
+            <MathText text={getItemText(items[origIdx])} style={[dndStyles.text, isSelected && dndStyles.textSelected]} />
             {isSelected && (
               <View style={dndStyles.selectedBadge}>
                 <Ionicons name="checkmark" size={14} color="#FFF" />
@@ -241,7 +244,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                   onPress={() => pickFromCategory(itemIdx, catIdx)}
                   disabled={disabled}
                 >
-                  <MathText text={items[itemIdx]} style={dndStyles.catItemText} />
+                  <MathText text={getItemText(items[itemIdx])} style={dndStyles.catItemText} />
                   <Ionicons name="close-circle" size={14} color="#ef4444" />
                 </TouchableOpacity>
               ))}
@@ -276,7 +279,7 @@ function DraggableCategoryList({ items, categories, catAssignments, onUpdate, di
                 disabled={disabled}
               >
                 <Ionicons name="reorder-three" size={18} color="#9ca3af" />
-                <MathText text={item} style={dndStyles.poolItemText} />
+                <MathText text={getItemText(item)} style={dndStyles.poolItemText} />
               </TouchableOpacity>
             );
           })}
@@ -670,11 +673,11 @@ export default function ExerciseSolveScreen({ route, navigation }) {
       } else if (block.block_type === 'short_answer') {
         initial[block.id] = { value: '' };
       } else if (block.block_type === 'fill_blank') {
-        const template = c.text_template || '';
+        const template = c.text_template || c.question || '';
         const matches = template.match(/\{[^}]+\}/g) || [];
         initial[block.id] = { blanks: matches.map(() => '') };
       } else if (block.block_type === 'sorting') {
-        if (c.mode === 'order') {
+        if ((c.mode || 'order') === 'order') {
           const indices = (c.items || []).map((_, i) => i).filter(i => c.items[i]);
           initial[block.id] = { order: shuffleArray(indices) };
         } else {
@@ -749,7 +752,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     if (block.block_type === 'short_answer') return (answer?.value || '').trim().length > 0;
     if (block.block_type === 'fill_blank') return (answer?.blanks || []).some(b => b.trim().length > 0);
     if (block.block_type === 'sorting') {
-      if (c.mode !== 'order') return Object.values(answer?.categories || {}).flat().length > 0;
+      if ((c.mode || 'order') !== 'order') return Object.values(answer?.categories || {}).flat().length > 0;
       return true;
     }
     if (block.block_type === 'matching') return Object.keys(answer?.associations || {}).length > 0;
@@ -835,7 +838,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
     }
     console.log(`[ExerciseSolveScreen] Validating block ${blockId} (${currentBlock.block_type}):`, JSON.stringify(answer));
     if (currentBlock.block_type === 'fill_blank') {
-      const tpl = (currentBlock.config_json || {}).text_template || '';
+      const tpl = (currentBlock.config_json || {}).text_template || (currentBlock.config_json || {}).question || '';
       const blanksConfig = (currentBlock.config_json || {}).blanks || [];
       console.log(`[ExerciseSolveScreen] fill_blank template: "${tpl}"`);
       console.log(`[ExerciseSolveScreen] fill_blank config blanks:`, JSON.stringify(blanksConfig));
@@ -1036,7 +1039,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
           </View>
         );
       case 'fill_blank': {
-        const template = c.text_template || '';
+        const template = c.text_template || c.question || '';
         const parts = template.split(/(\{[^}]+\})/);
         let blankIdx = 0;
         const blanks = answer.blanks || [];
@@ -1194,7 +1197,7 @@ export default function ExerciseSolveScreen({ route, navigation }) {
         );
       }
       case 'sorting': {
-        const sortContent = c.mode === 'order' ? (
+        const sortContent = (c.mode || 'order') === 'order' ? (
           <DraggableOrderList items={c.items || []} order={answer.order || []}
             onReorder={(o) => updateAnswer(blockId, { order: o })} disabled={isLocked} />
         ) : (
