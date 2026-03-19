@@ -773,101 +773,59 @@ document.addEventListener('DOMContentLoaded', function() {
 </style>
 
 <!-- Drawing Canvas Modal -->
-<div id="drawing-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:16px;width:95%;max-width:900px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
-        <!-- Header -->
-        <div style="padding:0.75rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:1rem;display:flex;align-items:center;gap:0.4rem;">
-                <i class="fas fa-pen-fancy" style="color:#667eea;"></i> Dessiner
+<!-- Drawing Canvas Modal - Full screen like PDF viewer -->
+<div id="drawing-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;width:95vw;height:95vh;max-width:1200px;overflow:hidden;display:flex;flex-direction:column;">
+        <!-- Header + Toolbar combined like PDF viewer -->
+        <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;background:#fafbfc;">
+            <h3 style="margin:0;font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;margin-right:0.5rem;">
+                <i class="fas fa-pen-fancy" style="color:#667eea;"></i> Annotation
             </h3>
-            <button onclick="closeDrawingModal()" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#9ca3af;">
-                <i class="fas fa-times"></i>
-            </button>
+            <div style="width:1px;height:24px;background:#d1d5db;"></div>
+            <!-- Tools -->
+            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Stylo"><i class="fas fa-pen"></i> Stylo</button>
+            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Surligneur"><i class="fas fa-highlighter"></i> Surligneur</button>
+            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Gomme"><i class="fas fa-eraser"></i> Gomme</button>
+            <div style="width:1px;height:24px;background:#d1d5db;"></div>
+            <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Règle"><i class="fas fa-ruler"></i></button>
+            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Compas"><i class="far fa-circle"></i></button>
+            <button class="drawing-tool-btn" data-tool="protractor" onclick="setDrawingTool('protractor')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Rapporteur"><i class="fas fa-drafting-compass"></i></button>
+            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Arc"><i class="fas fa-bezier-curve"></i></button>
+            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Texte"><i class="fas fa-font"></i></button>
+            <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Flèche"><i class="fas fa-long-arrow-alt-right"></i></button>
+            <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Rectangle"><i class="far fa-square"></i></button>
+            <button class="drawing-tool-btn" data-tool="circle" onclick="setDrawingTool('circle')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Cercle"><i class="fas fa-circle" style="font-size:0.6rem;"></i></button>
+            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.2rem;" title="Grille"><i class="fas fa-th"></i></button>
+            <div style="width:1px;height:24px;background:#d1d5db;"></div>
+            <!-- Colors inline -->
+            <button onclick="setDrawingColor('#000000')" class="drawing-color-btn" data-color="#000000" style="width:22px;height:22px;border-radius:50%;border:3px solid #667eea;background:#000000;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#EF4444')" class="drawing-color-btn" data-color="#EF4444" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#EF4444;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#F59E0B')" class="drawing-color-btn" data-color="#F59E0B" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#F59E0B;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#22C55E')" class="drawing-color-btn" data-color="#22C55E" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#22C55E;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#3B82F6')" class="drawing-color-btn" data-color="#3B82F6" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#3B82F6;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#8B5CF6')" class="drawing-color-btn" data-color="#8B5CF6" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#8B5CF6;cursor:pointer;padding:0;"></button>
+            <button onclick="setDrawingColor('#EC4899')" class="drawing-color-btn" data-color="#EC4899" style="width:22px;height:22px;border-radius:50%;border:3px solid transparent;background:#EC4899;cursor:pointer;padding:0;"></button>
+            <div style="width:1px;height:24px;background:#d1d5db;"></div>
+            <!-- Sizes inline -->
+            <button onclick="setDrawingStrokeWidth(1)" class="drawing-size-btn" data-size="1" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:2px;height:2px;background:#333;border-radius:50%;display:block;"></span></button>
+            <button onclick="setDrawingStrokeWidth(2)" class="drawing-size-btn" data-size="2" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:4px;height:4px;background:#333;border-radius:50%;display:block;"></span></button>
+            <button onclick="setDrawingStrokeWidth(3)" class="drawing-size-btn" data-size="3" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:6px;height:6px;background:#333;border-radius:50%;display:block;"></span></button>
+            <button onclick="setDrawingStrokeWidth(5)" class="drawing-size-btn" data-size="5" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:8px;height:8px;background:#333;border-radius:50%;display:block;"></span></button>
+            <button onclick="setDrawingStrokeWidth(8)" class="drawing-size-btn" data-size="8" style="width:22px;height:22px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:10px;height:10px;background:#333;border-radius:50%;display:block;"></span></button>
+            <div style="width:1px;height:24px;background:#d1d5db;"></div>
+            <!-- Undo/Redo/Clear -->
+            <button onclick="undoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="Annuler"><i class="fas fa-undo"></i></button>
+            <button onclick="redoDrawing()" style="padding:0.3rem 0.5rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;" title="Rétablir"><i class="fas fa-redo"></i></button>
+            <button onclick="clearDrawingCanvas()" style="padding:0.3rem 0.5rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;" title="Effacer tout"><i class="fas fa-trash"></i></button>
+            <!-- Spacer + actions -->
+            <div style="flex:1;"></div>
+            <span id="drawing-tool-hint" style="font-size:0.7rem;color:#9ca3af;font-style:italic;"></span>
+            <button onclick="saveDrawing()" style="padding:0.4rem 1rem;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem;"><i class="fas fa-check"></i> Enregistrer</button>
+            <button onclick="closeDrawingModal()" style="padding:0.4rem 0.6rem;background:none;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.85rem;color:#6b7280;"><i class="fas fa-times"></i></button>
         </div>
-        <!-- Toolbar Row 1: Drawing Tools -->
-        <div style="padding:0.5rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
-            <button class="drawing-tool-btn active" data-tool="pen" onclick="setDrawingTool('pen')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Stylo">
-                <i class="fas fa-pen"></i> Stylo
-            </button>
-            <button class="drawing-tool-btn" data-tool="highlighter" onclick="setDrawingTool('highlighter')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Surligneur">
-                <i class="fas fa-highlighter"></i> Surligneur
-            </button>
-            <button class="drawing-tool-btn" data-tool="eraser" onclick="setDrawingTool('eraser')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Gomme">
-                <i class="fas fa-eraser"></i> Gomme
-            </button>
-            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.1rem;"></div>
-            <button class="drawing-tool-btn" data-tool="ruler" onclick="setDrawingTool('ruler')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Règle">
-                <i class="fas fa-ruler"></i> Règle
-            </button>
-            <button class="drawing-tool-btn" data-tool="compass" onclick="setDrawingTool('compass')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Compas">
-                <i class="far fa-circle"></i> Compas
-            </button>
-            <button class="drawing-tool-btn" data-tool="protractor" onclick="setDrawingTool('protractor')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rapporteur">
-                <i class="fas fa-drafting-compass"></i> Rapporteur
-            </button>
-            <button class="drawing-tool-btn" data-tool="arc" onclick="setDrawingTool('arc')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Arc">
-                <i class="fas fa-bezier-curve"></i> Arc
-            </button>
-            <button class="drawing-tool-btn" data-tool="text" onclick="setDrawingTool('text')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Texte">
-                <i class="fas fa-font"></i> Texte
-            </button>
-            <button class="drawing-tool-btn" data-tool="arrow" onclick="setDrawingTool('arrow')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Flèche">
-                <i class="fas fa-long-arrow-alt-right"></i> Flèche
-            </button>
-            <button class="drawing-tool-btn" data-tool="rectangle" onclick="setDrawingTool('rectangle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rectangle">
-                <i class="far fa-square"></i> Rectangle
-            </button>
-            <button class="drawing-tool-btn" data-tool="circle" onclick="setDrawingTool('circle')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Cercle">
-                <i class="fas fa-circle" style="font-size:0.65rem;"></i> Cercle
-            </button>
-            <button class="drawing-tool-btn" data-tool="grid" onclick="setDrawingTool('grid')" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Grille">
-                <i class="fas fa-th"></i> Grille
-            </button>
-        </div>
-        <!-- Toolbar Row 2: Colors, Size, Actions -->
-        <div style="padding:0.4rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-            <!-- Preset colors -->
-            <div style="display:flex;align-items:center;gap:0.3rem;">
-                <button onclick="setDrawingColor('#000000')" class="drawing-color-btn" data-color="#000000" style="width:26px;height:26px;border-radius:50%;border:3px solid #667eea;background:#000000;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#EF4444')" class="drawing-color-btn" data-color="#EF4444" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#EF4444;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#F59E0B')" class="drawing-color-btn" data-color="#F59E0B" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#F59E0B;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#22C55E')" class="drawing-color-btn" data-color="#22C55E" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#22C55E;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#3B82F6')" class="drawing-color-btn" data-color="#3B82F6" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#3B82F6;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#8B5CF6')" class="drawing-color-btn" data-color="#8B5CF6" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#8B5CF6;cursor:pointer;padding:0;"></button>
-                <button onclick="setDrawingColor('#EC4899')" class="drawing-color-btn" data-color="#EC4899" style="width:26px;height:26px;border-radius:50%;border:3px solid transparent;background:#EC4899;cursor:pointer;padding:0;"></button>
-            </div>
-            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
-            <!-- Preset sizes -->
-            <div style="display:flex;align-items:center;gap:0.25rem;">
-                <span style="font-size:0.7rem;color:#6b7280;">Taille:</span>
-                <button onclick="setDrawingStrokeWidth(1)" class="drawing-size-btn" data-size="1" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:2px;height:2px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(2)" class="drawing-size-btn" data-size="2" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:4px;height:4px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(3)" class="drawing-size-btn" data-size="3" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:6px;height:6px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(5)" class="drawing-size-btn" data-size="5" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:8px;height:8px;background:#333;border-radius:50%;display:block;"></span></button>
-                <button onclick="setDrawingStrokeWidth(8)" class="drawing-size-btn" data-size="8" style="width:24px;height:24px;border:2px solid #e5e7eb;border-radius:6px;cursor:pointer;background:white;display:flex;align-items:center;justify-content:center;padding:0;"><span style="width:10px;height:10px;background:#333;border-radius:50%;display:block;"></span></button>
-            </div>
-            <div style="width:1px;height:24px;background:#e5e7eb;margin:0 0.2rem;"></div>
-            <!-- Undo / Redo / Clear -->
-            <button onclick="undoDrawing()" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Annuler">
-                <i class="fas fa-undo"></i> Annuler
-            </button>
-            <button onclick="redoDrawing()" style="padding:0.35rem 0.6rem;border:2px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:0.75rem;background:white;display:flex;align-items:center;gap:0.25rem;" title="Rétablir">
-                <i class="fas fa-redo"></i> Rétablir
-            </button>
-            <button onclick="clearDrawingCanvas()" style="padding:0.35rem 0.6rem;border:2px solid #fecaca;border-radius:8px;cursor:pointer;font-size:0.75rem;background:#fef2f2;color:#dc2626;display:flex;align-items:center;gap:0.25rem;">
-                <i class="fas fa-trash"></i> Effacer tout
-            </button>
-        </div>
-        <!-- Canvas -->
-        <div style="flex:1;padding:0.5rem;overflow:auto;background:#f9fafb;display:flex;align-items:center;justify-content:center;">
-            <canvas id="drawing-canvas" style="aspect-ratio:1;max-width:100%;max-height:100%;border-radius:8px;border:1px solid #d1d5db;cursor:crosshair;touch-action:none;background:white;"></canvas>
-        </div>
-        <!-- Footer -->
-        <div style="padding:0.75rem 1rem;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:0.5rem;">
-            <button onclick="closeDrawingModal()" style="padding:0.5rem 1rem;background:#e5e7eb;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">Annuler</button>
-            <button onclick="saveDrawing()" style="padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
-                <i class="fas fa-check"></i> Enregistrer le dessin
-            </button>
+        <!-- Canvas area - takes all remaining space -->
+        <div id="drawing-canvas-container" style="flex:1;overflow:hidden;background:#e5e7eb;display:flex;align-items:center;justify-content:center;padding:8px;">
+            <canvas id="drawing-canvas" style="border-radius:4px;cursor:crosshair;touch-action:none;background:white;box-shadow:0 2px 12px rgba(0,0,0,0.15);"></canvas>
         </div>
     </div>
 </div>
@@ -2223,35 +2181,27 @@ function removeBlockImage(uid) {
 }
 
 // ============================================================
-// DRAWING CANVAS - Full annotation tools with square canvas
+// DRAWING CANVAS - Annotation tools (no DPI scaling, 800x800)
 // ============================================================
+const CANVAS_SIZE = 800; // Fixed internal resolution - no DPI scaling
 let drawingCanvasBlockUid = null;
-let drawingCanvas = null;
 let drawingCtx = null;
 let isDrawing = false;
 let drawingTool = 'pen';
 let drawingColor = '#000000';
 let drawingStrokeWidth = 2;
-let dpr = window.devicePixelRatio || 1;
-
-// History for undo/redo
 let drawingHistory = [];
 let drawingHistoryIndex = -1;
-
-// Shape tool state (for two-point tools)
 let shapeStart = null;
 let shapeEnd = null;
-
-// Protractor tool state (needs 3 clicks)
 let protractorPoints = [];
-
-// Grid drawn flag
 let gridDrawn = false;
 
-// Helper: save current canvas state to history
+// Arc tool state (needs 3 clicks like protractor: center, start point on arc, end point on arc)
+let arcPoints = [];
+
 function pushDrawingHistory() {
     const canvas = document.getElementById('drawing-canvas');
-    // Trim future states if we undid
     drawingHistory = drawingHistory.slice(0, drawingHistoryIndex + 1);
     drawingHistory.push(canvas.toDataURL());
     drawingHistoryIndex = drawingHistory.length - 1;
@@ -2260,126 +2210,132 @@ function pushDrawingHistory() {
 function undoDrawing() {
     if (drawingHistoryIndex <= 0) return;
     drawingHistoryIndex--;
-    const canvas = document.getElementById('drawing-canvas');
-    const img = new Image();
-    img.onload = () => {
-        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
-        drawingCtx.drawImage(img, 0, 0);
-    };
-    img.src = drawingHistory[drawingHistoryIndex];
+    restoreFromHistory();
 }
 
 function redoDrawing() {
     if (drawingHistoryIndex >= drawingHistory.length - 1) return;
     drawingHistoryIndex++;
+    restoreFromHistory();
+}
+
+function restoreFromHistory() {
     const canvas = document.getElementById('drawing-canvas');
     const img = new Image();
     img.onload = () => {
-        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+        drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
         drawingCtx.drawImage(img, 0, 0);
     };
     img.src = drawingHistory[drawingHistoryIndex];
 }
 
-// Two-point tools that use drag interaction
-const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'circle', 'arc'];
+const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'circle'];
 
 function openDrawingCanvas(uid) {
     drawingCanvasBlockUid = uid;
     drawingHistory = [];
     drawingHistoryIndex = -1;
     protractorPoints = [];
+    arcPoints = [];
     gridDrawn = false;
 
     const modal = document.getElementById('drawing-modal');
     modal.style.display = 'flex';
 
-    const canvas = document.getElementById('drawing-canvas');
+    // Wait for layout to compute container size
+    requestAnimationFrame(() => {
+        const canvas = document.getElementById('drawing-canvas');
+        const container = document.getElementById('drawing-canvas-container');
 
-    // Calculate square size based on container
-    const container = canvas.parentElement;
-    const availSize = Math.min(container.offsetWidth, container.offsetHeight);
-    const size = Math.max(300, availSize - 20);
+        // Canvas internal size = fixed 800x800 (no DPI scaling)
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
 
-    // Set logical size
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
+        // CSS display: fill the container as a square
+        const availH = container.clientHeight - 16;
+        const availW = container.clientWidth - 16;
+        const displaySize = Math.min(availW, availH);
+        canvas.style.width = displaySize + 'px';
+        canvas.style.height = displaySize + 'px';
 
-    drawingCtx = canvas.getContext('2d');
-    drawingCtx.scale(dpr, dpr);
-    drawingCtx.fillStyle = 'white';
-    drawingCtx.fillRect(0, 0, size, size);
+        drawingCtx = canvas.getContext('2d');
+        drawingCtx.fillStyle = 'white';
+        drawingCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    // If block already has a drawing, load it
-    const block = blocks.find(b => b.uid === uid);
-    if (block.config_json.block_image_url && block.config_json.block_image_type === 'drawing') {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-            drawingCtx.drawImage(img, 0, 0, size, size);
+        // Load existing drawing if any
+        const block = blocks.find(b => b.uid === uid);
+        if (block.config_json.block_image_url && block.config_json.block_image_type === 'drawing') {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                drawingCtx.drawImage(img, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                pushDrawingHistory();
+            };
+            img.src = block.config_json.block_image_url;
+        } else {
             pushDrawingHistory();
-        };
-        img.src = block.config_json.block_image_url;
-    } else {
-        pushDrawingHistory();
-    }
+        }
 
-    // Reset tools
-    drawingTool = 'pen';
-    drawingColor = '#000000';
-    drawingStrokeWidth = 2;
-    updateDrawingToolUI();
-    updateDrawingColorUI();
-    updateDrawingSizeUI();
-    setupDrawingEvents(canvas);
+        drawingTool = 'pen';
+        drawingColor = '#000000';
+        drawingStrokeWidth = 2;
+        updateDrawingToolUI();
+        updateDrawingColorUI();
+        updateDrawingSizeUI();
+        updateToolHint();
+        setupDrawingEvents(canvas);
+    });
+}
+
+function updateToolHint() {
+    const hint = document.getElementById('drawing-tool-hint');
+    if (!hint) return;
+    const hints = {
+        'pen': '', 'highlighter': '', 'eraser': '',
+        'ruler': 'Glisser pour tracer', 'arrow': 'Glisser pour tracer',
+        'rectangle': 'Glisser pour tracer', 'compass': 'Glisser du centre vers le bord',
+        'circle': 'Glisser du centre vers le bord',
+        'protractor': 'Cliquer 3 points : sommet, bras 1, bras 2',
+        'arc': 'Cliquer 3 points : centre, point de départ, point d\'arrivée',
+        'text': 'Cliquer pour placer le texte', 'grid': 'Cliquer pour afficher la grille'
+    };
+    hint.textContent = hints[drawingTool] || '';
 }
 
 function setupDrawingEvents(canvas) {
-    // Remove old listeners
-    canvas.onmousedown = null;
-    canvas.onmousemove = null;
-    canvas.onmouseup = null;
-    canvas.onmouseleave = null;
-    canvas.ontouchstart = null;
-    canvas.ontouchmove = null;
-    canvas.ontouchend = null;
+    canvas.onmousedown = null; canvas.onmousemove = null;
+    canvas.onmouseup = null; canvas.onmouseleave = null;
+    canvas.ontouchstart = null; canvas.ontouchmove = null; canvas.ontouchend = null;
 
+    // Map mouse/touch coords to canvas coords (simple ratio, no DPI)
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
-        const logicalSize = rect.width;
-        if (e.touches) {
-            return { x: (e.touches[0].clientX - rect.left) / rect.width * logicalSize, y: (e.touches[0].clientY - rect.top) / rect.height * logicalSize };
+        const scaleX = CANVAS_SIZE / rect.width;
+        const scaleY = CANVAS_SIZE / rect.height;
+        if (e.touches && e.touches.length > 0) {
+            return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
         }
-        return { x: (e.clientX - rect.left) / rect.width * logicalSize, y: (e.clientY - rect.top) / rect.height * logicalSize };
+        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
     }
 
-    // Snapshot before shape drawing (to restore during drag preview)
     let preShapeSnapshot = null;
 
     function startDraw(e) {
         e.preventDefault();
         const pos = getPos(e);
 
-        // Grid tool: instant toggle, no drag needed
         if (drawingTool === 'grid') {
-            if (!gridDrawn) {
-                const logicalSize = canvas.width / dpr;
-                drawGrid(drawingCtx, logicalSize, logicalSize);
-                gridDrawn = true;
-            }
+            if (!gridDrawn) { drawGrid(drawingCtx, CANVAS_SIZE, CANVAS_SIZE); gridDrawn = true; }
             pushDrawingHistory();
             return;
         }
 
-        // Text tool: prompt for text at click position
         if (drawingTool === 'text') {
             const text = prompt('Texte à ajouter :');
             if (text) {
                 drawingCtx.save();
                 drawingCtx.fillStyle = drawingColor;
-                drawingCtx.font = `${Math.max(14, drawingStrokeWidth * 4)}px Arial`;
+                drawingCtx.font = `${Math.max(16, drawingStrokeWidth * 5)}px Arial`;
                 drawingCtx.textBaseline = 'top';
                 drawingCtx.fillText(text, pos.x, pos.y);
                 drawingCtx.restore();
@@ -2388,54 +2344,108 @@ function setupDrawingEvents(canvas) {
             return;
         }
 
-        // Protractor tool: needs 3 clicks
+        // Protractor: 3 clicks (vertex, arm1 end, arm2 end)
         if (drawingTool === 'protractor') {
             protractorPoints.push(pos);
             if (protractorPoints.length === 1) {
-                // Draw a dot at the first click (center of angle)
+                preShapeSnapshot = drawingHistory[drawingHistoryIndex];
+                // Draw center dot
                 drawingCtx.save();
                 drawingCtx.fillStyle = drawingColor;
                 drawingCtx.beginPath();
-                drawingCtx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
                 drawingCtx.fill();
                 drawingCtx.restore();
-                preShapeSnapshot = canvas.toDataURL();
             } else if (protractorPoints.length === 2) {
-                // Draw line from center to first arm endpoint
+                // Restore clean state, draw first arm
                 const snap = new Image();
                 snap.onload = () => {
-                    drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                     drawingCtx.drawImage(snap, 0, 0);
                     drawingCtx.save();
                     drawingCtx.strokeStyle = drawingColor;
                     drawingCtx.lineWidth = drawingStrokeWidth;
+                    drawingCtx.lineCap = 'round';
                     drawingCtx.beginPath();
                     drawingCtx.moveTo(protractorPoints[0].x, protractorPoints[0].y);
                     drawingCtx.lineTo(pos.x, pos.y);
                     drawingCtx.stroke();
+                    // Center dot
+                    drawingCtx.fillStyle = drawingColor;
+                    drawingCtx.beginPath();
+                    drawingCtx.arc(protractorPoints[0].x, protractorPoints[0].y, 4, 0, Math.PI * 2);
+                    drawingCtx.fill();
                     drawingCtx.restore();
                 };
-                snap.src = preShapeSnapshot || canvas.toDataURL();
-                preShapeSnapshot = canvas.toDataURL();
+                snap.src = preShapeSnapshot;
             } else if (protractorPoints.length === 3) {
-                // Draw the full angle with snap-to-integer
-                const center = protractorPoints[0];
-                const p1 = protractorPoints[1];
-                const p2 = protractorPoints[2];
-                if (preShapeSnapshot) {
-                    const snap = new Image();
-                    snap.onload = () => {
-                        drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
-                        drawingCtx.drawImage(snap, 0, 0);
-                        drawProtractor(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
-                        pushDrawingHistory();
-                    };
-                    snap.src = drawingHistory[drawingHistoryIndex] || preShapeSnapshot;
-                } else {
+                // Draw complete angle on clean state
+                const center = protractorPoints[0], p1 = protractorPoints[1], p2 = protractorPoints[2];
+                const snap = new Image();
+                snap.onload = () => {
+                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    drawingCtx.drawImage(snap, 0, 0);
                     drawProtractor(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
                     pushDrawingHistory();
-                }
+                };
+                snap.src = preShapeSnapshot;
                 protractorPoints = [];
+                preShapeSnapshot = null;
+            }
+            return;
+        }
+
+        // Arc: 3 clicks (center, start radius point, end radius point)
+        if (drawingTool === 'arc') {
+            arcPoints.push(pos);
+            if (arcPoints.length === 1) {
+                preShapeSnapshot = drawingHistory[drawingHistoryIndex];
+                drawingCtx.save();
+                drawingCtx.fillStyle = drawingColor;
+                drawingCtx.beginPath();
+                drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+            } else if (arcPoints.length === 2) {
+                const center = arcPoints[0];
+                const r = Math.sqrt((pos.x - center.x) ** 2 + (pos.y - center.y) ** 2);
+                const snap = new Image();
+                snap.onload = () => {
+                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    drawingCtx.drawImage(snap, 0, 0);
+                    // Preview circle outline
+                    drawingCtx.save();
+                    drawingCtx.strokeStyle = drawingColor;
+                    drawingCtx.lineWidth = 1;
+                    drawingCtx.globalAlpha = 0.3;
+                    drawingCtx.setLineDash([5, 5]);
+                    drawingCtx.beginPath();
+                    drawingCtx.arc(center.x, center.y, r, 0, Math.PI * 2);
+                    drawingCtx.stroke();
+                    drawingCtx.setLineDash([]);
+                    // Mark start point
+                    drawingCtx.globalAlpha = 1;
+                    drawingCtx.fillStyle = drawingColor;
+                    drawingCtx.beginPath();
+                    drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                    drawingCtx.fill();
+                    drawingCtx.restore();
+                };
+                snap.src = preShapeSnapshot;
+            } else if (arcPoints.length === 3) {
+                const center = arcPoints[0], p1 = arcPoints[1], p2 = arcPoints[2];
+                const r = Math.sqrt((p1.x - center.x) ** 2 + (p1.y - center.y) ** 2);
+                const startAngle = Math.atan2(p1.y - center.y, p1.x - center.x);
+                const endAngle = Math.atan2(p2.y - center.y, p2.x - center.x);
+                const snap = new Image();
+                snap.onload = () => {
+                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                    drawingCtx.drawImage(snap, 0, 0);
+                    drawArc(drawingCtx, center, r, startAngle, endAngle, { color: drawingColor, size: drawingStrokeWidth });
+                    pushDrawingHistory();
+                };
+                snap.src = preShapeSnapshot;
+                arcPoints = [];
                 preShapeSnapshot = null;
             }
             return;
@@ -2446,20 +2456,19 @@ function setupDrawingEvents(canvas) {
         shapeEnd = pos;
 
         if (TWO_POINT_TOOLS.includes(drawingTool)) {
-            // Save snapshot for preview restore
             preShapeSnapshot = canvas.toDataURL();
         } else {
-            // Freehand tools: pen, highlighter, eraser
             drawingCtx.beginPath();
             drawingCtx.moveTo(pos.x, pos.y);
             if (drawingTool === 'eraser') {
                 drawingCtx.globalCompositeOperation = 'destination-out';
                 drawingCtx.lineWidth = drawingStrokeWidth * 5;
             } else if (drawingTool === 'highlighter') {
+                // Use separate canvas for highlighter to get true transparency
                 drawingCtx.globalCompositeOperation = 'source-over';
                 drawingCtx.strokeStyle = drawingColor;
-                drawingCtx.lineWidth = drawingStrokeWidth * 3;
-                drawingCtx.globalAlpha = 0.3;
+                drawingCtx.lineWidth = drawingStrokeWidth * 4;
+                drawingCtx.globalAlpha = 0.25;
             } else {
                 drawingCtx.globalCompositeOperation = 'source-over';
                 drawingCtx.strokeStyle = drawingColor;
@@ -2478,22 +2487,19 @@ function setupDrawingEvents(canvas) {
         shapeEnd = pos;
 
         if (TWO_POINT_TOOLS.includes(drawingTool)) {
-            // Capture values before async callback
-            const previewStart = shapeStart ? { ...shapeStart } : null;
-            const previewEnd = { ...shapeEnd };
-            const previewTool = drawingTool;
-            const previewSnapshot = preShapeSnapshot;
-            if (!previewStart) return;
-            // Restore snapshot then draw preview
+            const pStart = shapeStart ? { ...shapeStart } : null;
+            const pEnd = { ...shapeEnd };
+            const pTool = drawingTool;
+            const pSnap = preShapeSnapshot;
+            if (!pStart) return;
             const snap = new Image();
             snap.onload = () => {
-                drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                 drawingCtx.drawImage(snap, 0, 0);
-                drawShapePreview(drawingCtx, previewTool, previewStart, previewEnd);
+                drawShapePreview(drawingCtx, pTool, pStart, pEnd);
             };
-            snap.src = previewSnapshot;
+            snap.src = pSnap;
         } else {
-            // Freehand
             drawingCtx.lineTo(pos.x, pos.y);
             drawingCtx.stroke();
         }
@@ -2504,30 +2510,22 @@ function setupDrawingEvents(canvas) {
         isDrawing = false;
 
         if (TWO_POINT_TOOLS.includes(drawingTool) && shapeStart && shapeEnd) {
-            // Capture values before async callback (they get nulled below)
-            const finalStart = { ...shapeStart };
-            const finalEnd = { ...shapeEnd };
-            const finalTool = drawingTool;
-            const finalSnapshot = preShapeSnapshot;
-            // Restore then draw final shape
+            const fStart = { ...shapeStart }, fEnd = { ...shapeEnd };
+            const fTool = drawingTool, fSnap = preShapeSnapshot;
             const snap = new Image();
             snap.onload = () => {
-                drawingCtx.clearRect(0, 0, canvas.width, canvas.height);
+                drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
                 drawingCtx.drawImage(snap, 0, 0);
-                drawShapeFinal(drawingCtx, finalTool, finalStart, finalEnd);
+                drawShapeFinal(drawingCtx, fTool, fStart, fEnd);
                 pushDrawingHistory();
             };
-            snap.src = finalSnapshot;
+            snap.src = fSnap;
         } else {
-            // Freehand end
             drawingCtx.globalAlpha = 1;
             drawingCtx.globalCompositeOperation = 'source-over';
             pushDrawingHistory();
         }
-
-        shapeStart = null;
-        shapeEnd = null;
-        preShapeSnapshot = null;
+        shapeStart = null; shapeEnd = null; preShapeSnapshot = null;
     }
 
     canvas.onmousedown = startDraw;
@@ -2539,7 +2537,7 @@ function setupDrawingEvents(canvas) {
     canvas.ontouchend = endDraw;
 }
 
-// ---- Shape drawing functions ----
+// ---- Shape drawing functions (identical to PDF viewer) ----
 
 function drawShapePreview(ctx, tool, start, end) {
     const opts = { color: drawingColor, size: drawingStrokeWidth, opacity: 0.6 };
@@ -2555,14 +2553,7 @@ function drawShapePreview(ctx, tool, start, end) {
         }
         case 'circle': {
             const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            drawCircle(ctx, start, r, opts);
-            break;
-        }
-        case 'arc': {
-            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            const startAngle = 0;
-            const endAngle = Math.atan2(end.y - start.y, end.x - start.x);
-            drawArc(ctx, start, r, startAngle, endAngle, opts);
+            drawFilledCircle(ctx, start, r, opts);
             break;
         }
     }
@@ -2581,53 +2572,37 @@ function drawShapeFinal(ctx, tool, start, end) {
         }
         case 'circle': {
             const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            drawCircle(ctx, start, r, opts);
-            break;
-        }
-        case 'arc': {
-            const r = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
-            const startAngle = 0;
-            const endAngle = Math.atan2(end.y - start.y, end.x - start.x);
-            drawArc(ctx, start, r, startAngle, endAngle, opts);
+            drawFilledCircle(ctx, start, r, opts);
             break;
         }
     }
 }
 
-// Ruler: straight line with measurement label
 function drawRuler(ctx, start, end, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
     ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
-
+    ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
     const distPx = Math.sqrt((end.x - start.x) ** 2 + (end.y - start.y) ** 2);
     const distCm = distPx / 37.8;
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
+    const midX = (start.x + end.x) / 2, midY = (start.y + end.y) / 2;
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
     ctx.translate(midX, midY);
-    let textAngle = angle;
-    if (textAngle > Math.PI / 2 || textAngle < -Math.PI / 2) textAngle += Math.PI;
-    ctx.rotate(textAngle);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    let ta = angle; if (ta > Math.PI / 2 || ta < -Math.PI / 2) ta += Math.PI;
+    ctx.rotate(ta);
     ctx.font = 'bold 14px Arial';
     const text = `${distCm.toFixed(1)} cm`;
     const m = ctx.measureText(text);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillRect(-m.width / 2 - 4, -14 - 4, m.width + 8, 22);
     ctx.fillStyle = opts.color || '#000000';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, 0, -7);
     ctx.restore();
 }
 
-// Arrow
 function drawArrow(ctx, start, end, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
@@ -2635,227 +2610,146 @@ function drawArrow(ctx, start, end, opts = {}) {
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
     ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
     const angle = Math.atan2(end.y - start.y, end.x - start.x);
-    const aLen = 20;
-    const aAngle = Math.PI / 6;
-    ctx.beginPath();
-    ctx.moveTo(end.x, end.y);
+    const aLen = 20, aAngle = Math.PI / 6;
+    ctx.beginPath(); ctx.moveTo(end.x, end.y);
     ctx.lineTo(end.x - aLen * Math.cos(angle - aAngle), end.y - aLen * Math.sin(angle - aAngle));
     ctx.lineTo(end.x - aLen * Math.cos(angle + aAngle), end.y - aLen * Math.sin(angle + aAngle));
-    ctx.closePath();
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
     ctx.restore();
 }
 
-// Rectangle
 function drawRectangle(ctx, start, end, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
-    const x = Math.min(start.x, end.x);
-    const y = Math.min(start.y, end.y);
-    ctx.strokeRect(x, y, Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+    ctx.strokeRect(Math.min(start.x, end.x), Math.min(start.y, end.y), Math.abs(end.x - start.x), Math.abs(end.y - start.y));
     ctx.restore();
 }
 
-// Compass (circle outline with center dot and radius label)
 function drawCompass(ctx, center, radius, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = opts.color || '#000000';
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, Math.max(2, opts.size || 2), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(center.x, center.y, Math.max(3, opts.size || 2), 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 
-// Compass radius preview (dashed line with label)
-function drawCompassRadius(ctx, center, currentPoint, radius) {
+function drawCompassRadius(ctx, center, point, radius) {
     ctx.save();
-    ctx.strokeStyle = '#007aff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.lineTo(currentPoint.x, currentPoint.y);
-    ctx.stroke();
-    const midX = (center.x + currentPoint.x) / 2;
-    const midY = (center.y + currentPoint.y) / 2;
-    const radiusCm = radius / 37.8;
+    ctx.strokeStyle = '#007aff'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point.x, point.y); ctx.stroke();
+    const mx = (center.x + point.x) / 2, my = (center.y + point.y) / 2;
+    const rcm = radius / 37.8;
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = 'bold 14px Arial';
-    const text = `r = ${radiusCm.toFixed(1)} cm`;
+    const text = `r = ${rcm.toFixed(1)} cm`;
     const m = ctx.measureText(text);
-    ctx.fillRect(midX - m.width / 2 - 4, midY - 17, m.width + 8, 20);
-    ctx.fillStyle = '#007aff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, midX, midY - 7);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(mx - m.width / 2 - 4, my - 17, m.width + 8, 20);
+    ctx.fillStyle = '#007aff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, mx, my - 7);
     ctx.restore();
 }
 
-// Circle (filled disk)
-function drawCircle(ctx, center, radius, opts = {}) {
+function drawFilledCircle(ctx, center, radius, opts = {}) {
     ctx.save();
     ctx.fillStyle = opts.color || '#000000';
     ctx.globalAlpha = opts.opacity || 1.0;
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(center.x, center.y, radius, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 
-// Arc
 function drawArc(ctx, center, radius, startAngle, endAngle, opts = {}) {
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, startAngle, endAngle);
-    ctx.stroke();
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(center.x, center.y, radius, startAngle, endAngle); ctx.stroke();
     ctx.restore();
 }
 
-// Protractor (3-point angle with snap-to-integer)
 function drawProtractor(ctx, center, point1, point2, opts = {}) {
-    const angle1 = Math.atan2(point1.y - center.y, point1.x - center.x);
-    const angle2 = Math.atan2(point2.y - center.y, point2.x - center.x);
-    let angleDiff = angle2 - angle1;
-    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-    let angleDeg = Math.abs(angleDiff) * 180 / Math.PI;
-
-    // Snap to nearest integer degree
-    angleDeg = Math.round(angleDeg);
-
+    const a1 = Math.atan2(point1.y - center.y, point1.x - center.x);
+    const a2 = Math.atan2(point2.y - center.y, point2.x - center.x);
+    let diff = a2 - a1;
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    const deg = Math.round(Math.abs(diff) * 180 / Math.PI);
     ctx.save();
     ctx.strokeStyle = opts.color || '#000000';
     ctx.lineWidth = opts.size || 2;
     ctx.globalAlpha = opts.opacity || 1.0;
-
-    // Two segments
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.lineTo(point1.x, point1.y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(center.x, center.y);
-    ctx.lineTo(point2.x, point2.y);
-    ctx.stroke();
-
-    // Arc
-    const radius = Math.min(
-        Math.sqrt((point1.x - center.x) ** 2 + (point1.y - center.y) ** 2),
-        Math.sqrt((point2.x - center.x) ** 2 + (point2.y - center.y) ** 2)
-    );
-    const arcR = Math.min(50, radius * 0.3);
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, arcR, angle1, angle2, angleDiff < 0);
-    ctx.stroke();
-
-    // Label with integer angle
-    const labelAngle = (angle1 + angle2) / 2;
-    const labelR = arcR + 20;
-    const lx = center.x + labelR * Math.cos(labelAngle);
-    const ly = center.y + labelR * Math.sin(labelAngle);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point1.x, point1.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(point2.x, point2.y); ctx.stroke();
+    const r1 = Math.sqrt((point1.x - center.x) ** 2 + (point1.y - center.y) ** 2);
+    const r2 = Math.sqrt((point2.x - center.x) ** 2 + (point2.y - center.y) ** 2);
+    const arcR = Math.min(50, Math.min(r1, r2) * 0.3);
+    ctx.beginPath(); ctx.arc(center.x, center.y, arcR, a1, a2, diff < 0); ctx.stroke();
+    // Center dot
     ctx.fillStyle = opts.color || '#000000';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`${angleDeg}°`, lx, ly);
+    ctx.beginPath(); ctx.arc(center.x, center.y, 4, 0, Math.PI * 2); ctx.fill();
+    // Label
+    const la = (a1 + a2) / 2;
+    const lr = arcR + 22;
+    ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const ltxt = `${deg}°`;
+    const lm = ctx.measureText(ltxt);
+    const lx = center.x + lr * Math.cos(la), ly = center.y + lr * Math.sin(la);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(lx - lm.width / 2 - 3, ly - 9, lm.width + 6, 18);
+    ctx.fillStyle = opts.color || '#000000';
+    ctx.fillText(ltxt, lx, ly);
     ctx.restore();
 }
 
-// Grid (1cm squares)
 function drawGrid(ctx, width, height) {
-    const gridSize = 37.8;
+    const gs = 37.8;
     ctx.save();
-    ctx.strokeStyle = '#666666';
-    ctx.lineWidth = 0.5;
-    ctx.globalAlpha = 0.5;
-    for (let x = 0; x <= width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-    }
-    for (let y = 0; y <= height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-    }
+    ctx.strokeStyle = '#999999'; ctx.lineWidth = 0.5; ctx.globalAlpha = 0.4;
+    for (let x = 0; x <= width; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
+    for (let y = 0; y <= height; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
     ctx.restore();
 }
 
-// ---- Tool UI updates ----
-
+// ---- Tool UI ----
 function setDrawingTool(tool) {
     drawingTool = tool;
     protractorPoints = [];
+    arcPoints = [];
     updateDrawingToolUI();
-    const canvas = document.getElementById('drawing-canvas');
-    if (canvas) {
-        if (tool === 'text') canvas.style.cursor = 'text';
-        else if (tool === 'eraser') canvas.style.cursor = 'cell';
-        else canvas.style.cursor = 'crosshair';
-    }
+    updateToolHint();
+    const c = document.getElementById('drawing-canvas');
+    if (c) { c.style.cursor = tool === 'text' ? 'text' : tool === 'eraser' ? 'cell' : 'crosshair'; }
 }
 
-function setDrawingColor(color) {
-    drawingColor = color;
-    updateDrawingColorUI();
-}
-
-function setDrawingStrokeWidth(w) {
-    drawingStrokeWidth = parseInt(w);
-    updateDrawingSizeUI();
-}
+function setDrawingColor(color) { drawingColor = color; updateDrawingColorUI(); }
+function setDrawingStrokeWidth(w) { drawingStrokeWidth = parseInt(w); updateDrawingSizeUI(); }
 
 function updateDrawingToolUI() {
-    document.querySelectorAll('.drawing-tool-btn').forEach(b => {
-        b.classList.remove('active');
-        b.style.borderColor = '#e5e7eb';
-        b.style.background = 'white';
-    });
+    document.querySelectorAll('.drawing-tool-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor = '#e5e7eb'; b.style.background = 'white'; });
     const btn = document.querySelector(`.drawing-tool-btn[data-tool="${drawingTool}"]`);
-    if (btn) {
-        btn.classList.add('active');
-        btn.style.borderColor = '#667eea';
-        btn.style.background = '#eef2ff';
-    }
+    if (btn) { btn.classList.add('active'); btn.style.borderColor = '#667eea'; btn.style.background = '#eef2ff'; }
 }
 
 function updateDrawingColorUI() {
-    document.querySelectorAll('.drawing-color-btn').forEach(b => {
-        b.style.borderColor = (b.dataset.color === drawingColor) ? '#667eea' : 'transparent';
-    });
+    document.querySelectorAll('.drawing-color-btn').forEach(b => { b.style.borderColor = (b.dataset.color === drawingColor) ? '#667eea' : 'transparent'; });
 }
 
 function updateDrawingSizeUI() {
-    document.querySelectorAll('.drawing-size-btn').forEach(b => {
-        const s = parseInt(b.dataset.size);
-        b.style.borderColor = (s === drawingStrokeWidth) ? '#667eea' : '#e5e7eb';
-    });
+    document.querySelectorAll('.drawing-size-btn').forEach(b => { b.style.borderColor = (parseInt(b.dataset.size) === drawingStrokeWidth) ? '#667eea' : '#e5e7eb'; });
 }
 
 function clearDrawingCanvas() {
-    const canvas = document.getElementById('drawing-canvas');
-    const logicalSize = canvas.width / dpr;
     drawingCtx.fillStyle = 'white';
-    drawingCtx.fillRect(0, 0, logicalSize, logicalSize);
+    drawingCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     gridDrawn = false;
     pushDrawingHistory();
 }
@@ -2868,11 +2762,9 @@ function closeDrawingModal() {
 async function saveDrawing() {
     if (!drawingCanvasBlockUid) return;
     const canvas = document.getElementById('drawing-canvas');
-
     canvas.toBlob(async (blob) => {
         const formData = new FormData();
         formData.append('file', blob, 'drawing.png');
-
         try {
             const res = await fetch('{{ url_for("exercises.upload_block_image") }}', {
                 method: 'POST',
@@ -2888,12 +2780,8 @@ async function saveDrawing() {
                 refreshBlockContent(drawingCanvasBlockUid);
                 closeDrawingModal();
                 showToast('Dessin sauvegardé', 'success');
-            } else {
-                showToast('Erreur sauvegarde', 'error');
-            }
-        } catch(e) {
-            showToast('Erreur sauvegarde', 'error');
-        }
+            } else { showToast('Erreur sauvegarde', 'error'); }
+        } catch(e) { showToast('Erreur sauvegarde', 'error'); }
     }, 'image/png');
 }
 
