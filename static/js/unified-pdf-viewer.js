@@ -129,9 +129,10 @@ class UnifiedPDFViewer {
 
         // Fonctionnalité ligne droite automatique (style iPad)
         this.straightLineTimer = null;
-        this.straightLineTimeout = 1000; // 2 secondes par défaut
+        this.straightLineTimeout = 1500; // 1.5 secondes par défaut
         this.drawingPath = []; // Points du trait en cours
         this.startPoint = null; // Point de départ pour la ligne droite
+        this.lastMovementPoint = null; // Suivi du dernier point où du mouvement a été détecté
         this.isStabilized = false; // Flag pour éviter les multiples conversions
         this.currentStrokeImageData = null; // Sauvegarde du canvas avant le trait actuel
 
@@ -4814,6 +4815,7 @@ class UnifiedPDFViewer {
         // Initialiser la fonctionnalité ligne droite pour le stylo
         if (this.currentTool === 'pen') {
             this.startPoint = { ...this.lastPoint };
+            this.lastMovementPoint = { ...this.lastPoint };
             this.drawingPath = [{ ...this.lastPoint }];
             this.isStabilized = false;
 
@@ -5127,14 +5129,16 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'pen') {
                 this.drawingPath.push({ ...currentPoint });
 
-                // Si on bouge significativement, annuler le timer de ligne droite
-                const distance = Math.sqrt(
-                    Math.pow(currentPoint.x - this.startPoint.x, 2) +
-                    Math.pow(currentPoint.y - this.startPoint.y, 2)
+                // Tracker le mouvement du dernier point de vérification, pas du point de départ
+                if (!this.lastMovementPoint) this.lastMovementPoint = { ...this.startPoint };
+                const movementFromLast = Math.sqrt(
+                    Math.pow(currentPoint.x - this.lastMovementPoint.x, 2) +
+                    Math.pow(currentPoint.y - this.lastMovementPoint.y, 2)
                 );
 
-                // Si on bouge de plus de 10 pixels du point de départ, reset le timer
-                if (distance > 10 && this.straightLineTimer && !this.isStabilized) {
+                // Redémarrer le timer seulement si le stylo s'est déplacé significativement depuis la dernière vérification
+                if (movementFromLast > 5 && this.straightLineTimer && !this.isStabilized) {
+                    this.lastMovementPoint = { ...currentPoint };
                     clearTimeout(this.straightLineTimer);
                     this.straightLineTimer = setTimeout(() => {
                         this.convertToStraightLine(pageNum);
@@ -5310,6 +5314,7 @@ class UnifiedPDFViewer {
             // Reset des variables ligne droite
             this.drawingPath = [];
             this.startPoint = null;
+            this.lastMovementPoint = null;
             this.isStabilized = false;
             this.currentStrokeImageData = null;
 

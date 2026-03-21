@@ -2200,6 +2200,38 @@ let gridDrawn = false;
 // Arc tool state (needs 3 clicks like protractor: center, start point on arc, end point on arc)
 let arcPoints = [];
 
+// ---- Highlighter temp canvas for proper transparency ----
+let highlighterTempCanvas = null;
+let highlighterSnapshot = null;
+
+// ---- Pen auto-straighten state ----
+let penStartPoint = null;
+let penDrawingPath = [];
+let penStraightLineTimer = null;
+let penIsStabilized = false;
+let penCanvasSnapshot = null;
+let penLastCheckPoint = null;
+
+// ---- Protractor state machine ----
+let protractorState = 'initial';
+let protractorCenterPoint = null;
+let protractorFirstPoint = null;
+let protractorSecondPoint = null;
+let protractorValidationTimer = null;
+let protractorCanvasState = null;
+let protractorLastValidationPoint = null;
+let protractorSnappedPoint = null;
+
+// ---- Arc state machine ----
+let arcState = 'initial';
+let arcCenterPoint = null;
+let arcRadiusPoint = null;
+let arcEndPoint = null;
+let arcValidationTimer = null;
+let arcCanvasState = null;
+let arcLastValidationPoint = null;
+let arcSnappedEndPoint = null;
+
 function pushDrawingHistory() {
     const canvas = document.getElementById('drawing-canvas');
     drawingHistory = drawingHistory.slice(0, drawingHistoryIndex + 1);
@@ -2230,6 +2262,7 @@ function restoreFromHistory() {
 }
 
 const TWO_POINT_TOOLS = ['ruler', 'arrow', 'rectangle', 'compass', 'circle'];
+// Note: protractor and arc use their own state machines and are NOT in TWO_POINT_TOOLS
 
 function openDrawingCanvas(uid) {
     drawingCanvasBlockUid = uid;
@@ -2238,6 +2271,17 @@ function openDrawingCanvas(uid) {
     protractorPoints = [];
     arcPoints = [];
     gridDrawn = false;
+    // Reset state machines
+    if (protractorValidationTimer) clearTimeout(protractorValidationTimer);
+    if (arcValidationTimer) clearTimeout(arcValidationTimer);
+    if (penStraightLineTimer) clearTimeout(penStraightLineTimer);
+    protractorState = 'initial';
+    arcState = 'initial';
+    penStartPoint = null;
+    penDrawingPath = [];
+    penIsStabilized = false;
+    penCanvasSnapshot = null;
+    penLastCheckPoint = null;
 
     const modal = document.getElementById('drawing-modal');
     modal.style.display = 'flex';
@@ -2295,8 +2339,8 @@ function updateToolHint() {
         'ruler': 'Glisser pour tracer', 'arrow': 'Glisser pour tracer',
         'rectangle': 'Glisser pour tracer', 'compass': 'Glisser du centre vers le bord',
         'circle': 'Glisser du centre vers le bord',
-        'protractor': 'Cliquer 3 points : sommet, bras 1, bras 2',
-        'arc': 'Cliquer 3 points : centre, point de départ, point d\'arrivée',
+        'protractor': 'Dessiner le 1er bras, maintenir immobile pour valider, puis dessiner le 2e bras',
+        'arc': 'Dessiner le rayon, maintenir immobile pour valider, puis dessiner l\'arc',
         'text': 'Cliquer pour placer le texte', 'grid': 'Cliquer pour afficher la grille'
     };
     hint.textContent = hints[drawingTool] || '';
@@ -2319,6 +2363,90 @@ function setupDrawingEvents(canvas) {
     }
 
     let preShapeSnapshot = null;
+
+    function clearPenState() {
+        if (penStraightLineTimer) clearTimeout(penStraightLineTimer);
+        penStartPoint = null;
+        penDrawingPath = [];
+        penIsStabilized = false;
+        penCanvasSnapshot = null;
+        penLastCheckPoint = null;
+    }
+
+    function clearProtractorState() {
+        if (protractorValidationTimer) clearTimeout(protractorValidationTimer);
+        protractorState = 'initial';
+        protractorCenterPoint = null;
+        protractorFirstPoint = null;
+        protractorSecondPoint = null;
+        protractorCanvasState = null;
+        protractorLastValidationPoint = null;
+        protractorSnappedPoint = null;
+    }
+
+    function clearArcState() {
+        if (arcValidationTimer) clearTimeout(arcValidationTimer);
+        arcState = 'initial';
+        arcCenterPoint = null;
+        arcRadiusPoint = null;
+        arcEndPoint = null;
+        arcCanvasState = null;
+        arcLastValidationPoint = null;
+        arcSnappedEndPoint = null;
+    }
+
+    function penConvertToStraightLine() {
+        if (!penStartPoint || penDrawingPath.length === 0) return;
+        // Restore canvas from before pen started
+        drawingCtx.putImageData(penCanvasSnapshot, 0, 0);
+        // Draw straight line from start to last point
+        drawingCtx.save();
+        drawingCtx.strokeStyle = drawingColor;
+        drawingCtx.lineWidth = drawingStrokeWidth;
+        drawingCtx.lineCap = 'round';
+        drawingCtx.lineJoin = 'round';
+        drawingCtx.globalCompositeOperation = 'source-over';
+        drawingCtx.globalAlpha = 1;
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(penStartPoint.x, penStartPoint.y);
+        const lastPoint = penDrawingPath[penDrawingPath.length - 1];
+        drawingCtx.lineTo(lastPoint.x, lastPoint.y);
+        drawingCtx.stroke();
+        // Flash feedback
+        setTimeout(() => {}, 0);
+        penIsStabilized = true;
+        drawingCtx.restore();
+    }
+
+    function protractorValidate() {
+        if (protractorState !== 'drawing_first_line') return;
+        protractorState = 'drawing_second_line';
+        // Restore canvas and draw permanent first line
+        drawingCtx.putImageData(protractorCanvasState, 0, 0);
+        drawingCtx.save();
+        drawingCtx.strokeStyle = drawingColor;
+        drawingCtx.lineWidth = drawingStrokeWidth;
+        drawingCtx.lineCap = 'round';
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(protractorCenterPoint.x, protractorCenterPoint.y);
+        drawingCtx.lineTo(protractorFirstPoint.x, protractorFirstPoint.y);
+        drawingCtx.stroke();
+        drawingCtx.fillStyle = drawingColor;
+        drawingCtx.beginPath();
+        drawingCtx.arc(protractorCenterPoint.x, protractorCenterPoint.y, 4, 0, Math.PI * 2);
+        drawingCtx.fill();
+        drawingCtx.restore();
+        // Save new state for drawing second line
+        protractorCanvasState = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    }
+
+    function arcValidate() {
+        if (arcState !== 'drawing_radius') return;
+        arcState = 'drawing_arc';
+        arcEndPoint = { ...arcRadiusPoint };
+        // Don't draw permanent radius, just restore to clean state
+        drawingCtx.putImageData(arcCanvasState, 0, 0);
+    }
 
     function startDraw(e) {
         e.preventDefault();
@@ -2344,109 +2472,26 @@ function setupDrawingEvents(canvas) {
             return;
         }
 
-        // Protractor: 3 clicks (vertex, arm1 end, arm2 end)
+        // Protractor: drag-based state machine
         if (drawingTool === 'protractor') {
-            protractorPoints.push(pos);
-            if (protractorPoints.length === 1) {
-                preShapeSnapshot = drawingHistory[drawingHistoryIndex];
-                // Draw center dot
-                drawingCtx.save();
-                drawingCtx.fillStyle = drawingColor;
-                drawingCtx.beginPath();
-                drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
-                drawingCtx.fill();
-                drawingCtx.restore();
-            } else if (protractorPoints.length === 2) {
-                // Restore clean state, draw first arm
-                const snap = new Image();
-                snap.onload = () => {
-                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                    drawingCtx.drawImage(snap, 0, 0);
-                    drawingCtx.save();
-                    drawingCtx.strokeStyle = drawingColor;
-                    drawingCtx.lineWidth = drawingStrokeWidth;
-                    drawingCtx.lineCap = 'round';
-                    drawingCtx.beginPath();
-                    drawingCtx.moveTo(protractorPoints[0].x, protractorPoints[0].y);
-                    drawingCtx.lineTo(pos.x, pos.y);
-                    drawingCtx.stroke();
-                    // Center dot
-                    drawingCtx.fillStyle = drawingColor;
-                    drawingCtx.beginPath();
-                    drawingCtx.arc(protractorPoints[0].x, protractorPoints[0].y, 4, 0, Math.PI * 2);
-                    drawingCtx.fill();
-                    drawingCtx.restore();
-                };
-                snap.src = preShapeSnapshot;
-            } else if (protractorPoints.length === 3) {
-                // Draw complete angle on clean state
-                const center = protractorPoints[0], p1 = protractorPoints[1], p2 = protractorPoints[2];
-                const snap = new Image();
-                snap.onload = () => {
-                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                    drawingCtx.drawImage(snap, 0, 0);
-                    drawProtractor(drawingCtx, center, p1, p2, { color: drawingColor, size: drawingStrokeWidth });
-                    pushDrawingHistory();
-                };
-                snap.src = preShapeSnapshot;
-                protractorPoints = [];
-                preShapeSnapshot = null;
+            if (protractorState === 'initial') {
+                protractorCenterPoint = pos;
+                protractorCanvasState = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                protractorState = 'drawing_first_line';
+                protractorLastValidationPoint = { ...pos };
+                isDrawing = true;
             }
             return;
         }
 
-        // Arc: 3 clicks (center, start radius point, end radius point)
+        // Arc: drag-based state machine
         if (drawingTool === 'arc') {
-            arcPoints.push(pos);
-            if (arcPoints.length === 1) {
-                preShapeSnapshot = drawingHistory[drawingHistoryIndex];
-                drawingCtx.save();
-                drawingCtx.fillStyle = drawingColor;
-                drawingCtx.beginPath();
-                drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
-                drawingCtx.fill();
-                drawingCtx.restore();
-            } else if (arcPoints.length === 2) {
-                const center = arcPoints[0];
-                const r = Math.sqrt((pos.x - center.x) ** 2 + (pos.y - center.y) ** 2);
-                const snap = new Image();
-                snap.onload = () => {
-                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                    drawingCtx.drawImage(snap, 0, 0);
-                    // Preview circle outline
-                    drawingCtx.save();
-                    drawingCtx.strokeStyle = drawingColor;
-                    drawingCtx.lineWidth = 1;
-                    drawingCtx.globalAlpha = 0.3;
-                    drawingCtx.setLineDash([5, 5]);
-                    drawingCtx.beginPath();
-                    drawingCtx.arc(center.x, center.y, r, 0, Math.PI * 2);
-                    drawingCtx.stroke();
-                    drawingCtx.setLineDash([]);
-                    // Mark start point
-                    drawingCtx.globalAlpha = 1;
-                    drawingCtx.fillStyle = drawingColor;
-                    drawingCtx.beginPath();
-                    drawingCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
-                    drawingCtx.fill();
-                    drawingCtx.restore();
-                };
-                snap.src = preShapeSnapshot;
-            } else if (arcPoints.length === 3) {
-                const center = arcPoints[0], p1 = arcPoints[1], p2 = arcPoints[2];
-                const r = Math.sqrt((p1.x - center.x) ** 2 + (p1.y - center.y) ** 2);
-                const startAngle = Math.atan2(p1.y - center.y, p1.x - center.x);
-                const endAngle = Math.atan2(p2.y - center.y, p2.x - center.x);
-                const snap = new Image();
-                snap.onload = () => {
-                    drawingCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-                    drawingCtx.drawImage(snap, 0, 0);
-                    drawArc(drawingCtx, center, r, startAngle, endAngle, { color: drawingColor, size: drawingStrokeWidth });
-                    pushDrawingHistory();
-                };
-                snap.src = preShapeSnapshot;
-                arcPoints = [];
-                preShapeSnapshot = null;
+            if (arcState === 'initial') {
+                arcCenterPoint = pos;
+                arcCanvasState = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+                arcState = 'drawing_radius';
+                arcLastValidationPoint = { ...pos };
+                isDrawing = true;
             }
             return;
         }
@@ -2457,18 +2502,51 @@ function setupDrawingEvents(canvas) {
 
         if (TWO_POINT_TOOLS.includes(drawingTool)) {
             preShapeSnapshot = canvas.toDataURL();
+        } else if (drawingTool === 'pen') {
+            // Pen: init auto-straighten state
+            penStartPoint = pos;
+            penDrawingPath = [pos];
+            penLastCheckPoint = pos;
+            penCanvasSnapshot = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            penIsStabilized = false;
+            clearTimeout(penStraightLineTimer);
+            penStraightLineTimer = setTimeout(() => {
+                penConvertToStraightLine();
+            }, 1500);
+            drawingCtx.save();
+            drawingCtx.beginPath();
+            drawingCtx.moveTo(pos.x, pos.y);
+            drawingCtx.strokeStyle = drawingColor;
+            drawingCtx.lineWidth = drawingStrokeWidth;
+            drawingCtx.globalAlpha = 1;
+            drawingCtx.lineCap = 'round';
+            drawingCtx.lineJoin = 'round';
+        } else if (drawingTool === 'highlighter') {
+            // Highlighter: create temp canvas
+            if (!highlighterTempCanvas) {
+                highlighterTempCanvas = document.createElement('canvas');
+                highlighterTempCanvas.width = CANVAS_SIZE;
+                highlighterTempCanvas.height = CANVAS_SIZE;
+            }
+            highlighterSnapshot = drawingCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            const tempCtx = highlighterTempCanvas.getContext('2d');
+            tempCtx.fillStyle = 'transparent';
+            tempCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            tempCtx.save();
+            tempCtx.beginPath();
+            tempCtx.moveTo(pos.x, pos.y);
+            tempCtx.strokeStyle = drawingColor;
+            tempCtx.lineWidth = drawingStrokeWidth * 4;
+            tempCtx.globalAlpha = 1;
+            tempCtx.lineCap = 'round';
+            tempCtx.lineJoin = 'round';
         } else {
+            // Eraser or other
             drawingCtx.beginPath();
             drawingCtx.moveTo(pos.x, pos.y);
             if (drawingTool === 'eraser') {
                 drawingCtx.globalCompositeOperation = 'destination-out';
                 drawingCtx.lineWidth = drawingStrokeWidth * 5;
-            } else if (drawingTool === 'highlighter') {
-                // Use separate canvas for highlighter to get true transparency
-                drawingCtx.globalCompositeOperation = 'source-over';
-                drawingCtx.strokeStyle = drawingColor;
-                drawingCtx.lineWidth = drawingStrokeWidth * 4;
-                drawingCtx.globalAlpha = 0.25;
             } else {
                 drawingCtx.globalCompositeOperation = 'source-over';
                 drawingCtx.strokeStyle = drawingColor;
@@ -2481,9 +2559,151 @@ function setupDrawingEvents(canvas) {
     }
 
     function draw(e) {
+        const pos = getPos(e);
+
+        // Protractor: drawing first or second line
+        if (drawingTool === 'protractor') {
+            if (protractorState === 'drawing_first_line') {
+                protractorFirstPoint = pos;
+                // Check if movement > 5px from last validation point
+                const dx = pos.x - protractorLastValidationPoint.x;
+                const dy = pos.y - protractorLastValidationPoint.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 5) {
+                    protractorLastValidationPoint = { ...pos };
+                    clearTimeout(protractorValidationTimer);
+                    protractorValidationTimer = setTimeout(protractorValidate, 1000);
+                }
+                // Render preview
+                drawingCtx.putImageData(protractorCanvasState, 0, 0);
+                drawingCtx.save();
+                drawingCtx.strokeStyle = '#ff0000';
+                drawingCtx.lineWidth = 1;
+                drawingCtx.setLineDash([5, 5]);
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(protractorCenterPoint.x, protractorCenterPoint.y);
+                drawingCtx.lineTo(pos.x, pos.y);
+                drawingCtx.stroke();
+                drawingCtx.setLineDash([]);
+                drawingCtx.globalAlpha = 1;
+                drawingCtx.fillStyle = '#00aa00';
+                drawingCtx.beginPath();
+                drawingCtx.arc(protractorCenterPoint.x, protractorCenterPoint.y, 5, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.fillStyle = '#ff0000';
+                drawingCtx.beginPath();
+                drawingCtx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+            } else if (protractorState === 'drawing_second_line') {
+                protractorSecondPoint = pos;
+                // Check angle snapping to integer
+                const a1 = Math.atan2(protractorFirstPoint.y - protractorCenterPoint.y, protractorFirstPoint.x - protractorCenterPoint.x);
+                const a2 = Math.atan2(pos.y - protractorCenterPoint.y, pos.x - protractorCenterPoint.x);
+                let diff = a2 - a1;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                const degrees = Math.abs(diff) * 180 / Math.PI;
+                const nearestInt = Math.round(degrees);
+                const snapDiff = Math.abs(degrees - nearestInt);
+                let displayDegrees = degrees > 180 ? 360 - degrees : degrees;
+                if (snapDiff < 2) displayDegrees = nearestInt;
+                // Render preview
+                drawingCtx.putImageData(protractorCanvasState, 0, 0);
+                drawingCtx.save();
+                drawingCtx.strokeStyle = '#ff0000';
+                drawingCtx.lineWidth = 1;
+                drawingCtx.setLineDash([5, 5]);
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(protractorCenterPoint.x, protractorCenterPoint.y);
+                drawingCtx.lineTo(pos.x, pos.y);
+                drawingCtx.stroke();
+                drawingCtx.setLineDash([]);
+                // Arc
+                const r1 = Math.sqrt((protractorFirstPoint.x - protractorCenterPoint.x) ** 2 + (protractorFirstPoint.y - protractorCenterPoint.y) ** 2);
+                const r2 = Math.sqrt((pos.x - protractorCenterPoint.x) ** 2 + (pos.y - protractorCenterPoint.y) ** 2);
+                const arcR = Math.min(50, Math.min(r1, r2) * 0.3);
+                drawingCtx.strokeStyle = '#ff0000';
+                drawingCtx.lineWidth = 1;
+                drawingCtx.globalAlpha = 0.5;
+                drawingCtx.beginPath();
+                drawingCtx.arc(protractorCenterPoint.x, protractorCenterPoint.y, arcR, a1, a2, diff < 0);
+                drawingCtx.stroke();
+                // Markers
+                drawingCtx.globalAlpha = 1;
+                drawingCtx.fillStyle = snapDiff < 2 ? '#00aa00' : '#ff0000';
+                drawingCtx.beginPath();
+                drawingCtx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+            }
+            return;
+        }
+
+        // Arc: drawing radius or arc
+        if (drawingTool === 'arc') {
+            if (arcState === 'drawing_radius') {
+                arcRadiusPoint = pos;
+                // Check if movement > 5px from last validation point
+                const dx = pos.x - arcLastValidationPoint.x;
+                const dy = pos.y - arcLastValidationPoint.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 5) {
+                    arcLastValidationPoint = { ...pos };
+                    clearTimeout(arcValidationTimer);
+                    arcValidationTimer = setTimeout(arcValidate, 1000);
+                }
+                // Render preview
+                drawingCtx.putImageData(arcCanvasState, 0, 0);
+                const r = Math.sqrt((pos.x - arcCenterPoint.x) ** 2 + (pos.y - arcCenterPoint.y) ** 2);
+                drawingCtx.save();
+                drawingCtx.strokeStyle = '#ff0000';
+                drawingCtx.lineWidth = 1;
+                drawingCtx.setLineDash([5, 5]);
+                drawingCtx.beginPath();
+                drawingCtx.moveTo(arcCenterPoint.x, arcCenterPoint.y);
+                drawingCtx.lineTo(pos.x, pos.y);
+                drawingCtx.stroke();
+                drawingCtx.setLineDash([]);
+                drawingCtx.globalAlpha = 1;
+                drawingCtx.fillStyle = '#00aa00';
+                drawingCtx.beginPath();
+                drawingCtx.arc(arcCenterPoint.x, arcCenterPoint.y, 5, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.fillStyle = '#ff0000';
+                drawingCtx.beginPath();
+                drawingCtx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+            } else if (arcState === 'drawing_arc') {
+                arcEndPoint = pos;
+                const r = Math.sqrt((arcRadiusPoint.x - arcCenterPoint.x) ** 2 + (arcRadiusPoint.y - arcCenterPoint.y) ** 2);
+                const startAngle = Math.atan2(arcRadiusPoint.y - arcCenterPoint.y, arcRadiusPoint.x - arcCenterPoint.x);
+                const endAngle = Math.atan2(pos.y - arcCenterPoint.y, pos.x - arcCenterPoint.x);
+                // Check snapping to integer angle
+                let diff = endAngle - startAngle;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                const degrees = Math.abs(diff) * 180 / Math.PI;
+                const nearestInt = Math.round(degrees);
+                const snapDiff = Math.abs(degrees - nearestInt);
+                // Render preview
+                drawingCtx.putImageData(arcCanvasState, 0, 0);
+                drawingCtx.save();
+                drawingCtx.strokeStyle = '#ff0000';
+                drawingCtx.lineWidth = 2;
+                drawingCtx.globalAlpha = snapDiff < 2 ? 1 : 0.6;
+                drawingCtx.lineCap = 'round';
+                drawingCtx.beginPath();
+                drawingCtx.arc(arcCenterPoint.x, arcCenterPoint.y, r, startAngle, endAngle);
+                drawingCtx.stroke();
+                drawingCtx.restore();
+            }
+            return;
+        }
+
         if (!isDrawing) return;
         e.preventDefault();
-        const pos = getPos(e);
         shapeEnd = pos;
 
         if (TWO_POINT_TOOLS.includes(drawingTool)) {
@@ -2499,13 +2719,77 @@ function setupDrawingEvents(canvas) {
                 drawShapePreview(drawingCtx, pTool, pStart, pEnd);
             };
             snap.src = pSnap;
+        } else if (drawingTool === 'pen') {
+            // Check if moved > 8px from last check point
+            const dx = pos.x - penLastCheckPoint.x;
+            const dy = pos.y - penLastCheckPoint.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > 8) {
+                penLastCheckPoint = { ...pos };
+                clearTimeout(penStraightLineTimer);
+                penStraightLineTimer = setTimeout(() => {
+                    penConvertToStraightLine();
+                }, 1500);
+            }
+            penDrawingPath.push(pos);
+            drawingCtx.lineTo(pos.x, pos.y);
+            drawingCtx.stroke();
+        } else if (drawingTool === 'highlighter') {
+            // Draw on temp canvas
+            const tempCtx = highlighterTempCanvas.getContext('2d');
+            tempCtx.lineTo(pos.x, pos.y);
+            tempCtx.stroke();
         } else {
+            // Eraser or other
             drawingCtx.lineTo(pos.x, pos.y);
             drawingCtx.stroke();
         }
     }
 
     function endDraw(e) {
+        // Protractor end
+        if (drawingTool === 'protractor') {
+            isDrawing = false;
+            if (protractorState === 'drawing_second_line' && protractorFirstPoint && protractorSecondPoint) {
+                // Finalize: restore, draw both permanent lines
+                drawingCtx.putImageData(protractorCanvasState, 0, 0);
+                drawProtractor(drawingCtx, protractorCenterPoint, protractorFirstPoint, protractorSecondPoint, { color: drawingColor, size: drawingStrokeWidth });
+                pushDrawingHistory();
+                clearProtractorState();
+            } else if (protractorState === 'drawing_first_line') {
+                // Cancel: restore clean state
+                drawingCtx.putImageData(protractorCanvasState, 0, 0);
+                clearProtractorState();
+            }
+            return;
+        }
+
+        // Arc end
+        if (drawingTool === 'arc') {
+            isDrawing = false;
+            if (arcState === 'drawing_arc' && arcRadiusPoint && arcEndPoint) {
+                // Finalize
+                const r = Math.sqrt((arcRadiusPoint.x - arcCenterPoint.x) ** 2 + (arcRadiusPoint.y - arcCenterPoint.y) ** 2);
+                const startAngle = Math.atan2(arcRadiusPoint.y - arcCenterPoint.y, arcRadiusPoint.x - arcCenterPoint.x);
+                const endAngle = Math.atan2(arcEndPoint.y - arcCenterPoint.y, arcEndPoint.x - arcCenterPoint.x);
+                drawingCtx.putImageData(arcCanvasState, 0, 0);
+                drawArc(drawingCtx, arcCenterPoint, r, startAngle, endAngle, { color: drawingColor, size: drawingStrokeWidth });
+                drawingCtx.save();
+                drawingCtx.fillStyle = drawingColor;
+                drawingCtx.beginPath();
+                drawingCtx.arc(arcCenterPoint.x, arcCenterPoint.y, 4, 0, Math.PI * 2);
+                drawingCtx.fill();
+                drawingCtx.restore();
+                pushDrawingHistory();
+                clearArcState();
+            } else if (arcState === 'drawing_radius') {
+                // Cancel
+                drawingCtx.putImageData(arcCanvasState, 0, 0);
+                clearArcState();
+            }
+            return;
+        }
+
         if (!isDrawing) return;
         isDrawing = false;
 
@@ -2520,6 +2804,20 @@ function setupDrawingEvents(canvas) {
                 pushDrawingHistory();
             };
             snap.src = fSnap;
+        } else if (drawingTool === 'pen') {
+            drawingCtx.restore();
+            clearPenState();
+            pushDrawingHistory();
+        } else if (drawingTool === 'highlighter') {
+            // Composite temp canvas onto main with alpha
+            const tempCtx = highlighterTempCanvas.getContext('2d');
+            drawingCtx.putImageData(highlighterSnapshot, 0, 0);
+            drawingCtx.save();
+            drawingCtx.globalAlpha = 0.25;
+            drawingCtx.drawImage(highlighterTempCanvas, 0, 0);
+            drawingCtx.restore();
+            highlighterSnapshot = null;
+            pushDrawingHistory();
         } else {
             drawingCtx.globalAlpha = 1;
             drawingCtx.globalCompositeOperation = 'source-over';
@@ -2724,6 +3022,17 @@ function setDrawingTool(tool) {
     drawingTool = tool;
     protractorPoints = [];
     arcPoints = [];
+    // Reset state machines
+    if (protractorValidationTimer) clearTimeout(protractorValidationTimer);
+    if (arcValidationTimer) clearTimeout(arcValidationTimer);
+    if (penStraightLineTimer) clearTimeout(penStraightLineTimer);
+    protractorState = 'initial';
+    arcState = 'initial';
+    penStartPoint = null;
+    penDrawingPath = [];
+    penIsStabilized = false;
+    penCanvasSnapshot = null;
+    penLastCheckPoint = null;
     updateDrawingToolUI();
     updateToolHint();
     const c = document.getElementById('drawing-canvas');

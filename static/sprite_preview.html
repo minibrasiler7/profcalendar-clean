@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sprite Preview - Mouvement</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 30px;
+  }
+  h1 { margin-bottom: 5px; color: #e94560; }
+  .subtitle { color: #888; margin-bottom: 20px; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 15px; align-items: center;
+    margin-bottom: 25px; background: #16213e; padding: 14px 24px;
+    border-radius: 8px; justify-content: center;
+  }
+  .controls label { color: #aaa; font-size: 14px; }
+  .controls select, .controls input[type="range"] {
+    background: #0f3460; color: #eee; border: 1px solid #e94560;
+    padding: 6px 10px; border-radius: 4px; font-size: 14px;
+  }
+  .controls select { cursor: pointer; }
+
+  .class-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+    margin-bottom: 25px; max-width: 900px;
+  }
+  .class-btn {
+    background: #16213e; color: #ccc; border: 2px solid #0f3460;
+    padding: 6px 14px; border-radius: 20px; font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .class-btn:hover { border-color: #e94560; color: #fff; }
+  .class-btn.active { background: #e94560; border-color: #e94560; color: #fff; font-weight: bold; }
+  .class-btn.unavailable { opacity: 0.35; }
+
+  .main-content {
+    display: flex; gap: 30px; align-items: flex-start; max-width: 1000px; width: 100%;
+  }
+
+  .portrait-section { text-align: center; flex-shrink: 0; }
+  .portrait-section img {
+    width: 180px; height: 180px; object-fit: contain;
+    border-radius: 12px; border: 2px solid #e94560; background: #16213e;
+  }
+  .portrait-name {
+    color: #e94560; font-size: 18px; font-weight: bold; margin-top: 10px;
+  }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 20px; flex: 1;
+  }
+  .direction-card {
+    background: #16213e; border-radius: 12px; padding: 15px;
+    text-align: center; border: 1px solid #0f3460;
+  }
+  .direction-card h3 { color: #e94560; margin-bottom: 10px; font-size: 14px; }
+  .sprite-container {
+    width: 256px; height: 256px; margin: 0 auto;
+    overflow: hidden; position: relative;
+    background: repeating-conic-gradient(#2a2a4a 0% 25%, #1a1a3e 0% 50%) 50% / 20px 20px;
+    border-radius: 8px; border: 2px solid #0f3460;
+    image-rendering: pixelated;
+  }
+  .sprite-container canvas {
+    width: 256px; height: 256px;
+    image-rendering: pixelated;
+  }
+  .frame-info { color: #666; font-size: 11px; margin-top: 6px; }
+
+  .no-sprites {
+    grid-column: 1 / -1; text-align: center; color: #666;
+    padding: 60px 20px; font-size: 16px;
+  }
+  .no-sprites code {
+    display: block; margin-top: 15px; background: #0f3460;
+    padding: 10px 16px; border-radius: 6px; color: #e94560;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <h1>Sprite Preview</h1>
+  <p class="subtitle">Animations de mouvement</p>
+
+  <div class="class-grid" id="classGrid"></div>
+
+  <div class="controls">
+    <label>Vitesse:</label>
+    <input type="range" id="speed" min="50" max="500" value="150" step="10">
+    <span id="speedVal">150ms</span>
+    <label>Zoom:</label>
+    <select id="zoom">
+      <option value="1">1x</option>
+      <option value="2" selected>2x</option>
+      <option value="3">3x</option>
+    </select>
+  </div>
+
+  <div class="main-content">
+    <div class="portrait-section">
+      <img id="portrait" src="" alt="Portrait">
+      <div class="portrait-name" id="className"></div>
+      <div class="frame-info">Portrait de référence</div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+<script>
+const CLASSES = [
+  { id: 'guerrier', name: 'Guerrier', color: '#ef4444', group: 'base' },
+  { id: 'mage', name: 'Mage', color: '#667eea', group: 'base' },
+  { id: 'archer', name: 'Archer', color: '#10b981', group: 'base' },
+  { id: 'guerisseur', name: 'Guérisseur', color: '#f59e0b', group: 'base' },
+  { id: 'chevalier', name: 'Chevalier', color: '#c0c0c0', group: 'guerrier' },
+  { id: 'berserker', name: 'Berserker', color: '#ef4444', group: 'guerrier' },
+  { id: 'paladin', name: 'Paladin', color: '#fbbf24', group: 'guerrier' },
+  { id: 'gladiateur', name: 'Gladiateur', color: '#b91c1c', group: 'guerrier' },
+  { id: 'pyromancien', name: 'Pyromancien', color: '#ef4444', group: 'mage' },
+  { id: 'enchanteur', name: 'Enchanteur', color: '#a855f7', group: 'mage' },
+  { id: 'archimage', name: 'Archimage', color: '#1e3a8a', group: 'mage' },
+  { id: 'chronomancien', name: 'Chronomancien', color: '#0d9488', group: 'mage' },
+  { id: 'ranger', name: 'Ranger', color: '#059669', group: 'archer' },
+  { id: 'sniper', name: 'Sniper', color: '#0f172a', group: 'archer' },
+  { id: 'chasseur_de_dragons', name: 'Chasseur de dragons', color: '#dc2626', group: 'archer' },
+  { id: 'assassin', name: 'Assassin', color: '#4c1d95', group: 'archer' },
+  { id: 'pretre', name: 'Prêtre', color: '#fbbf24', group: 'guerisseur' },
+  { id: 'druide', name: 'Druide', color: '#10b981', group: 'guerisseur' },
+  { id: 'saint', name: 'Saint', color: '#f0f9ff', group: 'guerisseur' },
+  { id: 'chaman', name: 'Chaman', color: '#7c3aed', group: 'guerisseur' },
+];
+
+const DIRECTIONS = [
+  { key: 'se', label: 'Sud-Est (SE)', file: 'walk_se_sheet.png' },
+  { key: 'sw', label: 'Sud-Ouest (SW)', file: 'walk_sw_sheet.png' },
+  { key: 'ne', label: 'Nord-Est (NE)', file: 'walk_ne_sheet.png' },
+  { key: 'nw', label: 'Nord-Ouest (NW)', file: 'walk_nw_sheet.png' },
+];
+
+const COLS = 3, ROWS = 3, TOTAL_FRAMES = 9;
+
+let currentClass = 'guerrier';
+let animators = [];
+let currentZoom = 2;
+let currentSpeed = 150;
+
+const classGrid = document.getElementById('classGrid');
+const grid = document.getElementById('grid');
+const portrait = document.getElementById('portrait');
+const classNameEl = document.getElementById('className');
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const zoomSelect = document.getElementById('zoom');
+
+// Build class buttons
+CLASSES.forEach(cls => {
+  const btn = document.createElement('button');
+  btn.className = 'class-btn';
+  btn.textContent = cls.name;
+  btn.dataset.classId = cls.id;
+  btn.style.borderColor = cls.color;
+  btn.addEventListener('click', () => selectClass(cls.id));
+  classGrid.appendChild(btn);
+});
+
+function checkSpritesExist(classId) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = `img/sprites/movement/${classId}/walk_se_sheet.png`;
+  });
+}
+
+async function updateClassButtons() {
+  const buttons = classGrid.querySelectorAll('.class-btn');
+  for (const btn of buttons) {
+    const exists = await checkSpritesExist(btn.dataset.classId);
+    btn.classList.toggle('unavailable', !exists);
+  }
+}
+
+function selectClass(classId) {
+  currentClass = classId;
+  const cls = CLASSES.find(c => c.id === classId);
+
+  // Update buttons
+  classGrid.querySelectorAll('.class-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.classId === classId);
+  });
+
+  // Update portrait
+  portrait.src = `img/chihuahua/${classId}.png`;
+  classNameEl.textContent = cls.name;
+
+  // Stop all current animations
+  animators.forEach(a => a.stop());
+  animators = [];
+
+  // Clear grid
+  grid.innerHTML = '';
+
+  // Check if sprites exist
+  const testImg = new Image();
+  testImg.onerror = () => {
+    grid.innerHTML = `
+      <div class="no-sprites">
+        Pas de sprites de mouvement pour <strong>${cls.name}</strong>
+        <code>python3 generate_ludo_sprites.py --movement --class ${classId} --verbose</code>
+      </div>
+    `;
+  };
+  testImg.onload = () => buildAnimations(classId);
+  testImg.src = `img/sprites/movement/${classId}/walk_se_sheet.png`;
+}
+
+function buildAnimations(classId) {
+  DIRECTIONS.forEach(dir => {
+    const card = document.createElement('div');
+    card.className = 'direction-card';
+    card.innerHTML = `
+      <h3>${dir.label}</h3>
+      <div class="sprite-container">
+        <canvas width="256" height="256"></canvas>
+      </div>
+      <div class="frame-info">Frame: <span class="frame-num">0</span> / ${TOTAL_FRAMES}</div>
+    `;
+    grid.appendChild(card);
+
+    const canvas = card.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const frameNumEl = card.querySelector('.frame-num');
+    const img = new Image();
+    img.src = `img/sprites/movement/${classId}/${dir.file}`;
+
+    let frame = 0;
+    let intervalId = null;
+
+    img.onload = () => {
+      const fw = img.width / COLS;
+      const fh = img.height / ROWS;
+      canvas.width = fw;
+      canvas.height = fh;
+
+      // Apply current zoom
+      const container = card.querySelector('.sprite-container');
+      container.style.width = (256 * currentZoom) + 'px';
+      container.style.height = (256 * currentZoom) + 'px';
+      canvas.style.width = (256 * currentZoom) + 'px';
+      canvas.style.height = (256 * currentZoom) + 'px';
+
+      const animate = () => {
+        const col = frame % COLS;
+        const row = Math.floor(frame / COLS);
+        ctx.clearRect(0, 0, fw, fh);
+        ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+        frameNumEl.textContent = frame + 1;
+        frame = (frame + 1) % TOTAL_FRAMES;
+      };
+
+      animate();
+      intervalId = setInterval(animate, currentSpeed);
+
+      animators.push({
+        restart: (ms) => {
+          clearInterval(intervalId);
+          intervalId = setInterval(animate, ms);
+        },
+        stop: () => clearInterval(intervalId),
+      });
+    };
+
+    img.onerror = () => {
+      const container = card.querySelector('.sprite-container');
+      container.innerHTML = '<div style="color:#666;padding:40px;font-size:12px">Non disponible</div>';
+    };
+  });
+}
+
+speedSlider.addEventListener('input', () => {
+  currentSpeed = parseInt(speedSlider.value);
+  speedVal.textContent = currentSpeed + 'ms';
+  animators.forEach(a => a.restart(currentSpeed));
+});
+
+zoomSelect.addEventListener('change', () => {
+  currentZoom = parseInt(zoomSelect.value);
+  document.querySelectorAll('.sprite-container').forEach(el => {
+    el.style.width = (256 * currentZoom) + 'px';
+    el.style.height = (256 * currentZoom) + 'px';
+  });
+  document.querySelectorAll('.sprite-container canvas').forEach(el => {
+    el.style.width = (256 * currentZoom) + 'px';
+    el.style.height = (256 * currentZoom) + 'px';
+  });
+});
+
+// Init
+updateClassButtons();
+selectClass('guerrier');
+</script>
+</body>
+</html>

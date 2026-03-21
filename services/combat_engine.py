@@ -724,10 +724,10 @@ class CombatEngine:
         for p in session.participants:
             if p.is_alive and p.id != participant.id:
                 if p.grid_x == target_x and p.grid_y == target_y:
-                    return None, "Case d\u00e9j\u00e0 occup\u00e9e par un autre joueur"
+                    return None, "Case déjà occupée par un autre joueur"
         for m in session.monsters:
             if m.is_alive and m.grid_x == target_x and m.grid_y == target_y:
-                return None, "Case occup\u00e9e par un monstre"
+                return None, "Case occupée par un monstre"
 
         old_x, old_y = participant.grid_x, participant.grid_y
 

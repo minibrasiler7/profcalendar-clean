@@ -1,0 +1,164 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-02-23T08:59:45Z",
+  "frame_width": 128,
+  "frame_height": 128,
+  "characters": {
+    "guerrier": {
+      "name": "Guerrier",
+      "description": "Un chihuahua brave en armure de guerrier",
+      "color": "#DC2626",
+      "animations": {
+        "idle": {
+          "name": "Repos",
+          "file": "static/img/sprites/guerrier/idle.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "walk": {
+          "name": "Marche",
+          "file": "static/img/sprites/guerrier/walk.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "jump": {
+          "name": "Saut",
+          "file": "static/img/sprites/guerrier/jump.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        },
+        "attack": {
+          "name": "Attaque",
+          "file": "static/img/sprites/guerrier/attack.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        }
+      }
+    },
+    "mage": {
+      "name": "Mage",
+      "description": "Un chihuahua mystique en robe de mage",
+      "color": "#7C3AED",
+      "animations": {
+        "idle": {
+          "name": "Repos",
+          "file": "static/img/sprites/mage/idle.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "walk": {
+          "name": "Marche",
+          "file": "static/img/sprites/mage/walk.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "jump": {
+          "name": "Saut",
+          "file": "static/img/sprites/mage/jump.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        },
+        "attack": {
+          "name": "Attaque",
+          "file": "static/img/sprites/mage/attack.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        }
+      }
+    },
+    "archer": {
+      "name": "Archer",
+      "description": "Un chihuahua agile avec arc et flèches",
+      "color": "#059669",
+      "animations": {
+        "idle": {
+          "name": "Repos",
+          "file": "static/img/sprites/archer/idle.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "walk": {
+          "name": "Marche",
+          "file": "static/img/sprites/archer/walk.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "jump": {
+          "name": "Saut",
+          "file": "static/img/sprites/archer/jump.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        },
+        "attack": {
+          "name": "Attaque",
+          "file": "static/img/sprites/archer/attack.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        }
+      }
+    },
+    "guerisseur": {
+      "name": "Guérisseur",
+      "description": "Un chihuahua bienveillant avec pouvoirs de soin",
+      "color": "#0EA5E9",
+      "animations": {
+        "idle": {
+          "name": "Repos",
+          "file": "static/img/sprites/guerisseur/idle.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "walk": {
+          "name": "Marche",
+          "file": "static/img/sprites/guerisseur/walk.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": true
+        },
+        "jump": {
+          "name": "Saut",
+          "file": "static/img/sprites/guerisseur/jump.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        },
+        "attack": {
+          "name": "Attaque",
+          "file": "static/img/sprites/guerisseur/attack.png",
+          "frames": 8,
+          "frame_width": 128,
+          "frame_height": 128,
+          "loop": false
+        }
+      }
+    }
+  }
+}

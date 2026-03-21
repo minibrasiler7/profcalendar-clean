@@ -1,0 +1,1479 @@
+{
+  "frame_size": 128,
+  "classes": {
+    "guerrier": {
+      "name": "Guerrier",
+      "color": "#ef4444",
+      "portrait": "img/chihuahua/guerrier.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/guerrier/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/guerrier/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/guerrier/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/guerrier/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "coup_epee": {
+            "name": "Coup d'épée",
+            "se": "img/sprites/attacks/guerrier/coup_epee_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/coup_epee_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/coup_epee_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/coup_epee_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "bouclier_protect": {
+            "name": "Protection",
+            "se": "img/sprites/attacks/guerrier/bouclier_protect_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/bouclier_protect_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/bouclier_protect_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/bouclier_protect_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "charge": {
+            "name": "Charge",
+            "se": "img/sprites/attacks/guerrier/charge_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/charge_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/charge_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/charge_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tourbillon": {
+            "name": "Tourbillon",
+            "se": "img/sprites/attacks/guerrier/tourbillon_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/tourbillon_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/tourbillon_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/tourbillon_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "cri_guerre": {
+            "name": "Cri de guerre",
+            "se": "img/sprites/attacks/guerrier/cri_guerre_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/cri_guerre_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/cri_guerre_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/cri_guerre_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "frappe_titan": {
+            "name": "Frappe du titan",
+            "se": "img/sprites/attacks/guerrier/frappe_titan_se_sheet.png",
+            "sw": "img/sprites/attacks/guerrier/frappe_titan_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerrier/frappe_titan_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerrier/frappe_titan_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/guerrier_ko.png"
+      }
+    },
+    "mage": {
+      "name": "Mage",
+      "color": "#667eea",
+      "portrait": "img/chihuahua/mage.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/mage/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/mage/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/mage/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/mage/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "boule_feu": {
+            "name": "Boule de feu",
+            "se": "img/sprites/attacks/mage/boule_feu_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/boule_feu_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/boule_feu_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/boule_feu_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "barriere_magique": {
+            "name": "Barrière magique",
+            "se": "img/sprites/attacks/mage/barriere_magique_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/barriere_magique_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/barriere_magique_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/barriere_magique_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "eclair": {
+            "name": "Éclair",
+            "se": "img/sprites/attacks/mage/eclair_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/eclair_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/eclair_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/eclair_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "blizzard": {
+            "name": "Blizzard",
+            "se": "img/sprites/attacks/mage/blizzard_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/blizzard_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/blizzard_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/blizzard_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "teleportation": {
+            "name": "Téléportation",
+            "se": "img/sprites/attacks/mage/teleportation_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/teleportation_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/teleportation_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/teleportation_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "meteor": {
+            "name": "Météore",
+            "se": "img/sprites/attacks/mage/meteor_se_sheet.png",
+            "sw": "img/sprites/attacks/mage/meteor_sw_sheet.png",
+            "ne": "img/sprites/attacks/mage/meteor_ne_sheet.png",
+            "nw": "img/sprites/attacks/mage/meteor_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/mage_ko.png"
+      }
+    },
+    "archer": {
+      "name": "Archer",
+      "color": "#10b981",
+      "portrait": "img/chihuahua/archer.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/archer/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/archer/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/archer/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/archer/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "tir_precis": {
+            "name": "Tir précis",
+            "se": "img/sprites/attacks/archer/tir_precis_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/tir_precis_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/tir_precis_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/tir_precis_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "pluie_fleches": {
+            "name": "Pluie de flèches",
+            "se": "img/sprites/attacks/archer/pluie_fleches_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/pluie_fleches_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/pluie_fleches_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/pluie_fleches_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "esquive": {
+            "name": "Esquive",
+            "se": "img/sprites/attacks/archer/esquive_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/esquive_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/esquive_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/esquive_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "fleche_poison": {
+            "name": "Flèche empoisonnée",
+            "se": "img/sprites/attacks/archer/fleche_poison_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/fleche_poison_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/fleche_poison_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/fleche_poison_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "piege": {
+            "name": "Piège",
+            "se": "img/sprites/attacks/archer/piege_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/piege_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/piege_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/piege_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tir_ultime": {
+            "name": "Tir ultime",
+            "se": "img/sprites/attacks/archer/tir_ultime_se_sheet.png",
+            "sw": "img/sprites/attacks/archer/tir_ultime_sw_sheet.png",
+            "ne": "img/sprites/attacks/archer/tir_ultime_ne_sheet.png",
+            "nw": "img/sprites/attacks/archer/tir_ultime_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/archer_ko.png"
+      }
+    },
+    "guerisseur": {
+      "name": "Guérisseur",
+      "color": "#f59e0b",
+      "portrait": "img/chihuahua/guerisseur.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/guerisseur/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/guerisseur/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/guerisseur/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/guerisseur/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "soin": {
+            "name": "Soin",
+            "se": "img/sprites/attacks/guerisseur/soin_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/soin_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/soin_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/soin_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "coup_baton": {
+            "name": "Coup de bâton",
+            "se": "img/sprites/attacks/guerisseur/coup_baton_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/coup_baton_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/coup_baton_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/coup_baton_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "benediction": {
+            "name": "Bénédiction",
+            "se": "img/sprites/attacks/guerisseur/benediction_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/benediction_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/benediction_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/benediction_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "guerison_groupe": {
+            "name": "Guérison de groupe",
+            "se": "img/sprites/attacks/guerisseur/guerison_groupe_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/guerison_groupe_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/guerison_groupe_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/guerison_groupe_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "purification": {
+            "name": "Purification",
+            "se": "img/sprites/attacks/guerisseur/purification_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/purification_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/purification_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/purification_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "resurrection": {
+            "name": "Résurrection",
+            "se": "img/sprites/attacks/guerisseur/resurrection_se_sheet.png",
+            "sw": "img/sprites/attacks/guerisseur/resurrection_sw_sheet.png",
+            "ne": "img/sprites/attacks/guerisseur/resurrection_ne_sheet.png",
+            "nw": "img/sprites/attacks/guerisseur/resurrection_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/guerisseur_ko.png"
+      }
+    },
+    "chevalier": {
+      "name": "Chevalier",
+      "color": "#c0c0c0",
+      "portrait": "img/chihuahua/chevalier.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/chevalier/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/chevalier/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/chevalier/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/chevalier/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "coup_epee": {
+            "name": "Coup d'épée",
+            "se": "img/sprites/attacks/chevalier/coup_epee_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/coup_epee_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/coup_epee_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/coup_epee_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "bouclier_protect": {
+            "name": "Protection",
+            "se": "img/sprites/attacks/chevalier/bouclier_protect_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/bouclier_protect_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/bouclier_protect_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/bouclier_protect_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "charge": {
+            "name": "Charge",
+            "se": "img/sprites/attacks/chevalier/charge_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/charge_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/charge_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/charge_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tourbillon": {
+            "name": "Tourbillon",
+            "se": "img/sprites/attacks/chevalier/tourbillon_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/tourbillon_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/tourbillon_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/tourbillon_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "cri_guerre": {
+            "name": "Cri de guerre",
+            "se": "img/sprites/attacks/chevalier/cri_guerre_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/cri_guerre_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/cri_guerre_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/cri_guerre_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "frappe_titan": {
+            "name": "Frappe du titan",
+            "se": "img/sprites/attacks/chevalier/frappe_titan_se_sheet.png",
+            "sw": "img/sprites/attacks/chevalier/frappe_titan_sw_sheet.png",
+            "ne": "img/sprites/attacks/chevalier/frappe_titan_ne_sheet.png",
+            "nw": "img/sprites/attacks/chevalier/frappe_titan_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/chevalier_ko.png"
+      }
+    },
+    "berserker": {
+      "name": "Berserker",
+      "color": "#ef4444",
+      "portrait": "img/chihuahua/berserker.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/berserker/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/berserker/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/berserker/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/berserker/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "coup_epee": {
+            "name": "Coup d'épée",
+            "se": "img/sprites/attacks/berserker/coup_epee_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/coup_epee_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/coup_epee_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/coup_epee_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "bouclier_protect": {
+            "name": "Protection",
+            "se": "img/sprites/attacks/berserker/bouclier_protect_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/bouclier_protect_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/bouclier_protect_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/bouclier_protect_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "charge": {
+            "name": "Charge",
+            "se": "img/sprites/attacks/berserker/charge_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/charge_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/charge_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/charge_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tourbillon": {
+            "name": "Tourbillon",
+            "se": "img/sprites/attacks/berserker/tourbillon_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/tourbillon_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/tourbillon_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/tourbillon_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "cri_guerre": {
+            "name": "Cri de guerre",
+            "se": "img/sprites/attacks/berserker/cri_guerre_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/cri_guerre_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/cri_guerre_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/cri_guerre_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "frappe_titan": {
+            "name": "Frappe du titan",
+            "se": "img/sprites/attacks/berserker/frappe_titan_se_sheet.png",
+            "sw": "img/sprites/attacks/berserker/frappe_titan_sw_sheet.png",
+            "ne": "img/sprites/attacks/berserker/frappe_titan_ne_sheet.png",
+            "nw": "img/sprites/attacks/berserker/frappe_titan_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/berserker_ko.png"
+      }
+    },
+    "paladin": {
+      "name": "Paladin",
+      "color": "#fbbf24",
+      "portrait": "img/chihuahua/paladin.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/paladin/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/paladin/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/paladin/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/paladin/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "coup_epee": {
+            "name": "Coup d'épée",
+            "se": "img/sprites/attacks/paladin/coup_epee_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/coup_epee_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/coup_epee_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/coup_epee_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "bouclier_protect": {
+            "name": "Protection",
+            "se": "img/sprites/attacks/paladin/bouclier_protect_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/bouclier_protect_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/bouclier_protect_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/bouclier_protect_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "charge": {
+            "name": "Charge",
+            "se": "img/sprites/attacks/paladin/charge_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/charge_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/charge_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/charge_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tourbillon": {
+            "name": "Tourbillon",
+            "se": "img/sprites/attacks/paladin/tourbillon_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/tourbillon_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/tourbillon_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/tourbillon_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "cri_guerre": {
+            "name": "Cri de guerre",
+            "se": "img/sprites/attacks/paladin/cri_guerre_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/cri_guerre_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/cri_guerre_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/cri_guerre_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "frappe_titan": {
+            "name": "Frappe du titan",
+            "se": "img/sprites/attacks/paladin/frappe_titan_se_sheet.png",
+            "sw": "img/sprites/attacks/paladin/frappe_titan_sw_sheet.png",
+            "ne": "img/sprites/attacks/paladin/frappe_titan_ne_sheet.png",
+            "nw": "img/sprites/attacks/paladin/frappe_titan_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/paladin_ko.png"
+      }
+    },
+    "gladiateur": {
+      "name": "Gladiateur",
+      "color": "#b91c1c",
+      "portrait": "img/chihuahua/gladiateur.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/gladiateur/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/gladiateur/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/gladiateur/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/gladiateur/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "coup_epee": {
+            "name": "Coup d'épée",
+            "se": "img/sprites/attacks/gladiateur/coup_epee_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/coup_epee_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/coup_epee_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/coup_epee_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "bouclier_protect": {
+            "name": "Protection",
+            "se": "img/sprites/attacks/gladiateur/bouclier_protect_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/bouclier_protect_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/bouclier_protect_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/bouclier_protect_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "charge": {
+            "name": "Charge",
+            "se": "img/sprites/attacks/gladiateur/charge_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/charge_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/charge_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/charge_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tourbillon": {
+            "name": "Tourbillon",
+            "se": "img/sprites/attacks/gladiateur/tourbillon_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/tourbillon_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/tourbillon_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/tourbillon_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "cri_guerre": {
+            "name": "Cri de guerre",
+            "se": "img/sprites/attacks/gladiateur/cri_guerre_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/cri_guerre_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/cri_guerre_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/cri_guerre_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "frappe_titan": {
+            "name": "Frappe du titan",
+            "se": "img/sprites/attacks/gladiateur/frappe_titan_se_sheet.png",
+            "sw": "img/sprites/attacks/gladiateur/frappe_titan_sw_sheet.png",
+            "ne": "img/sprites/attacks/gladiateur/frappe_titan_ne_sheet.png",
+            "nw": "img/sprites/attacks/gladiateur/frappe_titan_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/gladiateur_ko.png"
+      }
+    },
+    "pyromancien": {
+      "name": "Pyromancien",
+      "color": "#ef4444",
+      "portrait": "img/chihuahua/pyromancien.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/pyromancien/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/pyromancien/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/pyromancien/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/pyromancien/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "boule_feu": {
+            "name": "Boule de feu",
+            "se": "img/sprites/attacks/pyromancien/boule_feu_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/boule_feu_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/boule_feu_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/boule_feu_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "barriere_magique": {
+            "name": "Barrière magique",
+            "se": "img/sprites/attacks/pyromancien/barriere_magique_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/barriere_magique_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/barriere_magique_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/barriere_magique_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "eclair": {
+            "name": "Éclair",
+            "se": "img/sprites/attacks/pyromancien/eclair_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/eclair_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/eclair_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/eclair_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "blizzard": {
+            "name": "Blizzard",
+            "se": "img/sprites/attacks/pyromancien/blizzard_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/blizzard_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/blizzard_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/blizzard_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "teleportation": {
+            "name": "Téléportation",
+            "se": "img/sprites/attacks/pyromancien/teleportation_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/teleportation_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/teleportation_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/teleportation_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "meteor": {
+            "name": "Météore",
+            "se": "img/sprites/attacks/pyromancien/meteor_se_sheet.png",
+            "sw": "img/sprites/attacks/pyromancien/meteor_sw_sheet.png",
+            "ne": "img/sprites/attacks/pyromancien/meteor_ne_sheet.png",
+            "nw": "img/sprites/attacks/pyromancien/meteor_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/pyromancien_ko.png"
+      }
+    },
+    "enchanteur": {
+      "name": "Enchanteur",
+      "color": "#a855f7",
+      "portrait": "img/chihuahua/enchanteur.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/enchanteur/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/enchanteur/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/enchanteur/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/enchanteur/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "boule_feu": {
+            "name": "Boule de feu",
+            "se": "img/sprites/attacks/enchanteur/boule_feu_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/boule_feu_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/boule_feu_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/boule_feu_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "barriere_magique": {
+            "name": "Barrière magique",
+            "se": "img/sprites/attacks/enchanteur/barriere_magique_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/barriere_magique_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/barriere_magique_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/barriere_magique_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "eclair": {
+            "name": "Éclair",
+            "se": "img/sprites/attacks/enchanteur/eclair_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/eclair_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/eclair_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/eclair_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "blizzard": {
+            "name": "Blizzard",
+            "se": "img/sprites/attacks/enchanteur/blizzard_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/blizzard_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/blizzard_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/blizzard_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "teleportation": {
+            "name": "Téléportation",
+            "se": "img/sprites/attacks/enchanteur/teleportation_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/teleportation_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/teleportation_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/teleportation_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "meteor": {
+            "name": "Météore",
+            "se": "img/sprites/attacks/enchanteur/meteor_se_sheet.png",
+            "sw": "img/sprites/attacks/enchanteur/meteor_sw_sheet.png",
+            "ne": "img/sprites/attacks/enchanteur/meteor_ne_sheet.png",
+            "nw": "img/sprites/attacks/enchanteur/meteor_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/enchanteur_ko.png"
+      }
+    },
+    "archimage": {
+      "name": "Archimage",
+      "color": "#1e3a8a",
+      "portrait": "img/chihuahua/archimage.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/archimage/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/archimage/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/archimage/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/archimage/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "boule_feu": {
+            "name": "Boule de feu",
+            "se": "img/sprites/attacks/archimage/boule_feu_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/boule_feu_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/boule_feu_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/boule_feu_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "barriere_magique": {
+            "name": "Barrière magique",
+            "se": "img/sprites/attacks/archimage/barriere_magique_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/barriere_magique_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/barriere_magique_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/barriere_magique_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "eclair": {
+            "name": "Éclair",
+            "se": "img/sprites/attacks/archimage/eclair_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/eclair_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/eclair_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/eclair_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "blizzard": {
+            "name": "Blizzard",
+            "se": "img/sprites/attacks/archimage/blizzard_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/blizzard_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/blizzard_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/blizzard_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "teleportation": {
+            "name": "Téléportation",
+            "se": "img/sprites/attacks/archimage/teleportation_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/teleportation_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/teleportation_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/teleportation_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "meteor": {
+            "name": "Météore",
+            "se": "img/sprites/attacks/archimage/meteor_se_sheet.png",
+            "sw": "img/sprites/attacks/archimage/meteor_sw_sheet.png",
+            "ne": "img/sprites/attacks/archimage/meteor_ne_sheet.png",
+            "nw": "img/sprites/attacks/archimage/meteor_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/archimage_ko.png"
+      }
+    },
+    "chronomancien": {
+      "name": "Chronomancien",
+      "color": "#0d9488",
+      "portrait": "img/chihuahua/chronomancien.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/chronomancien/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/chronomancien/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/chronomancien/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/chronomancien/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "boule_feu": {
+            "name": "Boule de feu",
+            "se": "img/sprites/attacks/chronomancien/boule_feu_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/boule_feu_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/boule_feu_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/boule_feu_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "barriere_magique": {
+            "name": "Barrière magique",
+            "se": "img/sprites/attacks/chronomancien/barriere_magique_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/barriere_magique_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/barriere_magique_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/barriere_magique_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "eclair": {
+            "name": "Éclair",
+            "se": "img/sprites/attacks/chronomancien/eclair_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/eclair_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/eclair_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/eclair_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "blizzard": {
+            "name": "Blizzard",
+            "se": "img/sprites/attacks/chronomancien/blizzard_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/blizzard_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/blizzard_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/blizzard_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "teleportation": {
+            "name": "Téléportation",
+            "se": "img/sprites/attacks/chronomancien/teleportation_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/teleportation_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/teleportation_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/teleportation_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "meteor": {
+            "name": "Météore",
+            "se": "img/sprites/attacks/chronomancien/meteor_se_sheet.png",
+            "sw": "img/sprites/attacks/chronomancien/meteor_sw_sheet.png",
+            "ne": "img/sprites/attacks/chronomancien/meteor_ne_sheet.png",
+            "nw": "img/sprites/attacks/chronomancien/meteor_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/chronomancien_ko.png"
+      }
+    },
+    "ranger": {
+      "name": "Ranger",
+      "color": "#059669",
+      "portrait": "img/chihuahua/ranger.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/ranger/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/ranger/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/ranger/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/ranger/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "tir_precis": {
+            "name": "Tir précis",
+            "se": "img/sprites/attacks/ranger/tir_precis_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/tir_precis_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/tir_precis_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/tir_precis_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "pluie_fleches": {
+            "name": "Pluie de flèches",
+            "se": "img/sprites/attacks/ranger/pluie_fleches_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/pluie_fleches_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/pluie_fleches_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/pluie_fleches_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "esquive": {
+            "name": "Esquive",
+            "se": "img/sprites/attacks/ranger/esquive_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/esquive_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/esquive_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/esquive_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "fleche_poison": {
+            "name": "Flèche empoisonnée",
+            "se": "img/sprites/attacks/ranger/fleche_poison_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/fleche_poison_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/fleche_poison_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/fleche_poison_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "piege": {
+            "name": "Piège",
+            "se": "img/sprites/attacks/ranger/piege_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/piege_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/piege_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/piege_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tir_ultime": {
+            "name": "Tir ultime",
+            "se": "img/sprites/attacks/ranger/tir_ultime_se_sheet.png",
+            "sw": "img/sprites/attacks/ranger/tir_ultime_sw_sheet.png",
+            "ne": "img/sprites/attacks/ranger/tir_ultime_ne_sheet.png",
+            "nw": "img/sprites/attacks/ranger/tir_ultime_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/ranger_ko.png"
+      }
+    },
+    "sniper": {
+      "name": "Sniper",
+      "color": "#0f172a",
+      "portrait": "img/chihuahua/sniper.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/sniper/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/sniper/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/sniper/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/sniper/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "tir_precis": {
+            "name": "Tir précis",
+            "se": "img/sprites/attacks/sniper/tir_precis_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/tir_precis_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/tir_precis_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/tir_precis_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "pluie_fleches": {
+            "name": "Pluie de flèches",
+            "se": "img/sprites/attacks/sniper/pluie_fleches_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/pluie_fleches_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/pluie_fleches_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/pluie_fleches_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "esquive": {
+            "name": "Esquive",
+            "se": "img/sprites/attacks/sniper/esquive_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/esquive_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/esquive_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/esquive_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "fleche_poison": {
+            "name": "Flèche empoisonnée",
+            "se": "img/sprites/attacks/sniper/fleche_poison_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/fleche_poison_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/fleche_poison_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/fleche_poison_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "piege": {
+            "name": "Piège",
+            "se": "img/sprites/attacks/sniper/piege_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/piege_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/piege_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/piege_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tir_ultime": {
+            "name": "Tir ultime",
+            "se": "img/sprites/attacks/sniper/tir_ultime_se_sheet.png",
+            "sw": "img/sprites/attacks/sniper/tir_ultime_sw_sheet.png",
+            "ne": "img/sprites/attacks/sniper/tir_ultime_ne_sheet.png",
+            "nw": "img/sprites/attacks/sniper/tir_ultime_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/sniper_ko.png"
+      }
+    },
+    "chasseur_de_dragons": {
+      "name": "Chasseur de dragons",
+      "color": "#dc2626",
+      "portrait": "img/chihuahua/chasseur_de_dragons.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/chasseur_de_dragons/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/chasseur_de_dragons/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/chasseur_de_dragons/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/chasseur_de_dragons/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "tir_precis": {
+            "name": "Tir précis",
+            "se": "img/sprites/attacks/chasseur_de_dragons/tir_precis_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/tir_precis_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/tir_precis_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/tir_precis_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "pluie_fleches": {
+            "name": "Pluie de flèches",
+            "se": "img/sprites/attacks/chasseur_de_dragons/pluie_fleches_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/pluie_fleches_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/pluie_fleches_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/pluie_fleches_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "esquive": {
+            "name": "Esquive",
+            "se": "img/sprites/attacks/chasseur_de_dragons/esquive_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/esquive_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/esquive_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/esquive_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "fleche_poison": {
+            "name": "Flèche empoisonnée",
+            "se": "img/sprites/attacks/chasseur_de_dragons/fleche_poison_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/fleche_poison_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/fleche_poison_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/fleche_poison_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "piege": {
+            "name": "Piège",
+            "se": "img/sprites/attacks/chasseur_de_dragons/piege_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/piege_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/piege_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/piege_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tir_ultime": {
+            "name": "Tir ultime",
+            "se": "img/sprites/attacks/chasseur_de_dragons/tir_ultime_se_sheet.png",
+            "sw": "img/sprites/attacks/chasseur_de_dragons/tir_ultime_sw_sheet.png",
+            "ne": "img/sprites/attacks/chasseur_de_dragons/tir_ultime_ne_sheet.png",
+            "nw": "img/sprites/attacks/chasseur_de_dragons/tir_ultime_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/chasseur_de_dragons_ko.png"
+      }
+    },
+    "assassin": {
+      "name": "Assassin",
+      "color": "#4c1d95",
+      "portrait": "img/chihuahua/assassin.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/assassin/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/assassin/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/assassin/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/assassin/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "tir_precis": {
+            "name": "Tir précis",
+            "se": "img/sprites/attacks/assassin/tir_precis_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/tir_precis_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/tir_precis_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/tir_precis_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "pluie_fleches": {
+            "name": "Pluie de flèches",
+            "se": "img/sprites/attacks/assassin/pluie_fleches_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/pluie_fleches_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/pluie_fleches_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/pluie_fleches_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "esquive": {
+            "name": "Esquive",
+            "se": "img/sprites/attacks/assassin/esquive_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/esquive_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/esquive_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/esquive_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "fleche_poison": {
+            "name": "Flèche empoisonnée",
+            "se": "img/sprites/attacks/assassin/fleche_poison_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/fleche_poison_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/fleche_poison_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/fleche_poison_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "piege": {
+            "name": "Piège",
+            "se": "img/sprites/attacks/assassin/piege_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/piege_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/piege_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/piege_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "tir_ultime": {
+            "name": "Tir ultime",
+            "se": "img/sprites/attacks/assassin/tir_ultime_se_sheet.png",
+            "sw": "img/sprites/attacks/assassin/tir_ultime_sw_sheet.png",
+            "ne": "img/sprites/attacks/assassin/tir_ultime_ne_sheet.png",
+            "nw": "img/sprites/attacks/assassin/tir_ultime_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/assassin_ko.png"
+      }
+    },
+    "pretre": {
+      "name": "Prêtre",
+      "color": "#fbbf24",
+      "portrait": "img/chihuahua/pretre.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/pretre/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/pretre/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/pretre/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/pretre/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "soin": {
+            "name": "Soin",
+            "se": "img/sprites/attacks/pretre/soin_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/soin_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/soin_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/soin_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "coup_baton": {
+            "name": "Coup de bâton",
+            "se": "img/sprites/attacks/pretre/coup_baton_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/coup_baton_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/coup_baton_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/coup_baton_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "benediction": {
+            "name": "Bénédiction",
+            "se": "img/sprites/attacks/pretre/benediction_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/benediction_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/benediction_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/benediction_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "guerison_groupe": {
+            "name": "Guérison de groupe",
+            "se": "img/sprites/attacks/pretre/guerison_groupe_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/guerison_groupe_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/guerison_groupe_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/guerison_groupe_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "purification": {
+            "name": "Purification",
+            "se": "img/sprites/attacks/pretre/purification_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/purification_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/purification_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/purification_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "resurrection": {
+            "name": "Résurrection",
+            "se": "img/sprites/attacks/pretre/resurrection_se_sheet.png",
+            "sw": "img/sprites/attacks/pretre/resurrection_sw_sheet.png",
+            "ne": "img/sprites/attacks/pretre/resurrection_ne_sheet.png",
+            "nw": "img/sprites/attacks/pretre/resurrection_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/pretre_ko.png"
+      }
+    },
+    "druide": {
+      "name": "Druide",
+      "color": "#10b981",
+      "portrait": "img/chihuahua/druide.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/druide/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/druide/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/druide/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/druide/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "soin": {
+            "name": "Soin",
+            "se": "img/sprites/attacks/druide/soin_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/soin_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/soin_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/soin_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "coup_baton": {
+            "name": "Coup de bâton",
+            "se": "img/sprites/attacks/druide/coup_baton_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/coup_baton_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/coup_baton_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/coup_baton_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "benediction": {
+            "name": "Bénédiction",
+            "se": "img/sprites/attacks/druide/benediction_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/benediction_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/benediction_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/benediction_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "guerison_groupe": {
+            "name": "Guérison de groupe",
+            "se": "img/sprites/attacks/druide/guerison_groupe_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/guerison_groupe_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/guerison_groupe_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/guerison_groupe_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "purification": {
+            "name": "Purification",
+            "se": "img/sprites/attacks/druide/purification_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/purification_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/purification_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/purification_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "resurrection": {
+            "name": "Résurrection",
+            "se": "img/sprites/attacks/druide/resurrection_se_sheet.png",
+            "sw": "img/sprites/attacks/druide/resurrection_sw_sheet.png",
+            "ne": "img/sprites/attacks/druide/resurrection_ne_sheet.png",
+            "nw": "img/sprites/attacks/druide/resurrection_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/druide_ko.png"
+      }
+    },
+    "saint": {
+      "name": "Saint",
+      "color": "#f0f9ff",
+      "portrait": "img/chihuahua/saint.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/saint/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/saint/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/saint/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/saint/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "soin": {
+            "name": "Soin",
+            "se": "img/sprites/attacks/saint/soin_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/soin_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/soin_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/soin_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "coup_baton": {
+            "name": "Coup de bâton",
+            "se": "img/sprites/attacks/saint/coup_baton_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/coup_baton_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/coup_baton_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/coup_baton_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "benediction": {
+            "name": "Bénédiction",
+            "se": "img/sprites/attacks/saint/benediction_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/benediction_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/benediction_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/benediction_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "guerison_groupe": {
+            "name": "Guérison de groupe",
+            "se": "img/sprites/attacks/saint/guerison_groupe_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/guerison_groupe_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/guerison_groupe_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/guerison_groupe_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "purification": {
+            "name": "Purification",
+            "se": "img/sprites/attacks/saint/purification_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/purification_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/purification_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/purification_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "resurrection": {
+            "name": "Résurrection",
+            "se": "img/sprites/attacks/saint/resurrection_se_sheet.png",
+            "sw": "img/sprites/attacks/saint/resurrection_sw_sheet.png",
+            "ne": "img/sprites/attacks/saint/resurrection_ne_sheet.png",
+            "nw": "img/sprites/attacks/saint/resurrection_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/saint_ko.png"
+      }
+    },
+    "chaman": {
+      "name": "Chaman",
+      "color": "#7c3aed",
+      "portrait": "img/chihuahua/chaman.png",
+      "sprites": {
+        "movement": {
+          "walk_se": "img/sprites/movement/chaman/walk_se_sheet.png",
+          "walk_sw": "img/sprites/movement/chaman/walk_sw_sheet.png",
+          "walk_ne": "img/sprites/movement/chaman/walk_ne_sheet.png",
+          "walk_nw": "img/sprites/movement/chaman/walk_nw_sheet.png",
+          "frames": 9,
+          "loop": true
+        },
+        "attacks": {
+          "soin": {
+            "name": "Soin",
+            "se": "img/sprites/attacks/chaman/soin_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/soin_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/soin_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/soin_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "coup_baton": {
+            "name": "Coup de bâton",
+            "se": "img/sprites/attacks/chaman/coup_baton_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/coup_baton_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/coup_baton_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/coup_baton_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "benediction": {
+            "name": "Bénédiction",
+            "se": "img/sprites/attacks/chaman/benediction_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/benediction_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/benediction_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/benediction_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "guerison_groupe": {
+            "name": "Guérison de groupe",
+            "se": "img/sprites/attacks/chaman/guerison_groupe_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/guerison_groupe_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/guerison_groupe_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/guerison_groupe_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "purification": {
+            "name": "Purification",
+            "se": "img/sprites/attacks/chaman/purification_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/purification_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/purification_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/purification_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          },
+          "resurrection": {
+            "name": "Résurrection",
+            "se": "img/sprites/attacks/chaman/resurrection_se_sheet.png",
+            "sw": "img/sprites/attacks/chaman/resurrection_sw_sheet.png",
+            "ne": "img/sprites/attacks/chaman/resurrection_ne_sheet.png",
+            "nw": "img/sprites/attacks/chaman/resurrection_nw_sheet.png",
+            "frames": 9,
+            "loop": false
+          }
+        },
+        "death": "img/sprites/death/chaman_ko.png"
+      }
+    }
+  },
+  "terrain": {
+    "plaine": {
+      "name": "Plaine",
+      "path": "img/sprites/terrain/plaine.png"
+    },
+    "eau": {
+      "name": "Eau",
+      "path": "img/sprites/terrain/eau.png"
+    },
+    "terre": {
+      "name": "Terre",
+      "path": "img/sprites/terrain/terre.png"
+    },
+    "roche": {
+      "name": "Roche",
+      "path": "img/sprites/terrain/roche.png"
+    },
+    "foret": {
+      "name": "Forêt",
+      "path": "img/sprites/terrain/foret.png"
+    },
+    "sable": {
+      "name": "Sable",
+      "path": "img/sprites/terrain/sable.png"
+    },
+    "neige": {
+      "name": "Neige",
+      "path": "img/sprites/terrain/neige.png"
+    },
+    "lave": {
+      "name": "Lave",
+      "path": "img/sprites/terrain/lave.png"
+    }
+  }
+}

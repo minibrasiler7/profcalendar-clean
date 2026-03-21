@@ -295,7 +295,7 @@ export default function CombatScreen({ route, navigation }) {
       const errMsg = data.error || 'Erreur inconnue';
       addDebug(`COMBAT_ERROR: ${errMsg}`);
       // If move was rejected, allow player to re-choose a tile
-      if (errMsg.includes('occup') || errMsg.includes('accessible')) {
+      if (errMsg.includes('occupée') || errMsg.includes('accessible')) {
         setHasMoved(false);
         // Re-request move tiles so player can pick again
         if (combatPhase === 'move') {

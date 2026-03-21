@@ -431,9 +431,24 @@
 
 <!-- Folder/Class picker modal -->
 <div id="folder-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-folder-open"></i> Ranger dans un dossier ou une classe</h3>
         <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Choisissez où placer cet exercice :</p>
+
+        <!-- Folder browser section -->
+        <div id="folder-browser-container" style="display:none;margin-bottom:1rem;padding:0.75rem;background:#f9fafb;border-radius:8px;">
+            <div id="folder-breadcrumb" style="margin-bottom:0.5rem;font-size:0.8rem;color:#6b7280;display:flex;align-items:center;gap:0.25rem;flex-wrap:wrap;"></div>
+            <div id="folder-contents" style="max-height:200px;overflow-y:auto;"></div>
+            <div style="margin-top:0.75rem;display:flex;gap:0.5rem;justify-content:flex-start;">
+                <button class="btn" id="new-folder-btn" onclick="createFolderInCurrent()" style="background:#4338ca;color:white;font-size:0.8rem;padding:0.4rem 0.8rem;">
+                    <i class="fas fa-plus"></i> Nouveau dossier
+                </button>
+            </div>
+        </div>
+
+        <!-- Classrooms section -->
+        <div id="folder-classes-container" style="margin-bottom:1rem;"></div>
+
         <div id="folder-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
             <button class="btn" onclick="closeFolderModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
@@ -815,56 +830,129 @@ async function stopMission() {
 let pickerExerciseId = null;
 let pickerSelectedFolderId = null;
 let pickerSelectedClassroomId = null;
+let currentBrowseFolderId = null; // null = root
+let allExerciseFolders = []; // Cache des dossiers
 
 function openFolderPicker(exerciseId) {
     pickerExerciseId = exerciseId;
     pickerSelectedFolderId = null;
     pickerSelectedClassroomId = null;
+    currentBrowseFolderId = null;
     document.getElementById('folder-confirm-btn').disabled = true;
     const modal = document.getElementById('folder-modal');
     modal.style.display = 'flex';
-    const listEl = document.getElementById('folder-list');
-    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
 
-    fetch('/exercises/folders-and-classes')
-        .then(r => r.json())
-        .then(data => {
-            const folders = data.folders || [];
-            const classrooms = data.classrooms || [];
-            let html = '';
+    // Charger les dossiers et les classes
+    Promise.all([
+        fetch('/exercises/manager/folders').then(r => r.json()),
+        fetch('/exercises/folders-and-classes').then(r => r.json())
+    ])
+        .then(([folderData, classData]) => {
+            allExerciseFolders = folderData.folders || [];
+            const classrooms = classData.classrooms || [];
 
+            // Afficher les classes
+            const classContainer = document.getElementById('folder-classes-container');
+            let classHtml = '';
             if (classrooms.length > 0) {
-                html += '<div style="font-weight:700;font-size:0.8rem;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-bottom:0.2rem;"><i class="fas fa-chalkboard-teacher"></i> Mes classes</div>';
+                classHtml += '<div style="font-weight:700;font-size:0.8rem;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-bottom:0.2rem;"><i class="fas fa-chalkboard-teacher"></i> Mes classes</div>';
                 classrooms.forEach(c => {
-                    html += `<div class="pick-item" data-type="class" data-id="${c.id}" onclick="pickItem('class',${c.id},this)" style="padding:0.5rem 0.8rem;padding-left:1.6rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;display:flex;align-items:center;gap:0.5rem;">
+                    classHtml += `<div class="pick-item" data-type="class" data-id="${c.id}" onclick="pickItem('class',${c.id},this)" style="padding:0.5rem 0.8rem;padding-left:1.6rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;display:flex;align-items:center;gap:0.5rem;">
                         <i class="fas fa-users" style="color:#10b981;"></i>
                         <span style="font-weight:600;font-size:0.85rem;">${c.name}</span>
                         ${c.subject ? `<span style="color:#9ca3af;font-size:0.75rem;">— ${c.subject}</span>` : ''}
                     </div>`;
                 });
             }
+            classContainer.innerHTML = classHtml;
 
-            if (folders.length > 0) {
-                html += '<div style="font-weight:700;font-size:0.8rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;padding:0.4rem 0.8rem;margin-top:0.6rem;margin-bottom:0.2rem;border-top:1px solid #e5e7eb;padding-top:0.6rem;"><i class="fas fa-folder"></i> Mes dossiers</div>';
-                const roots = folders.filter(f => !f.parent_id);
-                const childMap = {};
-                folders.forEach(f => { if (f.parent_id) { (childMap[f.parent_id] = childMap[f.parent_id] || []).push(f); } });
+            // Afficher le navigateur de dossiers
+            document.getElementById('folder-browser-container').style.display = 'block';
+            loadFolderBrowser(null);
+        })
+        .catch(err => {
+            document.getElementById('folder-classes-container').innerHTML = '<p style="color:#ef4444;">Erreur de chargement des classes</p>';
+            document.getElementById('folder-browser-container').style.display = 'none';
+        });
+}
 
-                function renderF(f, d) {
-                    let h = `<div class="pick-item" data-type="folder" data-id="${f.id}" onclick="pickItem('folder',${f.id},this)" style="padding:0.5rem 0.8rem;padding-left:${1.6+d*1.2}rem;cursor:pointer;border-radius:8px;margin:0.2rem 0;display:flex;align-items:center;gap:0.5rem;">
+function loadFolderBrowser(folderId) {
+    currentBrowseFolderId = folderId;
+    const breadcrumb = document.getElementById('folder-breadcrumb');
+    const contents = document.getElementById('folder-contents');
+
+    // Construire le fil d'ariane
+    let path = [];
+    let currentId = folderId;
+    while (currentId) {
+        const folder = allExerciseFolders.find(f => f.id === currentId);
+        if (folder) {
+            path.unshift({ id: currentId, name: folder.name });
+            currentId = folder.parent_id;
+        } else {
+            break;
+        }
+    }
+
+    let breadHtml = '<span onclick="loadFolderBrowser(null)" style="cursor:pointer;color:#4338ca;text-decoration:underline;">Racine</span>';
+    path.forEach(p => {
+        breadHtml += ' <span style="color:#9ca3af;">/</span> ';
+        breadHtml += `<span onclick="loadFolderBrowser(${p.id})" style="cursor:pointer;color:#4338ca;text-decoration:underline;">${p.name}</span>`;
+    });
+    breadcrumb.innerHTML = breadHtml;
+
+    // Charger le contenu du dossier actuel
+    fetch(`/exercises/manager/contents?folder_id=${folderId || 'null'}`)
+        .then(r => r.json())
+        .then(data => {
+            const subfolders = data.subfolders || [];
+            let html = '';
+
+            if (subfolders.length === 0) {
+                html = '<p style="color:#9ca3af;font-size:0.85rem;text-align:center;padding:0.5rem;">Aucun sous-dossier</p>';
+            } else {
+                subfolders.forEach(f => {
+                    html += `<div class="pick-item" data-type="folder" data-id="${f.id}" onclick="pickItem('folder',${f.id},this)" style="padding:0.5rem 0.8rem;cursor:pointer;border-radius:8px;margin:0.25rem 0;display:flex;align-items:center;gap:0.5rem;background:#f3f4f6;">
                         <i class="fas fa-folder" style="color:${f.color||'#4F46E5'};"></i>
                         <span style="font-weight:600;font-size:0.85rem;">${f.name}</span>
+                        <span onclick="loadFolderBrowser(${f.id}); event.stopPropagation();" style="margin-left:auto;cursor:pointer;color:#4338ca;font-size:0.75rem;"><i class="fas fa-chevron-right"></i></span>
                     </div>`;
-                    if (childMap[f.id]) childMap[f.id].forEach(c => { h += renderF(c, d+1); });
-                    return h;
-                }
-                html += roots.map(f => renderF(f, 0)).join('');
+                });
             }
 
-            if (!html) html = '<p style="text-align:center;color:#9ca3af;padding:1rem;">Aucun dossier ni classe.</p>';
-            listEl.innerHTML = html;
+            // Ajouter l'option "Ranger ici" pour le dossier actuel
+            html += `<div class="pick-item" data-type="folder" data-id="${folderId || 'root'}" onclick="pickItem('folder','${folderId || 'root'}',this)" style="padding:0.5rem 0.8rem;cursor:pointer;border-radius:8px;margin:0.25rem 0;display:flex;align-items:center;gap:0.5rem;background:#e0e7ff;border:1px solid #c7d2fe;">
+                <i class="fas fa-check" style="color:#4338ca;"></i>
+                <span style="font-weight:600;font-size:0.85rem;color:#4338ca;">Ranger dans ce dossier</span>
+            </div>`;
+
+            contents.innerHTML = html;
         })
-        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>'; });
+        .catch(err => {
+            contents.innerHTML = '<p style="color:#ef4444;font-size:0.85rem;">Erreur de chargement</p>';
+        });
+}
+
+function createFolderInCurrent() {
+    const name = prompt('Nom du nouveau dossier:');
+    if (!name || !name.trim()) return;
+
+    fetch('/exercises/manager/folder/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+        body: JSON.stringify({ name: name.trim(), parent_id: currentBrowseFolderId, color: '#4338ca' })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.id) {
+                allExerciseFolders.push(data);
+                loadFolderBrowser(currentBrowseFolderId);
+                showToast('Dossier créé', 'success');
+            } else {
+                showToast('Erreur de création', 'error');
+            }
+        })
+        .catch(() => { showToast('Erreur', 'error'); });
 }
 
 function pickItem(type, id, el) {
@@ -876,13 +964,14 @@ function pickItem(type, id, el) {
         pickerSelectedClassroomId = id;
     } else {
         el.style.background = '#eef2ff'; el.style.color = '#4338ca';
-        pickerSelectedFolderId = id;
+        // Convert 'root' string back to null for root folder
+        pickerSelectedFolderId = id === 'root' ? null : id;
     }
     document.getElementById('folder-confirm-btn').disabled = false;
 }
 
 async function confirmFolderPick() {
-    if (!pickerExerciseId || (!pickerSelectedFolderId && !pickerSelectedClassroomId)) return;
+    if (!pickerExerciseId || (pickerSelectedFolderId === null && pickerSelectedFolderId === undefined && !pickerSelectedClassroomId)) return;
     try {
         if (pickerSelectedClassroomId) {
             const res = await fetch('/exercises/publish-to-class', {
@@ -894,13 +983,19 @@ async function confirmFolderPick() {
             if (data.success) { showToast('Exercice ajouté à la classe', 'success'); }
             else { showToast(data.error || 'Erreur', 'error'); }
         }
-        if (pickerSelectedFolderId) {
-            await fetch('/exercises/save', {
+        if (pickerSelectedFolderId !== null && pickerSelectedFolderId !== undefined) {
+            // Use new ExerciseFolder API
+            const res = await fetch('/exercises/manager/move-exercise', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
-                body: JSON.stringify({ id: pickerExerciseId, folder_id: pickerSelectedFolderId })
+                body: JSON.stringify({ exercise_id: pickerExerciseId, folder_id: pickerSelectedFolderId })
             });
-            showToast('Exercice rangé dans le dossier', 'success');
+            const data = await res.json();
+            if (data.success) {
+                showToast('Exercice rangé dans le dossier', 'success');
+            } else {
+                showToast(data.error || 'Erreur', 'error');
+            }
         }
         closeFolderModal();
     } catch(e) { showToast('Erreur', 'error'); }

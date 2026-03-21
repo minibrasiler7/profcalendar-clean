@@ -124,7 +124,7 @@ def fix_skills(session_id):
 @combat_bp.route('/version')
 def combat_version():
     """Quick version check to verify deploy."""
-    return jsonify({'version': '2026-03-10-v17', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix', 'visual_upgrade_v1', 'hq_tiles_v2', 'solid_terrain', 'shadows', 'sprite_fix', 'loot_system', 'dynamic_monsters', 'execute_move_replay', 'pokemon_battle_view', 'auto_close_old_combats', 'fix_move_elevation', 'hide_stats_question', 'scroll_fix_graphs', 'monster_turn_battle_view', 'fix_path_depth', 'fix_shadow_depth', 'name_overlap_fix', 'smart_monster_targeting', 'fix_sprite_drift_basepos']})
+    return jsonify({'version': '2026-03-07-v15', 'features': ['default_skills', 'ghost_fix', 'current_question', 'fix_skills', 'auto_advance_timeout', 'anti_cheat_v2', 'ping_timeout_60', 'socketio_emit_answer', 'monkey_patch', 'rest_submit', 'rest_scope_fix', 'visual_upgrade_v1', 'hq_tiles_v2', 'solid_terrain', 'shadows', 'sprite_fix', 'loot_system', 'dynamic_monsters', 'execute_move_replay', 'pokemon_battle_view', 'auto_close_old_combats', 'fix_move_elevation', 'hide_stats_question', 'scroll_fix_graphs', 'monster_turn_battle_view']})
 
 
 # ═══════════════════════════════════════════════════════════════════
