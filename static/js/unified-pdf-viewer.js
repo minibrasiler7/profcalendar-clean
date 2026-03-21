@@ -1439,8 +1439,9 @@ class UnifiedPDFViewer {
                 annotationCanvas.style.position = 'absolute';
                 annotationCanvas.style.top = '0';
                 annotationCanvas.style.left = '0';
-                annotationCanvas.style.pointerEvents = 'none';
-                
+                // Activer immédiatement si un outil est déjà sélectionné (évite race condition au chargement)
+                annotationCanvas.style.pointerEvents = this.currentTool ? 'auto' : 'none';
+
                 // Configuration haute résolution pour tracé lisse
                 const { ctx } = this.setupHighDPICanvas(annotationCanvas, viewport.width, viewport.height);
                 annotationCtx = ctx;
@@ -4422,22 +4423,21 @@ class UnifiedPDFViewer {
             });
         }
 
-        // Réinitialiser les contextes de manière optimisée - batch processing
-        requestAnimationFrame(() => {
-            for (const [pageNum, pageElement] of this.pageElements) {
-                if (pageElement?.annotationCtx && pageElement.annotationCanvas) {
-                    // Activer les événements et ajuster le mode de composition
-                    pageElement.annotationCanvas.style.pointerEvents = tool ? 'auto' : 'none';
-                    pageElement.annotationCtx.globalCompositeOperation = 'source-over';
+        // Réinitialiser les contextes - SYNCHRONE pour éviter race condition avec le stylet
+        // (Si asynchrone via requestAnimationFrame, le premier touch peut être ignoré)
+        for (const [pageNum, pageElement] of this.pageElements) {
+            if (pageElement?.annotationCtx && pageElement.annotationCanvas) {
+                // Activer les événements et ajuster le mode de composition
+                pageElement.annotationCanvas.style.pointerEvents = tool ? 'auto' : 'none';
+                pageElement.annotationCtx.globalCompositeOperation = 'source-over';
 
-                    // Fix spécial pour eraser
-                    if (tool === 'eraser') {
-                        pageElement.annotationCanvas.style.display = 'block';
-                        pageElement.annotationCanvas.style.visibility = 'visible';
-                    }
+                // Fix spécial pour eraser
+                if (tool === 'eraser') {
+                    pageElement.annotationCanvas.style.display = 'block';
+                    pageElement.annotationCanvas.style.visibility = 'visible';
                 }
             }
-        });
+        }
 
         // DÉSACTIVER le curseur personnalisé pour la gomme (il masque les annotations)
         if (this.elements.eraserCursor) {
