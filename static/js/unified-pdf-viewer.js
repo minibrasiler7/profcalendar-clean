@@ -128,12 +128,16 @@ class UnifiedPDFViewer {
         this.redoStack = new Map();
 
         // Fonctionnalité ligne droite automatique (style iPad)
+        // Approche : le timer tourne en continu pendant le tracé.
+        // Quand il expire, il compare la position ACTUELLE à celle du DÉBUT du timer.
+        // Si le stylet n'a presque pas bougé pendant toute la durée → ligne droite.
+        // Sinon, il se relance depuis la position actuelle.
         this.straightLineTimer = null;
         this.straightLineTimeout = 2000; // 2 secondes d'immobilité requise
-        this.straightLineMovementThreshold = 3; // Tolérance en pixels : le stylet doit bouger de MOINS que ça pour être considéré "immobile"
+        this.straightLineImmobilityRadius = 8; // Le stylet doit rester dans un cercle de 8px pour être "immobile"
+        this.straightLineCheckPos = null; // Position au moment où le timer a démarré
         this.drawingPath = []; // Points du trait en cours
         this.startPoint = null; // Point de départ pour la ligne droite
-        this.lastMovementPoint = null; // Suivi du dernier point où du mouvement a été détecté
         this.isStabilized = false; // Flag pour éviter les multiples conversions
         this.currentStrokeImageData = null; // Sauvegarde du canvas avant le trait actuel
 
@@ -4816,7 +4820,6 @@ class UnifiedPDFViewer {
         // Initialiser la fonctionnalité ligne droite pour le stylo
         if (this.currentTool === 'pen') {
             this.startPoint = { ...this.lastPoint };
-            this.lastMovementPoint = { ...this.lastPoint };
             this.drawingPath = [{ ...this.lastPoint }];
             this.isStabilized = false;
 
@@ -4838,8 +4841,12 @@ class UnifiedPDFViewer {
             const pressure = 0.5;
             engine.startPath(this.lastPoint.x, this.lastPoint.y, pressure);
 
-            // PAS de timer au départ — le timer se lance seulement quand le stylet s'immobilise
-            this.straightLineTimer = null;
+            // Démarrer le timer de vérification d'immobilité
+            // Le timer vérifie la position au moment où il EXPIRE (pas au moment du lancement)
+            this.straightLineCheckPos = { ...this.lastPoint };
+            this.straightLineTimer = setTimeout(() => {
+                this.checkStraightLineImmobility(pageNum);
+            }, this.straightLineTimeout);
         }
 
         // Initialiser l'outil règle
@@ -5128,30 +5135,9 @@ class UnifiedPDFViewer {
             if (this.currentTool === 'pen') {
                 this.drawingPath.push({ ...currentPoint });
 
-                // Logique ligne droite : on détecte l'IMMOBILITÉ, pas le mouvement
-                // Le timer se lance UNIQUEMENT quand le stylet est quasi immobile
-                if (!this.isStabilized) {
-                    if (!this.lastMovementPoint) this.lastMovementPoint = { ...currentPoint };
-                    const movementFromLast = Math.sqrt(
-                        Math.pow(currentPoint.x - this.lastMovementPoint.x, 2) +
-                        Math.pow(currentPoint.y - this.lastMovementPoint.y, 2)
-                    );
-
-                    if (movementFromLast > this.straightLineMovementThreshold) {
-                        // Le stylet bouge encore → annuler le timer et mettre à jour la position
-                        this.lastMovementPoint = { ...currentPoint };
-                        if (this.straightLineTimer) {
-                            clearTimeout(this.straightLineTimer);
-                            this.straightLineTimer = null;
-                        }
-                    } else if (!this.straightLineTimer) {
-                        // Le stylet est quasi immobile et aucun timer n'est en cours → en démarrer un
-                        this.straightLineTimer = setTimeout(() => {
-                            this.convertToStraightLine(pageNum);
-                        }, this.straightLineTimeout);
-                    }
-                    // Si le timer tourne déjà et le stylet reste immobile → on laisse le timer expirer
-                }
+                // Pas de logique per-event pour la ligne droite.
+                // Le timer tourne en arrière-plan et vérifie l'immobilité quand il expire.
+                // Voir checkStraightLineImmobility() pour la logique.
 
                 // Utiliser le nouveau moteur d'annotation perfect-freehand
                 const engine = this.annotationEngines.get(pageNum);
@@ -5322,7 +5308,7 @@ class UnifiedPDFViewer {
             // Reset des variables ligne droite
             this.drawingPath = [];
             this.startPoint = null;
-            this.lastMovementPoint = null;
+            this.straightLineCheckPos = null;
             this.isStabilized = false;
             this.currentStrokeImageData = null;
 
@@ -5348,6 +5334,44 @@ class UnifiedPDFViewer {
             if (this.options.autoSave) {
                 this.scheduleAutoSave();
             }
+        }
+    }
+
+    /**
+     * Vérifie si le stylet est immobile depuis le dernier checkpoint.
+     * Appelé quand le timer expire. Compare la position ACTUELLE du stylet
+     * à la position enregistrée au lancement du timer.
+     * Si le stylet n'a pas bougé de plus de straightLineImmobilityRadius → convertir.
+     * Sinon, relancer le timer depuis la position actuelle.
+     */
+    checkStraightLineImmobility(pageNum) {
+        if (!this.isDrawing || this.currentTool !== 'pen' || this.isStabilized) {
+            this.straightLineTimer = null;
+            return;
+        }
+
+        // Position actuelle = dernier point du tracé
+        const currentPos = this.drawingPath[this.drawingPath.length - 1];
+        if (!currentPos || !this.straightLineCheckPos) {
+            this.straightLineTimer = null;
+            return;
+        }
+
+        const distFromCheck = Math.sqrt(
+            Math.pow(currentPos.x - this.straightLineCheckPos.x, 2) +
+            Math.pow(currentPos.y - this.straightLineCheckPos.y, 2)
+        );
+
+        if (distFromCheck <= this.straightLineImmobilityRadius) {
+            // Le stylet n'a presque pas bougé pendant 2 secondes → convertir en ligne droite
+            this.straightLineTimer = null;
+            this.convertToStraightLine(pageNum);
+        } else {
+            // Le stylet a bougé → relancer le timer depuis la position actuelle
+            this.straightLineCheckPos = { ...currentPos };
+            this.straightLineTimer = setTimeout(() => {
+                this.checkStraightLineImmobility(pageNum);
+            }, this.straightLineTimeout);
         }
     }
 
