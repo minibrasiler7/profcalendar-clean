@@ -562,8 +562,8 @@ class OptimizedPenAnnotation {
             const outlinePoints = window.getStroke(pfPoints, {
                 size: effectiveSize,
                 thinning: 0,      // Pas de variation d'épaisseur basée sur la vitesse
-                smoothing: 0.15,  // Lissage minimal pour éviter les variations
-                streamline: 0.3,  // Streamline minimal pour garder tous les points
+                smoothing: 0.5,   // Lissage moyen pour des courbes naturelles
+                streamline: 0,    // AUCUN streamline — évite que les traits lents deviennent droits
                 simulatePressure: false,
                 last: !this.isDrawing  // true si le stroke est terminé
             });
