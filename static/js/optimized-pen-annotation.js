@@ -365,12 +365,28 @@ class OptimizedPenAnnotation {
 
         let pointsAdded = 0;
 
+        // Distance minimum entre points pour préserver les variations naturelles de la main.
+        // Un stylet à 240Hz produit des centaines de points quasi-identiques en dessin lent,
+        // ce qui noie les micro-variations et crée un trait visuellement droit.
+        // 2px de distance minimum est suffisant pour un trait continu tout en gardant les courbes.
+        const MIN_POINT_DISTANCE = 2;
+        let prevPoint = lastPoint; // Tracker le dernier point accepté pour le filtrage
+
         for (const event of events) {
             const x = event.offsetX;
             const y = event.offsetY;
 
-            // Toujours ajouter les points pour éviter les décrochages
-            // Ne plus filtrer par distance pour garantir un trait continu
+            // Filtrer les points trop proches pour éviter un "nuage" de points quasi-identiques
+            // qui fait perdre les variations naturelles de la main
+            if (prevPoint) {
+                const dx = x - prevPoint.x;
+                const dy = y - prevPoint.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < MIN_POINT_DISTANCE) {
+                    continue; // Trop proche du dernier point, ignorer
+                }
+            }
+
             const point = {
                 x: x,
                 y: y,
@@ -379,6 +395,7 @@ class OptimizedPenAnnotation {
             };
 
             this.currentStroke.points.push(point);
+            prevPoint = point;
             pointsAdded++;
         }
 
