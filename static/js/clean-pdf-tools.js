@@ -31,8 +31,8 @@ class AnnotationTools {
         const outlinePoints = window.getStroke(pfPoints, {
             size: options.size || 2,
             thinning: options.thinning || 0,
-            smoothing: options.smoothing || 0.15,
-            streamline: options.streamline || 0.3,
+            smoothing: options.smoothing || 0.5,
+            streamline: options.streamline || 0,
             simulatePressure: options.simulatePressure || false,
             last: options.last !== false
         });

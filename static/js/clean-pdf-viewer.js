@@ -6269,6 +6269,13 @@ class CleanPDFViewer {
             }
         }
 
+        // Filtrage de distance minimale pour éviter l'inondation de points (stylet 240Hz)
+        if (this.currentStroke.points.length > 0) {
+            const lastPt = this.currentStroke.points[this.currentStroke.points.length - 1];
+            const dist = Math.sqrt((finalX - lastPt.x) ** 2 + (finalY - lastPt.y) ** 2);
+            if (dist < 2) return; // Ignorer les points trop proches (< 2px)
+        }
+
         this.currentStroke.points.push({x: finalX, y: finalY, pressure: e.pressure || 0.5});
 
         // Redessiner le preview
