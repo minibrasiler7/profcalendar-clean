@@ -6234,38 +6234,48 @@ class CleanPDFViewer {
         }
 
         // Détecter ligne droite pour l'outil pen
+        // Utilise un point de référence fixé au début du timer, pas le dernier point
+        // Ainsi le mouvement cumulé lent (ex: 20px en 2s) est correctement détecté
         if (this.currentTool === 'pen' && this.penLineDetection && this.currentStroke.points.length > 0) {
-            const now = Date.now();
-            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
-            const distance = Math.sqrt((finalX - lastPoint.x) ** 2 + (finalY - lastPoint.y) ** 2);
-
-            // Marge de 3 pixels pour considérer qu'on ne bouge pas
-            if (distance > 3) {
-                // On bouge, réinitialiser le timer
-                this.penLineDetection.lastMoveTime = now;
-                if (this.penLineDetection.validationTimer) {
+            // Si un timer est actif, vérifier le mouvement depuis le point de référence
+            if (this.penLineDetection.validationTimer && this.penLineDetection.referencePoint) {
+                const refDist = Math.sqrt(
+                    (finalX - this.penLineDetection.referencePoint.x) ** 2 +
+                    (finalY - this.penLineDetection.referencePoint.y) ** 2
+                );
+                // Si on s'est éloigné de plus de 8px du point de référence, annuler le timer
+                if (refDist > 8) {
                     clearTimeout(this.penLineDetection.validationTimer);
                     this.penLineDetection.validationTimer = null;
+                    this.penLineDetection.referencePoint = null;
+                    this.penLineDetection.shouldCreateStraightLine = false;
                 }
-                this.penLineDetection.shouldCreateStraightLine = false;
-            } else if (!this.penLineDetection.validationTimer && !this.penLineDetection.shouldCreateStraightLine) {
-                // Immobile, démarrer le timer de 2 secondes
-                this.penLineDetection.validationTimer = setTimeout(() => {
-                    console.log('[Pen Line Detection] 2 secondes d\'immobilité détectées, création de la ligne droite');
-                    this.penLineDetection.shouldCreateStraightLine = true;
-                    this.penLineDetection.validationTimer = null;
+            }
 
-                    // Créer immédiatement la ligne droite
-                    if (this.currentStroke && this.currentStroke.points.length > 1) {
-                        const firstPoint = this.currentStroke.points[0];
-                        const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
-                        this.currentStroke.points = [firstPoint, lastPoint];
-                        this.currentStroke.tool = 'pen-line'; // Nouveau type pour ligne sans mesure
+            // Si pas de timer actif, vérifier l'immobilité par rapport au dernier point
+            if (!this.penLineDetection.validationTimer && !this.penLineDetection.shouldCreateStraightLine) {
+                const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+                const distance = Math.sqrt((finalX - lastPoint.x) ** 2 + (finalY - lastPoint.y) ** 2);
 
-                        // Redessiner immédiatement avec la ligne droite
-                        this.drawStrokePreview(canvas, this.currentStroke, pageId);
-                    }
-                }, 2000); // 2 secondes
+                // Si le stylet est quasi-immobile (< 2px du dernier point), lancer le timer
+                if (distance < 2) {
+                    this.penLineDetection.referencePoint = {x: finalX, y: finalY};
+                    this.penLineDetection.validationTimer = setTimeout(() => {
+                        console.log('[Pen Line Detection] 2s immobilité (< 8px depuis référence), ligne droite');
+                        this.penLineDetection.shouldCreateStraightLine = true;
+                        this.penLineDetection.validationTimer = null;
+                        this.penLineDetection.referencePoint = null;
+
+                        // Créer immédiatement la ligne droite
+                        if (this.currentStroke && this.currentStroke.points.length > 1) {
+                            const firstPoint = this.currentStroke.points[0];
+                            const lastPoint = this.currentStroke.points[this.currentStroke.points.length - 1];
+                            this.currentStroke.points = [firstPoint, lastPoint];
+                            this.currentStroke.tool = 'pen-line';
+                            this.drawStrokePreview(canvas, this.currentStroke, pageId);
+                        }
+                    }, 2000);
+                }
             }
         }
 
