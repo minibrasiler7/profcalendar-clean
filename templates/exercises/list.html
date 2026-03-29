@@ -357,9 +357,9 @@
             </div>
         </div>
 
-        <!-- Option Combat -->
+        <!-- Option Combat (MASQUÉ - fonctionnalité pas encore aboutie, à réactiver plus tard) -->
         <div id="mode-combat-btn" onclick="selectMode('combat')"
-             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
+             style="display:none;padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
             <div style="display:flex;align-items:center;gap:0.75rem;">
                 <div style="width:48px;height:48px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
@@ -589,6 +589,8 @@ function showModeModal(exerciseId, title) {
     btn.style.background = '#d1d5db';
     btn.innerHTML = '<i class="fas fa-play"></i> Lancer la mission';
     document.getElementById('mode-modal').style.display = 'flex';
+    // Auto-sélectionner le mode classique (combat masqué pour le moment)
+    selectMode('classique');
 }
 
 function closeModeModal() {
