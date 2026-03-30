@@ -10,7 +10,17 @@
             <h1 class="auth-title">Espace Enseignant</h1>
             <p class="auth-subtitle">Accédez à votre espace de planification</p>
         </div>
-        
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <form method="POST" action="{{ url_for('auth.login') }}" class="auth-form">
             {{ form.hidden_tag() }}
             
