@@ -64,6 +64,8 @@ class UserFile(db.Model):
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     file_content = db.Column(db.LargeBinary)  # Contenu du fichier en BLOB
     thumbnail_content = db.Column(db.LargeBinary)  # Contenu de la miniature en BLOB
+    r2_key = db.Column(db.String(500), nullable=True)  # Clé R2 si stocké sur Cloudflare R2
+    r2_thumbnail_key = db.Column(db.String(500), nullable=True)  # Clé R2 de la miniature
 
     # Relations
     user = db.relationship('User', backref=db.backref('files', lazy='dynamic'))

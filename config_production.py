@@ -46,10 +46,16 @@ class ProductionConfig:
     # HTTPS
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'False').lower() == 'true'
     
-    # Upload et fichiers  
+    # Upload et fichiers
     MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200MB max (pour les gros PDF)
-    # Utiliser le stockage persistant Render si disponible
+    # Utiliser le stockage persistant Render si disponible (fallback si R2 non configuré)
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '/opt/render/project/src/uploads')
+
+    # Cloudflare R2 - Stockage externe (optionnel, activé si les 3 variables sont définies)
+    R2_ACCOUNT_ID = os.environ.get('R2_ACCOUNT_ID')
+    R2_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID')
+    R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
+    R2_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME', 'profcalendar-files')
     
     # Configuration Resend (service d'envoi email transactionnel)
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
@@ -144,7 +150,7 @@ class ProductionConfig:
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://js.stripe.com; "
                 "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
                 "font-src 'self' https://cdnjs.cloudflare.com; "
-                "img-src 'self' data: https://*.stripe.com; "
+                "img-src 'self' data: https://*.stripe.com https://*.r2.cloudflarestorage.com; "
                 "frame-src https://js.stripe.com https://hooks.stripe.com; "
                 "connect-src 'self' wss: ws: https://api.stripe.com; "
             )

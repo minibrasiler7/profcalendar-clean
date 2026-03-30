@@ -34,6 +34,49 @@ def get_absolute_file_path(user_file):
         rel_path = rel_path[8:]  # Enlever 'uploads/'
     return os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
 
+def serve_user_file_content(user_file, as_attachment=False):
+    """
+    Sert le contenu d'un UserFile en essayant R2 > BLOB > disque.
+    Fonction utilitaire partagée par download, preview et serve_file.
+
+    Returns:
+        Flask Response ou None si fichier introuvable
+    """
+    from flask import Response
+
+    mimetype = user_file.mime_type or 'application/octet-stream'
+    filename = user_file.original_filename
+    disposition = 'attachment' if as_attachment else 'inline'
+
+    # 1. R2 (nouveaux fichiers)
+    if user_file.r2_key:
+        try:
+            from services.r2_storage import download_file_from_r2
+            r2_data = download_file_from_r2(user_file.user_id, user_file.filename)
+            if r2_data:
+                return Response(
+                    r2_data, mimetype=mimetype,
+                    headers={'Content-Disposition': f'{disposition}; filename="{filename}"'}
+                )
+        except Exception as e:
+            current_app.logger.warning(f"Erreur R2 pour {filename}, fallback: {e}")
+
+    # 2. BLOB (anciens fichiers)
+    if user_file.file_content:
+        return Response(
+            user_file.file_content, mimetype=mimetype,
+            headers={'Content-Disposition': f'{disposition}; filename="{filename}"'}
+        )
+
+    # 3. Disque local
+    file_path = get_absolute_file_path(user_file)
+    if os.path.exists(file_path):
+        return send_file(file_path, mimetype=mimetype,
+                        as_attachment=as_attachment, download_name=filename)
+
+    return None
+
+
 def get_user_total_storage(user):
     """Calcule l'utilisation totale de stockage d'un utilisateur"""
     from models.file_manager import UserFile
@@ -608,6 +651,20 @@ def delete_multiple():
                 ).first()
 
                 if user_file:
+                    # Supprimer de R2 si stocké là
+                    if user_file.r2_key:
+                        try:
+                            from services.r2_storage import delete_file_from_r2
+                            delete_file_from_r2(user_file.user_id, user_file.filename)
+                        except Exception:
+                            pass
+                    if user_file.r2_thumbnail_key:
+                        try:
+                            from services.r2_storage import delete_file_from_r2 as del_r2
+                            del_r2(user_file.user_id, user_file.thumbnail_path, file_type='thumbnail')
+                        except Exception:
+                            pass
+
                     # Supprimer le fichier physique
                     file_path = get_absolute_file_path(user_file)
                     if os.path.exists(file_path):
@@ -830,19 +887,36 @@ def upload_with_structure():
             
             target_folder_id = current_parent_id
         
+        from services.r2_storage import is_r2_enabled, upload_file_to_r2, upload_thumbnail_to_r2
+
         # Générer un nom unique
         original_filename = secure_filename(file.filename)
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
-        
-        # Créer les dossiers
-        user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
-        os.makedirs(user_folder, exist_ok=True)
-        
-        # Sauvegarder le fichier
-        file_path = os.path.join(user_folder, unique_filename)
-        file.save(file_path)
-        
+
+        # Lire le contenu du fichier en mémoire
+        file_data = file.read()
+        file.seek(0)
+
+        r2_key = None
+        file_path = None
+
+        # === Stockage R2 (prioritaire si activé) ===
+        if is_r2_enabled():
+            r2_key = upload_file_to_r2(
+                file_data, current_user.id, unique_filename, mime_type=file.content_type
+            )
+            if not r2_key:
+                current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
+
+        # === Fallback: stockage disque local ===
+        if not r2_key:
+            user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
+            os.makedirs(user_folder, exist_ok=True)
+            file_path = os.path.join(user_folder, unique_filename)
+            with open(file_path, 'wb') as f:
+                f.write(file_data)
+
         # Créer l'entrée en base de données
         user_file = UserFile(
             user_id=current_user.id,
@@ -851,21 +925,47 @@ def upload_with_structure():
             original_filename=original_filename,
             file_type=file_ext,
             file_size=file_size,
-            mime_type=file.content_type
+            mime_type=file.content_type,
+            r2_key=r2_key
         )
-        
+
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
             thumbnail_filename = f"thumb_{unique_filename}"
-            thumbnail_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id))
-            thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
-            
-            if create_thumbnail(file_path, thumbnail_path):
-                user_file.thumbnail_path = thumbnail_filename
-        
+            try:
+                from io import BytesIO
+                img = Image.open(BytesIO(file_data))
+                if img.mode in ('RGBA', 'LA'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[-1])
+                    img = background
+                img.thumbnail(THUMBNAIL_SIZE, Image.LANCZOS)
+                thumb_buffer = BytesIO()
+                img.save(thumb_buffer, format='JPEG', quality=85)
+                thumb_data = thumb_buffer.getvalue()
+
+                if r2_key and is_r2_enabled():
+                    r2_thumb_key = upload_thumbnail_to_r2(
+                        thumb_data, current_user.id, thumbnail_filename
+                    )
+                    if r2_thumb_key:
+                        user_file.r2_thumbnail_key = r2_thumb_key
+                        user_file.thumbnail_path = thumbnail_filename
+                else:
+                    thumbnail_folder = os.path.join(
+                        current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id)
+                    )
+                    os.makedirs(thumbnail_folder, exist_ok=True)
+                    thumb_path = os.path.join(thumbnail_folder, thumbnail_filename)
+                    with open(thumb_path, 'wb') as f:
+                        f.write(thumb_data)
+                    user_file.thumbnail_path = thumbnail_filename
+            except Exception as thumb_err:
+                current_app.logger.warning(f"Erreur création miniature: {thumb_err}")
+
         db.session.add(user_file)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Fichier uploadé avec succès',
@@ -876,12 +976,17 @@ def upload_with_structure():
                 'size': user_file.format_size()
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
-        # Nettoyer le fichier en cas d'erreur
-        if 'file_path' in locals() and os.path.exists(file_path):
+        if 'file_path' in locals() and file_path and os.path.exists(file_path):
             os.remove(file_path)
+        if 'r2_key' in locals() and r2_key:
+            try:
+                from services.r2_storage import delete_file_from_r2
+                delete_file_from_r2(current_user.id, unique_filename)
+            except:
+                pass
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @file_manager_bp.route('/create-folder', methods=['POST'])
@@ -955,18 +1060,36 @@ def upload_file():
         return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
 
     try:
+        from services.r2_storage import is_r2_enabled, upload_file_to_r2, upload_thumbnail_to_r2
+
         # Générer un nom unique
         original_filename = secure_filename(file.filename)
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
-        # Créer les dossiers
-        user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
-        os.makedirs(user_folder, exist_ok=True)
+        # Lire le contenu du fichier en mémoire
+        file_data = file.read()
+        file.seek(0)
 
-        # Sauvegarder le fichier
-        file_path = os.path.join(user_folder, unique_filename)
-        file.save(file_path)
+        r2_key = None
+        r2_thumbnail_key = None
+        file_path = None
+
+        # === Stockage R2 (prioritaire si activé) ===
+        if is_r2_enabled():
+            r2_key = upload_file_to_r2(
+                file_data, current_user.id, unique_filename, mime_type=file.content_type
+            )
+            if not r2_key:
+                current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
+
+        # === Fallback: stockage disque local (si R2 non activé ou échec) ===
+        if not r2_key:
+            user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
+            os.makedirs(user_folder, exist_ok=True)
+            file_path = os.path.join(user_folder, unique_filename)
+            with open(file_path, 'wb') as f:
+                f.write(file_data)
 
         # Créer l'entrée en base de données
         user_file = UserFile(
@@ -976,17 +1099,47 @@ def upload_file():
             original_filename=original_filename,
             file_type=file_ext,
             file_size=file_size,
-            mime_type=file.content_type
+            mime_type=file.content_type,
+            r2_key=r2_key
         )
 
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
             thumbnail_filename = f"thumb_{unique_filename}"
-            thumbnail_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id))
-            thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
 
-            if create_thumbnail(file_path, thumbnail_path):
-                user_file.thumbnail_path = thumbnail_filename
+            # Générer la miniature en mémoire
+            try:
+                from io import BytesIO
+                img = Image.open(BytesIO(file_data))
+                if img.mode in ('RGBA', 'LA'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[-1])
+                    img = background
+                img.thumbnail(THUMBNAIL_SIZE, Image.LANCZOS)
+                thumb_buffer = BytesIO()
+                img.save(thumb_buffer, format='JPEG', quality=85)
+                thumb_data = thumb_buffer.getvalue()
+
+                if r2_key and is_r2_enabled():
+                    # Upload miniature sur R2
+                    r2_thumb_key = upload_thumbnail_to_r2(
+                        thumb_data, current_user.id, thumbnail_filename
+                    )
+                    if r2_thumb_key:
+                        user_file.r2_thumbnail_key = r2_thumb_key
+                        user_file.thumbnail_path = thumbnail_filename
+                else:
+                    # Sauvegarder miniature sur disque
+                    thumbnail_folder = os.path.join(
+                        current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id)
+                    )
+                    os.makedirs(thumbnail_folder, exist_ok=True)
+                    thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
+                    with open(thumbnail_path, 'wb') as f:
+                        f.write(thumb_data)
+                    user_file.thumbnail_path = thumbnail_filename
+            except Exception as thumb_err:
+                current_app.logger.warning(f"Erreur création miniature: {thumb_err}")
 
         db.session.add(user_file)
         db.session.commit()
@@ -1006,8 +1159,14 @@ def upload_file():
     except Exception as e:
         db.session.rollback()
         # Nettoyer le fichier en cas d'erreur
-        if 'file_path' in locals() and os.path.exists(file_path):
+        if 'file_path' in locals() and file_path and os.path.exists(file_path):
             os.remove(file_path)
+        if 'r2_key' in locals() and r2_key:
+            try:
+                from services.r2_storage import delete_file_from_r2
+                delete_file_from_r2(current_user.id, unique_filename)
+            except:
+                pass
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @file_manager_bp.route('/test_serve/<int:file_id>')
@@ -1046,40 +1205,15 @@ def serve_file(file_id):
                 if new_class_file.user_file.file_content:
                     current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.file_content size: {len(new_class_file.user_file.file_content)} bytes")
             
-            # Servir via user_file
+            # Servir via user_file (R2 > BLOB > disque)
             if new_class_file.user_file:
                 user_file = new_class_file.user_file
-                mimetype = user_file.mime_type or 'application/octet-stream'
-                filename = user_file.original_filename
-                
-                # Essayer d'abord le BLOB
-                if user_file.file_content:
-                    current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile BLOB: {filename}")
-                    return Response(
-                        user_file.file_content,
-                        mimetype=mimetype,
-                        headers={
-                            'Content-Disposition': f'inline; filename="{filename}"'
-                        }
-                    )
-                # Si pas de BLOB, essayer le fichier physique
-                else:
-                    file_path = user_file.get_file_path()
-                    full_path = os.path.join(current_app.root_path, file_path)
-                    current_app.logger.error(f"=== SERVE_FILE DEBUG === No BLOB, trying physical file: {full_path}")
-                    
-                    if os.path.exists(full_path):
-                        current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving physical file: {filename}")
-                        from flask import send_file
-                        return send_file(
-                            full_path,
-                            mimetype=mimetype,
-                            as_attachment=False,
-                            download_name=filename
-                        )
-                    else:
-                        current_app.logger.error(f"=== SERVE_FILE DEBUG === Physical file not found: {full_path}")
-                        return "Fichier physique introuvable", 404
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile: {user_file.original_filename}")
+                response = serve_user_file_content(user_file, as_attachment=False)
+                if response:
+                    return response
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === File not found anywhere for UserFile {user_file.id}")
+                return "Fichier introuvable", 404
             else:
                 current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile {file_id} has no user_file")
                 return "Fichier de classe sans user_file", 404
@@ -1096,20 +1230,13 @@ def serve_file(file_id):
             current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile found: {user_file is not None}")
             
             if user_file:
-                # Servir le fichier utilisateur
-                if user_file.file_content:
-                    mimetype = user_file.mime_type or 'application/octet-stream'
-                    current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving UserFile BLOB: {user_file.original_filename}")
-                    return Response(
-                        user_file.file_content,
-                        mimetype=mimetype,
-                        headers={
-                            'Content-Disposition': f'inline; filename="{user_file.original_filename}"'
-                        }
-                    )
-                else:
-                    current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile {file_id} has no BLOB content")
-                    return f"Fichier utilisateur '{user_file.original_filename}' sans contenu BLOB", 404
+                # Servir le fichier utilisateur (R2 > BLOB > disque)
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving UserFile: {user_file.original_filename}")
+                response = serve_user_file_content(user_file, as_attachment=False)
+                if response:
+                    return response
+                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile {file_id} not found anywhere")
+                return f"Fichier utilisateur '{user_file.original_filename}' introuvable", 404
             else:
                 current_app.logger.error(f"=== SERVE_FILE DEBUG === No file found with ID {file_id}")
                 return "Fichier introuvable dans la base de données", 404
@@ -1163,10 +1290,26 @@ def download_file(file_id):
         user_id=current_user.id
     ).first_or_404()
 
-    # Vérifier le contenu BLOB en premier
+    mimetype = file.mime_type or 'application/octet-stream'
+
+    # 1. Essayer R2 en premier (nouveaux fichiers)
+    if file.r2_key:
+        try:
+            from services.r2_storage import download_file_from_r2
+            r2_data = download_file_from_r2(file.user_id, file.filename)
+            if r2_data:
+                return Response(
+                    r2_data,
+                    mimetype=mimetype,
+                    headers={
+                        'Content-Disposition': f'attachment; filename="{file.original_filename}"'
+                    }
+                )
+        except Exception as e:
+            current_app.logger.warning(f"Erreur download R2, fallback: {e}")
+
+    # 2. Essayer BLOB (anciens fichiers)
     if file.file_content:
-        # Servir depuis la base de données (BLOB)
-        mimetype = file.mime_type or 'application/octet-stream'
         return Response(
             file.file_content,
             mimetype=mimetype,
@@ -1174,17 +1317,16 @@ def download_file(file_id):
                 'Content-Disposition': f'attachment; filename="{file.original_filename}"'
             }
         )
-    else:
-        # Fallback: essayer de servir depuis le fichier physique
-        file_path = get_absolute_file_path(file)
-        
-        if os.path.exists(file_path):
-            return send_file(file_path,
-                           download_name=file.original_filename,
-                           as_attachment=True)
-        else:
-            flash('Fichier introuvable', 'error')
-            return redirect(url_for('file_manager.index'))
+
+    # 3. Fallback: fichier physique sur disque
+    file_path = get_absolute_file_path(file)
+    if os.path.exists(file_path):
+        return send_file(file_path,
+                       download_name=file.original_filename,
+                       as_attachment=True)
+
+    flash('Fichier introuvable', 'error')
+    return redirect(url_for('file_manager.index'))
 
 @file_manager_bp.route('/preview/<int:file_id>')
 @login_required
@@ -1216,46 +1358,57 @@ def preview_file(file_id):
     if not file:
         return abort(404)
 
-    # Pour les images, utiliser la miniature BLOB si disponible
-    if file.thumbnail_content and request.args.get('thumbnail'):
-        return Response(
-            file.thumbnail_content,
-            mimetype='image/jpeg',
-            headers={
-                'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'
-            }
-        )
+    mimetype = file.mime_type or 'application/octet-stream'
 
-    # Vérifier le contenu BLOB en premier
+    # === Miniature demandée ===
+    if request.args.get('thumbnail') and file.thumbnail_path:
+        # 1. R2 thumbnail
+        if file.r2_thumbnail_key:
+            try:
+                from services.r2_storage import download_file_from_r2
+                thumb_data = download_file_from_r2(file.user_id, file.thumbnail_path, file_type='thumbnail')
+                if thumb_data:
+                    return Response(thumb_data, mimetype='image/jpeg',
+                                    headers={'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'})
+            except Exception:
+                pass
+        # 2. BLOB thumbnail
+        if file.thumbnail_content:
+            return Response(file.thumbnail_content, mimetype='image/jpeg',
+                            headers={'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'})
+        # 3. Disque thumbnail
+        thumbnail_rel_path = file.get_thumbnail_path()
+        if thumbnail_rel_path:
+            if thumbnail_rel_path.startswith('uploads/'):
+                thumbnail_rel_path = thumbnail_rel_path[8:]
+            thumbnail_path = os.path.join(current_app.config['UPLOAD_FOLDER'], thumbnail_rel_path)
+            if os.path.exists(thumbnail_path):
+                return send_file(thumbnail_path, mimetype='image/jpeg')
+
+    # === Fichier complet ===
+    # 1. R2
+    if file.r2_key:
+        try:
+            from services.r2_storage import download_file_from_r2
+            r2_data = download_file_from_r2(file.user_id, file.filename)
+            if r2_data:
+                return Response(r2_data, mimetype=mimetype,
+                                headers={'Content-Disposition': f'inline; filename="{file.original_filename}"'})
+        except Exception as e:
+            current_app.logger.warning(f"Erreur preview R2, fallback: {e}")
+
+    # 2. BLOB
     if file.file_content:
-        # Servir depuis la base de données (BLOB)
-        mimetype = file.mime_type or 'application/octet-stream'
-        return Response(
-            file.file_content,
-            mimetype=mimetype,
-            headers={
-                'Content-Disposition': f'inline; filename="{file.original_filename}"'
-            }
-        )
-    else:
-        # Fallback: essayer de servir depuis le fichier physique
-        file_path = get_absolute_file_path(file)
-        
-        if os.path.exists(file_path):
-            # Pour les images, utiliser la miniature physique si demandée
-            if file.thumbnail_path and request.args.get('thumbnail'):
-                # Gérer le chemin de thumbnail avec UPLOAD_FOLDER
-                thumbnail_rel_path = file.get_thumbnail_path()  # 'uploads/thumbnails/user_id/filename'
-                if thumbnail_rel_path.startswith('uploads/'):
-                    thumbnail_rel_path = thumbnail_rel_path[8:]  # Enlever 'uploads/'
-                thumbnail_path = os.path.join(current_app.config['UPLOAD_FOLDER'], thumbnail_rel_path)
-                if os.path.exists(thumbnail_path):
-                    return send_file(thumbnail_path, mimetype='image/jpeg')
-            
-            return send_file(file_path, mimetype=file.mime_type)
-        else:
-            flash('Fichier introuvable', 'error')
-            return redirect(url_for('file_manager.index'))
+        return Response(file.file_content, mimetype=mimetype,
+                        headers={'Content-Disposition': f'inline; filename="{file.original_filename}"'})
+
+    # 3. Disque
+    file_path = get_absolute_file_path(file)
+    if os.path.exists(file_path):
+        return send_file(file_path, mimetype=file.mime_type)
+
+    flash('Fichier introuvable', 'error')
+    return redirect(url_for('file_manager.index'))
 
 @file_manager_bp.route('/delete-file/<int:file_id>', methods=['DELETE'])
 @login_required
@@ -1275,12 +1428,27 @@ def delete_file(file_id):
     ).first_or_404()
 
     try:
-        # Supprimer le fichier physique
+        # Supprimer de R2 si stocké là
+        if file.r2_key:
+            try:
+                from services.r2_storage import delete_file_from_r2
+                delete_file_from_r2(file.user_id, file.filename)
+            except Exception as e:
+                current_app.logger.warning(f"Erreur suppression R2: {e}")
+
+        if file.r2_thumbnail_key:
+            try:
+                from services.r2_storage import delete_file_from_r2
+                delete_file_from_r2(file.user_id, file.thumbnail_path, file_type='thumbnail')
+            except Exception as e:
+                current_app.logger.warning(f"Erreur suppression miniature R2: {e}")
+
+        # Supprimer le fichier physique (si existant)
         file_path = get_absolute_file_path(file)
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        # Supprimer la miniature si elle existe
+        # Supprimer la miniature physique si elle existe
         if file.thumbnail_path:
             thumbnail_path = os.path.join(current_app.root_path, file.get_thumbnail_path())
             if os.path.exists(thumbnail_path):
@@ -1323,8 +1491,23 @@ def delete_folder(folder_id):
             for subfolder in list(folder.subfolders):
                 delete_folder_recursive(subfolder)
             
-            # Supprimer les fichiers physiques du dossier
+            # Supprimer les fichiers (R2 + physiques) du dossier
             for file in folder.files:
+                # Supprimer de R2 si stocké là
+                if file.r2_key:
+                    try:
+                        from services.r2_storage import delete_file_from_r2
+                        delete_file_from_r2(file.user_id, file.filename)
+                    except Exception:
+                        pass
+                if file.r2_thumbnail_key:
+                    try:
+                        from services.r2_storage import delete_file_from_r2 as del_r2
+                        del_r2(file.user_id, file.thumbnail_path, file_type='thumbnail')
+                    except Exception:
+                        pass
+
+                # Supprimer fichier physique
                 file_path = get_absolute_file_path(file)
                 if os.path.exists(file_path):
                     os.remove(file_path)
