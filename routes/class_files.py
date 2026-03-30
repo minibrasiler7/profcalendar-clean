@@ -104,25 +104,38 @@ def copy_file_to_class():
         # Lire le contenu du fichier source
         file_content = None
         mime_type = user_file.mime_type
-        
-        if user_file.file_content:
-            # Le fichier source est déjà en BLOB
+
+        # 1. R2 (nouveaux fichiers stockés dans Cloudflare R2)
+        if user_file.r2_key:
+            try:
+                from services.r2_storage import download_file_from_r2
+                r2_data = download_file_from_r2(user_file.user_id, user_file.filename)
+                if r2_data:
+                    file_content = r2_data
+                    print(f"✅ Fichier lu depuis R2: {user_file.r2_key}")
+            except Exception as e:
+                print(f"⚠️  Erreur lecture R2: {e}")
+
+        # 2. BLOB (anciens fichiers stockés en base)
+        if not file_content and user_file.file_content:
             file_content = user_file.file_content
-        else:
-            # Lire le fichier physique si disponible
+            print(f"✅ Fichier lu depuis BLOB")
+
+        # 3. Fichier physique local (fallback)
+        if not file_content:
             try:
                 from flask import current_app
-                # Construire le chemin avec UPLOAD_FOLDER configuré
-                rel_path = user_file.get_file_path()  # 'uploads/files/user_id/filename'
+                rel_path = user_file.get_file_path()
                 if rel_path.startswith('uploads/'):
-                    rel_path = rel_path[8:]  # Enlever 'uploads/'
+                    rel_path = rel_path[8:]
                 source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
                 if os.path.exists(source_path):
                     with open(source_path, 'rb') as f:
                         file_content = f.read()
+                    print(f"✅ Fichier lu depuis disque: {source_path}")
             except Exception as e:
                 print(f"⚠️  Impossible de lire le fichier source: {e}")
-        
+
         if not file_content:
             return jsonify({
                 'success': False,
