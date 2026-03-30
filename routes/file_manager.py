@@ -567,26 +567,29 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
             print(f"Fichier déjà existant: {user_file.original_filename} dans {folder_path}")
             return False  # Fichier déjà existant
 
-        # Vérifier le contenu du fichier (BLOB ou fichier physique)
-        file_content = None
-        
-        if user_file.file_content:
-            # Le fichier est en BLOB
-            file_content = user_file.file_content
-            print(f"✅ Fichier BLOB trouvé: {user_file.original_filename} ({len(file_content)} octets)")
-        else:
-            # Lire le fichier physique sur disque persistant
+        # Vérifier que le fichier source est accessible (R2, BLOB, ou physique)
+        # Note: ClassFile ne stocke qu'une référence (user_file_id), pas le contenu.
+        # On vérifie juste que la source existe sans la télécharger entièrement.
+        file_accessible = False
+
+        # 1. R2 (nouveaux fichiers stockés dans Cloudflare R2)
+        if user_file.r2_key:
+            file_accessible = True
+            print(f"✅ Fichier R2 référencé: {user_file.original_filename} (r2_key: {user_file.r2_key})")
+
+        # 2. BLOB (anciens fichiers en base)
+        if not file_accessible and user_file.file_content:
+            file_accessible = True
+            print(f"✅ Fichier BLOB trouvé: {user_file.original_filename}")
+
+        # 3. Fichier physique local (fallback)
+        if not file_accessible:
             file_path = get_absolute_file_path(user_file)
             if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'rb') as f:
-                        file_content = f.read()
-                    print(f"✅ Fichier physique lu: {user_file.original_filename} ({len(file_content)} octets)")
-                except Exception as e:
-                    print(f"❌ Erreur lecture fichier physique {file_path}: {e}")
-                    return False
+                file_accessible = True
+                print(f"✅ Fichier physique trouvé: {user_file.original_filename}")
             else:
-                print(f"❌ Fichier introuvable: BLOB et physique manquants pour {user_file.original_filename} (chemin: {file_path})")
+                print(f"❌ Fichier introuvable: R2, BLOB et physique manquants pour {user_file.original_filename}")
                 return False
 
         # Créer l'entrée en base de données avec le nouveau modèle
