@@ -869,30 +869,39 @@ def upload_with_structure():
     from models.file_manager import UserFile, FileFolder
     
     if 'file' not in request.files:
+        current_app.logger.error(f'[UPLOAD-DEBUG] No file in request')
         return jsonify({'success': False, 'message': 'Aucun fichier fourni'}), 400
-    
+
     file = request.files['file']
     folder_path = request.form.get('folder_path', '').strip('/')
     parent_folder_id = request.form.get('parent_folder_id', type=int)
-    
+
+    current_app.logger.info(f'[UPLOAD-DEBUG] Received: filename="{file.filename}", folder_path="{folder_path}", content_type="{file.content_type}"')
+
     if file.filename == '':
+        current_app.logger.error(f'[UPLOAD-DEBUG] Empty filename')
         return jsonify({'success': False, 'message': 'Aucun fichier sélectionné'}), 400
-    
+
     if not allowed_file(file.filename):
+        current_app.logger.error(f'[UPLOAD-DEBUG] File not allowed: "{file.filename}"')
         return jsonify({'success': False, 'message': 'Type de fichier non autorisé'}), 400
-    
+
     # Vérifier la taille
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
-    
+
+    current_app.logger.info(f'[UPLOAD-DEBUG] File size: {file_size} bytes')
+
     if file_size > MAX_FILE_SIZE:
+        current_app.logger.error(f'[UPLOAD-DEBUG] File too large: {file_size}')
         return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
-    
+
     # Vérifier la limite de stockage total
     current_storage = get_user_total_storage(current_user)
     if current_storage + file_size > MAX_TOTAL_STORAGE:
         remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
+        current_app.logger.error(f'[UPLOAD-DEBUG] Storage limit exceeded: current={current_storage}, file_size={file_size}')
         return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
     
     try:
@@ -1016,6 +1025,8 @@ def upload_with_structure():
         db.session.add(user_file)
         db.session.commit()
 
+        current_app.logger.info(f'[UPLOAD-DEBUG] SUCCESS: "{original_filename}" -> folder_id={target_folder_id}, r2_key={r2_key}')
+
         return jsonify({
             'success': True,
             'message': 'Fichier uploadé avec succès',
@@ -1028,6 +1039,9 @@ def upload_with_structure():
         })
 
     except Exception as e:
+        current_app.logger.error(f'[UPLOAD-DEBUG] EXCEPTION: "{file.filename}" folder_path="{folder_path}" error={str(e)}')
+        import traceback
+        current_app.logger.error(f'[UPLOAD-DEBUG] TRACEBACK: {traceback.format_exc()}')
         db.session.rollback()
         if 'file_path' in locals() and file_path and os.path.exists(file_path):
             os.remove(file_path)
