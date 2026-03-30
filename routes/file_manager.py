@@ -3,8 +3,10 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from extensions import db
 import os
+import re
 import uuid
 import shutil
+import unicodedata
 from datetime import datetime
 from PIL import Image
 from models.file_manager import FileFolder, UserFile
@@ -20,12 +22,53 @@ file_manager_bp = Blueprint('file_manager', __name__, url_prefix='/file_manager'
 # UPLOAD_FOLDER sera récupéré depuis la configuration Flask au lieu d'être codé en dur
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB (permet des PDF volumineux)
-MAX_TOTAL_STORAGE = 5 * 1024 * 1024 * 1024  # 5 GB de stockage total
+MAX_TOTAL_STORAGE = 10 * 1024 * 1024 * 1024  # 10 GB de stockage total
 THUMBNAIL_SIZE = (200, 200)
 
+def safe_filename(filename):
+    """Sanitize filename while preserving Unicode characters (accents, etc.).
+
+    Unlike werkzeug's secure_filename which strips all non-ASCII characters,
+    this function keeps accented characters, apostrophes, plus signs, etc.
+    It only removes characters that are dangerous for filesystems or security.
+    """
+    if not filename:
+        return ''
+
+    # Normalize Unicode (NFC form - composed characters)
+    filename = unicodedata.normalize('NFC', filename)
+
+    # Extract just the filename if a path was provided
+    # Handle both Unix and Windows path separators
+    filename = filename.replace('\\', '/').split('/')[-1]
+
+    # Remove null bytes and control characters
+    filename = re.sub(r'[\x00-\x1f\x7f]', '', filename)
+
+    # Remove characters that are problematic for filesystems: / \ : * ? " < > |
+    # But keep accented chars, apostrophes, +, spaces, parentheses, etc.
+    filename = re.sub(r'[/\\:*?"<>|]', '_', filename)
+
+    # Remove leading/trailing whitespace and dots (prevent hidden files)
+    filename = filename.strip().strip('.')
+
+    # Collapse multiple spaces/underscores
+    filename = re.sub(r'_{2,}', '_', filename)
+    filename = re.sub(r' {2,}', ' ', filename)
+
+    # If filename is empty after sanitization, generate a fallback
+    if not filename:
+        filename = 'unnamed_file'
+
+    return filename
+
 def allowed_file(filename):
-    """Vérifie si le fichier est autorisé"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    """Vérifie si le fichier est autorisé - works with original filename"""
+    if not filename:
+        return False
+    # Extract just the base filename if path included
+    basename = filename.replace('\\', '/').split('/')[-1]
+    return '.' in basename and basename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_absolute_file_path(user_file):
     """Convertit le chemin relatif d'un UserFile en chemin absolu avec la configuration UPLOAD_FOLDER"""
@@ -889,8 +932,15 @@ def upload_with_structure():
         
         from services.r2_storage import is_r2_enabled, upload_file_to_r2, upload_thumbnail_to_r2
 
-        # Générer un nom unique
-        original_filename = secure_filename(file.filename)
+        # Générer un nom unique - use safe_filename to preserve Unicode
+        original_filename = safe_filename(file.filename)
+        if not original_filename or '.' not in original_filename:
+            # Fallback: use extension from the raw filename
+            raw_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'pdf'
+            if not original_filename:
+                original_filename = f"fichier.{raw_ext}"
+            else:
+                original_filename = f"{original_filename}.{raw_ext}"
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
@@ -1062,8 +1112,14 @@ def upload_file():
     try:
         from services.r2_storage import is_r2_enabled, upload_file_to_r2, upload_thumbnail_to_r2
 
-        # Générer un nom unique
-        original_filename = secure_filename(file.filename)
+        # Générer un nom unique - use safe_filename to preserve Unicode
+        original_filename = safe_filename(file.filename)
+        if not original_filename or '.' not in original_filename:
+            raw_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'pdf'
+            if not original_filename:
+                original_filename = f"fichier.{raw_ext}"
+            else:
+                original_filename = f"{original_filename}.{raw_ext}"
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
