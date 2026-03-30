@@ -8739,7 +8739,7 @@ function handleClassFiles(files, classroomId = null) {
 // Valider un fichier
 function validateClassFile(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    const maxSize = 200 * 1024 * 1024; // 200 MB
+    const maxSize = 250 * 1024 * 1024; // 250 MB
     
     if (!allowedTypes.includes(file.type)) {
         showNotification('error', `Type de fichier non autorisé: ${file.name}`);

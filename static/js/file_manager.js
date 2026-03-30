@@ -1418,7 +1418,7 @@ function handleFiles(files) {
 function validateFile(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
     const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
-    const maxSize = 200 * 1024 * 1024; // 200 MB
+    const maxSize = 250 * 1024 * 1024; // 250 MB
 
     // Check MIME type first, but fall back to extension check
     // (browsers may return empty or non-standard MIME types for files with special characters)
