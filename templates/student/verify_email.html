@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification email - Espace Élève</title>
+    <title>VÃ©rification email - Espace ÃlÃ¨ve</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -74,8 +74,8 @@
             <div class="verify-icon">
                 <i class="fas fa-envelope-open-text"></i>
             </div>
-            <h1 class="verify-title">Vérifiez votre email</h1>
-            <p class="verify-subtitle">Un code à 6 chiffres a été envoyé à <strong>{{ email }}</strong></p>
+            <h1 class="verify-title">VÃ©rifiez votre email</h1>
+            <p class="verify-subtitle">Un code Ã  6 chiffres a Ã©tÃ© envoyÃ© Ã  <strong>{{ email }}</strong></p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -86,11 +86,11 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('student_auth.verify_email') }}">
+        <form method="POST" action="{{ url_for('student_auth.verify_email_code') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="form-group">
-                <label for="code" class="form-label">Code de vérification</label>
+                <label for="code" class="form-label">Code de vÃ©rification</label>
                 <div class="code-input-container">
                     <input type="text" id="code" name="code" class="form-control code-input"
                            maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
@@ -103,11 +103,11 @@
                 <span id="timer">10:00</span>
             </div>
 
-            <button type="submit" class="btn-primary">Vérifier</button>
+            <button type="submit" class="btn-primary">VÃ©rifier</button>
         </form>
 
         <div class="resend-container">
-            <p>Vous n'avez pas reçu le code ?</p>
+            <p>Vous n'avez pas reÃ§u le code ?</p>
             <form method="POST" action="{{ url_for('student_auth.resend_code') }}" id="resend-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-resend" id="resend-btn">
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const min = Math.floor(timeLeft / 60);
         const sec = timeLeft % 60;
         timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
-        if (timeLeft <= 0) { clearInterval(interval); timerEl.textContent = 'Expiré'; timerEl.classList.add('expired'); }
+        if (timeLeft <= 0) { clearInterval(interval); timerEl.textContent = 'ExpirÃ©'; timerEl.classList.add('expired'); }
     }, 1000);
 
     const resendBtn = document.getElementById('resend-btn');
