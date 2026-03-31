@@ -209,6 +209,40 @@ def test_classes():
     """Page de test pour diagnostiquer le problème des classes"""
     return render_template('file_manager/test_classes.html')
 
+@file_manager_bp.route('/api/folder-contents/<int:folder_id>')
+@login_required
+def api_folder_contents(folder_id):
+    """Retourne le contenu d'un dossier en JSON (sous-dossiers + fichiers)"""
+    from models.file_manager import FileFolder, UserFile
+
+    folder = FileFolder.query.filter_by(id=folder_id, user_id=current_user.id).first()
+    if not folder:
+        return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
+
+    subfolders = FileFolder.query.filter_by(
+        user_id=current_user.id, parent_id=folder_id
+    ).order_by(FileFolder.name).all()
+
+    files = UserFile.query.filter_by(
+        user_id=current_user.id, folder_id=folder_id
+    ).order_by(UserFile.original_filename).all()
+
+    return jsonify({
+        'success': True,
+        'folders': [{
+            'id': f.id,
+            'name': f.name,
+            'color': f.color,
+            'file_count': f.get_file_count()
+        } for f in subfolders],
+        'files': [{
+            'id': f.id,
+            'original_filename': f.original_filename,
+            'file_type': f.file_type,
+            'size': f.format_size()
+        } for f in files]
+    })
+
 @file_manager_bp.route('/get-classes')
 @login_required
 def get_classes():

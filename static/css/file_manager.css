@@ -135,11 +135,44 @@
     font-weight: 500;
 }
 
-/* Liste de fichiers */
-.file-grid {
+/* Liste de fichiers / arborescence */
+.file-tree, .file-grid {
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+/* Noeud d'arbre (dossier + enfants) */
+.tree-node {
+    display: flex;
+    flex-direction: column;
+}
+
+.tree-children {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Chevron toggle dossier */
+.folder-toggle {
+    font-size: 0.7rem;
+    color: var(--gray-color);
+    transition: transform 0.2s ease;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.folder-toggle.expanded {
+    transform: rotate(90deg);
+}
+
+/* Loading indicator dans l'arbre */
+.tree-loading {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--gray-color);
+    font-style: italic;
 }
 
 /* Items (fichiers et dossiers) - vue liste */
