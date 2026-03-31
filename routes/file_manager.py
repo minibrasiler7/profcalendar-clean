@@ -192,8 +192,8 @@ def index():
             breadcrumb.insert(0, folder)
             folder = folder.parent
 
-    # Calculer l'espace utilisé
-    total_size = sum(f.file_size or 0 for f in current_user.files.all())
+    # Calculer l'espace utilisé (UserFiles + copies dans les classes)
+    total_size = get_user_total_storage(current_user)
 
     return render_template('file_manager/index.html',
                          folders=folders,
@@ -553,8 +553,10 @@ def copy_folder_to_class_folder():
         return jsonify({'success': False, 'message': 'Erreur lors de la copie du dossier'}), 500
 
 def copy_single_file_to_class(user_file, class_id, folder_path=None):
-    """Fonction utilitaire pour copier un fichier vers une classe"""
+    """Fonction utilitaire pour copier un fichier vers une classe (duplication réelle dans R2)"""
     try:
+        import uuid as uuid_module
+
         # Vérifier si le fichier n'existe pas déjà dans ce chemin spécifique
         folder_path_clean = folder_path or ''
         existing_file = ClassFile.query.filter_by(
@@ -567,42 +569,65 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
             print(f"Fichier déjà existant: {user_file.original_filename} dans {folder_path}")
             return False  # Fichier déjà existant
 
-        # Vérifier que le fichier source est accessible (R2, BLOB, ou physique)
-        # Note: ClassFile ne stocke qu'une référence (user_file_id), pas le contenu.
-        # On vérifie juste que la source existe sans la télécharger entièrement.
-        file_accessible = False
+        # Dupliquer le fichier dans R2 (copie réelle, pas une simple référence)
+        class_r2_key = None
+        file_ext = user_file.file_type or 'bin'
+        dest_filename = f"{uuid_module.uuid4()}.{file_ext}"
+        dest_key = f"class_files/{class_id}/{dest_filename}"
 
-        # 1. R2 (nouveaux fichiers stockés dans Cloudflare R2)
+        # 1. R2 → copie server-side (rapide, sans download)
         if user_file.r2_key:
-            file_accessible = True
-            print(f"✅ Fichier R2 référencé: {user_file.original_filename} (r2_key: {user_file.r2_key})")
+            try:
+                from services.r2_storage import copy_r2_object
+                if copy_r2_object(user_file.r2_key, dest_key):
+                    class_r2_key = dest_key
+                    print(f"✅ Fichier dupliqué R2 (server-side): {user_file.original_filename} -> {dest_key}")
+            except Exception as e:
+                print(f"⚠️  Erreur copie R2 server-side: {e}")
 
-        # 2. BLOB (anciens fichiers en base)
-        if not file_accessible and user_file.file_content:
-            file_accessible = True
-            print(f"✅ Fichier BLOB trouvé: {user_file.original_filename}")
+        # 2. BLOB → upload vers R2
+        if not class_r2_key and user_file.file_content:
+            try:
+                from services.r2_storage import upload_to_r2_key
+                if upload_to_r2_key(user_file.file_content, dest_key, user_file.mime_type):
+                    class_r2_key = dest_key
+                    print(f"✅ Fichier BLOB dupliqué vers R2: {user_file.original_filename} -> {dest_key}")
+            except Exception as e:
+                print(f"⚠️  Erreur upload BLOB vers R2: {e}")
 
-        # 3. Fichier physique local (fallback)
-        if not file_accessible:
+        # 3. Fichier physique local → upload vers R2
+        if not class_r2_key:
             file_path = get_absolute_file_path(user_file)
             if os.path.exists(file_path):
-                file_accessible = True
-                print(f"✅ Fichier physique trouvé: {user_file.original_filename}")
+                try:
+                    from services.r2_storage import upload_to_r2_key
+                    with open(file_path, 'rb') as f:
+                        file_data = f.read()
+                    if upload_to_r2_key(file_data, dest_key, user_file.mime_type):
+                        class_r2_key = dest_key
+                        print(f"✅ Fichier local dupliqué vers R2: {user_file.original_filename} -> {dest_key}")
+                except Exception as e:
+                    print(f"⚠️  Erreur upload local vers R2: {e}")
             else:
                 print(f"❌ Fichier introuvable: R2, BLOB et physique manquants pour {user_file.original_filename}")
                 return False
 
-        # Créer l'entrée en base de données avec le nouveau modèle
+        if not class_r2_key:
+            print(f"❌ Impossible de dupliquer le fichier: {user_file.original_filename}")
+            return False
+
+        # Créer l'entrée en base de données avec la clé R2 de la copie
         class_file = ClassFile(
             classroom_id=class_id,
             user_file_id=user_file.id,
-            folder_path=folder_path_clean
+            folder_path=folder_path_clean,
+            r2_key=class_r2_key
         )
 
         db.session.add(class_file)
         db.session.commit()
 
-        print(f"Fichier copié avec succès: {user_file.original_filename} vers {folder_path or 'racine'}")
+        print(f"✅ Fichier dupliqué avec succès: {user_file.original_filename} vers classe {class_id} ({class_r2_key})")
         return True
 
     except Exception as e:

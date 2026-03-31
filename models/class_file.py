@@ -10,6 +10,7 @@ class ClassFile(db.Model):
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
     user_file_id = db.Column(db.Integer, db.ForeignKey('user_files.id', ondelete='CASCADE'), nullable=False)
     folder_path = db.Column(db.String(500), default='')  # Chemin du dossier dans la classe (ex: "Chapitre 1/Exercices")
+    r2_key = db.Column(db.String(500), nullable=True)  # Clé R2 de la copie dupliquée
     copied_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_pinned = db.Column(db.Boolean, default=False)  # Épinglage du fichier
     pin_order = db.Column(db.Integer, default=0)      # Ordre d'épinglage

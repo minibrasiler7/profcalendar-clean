@@ -207,6 +207,70 @@ def download_file_from_r2(user_id, filename, file_type='file'):
         return None
 
 
+def copy_r2_object(source_key, dest_key):
+    """
+    Copie un objet R2 server-side (sans download/upload).
+
+    Args:
+        source_key: clé R2 source (ex: files/1/abc.pdf)
+        dest_key: clé R2 destination (ex: class_files/5/xyz.pdf)
+
+    Returns:
+        bool: True si copié, False si erreur
+    """
+    client = get_s3_client()
+    if not client:
+        return False
+
+    try:
+        bucket = get_bucket_name()
+        client.copy_object(
+            Bucket=bucket,
+            CopySource={'Bucket': bucket, 'Key': source_key},
+            Key=dest_key
+        )
+        logger.info(f"R2 copie server-side: {source_key} -> {dest_key}")
+        return True
+    except Exception as e:
+        logger.error(f"Erreur copie R2: {source_key} -> {dest_key}: {e}")
+        return False
+
+
+def upload_to_r2_key(file_data, key, mime_type=None):
+    """
+    Upload des bytes directement vers une clé R2 arbitraire.
+
+    Args:
+        file_data: bytes du fichier
+        key: clé R2 complète (ex: class_files/5/xyz.pdf)
+        mime_type: type MIME optionnel
+
+    Returns:
+        bool: True si uploadé, False si erreur
+    """
+    client = get_s3_client()
+    if not client:
+        return False
+
+    try:
+        bucket = get_bucket_name()
+        extra_args = {}
+        if mime_type:
+            extra_args['ContentType'] = mime_type
+
+        client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=file_data,
+            **extra_args
+        )
+        logger.info(f"Upload direct R2: {key}")
+        return True
+    except Exception as e:
+        logger.error(f"Erreur upload direct R2 {key}: {e}")
+        return False
+
+
 def delete_file_from_r2(user_id, filename, file_type='file'):
     """
     Supprime un fichier de R2.

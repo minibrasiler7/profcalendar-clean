@@ -87,6 +87,10 @@ def init_db():
             # --- Combat question cycling (20260302) ---
             ("used_block_ids_json sur combat_sessions",
              "ALTER TABLE combat_sessions ADD COLUMN used_block_ids_json JSON DEFAULT '[]'"),
+
+            # --- Class file duplication R2 (20260331) ---
+            ("r2_key sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN r2_key VARCHAR(500)"),
         ]
 
         for description, sql in migrations:
