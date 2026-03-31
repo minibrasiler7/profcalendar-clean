@@ -209,6 +209,152 @@ def test_classes():
     """Page de test pour diagnostiquer le problème des classes"""
     return render_template('file_manager/test_classes.html')
 
+@file_manager_bp.route('/api/storage-diagnostic')
+@login_required
+def api_storage_diagnostic():
+    """Diagnostic: état du stockage des fichiers (R2 vs BLOB vs disk)"""
+    from models.file_manager import UserFile
+    from models.class_file import ClassFile
+    import os
+
+    all_files = UserFile.query.filter_by(user_id=current_user.id).all()
+
+    r2_only = 0
+    blob_only = 0
+    disk_only = 0
+    r2_and_blob = 0
+    no_storage = 0
+    details = []
+
+    for f in all_files:
+        has_r2 = bool(f.r2_key)
+        has_blob = bool(f.file_content)
+        disk_path = os.path.join('/opt/render/project/src/uploads/files', str(f.user_id), f.filename) if f.filename else None
+        has_disk = bool(disk_path and os.path.exists(disk_path))
+
+        if has_r2 and has_blob:
+            r2_and_blob += 1
+        elif has_r2:
+            r2_only += 1
+        elif has_blob:
+            blob_only += 1
+        elif has_disk:
+            disk_only += 1
+        else:
+            no_storage += 1
+            details.append({'id': f.id, 'name': f.original_filename, 'issue': 'no_storage'})
+
+    # Class files
+    class_files = ClassFile.query.all()
+    cf_with_r2 = sum(1 for cf in class_files if cf.r2_key)
+    cf_without_r2 = sum(1 for cf in class_files if not cf.r2_key)
+
+    return jsonify({
+        'user_files': {
+            'total': len(all_files),
+            'r2_only': r2_only,
+            'blob_only': blob_only,
+            'disk_only': disk_only,
+            'r2_and_blob': r2_and_blob,
+            'no_storage': no_storage,
+        },
+        'class_files': {
+            'total': len(class_files),
+            'with_r2': cf_with_r2,
+            'without_r2': cf_without_r2,
+        },
+        'issues': details
+    })
+
+@file_manager_bp.route('/api/migrate-to-r2', methods=['POST'])
+@login_required
+def api_migrate_to_r2():
+    """Migre tous les fichiers sans r2_key vers R2 (depuis BLOB ou disk)"""
+    from models.file_manager import UserFile
+    from services.r2_storage import upload_to_r2, is_r2_enabled, upload_to_r2_key
+    import os, uuid
+
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'message': 'R2 non configuré'}), 400
+
+    all_files = UserFile.query.filter_by(user_id=current_user.id).all()
+    migrated = 0
+    errors = 0
+    error_details = []
+
+    for f in all_files:
+        if f.r2_key:
+            continue  # Déjà sur R2
+
+        file_data = None
+        source = None
+
+        # Essayer BLOB
+        if f.file_content:
+            file_data = f.file_content
+            source = 'blob'
+        else:
+            # Essayer disk
+            disk_path = os.path.join('/opt/render/project/src/uploads/files', str(f.user_id), f.filename) if f.filename else None
+            if disk_path and os.path.exists(disk_path):
+                with open(disk_path, 'rb') as df:
+                    file_data = df.read()
+                source = 'disk'
+
+        if not file_data:
+            errors += 1
+            error_details.append({'id': f.id, 'name': f.original_filename, 'error': 'no_data_found'})
+            continue
+
+        try:
+            # Upload vers R2
+            ext = f.file_type or 'bin'
+            r2_key = f'files/{f.user_id}/{uuid.uuid4().hex}.{ext}'
+            upload_to_r2_key(file_data, r2_key, f.mime_type)
+            f.r2_key = r2_key
+            db.session.commit()
+            migrated += 1
+            current_app.logger.info(f'[MIGRATE] {f.original_filename} migré depuis {source} vers R2: {r2_key}')
+        except Exception as e:
+            errors += 1
+            error_details.append({'id': f.id, 'name': f.original_filename, 'error': str(e)})
+            current_app.logger.error(f'[MIGRATE] Erreur pour {f.original_filename}: {e}')
+
+    # Migrer aussi les thumbnails vers R2
+    thumb_migrated = 0
+    for f in all_files:
+        if f.r2_thumbnail_key:
+            continue
+        if not f.thumbnail_content and not f.thumbnail_path:
+            continue
+
+        thumb_data = None
+        if f.thumbnail_content:
+            thumb_data = f.thumbnail_content
+        elif f.thumbnail_path:
+            thumb_disk = os.path.join('/opt/render/project/src/uploads/thumbnails', str(f.user_id), f.thumbnail_path)
+            if os.path.exists(thumb_disk):
+                with open(thumb_disk, 'rb') as tf:
+                    thumb_data = tf.read()
+
+        if thumb_data:
+            try:
+                r2_thumb_key = f'thumbnails/{f.user_id}/{uuid.uuid4().hex}.jpg'
+                upload_to_r2_key(thumb_data, r2_thumb_key, 'image/jpeg')
+                f.r2_thumbnail_key = r2_thumb_key
+                db.session.commit()
+                thumb_migrated += 1
+            except Exception as e:
+                current_app.logger.error(f'[MIGRATE] Erreur thumbnail {f.original_filename}: {e}')
+
+    return jsonify({
+        'success': True,
+        'files_migrated': migrated,
+        'thumbnails_migrated': thumb_migrated,
+        'errors': errors,
+        'error_details': error_details
+    })
+
 @file_manager_bp.route('/api/folder-contents/<int:folder_id>')
 @login_required
 def api_folder_contents(folder_id):
@@ -1037,14 +1183,6 @@ def upload_with_structure():
             if not r2_key:
                 current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
 
-        # === Fallback: stockage disque local ===
-        if not r2_key:
-            user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
-            os.makedirs(user_folder, exist_ok=True)
-            file_path = os.path.join(user_folder, unique_filename)
-            with open(file_path, 'wb') as f:
-                f.write(file_data)
-
         # Créer l'entrée en base de données
         user_file = UserFile(
             user_id=current_user.id,
@@ -1056,6 +1194,11 @@ def upload_with_structure():
             mime_type=file.content_type,
             r2_key=r2_key
         )
+
+        # === Fallback: stockage BLOB en base si R2 indisponible ===
+        if not r2_key:
+            current_app.logger.warning(f"R2 indisponible pour {unique_filename}, stockage en BLOB")
+            user_file.file_content = file_data
 
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
@@ -1072,7 +1215,7 @@ def upload_with_structure():
                 img.save(thumb_buffer, format='JPEG', quality=85)
                 thumb_data = thumb_buffer.getvalue()
 
-                if r2_key and is_r2_enabled():
+                if is_r2_enabled():
                     r2_thumb_key = upload_thumbnail_to_r2(
                         thumb_data, current_user.id, thumbnail_filename
                     )
@@ -1080,13 +1223,8 @@ def upload_with_structure():
                         user_file.r2_thumbnail_key = r2_thumb_key
                         user_file.thumbnail_path = thumbnail_filename
                 else:
-                    thumbnail_folder = os.path.join(
-                        current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id)
-                    )
-                    os.makedirs(thumbnail_folder, exist_ok=True)
-                    thumb_path = os.path.join(thumbnail_folder, thumbnail_filename)
-                    with open(thumb_path, 'wb') as f:
-                        f.write(thumb_data)
+                    # Fallback: stocker en BLOB au lieu du disk
+                    user_file.thumbnail_content = thumb_data
                     user_file.thumbnail_path = thumbnail_filename
             except Exception as thumb_err:
                 current_app.logger.warning(f"Erreur création miniature: {thumb_err}")
@@ -1222,14 +1360,6 @@ def upload_file():
             if not r2_key:
                 current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
 
-        # === Fallback: stockage disque local (si R2 non activé ou échec) ===
-        if not r2_key:
-            user_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'files', str(current_user.id))
-            os.makedirs(user_folder, exist_ok=True)
-            file_path = os.path.join(user_folder, unique_filename)
-            with open(file_path, 'wb') as f:
-                f.write(file_data)
-
         # Créer l'entrée en base de données
         user_file = UserFile(
             user_id=current_user.id,
@@ -1241,6 +1371,11 @@ def upload_file():
             mime_type=file.content_type,
             r2_key=r2_key
         )
+
+        # === Fallback: stockage BLOB en base si R2 indisponible ===
+        if not r2_key:
+            current_app.logger.warning(f"R2 indisponible pour {unique_filename}, stockage en BLOB")
+            user_file.file_content = file_data
 
         # Créer une miniature pour les images
         if file_ext in ['png', 'jpg', 'jpeg']:
@@ -1268,14 +1403,8 @@ def upload_file():
                         user_file.r2_thumbnail_key = r2_thumb_key
                         user_file.thumbnail_path = thumbnail_filename
                 else:
-                    # Sauvegarder miniature sur disque
-                    thumbnail_folder = os.path.join(
-                        current_app.config['UPLOAD_FOLDER'], 'thumbnails', str(current_user.id)
-                    )
-                    os.makedirs(thumbnail_folder, exist_ok=True)
-                    thumbnail_path = os.path.join(thumbnail_folder, thumbnail_filename)
-                    with open(thumbnail_path, 'wb') as f:
-                        f.write(thumb_data)
+                    # Fallback: stocker en BLOB au lieu du disk
+                    user_file.thumbnail_content = thumb_data
                     user_file.thumbnail_path = thumbnail_filename
             except Exception as thumb_err:
                 current_app.logger.warning(f"Erreur création miniature: {thumb_err}")
