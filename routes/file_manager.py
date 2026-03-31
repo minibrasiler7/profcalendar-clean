@@ -347,10 +347,60 @@ def api_migrate_to_r2():
             except Exception as e:
                 current_app.logger.error(f'[MIGRATE] Erreur thumbnail {f.original_filename}: {e}')
 
+    # Migrer les ClassFiles sans r2_key (leur donner leur propre copie R2)
+    from models.class_file import ClassFile
+    from models.classroom import Classroom
+    cf_migrated = 0
+    cf_errors = 0
+
+    # ClassFiles de l'utilisateur (via ses classes)
+    user_class_files = ClassFile.query.join(Classroom).filter(
+        Classroom.user_id == current_user.id,
+        ClassFile.r2_key == None
+    ).all()
+
+    for cf in user_class_files:
+        # Essayer de récupérer les données via le UserFile source
+        uf = cf.user_file
+        if not uf:
+            cf_errors += 1
+            error_details.append({'id': cf.id, 'name': cf.original_filename, 'error': 'no_user_file_source', 'type': 'class_file'})
+            continue
+
+        file_data = None
+        # 1. R2 du UserFile source
+        if uf.r2_key:
+            try:
+                from services.r2_storage import download_file_from_r2
+                file_data = download_file_from_r2(uf.user_id, uf.filename)
+            except Exception:
+                pass
+        # 2. BLOB du UserFile
+        if not file_data and uf.file_content:
+            file_data = uf.file_content
+
+        if not file_data:
+            cf_errors += 1
+            error_details.append({'id': cf.id, 'name': cf.original_filename, 'error': 'no_data_in_source', 'type': 'class_file'})
+            continue
+
+        try:
+            cf_r2_key = f'class_files/{cf.classroom_id}/{uuid.uuid4().hex}.{cf.file_type or "bin"}'
+            upload_to_r2_key(file_data, cf_r2_key, cf.mime_type)
+            cf.r2_key = cf_r2_key
+            db.session.commit()
+            cf_migrated += 1
+            current_app.logger.info(f'[MIGRATE-CF] {cf.original_filename} migré vers R2: {cf_r2_key}')
+        except Exception as e:
+            cf_errors += 1
+            error_details.append({'id': cf.id, 'name': cf.original_filename, 'error': str(e), 'type': 'class_file'})
+
     return jsonify({
         'success': True,
         'files_migrated': migrated,
         'thumbnails_migrated': thumb_migrated,
+        'class_files_migrated': cf_migrated,
+        'class_files_errors': cf_errors,
         'errors': errors,
         'error_details': error_details
     })
