@@ -87,7 +87,7 @@
 /* Layout principal */
 .file-manager-layout {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
 }
 
@@ -95,9 +95,9 @@
 .file-explorer {
     background-color: var(--white);
     border-radius: var(--border-radius);
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
-    min-height: 500px;
+    min-height: 400px;
     position: relative;
 }
 
@@ -135,45 +135,39 @@
     font-weight: 500;
 }
 
-/* Grille de fichiers */
+/* Liste de fichiers */
 .file-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
-}
-
-/* Items (fichiers et dossiers) */
-.file-item {
-    background-color: var(--light-gray);
-    border-radius: var(--border-radius);
-    padding: 1rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    height: 180px;
     display: flex;
     flex-direction: column;
+    gap: 0;
+}
+
+/* Items (fichiers et dossiers) - vue liste */
+.file-item {
+    background-color: var(--white);
+    border-bottom: 1px solid #E5E7EB;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    gap: 0.75rem;
 }
 
 .file-item:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    background-color: #E5E7EB;
+    background-color: #F3F4F6;
 }
 
 .file-item.selected {
-    border: 2px solid var(--primary-color);
     background-color: rgba(79, 70, 229, 0.1);
 }
 
 /* Cases à cocher pour suppression */
 .item-checkbox {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
+    flex-shrink: 0;
     z-index: 5;
 }
 
@@ -184,21 +178,22 @@
 }
 
 .file-item.delete-mode {
-    padding-left: 2.5rem;
+    padding-left: 0.75rem;
 }
 
 /* Icônes des items */
 .item-icon {
-    font-size: 3rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
 }
 
 .item-icon .thumbnail {
-    width: 80px;
-    height: 80px;
+    width: 24px;
+    height: 24px;
     object-fit: cover;
-    border-radius: 0.375rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 0.25rem;
 }
 
 /* Nom des items */
@@ -209,27 +204,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width: 100%;
-    margin-bottom: 0.25rem;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Info des items */
 .item-info {
     font-size: 0.75rem;
     color: var(--gray-color);
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 /* Actions des items */
 .item-actions {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
     display: none;
     gap: 0.25rem;
-    background-color: rgba(255, 255, 255, 0.95);
-    padding: 0.25rem;
+    flex-shrink: 0;
+    padding: 0.125rem;
     border-radius: 0.375rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .file-item:hover .item-actions {
@@ -289,7 +282,7 @@
 
 .classes-list {
     padding: 1rem;
-    max-height: 600px;
+    max-height: calc(100vh - 350px);
     overflow-y: auto;
 }
 
@@ -330,7 +323,7 @@
 .class-tree {
     border-top: 1px solid #E5E7EB;
     background-color: #F9FAFB;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
 }
 
@@ -854,23 +847,8 @@
         flex: 1;
     }
 
-    .file-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 0.75rem;
-    }
-
     .file-item {
-        height: 150px;
-        padding: 0.75rem;
-    }
-
-    .item-icon {
-        font-size: 2.5rem;
-    }
-
-    .item-icon .thumbnail {
-        width: 60px;
-        height: 60px;
+        padding: 0.5rem;
     }
 
     .item-name {
