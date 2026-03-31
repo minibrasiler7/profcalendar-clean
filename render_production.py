@@ -91,6 +91,22 @@ def init_db():
             # --- Class file duplication R2 (20260331) ---
             ("r2_key sur class_files_v2",
              "ALTER TABLE class_files_v2 ADD COLUMN r2_key VARCHAR(500)"),
+
+            # --- Class file independence (20260331b) ---
+            ("own_original_filename sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN own_original_filename VARCHAR(500)"),
+            ("own_filename sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN own_filename VARCHAR(500)"),
+            ("own_file_type sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN own_file_type VARCHAR(50)"),
+            ("own_file_size sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN own_file_size INTEGER"),
+            ("own_mime_type sur class_files_v2",
+             "ALTER TABLE class_files_v2 ADD COLUMN own_mime_type VARCHAR(200)"),
+            ("class_files_v2 user_file_id nullable",
+             "ALTER TABLE class_files_v2 ALTER COLUMN user_file_id DROP NOT NULL"),
+            ("drop FK cascade class_files_v2",
+             "ALTER TABLE class_files_v2 DROP CONSTRAINT IF EXISTS class_files_v2_user_file_id_fkey"),
         ]
 
         for description, sql in migrations:

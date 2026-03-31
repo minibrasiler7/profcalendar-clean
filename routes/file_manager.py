@@ -124,14 +124,15 @@ def get_user_total_storage(user):
     """Calcule l'utilisation totale de stockage d'un utilisateur"""
     from models.file_manager import UserFile
     from models.class_file import ClassFile
-    
+    from models.classroom import Classroom
+
     # Calculer la taille des UserFiles
     user_files_size = sum(f.file_size or 0 for f in user.files.all())
-    
-    # Calculer la taille des ClassFiles (via la relation user_file)
-    class_files = ClassFile.query.join(UserFile).filter(UserFile.user_id == user.id).all()
-    class_files_size = sum(cf.user_file.file_size or 0 for cf in class_files)
-    
+
+    # Calculer la taille des ClassFiles (via les classes de l'utilisateur)
+    class_files = ClassFile.query.join(Classroom).filter(Classroom.user_id == user.id).all()
+    class_files_size = sum(cf.file_size or 0 for cf in class_files)
+
     return user_files_size + class_files_size
 
 def create_thumbnail(image_path, thumbnail_path):
@@ -277,26 +278,26 @@ def get_class_files(class_id):
         ).all()
         print(f"🔍 DEBUG: {len(all_user_class_files)} fichier(s) total pour toutes les classes de user {current_user.id}")
         for i, file in enumerate(all_user_class_files):
-            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
+            filename = file.original_filename or 'Fichier supprimé'
             print(f"🔍   ALL_FILES [{i+1}] ClassID:{file.classroom_id} | ID:{file.id} | {filename}")
-        
+
         # Diagnostic: Afficher les détails de chaque fichier
         for i, file in enumerate(class_files):
-            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
-            file_type = file.user_file.file_type if file.user_file else 'Unknown'
+            filename = file.original_filename or 'Fichier supprimé'
+            file_type = file.file_type or 'Unknown'
             print(f"🔍   [{i+1}] {filename} | Type: {file_type} | Dossier: {file.folder_path}")
 
         files_data = []
         for file in class_files:
-            if not file.user_file:
-                # Fichier source supprimé, on ignore
+            if not file.original_filename:
+                # Pas de métadonnées, on ignore
                 continue
 
             files_data.append({
                 'id': file.id,
-                'original_filename': file.user_file.original_filename,
-                'file_type': file.user_file.file_type,
-                'file_size': file.user_file.file_size,
+                'original_filename': file.original_filename,
+                'file_type': file.file_type,
+                'file_size': file.file_size,
                 'folder_name': file.folder_path,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             })
@@ -409,7 +410,7 @@ def copy_folder_to_class():
         # Debug supplémentaire: lister les fichiers réellement dans cette classe
         debug_files = ClassFile.query.filter_by(classroom_id=class_id).all()
         for i, file in enumerate(debug_files):
-            filename = file.user_file.original_filename if file.user_file else 'Fichier supprimé'
+            filename = file.original_filename or 'Fichier supprimé'
             print(f"🔍   DIAGNOSTIC [{i+1}] ID:{file.id} | {filename} | Dossier: {file.folder_path}")
         
         # Si aucun fichier physique n'existe, avertir l'utilisateur
@@ -617,11 +618,17 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
             return False
 
         # Créer l'entrée en base de données avec la clé R2 de la copie
+        # Stocker les métadonnées directement pour être indépendant du UserFile source
         class_file = ClassFile(
             classroom_id=class_id,
             user_file_id=user_file.id,
             folder_path=folder_path_clean,
-            r2_key=class_r2_key
+            r2_key=class_r2_key,
+            own_original_filename=user_file.original_filename,
+            own_filename=user_file.filename,
+            own_file_type=user_file.file_type,
+            own_file_size=user_file.file_size,
+            own_mime_type=user_file.mime_type
         )
 
         db.session.add(class_file)
@@ -1757,7 +1764,7 @@ def delete_class_folder():
         all_files_debug = NewClassFile.query.filter_by(classroom_id=class_id).limit(10).all()
         print(f"🔍 DEBUG - Exemples de fichiers dans classe {class_id}:")
         for f in all_files_debug:
-            filename = f.user_file.original_filename if f.user_file else 'Fichier supprimé'
+            filename = f.original_filename or 'Fichier supprimé'
             print(f"🔍   - {filename} | FolderPath: '{f.folder_path}'")
         
         # Chercher les fichiers dans le dossier exact ET dans tous ses sous-dossiers
@@ -1772,17 +1779,25 @@ def delete_class_folder():
         
         print(f"🔍 Fichiers trouvés: {len(class_files)}")
         for cf in class_files:
-            filename = cf.user_file.original_filename if cf.user_file else 'Fichier supprimé'
+            filename = cf.original_filename or 'Fichier supprimé'
             print(f"🔍   - {filename} (ID: {cf.id}) | FolderPath: '{cf.folder_path}'")
-        
+
         # Supprimer tous les fichiers du dossier
         deleted_count = 0
         for class_file in class_files:
-            # Dans le nouveau système, les fichiers sont stockés en BLOB dans user_file
-            # Pas de fichier physique à supprimer pour les ClassFile v2
-            
-            filename = class_file.user_file.original_filename if class_file.user_file else 'Fichier supprimé'
+            filename = class_file.original_filename or 'Fichier supprimé'
             print(f"🔍 Suppression fichier: {filename}")
+
+            # Supprimer la copie R2 si elle existe
+            if class_file.r2_key:
+                try:
+                    from services.r2_storage import get_s3_client, get_bucket_name
+                    client = get_s3_client()
+                    if client:
+                        client.delete_object(Bucket=get_bucket_name(), Key=class_file.r2_key)
+                        print(f"✅ Copie R2 supprimée: {class_file.r2_key}")
+                except Exception as e:
+                    print(f"⚠️  Erreur suppression R2: {e}")
             
             # Supprimer l'entrée de la base de données
             db.session.delete(class_file)
