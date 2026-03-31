@@ -46,7 +46,7 @@
         <!-- Informations d'utilisation -->
         <div class="storage-info">
             <div class="storage-bar">
-                <div class="storage-used" style="width: {{ (total_size / (1024*1024*1024) * 100 / 5) }}%"></div>
+                <div class="storage-used" style="width: {{ (total_size / (1024*1024*1024) * 100 / 50) }}%"></div>
             </div>
             <span class="storage-text">
                 {{ "%.1f"|format(total_size / (1024*1024)) }} MB utilisés

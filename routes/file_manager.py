@@ -22,7 +22,7 @@ file_manager_bp = Blueprint('file_manager', __name__, url_prefix='/file_manager'
 # UPLOAD_FOLDER sera récupéré depuis la configuration Flask au lieu d'être codé en dur
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 MAX_FILE_SIZE = 250 * 1024 * 1024  # 250 MB (permet des PDF très volumineux)
-MAX_TOTAL_STORAGE = 10 * 1024 * 1024 * 1024  # 10 GB de stockage total
+MAX_TOTAL_STORAGE = 50 * 1024 * 1024 * 1024  # 50 GB de stockage total
 THUMBNAIL_SIZE = (200, 200)
 
 def safe_filename(filename):
