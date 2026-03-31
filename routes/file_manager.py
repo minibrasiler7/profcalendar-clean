@@ -271,7 +271,7 @@ def api_storage_diagnostic():
 def api_migrate_to_r2():
     """Migre tous les fichiers sans r2_key vers R2 (depuis BLOB ou disk)"""
     from models.file_manager import UserFile
-    from services.r2_storage import upload_to_r2, is_r2_enabled, upload_to_r2_key
+    from services.r2_storage import upload_file_to_r2, is_r2_enabled, upload_to_r2_key
     import os, uuid
 
     if not is_r2_enabled():
