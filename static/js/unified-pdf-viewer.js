@@ -7394,6 +7394,21 @@ class UnifiedPDFViewer {
                 return;
             }
 
+            // GUARD: Empêcher les sauvegardes concurrentes qui bloquent le thread
+            if (this._isSaving) {
+                // Une sauvegarde est déjà en cours, reprogrammer après
+                this._savePendingAfterCurrent = true;
+                return;
+            }
+
+            // GUARD: Si l'utilisateur est en train de dessiner, reporter la sauvegarde
+            // pour ne pas bloquer les événements pointer du stylet
+            if (this.isDrawing && !useBeacon) {
+                this.scheduleAutoSave();
+                return;
+            }
+
+            this._isSaving = true;
 
             // Capturer les données des canvas d'annotation et la structure des pages
             const annotationsData = {
@@ -7412,10 +7427,18 @@ class UnifiedPDFViewer {
             for (const [pageNum, pageElement] of this.pageElements) {
                 pagesChecked++;
 
-                // CRITIQUE: Yield to event loop every 3 pages to prevent blocking stylus events
-                // Safari/iOS drops pointermove events when main thread is blocked
-                if (pagesChecked % 3 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
+                // CRITIQUE: Yield to event loop CHAQUE PAGE pour ne jamais bloquer les
+                // événements pointer du stylet. Safari/iOS drops pointermove events
+                // quand le main thread est bloqué même brièvement.
+                await new Promise(resolve => setTimeout(resolve, 0));
+
+                // Si l'utilisateur a recommencé à dessiner pendant la sauvegarde,
+                // abandonner cette sauvegarde et en reprogrammer une nouvelle
+                if (this.isDrawing && !useBeacon) {
+                    this._isSaving = false;
+                    this._savePendingAfterCurrent = false;
+                    this.scheduleAutoSave();
+                    return;
                 }
 
                 if (pageElement.annotationCtx) {
@@ -7455,31 +7478,18 @@ class UnifiedPDFViewer {
                         }
                     }
 
-                    // Fallback: Vérifier le canvas avec getImageData UNIQUEMENT si pas de vectorStrokes
+                    // Fallback: Convertir le canvas en image UNIQUEMENT si pas de vectorStrokes
                     if (!hasVectorStrokes) {
-                        // Vérifier si le canvas contient des dessins (pas complètement vide)
-                        const imageData = pageElement.annotationCtx.getImageData(0, 0, canvas.width, canvas.height);
-                        // Vérifier si au moins un pixel n'est pas complètement transparent/blanc
-                        hasContent = imageData.data.some((value, index) => {
-                            const channel = index % 4;
-                            // Vérifier tous les canaux de couleur (R, G, B) ou l'alpha
-                            return (channel < 3 && value !== 255) || (channel === 3 && value > 0);
-                        });
-
-                        if (hasContent) {
-                            annotationsData.canvasData[pageNum] = {
-                                imageData: canvas.toDataURL('image/png'),
-                                width: parseInt(canvas.style.width) || canvas.width,
-                                height: parseInt(canvas.style.height) || canvas.height
-                            };
-                        }
+                        // Utiliser OffscreenCanvas + createImageBitmap si disponible
+                        // pour éviter de bloquer le thread principal avec toDataURL
+                        hasContent = await this._exportCanvasBitmapNonBlocking(
+                            pageElement.annotationCtx, canvas, pageNum, annotationsData
+                        );
                     }
 
                     if (hasContent) {
                         pagesWithContent++;
-                    } else {
                     }
-                } else {
                 }
             }
 
@@ -7495,9 +7505,6 @@ class UnifiedPDFViewer {
             if (useBeacon && navigator.sendBeacon) {
                 const blob = new Blob([JSON.stringify(payloadToSave)], { type: 'application/json' });
                 const sent = navigator.sendBeacon(this.options.apiEndpoints.saveAnnotations, blob);
-                if (sent) {
-                } else {
-                }
                 return;
             }
 
@@ -7510,17 +7517,159 @@ class UnifiedPDFViewer {
             if (response.ok) {
                 this.emit('annotations-saved');
             } else {
-                console.error('❌ Erreur HTTP lors de la sauvegarde:', response.status, response.statusText);
+                console.error('Erreur HTTP lors de la sauvegarde:', response.status, response.statusText);
                 const errorText = await response.text();
-                console.error('  📄 Réponse serveur:', errorText);
+                console.error('Reponse serveur:', errorText);
             }
         } catch (error) {
-            console.error('❌ Erreur sauvegarde annotations:', error);
+            console.error('Erreur sauvegarde annotations:', error);
             this.log('Erreur sauvegarde annotations:', error);
+        } finally {
+            this._isSaving = false;
+            // Si une sauvegarde a été demandée pendant qu'on sauvegardait, la lancer
+            if (this._savePendingAfterCurrent) {
+                this._savePendingAfterCurrent = false;
+                this.scheduleAutoSave();
+            }
         }
     }
     
-    scheduleAutoSave() {
+    /**
+     * Exporte le contenu bitmap d'un canvas de manière non-bloquante.
+     * Utilise OffscreenCanvas quand disponible pour éviter de bloquer le thread principal.
+     * Fallback sur toDataURL avec yield entre les étapes.
+     *
+     * @param {CanvasRenderingContext2D} ctx - Le contexte du canvas d'annotation
+     * @param {HTMLCanvasElement} canvas - Le canvas d'annotation
+     * @param {number} pageNum - Numéro de la page
+     * @param {Object} annotationsData - L'objet de données à remplir
+     * @returns {boolean} true si le canvas contient du contenu
+     */
+    /**
+     * Vérification rapide si un canvas contient du contenu dessiné.
+     * Au lieu de scanner tous les pixels (très lent sur Retina),
+     * échantillonne quelques zones stratégiques.
+     *
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {HTMLCanvasElement} canvas
+     * @returns {boolean}
+     */
+    _quickCheckCanvasHasContent(ctx, canvas) {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (w === 0 || h === 0) return false;
+
+        // Échantillonner 25 points répartis sur le canvas (grille 5x5)
+        // Plus quelques bandes horizontales/verticales
+        const sampleSize = 4; // Pixels à échantillonner par point (2x2)
+        const gridSize = 5;
+
+        for (let gy = 0; gy < gridSize; gy++) {
+            for (let gx = 0; gx < gridSize; gx++) {
+                const sx = Math.floor((gx / gridSize) * w);
+                const sy = Math.floor((gy / gridSize) * h);
+                const sw = Math.min(sampleSize, w - sx);
+                const sh = Math.min(sampleSize, h - sy);
+
+                if (sw <= 0 || sh <= 0) continue;
+
+                const imageData = ctx.getImageData(sx, sy, sw, sh);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    // Vérifier si le pixel n'est pas transparent/blanc
+                    const r = imageData.data[i];
+                    const g = imageData.data[i + 1];
+                    const b = imageData.data[i + 2];
+                    const a = imageData.data[i + 3];
+                    if ((r !== 255 || g !== 255 || b !== 255) && a > 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // Vérification supplémentaire: scanner quelques bandes horizontales
+        // pour attraper les traits fins qui pourraient être entre les points
+        const bandHeight = 2;
+        const numBands = 10;
+        for (let i = 0; i < numBands; i++) {
+            const y = Math.floor((i / numBands) * h);
+            const imageData = ctx.getImageData(0, y, w, bandHeight);
+            for (let j = 0; j < imageData.data.length; j += 4) {
+                const r = imageData.data[j];
+                const g = imageData.data[j + 1];
+                const b = imageData.data[j + 2];
+                const a = imageData.data[j + 3];
+                if ((r !== 255 || g !== 255 || b !== 255) && a > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+        async _exportCanvasBitmapNonBlocking(ctx, canvas, pageNum, annotationsData) {
+        try {
+            // Méthode rapide: échantillonner quelques pixels au lieu de scanner tout le canvas
+            // Cela évite le coût O(n) de imageData.data.some() sur des millions de pixels
+            const hasContent = this._quickCheckCanvasHasContent(ctx, canvas);
+
+            if (!hasContent) {
+                return false;
+            }
+
+            // Le canvas a du contenu, l'exporter
+            // Essayer OffscreenCanvas pour ne pas bloquer le thread principal
+            if (typeof OffscreenCanvas !== 'undefined') {
+                try {
+                    // Créer un OffscreenCanvas et copier le contenu
+                    const offscreen = new OffscreenCanvas(canvas.width, canvas.height);
+                    const offCtx = offscreen.getContext('2d');
+                    offCtx.drawImage(canvas, 0, 0);
+
+                    // convertToBlob est asynchrone et ne bloque pas le thread principal
+                    const blob = await offscreen.convertToBlob({ type: 'image/png' });
+                    const reader = new FileReader();
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+
+                    annotationsData.canvasData[pageNum] = {
+                        imageData: dataUrl,
+                        width: parseInt(canvas.style.width) || canvas.width,
+                        height: parseInt(canvas.style.height) || canvas.height
+                    };
+                    return true;
+                } catch (offscreenError) {
+                    // Fallback si OffscreenCanvas échoue (certains navigateurs)
+                }
+            }
+
+            // Fallback: toDataURL classique mais avec yield avant et après
+            // pour laisser le navigateur traiter les événements pointer
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // Yield immédiatement après l'opération bloquante
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            annotationsData.canvasData[pageNum] = {
+                imageData: dataUrl,
+                width: parseInt(canvas.style.width) || canvas.width,
+                height: parseInt(canvas.style.height) || canvas.height
+            };
+            return true;
+        } catch (error) {
+            console.error('Erreur export bitmap page', pageNum, error);
+            return false;
+        }
+    }
+
+        scheduleAutoSave() {
         if (this.saveTimeout) {
             clearTimeout(this.saveTimeout);
         }
