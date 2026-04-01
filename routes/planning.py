@@ -2077,25 +2077,52 @@ def get_class_resources(classroom_id):
         files_data = []
         pinned_files = []
         
-        # Traiter les fichiers du nouveau système (sans épinglage)
+        # Traiter les fichiers du nouveau système
         for file in new_class_files:
             folder_path = file.folder_path or ''
-            
+
+            # Déterminer le nom du fichier — ignorer les fichiers orphelins (supprimés)
+            filename = file.own_original_filename
+            filetype = file.own_file_type
+            filesize = file.own_file_size
+
+            if not filename:
+                # Pas de métadonnées propres → vérifier le UserFile source
+                uf = file.user_file
+                if uf:
+                    filename = uf.original_filename
+                    filetype = filetype or uf.file_type
+                    filesize = filesize if filesize is not None else uf.file_size
+                else:
+                    # Fichier orphelin (source supprimée + pas de métadonnées propres)
+                    # Ne pas l'afficher — le supprimer silencieusement de la base
+                    try:
+                        db.session.delete(file)
+                    except Exception:
+                        pass
+                    continue  # Passer au fichier suivant
+
             file_data = {
                 'id': file.id,
-                'original_filename': file.own_original_filename or (file.user_file.original_filename if file.user_file else 'Fichier supprimé'),
-                'file_type': file.own_file_type or (file.user_file.file_type if file.user_file else 'unknown'),
-                'file_size': file.own_file_size or (file.user_file.file_size if file.user_file else 0),
+                'original_filename': filename,
+                'file_type': filetype or 'unknown',
+                'file_size': filesize or 0,
                 'folder_path': folder_path,
                 'is_pinned': file.is_pinned,
                 'pin_order': file.pin_order,
                 'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
             }
-            
+
             if file.is_pinned:
                 pinned_files.append(file_data)
             else:
                 files_data.append(file_data)
+
+        # Committer les suppressions d'orphelins si nécessaire
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         
         # Traiter les fichiers du système legacy (avec épinglage)
         for file in legacy_class_files:

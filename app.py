@@ -754,14 +754,32 @@ def create_app(config_name='development'):
 
     @app.errorhandler(500)
     def internal_error(error):
-        """Gérer les erreurs 500 — souvent causées par une session corrompue"""
-        from flask import session as flask_session
+        """Gérer les erreurs 500 — nettoyer session + cookies remember_me"""
+        from flask import session as flask_session, make_response
+        import traceback
+        print(f"❌ ERREUR 500: {error}")
+        traceback.print_exc()
         try:
-            # Tenter de nettoyer la session corrompue
             flask_session.clear()
         except Exception:
             pass
-        return redirect(url_for('auth.login'))
+        try:
+            logout_user()
+        except Exception:
+            pass
+        # Retourner une page HTML au lieu de redirect (évite boucle infinie)
+        resp = make_response('''<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Erreur - ProfCalendar</title>
+<style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f7fafc;}
+.box{text-align:center;padding:3rem;background:white;border-radius:15px;box-shadow:0 4px 6px rgba(0,0,0,.1);}
+h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-weight:600;}</style></head>
+<body><div class="box"><h1>Erreur temporaire</h1>
+<p>Une erreur est survenue. Votre session a été réinitialisée.</p>
+<p><a href="/auth/login">Cliquez ici pour vous reconnecter</a></p></div></body></html>''', 500)
+        # Supprimer le cookie remember_me pour casser la boucle
+        resp.delete_cookie('remember_token', path='/')
+        resp.delete_cookie('session', path='/')
+        return resp
 
     @app.route('/')
     def index():

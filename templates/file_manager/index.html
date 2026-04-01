@@ -3,7 +3,7 @@
 {% block title %}Gestionnaire de fichiers - ProfCalendar{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/file_manager.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/file_manager.css') }}?v={{ range(1000,9999) | random }}">
 {% endblock %}
 
 {% block content %}
@@ -400,6 +400,16 @@ async function toggleFolder(folderId, rowEl) {
         }
 
         childrenDiv.innerHTML = html;
+
+        // Réattacher les listeners de drag & drop sur les nouveaux éléments
+        childrenDiv.querySelectorAll('.file-item.folder').forEach(folderItem => {
+            folderItem.addEventListener('dragstart', handleFolderDragStart);
+            folderItem.addEventListener('dragend', handleFileDragEnd);
+        });
+        childrenDiv.querySelectorAll('.file-item.file').forEach(fileItem => {
+            fileItem.addEventListener('dragstart', handleFileDragStart);
+            fileItem.addEventListener('dragend', handleFileDragEnd);
+        });
     } catch (e) {
         childrenDiv.innerHTML = '<div class="tree-loading">Erreur de chargement</div>';
         console.error('Erreur toggleFolder:', e);

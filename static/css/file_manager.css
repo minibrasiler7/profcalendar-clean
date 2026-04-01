@@ -84,10 +84,10 @@
     color: var(--gray-color);
 }
 
-/* Layout principal */
+/* Layout principal - TOUJOURS 50/50 sauf mobile */
 .file-manager-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
     gap: 1.5rem;
 }
 
@@ -99,6 +99,14 @@
     box-shadow: var(--shadow-sm);
     min-height: 400px;
     position: relative;
+    min-width: 0; /* Empêcher le débordement du grid */
+    overflow: hidden;
+}
+
+/* Section classes */
+.classes-section {
+    min-width: 0; /* Empêcher le débordement du grid */
+    overflow: hidden;
 }
 
 /* Zone de drop */
@@ -845,7 +853,7 @@
 /* Responsive - passer en colonne unique seulement sur mobile */
 @media (max-width: 600px) {
     .file-manager-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
     }
 
     .classes-section {
