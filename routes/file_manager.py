@@ -594,24 +594,32 @@ def copy_folder_to_class():
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
         # Fonction récursive pour copier un dossier et son contenu
+        # Retourne (copied_count, already_exists_count, failed_count)
         def copy_folder_recursive(source_folder, class_id, parent_folder_path=None):
             copied_count = 0
+            already_exists_count = 0
+            failed_count = 0
             current_folder_path = parent_folder_path + "/" + source_folder.name if parent_folder_path else source_folder.name
 
             # Copier tous les fichiers du dossier
             files_in_folder = list(source_folder.files)
             for file in files_in_folder:
-                if copy_single_file_to_class(file, class_id, current_folder_path):
+                result = copy_single_file_to_class(file, class_id, current_folder_path)
+                if result is True:
                     copied_count += 1
-
-            # Si le dossier est vide (pas de fichiers), on n'a plus besoin de créer des marqueurs
-            # Le nouveau système utilise les folder_path pour représenter la structure
+                elif result == 'exists':
+                    already_exists_count += 1
+                else:
+                    failed_count += 1
 
             # Copier récursivement les sous-dossiers
             for subfolder in source_folder.subfolders:
-                copied_count += copy_folder_recursive(subfolder, class_id, current_folder_path)
+                sub_copied, sub_exists, sub_failed = copy_folder_recursive(subfolder, class_id, current_folder_path)
+                copied_count += sub_copied
+                already_exists_count += sub_exists
+                failed_count += sub_failed
 
-            return copied_count
+            return copied_count, already_exists_count, failed_count
 
         # Compter d'abord les fichiers réels disponibles
         total_files_in_folder = 0
@@ -625,39 +633,33 @@ def copy_folder_to_class():
         print(f"🔍 Nombre total de fichiers dans le dossier '{folder.name}': {total_files_in_folder}")
         
         # Copier le dossier
-        copied_count = copy_folder_recursive(folder, class_id)
-        
-        print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
-        
-        # COMMIT IMMÉDIAT avant la vérification - c'est le FIX !
+        copied_count, already_exists_count, failed_count = copy_folder_recursive(folder, class_id)
+
+        print(f"✅ Copie terminée: {copied_count} copiés, {already_exists_count} déjà existants, {failed_count} échoués pour '{folder.name}' vers classe {class_id}")
+
+        # COMMIT IMMÉDIAT avant la vérification
         db.session.commit()
-        print(f"✅ TRANSACTION COMMITÉE - Changements sauvegardés en base")
-        
-        # Diagnostic: Vérifier immédiatement combien de fichiers sont dans la classe
-        immediate_check = ClassFile.query.filter_by(classroom_id=class_id).count()
-        print(f"🔍 DIAGNOSTIC: {immediate_check} fichier(s) total dans la classe {class_id} après copie")
-        
-        # Debug supplémentaire: lister les fichiers réellement dans cette classe
-        debug_files = ClassFile.query.filter_by(classroom_id=class_id).all()
-        for i, file in enumerate(debug_files):
-            filename = file.original_filename or 'Fichier supprimé'
-            print(f"🔍   DIAGNOSTIC [{i+1}] ID:{file.id} | {filename} | Dossier: {file.folder_path}")
-        
-        # Si aucun fichier physique n'existe, avertir l'utilisateur
-        if total_files_in_folder > 0 and copied_count == 0:
-            return jsonify({
-                'success': False,
-                'message': f'Aucun fichier physique trouvé dans le dossier "{folder.name}". Les fichiers ont peut-être été supprimés ou ne sont pas disponibles en production.'
-            })
-        elif total_files_in_folder == 0:
+
+        # Construire le message de résultat
+        if total_files_in_folder == 0:
             return jsonify({
                 'success': True,
                 'message': f'Dossier vide "{folder.name}" copié (structure de dossiers créée)'
             })
-        else:
+        elif copied_count > 0:
+            msg = f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+            if already_exists_count > 0:
+                msg += f' ({already_exists_count} déjà présent(s))'
+            return jsonify({'success': True, 'message': msg})
+        elif already_exists_count > 0:
             return jsonify({
                 'success': True,
-                'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+                'message': f'Tous les fichiers du dossier "{folder.name}" sont déjà présents dans cette classe ({already_exists_count} fichier(s))'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Aucun fichier physique trouvé dans le dossier "{folder.name}". Les fichiers ont peut-être été supprimés ou ne sont pas disponibles en production ({failed_count} fichier(s) en erreur).'
             })
 
     except Exception as e:
@@ -709,10 +711,16 @@ def copy_to_class_folder():
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
         # Copier le fichier
-        if copy_single_file_to_class(user_file, class_id, folder_path):
+        result = copy_single_file_to_class(user_file, class_id, folder_path)
+        if result is True:
             return jsonify({
                 'success': True,
                 'message': f'Fichier copié dans le dossier {folder_path}'
+            })
+        elif result == 'exists':
+            return jsonify({
+                'success': True,
+                'message': f'Le fichier est déjà présent dans le dossier {folder_path}'
             })
         else:
             return jsonify({'success': False, 'message': 'Erreur lors de la copie'})
@@ -798,7 +806,7 @@ def copy_single_file_to_class(user_file, class_id, folder_path=None):
 
         if existing_file:
             print(f"Fichier déjà existant: {user_file.original_filename} dans {folder_path}")
-            return False  # Fichier déjà existant
+            return 'exists'  # Fichier déjà existant
 
         # Dupliquer le fichier dans R2 (copie réelle, pas une simple référence)
         class_r2_key = None
@@ -913,13 +921,16 @@ def copy_to_class():
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
         # Utiliser la fonction helper pour copier le fichier
-        if copy_single_file_to_class(user_file, class_id):
+        result = copy_single_file_to_class(user_file, class_id)
+        if result is True:
             return jsonify({
                 'success': True,
                 'message': f'Fichier copié dans {classroom.name}'
             })
+        elif result == 'exists':
+            return jsonify({'success': True, 'message': f'Le fichier est déjà présent dans {classroom.name}'})
         else:
-            return jsonify({'success': False, 'message': 'Le fichier existe déjà dans cette classe'})
+            return jsonify({'success': False, 'message': 'Erreur lors de la copie du fichier. Vérifiez que le fichier source est disponible.'})
 
     except Exception as e:
         db.session.rollback()

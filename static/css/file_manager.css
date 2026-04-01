@@ -842,8 +842,8 @@
     transform: rotate(3deg);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Responsive - passer en colonne unique seulement sur mobile */
+@media (max-width: 600px) {
     .file-manager-layout {
         grid-template-columns: 1fr;
     }

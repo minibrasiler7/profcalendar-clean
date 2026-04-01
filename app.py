@@ -752,6 +752,17 @@ def create_app(config_name='development'):
             flash('Cette fonctionnalité nécessite un abonnement Premium.', 'warning')
             return redirect(url_for('subscription.pricing'))
 
+    @app.errorhandler(500)
+    def internal_error(error):
+        """Gérer les erreurs 500 — souvent causées par une session corrompue"""
+        from flask import session as flask_session
+        try:
+            # Tenter de nettoyer la session corrompue
+            flask_session.clear()
+        except Exception:
+            pass
+        return redirect(url_for('auth.login'))
+
     @app.route('/')
     def index():
         return redirect(url_for('auth.login'))

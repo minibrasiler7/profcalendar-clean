@@ -2083,9 +2083,9 @@ def get_class_resources(classroom_id):
             
             file_data = {
                 'id': file.id,
-                'original_filename': file.user_file.original_filename if file.user_file else 'Fichier supprimé',
-                'file_type': file.user_file.file_type if file.user_file else 'unknown',
-                'file_size': file.user_file.file_size if file.user_file else 0,
+                'original_filename': file.own_original_filename or (file.user_file.original_filename if file.user_file else 'Fichier supprimé'),
+                'file_type': file.own_file_type or (file.user_file.file_type if file.user_file else 'unknown'),
+                'file_size': file.own_file_size or (file.user_file.file_size if file.user_file else 0),
                 'folder_path': folder_path,
                 'is_pinned': file.is_pinned,
                 'pin_order': file.pin_order,
@@ -2180,7 +2180,14 @@ def toggle_pin_resource():
         if new_class_file:
             # Toggle pinning status
             new_class_file.is_pinned = not new_class_file.is_pinned
-            
+
+            # Nom du fichier (utiliser own_original_filename si user_file supprimé)
+            file_display_name = (
+                new_class_file.own_original_filename
+                or (new_class_file.user_file.original_filename if new_class_file.user_file else None)
+                or 'Fichier supprimé'
+            )
+
             if new_class_file.is_pinned:
                 # Si on épingle, trouver le prochain numéro d'ordre
                 max_pin_order = db.session.query(db.func.max(ClassFile.pin_order)).filter(
@@ -2188,11 +2195,11 @@ def toggle_pin_resource():
                     ClassFile.is_pinned == True
                 ).scalar() or 0
                 new_class_file.pin_order = max_pin_order + 1
-                message = f'Fichier "{new_class_file.user_file.original_filename}" épinglé'
+                message = f'Fichier "{file_display_name}" épinglé'
             else:
                 # Si on désépingle, remettre pin_order à 0
                 new_class_file.pin_order = 0
-                message = f'Fichier "{new_class_file.user_file.original_filename}" désépinglé'
+                message = f'Fichier "{file_display_name}" désépinglé'
             
             db.session.commit()
             
