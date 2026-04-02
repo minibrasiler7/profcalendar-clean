@@ -1781,29 +1781,27 @@ def lesson_view():
             current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom {lesson.classroom_id}, but keeping original classroom")
             
     elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
-        # Pour les groupes mixtes, chercher une classroom avec des fichiers
+        # Pour les groupes mixtes, utiliser la classe auto-créée
         from models.mixed_group import MixedGroup
         mixed_group = MixedGroup.query.get(lesson.mixed_group_id)
         current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group {lesson.mixed_group_id}, found: {mixed_group is not None}")
-        
-        if mixed_group and mixed_group.classrooms:
-            # Chercher parmi les classrooms du groupe mixte celle qui a des fichiers
+
+        if mixed_group and mixed_group.auto_classroom_id:
+            # Utiliser la classe auto-créée du groupe mixte
+            lesson_classroom = Classroom.query.get(mixed_group.auto_classroom_id)
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group auto_classroom: {mixed_group.auto_classroom_id}, found: {lesson_classroom is not None}")
+        elif mixed_group:
+            # Pas de classe auto-créée, chercher parmi les classes impliquées
+            involved_classrooms = mixed_group.get_classrooms_involved()
+            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No auto_classroom, found {len(involved_classrooms)} involved classrooms")
             from models.class_file import ClassFile
-            for classroom in mixed_group.classrooms:
+            for classroom in involved_classrooms:
                 file_count = ClassFile.query.filter_by(classroom_id=classroom.id).count()
-                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Mixed group classroom {classroom.id} has {file_count} files")
                 if file_count > 0:
                     lesson_classroom = classroom
-                    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group classroom with files: {classroom.id}")
                     break
-            
-            # Si aucune classroom du groupe mixte n'a de fichiers, utiliser la première
-            if not lesson_classroom and mixed_group.classrooms:
-                lesson_classroom = mixed_group.classrooms[0]
-                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in mixed group classrooms, using first: {lesson_classroom.id}")
-                
-                # Conserver la première classroom du groupe même sans fichiers
-                current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files found, keeping first classroom of mixed group")
+            if not lesson_classroom and involved_classrooms:
+                lesson_classroom = involved_classrooms[0]
     
     current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
 
@@ -2053,9 +2051,26 @@ def get_class_resources(classroom_id):
         from models.classroom import Classroom
         from models.exercise import Exercise
 
+        # Déterminer si c'est un groupe mixte ou une classe normale
+        item_type = request.args.get('type', 'classroom')
+        actual_classroom_id = classroom_id
+
+        if item_type == 'mixed_group':
+            from models.mixed_group import MixedGroup
+            mixed_group = MixedGroup.query.filter_by(
+                id=classroom_id,
+                teacher_id=current_user.id
+            ).first()
+            if not mixed_group:
+                return jsonify({'success': False, 'message': 'Groupe mixte introuvable'}), 404
+            if mixed_group.auto_classroom_id:
+                actual_classroom_id = mixed_group.auto_classroom_id
+            else:
+                return jsonify({'success': True, 'pinned_files': [], 'files': [], 'class_name': mixed_group.name})
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
-            id=classroom_id,
+            id=actual_classroom_id,
             user_id=current_user.id
         ).first()
 
@@ -2063,11 +2078,11 @@ def get_class_resources(classroom_id):
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
         # Récupérer les fichiers des DEUX systèmes
-        new_class_files = ClassFile.query.filter_by(classroom_id=classroom_id).all()
-        legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=classroom_id).all()
+        new_class_files = ClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
+        legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
 
         # Récupérer les exercices liés à cette classe
-        class_exercises = Exercise.query.filter_by(classroom_id=classroom_id).all()
+        class_exercises = Exercise.query.filter_by(classroom_id=actual_classroom_id).all()
 
         total_files = len(new_class_files) + len(legacy_class_files) + len(class_exercises)
         current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {classroom_id}")
@@ -2172,7 +2187,7 @@ def get_class_resources(classroom_id):
             'success': True,
             'pinned_files': pinned_files,
             'files': files_data,
-            'class_name': classroom.name
+            'class_name': mixed_group.name if item_type == 'mixed_group' else classroom.name
         })
         
     except Exception as e:
