@@ -2884,8 +2884,19 @@ async function loadClassFiles(classroomId) {
 
     console.log('Chargement des fichiers pour la classe:', classroomId);
 
-    // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
-    const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+    // Extraire l'ID numérique et le type si la valeur contient un préfixe
+    const idStr = classroomId.toString();
+    let numericId, itemType;
+    if (idStr.startsWith('mixed_group_')) {
+        numericId = idStr.replace('mixed_group_', '');
+        itemType = 'mixed_group';
+    } else if (idStr.startsWith('classroom_')) {
+        numericId = idStr.replace('classroom_', '');
+        itemType = 'classroom';
+    } else {
+        numericId = idStr;
+        itemType = 'classroom';
+    }
 
     // Afficher le chargement
     fileLoading.style.display = 'block';
@@ -2896,7 +2907,7 @@ async function loadClassFiles(classroomId) {
 
     try {
         // Charger les fichiers de la classe
-        const response = await fetch(`/planning/get-class-resources/${numericId}`);
+        const response = await fetch(`/planning/get-class-resources/${numericId}?type=${itemType}`);
         console.log('Réponse API:', response);
 
         if (!response.ok) {
@@ -3438,16 +3449,7 @@ async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) 
                 // Sinon recharger les fichiers de la classe (comportement original)
                 const modalClassroom = document.getElementById('modalClassroom');
                 if (modalClassroom && modalClassroom.value) {
-                    const classroomValue = modalClassroom.value;
-                    let id = null;
-                    if (classroomValue.startsWith('classroom_')) {
-                        id = classroomValue.replace('classroom_', '');
-                    } else if (classroomValue.startsWith('mixed_group_')) {
-                        id = classroomValue.replace('mixed_group_', '');
-                    }
-                    if (id) {
-                        loadClassFiles(id);
-                    }
+                    loadClassFiles(modalClassroom.value);
                 }
             }
         }
@@ -3528,16 +3530,7 @@ async function openExistingBlankSheetCalendar(sheetId) {
                     // Sinon recharger les fichiers de la classe (comportement original)
                     const modalClassroom = document.getElementById('modalClassroom');
                     if (modalClassroom && modalClassroom.value) {
-                        const classroomValue = modalClassroom.value;
-                        let id = null;
-                        if (classroomValue.startsWith('classroom_')) {
-                            id = classroomValue.replace('classroom_', '');
-                        } else if (classroomValue.startsWith('mixed_group_')) {
-                            id = classroomValue.replace('mixed_group_', '');
-                        }
-                        if (id) {
-                            loadClassFiles(id);
-                        }
+                        loadClassFiles(modalClassroom.value);
                     }
                 }
             }
@@ -5129,8 +5122,19 @@ async function loadDayClassFiles(classroomId) {
 
     console.log('Chargement des fichiers pour la classe:', classroomId);
 
-    // Extraire l'ID numérique si la valeur contient un préfixe (ex: "classroom_21" -> "21")
-    const numericId = classroomId.toString().includes('_') ? classroomId.split('_')[1] : classroomId;
+    // Extraire l'ID numérique et le type si la valeur contient un préfixe
+    const idStr2 = classroomId.toString();
+    let numericId, itemType;
+    if (idStr2.startsWith('mixed_group_')) {
+        numericId = idStr2.replace('mixed_group_', '');
+        itemType = 'mixed_group';
+    } else if (idStr2.startsWith('classroom_')) {
+        numericId = idStr2.replace('classroom_', '');
+        itemType = 'classroom';
+    } else {
+        numericId = idStr2;
+        itemType = 'classroom';
+    }
 
     // Afficher le chargement
     fileLoading.style.display = 'block';
@@ -5140,7 +5144,7 @@ async function loadDayClassFiles(classroomId) {
     pinnedResources.style.display = 'none';
 
     try {
-        const response = await fetch(`/planning/get-class-resources/${numericId}`);
+        const response = await fetch(`/planning/get-class-resources/${numericId}?type=${itemType}`);
         console.log('Réponse API:', response);
 
         if (!response.ok) {
