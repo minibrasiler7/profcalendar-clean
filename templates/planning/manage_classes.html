@@ -8214,7 +8214,9 @@ async function loadClassFiles(folderPath = '', classroomId = null) {
     currentClassFolderByClass[classroomId] = folderPath; // Spécifique à la classe
     
     try {
-        const url = `/planning/get-class-resources/${classroomId}`;
+        // Ajouter le type mixed_group si c'est un groupe mixte
+        const typeParam = isMixedGroupClass ? '?type=mixed_group' : '';
+        const url = `/planning/get-class-resources/${classroomId}${typeParam}`;
             
         const response = await fetch(url);
         const result = await response.json();
