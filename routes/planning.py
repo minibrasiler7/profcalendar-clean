@@ -2120,11 +2120,7 @@ def get_class_resources(classroom_id):
                     filesize = filesize if filesize is not None else uf.file_size
                 else:
                     # Fichier orphelin (source supprimée + pas de métadonnées propres)
-                    # Ne pas l'afficher — le supprimer silencieusement de la base
-                    try:
-                        db.session.delete(file)
-                    except Exception:
-                        pass
+                    # Ne pas l'afficher (ne PAS supprimer ici pour éviter les erreurs de session)
                     continue  # Passer au fichier suivant
 
             file_data = {
@@ -2143,11 +2139,7 @@ def get_class_resources(classroom_id):
             else:
                 files_data.append(file_data)
 
-        # Committer les suppressions d'orphelins si nécessaire
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+
         
         # Traiter les fichiers du système legacy (avec épinglage)
         for file in legacy_class_files:
