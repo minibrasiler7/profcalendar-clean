@@ -1,58 +1,877 @@
 {% extends "base.html" %}
 
 {% block title %}Mes Exercices - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/exercises_manager.css') }}?v={{ range(1000,9999) | random }}">
+{% endblock %}
+
 {% block content %}
 <div class="exercises-container">
-  
-   5-- LEFT PANEL - Main Exercises Liest -->
-    <div class="left-panel scrollable">
-        <div class="header-action">
-            <h3>Exercices unorganizeds</h3>
-            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createExerciseModal">New</button>
-        </div>
-        <div class="exercises-list" id="unorganized-exercises-list">
-            {% for exercise in unorganized %}
-            <div class="exercise-item" data-ex-id="{{ exercise.id }}" data-ex-name="{{ exercise.title }}">
-                <img src="https://placeholder.com/30/30/?text=E" alt="Exercise" class="ex-icon">
-                <span class="ex-title">{{ exercise.title }}</span>
-                <span class="ex-description">{{ exercise.description|truncate(30,20) }}</span>
-                <div class="ex-actions">
-                    <button class="btn btn-sm btn-info" data-ex-edit={{ exercise.id }}>Edit</button>
-                    <button class="btn btn-sm btn-danger" data-ex-delete={{ exercise.id }}>Delete</button>
-                </div>
-            </div>
-            {% endfor %}
-  
-8u for to add block control content to exercises that may not have blocks yet,
-        </div>
+    <div class="exercises-header">
+        <h1><i class="fas fa-flask"></i> Mes Exercices</h1>
+        <a href="{{ url_for('exercises.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Créer un exercice
+        </a>
     </div>
 
-    <!-- RIGHT PANEL - Folder tree -->
-    <div class="right-panel scrollable">
-        <div class="header-action">
-            <h3>Folders</h3>
-            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createFolderModal">New Folder</button>
-        </div>
-        <div class="folder-tree" id="folder-tree">
-            {% for folder in folders %}
-            <div class="folder-item" data-folder-id="{{ folder.id }}" data-folder-name="{{ folder.name }}">
-                <span class="folder-icon">â ð</span>
-                <span class="folder-name">{{ folder.name }}</span>
-                <div class="folder-actions">
-                    <button class="btn btn-sm btn-info" data-folder-edit={{ folder.id }}>Edit</button>
-                    <button class="btn btn-sm btn-danger" data-folder-delete={{ folder.id }}>Delete</button>
+    <div class="exercises-layout">
+        <!-- LEFT PANEL: Exercises list -->
+        <div class="exercises-panel" id="exercisesPanel">
+            <div class="panel-header">
+                <h2><i class="fas fa-list"></i> Exercices non rangés</h2>
+                <div class="filters-bar">
+                    <button class="filter-chip active" onclick="filterExercises('all', this)">Tous</button>
+                    <button class="filter-chip" onclick="filterExercises('draft', this)">Brouillons</button>
+                    <button class="filter-chip" onclick="filterExercises('published', this)">Publiés</button>
                 </div>
             </div>
-            {% endfor %}
-  
-8u for to add child folders nested content to folders tree navigation,
+            <div class="exercises-list" id="exercisesList">
+                {% for ex in unorganized %}
+                <div class="exercise-item" draggable="true" data-exercise-id="{{ ex.id }}" data-status="{{ 'published' if ex.is_published else 'draft' }}">
+                    <div class="exercise-drag-handle">
+                        <i class="fas fa-grip-vertical"></i>
+                    </div>
+                    <div class="exercise-info">
+                        <div class="exercise-title-row">
+                            <span class="exercise-title">{{ ex.title }}</span>
+                            {% if ex.is_published %}
+                                <span class="status-badge published">Publié</span>
+                            {% else %}
+                                <span class="status-badge draft">Brouillon</span>
+                            {% endif %}
+                        </div>
+                        {% if ex.description %}
+                        <div class="exercise-description">{{ ex.description }}</div>
+                        {% endif %}
+                        <div class="exercise-meta">
+                            {% if ex.subject %}
+                            <span class="meta-tag"><i class="fas fa-book"></i> {{ ex.subject }}</span>
+                            {% endif %}
+                            {% if ex.level %}
+                            <span class="meta-tag"><i class="fas fa-layer-group"></i> {{ ex.level }}</span>
+                            {% endif %}
+                            <span class="meta-tag"><i class="fas fa-star" style="color:#f59e0b;"></i> {{ ex.total_points }} XP</span>
+                            <span class="meta-tag"><i class="fas fa-puzzle-piece"></i> {{ ex.blocks.all()|length }} blocs</span>
+                        </div>
+                    </div>
+                    <div class="exercise-actions">
+                        <a href="{{ url_for('exercises.edit', exercise_id=ex.id) }}" class="action-btn" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="action-btn" onclick="duplicateExercise({{ ex.id }})" title="Dupliquer">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="action-btn publish-btn" onclick="quickPublish({{ ex.id }})" title="Publier">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                        <button class="action-btn danger" onclick="deleteExercise({{ ex.id }}, {{ 'true' if ex.is_published else 'false' }})" title="Supprimer">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not unorganized %}
+                <div class="empty-panel">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Tous les exercices sont rangés !</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
-  
-  
-8u for modals editing to/dt/creating exercises and folders above,
+
+        <!-- RIGHT PANEL: Folders -->
+        <div class="folders-panel" id="foldersPanel">
+            <div class="panel-header">
+                <h2><i class="fas fa-folder-open"></i> Dossiers d'exercices</h2>
+                <button class="btn btn-sm btn-primary" onclick="createRootFolder()">
+                    <i class="fas fa-folder-plus"></i> Nouveau dossier
+                </button>
+            </div>
+            <div class="folders-tree" id="foldersTree">
+                {% for folder in root_folders %}
+                <div class="tree-node" data-folder-id="{{ folder.id }}">
+                    <div class="folder-item" data-folder-id="{{ folder.id }}">
+                        <i class="fas fa-chevron-right folder-toggle" onclick="toggleExerciseFolder({{ folder.id }}, this)"></i>
+                        <i class="fas fa-folder folder-icon" style="color: {{ folder.color or '#667eea' }};"></i>
+                        <span class="folder-name" ondblclick="renameFolder({{ folder.id }}, this)">{{ folder.name }}</span>
+                        <div class="folder-actions">
+                            <button class="action-btn" onclick="createSubfolder({{ folder.id }})" title="Sous-dossier">
+                                <i class="fas fa-folder-plus"></i>
+                            </button>
+                            <button class="action-btn" onclick="renameFolder({{ folder.id }})" title="Renommer">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn danger" onclick="deleteFolder({{ folder.id }})" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tree-children" id="folder-children-{{ folder.id }}" style="display: none;"></div>
+                </div>
+                {% endfor %}
+                {% if not root_folders %}
+                <div class="empty-panel">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Aucun dossier créé</p>
+                    <button class="btn btn-sm btn-primary" onclick="createRootFolder()" style="margin-top: 0.5rem;">
+                        <i class="fas fa-plus"></i> Créer un dossier
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-  
-  
 </div>
 
-####################################################################J@everyendblock %ó£31#3#35FVFBæFÖÂæB7&VFRæFÖÂ&R7F÷&VB&÷fP¤Ææ²67&B7&3Ò'·²W&Åöf÷"w7FF2rÂfÆVæÖSÒv772öWW&66W5öÖævW"æ772r×ÓÂöÆæ³à¤Ææ²67&B7&3Ò'·²W&Åöf÷"w7FF2rÂfÆVæÖSÒv¦öWW&66W2æ§2r×Ò#ãÂ÷67&Cà¤VæF&Æö6°
+<!-- Publish modal — Step 1: Choose class -->
+<div id="publish-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 0.5rem;font-size:1.1rem;"><i class="fas fa-paper-plane" style="color:#059669;"></i> Publier l'exercice</h3>
+        <p style="color:#6b7280;font-size:0.85rem;margin:0 0 1rem;">Sélectionnez la classe :</p>
+        <div id="publish-class-list" style="max-height:300px;overflow-y:auto;margin:0 0 1rem;"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button class="btn" onclick="closePublishModal()" style="background:#e5e7eb;color:#374151;">Annuler</button>
+            <button class="btn" id="publish-confirm-btn" onclick="confirmPublish()" style="background:#059669;color:white;">
+                <i class="fas fa-arrow-right"></i> Suivant
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Mode selection modal — Step 2: Choose mode -->
+<div id="mode-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);justify-content:center;align-items:center;">
+    <div style="background:white;border-radius:20px;padding:1.5rem;max-width:480px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h3 style="margin:0;font-size:1.05rem;"><i class="fas fa-rocket" style="color:#667eea;"></i> Lancer l'exercice</h3>
+            <button onclick="closeModeModal()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:#9ca3af;"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="mode-exercise-title" style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;"></p>
+
+        <!-- Option Classique -->
+        <div id="mode-classique-btn" onclick="selectMode('classique')"
+             style="padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:0.75rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-book-open" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Classique</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Les élèves font l'exercice à leur rythme. Pas de suivi en direct.</div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-classique-check" style="color:#10b981;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <!-- Option Combat (MASQUÉ) -->
+        <div id="mode-combat-btn" onclick="selectMode('combat')"
+             style="display:none;padding:1rem;border:2px solid #e5e7eb;border-radius:14px;margin-bottom:1rem;cursor:pointer;transition:all 0.2s;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-bolt" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;font-size:0.95rem;color:#1f2937;">Mode Combat</div>
+                    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.15rem;">Mission en direct ! Suivez la progression de chaque élève en temps réel.</div>
+                </div>
+                <i class="fas fa-check-circle" id="mode-combat-check" style="color:#ef4444;font-size:1.2rem;display:none;"></i>
+            </div>
+        </div>
+
+        <button id="launch-exercise-btn" onclick="launchWithMode()" disabled
+                style="width:100%;padding:0.75rem;border:none;border-radius:12px;font-weight:700;font-size:0.9rem;cursor:pointer;background:#d1d5db;color:white;transition:all 0.2s;">
+            <i class="fas fa-play"></i> Lancer la mission
+        </button>
+    </div>
+</div>
+
+<!-- Tracking modal — Live student monitoring -->
+<div id="tracking-modal" style="display:none;position:fixed;inset:0;z-index:10002;background:rgba(15,12,41,0.95);backdrop-filter:blur(8px);overflow-y:auto;">
+    <div style="max-width:700px;margin:1rem auto;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <div>
+                <h2 id="tracking-title" style="margin:0;color:white;font-size:1.2rem;"></h2>
+                <p id="tracking-subtitle" style="margin:0;color:rgba(255,255,255,0.6);font-size:0.8rem;margin-top:0.2rem;"></p>
+            </div>
+            <button onclick="closeTrackingModal()" style="background:rgba(255,255,255,0.1);border:none;color:white;padding:0.5rem 0.8rem;border-radius:10px;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-times"></i> Fermer
+            </button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:1rem;">
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-total" style="color:white;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Élèves</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-started" style="color:#f59e0b;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">En cours</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-completed" style="color:#10b981;font-size:1.5rem;font-weight:800;">0</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Terminé</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem;text-align:center;">
+                <div id="track-avg" style="color:#667eea;font-size:1.5rem;font-weight:800;">—</div>
+                <div style="color:rgba(255,255,255,0.5);font-size:0.7rem;">Moyenne</div>
+            </div>
+        </div>
+        <div id="tracking-students" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+        <div id="combat-arena-section" style="display:none;text-align:center;margin-bottom:1rem;">
+            <div style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(220,38,38,0.15));border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:1rem;margin-bottom:0.5rem;">
+                <div style="color:white;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <i class="fas fa-gamepad"></i> Combat RPG — <span id="combat-status-text">En attente</span>
+                    <span id="combat-participants-text" style="color:rgba(255,255,255,0.5);margin-left:0.5rem;"></span>
+                </div>
+                <button onclick="openCombatArena()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.9rem;">
+                    <i class="fas fa-tv"></i> Ouvrir l'arène RPG (projecteur)
+                </button>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:1.5rem;">
+            <button onclick="stopMission()" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;padding:0.6rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85rem;">
+                <i class="fas fa-stop-circle"></i> Arrêter la mission
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const csrfToken = '{{ csrf_token() }}';
+
+// ============================================================
+// Filter exercises
+// ============================================================
+function filterExercises(status, btn) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#exercisesList .exercise-item').forEach(item => {
+        if (status === 'all' || item.dataset.status === status) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// ============================================================
+// Exercise CRUD
+// ============================================================
+async function deleteExercise(id, isPublished) {
+    let msg = 'Supprimer cet exercice ?';
+    if (isPublished) {
+        msg = 'Cet exercice a été publié dans une ou plusieurs classes.\n\nLe supprimer le retirera aussi des missions des élèves.\n\nÊtes-vous sûr ?';
+    }
+    if (!confirm(msg)) return;
+    try {
+        const res = await fetch(`/exercises/${id}/delete`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const el = document.querySelector(`.exercise-item[data-exercise-id="${id}"]`);
+            if (el) el.remove();
+            // Also remove from folder contents if present
+            const folderEl = document.querySelector(`.folder-exercise-item[data-exercise-id="${id}"]`);
+            if (folderEl) folderEl.remove();
+            showToast('Exercice supprimé', 'success');
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur lors de la suppression', 'error'); }
+}
+
+async function duplicateExercise(id) {
+    try {
+        const res = await fetch(`/exercises/${id}/duplicate`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Exercice dupliqué', 'success');
+            setTimeout(() => location.reload(), 500);
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+// ============================================================
+// Folder management
+// ============================================================
+async function createRootFolder() {
+    const name = prompt('Nom du nouveau dossier :');
+    if (!name || !name.trim()) return;
+    try {
+        const res = await fetch('/exercises/manager/folder/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ name: name.trim(), parent_id: null, color: '#667eea' })
+        });
+        const data = await res.json();
+        if (data.folder || data.id) {
+            showToast('Dossier créé', 'success');
+            location.reload();
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+async function createSubfolder(parentId) {
+    const name = prompt('Nom du sous-dossier :');
+    if (!name || !name.trim()) return;
+    try {
+        const res = await fetch('/exercises/manager/folder/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ name: name.trim(), parent_id: parentId, color: '#667eea' })
+        });
+        const data = await res.json();
+        if (data.folder || data.id) {
+            showToast('Sous-dossier créé', 'success');
+            // Reload folder contents
+            const toggle = document.querySelector(`.folder-item[data-folder-id="${parentId}"] .folder-toggle`);
+            if (toggle && toggle.classList.contains('open')) {
+                // Refresh open folder
+                toggleExerciseFolder(parentId, toggle, true);
+            } else if (toggle) {
+                // Open the folder
+                toggleExerciseFolder(parentId, toggle);
+            } else {
+                location.reload();
+            }
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+async function renameFolder(folderId) {
+    const nameEl = document.querySelector(`.folder-item[data-folder-id="${folderId}"] .folder-name`);
+    const currentName = nameEl ? nameEl.textContent.trim() : '';
+    const newName = prompt('Nouveau nom :', currentName);
+    if (!newName || !newName.trim() || newName.trim() === currentName) return;
+    try {
+        const res = await fetch(`/exercises/manager/folder/${folderId}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ name: newName.trim() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (nameEl) nameEl.textContent = newName.trim();
+            showToast('Dossier renommé', 'success');
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+async function deleteFolder(folderId) {
+    if (!confirm('Supprimer ce dossier ? Les exercices seront déplacés à la racine.')) return;
+    try {
+        const res = await fetch(`/exercises/manager/folder/${folderId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Dossier supprimé', 'success');
+            location.reload();
+        } else {
+            showToast(data.message || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+// ============================================================
+// Toggle folder (expand/collapse)
+// ============================================================
+async function toggleExerciseFolder(folderId, toggleEl, forceReload) {
+    const childrenDiv = document.getElementById(`folder-children-${folderId}`);
+    if (!childrenDiv) return;
+
+    const isOpen = toggleEl.classList.contains('open');
+
+    if (isOpen && !forceReload) {
+        toggleEl.classList.remove('open');
+        childrenDiv.style.display = 'none';
+        return;
+    }
+
+    // Load contents
+    try {
+        const res = await fetch(`/exercises/manager/contents?folder_id=${folderId}`);
+        const data = await res.json();
+
+        let html = '';
+
+        // Subfolders
+        if (data.folders && data.folders.length > 0) {
+            data.folders.forEach(f => {
+                html += `
+                <div class="tree-node" data-folder-id="${f.id}">
+                    <div class="folder-item" data-folder-id="${f.id}">
+                        <i class="fas fa-chevron-right folder-toggle" onclick="toggleExerciseFolder(${f.id}, this)"></i>
+                        <i class="fas fa-folder folder-icon" style="color: ${f.color || '#667eea'};"></i>
+                        <span class="folder-name" ondblclick="renameFolder(${f.id})">${f.name}</span>
+                        <div class="folder-actions">
+                            <button class="action-btn" onclick="createSubfolder(${f.id})" title="Sous-dossier">
+                                <i class="fas fa-folder-plus"></i>
+                            </button>
+                            <button class="action-btn" onclick="renameFolder(${f.id})" title="Renommer">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn danger" onclick="deleteFolder(${f.id})" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tree-children" id="folder-children-${f.id}" style="display: none;"></div>
+                </div>`;
+            });
+        }
+
+        // Exercises in folder
+        if (data.exercises && data.exercises.length > 0) {
+            data.exercises.forEach(ex => {
+                const statusClass = ex.is_published ? 'published' : 'draft';
+                const statusLabel = ex.is_published ? 'Publié' : 'Brouillon';
+                html += `
+                <div class="folder-exercise-item" data-exercise-id="${ex.id}">
+                    <i class="fas fa-flask exercise-icon"></i>
+                    <span class="folder-exercise-title">${ex.title || 'Sans titre'}</span>
+                    <span class="status-badge ${statusClass}" style="font-size:0.65rem;padding:0.1rem 0.4rem;">${statusLabel}</span>
+                    <div class="folder-exercise-actions">
+                        <a href="/exercises/${ex.id}/edit" class="action-btn" title="Modifier"><i class="fas fa-edit"></i></a>
+                        <button class="action-btn" onclick="removeFromFolder(${ex.id})" title="Retirer du dossier"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        if (!html) {
+            html = '<div class="folder-empty"><i class="fas fa-inbox"></i> Dossier vide — glissez des exercices ici</div>';
+        }
+
+        childrenDiv.innerHTML = html;
+        childrenDiv.style.display = 'block';
+        toggleEl.classList.add('open');
+
+        // Re-attach drag listeners for new folder items
+        initFolderDropTargets(childrenDiv);
+
+    } catch(e) {
+        console.error('Error loading folder contents:', e);
+        showToast('Erreur de chargement', 'error');
+    }
+}
+
+// ============================================================
+// Remove exercise from folder (move to root)
+// ============================================================
+async function removeFromFolder(exerciseId) {
+    try {
+        const res = await fetch('/exercises/manager/move-exercise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ exercise_id: exerciseId, folder_id: null })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Exercice retiré du dossier', 'success');
+            location.reload();
+        } else {
+            showToast(data.error || 'Erreur', 'error');
+        }
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+// ============================================================
+// Drag & Drop
+// ============================================================
+function initDragAndDrop() {
+    // Make exercise items draggable
+    document.querySelectorAll('.exercise-item[draggable="true"]').forEach(item => {
+        item.addEventListener('dragstart', handleExerciseDragStart);
+        item.addEventListener('dragend', handleExerciseDragEnd);
+    });
+
+    // Make folder items drop targets
+    initFolderDropTargets(document.getElementById('foldersTree'));
+}
+
+function initFolderDropTargets(container) {
+    if (!container) return;
+    container.querySelectorAll('.folder-item').forEach(folder => {
+        folder.addEventListener('dragover', handleFolderDragOver);
+        folder.addEventListener('dragleave', handleFolderDragLeave);
+        folder.addEventListener('drop', handleFolderDrop);
+    });
+    // Also make tree-children divs drop targets (for dropping into expanded empty folders)
+    container.querySelectorAll('.tree-children').forEach(child => {
+        child.addEventListener('dragover', handleFolderDragOver);
+        child.addEventListener('dragleave', handleFolderDragLeave);
+        child.addEventListener('drop', function(e) {
+            // Get folder ID from the container
+            const folderId = this.id.replace('folder-children-', '');
+            handleFolderDropById(e, parseInt(folderId));
+        });
+    });
+}
+
+function handleExerciseDragStart(e) {
+    const exerciseId = this.dataset.exerciseId;
+    e.dataTransfer.setData('text/plain', `exercise:${exerciseId}`);
+    e.dataTransfer.effectAllowed = 'move';
+    this.classList.add('dragging');
+    // Highlight all folder drop targets
+    document.querySelectorAll('.folder-item').forEach(f => f.classList.add('drop-target-hint'));
+}
+
+function handleExerciseDragEnd(e) {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.folder-item').forEach(f => {
+        f.classList.remove('drop-target-hint');
+        f.classList.remove('drag-over');
+    });
+}
+
+function handleFolderDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+}
+
+function handleFolderDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+async function handleFolderDrop(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    const folderId = this.dataset.folderId;
+    const data = e.dataTransfer.getData('text/plain');
+    if (!data || !data.startsWith('exercise:')) return;
+
+    const exerciseId = parseInt(data.split(':')[1]);
+    await moveExerciseToFolder(exerciseId, parseInt(folderId));
+}
+
+async function handleFolderDropById(e, folderId) {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('text/plain');
+    if (!data || !data.startsWith('exercise:')) return;
+    const exerciseId = parseInt(data.split(':')[1]);
+    await moveExerciseToFolder(exerciseId, folderId);
+}
+
+async function moveExerciseToFolder(exerciseId, folderId) {
+    try {
+        const res = await fetch('/exercises/manager/move-exercise', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ exercise_id: exerciseId, folder_id: folderId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Exercice rangé dans le dossier', 'success');
+            // Remove from left panel
+            const el = document.querySelector(`#exercisesList .exercise-item[data-exercise-id="${exerciseId}"]`);
+            if (el) el.remove();
+
+            // Refresh the target folder if it's open
+            const toggle = document.querySelector(`.folder-item[data-folder-id="${folderId}"] .folder-toggle`);
+            if (toggle && toggle.classList.contains('open')) {
+                toggleExerciseFolder(folderId, toggle, true);
+            }
+
+            // Check if left panel is empty
+            checkEmptyPanels();
+        } else {
+            showToast(data.error || 'Erreur', 'error');
+        }
+    } catch(e) {
+        showToast('Erreur', 'error');
+        console.error(e);
+    }
+}
+
+function checkEmptyPanels() {
+    const list = document.getElementById('exercisesList');
+    const items = list.querySelectorAll('.exercise-item');
+    const visibleItems = Array.from(items).filter(i => i.style.display !== 'none');
+    if (visibleItems.length === 0 && !list.querySelector('.empty-panel')) {
+        list.innerHTML = '<div class="empty-panel"><i class="fas fa-check-circle"></i><p>Tous les exercices sont rangés !</p></div>';
+    }
+}
+
+// ============================================================
+// Publish flow (Step 1-3)
+// ============================================================
+let publishExerciseId = null;
+let selectedClassroomId = null;
+let selectedMode = null;
+let trackingInterval = null;
+let currentPubId = null;
+let currentCombatSessionId = null;
+
+function quickPublish(id) {
+    publishExerciseId = id;
+    selectedClassroomId = null;
+    const listEl = document.getElementById('publish-class-list');
+    listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;"><i class="fas fa-spinner fa-spin"></i> Chargement...</p>';
+    document.getElementById('publish-modal').style.display = 'flex';
+
+    fetch('/exercises/folders-and-classes')
+        .then(r => r.json())
+        .then(data => {
+            const classes = data.classrooms || [];
+            if (classes.length === 0) {
+                listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;">Aucune classe disponible.</p>';
+                return;
+            }
+            listEl.innerHTML = classes.map(c => `
+                <label style="display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.8rem;border-radius:8px;cursor:pointer;transition:background 0.2s;"
+                       onmouseenter="this.style.background='#f0fdf4'" onmouseleave="this.style.background=''">
+                    <input type="radio" name="publish-class" value="${c.id}" style="width:18px;height:18px;accent-color:#059669;">
+                    <span style="font-weight:500;">${c.name}</span>
+                    <span style="color:#9ca3af;font-size:0.8rem;">${c.subject || ''}</span>
+                </label>
+            `).join('');
+        })
+        .catch(() => { listEl.innerHTML = '<p style="color:#ef4444;text-align:center;">Erreur de chargement</p>'; });
+}
+
+function closePublishModal() {
+    document.getElementById('publish-modal').style.display = 'none';
+    publishExerciseId = null;
+}
+
+function confirmPublish() {
+    if (!publishExerciseId) return;
+    const selected = document.querySelector('#publish-class-list input[name="publish-class"]:checked');
+    if (!selected) { showToast('Sélectionnez une classe', 'error'); return; }
+    selectedClassroomId = parseInt(selected.value);
+    const exerciseId = publishExerciseId;
+    const card = document.querySelector(`.exercise-item[data-exercise-id="${exerciseId}"]`);
+    const title = card ? card.querySelector('.exercise-title').textContent : 'Exercice';
+    document.getElementById('publish-modal').style.display = 'none';
+    showModeModal(exerciseId, title);
+}
+
+function showModeModal(exerciseId, title) {
+    publishExerciseId = exerciseId;
+    selectedMode = null;
+    document.getElementById('mode-exercise-title').textContent = title;
+    document.getElementById('mode-classique-check').style.display = 'none';
+    document.getElementById('mode-combat-check').style.display = 'none';
+    document.getElementById('mode-classique-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-classique-btn').style.background = 'white';
+    document.getElementById('mode-combat-btn').style.borderColor = '#e5e7eb';
+    document.getElementById('mode-combat-btn').style.background = 'white';
+    const btn = document.getElementById('launch-exercise-btn');
+    btn.disabled = true;
+    btn.style.background = '#d1d5db';
+    btn.innerHTML = '<i class="fas fa-play"></i> Lancer la mission';
+    document.getElementById('mode-modal').style.display = 'flex';
+    selectMode('classique');
+}
+
+function closeModeModal() {
+    document.getElementById('mode-modal').style.display = 'none';
+}
+
+function selectMode(mode) {
+    selectedMode = mode;
+    const classiqueCheck = document.getElementById('mode-classique-check');
+    const combatCheck = document.getElementById('mode-combat-check');
+    const classiqueBtn = document.getElementById('mode-classique-btn');
+    const combatBtn = document.getElementById('mode-combat-btn');
+    const launchBtn = document.getElementById('launch-exercise-btn');
+
+    classiqueCheck.style.display = 'none';
+    combatCheck.style.display = 'none';
+    classiqueBtn.style.borderColor = '#e5e7eb';
+    combatBtn.style.borderColor = '#e5e7eb';
+
+    if (mode === 'classique') {
+        classiqueCheck.style.display = 'inline';
+        classiqueBtn.style.borderColor = '#10b981';
+        classiqueBtn.style.background = '#f0fdf4';
+        combatBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Publier et lancer';
+    } else {
+        combatCheck.style.display = 'inline';
+        combatBtn.style.borderColor = '#ef4444';
+        combatBtn.style.background = '#fef2f2';
+        classiqueBtn.style.background = 'white';
+        launchBtn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        launchBtn.innerHTML = '<i class="fas fa-bolt"></i> Lancer le combat !';
+    }
+    launchBtn.disabled = false;
+}
+
+async function launchWithMode() {
+    if (!publishExerciseId || !selectedMode || !selectedClassroomId) return;
+    const launchBtn = document.getElementById('launch-exercise-btn');
+    launchBtn.disabled = true;
+    launchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+    try {
+        const res = await fetch('/exercises/launch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ exercise_id: publishExerciseId, classroom_id: selectedClassroomId, mode: selectedMode }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeModeModal();
+            const card = document.querySelector(`.exercise-item[data-exercise-id="${publishExerciseId}"]`);
+            if (card) {
+                card.dataset.status = 'published';
+                const badge = card.querySelector('.status-badge');
+                if (badge) { badge.className = 'status-badge published'; badge.textContent = 'Publié'; }
+            }
+            showToast(data.message || 'Exercice lancé !', 'success');
+            if (selectedMode === 'combat' && data.combat_session_id) {
+                window.open(`/combat/${data.combat_session_id}/arena`, '_blank');
+            }
+            openTracking(data.publication_id);
+        } else {
+            showToast(data.error || data.message || 'Erreur', 'error');
+            launchBtn.disabled = false;
+            launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+        }
+    } catch(e) {
+        showToast('Erreur de connexion', 'error');
+        launchBtn.disabled = false;
+        launchBtn.innerHTML = '<i class="fas fa-play"></i> Réessayer';
+    }
+}
+
+// ============================================================
+// Tracking
+// ============================================================
+function openTracking(pubId) {
+    currentPubId = pubId;
+    currentCombatSessionId = null;
+    document.getElementById('tracking-modal').style.display = 'block';
+    document.getElementById('combat-arena-section').style.display = 'none';
+    refreshTracking();
+    trackingInterval = setInterval(refreshTracking, 4000);
+}
+
+function openCombatArena() {
+    if (currentCombatSessionId) {
+        window.open(`/combat/${currentCombatSessionId}/arena`, '_blank');
+    } else {
+        showToast('Aucune session de combat active.', 'error');
+    }
+}
+
+function closeTrackingModal() {
+    document.getElementById('tracking-modal').style.display = 'none';
+    if (trackingInterval) { clearInterval(trackingInterval); trackingInterval = null; }
+}
+
+async function refreshTracking() {
+    if (!currentPubId) return;
+    try {
+        const res = await fetch(`/exercises/publication/${currentPubId}/live-tracking`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('tracking-title').textContent = data.exercise_title;
+        document.getElementById('tracking-subtitle').textContent = `${data.blocks_count} questions — Mode ${data.mode}`;
+        document.getElementById('track-total').textContent = data.total_students;
+        document.getElementById('track-started').textContent = data.started;
+        document.getElementById('track-completed').textContent = data.completed;
+        document.getElementById('track-avg').textContent = data.completed > 0 ? data.average_score + '%' : '—';
+
+        if (data.mode === 'combat' && data.combat_session_id) {
+            currentCombatSessionId = data.combat_session_id;
+            document.getElementById('combat-arena-section').style.display = 'block';
+        } else {
+            document.getElementById('combat-arena-section').style.display = 'none';
+        }
+
+        const container = document.getElementById('tracking-students');
+        const isCombat = data.mode === 'combat';
+        container.innerHTML = data.students.map(s => {
+            let statusIcon, statusColor, statusText, progressWidth;
+            if (isCombat) {
+                if (s.in_combat && s.combat_info) {
+                    const ci = s.combat_info;
+                    statusIcon = ci.is_alive ? 'shield-alt' : 'skull-crossbones';
+                    statusColor = ci.is_alive ? '#10b981' : '#ef4444';
+                    statusText = `${ci.avatar_class} — ${ci.current_hp}/${ci.max_hp} HP`;
+                    progressWidth = ci.max_hp > 0 ? Math.round((ci.current_hp / ci.max_hp) * 100) : 100;
+                } else {
+                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = 'Pas connecté'; progressWidth = 0;
+                }
+            } else {
+                if (s.status === 'completed') {
+                    statusIcon = 'check-circle'; statusColor = '#10b981';
+                    statusText = `${s.score_percentage}%`; progressWidth = 100;
+                } else if (s.status === 'in_progress') {
+                    statusIcon = 'spinner fa-pulse'; statusColor = '#f59e0b';
+                    statusText = `${s.answers_count}/${s.blocks_count}`;
+                    progressWidth = s.blocks_count > 0 ? Math.round((s.answers_count / s.blocks_count) * 100) : 0;
+                } else {
+                    statusIcon = 'clock'; statusColor = '#6b7280'; statusText = 'En attente'; progressWidth = 0;
+                }
+            }
+            const hpBarColor = isCombat && s.in_combat
+                ? (progressWidth > 50 ? '#10b981' : progressWidth > 25 ? '#f59e0b' : '#ef4444')
+                : statusColor;
+            return `
+                <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:0.65rem 0.8rem;display:flex;align-items:center;gap:0.6rem;">
+                    <i class="fas fa-${statusIcon}" style="color:${statusColor};font-size:1rem;width:20px;text-align:center;"></i>
+                    <div style="flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem;">
+                            <span style="color:white;font-weight:600;font-size:0.85rem;">${s.name}</span>
+                            <span style="color:${statusColor};font-weight:700;font-size:0.8rem;">${statusText}</span>
+                        </div>
+                        <div style="width:100%;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+                            <div style="width:${progressWidth}%;height:100%;background:${hpBarColor};border-radius:2px;transition:width 0.5s ease;"></div>
+                        </div>
+                        ${!isCombat && s.status === 'completed' ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.2rem;">+${s.xp_earned} XP — ${s.correct_count}/${s.blocks_count} correct</div>` : ''}
+                    </div>
+                </div>`;
+        }).join('');
+    } catch(e) { console.error('Erreur tracking:', e); }
+}
+
+async function stopMission() {
+    if (!currentPubId) return;
+    if (!confirm('Arrêter la mission en direct ?')) return;
+    try {
+        await fetch(`/exercises/publication/${currentPubId}/toggle-active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        });
+        closeTrackingModal();
+        showToast('Mission arrêtée', 'success');
+    } catch(e) { showToast('Erreur', 'error'); }
+}
+
+// ============================================================
+// Toast
+// ============================================================
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// ============================================================
+// Init
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    initDragAndDrop();
+});
+</script>
+{% endblock %}
