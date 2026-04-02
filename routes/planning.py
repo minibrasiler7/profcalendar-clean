@@ -619,8 +619,8 @@ def get_current_or_next_lesson(user):
                 current_app.logger.error(f"=== LESSON DEBUG === Next lesson today: P{lesson.period_number}")
                 return lesson, False, current_date
 
-    # 3. Chercher dans les jours suivants (jusqu'à 2 semaines)
-    for days_ahead in range(1, 15):
+    # 3. Chercher dans les jours suivants (jusqu'à 5 semaines pour couvrir les vacances)
+    for days_ahead in range(1, 36):
         search_date = current_date + timedelta(days=days_ahead)
         search_weekday = search_date.weekday()
         
@@ -632,7 +632,17 @@ def get_current_or_next_lesson(user):
             continue
             
         if is_holiday(search_date, user):
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday: {search_date}")
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday (Vaud): {search_date}")
+            continue
+        
+        # Vérifier aussi les vacances personnalisées de l'utilisateur
+        user_holiday = None
+        for h in user.holidays.all():
+            if h.start_date <= search_date <= h.end_date:
+                user_holiday = h.name
+                break
+        if user_holiday:
+            current_app.logger.error(f"=== LESSON DEBUG === Skipping user holiday: {search_date} ({user_holiday})")
             continue
         
         # Pour chaque période du jour, chercher une leçon
