@@ -291,7 +291,7 @@ const currentFolderId = {{ current_folder.id if current_folder else 'null' }};
 // Cache pour les dossiers déjà chargés
 const folderCache = {};
 
-function getFileIcon(fileType) {
+function getFileIconHtml(fileType) {
     if (fileType === 'pdf') return '<i class="fas fa-file-pdf" style="color: #DC2626;"></i>';
     if (['png', 'jpg', 'jpeg'].includes(fileType)) return '<i class="fas fa-file-image" style="color: #059669;"></i>';
     return '<i class="fas fa-file" style="color: #6B7280;"></i>';
@@ -378,7 +378,7 @@ async function toggleFolder(folderId, rowEl) {
             html += `
             <div class="file-item file" data-id="${file.id}" data-type="file" draggable="true"
                  onclick="previewFile(${file.id}, '${file.file_type}')" style="padding-left: ${fileIndent}rem;">
-                <div class="item-icon">${getFileIcon(file.file_type)}</div>
+                <div class="item-icon">${getFileIconHtml(file.file_type)}</div>
                 <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
                 <div class="item-info">${file.size}</div>
                 <div class="item-actions" onclick="event.stopPropagation()">
