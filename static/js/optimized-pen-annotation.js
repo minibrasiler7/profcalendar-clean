@@ -563,7 +563,7 @@ class OptimizedPenAnnotation {
 
         ctx.save();
         ctx.fillStyle = options.color;
-        ctx.globalAlpha = 1.0; // IMPORTANT: Opacité toujours à 100%
+        ctx.globalAlpha = options.opacity !== undefined ? options.opacity : 1.0; // Opacité toujours à 100%
 
         // IMPORTANT: Multiplier la taille par DPR pour compenser la résolution Retina
         const dpr = window.devicePixelRatio || 1;
@@ -578,10 +578,10 @@ class OptimizedPenAnnotation {
             // Générer le stroke avec perfect-freehand
             const outlinePoints = window.getStroke(pfPoints, {
                 size: effectiveSize,
-                thinning: 0,      // Pas de variation d'épaisseur basée sur la vitesse
-                smoothing: 0.5,   // Lissage moyen pour des courbes naturelles
-                streamline: 0,    // AUCUN streamline — évite que les traits lents deviennent droits
-                simulatePressure: false,
+                thinning: options.thinning !== undefined ? options.thinning : 0,
+                smoothing: options.smoothing !== undefined ? options.smoothing : 0.5,
+                streamline: options.streamline !== undefined ? options.streamline : 0,
+                simulatePressure: options.simulatePressure !== undefined ? options.simulatePressure : false,
                 last: !this.isDrawing  // true si le stroke est terminé
             });
 
