@@ -944,6 +944,9 @@ class UnifiedPDFViewer {
             </div>
             ` : ''}
             <div class="annotation-actions">
+                <button class="btn-tool" id="btn-toggle-advanced-controls" title="Réglages du stylo">
+                    <i class="fas fa-sliders-h"></i>
+                </button>
                 <button class="btn-tool" id="btn-undo" title="Annuler">
                     <i class="fas fa-undo"></i>
                 </button>
