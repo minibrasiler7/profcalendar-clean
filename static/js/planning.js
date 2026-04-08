@@ -953,40 +953,65 @@ function updateWeeklyCellAfterSave(date, period, classroomId, title, description
     }
 }
 
-// Mettre à jour la vue annuelle
+// Mettre à jour la vue annuelle (contenu + classes CSS)
 function updateAnnualViewAfterSave(date, classroomId) {
     console.log('🔄 updateAnnualViewAfterSave called:', { date, classroomId });
-    
+
     const annualDay = document.querySelector(`[data-date="${date}"].annual-day`);
-    console.log('📅 Annual day element found:', annualDay);
-    
     if (!annualDay) {
         console.log('❌ No annual day element found for date:', date);
         return;
     }
-    
-    console.log('🏫 Selected classroom ID:', window.selectedClassroomId);
-    console.log('💾 Saved classroom ID:', classroomId);
-    
-    // Vérifier si cette date a maintenant des planifications pour la classe actuellement sélectionnée
-    checkDayHasPlanning(date, window.selectedClassroomId).then(hasPlanning => {
-        console.log('📊 Day has planning result for selected class:', hasPlanning);
-        
-        if (hasPlanning) {
-            console.log('✅ Adding has-class to annual day');
+
+    const targetClassroomId = classroomId || window.selectedClassroomId;
+    if (!targetClassroomId) return;
+
+    // Récupérer les planifications du jour pour cette classe via l'API
+    fetch(`/planning/api/day/${date}?classroom_id=${targetClassroomId}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (!data.success) return;
+
+        const plannings = data.plannings || [];
+        const contentDiv = annualDay.querySelector('.annual-day-content');
+
+        if (plannings.length > 0) {
+            // Le jour a des planifications — mettre à jour la cellule
             annualDay.classList.add('has-class');
             annualDay.setAttribute('data-has-class', 'true');
+
+            if (contentDiv) {
+                // Reconstruire le contenu HTML comme le template Jinja
+                let html = '<div class="annual-plannings">';
+                const maxItems = Math.min(plannings.length, 3);
+                for (let i = 0; i < maxItems; i++) {
+                    const p = plannings[i];
+                    html += `<div class="annual-planning-item" title="${(p.title || '').replace(/"/g, '&quot;')}">`;
+                    html += `<span class="annual-planning-text">${p.title || ''}</span>`;
+                    html += '</div>';
+                }
+                if (plannings.length > 3) {
+                    html += `<div class="annual-planning-more">+${plannings.length - 3}</div>`;
+                }
+                html += '</div>';
+                contentDiv.innerHTML = html;
+            }
         } else {
-            console.log('❌ Removing has-class from annual day');
+            // Pas de planification — nettoyer la cellule
             annualDay.classList.remove('has-class');
             annualDay.setAttribute('data-has-class', 'false');
+            if (contentDiv) {
+                contentDiv.innerHTML = '';
+            }
         }
-        
-        // Toujours réappliquer la couleur pour la classe sélectionnée
-        console.log('🎨 Reapplying classroom color for selected class');
+
+        // Réappliquer la couleur pour la classe sélectionnée
         applyClassroomColor();
-    }).catch(error => {
-        console.error('❌ Error in checkDayHasPlanning:', error);
+    })
+    .catch(error => {
+        console.error('❌ Error in updateAnnualViewAfterSave:', error);
     });
 }
 
