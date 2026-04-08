@@ -4916,6 +4916,10 @@ async function saveDaySlot() {
             closeDayEditModal();
             // Recharger les créneaux de la journée
             loadDayPlannings(dateToReload, classroomToReload);
+            // Mettre à jour la cellule de la vue annuelle en temps réel
+            if (typeof updateAnnualViewAfterSave === 'function') {
+                updateAnnualViewAfterSave(dateToReload, classroomToReload);
+            }
         } else {
             console.error('❌ Erreur lors de la sauvegarde:', result.message || 'Erreur inconnue');
             alert('Erreur lors de la sauvegarde: ' + (result.message || 'Erreur inconnue'));
