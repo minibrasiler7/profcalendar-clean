@@ -6774,7 +6774,22 @@ class CleanPDFViewer {
             switch (stroke.tool) {
                 case 'pen':
                 case 'highlighter':
-                    this.annotationTools.drawWithPerfectFreehand(ctx, stroke.points, options);
+                    // Preview direct sans latence - perfect-freehand au rendu final uniquement
+                    ctx.save();
+                    ctx.strokeStyle = options.color || '#000000';
+                    ctx.lineWidth = options.size || 2;
+                    ctx.globalAlpha = options.opacity || 1.0;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    if (stroke.points.length > 0) {
+                        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                        for (let i = 1; i < stroke.points.length; i++) {
+                            ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+                        }
+                    }
+                    ctx.stroke();
+                    ctx.restore();
                     break;
 
                 case 'pen-line':
