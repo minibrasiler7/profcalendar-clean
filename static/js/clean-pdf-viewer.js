@@ -70,6 +70,10 @@ class CleanPDFViewer {
         this.penSmoothing = 0.5;
         this.penStreamline = 0;
         this.penSimulatePressure = false;
+        
+        // PencilKit bridge (WKWebView iOS natif)
+        this.pencilKitActive = false;
+        this.isPencilKitAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit);
 
         // État du dessin
         this.isDrawing = false;
@@ -8791,6 +8795,153 @@ class CleanPDFViewer {
     }
 
 
+    // ==========================================
+    // PencilKit Bridge API (WKWebView iOS natif)
+    // ==========================================
+    
+    initPencilKitBridge() {
+        if (!this.isPencilKitAvailable) {
+            console.log('[PencilKit] Not in WKWebView, bridge disabled');
+            return;
+        }
+        
+        console.log('[PencilKit] Bridge initialized');
+        const viewer = this;
+        
+        // API globale que Swift appelle
+        window.pencilKitBridge = {
+            // Appele par Swift quand un trait est termine
+            onStrokeCompleted: (strokeData) => {
+                console.log('[PencilKit] Stroke received:', strokeData.points?.length, 'points');
+                const annotation = viewer.convertPencilKitStroke(strokeData);
+                if (annotation) {
+                    // Sauvegarder comme annotation standard
+                    const pageId = annotation.pageId;
+                    if (!viewer.annotations.has(pageId)) {
+                        viewer.annotations.set(pageId, []);
+                    }
+                    viewer.annotations.get(pageId).push(annotation);
+                    
+                    // Redessiner
+                    const canvas = document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
+                    if (canvas) {
+                        viewer.redrawAnnotations(canvas, pageId);
+                    }
+                    
+                    // Sauvegarder en base
+                    viewer.saveAnnotations();
+                    console.log('[PencilKit] Stroke saved as annotation');
+                }
+            },
+            
+            // Appele par Swift pour obtenir les infos de la page visible
+            getPageInfo: () => {
+                return {
+                    currentPage: viewer.currentPage,
+                    scale: viewer.currentScale,
+                    tool: viewer.currentTool,
+                    color: viewer.currentColor,
+                    size: viewer.currentSize,
+                    opacity: viewer.currentOpacity
+                };
+            },
+            
+            // Appele par Swift quand l'orientation change
+            onOrientationChanged: () => {
+                viewer.notifyPencilKitPageRect();
+            }
+        };
+    }
+    
+    // Convertir un stroke PencilKit en annotation standard
+    convertPencilKitStroke(strokeData) {
+        if (!strokeData || !strokeData.points || strokeData.points.length === 0) {
+            return null;
+        }
+        
+        return {
+            id: 'pk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            tool: strokeData.tool || 'pen',
+            color: strokeData.color || this.currentColor,
+            size: strokeData.size || this.currentSize,
+            opacity: strokeData.opacity || (strokeData.tool === 'highlighter' ? 0.5 : this.currentOpacity),
+            thinning: strokeData.thinning || this.penThinning,
+            smoothing: strokeData.smoothing || this.penSmoothing,
+            streamline: strokeData.streamline || this.penStreamline,
+            simulatePressure: false, // PencilKit fournit la vraie pression
+            points: strokeData.points.map(p => ({
+                x: p.x,
+                y: p.y,
+                pressure: p.pressure || 0.5
+            })),
+            source: 'pencilkit',
+            pageId: strokeData.pageId || this.getCurrentPageId(),
+            timestamp: Date.now()
+        };
+    }
+    
+    // Envoyer les coordonnees de la zone PDF visible a Swift
+    notifyPencilKitPageRect() {
+        if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
+        
+        const pageContainer = document.querySelector('.pdf-page-container.active, .pdf-page-container');
+        if (!pageContainer) return;
+        
+        const rect = pageContainer.getBoundingClientRect();
+        window.webkit.messageHandlers.pencilKit.postMessage({
+            action: 'updatePageRect',
+            config: {
+                pageRect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+                scale: this.currentScale,
+                pageId: this.getCurrentPageId()
+            }
+        });
+    }
+    
+    // Activer PencilKit pour le dessin natif
+    activatePencilKit() {
+        if (!this.isPencilKitAvailable) return;
+        
+        this.pencilKitActive = true;
+        window.webkit.messageHandlers.pencilKit.postMessage({
+            action: 'activate',
+            config: {
+                tool: this.currentTool,
+                color: this.currentColor,
+                size: this.currentSize,
+                opacity: this.currentTool === 'highlighter' ? 0.5 : this.currentOpacity,
+                pageRect: this.getVisiblePageRect(),
+                scale: this.currentScale,
+                pageId: this.getCurrentPageId()
+            }
+        });
+        console.log('[PencilKit] Activated for tool:', this.currentTool);
+    }
+    
+    // Desactiver PencilKit
+    deactivatePencilKit() {
+        if (!this.isPencilKitAvailable) return;
+        
+        this.pencilKitActive = false;
+        window.webkit.messageHandlers.pencilKit.postMessage({
+            action: 'deactivate'
+        });
+        console.log('[PencilKit] Deactivated');
+    }
+    
+    // Obtenir le rectangle de la page visible
+    getVisiblePageRect() {
+        const pageContainer = document.querySelector('.pdf-page-container.active, .pdf-page-container');
+        if (!pageContainer) return { x: 0, y: 0, width: 0, height: 0 };
+        const rect = pageContainer.getBoundingClientRect();
+        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+    }
+    
+    // Obtenir l'ID de la page courante
+    getCurrentPageId() {
+        return 'page-' + (this.currentPage || 1);
+    }
+
     initPenSettingsPanel() {
         const toggleBtn = this.container.querySelector('#btn-pen-settings');
         const panel = this.container.querySelector('#pen-settings-panel');
@@ -8854,6 +9005,15 @@ class CleanPDFViewer {
     }
 
     setTool(tool) {
+        // PencilKit: activer/desactiver selon l'outil
+        if (this.isPencilKitAvailable) {
+            if (tool === 'pen' || tool === 'highlighter') {
+                this.activatePencilKit();
+            } else if (this.pencilKitActive) {
+                this.deactivatePencilKit();
+            }
+        }
+        
         console.log('[Tool] setTool appelé avec:', tool);
 
         // Désélectionner la zone de texte si on change d'outil (sauf si on reste sur text)
