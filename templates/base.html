@@ -13,13 +13,13 @@
 
     <!-- CSS personnalisé -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/help-system.css') }}">
     {% endif %}
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
-<body{% if current_user.is_authenticated and session.get('user_type') == 'teacher' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
+<body{% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
     <!-- Navigation -->
     {% if session.get('user_type') != 'student' %}
     <nav class="navbar">
@@ -131,7 +131,7 @@
         </div>
     </footer>
 
-    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <!-- Système d'aide enseignant -->
     <button class="help-fab" title="Aide"><i class="fas fa-question"></i></button>
 
@@ -152,7 +152,7 @@
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/capacitor-push-helper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>
     {% endif %}
     {% block extra_js %}{% endblock %}
