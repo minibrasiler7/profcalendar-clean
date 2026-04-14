@@ -944,9 +944,6 @@ class UnifiedPDFViewer {
             </div>
             ` : ''}
             <div class="annotation-actions">
-                <button class="btn-tool" id="btn-toggle-advanced-controls" title="Réglages du stylo">
-                    <i class="fas fa-sliders-h"></i>
-                </button>
                 <button class="btn-tool" id="btn-undo" title="Annuler">
                     <i class="fas fa-undo"></i>
                 </button>
@@ -1031,74 +1028,6 @@ class UnifiedPDFViewer {
                 </div>
             </div>
 
-            <!-- Panneau de contrôle avancé du stylo (perfect-freehand) -->
-            <div class="advanced-pen-controls" id="advanced-pen-controls" style="display: none;">
-                <div class="controls-header">
-                    <h3>Réglages du stylo</h3>
-                    <button class="btn-close" id="btn-close-advanced-controls">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="controls-body">
-                    <!-- Size (Épaisseur) -->
-                    <div class="control-group">
-                        <label for="pen-size">
-                            Épaisseur: <span id="pen-size-value">4</span>px
-                        </label>
-                        <input type="range" id="pen-size" min="0.5" max="20" step="0.5" value="4">
-                    </div>
-
-                    <!-- Thinning (Sensibilité à la pression) -->
-                    <div class="control-group">
-                        <label for="pen-thinning">
-                            Sensibilité pression: <span id="pen-thinning-value">0.00</span>
-                        </label>
-                        <input type="range" id="pen-thinning" min="0" max="1" step="0.05" value="0.0">
-                    </div>
-
-                    <!-- Smoothing (Lissage) -->
-                    <div class="control-group">
-                        <label for="pen-smoothing">
-                            Lissage: <span id="pen-smoothing-value">0.00</span>
-                        </label>
-                        <input type="range" id="pen-smoothing" min="0" max="1" step="0.05" value="0.0">
-                    </div>
-
-                    <!-- Streamline (Stabilisation) -->
-                    <div class="control-group">
-                        <label for="pen-streamline">
-                            Stabilisation: <span id="pen-streamline-value">1.00</span>
-                        </label>
-                        <input type="range" id="pen-streamline" min="0" max="1" step="0.05" value="1.0">
-                    </div>
-
-                    <!-- Simulate Pressure (Simuler pression) -->
-                    <div class="control-group">
-                        <label for="pen-simulate-pressure">
-                            <input type="checkbox" id="pen-simulate-pressure" checked>
-                            Simuler la pression
-                        </label>
-                    </div>
-
-                    <!-- Opacity (Opacité) -->
-                    <div class="control-group">
-                        <label for="pen-opacity">
-                            Opacité: <span id="pen-opacity-value">1.0</span>
-                        </label>
-                        <input type="range" id="pen-opacity" min="0" max="1" step="0.05" value="1.0">
-                    </div>
-
-                    <!-- Boutons de reset et sauvegarde -->
-                    <div class="control-actions">
-                        <button class="btn-secondary" id="btn-reset-pen-settings">
-                            <i class="fas fa-undo"></i> Réinitialiser
-                        </button>
-                        <button class="btn-primary" id="btn-save-pen-settings">
-                            <i class="fas fa-save"></i> Sauvegarder
-                        </button>
-                    </div>
-                </div>
-            </div>
         `;
     }
 
@@ -2346,115 +2275,17 @@ class UnifiedPDFViewer {
         // Bouton suivi élève
         document.getElementById('btn-student-tracking')?.addEventListener('click', () => this.openStudentTracking());
 
-        // Contrôles avancés du stylo
-        this.initAdvancedPenControls();
+        // Appliquer les paramètres par défaut du stylo
+        this.updateAllAnnotationEngines();
     }
 
     /**
-     * Initialiser les contrôles avancés du stylo (perfect-freehand)
-     */
-    initAdvancedPenControls() {
-        const toggleBtn = document.getElementById('btn-toggle-advanced-controls');
-        const closeBtn = document.getElementById('btn-close-advanced-controls');
-        const panel = document.getElementById('advanced-pen-controls');
-        const resetBtn = document.getElementById('btn-reset-pen-settings');
-        const saveBtn = document.getElementById('btn-save-pen-settings');
-
-        if (!toggleBtn || !panel) return;
-
-        // Charger les paramètres sauvegardés depuis localStorage
-        this.loadPenSettings();
-
-        // Toggle panel visibility
-        toggleBtn.addEventListener('click', () => {
-            const isVisible = panel.style.display !== 'none';
-            panel.style.display = isVisible ? 'none' : 'block';
-        });
-
-        closeBtn?.addEventListener('click', () => {
-            panel.style.display = 'none';
-        });
-
-        // Size slider
-        const sizeSlider = document.getElementById('pen-size');
-        const sizeValue = document.getElementById('pen-size-value');
-        sizeSlider?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            sizeValue.textContent = value.toFixed(1);
-            this.updateAllAnnotationEngines();
-        });
-
-        // Thinning slider
-        const thinningSlider = document.getElementById('pen-thinning');
-        const thinningValue = document.getElementById('pen-thinning-value');
-        thinningSlider?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            thinningValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines();
-        });
-
-        // Smoothing slider
-        const smoothingSlider = document.getElementById('pen-smoothing');
-        const smoothingValue = document.getElementById('pen-smoothing-value');
-        smoothingSlider?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            smoothingValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines();
-        });
-
-        // Streamline slider
-        const streamlineSlider = document.getElementById('pen-streamline');
-        const streamlineValue = document.getElementById('pen-streamline-value');
-        streamlineSlider?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            streamlineValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines();
-        });
-
-        // Simulate pressure checkbox
-        const simulatePressureCheckbox = document.getElementById('pen-simulate-pressure');
-        simulatePressureCheckbox?.addEventListener('change', (e) => {
-            this.updateAllAnnotationEngines();
-        });
-
-        // Opacity slider
-        const opacitySlider = document.getElementById('pen-opacity');
-        const opacityValue = document.getElementById('pen-opacity-value');
-        opacitySlider?.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            opacityValue.textContent = value.toFixed(2);
-            this.updateAllAnnotationEngines();
-        });
-
-        // Reset button
-        resetBtn?.addEventListener('click', () => {
-            this.resetPenSettings();
-        });
-
-        // Save button
-        saveBtn?.addEventListener('click', () => {
-            this.savePenSettings();
-            alert('Paramètres sauvegardés !');
-        });
-    }
-
-    /**
-     * Mettre à jour tous les moteurs d'annotation avec les paramètres actuels du panneau
+     * Mettre a jour tous les moteurs d'annotation avec les parametres du stylo
      */
     updateAllAnnotationEngines() {
-        // IMPORTANT: Vérifier que les moteurs existent avant de les mettre à jour
-        // Cette méthode peut être appelée avant que le PDF ne soit chargé
-        if (!this.annotationEngines || this.annotationEngines.size === 0) {
-            return;
-        }
-
-        // Récupérer les paramètres actuels depuis les sliders
+        if (!this.annotationEngines || this.annotationEngines.size === 0) return;
         const penSettings = this.getCurrentPenSettings();
-
-        // IMPORTANT: Diviser la taille seulement par le zoom PDF (boutons +/-)
-        // Ne PAS prendre en compte le pinch-to-zoom du viewport pour garder un trait constant
         const adjustedSize = penSettings.size / this.currentScale;
-
         const options = {
             size: adjustedSize,
             thinning: penSettings.thinning,
@@ -2463,8 +2294,7 @@ class UnifiedPDFViewer {
             simulatePressure: penSettings.simulatePressure,
             opacity: penSettings.opacity
         };
-
-        this.annotationEngines.forEach((engine, pageNum) => {
+        this.annotationEngines.forEach((engine) => {
             if (engine && typeof engine.updateOptions === 'function') {
                 engine.updateOptions(options);
             }
@@ -2472,118 +2302,10 @@ class UnifiedPDFViewer {
     }
 
     /**
-     * Charger les paramètres du stylo depuis localStorage
-     */
-    loadPenSettings() {
-        try {
-            const saved = localStorage.getItem('pen-settings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                this.applyPenSettings(settings);
-            }
-        } catch (e) {
-            // Erreur chargement paramètres du stylo
-        }
-    }
-
-    /**
-     * Récupérer les paramètres actuels du stylo (depuis les sliders ou valeurs par défaut)
-     * Valeurs optimisées pour iPad Pro: smoothing=0, thinning=0, streamline=1, opacity=1
+     * Parametres fixes du stylo (optimises pour iPad Pro + souris)
      */
     getCurrentPenSettings() {
-        return {
-            size: parseFloat(document.getElementById('pen-size')?.value || 4),
-            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.0),
-            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.0),
-            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 1.0),
-            simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
-            opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
-        };
-    }
-
-    /**
-     * Sauvegarder les paramètres du stylo dans localStorage
-     */
-    savePenSettings() {
-        const settings = {
-            size: parseFloat(document.getElementById('pen-size')?.value || 4),
-            thinning: parseFloat(document.getElementById('pen-thinning')?.value || 0.5),
-            smoothing: parseFloat(document.getElementById('pen-smoothing')?.value || 0.5),
-            streamline: parseFloat(document.getElementById('pen-streamline')?.value || 0.5),
-            simulatePressure: document.getElementById('pen-simulate-pressure')?.checked ?? true,
-            opacity: parseFloat(document.getElementById('pen-opacity')?.value || 1.0)
-        };
-
-        try {
-            localStorage.setItem('pen-settings', JSON.stringify(settings));
-        } catch (e) {
-            console.error('Impossible de sauvegarder les paramètres:', e);
-        }
-    }
-
-    /**
-     * Réinitialiser les paramètres du stylo aux valeurs par défaut optimisées
-     */
-    resetPenSettings() {
-        const defaultSettings = {
-            size: 4,
-            thinning: 0.0,
-            smoothing: 0.0,
-            streamline: 1.0,
-            simulatePressure: true,
-            opacity: 1.0
-        };
-
-        this.applyPenSettings(defaultSettings);
-    }
-
-    /**
-     * Appliquer les paramètres du stylo aux sliders et aux moteurs
-     */
-    applyPenSettings(settings) {
-        // Mettre à jour les sliders
-        const sizeSlider = document.getElementById('pen-size');
-        const sizeValue = document.getElementById('pen-size-value');
-        if (sizeSlider && sizeValue) {
-            sizeSlider.value = settings.size;
-            sizeValue.textContent = settings.size.toFixed(1);
-        }
-
-        const thinningSlider = document.getElementById('pen-thinning');
-        const thinningValue = document.getElementById('pen-thinning-value');
-        if (thinningSlider && thinningValue) {
-            thinningSlider.value = settings.thinning;
-            thinningValue.textContent = settings.thinning.toFixed(2);
-        }
-
-        const smoothingSlider = document.getElementById('pen-smoothing');
-        const smoothingValue = document.getElementById('pen-smoothing-value');
-        if (smoothingSlider && smoothingValue) {
-            smoothingSlider.value = settings.smoothing;
-            smoothingValue.textContent = settings.smoothing.toFixed(2);
-        }
-
-        const streamlineSlider = document.getElementById('pen-streamline');
-        const streamlineValue = document.getElementById('pen-streamline-value');
-        if (streamlineSlider && streamlineValue) {
-            streamlineSlider.value = settings.streamline;
-            streamlineValue.textContent = settings.streamline.toFixed(2);
-        }
-
-        const simulatePressureCheckbox = document.getElementById('pen-simulate-pressure');
-        if (simulatePressureCheckbox) {
-            simulatePressureCheckbox.checked = settings.simulatePressure;
-        }
-
-        const opacitySlider = document.getElementById('pen-opacity');
-        const opacityValue = document.getElementById('pen-opacity-value');
-        if (opacitySlider && opacityValue) {
-            opacitySlider.value = settings.opacity;
-            opacityValue.textContent = settings.opacity.toFixed(2);
-        }
-
-        // Mettre à jour les moteurs d'annotation avec les nouveaux paramètres
-        this.updateAllAnnotationEngines();
+        return { size: 4, thinning: 0.0, smoothing: 0.0, streamline: 1.0, simulatePressure: true, opacity: 1.0 };
     }
 
     /**

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Politique de confidentialite - ProfCalendar{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1.5rem;">
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Politique de confidentialite</h1>
+    <p style="color: #6B7280; margin-bottom: 2rem;">Derniere mise a jour : 14 avril 2026</p>
+
+    <div style="line-height: 1.8; color: #374151;">
+
+    <h2>1. Responsable du traitement</h2>
+    <p>ProfCalendar est edite par Loic Strauch, domicilie en Suisse. Pour toute question relative a la protection de vos donnees, vous pouvez nous contacter a l'adresse : <strong>contact@profcalendar.org</strong></p>
+
+    <h2>2. Donnees collectees</h2>
+    <p>Nous collectons les donnees suivantes dans le cadre de l'utilisation de ProfCalendar :</p>
+    <h3>2.1 Donnees des enseignants</h3>
+    <ul>
+        <li>Nom d'utilisateur, adresse email, mot de passe (chiffre)</li>
+        <li>Nom de l'etablissement scolaire (optionnel)</li>
+        <li>Preferences d'affichage et de configuration</li>
+        <li>Donnees de planification de cours</li>
+        <li>Fichiers uploades (documents, PDF, images)</li>
+        <li>Donnees de paiement (traitees exclusivement par Stripe, voir section 6)</li>
+    </ul>
+    <h3>2.2 Donnees des eleves</h3>
+    <ul>
+        <li>Prenom, nom de famille</li>
+        <li>Adresse email (optionnelle, pour la creation de compte)</li>
+        <li>Notes et evaluations</li>
+        <li>Presences, absences et retards</li>
+        <li>Donnees de progression dans les exercices (scores, XP, niveaux)</li>
+        <li>Sanctions et remarques comportementales</li>
+    </ul>
+    <h3>2.3 Donnees des parents</h3>
+    <ul>
+        <li>Prenom, nom, adresse email</li>
+        <li>Lien avec l'eleve (via code de classe)</li>
+    </ul>
+    <h3>2.4 Donnees techniques</h3>
+    <ul>
+        <li>Adresse IP, type de navigateur, systeme d'exploitation</li>
+        <li>Cookies de session (voir section 7)</li>
+    </ul>
+
+    <h2>3. Finalites du traitement</h2>
+    <p>Vos donnees sont traitees pour les finalites suivantes :</p>
+    <ul>
+        <li>Fourniture et fonctionnement de la plateforme ProfCalendar</li>
+        <li>Gestion des comptes utilisateurs et authentification</li>
+        <li>Planification de cours et suivi pedagogique</li>
+        <li>Gestion des presences, notes et evaluations</li>
+        <li>Traitement des paiements et gestion des abonnements</li>
+        <li>Envoi d'emails transactionnels (verification, notifications)</li>
+        <li>Amelioration et securisation de la plateforme</li>
+    </ul>
+
+    <h2>4. Base legale du traitement</h2>
+    <p>Le traitement de vos donnees repose sur :</p>
+    <ul>
+        <li><strong>L'execution du contrat</strong> (art. 6 al. 1 let. b RGPD / art. 31 al. 1 nLPD) : traitement necessaire a la fourniture du service</li>
+        <li><strong>Le consentement</strong> (art. 6 al. 1 let. a RGPD / art. 6 al. 6 nLPD) : pour les cookies non essentiels et les communications marketing</li>
+        <li><strong>L'interet legitime</strong> (art. 6 al. 1 let. f RGPD / art. 31 al. 1 nLPD) : securite de la plateforme et prevention des abus</li>
+    </ul>
+
+    <h2>5. Duree de conservation</h2>
+    <ul>
+        <li><strong>Comptes actifs</strong> : les donnees sont conservees tant que le compte est actif</li>
+        <li><strong>Apres suppression du compte</strong> : les donnees sont supprimees dans un delai de 30 jours, sauf obligation legale de conservation</li>
+        <li><strong>Donnees de facturation</strong> : conservees 10 ans conformement au droit suisse (Code des obligations, art. 958f)</li>
+        <li><strong>Logs techniques</strong> : conserves 90 jours maximum</li>
+    </ul>
+
+    <h2>6. Sous-traitants et transferts de donnees</h2>
+    <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+        <thead>
+            <tr style="background: #F3F4F6;">
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Sous-traitant</th>
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Finalite</th>
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Localisation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Render.com</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Hebergement de l'application</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA (Oregon)</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Cloudflare R2</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Stockage des fichiers</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">UE (region auto)</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Stripe</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Traitement des paiements</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA / Irlande</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Resend</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Envoi d'emails</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA</td></tr>
+        </tbody>
+    </table>
+    <p>Les transferts vers les USA sont couverts par des clauses contractuelles types (CCT) conformement a l'art. 46 RGPD et a l'art. 16 al. 2 nLPD.</p>
+
+    <h2>7. Cookies</h2>
+    <p>ProfCalendar utilise les cookies suivants :</p>
+    <ul>
+        <li><strong>Cookie de session</strong> (essentiel) : maintient votre connexion pendant la navigation. Expire apres 30 jours d'inactivite.</li>
+        <li><strong>Cookie "Remember me"</strong> (essentiel) : permet la reconnexion automatique. Expire apres 90 jours.</li>
+        <li><strong>Cookie de consentement</strong> (essentiel) : enregistre votre choix concernant les cookies. Expire apres 1 an.</li>
+    </ul>
+    <p>ProfCalendar n'utilise pas de cookies publicitaires ni de trackers tiers.</p>
+
+    <h2>8. Vos droits</h2>
+    <p>Conformement au RGPD et a la nLPD, vous disposez des droits suivants :</p>
+    <ul>
+        <li><strong>Droit d'acces</strong> : obtenir une copie de vos donnees personnelles</li>
+        <li><strong>Droit de rectification</strong> : corriger des donnees inexactes</li>
+        <li><strong>Droit a l'effacement</strong> : demander la suppression de votre compte et de vos donnees (Parametres > Supprimer mon compte)</li>
+        <li><strong>Droit a la portabilite</strong> : recevoir vos donnees dans un format structure et lisible</li>
+        <li><strong>Droit d'opposition</strong> : vous opposer au traitement de vos donnees</li>
+        <li><strong>Droit de retirer votre consentement</strong> a tout moment</li>
+    </ul>
+    <p>Pour exercer vos droits, contactez-nous a : <strong>contact@profcalendar.org</strong></p>
+
+    <h2>9. Securite</h2>
+    <p>Nous mettons en oeuvre les mesures de securite suivantes :</p>
+    <ul>
+        <li>Chiffrement des communications (HTTPS/TLS)</li>
+        <li>Mots de passe chiffres (hachage bcrypt)</li>
+        <li>Authentification a deux facteurs (TOTP) disponible</li>
+        <li>Protection CSRF sur tous les formulaires</li>
+        <li>Headers de securite (CSP, X-Frame-Options, HSTS)</li>
+        <li>Chiffrement des donnees sensibles en base de donnees</li>
+    </ul>
+
+    <h2>10. Mineurs</h2>
+    <p>ProfCalendar est utilise dans un cadre scolaire. Les comptes eleves sont crees par les enseignants ou avec un code de classe. Les donnees des eleves mineurs sont traitees sous la responsabilite de l'etablissement scolaire et de l'enseignant. Les parents disposent d'un acces de consultation via leur espace parent.</p>
+
+    <h2>11. Modifications</h2>
+    <p>Nous nous reservons le droit de modifier cette politique de confidentialite. En cas de modification substantielle, les utilisateurs seront informes par email ou notification dans l'application.</p>
+
+    <h2>12. Autorite de controle</h2>
+    <p>En Suisse, l'autorite competente est le Préprose federal a la protection des donnees et a la transparence (PFPDT). Dans l'UE, vous pouvez contacter l'autorite de protection des donnees de votre pays de residence.</p>
+
+    </div>
+</div>
+{% endblock %}

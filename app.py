@@ -811,6 +811,15 @@ h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-w
                 return redirect(url_for('planning.dashboard'))
         return render_template('landing.html')
 
+    # --- Pages légales ---
+    @app.route('/privacy')
+    def privacy_policy():
+        return render_template('legal/privacy.html')
+
+    @app.route('/terms')
+    def terms_of_service():
+        return render_template('legal/terms.html')
+
     return app
 
 # Création de l'instance par défaut (sauf si importé par render_production.py)
