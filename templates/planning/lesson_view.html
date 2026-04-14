@@ -587,6 +587,14 @@ input, textarea, select {
     color: white;
 }
 
+.btn-late:disabled,
+.late-btn:disabled,
+.student-attendance button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* Styles pour les sanctions */
 .sanctions-content {
     flex: 1;
@@ -1759,6 +1767,9 @@ const mixedGroupId = {{ lesson.mixed_group_id if lesson.mixed_group_id else 'nul
 let isEditingPlanning = false;
 let isSplitViewActive = false;
 
+// Verrou anti-double-clic pour les requêtes de présence
+const pendingRequests = new Set();
+
 // Liste des élèves pour l'autocomplétion
 const lessonStudents = [
     {% for student in students %}
@@ -2289,8 +2300,23 @@ function updateAttendanceButtons(studentId) {
     }
 }
 
-// Fonction pour envoyer la mise à jour au serveur
+// Fonction pour envoyer la mise à jour au serveur (avec verrou anti-double-clic)
 async function updateAttendance(studentId, status, lateMinutes) {
+    // Empêcher les requêtes concurrentes pour le même élève
+    if (pendingRequests.has(studentId)) {
+        console.log(`Requête déjà en cours pour l'élève ${studentId}, ignorée`);
+        return;
+    }
+
+    pendingRequests.add(studentId);
+
+    // Désactiver les boutons de cet élève pendant la requête
+    const studentElement = document.getElementById(`student-${studentId}`);
+    const buttons = studentElement ? studentElement.querySelectorAll('button') : [];
+    const lateInputEl = document.getElementById(`late-${studentId}`);
+    buttons.forEach(btn => btn.disabled = true);
+    if (lateInputEl) lateInputEl.disabled = true;
+
     try {
         const response = await fetch('{{ url_for("planning.update_attendance") }}', {
             method: 'POST',
@@ -2312,7 +2338,6 @@ async function updateAttendance(studentId, status, lateMinutes) {
 
         if (result.success) {
             // Mettre à jour l'interface
-            const studentElement = document.getElementById(`student-${studentId}`);
             const lateInput = document.getElementById(`late-${studentId}`);
 
             // Retirer toutes les classes de statut
@@ -2341,6 +2366,11 @@ async function updateAttendance(studentId, status, lateMinutes) {
     } catch (error) {
         console.error('Erreur:', error);
         alert('Erreur lors de la communication avec le serveur');
+    } finally {
+        // Toujours libérer le verrou et réactiver les boutons
+        pendingRequests.delete(studentId);
+        buttons.forEach(btn => btn.disabled = false);
+        if (lateInputEl) lateInputEl.disabled = false;
     }
 }
 

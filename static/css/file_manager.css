@@ -578,7 +578,7 @@
     border-top: 1px solid var(--light-gray);
     padding: 1rem;
     box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    z-index: var(--z-fixed-bar, 1040);
 }
 
 .delete-actions-content {
@@ -622,7 +622,7 @@
     position: fixed;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    z-index: var(--z-modal, 1065);
     padding: 2rem;
     align-items: center;
     justify-content: center;
@@ -757,7 +757,7 @@
     box-shadow: var(--shadow-lg);
     min-width: 300px;
     display: none;
-    z-index: 1001;
+    z-index: var(--z-modal, 1065);
 }
 
 .upload-progress.show {
@@ -813,7 +813,7 @@
     padding: 0.5rem;
     min-width: 200px;
     display: none;
-    z-index: 1002;
+    z-index: var(--z-popover, 1070);
 }
 
 .context-menu.show {

@@ -1955,18 +1955,19 @@ def lesson_view():
     user_preferences = UserPreferences.get_or_create_for_user(current_user.id)
     accommodation_display = user_preferences.show_accommodations  # 'none', 'emoji', ou 'name'
 
-    # Charger les aménagements des élèves si l'affichage est activé
+    # Charger les aménagements des élèves si l'affichage est activé (batch query)
     if accommodation_display != 'none' and students:
-        for student in students:
-            accommodations = StudentAccommodation.query.filter_by(
-                student_id=student.id,
-                is_active=True
-            ).all()
-            if accommodations:
-                student_accommodations[student.id] = [
-                    {'name': acc.name, 'emoji': acc.emoji}
-                    for acc in accommodations
-                ]
+        student_ids = [s.id for s in students]
+        all_accommodations = StudentAccommodation.query.filter(
+            StudentAccommodation.student_id.in_(student_ids),
+            StudentAccommodation.is_active == True
+        ).all()
+        for acc in all_accommodations:
+            if acc.student_id not in student_accommodations:
+                student_accommodations[acc.student_id] = []
+            student_accommodations[acc.student_id].append(
+                {'name': acc.name, 'emoji': acc.emoji}
+            )
 
     # Récupérer les sanctions (coches) si classroom disponible
     if lesson_classroom:
@@ -1991,16 +1992,27 @@ def lesson_view():
                 SanctionTemplate.is_active == True
             ).distinct().order_by(SanctionTemplate.name).all()
 
-        # Créer le tableau des coches pour chaque élève/sanction
+        # Créer le tableau des coches pour chaque élève/sanction (batch query)
         if imported_sanctions and students:
+            student_ids = [s.id for s in students]
+            sanction_ids = [s.id for s in imported_sanctions]
+
+            all_counts = StudentSanctionCount.query.filter(
+                StudentSanctionCount.student_id.in_(student_ids),
+                StudentSanctionCount.template_id.in_(sanction_ids)
+            ).all()
+
+            # Build lookup dict: {(student_id, template_id): check_count}
+            count_lookup = {}
+            for c in all_counts:
+                count_lookup[(c.student_id, c.template_id)] = c.check_count
+
             for student in students:
                 sanctions_data[student.id] = {}
                 for sanction in imported_sanctions:
-                    count = StudentSanctionCount.query.filter_by(
-                        student_id=student.id,
-                        template_id=sanction.id
-                    ).first()
-                    sanctions_data[student.id][sanction.id] = count.check_count if count else 0
+                    sanctions_data[student.id][sanction.id] = count_lookup.get(
+                        (student.id, sanction.id), 0
+                    )
 
     # Récupérer le plan de classe si disponible
     if lesson_classroom:
@@ -2064,6 +2076,7 @@ def get_class_resources(classroom_id):
         # Déterminer si c'est un groupe mixte ou une classe normale
         item_type = request.args.get('type', 'classroom')
         actual_classroom_id = classroom_id
+        class_name = None
 
         if item_type == 'mixed_group':
             from models.mixed_group import MixedGroup
@@ -2073,10 +2086,12 @@ def get_class_resources(classroom_id):
             ).first()
             if not mixed_group:
                 return jsonify({'success': False, 'message': 'Groupe mixte introuvable'}), 404
+            class_name = mixed_group.name
             if mixed_group.auto_classroom_id:
                 actual_classroom_id = mixed_group.auto_classroom_id
             else:
-                return jsonify({'success': True, 'pinned_files': [], 'files': [], 'class_name': mixed_group.name})
+                # Groupe mixte sans classe auto-créée → pas de fichiers
+                return jsonify({'success': True, 'pinned_files': [], 'files': [], 'class_name': class_name})
 
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
@@ -2087,6 +2102,9 @@ def get_class_resources(classroom_id):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
+        if not class_name:
+            class_name = classroom.name
+
         # Récupérer les fichiers des DEUX systèmes
         new_class_files = ClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
         legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
@@ -2095,8 +2113,8 @@ def get_class_resources(classroom_id):
         class_exercises = Exercise.query.filter_by(classroom_id=actual_classroom_id).all()
 
         total_files = len(new_class_files) + len(legacy_class_files) + len(class_exercises)
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {classroom_id}")
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {classroom.name}")
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {actual_classroom_id} (type={item_type}, original_id={classroom_id})")
+        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {class_name}")
         
         # Organiser les fichiers par structure hiérarchique
         files_data = []
@@ -2120,7 +2138,11 @@ def get_class_resources(classroom_id):
                     filesize = filesize if filesize is not None else uf.file_size
                 else:
                     # Fichier orphelin (source supprimée + pas de métadonnées propres)
-                    # Ne pas l'afficher (ne PAS supprimer ici pour éviter les erreurs de session)
+                    # Ne pas l'afficher — le supprimer silencieusement de la base
+                    try:
+                        db.session.delete(file)
+                    except Exception:
+                        pass
                     continue  # Passer au fichier suivant
 
             file_data = {
@@ -2139,7 +2161,11 @@ def get_class_resources(classroom_id):
             else:
                 files_data.append(file_data)
 
-
+        # Committer les suppressions d'orphelins si nécessaire
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         
         # Traiter les fichiers du système legacy (avec épinglage)
         for file in legacy_class_files:

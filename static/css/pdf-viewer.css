@@ -540,7 +540,7 @@
     height: 90vh;
     max-width: 1200px;
     max-height: 800px;
-    z-index: 1000;
+    z-index: var(--z-modal, 1065);
 }
 
 /* === OVERLAY POUR MODAL === */
@@ -626,7 +626,7 @@
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: var(--z-modal, 1065);
     overflow: hidden;
     display: none;
 }
