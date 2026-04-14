@@ -2683,20 +2683,79 @@ def delete_classroom(id):
                 )
                 print(f"DEBUG DELETE: Removed mixed group {mixed_group_id}")
             
+            # Supprimer les codes d'accès de classe (classroom_access_codes)
+            db.session.execute(
+                db.text("DELETE FROM classroom_access_codes WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+            print(f"DEBUG DELETE: Removed classroom_access_codes for classroom {group_classroom.id}")
+
+            # Supprimer les fichiers de classe (class_files_v2)
+            db.session.execute(
+                db.text("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :classroom_id)"),
+                {"classroom_id": group_classroom.id}
+            )
+            db.session.execute(
+                db.text("DELETE FROM class_files_v2 WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+            print(f"DEBUG DELETE: Removed class_files_v2 for classroom {group_classroom.id}")
+
+            # Supprimer les fichiers de classe legacy (class_files)
+            db.session.execute(
+                db.text("DELETE FROM class_files WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+            print(f"DEBUG DELETE: Removed legacy class_files for classroom {group_classroom.id}")
+
+            # Supprimer les dossiers de classe
+            db.session.execute(
+                db.text("DELETE FROM class_folders WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+
+            # Supprimer les imports de sanctions
+            db.session.execute(
+                db.text("DELETE FROM classroom_sanction_imports WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+
+            # Supprimer les évaluations et notes liées
+            db.session.execute(
+                db.text("DELETE FROM grades WHERE evaluation_id IN (SELECT id FROM evaluations WHERE classroom_id = :classroom_id)"),
+                {"classroom_id": group_classroom.id}
+            )
+            db.session.execute(
+                db.text("DELETE FROM evaluations WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+
+            # Supprimer les exercices liés à cette classe
+            db.session.execute(
+                db.text("UPDATE exercises SET classroom_id = NULL WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+
+            # Supprimer les plans de classe (seating_plans)
+            db.session.execute(
+                db.text("DELETE FROM seating_plans WHERE classroom_id = :classroom_id"),
+                {"classroom_id": group_classroom.id}
+            )
+
             # Supprimer les plannings/horaires
             db.session.execute(
                 db.text("DELETE FROM schedules WHERE classroom_id = :classroom_id"),
                 {"classroom_id": group_classroom.id}
             )
             print(f"DEBUG DELETE: Removed all schedules for classroom {group_classroom.id}")
-            
+
             # Supprimer les plannings de cours
             db.session.execute(
                 db.text("DELETE FROM plannings WHERE classroom_id = :classroom_id"),
                 {"classroom_id": group_classroom.id}
             )
             print(f"DEBUG DELETE: Removed all plannings for classroom {group_classroom.id}")
-            
+
             # Supprimer la classe elle-même
             db.session.execute(
                 db.text("DELETE FROM classrooms WHERE id = :classroom_id"),
