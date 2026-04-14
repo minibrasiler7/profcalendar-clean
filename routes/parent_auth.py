@@ -467,7 +467,7 @@ def verify_email():
 
 @parent_auth_bp.route('/resend-code', methods=['POST'])
 def resend_code():
-    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    """Renvoyer un code de vérification (rate limit: 1/min via session)"""
     parent_id = session.get('pending_user_id')
     if not parent_id or session.get('pending_user_type') != 'parent':
         return redirect(url_for('parent_auth.register'))
@@ -476,17 +476,18 @@ def resend_code():
     if not parent:
         return redirect(url_for('parent_auth.register'))
 
-    last_verification = EmailVerification.query.filter_by(
-        email=parent.email,
-        user_type='parent'
-    ).order_by(EmailVerification.created_at.desc()).first()
-
-    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
-        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
-        return redirect(url_for('parent_auth.verify_email'))
+    # Rate limit fiable via session
+    last_sent = session.get('last_code_sent_at')
+    if last_sent:
+        elapsed = (datetime.utcnow() - datetime.fromisoformat(last_sent)).total_seconds()
+        if elapsed < 60:
+            flash(f'Veuillez attendre {int(60 - elapsed)} secondes avant de renvoyer un code.', 'error')
+            return redirect(url_for('parent_auth.verify_email'))
 
     verification = EmailVerification.create_verification(parent.email, 'parent')
     db.session.commit()
+
+    session['last_code_sent_at'] = datetime.utcnow().isoformat()
 
     email_sent = send_verification_code(parent.email, verification.code, 'parent')
     if email_sent:

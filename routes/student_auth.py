@@ -351,7 +351,7 @@ def verify_email_code():
 
 @student_auth_bp.route('/resend-code', methods=['POST'])
 def resend_code():
-    """Renvoyer un code de vérification (rate limit: 1/min)"""
+    """Renvoyer un code de vérification (rate limit: 1/min via session)"""
     student_id = session.get('pending_user_id')
     if not student_id or session.get('pending_user_type') != 'student':
         return redirect(url_for('student_auth.register'))
@@ -360,17 +360,18 @@ def resend_code():
     if not student:
         return redirect(url_for('student_auth.register'))
 
-    last_verification = EmailVerification.query.filter_by(
-        email=student.email,
-        user_type='student'
-    ).order_by(EmailVerification.created_at.desc()).first()
-
-    if last_verification and (datetime.utcnow() - last_verification.created_at) < timedelta(minutes=1):
-        flash('Veuillez attendre 1 minute avant de renvoyer un code.', 'error')
-        return redirect(url_for('student_auth.verify_email_code'))
+    # Rate limit fiable via session
+    last_sent = session.get('last_code_sent_at')
+    if last_sent:
+        elapsed = (datetime.utcnow() - datetime.fromisoformat(last_sent)).total_seconds()
+        if elapsed < 60:
+            flash(f'Veuillez attendre {int(60 - elapsed)} secondes avant de renvoyer un code.', 'error')
+            return redirect(url_for('student_auth.verify_email_code'))
 
     verification = EmailVerification.create_verification(student.email, 'student')
     db.session.commit()
+
+    session['last_code_sent_at'] = datetime.utcnow().isoformat()
 
     email_sent = send_verification_code(student.email, verification.code, 'student')
     if email_sent:
