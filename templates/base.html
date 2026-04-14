@@ -13,10 +13,13 @@
 
     <!-- CSS personnalisé -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/help-system.css') }}">
+    {% endif %}
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body{% if current_user.is_authenticated and session.get('user_type') == 'teacher' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
     <!-- Navigation -->
     {% if session.get('user_type') != 'student' %}
     <nav class="navbar">
@@ -116,7 +119,7 @@
     {% endwith %}
 
     <!-- Contenu principal -->
-    <main class="main-content">
+    <main class="main-content" data-help-page="{{ request.endpoint or '' }}">
         {% block content %}{% endblock %}
     </main>
 
@@ -128,9 +131,30 @@
         </div>
     </footer>
 
+    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    <!-- Système d'aide enseignant -->
+    <button class="help-fab" title="Aide"><i class="fas fa-question"></i></button>
+
+    <div class="help-panel">
+        <div class="help-panel-header">
+            <h3><i class="fas fa-life-ring"></i> Aide</h3>
+            <button class="help-panel-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="help-panel-body">
+            <!-- Rempli dynamiquement par help-system.js -->
+        </div>
+        <div class="help-panel-footer">
+            <button class="help-restart-tour"><i class="fas fa-redo"></i> Relancer le tour guide</button>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/capacitor-push-helper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% if current_user.is_authenticated and session.get('user_type') == 'teacher' %}
+    <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>
+    {% endif %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

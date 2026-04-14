@@ -27,6 +27,7 @@ class User(UserMixin, db.Model):
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée
     schedule_completed = db.Column(db.Boolean, default=False)  # Horaire type complété
+    has_seen_tour = db.Column(db.Boolean, default=False)  # Tour d'aide vu
     college_name = db.Column(db.String(200), nullable=True)  # Nom du collège
     school_year_start = db.Column(db.Date)
     school_year_end = db.Column(db.Date)

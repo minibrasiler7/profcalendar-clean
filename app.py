@@ -1,6 +1,6 @@
 from config import Config
 from flask import Flask, redirect, url_for, flash, render_template, session
-from flask_login import current_user
+from flask_login import current_user, login_required
 from extensions import db, login_manager, migrate, socketio
 import logging
 import stripe
@@ -785,6 +785,18 @@ h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-w
         resp.delete_cookie('remember_token', path='/')
         resp.delete_cookie('session', path='/')
         return resp
+
+    # --- API aide / tutoriels ---
+    @app.route('/api/help/tour-completed', methods=['POST'])
+    @login_required
+    def help_tour_completed():
+        """Marque le tour d'aide comme vu pour l'utilisateur courant"""
+        from flask import jsonify
+        from models.user import User
+        if isinstance(current_user, User):
+            current_user.has_seen_tour = True
+            db.session.commit()
+        return jsonify({'success': True})
 
     @app.route('/')
     def index():
