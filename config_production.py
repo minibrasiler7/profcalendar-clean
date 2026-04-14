@@ -33,13 +33,18 @@ class ProductionConfig:
         },
     }
     
-    # Session et cookies
-    SESSION_TIMEOUT = int(os.environ.get('SESSION_TIMEOUT', 3600))  # 1 heure
-    SESSION_PERMANENT = os.environ.get('SESSION_PERMANENT', 'False').lower() == 'true'
-    PERMANENT_SESSION_LIFETIME = timedelta(seconds=SESSION_TIMEOUT)
-    
+    # Session et cookies — persistants pour iPad/web (évite les re-logins)
+    SESSION_PERMANENT = True
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
+
+    # Remember cookie — auto-reconnexion même après expiration de session
+    REMEMBER_COOKIE_DURATION = timedelta(days=90)
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+
     # Cookies sécurisés - HTTPS obligatoire en production
-    SESSION_COOKIE_SECURE = True  # Toujours True en production
+    SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProfCalendar - La plateforme scolaire tout-en-un</title>
+    <meta name="description" content="ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des presences, notes et collaboration. Gratuit pour commencer.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-dark: #4338CA;
+            --secondary: #06B6D4;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --dark: #1F2937;
+            --gray: #6B7280;
+            --light-gray: #F3F4F6;
+            --white: #FFFFFF;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; color: var(--dark); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+
+        /* === NAVBAR === */
+        .landing-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 1rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .landing-nav .logo {
+            font-size: 1.4rem; font-weight: 800; color: var(--primary);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .landing-nav .logo i { font-size: 1.6rem; }
+        .nav-buttons { display: flex; gap: 0.75rem; }
+        .btn-login {
+            padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem;
+            border: 2px solid var(--primary); color: var(--primary); background: transparent;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-login:hover { background: var(--primary); color: white; }
+        .btn-cta {
+            padding: 0.5rem 1.25rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem;
+            border: none; background: var(--primary); color: white;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cta:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+        /* === HERO === */
+        .hero {
+            padding: 8rem 2rem 5rem;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%);
+            color: white; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .hero::after {
+            content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 80px;
+            background: white; clip-path: polygon(0 60%, 100% 0, 100% 100%, 0 100%);
+        }
+        .hero h1 {
+            font-size: 3.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 1.25rem;
+            max-width: 800px; margin-left: auto; margin-right: auto;
+        }
+        .hero p {
+            font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 2.5rem;
+        }
+        .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn-hero-primary {
+            padding: 1rem 2.5rem; border-radius: 0.75rem; font-weight: 700; font-size: 1.1rem;
+            background: white; color: var(--primary); border: none;
+            cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+        .btn-hero-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.2); }
+        .btn-hero-secondary {
+            padding: 1rem 2.5rem; border-radius: 0.75rem; font-weight: 600; font-size: 1.1rem;
+            background: transparent; color: white; border: 2px solid rgba(255,255,255,0.5);
+            cursor: pointer; transition: all 0.3s;
+        }
+        .btn-hero-secondary:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .hero-badge {
+            display: inline-block; padding: 0.4rem 1rem; border-radius: 2rem;
+            background: rgba(255,255,255,0.15); font-size: 0.85rem; font-weight: 500;
+            margin-bottom: 1.5rem; backdrop-filter: blur(5px);
+        }
+
+        /* === SECTIONS COMMON === */
+        section { padding: 5rem 2rem; }
+        .section-title {
+            text-align: center; font-size: 2.2rem; font-weight: 800; margin-bottom: 0.75rem;
+        }
+        .section-subtitle {
+            text-align: center; color: var(--gray); font-size: 1.1rem; max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* === FEATURES === */
+        .features { background: var(--light-gray); }
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature-card {
+            background: white; border-radius: 1rem; padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .feature-icon {
+            width: 56px; height: 56px; border-radius: 0.75rem; display: flex;
+            align-items: center; justify-content: center; font-size: 1.5rem; color: white;
+            margin-bottom: 1rem;
+        }
+        .feature-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .feature-card p { color: var(--gray); font-size: 0.95rem; }
+
+        /* === SHOWCASE === */
+        .showcase-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem; align-items: center;
+        }
+        .showcase-item { text-align: center; }
+        .showcase-mockup {
+            background: linear-gradient(135deg, var(--light-gray) 0%, #E5E7EB 100%);
+            border-radius: 1rem; padding: 2rem; min-height: 250px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid #E5E7EB; margin-bottom: 1.25rem;
+        }
+        .mockup-header {
+            background: var(--primary); color: white; padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem 0.5rem 0 0; font-weight: 600; font-size: 0.85rem;
+            width: 100%; text-align: left;
+        }
+        .mockup-body {
+            background: white; padding: 1rem; border-radius: 0 0 0.5rem 0.5rem;
+            width: 100%; text-align: left;
+        }
+        .mockup-row {
+            display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0;
+            border-bottom: 1px solid var(--light-gray); font-size: 0.8rem; color: var(--gray);
+        }
+        .mockup-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .mockup-row .dot.green { background: var(--success); }
+        .mockup-row .dot.red { background: #EF4444; }
+        .mockup-row .dot.yellow { background: var(--warning); }
+        .showcase-item h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .showcase-item p { color: var(--gray); font-size: 0.95rem; }
+
+        /* === TESTIMONIALS === */
+        .testimonials { background: var(--light-gray); }
+        .testimonials-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .testimonial-card {
+            background: white; border-radius: 1rem; padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .testimonial-card .stars { color: var(--warning); margin-bottom: 0.75rem; }
+        .testimonial-card blockquote {
+            font-style: italic; color: var(--dark); margin-bottom: 1rem; font-size: 0.95rem;
+        }
+        .testimonial-author { display: flex; align-items: center; gap: 0.75rem; }
+        .testimonial-avatar {
+            width: 40px; height: 40px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-weight: 700; color: white;
+            font-size: 0.85rem;
+        }
+        .testimonial-name { font-weight: 600; font-size: 0.9rem; }
+        .testimonial-role { font-size: 0.8rem; color: var(--gray); }
+
+        /* === PRICING === */
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem; max-width: 1000px; margin: 0 auto;
+        }
+        .pricing-card {
+            background: white; border-radius: 1rem; padding: 2.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center;
+            border: 2px solid transparent; transition: all 0.3s; position: relative;
+        }
+        .pricing-card.popular {
+            border-color: var(--primary);
+            box-shadow: 0 8px 30px rgba(79, 70, 229, 0.15);
+        }
+        .pricing-badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 0.25rem 1rem;
+            border-radius: 2rem; font-size: 0.8rem; font-weight: 600;
+        }
+        .pricing-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .pricing-price {
+            font-size: 2.8rem; font-weight: 800; color: var(--primary); margin: 1rem 0;
+        }
+        .pricing-price span { font-size: 1rem; font-weight: 500; color: var(--gray); }
+        .pricing-features { list-style: none; text-align: left; margin: 1.5rem 0; }
+        .pricing-features li {
+            padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.9rem; color: var(--dark);
+        }
+        .pricing-features li i { color: var(--success); }
+        .pricing-features li.locked { color: var(--gray); }
+        .pricing-features li.locked i { color: #D1D5DB; }
+        .btn-pricing {
+            display: block; width: 100%; padding: 0.85rem; border-radius: 0.5rem;
+            font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.2s;
+            border: none;
+        }
+        .btn-pricing.primary { background: var(--primary); color: white; }
+        .btn-pricing.primary:hover { background: var(--primary-dark); }
+        .btn-pricing.outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-pricing.outline:hover { background: var(--primary); color: white; }
+
+        /* === PLATFORMS === */
+        .platforms { background: linear-gradient(135deg, #1F2937 0%, #374151 100%); color: white; }
+        .platforms .section-subtitle { color: rgba(255,255,255,0.7); }
+        .platforms-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem; text-align: center;
+        }
+        .platform-card {
+            padding: 2rem; border-radius: 1rem;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+        .platform-card:hover { background: rgba(255,255,255,0.1); }
+        .platform-card i { font-size: 2.5rem; margin-bottom: 1rem; color: var(--secondary); }
+        .platform-card h3 { font-weight: 600; margin-bottom: 0.25rem; }
+        .platform-card p { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+
+        /* === FOOTER === */
+        .landing-footer {
+            background: var(--dark); color: rgba(255,255,255,0.6);
+            padding: 2rem; text-align: center; font-size: 0.9rem;
+        }
+        .landing-footer a { color: var(--secondary); }
+
+        /* === CTA BOTTOM === */
+        .cta-bottom {
+            text-align: center; background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: white; padding: 4rem 2rem;
+        }
+        .cta-bottom h2 { font-size: 2rem; font-weight: 800; margin-bottom: 1rem; }
+        .cta-bottom p { font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem; }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            .section-title { font-size: 1.6rem; }
+            .features-grid, .showcase-grid, .pricing-grid { grid-template-columns: 1fr; }
+            .landing-nav { padding: 0.75rem 1rem; }
+            .landing-nav .logo { font-size: 1.1rem; }
+            section { padding: 3rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="landing-nav">
+    <a href="/" class="logo"><i class="fas fa-calendar-alt"></i> ProfCalendar</a>
+    <div class="nav-buttons">
+        <a href="{{ url_for('auth.login') }}" class="btn-login">Se connecter</a>
+        <a href="{{ url_for('auth.register') }}" class="btn-cta">Inscription gratuite</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge"><i class="fas fa-graduation-cap"></i> La plateforme qui simplifie le quotidien des enseignants</div>
+        <h1>Planifiez, enseignez et suivez vos classes en un seul endroit</h1>
+        <p>ProfCalendar combine planification de cours, exercices interactifs, suivi des presences et gestion des notes dans une plateforme intuitive et moderne.</p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> Creer un compte gratuit</a>
+            <a href="{{ url_for('auth.login') }}" class="btn-hero-secondary"><i class="fas fa-sign-in-alt"></i> Se connecter</a>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+    <div class="container">
+        <h2 class="section-title">Tout ce dont vous avez besoin</h2>
+        <p class="section-subtitle">Des outils puissants conçus par et pour les enseignants, regroupes dans une seule plateforme.</p>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #4F46E5, #7C3AED);"><i class="fas fa-calendar-week"></i></div>
+                <h3>Planification intelligente</h3>
+                <p>Calendrier hebdomadaire et annuel avec planification par periode. Creez vos leçons, ajoutez des ressources et suivez votre programme.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #06B6D4, #0891B2);"><i class="fas fa-puzzle-piece"></i></div>
+                <h3>Exercices interactifs</h3>
+                <p>Creez des QCM, textes a trous, correspondances, classements et plus encore. Les eleves resolvent sur leur appareil avec feedback instantane.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #10B981, #059669);"><i class="fas fa-chart-line"></i></div>
+                <h3>Notes & evaluations</h3>
+                <p>Saisissez les notes par evaluation, calculez les moyennes automatiquement. Parents et eleves consultent leurs resultats en temps reel.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);"><i class="fas fa-clipboard-check"></i></div>
+                <h3>Suivi des presences</h3>
+                <p>Marquez les presences, absences et retards en un clic pendant votre cours. Historique complet et statistiques detaillees.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626);"><i class="fas fa-users"></i></div>
+                <h3>Collaboration enseignants</h3>
+                <p>Partagez vos classes avec vos collegues. Travaillez ensemble sur les memes eleves, sanctions et plans de classe.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);"><i class="fas fa-folder-open"></i></div>
+                <h3>Gestionnaire de fichiers</h3>
+                <p>Uploadez, organisez et partagez vos documents. Annotations PDF integrees avec support du stylet sur iPad.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SHOWCASE -->
+<section>
+    <div class="container">
+        <h2 class="section-title">Votre salle de classe numerique</h2>
+        <p class="section-subtitle">Une interface pensee pour le quotidien de l'enseignant, accessible depuis n'importe quel appareil.</p>
+        <div class="showcase-grid">
+            <div class="showcase-item">
+                <div class="showcase-mockup">
+                    <div class="mockup-header"><i class="fas fa-calendar"></i> Semaine du 14 au 18 avril 2026</div>
+                    <div class="mockup-body">
+                        <div class="mockup-row"><div class="dot green"></div> P1 - 9VG Sciences</div>
+                        <div class="mockup-row"><div class="dot green"></div> P2 - 9VG Sciences</div>
+                        <div class="mockup-row" style="opacity:0.4"><div class="dot" style="background:#ddd"></div> P3 - Libre</div>
+                        <div class="mockup-row"><div class="dot" style="background: var(--primary)"></div> P4 - 11VP Maths</div>
+                        <div class="mockup-row"><div class="dot" style="background: var(--secondary)"></div> P5 - 10VG Français</div>
+                    </div>
+                </div>
+                <h3>Calendrier semaine</h3>
+                <p>Visualisez votre emploi du temps, cliquez sur une periode pour acceder directement a votre leçon.</p>
+            </div>
+            <div class="showcase-item">
+                <div class="showcase-mockup">
+                    <div class="mockup-header" style="background: var(--success);"><i class="fas fa-gamepad"></i> Mission : Quiz Fractions</div>
+                    <div class="mockup-body">
+                        <div class="mockup-row"><strong>Question 3/10</strong> <span style="margin-left:auto; color: var(--warning);">+10 XP</span></div>
+                        <div class="mockup-row">Combien font 1/4 + 1/2 ?</div>
+                        <div class="mockup-row" style="background: #F0FDF4; border-radius: 0.25rem;">
+                            <div class="dot green"></div> 3/4 <span style="margin-left:auto; color: var(--success);">Correct !</span>
+                        </div>
+                        <div class="mockup-row"><div class="dot red"></div> 2/6</div>
+                    </div>
+                </div>
+                <h3>Exercices gamifies</h3>
+                <p>Systeme RPG avec XP, niveaux et combats. Les eleves adorent apprendre en s'amusant !</p>
+            </div>
+            <div class="showcase-item">
+                <div class="showcase-mockup">
+                    <div class="mockup-header" style="background: var(--warning);"><i class="fas fa-user-check"></i> Suivi - 11VG niveau 2</div>
+                    <div class="mockup-body">
+                        <div class="mockup-row"><div class="dot green"></div> Alexander C. <span style="margin-left:auto;">Present</span></div>
+                        <div class="mockup-row"><div class="dot green"></div> Callistine M. <span style="margin-left:auto;">Present</span></div>
+                        <div class="mockup-row"><div class="dot red"></div> Ilyana A. <span style="margin-left:auto; color:#EF4444;">Absent</span></div>
+                        <div class="mockup-row"><div class="dot yellow"></div> Rory F. <span style="margin-left:auto; color:var(--warning);">Retard 5min</span></div>
+                    </div>
+                </div>
+                <h3>Presences en direct</h3>
+                <p>Gerez les presences, absences et retards pendant votre cours. Sanctions et coches integrees.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+    <div class="container">
+        <h2 class="section-title">Ce qu'en disent les enseignants</h2>
+        <p class="section-subtitle">Rejoignez les enseignants qui ont deja adopte ProfCalendar.</p>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                <blockquote>"ProfCalendar a completement transforme ma façon de preparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent enormement mes eleves."</blockquote>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: var(--primary);">MS</div>
+                    <div><div class="testimonial-name">Marie S.</div><div class="testimonial-role">Enseignante de maths, College de Bethusy</div></div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                <blockquote>"Le systeme de gamification est genial. Mes eleves sont beaucoup plus engages depuis que j'utilise les missions et le systeme RPG. Ils redemandent des exercices !"</blockquote>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: var(--success);">PD</div>
+                    <div><div class="testimonial-name">Pierre D.</div><div class="testimonial-role">Enseignant de sciences, Gymnase de Chamblandes</div></div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+                <blockquote>"Enfin un outil qui regroupe tout : presences, notes, fichiers et planification. Plus besoin de jongler entre 5 applications differentes. Un gain de temps enorme."</blockquote>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background: var(--secondary);">LR</div>
+                    <div><div class="testimonial-name">Laure R.</div><div class="testimonial-role">Enseignante de français, EPS Echallens</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PRICING -->
+<section>
+    <div class="container">
+        <h2 class="section-title">Un plan pour chaque enseignant</h2>
+        <p class="section-subtitle">Commencez gratuitement, passez a Premium quand vous etes pret.</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Gratuit</h3>
+                <div class="pricing-price">CHF 0 <span>/ pour toujours</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Tableau de bord</li>
+                    <li><i class="fas fa-check"></i> Planification des cours</li>
+                    <li><i class="fas fa-check"></i> Calendrier scolaire</li>
+                    <li><i class="fas fa-check"></i> Configuration de base</li>
+                    <li class="locked"><i class="fas fa-lock"></i> Gestion de classe</li>
+                    <li class="locked"><i class="fas fa-lock"></i> Notes & evaluations</li>
+                </ul>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">Commencer gratuitement</a>
+            </div>
+            <div class="pricing-card popular">
+                <div class="pricing-badge">Le plus populaire</div>
+                <h3>Premium</h3>
+                <div class="pricing-price">CHF 4.90 <span>/ mois</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Tout du plan gratuit</li>
+                    <li><i class="fas fa-check"></i> Gestion de classe complete</li>
+                    <li><i class="fas fa-check"></i> Notes & evaluations</li>
+                    <li><i class="fas fa-check"></i> Suivi des presences</li>
+                    <li><i class="fas fa-check"></i> Exercices interactifs</li>
+                    <li><i class="fas fa-check"></i> Collaboration enseignants</li>
+                </ul>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">Essayer Premium</a>
+            </div>
+            <div class="pricing-card">
+                <h3>Premium Annuel</h3>
+                <div class="pricing-price">CHF 39.90 <span>/ an</span></div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Tout du plan Premium</li>
+                    <li><i class="fas fa-check"></i> Economisez 32%</li>
+                    <li><i class="fas fa-check"></i> 3 Go de stockage</li>
+                    <li><i class="fas fa-check"></i> Support prioritaire</li>
+                </ul>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">Choisir l'annuel</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- PLATFORMS -->
+<section class="platforms">
+    <div class="container">
+        <h2 class="section-title">Disponible partout</h2>
+        <p class="section-subtitle">Accedez a ProfCalendar depuis votre ordinateur, tablette ou telephone.</p>
+        <div class="platforms-grid">
+            <div class="platform-card">
+                <i class="fas fa-desktop"></i>
+                <h3>Web</h3>
+                <p>Chrome, Safari, Firefox</p>
+            </div>
+            <div class="platform-card">
+                <i class="fab fa-apple"></i>
+                <h3>iPad & iPhone</h3>
+                <p>App native avec PencilKit</p>
+            </div>
+            <div class="platform-card">
+                <i class="fab fa-android"></i>
+                <h3>Android</h3>
+                <p>Tablettes et smartphones</p>
+            </div>
+            <div class="platform-card">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <h3>Tableau interactif</h3>
+                <p>Compatible TBI/TNI</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA BOTTOM -->
+<section class="cta-bottom">
+    <div class="container">
+        <h2>Pret a simplifier votre quotidien ?</h2>
+        <p>Rejoignez les enseignants qui utilisent deja ProfCalendar. Inscription gratuite, aucune carte de credit requise.</p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-user-plus"></i> Creer mon compte gratuitement</a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="landing-footer">
+    <div class="container">
+        <p>&copy; 2024-2026 ProfCalendar. Tous droits reserves. Conçu avec <span style="color:#EF4444;">&hearts;</span> pour les enseignants.</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="{{ url_for('auth.login') }}">Espace Enseignant</a> &middot;
+            <a href="{{ url_for('student_auth.login') }}">Espace Eleve</a> &middot;
+            <a href="{{ url_for('parent_auth.login') }}">Espace Parent</a>
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,5 +1,5 @@
 from config import Config
-from flask import Flask, redirect, url_for, flash
+from flask import Flask, redirect, url_for, flash, render_template, session
 from flask_login import current_user
 from extensions import db, login_manager, migrate, socketio
 import logging
@@ -721,6 +721,11 @@ def create_app(config_name='development'):
     PREMIUM_EXACT = {'planning.manage_classes', 'planning.decoupage'}
 
     @app.before_request
+    def make_session_permanent():
+        """Rend la session permanente pour que PERMANENT_SESSION_LIFETIME soit respecté"""
+        session.permanent = True
+
+    @app.before_request
     def check_premium_access():
         """Redirige les utilisateurs freemium vers la page pricing pour les routes premium"""
         from flask import request
@@ -783,7 +788,16 @@ h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-w
 
     @app.route('/')
     def index():
-        return redirect(url_for('auth.login'))
+        if current_user.is_authenticated:
+            from models.parent import Parent
+            from models.student import Student
+            if isinstance(current_user, Student):
+                return redirect(url_for('student_auth.dashboard'))
+            elif isinstance(current_user, Parent):
+                return redirect(url_for('parent_auth.dashboard'))
+            else:
+                return redirect(url_for('planning.dashboard'))
+        return render_template('landing.html')
 
     return app
 

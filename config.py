@@ -23,12 +23,16 @@ class Config:
         'sqlite:///' + os.path.join(basedir, 'database', 'teacher_planner.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Configuration session
-    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-    # Cookies sécurisés uniquement en production (HTTPS)
+    # Configuration session — persistante pour éviter les re-logins
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+
+    # Remember cookie — auto-login même après expiration de session
+    REMEMBER_COOKIE_DURATION = timedelta(days=90)
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
 
     # Configuration WTForms
     WTF_CSRF_ENABLED = True
