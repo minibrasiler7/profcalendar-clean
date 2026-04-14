@@ -2219,10 +2219,15 @@ def get_class_resources(classroom_id):
         })
         
     except Exception as e:
-        print(f"Erreur lors de la récupération des ressources: {e}")
+        import traceback
+        tb = traceback.format_exc()
+        print(f"Erreur lors de la récupération des ressources: {e}\n{tb}")
+        current_app.logger.error(f"get_class_resources error: {e}\n{tb}")
         return jsonify({
             'success': False,
-            'message': 'Erreur lors de la récupération des ressources'
+            'message': 'Erreur lors de la récupération des ressources',
+            'error_detail': str(e),
+            'traceback': tb
         }), 500
 
 @planning_bp.route('/toggle-pin-resource', methods=['POST'])
