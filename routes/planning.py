@@ -2068,6 +2068,12 @@ def lesson_view():
 def get_class_resources(classroom_id):
     """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
     try:
+        # Nettoyer toute transaction corrompue (ex: orphelins StudentFileShare)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+
         from models.class_file import ClassFile
         from models.student import LegacyClassFile
         from models.classroom import Classroom
@@ -2077,6 +2083,11 @@ def get_class_resources(classroom_id):
         item_type = request.args.get('type', 'classroom')
         actual_classroom_id = classroom_id
         class_name = None
+
+        # Désactiver l'autoflush pour éviter les crashes liés aux
+        # enregistrements orphelins (ex: StudentFileShare avec file_id=NULL)
+        old_autoflush = db.session.autoflush
+        db.session.autoflush = False
 
         if item_type == 'mixed_group':
             from models.mixed_group import MixedGroup
@@ -2211,15 +2222,23 @@ def get_class_resources(classroom_id):
         # Trier les fichiers épinglés par pin_order
         pinned_files.sort(key=lambda x: x['pin_order'])
 
+        # Restaurer l'autoflush
+        db.session.autoflush = old_autoflush
+
         return jsonify({
             'success': True,
             'pinned_files': pinned_files,
             'files': files_data,
             'class_name': mixed_group.name if item_type == 'mixed_group' else classroom.name
         })
-        
+
     except Exception as e:
         import traceback
+        db.session.autoflush = True
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         tb = traceback.format_exc()
         print(f"Erreur lors de la récupération des ressources: {e}\n{tb}")
         current_app.logger.error(f"get_class_resources error: {e}\n{tb}")
