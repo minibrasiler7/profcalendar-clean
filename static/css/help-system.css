@@ -120,30 +120,108 @@
     border-bottom: 1px solid #F3F4F6;
 }
 
+/* Accordéon d'aide — chaque item est cliquable pour déplier les détails */
 .help-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 0.85rem;
     border-radius: 0.5rem;
-    margin-bottom: 0.5rem;
-    transition: background 0.15s;
-    cursor: default;
+    margin-bottom: 0.35rem;
+    background: #FAFAFA;
+    border: 1px solid #F3F4F6;
+    overflow: hidden;
+    transition: all 0.2s;
 }
 .help-item:hover {
-    background: #F9FAFB;
+    border-color: #E5E7EB;
 }
+
+.help-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    user-select: none;
+}
+.help-item-header:hover {
+    background: #F3F4F6;
+}
+
 .help-item-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 0.5rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.4rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: white;
     flex-shrink: 0;
 }
+.help-item-title {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--dark-color, #1F2937);
+}
+.help-item-chevron {
+    color: #9CA3AF;
+    font-size: 0.7rem;
+    transition: transform 0.25s;
+}
+.help-item.open .help-item-chevron {
+    transform: rotate(90deg);
+}
+
+.help-item-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.help-item.open .help-item-body {
+    max-height: 600px;
+}
+
+.help-item-desc {
+    padding: 0 0.85rem 0.5rem;
+    font-size: 0.82rem;
+    color: var(--gray-color, #6B7280);
+    line-height: 1.5;
+}
+
+.help-steps {
+    padding: 0 0.85rem 0.75rem;
+    list-style: none;
+    counter-reset: help-step;
+}
+.help-steps li {
+    counter-increment: help-step;
+    padding: 0.35rem 0 0.35rem 1.8rem;
+    position: relative;
+    font-size: 0.82rem;
+    color: var(--dark-color, #1F2937);
+    line-height: 1.5;
+    border-bottom: 1px solid #F3F4F6;
+}
+.help-steps li:last-child {
+    border-bottom: none;
+}
+.help-steps li::before {
+    content: counter(help-step);
+    position: absolute;
+    left: 0;
+    top: 0.35rem;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color, #4F46E5);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Legacy help-item-content for backward compat */
 .help-item-content h4 {
     font-size: 0.9rem;
     font-weight: 600;
