@@ -137,10 +137,34 @@ def manage():
         user_id=current_user.id
     ).order_by(Subscription.created_at.desc()).first()
 
+    # Recuperer les factures Stripe si le client existe
+    invoices = []
+    if current_user.stripe_customer_id:
+        try:
+            stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+            stripe_invoices = stripe.Invoice.list(
+                customer=current_user.stripe_customer_id,
+                limit=20
+            )
+            for inv in stripe_invoices.data:
+                invoices.append({
+                    'id': inv.id,
+                    'date': inv.created,
+                    'amount': inv.amount_paid or inv.total or 0,
+                    'currency': (inv.currency or 'chf').upper(),
+                    'status': inv.status,
+                    'pdf_url': inv.invoice_pdf,
+                    'hosted_url': inv.hosted_invoice_url,
+                    'description': inv.lines.data[0].description if inv.lines and inv.lines.data else 'ProfCalendar Premium'
+                })
+        except Exception as e:
+            current_app.logger.error(f"Erreur recuperation factures Stripe: {e}")
+
     return render_template('subscription/manage.html',
                            subscription=subscription,
                            is_premium=current_user.has_premium_access(),
-                           premium_until=current_user.premium_until)
+                           premium_until=current_user.premium_until,
+                           invoices=invoices)
 
 
 @subscription_bp.route('/customer-portal')

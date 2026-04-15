@@ -74,13 +74,74 @@
 
     {% if current_user.stripe_customer_id %}
     <div class="billing-section">
-        <h2>Facturation</h2>
-        <p>Gérez vos moyens de paiement et consultez vos factures sur le portail Stripe.</p>
+        <h2><i class="fas fa-file-invoice"></i> Facturation</h2>
+        <p>Gerez vos moyens de paiement et votre abonnement sur le portail Stripe.</p>
         <a href="{{ url_for('subscription.customer_portal') }}" class="btn-portal">
-            <i class="fas fa-external-link-alt"></i> Gérer la facturation
+            <i class="fas fa-external-link-alt"></i> Portail de facturation Stripe
         </a>
     </div>
     {% endif %}
+    {% endif %}
+
+    <!-- Historique des factures -->
+    {% if invoices %}
+    <div class="subscription-details-card" style="margin-top: 1.5rem;">
+        <h2><i class="fas fa-receipt"></i> Historique des factures</h2>
+        <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+            <thead>
+                <tr style="border-bottom:2px solid #E5E7EB; text-align:left;">
+                    <th style="padding:0.75rem 0.5rem; font-size:0.85rem; color:#6B7280;">Date</th>
+                    <th style="padding:0.75rem 0.5rem; font-size:0.85rem; color:#6B7280;">Description</th>
+                    <th style="padding:0.75rem 0.5rem; font-size:0.85rem; color:#6B7280;">Montant</th>
+                    <th style="padding:0.75rem 0.5rem; font-size:0.85rem; color:#6B7280;">Statut</th>
+                    <th style="padding:0.75rem 0.5rem; font-size:0.85rem; color:#6B7280; text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr style="border-bottom:1px solid #F3F4F6;">
+                    <td style="padding:0.75rem 0.5rem; font-size:0.9rem;">
+                        {{ inv.date | timestamp_to_date }}
+                    </td>
+                    <td style="padding:0.75rem 0.5rem; font-size:0.9rem;">
+                        {{ inv.description }}
+                    </td>
+                    <td style="padding:0.75rem 0.5rem; font-size:0.9rem; font-weight:600;">
+                        {{ inv.currency }} {{ "%.2f"|format(inv.amount / 100) }}
+                    </td>
+                    <td style="padding:0.75rem 0.5rem;">
+                        {% if inv.status == 'paid' %}
+                        <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:1rem; background:#D1FAE5; color:#065F46; font-size:0.75rem; font-weight:600;">Paye</span>
+                        {% elif inv.status == 'open' %}
+                        <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:1rem; background:#FEF3C7; color:#92400E; font-size:0.75rem; font-weight:600;">En attente</span>
+                        {% elif inv.status == 'void' %}
+                        <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:1rem; background:#F3F4F6; color:#6B7280; font-size:0.75rem; font-weight:600;">Annulee</span>
+                        {% else %}
+                        <span style="display:inline-block; padding:0.2rem 0.6rem; border-radius:1rem; background:#F3F4F6; color:#6B7280; font-size:0.75rem; font-weight:600;">{{ inv.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.75rem 0.5rem; text-align:right;">
+                        {% if inv.pdf_url %}
+                        <a href="{{ inv.pdf_url }}" target="_blank" style="color:#4F46E5; font-size:0.85rem; font-weight:500; margin-right:0.75rem;" title="Telecharger le PDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </a>
+                        {% endif %}
+                        {% if inv.hosted_url %}
+                        <a href="{{ inv.hosted_url }}" target="_blank" style="color:#6B7280; font-size:0.85rem;" title="Voir en ligne">
+                            <i class="fas fa-external-link-alt"></i> Voir
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% elif current_user.stripe_customer_id %}
+    <div class="subscription-details-card" style="margin-top: 1.5rem;">
+        <h2><i class="fas fa-receipt"></i> Historique des factures</h2>
+        <p style="color:#6B7280; padding:1rem 0;">Aucune facture disponible pour le moment.</p>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

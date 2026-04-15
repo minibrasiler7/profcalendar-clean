@@ -55,6 +55,14 @@ def create_app(config_name='development'):
     from flask_wtf.csrf import generate_csrf
     app.jinja_env.globals['csrf_token'] = generate_csrf
 
+    # Filtre Jinja pour convertir un timestamp Unix en date lisible
+    from datetime import datetime as _dt
+    @app.template_filter('timestamp_to_date')
+    def timestamp_to_date(ts):
+        if not ts:
+            return ''
+        return _dt.fromtimestamp(ts).strftime('%d/%m/%Y')
+
     # Enregistrement des blueprints
     from routes.auth import auth_bp
     from routes.planning import planning_bp
