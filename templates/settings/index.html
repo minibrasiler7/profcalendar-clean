@@ -398,6 +398,19 @@
 
     <!-- Section Zone de danger -->
     <div id="danger-section" class="settings-section" style="display: none;">
+        <!-- Export des donnees (nLPD/RGPD) -->
+        <div class="card mb-4" style="border-color: #06B6D4;">
+            <div class="card-header" style="background: #ECFEFF; border-bottom-color: #06B6D4;">
+                <h5 style="color: #0891B2;"><i class="fas fa-download"></i> Exporter mes donnees</h5>
+            </div>
+            <div class="card-body">
+                <p style="color: #6B7280; margin-bottom: 1rem;">Conformement a la nLPD et au RGPD, vous pouvez telecharger l'ensemble de vos donnees personnelles (compte, classes, eleves) au format JSON.</p>
+                <a href="{{ url_for('settings.export_my_data') }}" class="btn btn-outline" style="border-color: #06B6D4; color: #0891B2;">
+                    <i class="fas fa-file-download"></i> Telecharger mes donnees
+                </a>
+            </div>
+        </div>
+
         <div class="card mb-4" style="border-color: #EF4444;">
             <div class="card-header" style="background: #FEF2F2; border-bottom-color: #EF4444;">
                 <h5 style="color: #DC2626;"><i class="fas fa-exclamation-triangle"></i> Supprimer mon compte</h5>

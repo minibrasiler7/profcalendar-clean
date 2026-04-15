@@ -238,8 +238,8 @@ def register():
         # Validation mot de passe
         if len(password) < 6:
             if request.is_json:
-                return jsonify({'success': False, 'message': 'Le mot de passe doit contenir au moins 6 caractères'}), 400
-            flash('Le mot de passe doit contenir au moins 6 caractères', 'error')
+                return jsonify({'success': False, 'message': 'Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
+            flash('Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)', 'error')
             return render_template('parent/register.html')
         
         # Vérifier si l'email existe déjà

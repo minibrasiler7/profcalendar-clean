@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /planning/
+Disallow: /student/
+Disallow: /parent/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /setup/
+Disallow: /settings/
+Disallow: /file_manager/
+Disallow: /exercises/
+Disallow: /auth/verify
+Disallow: /auth/resend
+
+Sitemap: https://profcalendar.org/sitemap.xml

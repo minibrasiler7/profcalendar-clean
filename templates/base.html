@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ProfCalendar - Planification simplifiée{% endblock %}</title>
 
+    <!-- Google Analytics (GA4) — configurez GA_MEASUREMENT_ID dans les variables d'env Render -->
+    {% if config.get('GA_MEASUREMENT_ID') %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.GA_MEASUREMENT_ID }}"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ config.GA_MEASUREMENT_ID }}');</script>
+    {% endif %}
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 

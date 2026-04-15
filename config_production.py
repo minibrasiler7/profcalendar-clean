@@ -47,7 +47,10 @@ class ProductionConfig:
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    
+
+    # Analytics & Monitoring
+    GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID')  # ex: G-XXXXXXXXXX
+
     # HTTPS
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'False').lower() == 'true'
     

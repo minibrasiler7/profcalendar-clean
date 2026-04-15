@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProfCalendar - La plateforme scolaire tout-en-un</title>
     <meta name="description" content="ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des presences, notes et collaboration. Gratuit pour commencer.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="ProfCalendar - La plateforme scolaire tout-en-un">
+    <meta property="og:description" content="Planifiez vos cours, creez des exercices interactifs, suivez les presences et les notes. Gratuit pour commencer.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://profcalendar.org/">
+    <meta property="og:locale" content="fr_CH">
+    <meta property="og:site_name" content="ProfCalendar">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ProfCalendar - La plateforme scolaire tout-en-un">
+    <meta name="twitter:description" content="Planifiez vos cours, creez des exercices interactifs, suivez les presences et les notes.">
+
+    <!-- Google Analytics -->
+    {% if config.get('GA_MEASUREMENT_ID') %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.GA_MEASUREMENT_ID }}"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ config.GA_MEASUREMENT_ID }}');</script>
+    {% endif %}
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

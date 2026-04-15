@@ -389,7 +389,7 @@ def parent_register():
     if not email or not password:
         return jsonify({'error': 'Email et mot de passe requis'}), 400
     if len(password) < 6:
-        return jsonify({'error': 'Le mot de passe doit contenir au moins 6 caractères'}), 400
+        return jsonify({'error': 'Le mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
 
     import re
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):

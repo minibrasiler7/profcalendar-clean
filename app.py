@@ -7,6 +7,18 @@ import stripe
 
 def create_app(config_name='development'):
     """Factory pour créer l'application Flask"""
+    # Sentry error monitoring (configurez SENTRY_DSN dans les variables d'env Render)
+    import os as _os_init
+    sentry_dsn = _os_init.environ.get('SENTRY_DSN')
+    if sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.flask import FlaskIntegration
+            sentry_sdk.init(dsn=sentry_dsn, integrations=[FlaskIntegration()], traces_sample_rate=0.1)
+            print("Sentry monitoring active")
+        except ImportError:
+            print("sentry-sdk not installed, skipping Sentry init")
+
     app = Flask(__name__)
     
     # Configuration
@@ -765,12 +777,16 @@ def create_app(config_name='development'):
             flash('Cette fonctionnalité nécessite un abonnement Premium.', 'warning')
             return redirect(url_for('subscription.pricing'))
 
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
+
     @app.errorhandler(500)
     def internal_error(error):
         """Gérer les erreurs 500 — nettoyer session + cookies remember_me"""
         from flask import session as flask_session, make_response
         import traceback
-        print(f"❌ ERREUR 500: {error}")
+        print(f"ERREUR 500: {error}")
         traceback.print_exc()
         try:
             flask_session.clear()
@@ -780,15 +796,7 @@ def create_app(config_name='development'):
             logout_user()
         except Exception:
             pass
-        # Retourner une page HTML au lieu de redirect (évite boucle infinie)
-        resp = make_response('''<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Erreur - ProfCalendar</title>
-<style>body{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f7fafc;}
-.box{text-align:center;padding:3rem;background:white;border-radius:15px;box-shadow:0 4px 6px rgba(0,0,0,.1);}
-h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-weight:600;}</style></head>
-<body><div class="box"><h1>Erreur temporaire</h1>
-<p>Une erreur est survenue. Votre session a été réinitialisée.</p>
-<p><a href="/auth/login">Cliquez ici pour vous reconnecter</a></p></div></body></html>''', 500)
+        resp = make_response(render_template('errors/500.html'), 500)
         # Supprimer le cookie remember_me pour casser la boucle
         resp.delete_cookie('remember_token', path='/')
         resp.delete_cookie('session', path='/')
@@ -818,6 +826,15 @@ h1{color:#e53e3e;margin-bottom:1rem;}a{color:#667eea;text-decoration:none;font-w
             else:
                 return redirect(url_for('planning.dashboard'))
         return render_template('landing.html')
+
+    # --- SEO ---
+    @app.route('/robots.txt')
+    def robots():
+        return app.send_static_file('robots.txt')
+
+    @app.route('/sitemap.xml')
+    def sitemap():
+        return app.send_static_file('sitemap.xml')
 
     # --- Pages légales ---
     @app.route('/privacy')

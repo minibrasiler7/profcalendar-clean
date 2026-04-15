@@ -15,12 +15,14 @@ import time
 import json
 import sys
 import argparse
+import os
 import requests
 
 # ── Configuration ──
 DEFAULT_URL = 'https://profcalendar-clean.onrender.com'
-TEACHER_EMAIL = 'loic.strauch@edu-vd.ch'
-TEACHER_PASSWORD = 'Mondoudou7'
+# IMPORTANT: Set via environment variables, never hardcode credentials
+TEACHER_EMAIL = os.environ.get('TEST_TEACHER_EMAIL', 'test@example.com')
+TEACHER_PASSWORD = os.environ.get('TEST_TEACHER_PASSWORD', 'changeme')
 CLASSROOM_ID = 5  # 11VP6
 
 

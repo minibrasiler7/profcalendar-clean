@@ -8,7 +8,7 @@ from models.email_verification import EmailVerification
 from services.email_service import send_verification_code
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Regexp
 from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -26,7 +26,8 @@ class RegisterForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Mot de passe', validators=[
         DataRequired(),
-        Length(min=6, message="Le mot de passe doit contenir au moins 6 caractères")
+        Length(min=8, message="Le mot de passe doit contenir au moins 8 caractères"),
+        Regexp(r'(?=.*[A-Z])(?=.*[0-9])', message="Le mot de passe doit contenir au moins une majuscule et un chiffre")
     ])
     password_confirm = PasswordField('Confirmer le mot de passe', validators=[
         DataRequired(),
@@ -57,6 +58,20 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
+        # Protection brute force : max 5 tentatives par 15 minutes
+        login_attempts = session.get('login_attempts', 0)
+        lockout_until = session.get('login_lockout')
+        if lockout_until:
+            from datetime import datetime
+            if datetime.utcnow().timestamp() < lockout_until:
+                remaining = int(lockout_until - datetime.utcnow().timestamp()) // 60 + 1
+                flash(f'Trop de tentatives. Reessayez dans {remaining} minute(s).', 'error')
+                return render_template('auth/login.html', form=form)
+            else:
+                session.pop('login_lockout', None)
+                session['login_attempts'] = 0
+                login_attempts = 0
+
         # Vérifier d'abord si c'est un email de parent
         from models.parent import Parent
         from utils.encryption import encryption_engine
@@ -64,10 +79,13 @@ def login():
         if parent_check:
             flash('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.', 'error')
             return render_template('auth/login.html', form=form)
-        
+
         # Ensuite vérifier l'enseignant
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
+            # Reset des tentatives en cas de succès
+            session.pop('login_attempts', None)
+            session.pop('login_lockout', None)
             # Bypass vérification email en mode dev (variable d'environnement)
             skip_verification = os.environ.get('SKIP_EMAIL_VERIFICATION', '').lower() == 'true'
             if skip_verification and not user.email_verified:
@@ -114,7 +132,15 @@ def login():
                     next_page = url_for('planning.dashboard')
             return redirect(next_page)
         else:
-            flash('Email ou mot de passe incorrect.', 'error')
+            # Incrémenter les tentatives échouées
+            session['login_attempts'] = session.get('login_attempts', 0) + 1
+            if session['login_attempts'] >= 5:
+                from datetime import datetime
+                session['login_lockout'] = datetime.utcnow().timestamp() + 900  # 15 minutes
+                flash('Trop de tentatives. Compte verrouille pour 15 minutes.', 'error')
+            else:
+                remaining = 5 - session['login_attempts']
+                flash(f'Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).', 'error')
 
     return render_template('auth/login.html', form=form)
 

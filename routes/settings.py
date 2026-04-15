@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, make_response
+from datetime import datetime
 from flask_login import login_required, current_user, logout_user
 from extensions import db
 from models.user_preferences import UserPreferences
@@ -180,6 +181,48 @@ def deactivate_class_code(code_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@settings_bp.route('/export-my-data')
+@login_required
+def export_my_data():
+    """Export RGPD/nLPD : telecharger toutes les donnees personnelles en JSON"""
+    import json as _json
+    from models.classroom import Classroom
+    from models.student import Student
+
+    data = {
+        'account': {
+            'username': current_user.username,
+            'email': current_user.email,
+            'created_at': str(current_user.created_at) if current_user.created_at else None,
+            'is_premium': current_user.has_premium_access(),
+            'premium_until': str(current_user.premium_until) if current_user.premium_until else None,
+        },
+        'classrooms': [],
+        'exported_at': str(datetime.utcnow()),
+    }
+
+    # Exporter les classes et eleves
+    classrooms = Classroom.query.filter_by(user_id=current_user.id).all()
+    for c in classrooms:
+        classroom_data = {
+            'name': c.name,
+            'subject': c.subject,
+            'students': []
+        }
+        students = Student.query.filter_by(classroom_id=c.id).all()
+        for s in students:
+            classroom_data['students'].append({
+                'first_name': s.first_name,
+                'last_name': s.last_name,
+            })
+        data['classrooms'].append(classroom_data)
+
+    response = make_response(_json.dumps(data, ensure_ascii=False, indent=2))
+    response.headers['Content-Type'] = 'application/json; charset=utf-8'
+    response.headers['Content-Disposition'] = 'attachment; filename=profcalendar_mes_donnees.json'
+    return response
+
+
 @settings_bp.route('/change-password', methods=['POST'])
 @login_required
 def change_password():
@@ -201,7 +244,7 @@ def change_password():
 
     # Vérifier la longueur minimale du nouveau mot de passe
     if len(new_password) < 6:
-        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 6 caractères'}), 400
+        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
 
     try:
         # Mettre à jour le mot de passe
