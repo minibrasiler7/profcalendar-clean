@@ -135,31 +135,7 @@
         </div>
     </footer>
 
-    <!-- Banniere cookies -->
-    <div id="cookie-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:1100; background:#1F2937; color:white; padding:1rem 2rem; box-shadow:0 -4px 15px rgba(0,0,0,0.15);">
-        <div style="max-width:1000px; margin:0 auto; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
-            <div style="flex:1; min-width:250px; font-size:0.9rem; line-height:1.5;">
-                <i class="fas fa-cookie-bite" style="color:#F59E0B;"></i>
-                ProfCalendar utilise des cookies essentiels pour le fonctionnement du site (session, authentification). Aucun cookie publicitaire n'est utilise.
-                <a href="{{ url_for('privacy_policy') }}#7" style="color:#06B6D4; text-decoration:underline;">En savoir plus</a>
-            </div>
-            <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-                <button onclick="acceptCookies()" style="padding:0.5rem 1.25rem; border-radius:0.4rem; background:#4F46E5; color:white; border:none; font-weight:600; cursor:pointer;">Accepter</button>
-                <button onclick="acceptCookies()" style="padding:0.5rem 1.25rem; border-radius:0.4rem; background:transparent; color:white; border:1px solid rgba(255,255,255,0.3); font-weight:500; cursor:pointer;">Continuer</button>
-            </div>
-        </div>
-    </div>
-    <script>
-    (function(){
-        if (!localStorage.getItem('cookie-consent')) {
-            document.getElementById('cookie-banner').style.display = 'block';
-        }
-    })();
-    function acceptCookies() {
-        localStorage.setItem('cookie-consent', 'accepted');
-        document.getElementById('cookie-banner').style.display = 'none';
-    }
-    </script>
+    {% include 'includes/cookie_banner.html' %}
 
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <!-- Système d'aide enseignant -->
