@@ -1,0 +1,27 @@
+name: ProfCalendarEnseignant
+options:
+  bundleIdPrefix: ch.teacherplanner
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  ProfCalendarEnseignant:
+    type: application
+    platform: iOS
+    sources:
+      - ProfCalendarEnseignant
+    dependencies:
+      - sdk: PencilKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.teacherplanner.teacher
+        INFOPLIST_FILE: ProfCalendarEnseignant/Info.plist
+        TARGETED_DEVICE_FAMILY: "2"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: "267P8NFWYA"
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        SUPPORTS_MACCATALYST: false
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: false

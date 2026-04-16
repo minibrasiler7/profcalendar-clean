@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Support - ProfCalendar{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1.5rem;">
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Centre d'aide</h1>
+    <p style="color: #6B7280; margin-bottom: 2rem;">Besoin d'aide avec ProfCalendar ? Nous sommes la pour vous.</p>
+
+    <div style="line-height: 1.8; color: #374151;">
+
+    <h2>Nous contacter</h2>
+    <p>Pour toute question, probleme technique ou suggestion, envoyez-nous un email a :</p>
+    <p style="margin: 1rem 0;">
+        <a href="mailto:contact@profcalendar.org" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            <i class="fas fa-envelope"></i> contact@profcalendar.org
+        </a>
+    </p>
+    <p>Nous repondons generalement sous 24 heures en jours ouvrables.</p>
+
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #E5E7EB;">
+
+    <h2>Questions frequentes</h2>
+
+    <h3>Comment creer mon compte enseignant ?</h3>
+    <p>Rendez-vous sur <a href="/auth/register">la page d'inscription</a> et remplissez le formulaire. Un code de verification sera envoye a votre adresse email.</p>
+
+    <h3>Comment ajouter mes eleves ?</h3>
+    <p>Dans la gestion de classe, cliquez sur "Ajouter un eleve" pour les ajouter manuellement. Vous pouvez aussi distribuer un code d'acces classe pour que vos eleves s'inscrivent eux-memes depuis l'application Eleves.</p>
+
+    <h3>Comment les parents peuvent-ils suivre leur enfant ?</h3>
+    <p>Les parents s'inscrivent sur l'application ProfCalendar Parents et rejoignent la classe avec le code fourni par l'enseignant. Ils peuvent consulter les notes, absences et justifier les absences.</p>
+
+    <h3>Comment utiliser l'Apple Pencil pour annoter les PDF ?</h3>
+    <p>Sur l'application iPad Enseignant, ouvrez un document PDF. Le support natif Apple Pencil vous permet d'annoter directement avec votre stylet. Seul le stylet dessine, votre doigt continue de naviguer normalement.</p>
+
+    <h3>Comment fonctionnent les exercices et la gamification ?</h3>
+    <p>Depuis l'Atelier, creez des exercices (QCM, reponses courtes) et publiez-les a vos classes. Le systeme RPG integre permet de motiver vos eleves avec des points d'experience, des niveaux et des combats de groupe en classe.</p>
+
+    <h3>Comment fonctionne l'abonnement ?</h3>
+    <p>ProfCalendar propose un acces gratuit avec les fonctionnalites de base. L'abonnement Premium debloque l'ensemble des outils avances. Consultez notre <a href="/subscription/pricing">page tarifs</a> pour plus de details.</p>
+
+    <h3>Mes donnees sont-elles securisees ?</h3>
+    <p>Oui. Vos donnees sont hebergees en Europe, chiffrees en transit et au repos. L'authentification a deux facteurs (2FA) est disponible. Consultez notre <a href="/privacy">politique de confidentialite</a> pour plus de details.</p>
+
+    <h3>Comment supprimer mon compte ?</h3>
+    <p>Rendez-vous dans Parametres > Donnees personnelles > Supprimer mon compte. Toutes vos donnees seront definitivement supprimees.</p>
+
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #E5E7EB;">
+
+    <h2>Applications disponibles</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div style="padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+            <strong>ProfCalendar Enseignant</strong>
+            <p style="font-size: 0.9rem; color: #6B7280; margin-top: 0.25rem;">iPad - Gestion complete des cours</p>
+        </div>
+        <div style="padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+            <strong>ProfCalendar Eleves</strong>
+            <p style="font-size: 0.9rem; color: #6B7280; margin-top: 0.25rem;">iPhone - Espace eleve</p>
+        </div>
+        <div style="padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+            <strong>ProfCalendar Parents</strong>
+            <p style="font-size: 0.9rem; color: #6B7280; margin-top: 0.25rem;">iPhone - Suivi parental</p>
+        </div>
+    </div>
+
+    <hr style="margin: 2rem 0; border: none; border-top: 1px solid #E5E7EB;">
+
+    <h2>Informations legales</h2>
+    <ul>
+        <li><a href="/privacy">Politique de confidentialite</a></li>
+        <li><a href="/terms">Conditions generales d'utilisation</a></li>
+    </ul>
+
+    <p style="margin-top: 2rem; color: #9CA3AF; font-size: 0.875rem;">ProfCalendar est edite par Loic Strauch, Suisse.</p>
+
+    </div>
+</div>
+{% endblock %}

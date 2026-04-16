@@ -845,6 +845,10 @@ def create_app(config_name='development'):
     def terms_of_service():
         return render_template('legal/terms.html')
 
+    @app.route('/support')
+    def support_page():
+        return render_template('legal/support.html')
+
     return app
 
 # Création de l'instance par défaut (sauf si importé par render_production.py)
