@@ -207,16 +207,11 @@ const TOUR_SEQUENCE = [
         page: 'planning.manage_classes',
         steps: [
             {
-                target: '.tabs-nav, .nav-tabs, .classroom-tabs',
-                fallback: 'main',
-                title: 'Les onglets de la classe',
-                text: 'Cette page est organisée en onglets (Élèves, Notes, Fichiers, Absences, Coches, Plan de classe, Groupes, Aménagements). Nous allons les parcourir un par un.'
-            },
-            {
-                target: '[data-tab="students"], a[href*="#students"], .tab-students',
-                fallback: '.add-student-btn, button.add-student, [data-action="add-student"]',
-                title: 'Onglet Élèves — ajouter des élèves',
-                text: 'La première chose à faire est d\'ajouter des élèves à votre classe. Cliquez sur « + Ajouter un élève » et renseignez prénom, nom, ainsi que l\'email de l\'élève et de ses parents. Ces emails sont indispensables pour que les élèves et les parents puissent lier leur compte à votre classe.',
+                activateTab: 'students',
+                target: 'button.tab-button[onclick*="showTab(\'students\')"]',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Élèves',
+                text: 'La première chose à faire est d\'ajouter des élèves à votre classe depuis cet onglet. Cliquez sur « + Ajouter un élève » et renseignez prénom, nom, et les emails (élève + parents). Ces emails sont indispensables pour que l\'élève et ses parents puissent plus tard lier leur compte à votre classe.',
                 demo: {
                     type: 'form',
                     label: 'Exemple de saisie',
@@ -229,63 +224,81 @@ const TOUR_SEQUENCE = [
                 }
             },
             {
-                target: '.btn-student-code, [data-action="student-code"], button[title*="élèves" i]',
-                fallback: 'main',
-                title: 'Code élève',
-                text: 'Le code élève permet à vos élèves de créer leur compte et de se connecter à votre classe. Ils verront leurs exercices à faire, leurs notes, leurs absences et les fichiers partagés. IMPORTANT : ajoutez d\'abord l\'email de l\'élève dans sa fiche avant de lui communiquer le code, sinon il ne pourra pas lier son compte.'
+                activateTab: 'students',
+                target: 'button[onclick="generateClassCode()"]',
+                popoverPosition: 'bottom-left',
+                title: 'Code élèves',
+                text: 'Le bouton « Code élèves » génère un code unique à communiquer à vos élèves. Ils s\'inscrivent via la page Espace élève et rejoignent votre classe avec ce code. Ils auront alors accès à leurs missions, leurs notes et les fichiers partagés. IMPORTANT : ajoutez d\'abord l\'email de l\'élève dans sa fiche avant de lui transmettre le code, sinon le lien ne peut pas se faire.'
             },
             {
-                target: '.btn-parent-code, [data-action="parent-code"], button[title*="parents" i]',
-                fallback: 'main',
-                title: 'Code parent',
-                text: 'Le code parent permet aux parents de créer leur compte pour suivre leur enfant. Ils pourront consulter les notes, les absences et justifier les absences manquantes. Même règle que pour l\'élève : ajoutez l\'email des parents dans la fiche de l\'élève avant de leur envoyer le code.'
+                activateTab: 'students',
+                target: 'button[onclick="showParentCode()"]',
+                popoverPosition: 'bottom-left',
+                title: 'Code parents',
+                text: 'Le bouton « Code parents » fonctionne sur le même principe pour les parents. Ils consultent les notes, absences et peuvent justifier les absences de leur enfant. Même règle : renseignez d\'abord l\'email des parents dans la fiche de l\'élève avant de leur donner le code.'
             },
             {
-                target: '[data-tab="grades"], a[href*="#grades"], .tab-grades',
-                fallback: 'main',
+                activateTab: 'student-report',
+                target: 'button.tab-button[onclick*="showTab(\'student-report\')"]',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Rapport élève',
+                text: 'Consultez un rapport détaillé par élève : notes, absences, sanctions et progression. Pratique pour préparer un entretien avec les parents ou un bilan de fin de semestre.'
+            },
+            {
+                activateTab: 'grades',
+                target: 'button.tab-button[onclick*="showTab(\'grades\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Notes',
-                text: 'Créez des évaluations (tests, devoirs, examens) et saisissez les notes des élèves. Les moyennes se calculent automatiquement et sont visibles par les parents et les élèves.'
+                text: 'Créez des évaluations (tests, TA, examens) et saisissez les notes. Les moyennes se calculent automatiquement et sont visibles par les parents et les élèves côté leur espace.'
             },
             {
-                target: '[data-tab="files"], a[href*="#files"], .tab-files',
-                fallback: 'main',
+                activateTab: 'files',
+                target: 'button.tab-button[onclick*="showTab(\'files\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Fichiers',
-                text: 'Les fichiers déposés dans cet onglet sont spécifiques à la classe. Vous pouvez les partager ensuite avec les élèves pour qu\'ils y accèdent depuis leur espace.'
+                text: 'Les fichiers déposés ici sont spécifiques à cette classe. Vous pouvez aussi y glisser une copie depuis votre Gestionnaire de fichiers principal (on verra ça juste après).'
             },
             {
-                target: '[data-tab="absences"], a[href*="#absences"], .tab-absences',
-                fallback: 'main',
-                title: 'Onglet Absences',
-                text: 'Consultez l\'historique complet des absences et retards de chaque élève, avec les justifications envoyées par les parents.'
-            },
-            {
-                target: '[data-tab="coches"], [data-tab="sanctions"], a[href*="#coches"], .tab-coches',
-                fallback: 'main',
+                activateTab: 'sanctions',
+                target: 'button.tab-button[onclick*="showTab(\'sanctions\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Coches',
-                text: 'Les coches comptabilisent les oublis de matériel, bavardages ou autres comportements. Vous les configurez dans « Gestion des sanctions » (nous y passerons dans quelques étapes) et les incrémentez ici ou depuis la vue leçon.'
+                text: 'Les coches comptabilisent les oublis de matériel, bavardages ou autres comportements. Vous configurez les types dans « Gestion des sanctions » (on y passe dans quelques étapes) et les incrémentez ici ou depuis la vue leçon.'
             },
             {
-                target: '[data-tab="class-plan"], [data-tab="plan"], a[href*="#plan"], .tab-plan',
-                fallback: 'main',
+                activateTab: 'attendance',
+                target: 'button.tab-button[onclick*="showTab(\'attendance\')"]',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Absences',
+                text: 'Consultez l\'historique des absences, retards et justifications par élève. Les parents peuvent justifier les absences depuis leur espace, ce qui apparaît automatiquement ici.'
+            },
+            {
+                activateTab: 'seating',
+                target: 'button.tab-button[onclick*="showTab(\'seating\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Plan de classe',
-                text: 'Disposez virtuellement les tables de votre salle et placez vos élèves dessus. Vous pouvez aussi imprimer le plan pour avoir une vue papier.'
+                text: 'Disposez virtuellement les tables de votre salle et placez vos élèves dessus. Vous pouvez aussi imprimer le plan pour en avoir une version papier.'
             },
             {
-                target: '[data-tab="groups"], a[href*="#groups"], .tab-groups',
-                fallback: 'main',
+                activateTab: 'groups',
+                target: 'button.tab-button[onclick*="showTab(\'groups\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Groupes',
                 text: 'Créez des sous-groupes d\'élèves pour le travail en équipe. Ces groupes sont utilisables dans le plan de classe et pour distribuer différents exercices.'
             },
             {
-                target: '[data-tab="accommodations"], a[href*="#accommodations"], .tab-accommodations',
-                fallback: 'main',
+                activateTab: 'accommodations',
+                target: 'button.tab-button[onclick*="showTab(\'accommodations\')"]',
+                popoverPosition: 'bottom-left',
                 title: 'Onglet Aménagements',
                 text: 'Notez les aménagements spécifiques pour les élèves à besoins particuliers. Ils sont ensuite visibles à côté du nom de l\'élève partout dans l\'application.'
             },
             {
+                activateTab: 'students',
                 target: '.nav-link[href$="/planning"]',
+                popoverPosition: 'bottom-left',
                 title: 'Retour au tableau de bord',
-                text: 'Parfait ! Revenons maintenant au tableau de bord pour continuer avec le gestionnaire de fichiers. Cliquez sur « Tableau de bord » dans la barre de navigation.',
+                text: 'Parfait ! Vous avez fait le tour des onglets de cette page. Cliquez maintenant sur « Tableau de bord » dans la barre de navigation en haut pour passer à la fonction suivante : le gestionnaire de fichiers.',
                 waitForClick: true,
                 clickSelector: '.nav-link[href$="/planning"]'
             }
@@ -747,6 +760,14 @@ class HelpSystem {
         }
 
         const step = block.steps[stepIdx];
+
+        // Activer l'onglet demandé par l'étape (ex: showTab('students')) pour
+        // que le contenu associé devienne visible avant de calculer les
+        // positions du spotlight.
+        if (step.activateTab && typeof window.showTab === 'function') {
+            try { window.showTab(step.activateTab); } catch (e) {}
+        }
+
         let target = document.querySelector(step.target);
         if (!target && step.fallback) target = document.querySelector(step.fallback);
         if (!target) {
@@ -799,15 +820,27 @@ class HelpSystem {
             </div>
         `;
 
-        // Position : sous la cible si possible, sinon au-dessus
-        const popoverHeight = 280;
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow > popoverHeight + 20) {
-            popover.style.top = (rect.bottom + pad + 15) + 'px';
+        // Positionnement : soit fixé (ex: 'bottom-left' pour ne pas masquer
+        // les onglets), soit auto (sous la cible si possible, sinon au-dessus).
+        if (step.popoverPosition === 'bottom-left') {
+            popover.style.bottom = '20px';
+            popover.style.left = '20px';
+            popover.style.top = 'auto';
+        } else if (step.popoverPosition === 'bottom-right') {
+            popover.style.bottom = '20px';
+            popover.style.right = '20px';
+            popover.style.top = 'auto';
+            popover.style.left = 'auto';
         } else {
-            popover.style.top = Math.max(10, rect.top - popoverHeight - 15) + 'px';
+            const popoverHeight = 280;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow > popoverHeight + 20) {
+                popover.style.top = (rect.bottom + pad + 15) + 'px';
+            } else {
+                popover.style.top = Math.max(10, rect.top - popoverHeight - 15) + 'px';
+            }
+            popover.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 400)) + 'px';
         }
-        popover.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 400)) + 'px';
 
         document.body.appendChild(popover);
 
