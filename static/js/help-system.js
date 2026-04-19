@@ -216,7 +216,17 @@ const TOUR_SEQUENCE = [
                 target: '[data-tab="students"], a[href*="#students"], .tab-students',
                 fallback: '.add-student-btn, button.add-student, [data-action="add-student"]',
                 title: 'Onglet Élèves — ajouter des élèves',
-                text: 'La première chose à faire est d\'ajouter des élèves à votre classe. Cliquez sur « + Ajouter un élève » et renseignez prénom, nom, ainsi que l\'email de l\'élève et de ses parents. Ces emails sont indispensables pour que les élèves et les parents puissent lier leur compte à votre classe.'
+                text: 'La première chose à faire est d\'ajouter des élèves à votre classe. Cliquez sur « + Ajouter un élève » et renseignez prénom, nom, ainsi que l\'email de l\'élève et de ses parents. Ces emails sont indispensables pour que les élèves et les parents puissent lier leur compte à votre classe.',
+                demo: {
+                    type: 'form',
+                    label: 'Exemple de saisie',
+                    fields: [
+                        { label: 'Prénom', value: 'Alice' },
+                        { label: 'Nom', value: 'Dupont' },
+                        { label: 'Email élève', value: 'alice@ecole.ch' },
+                        { label: 'Email parent', value: 'parent@famille.ch' }
+                    ]
+                }
             },
             {
                 target: '.btn-student-code, [data-action="student-code"], button[title*="élèves" i]',
@@ -313,7 +323,14 @@ const TOUR_SEQUENCE = [
                 target: '.class-files-panel, .sidebar-classes, [data-panel="classes"]',
                 fallback: 'main',
                 title: 'Copier vers une classe (drag & drop)',
-                text: 'Dans la colonne de droite, vous voyez vos classes. Glissez-déposez un fichier de votre gestionnaire vers une classe pour en créer une copie dans les fichiers partagés avec cette classe. Les élèves y auront ainsi accès depuis leur espace.'
+                text: 'Dans la colonne de droite, vous voyez vos classes. Glissez-déposez un fichier de votre gestionnaire vers une classe pour en créer une copie dans les fichiers partagés avec cette classe. Les élèves y auront ainsi accès depuis leur espace.',
+                demo: {
+                    type: 'drag',
+                    label: 'Animation',
+                    source: 'Mes fichiers',
+                    target: 'Classe 9VG',
+                    fileLabel: '📄 Cours.pdf'
+                }
             },
             {
                 target: '.delete-btn, [data-action="delete"], button[class*="delete" i]',
@@ -350,7 +367,16 @@ const TOUR_SEQUENCE = [
                 target: '.add-sanction-btn, [data-action="add-sanction"], button[class*="sanction" i]',
                 fallback: 'main',
                 title: 'Créer un modèle de sanction',
-                text: 'Cliquez sur « + Nouveau modèle » pour créer un type de sanction (ex: « Oubli de matériel », « Bavardage »). Vous définissez un nom, une icône et un seuil d\'alerte (à partir de combien de coches l\'élève est signalé).'
+                text: 'Cliquez sur « + Nouveau modèle » pour créer un type de sanction (ex: « Oubli de matériel », « Bavardage »). Vous définissez un nom, une icône et un seuil d\'alerte (à partir de combien de coches l\'élève est signalé).',
+                demo: {
+                    type: 'form',
+                    label: 'Exemple de saisie',
+                    fields: [
+                        { label: 'Nom', value: 'Oubli matériel' },
+                        { label: 'Icône', value: '📚' },
+                        { label: 'Seuil', value: '3 coches' }
+                    ]
+                }
             },
             {
                 target: 'main',
@@ -705,7 +731,8 @@ class HelpSystem {
     }
 
     showTourStep() {
-        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour, .tour-click-catcher').forEach(el => el.remove());
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour, .tour-click-catcher, .tour-pointer').forEach(el => el.remove());
+        if (this._demoTimer) { clearTimeout(this._demoTimer); this._demoTimer = null; }
 
         const state = this.loadTourState();
         if (!state || !state.active) return;
@@ -754,12 +781,16 @@ class HelpSystem {
                    ${isLastStepOfBlock ? 'Suite →' : 'Suivant →'}
                </button>`;
 
+        const demoHtml = step.demo ? this.renderDemo(step.demo) : '';
         popover.innerHTML = `
             <div class="tour-popover-header">
                 <span class="tour-popover-step">${block.page.replace(/[._]/g, ' ')} · ${stepIdx + 1}/${totalSteps}</span>
                 <h3>${step.title}</h3>
             </div>
-            <div class="tour-popover-body">${step.text}</div>
+            <div class="tour-popover-body">
+                ${step.text}
+                ${demoHtml}
+            </div>
             <div class="tour-popover-footer">
                 <div class="tour-dots">
                     ${block.steps.map((_, i) => `<div class="tour-dot ${i === stepIdx ? 'active' : ''}"></div>`).join('')}
@@ -779,6 +810,14 @@ class HelpSystem {
         popover.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 400)) + 'px';
 
         document.body.appendChild(popover);
+
+        // Flèche animée entre le popover et la cible
+        this.addTourPointer(rect, popover);
+
+        // Démarrer l'animation de la démo (si présente)
+        if (step.demo) {
+            this.animateDemo(popover.querySelector('.tour-demo'), step.demo);
+        }
 
         // Si waitForClick : attendre le clic sur la cible (ou sélecteur spécifique)
         if (step.waitForClick) {
@@ -817,6 +856,124 @@ class HelpSystem {
         this.showTourStep();
     }
 
+    // === ANIMATIONS DÉMO ===
+    renderDemo(demo) {
+        if (demo.type === 'form') {
+            const fields = demo.fields.map((f, i) => `
+                <div class="tour-demo-field" data-field-idx="${i}">
+                    <span class="tour-demo-field-label">${f.label}</span>
+                    <span class="tour-demo-field-value" data-target="${f.value.replace(/"/g, '&quot;')}"></span>
+                </div>
+            `).join('');
+            return `
+                <div class="tour-demo">
+                    <div class="tour-demo-label">${demo.label || 'Démo'}</div>
+                    <div class="tour-demo-form">${fields}</div>
+                </div>
+            `;
+        }
+        if (demo.type === 'drag') {
+            return `
+                <div class="tour-demo">
+                    <div class="tour-demo-label">${demo.label || 'Animation'}</div>
+                    <div class="tour-demo-drag">
+                        <div class="tour-demo-panel">
+                            <div class="tour-demo-panel-title">${demo.source}</div>
+                            <i class="fas fa-folder-open" style="color:#6B7280;"></i>
+                        </div>
+                        <div class="tour-demo-arrow-trail"></div>
+                        <div class="tour-demo-file">${demo.fileLabel}</div>
+                        <div class="tour-demo-panel">
+                            <div class="tour-demo-panel-title">${demo.target}</div>
+                            <i class="fas fa-users" style="color:#4F46E5;"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        return '';
+    }
+
+    animateDemo(container, demo) {
+        if (!container) return;
+        if (demo.type !== 'form') return; // drag est full-CSS, rien à faire
+
+        // Stopper toute animation précédente
+        if (this._demoTimer) clearTimeout(this._demoTimer);
+
+        const fields = container.querySelectorAll('.tour-demo-field');
+        let fieldIdx = 0;
+        let charIdx = 0;
+
+        const loop = () => {
+            if (!document.body.contains(container)) return; // popover fermé
+
+            if (fieldIdx >= fields.length) {
+                // Fin : pause puis clear et recommencer
+                this._demoTimer = setTimeout(() => {
+                    fields.forEach(f => {
+                        f.classList.remove('typed');
+                        const v = f.querySelector('.tour-demo-field-value');
+                        if (v) v.textContent = '';
+                    });
+                    fieldIdx = 0;
+                    charIdx = 0;
+                    this._demoTimer = setTimeout(loop, 500);
+                }, 1800);
+                return;
+            }
+
+            const field = fields[fieldIdx];
+            const valueEl = field.querySelector('.tour-demo-field-value');
+            const target = valueEl.dataset.target || '';
+
+            if (charIdx <= target.length) {
+                valueEl.textContent = target.slice(0, charIdx);
+                charIdx++;
+                this._demoTimer = setTimeout(loop, 55 + Math.random() * 40);
+            } else {
+                field.classList.add('typed');
+                fieldIdx++;
+                charIdx = 0;
+                this._demoTimer = setTimeout(loop, 400);
+            }
+        };
+        loop();
+    }
+
+    addTourPointer(targetRect, popover) {
+        // Choisir la direction la plus naturelle pour la flèche
+        const popRect = popover.getBoundingClientRect();
+        const pointer = document.createElement('div');
+        pointer.className = 'tour-pointer';
+
+        // Si le popover est sous la cible, flèche vers le haut
+        if (popRect.top > targetRect.bottom) {
+            pointer.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            pointer.style.top = (targetRect.bottom + 10) + 'px';
+            pointer.style.left = (targetRect.left + targetRect.width / 2 - 15) + 'px';
+        }
+        // Si le popover est au-dessus de la cible, flèche vers le bas
+        else if (popRect.bottom < targetRect.top) {
+            pointer.innerHTML = '<i class="fas fa-arrow-down"></i>';
+            pointer.style.top = (targetRect.top - 40) + 'px';
+            pointer.style.left = (targetRect.left + targetRect.width / 2 - 15) + 'px';
+        }
+        // Sinon, flèche horizontale depuis le popover vers la cible
+        else {
+            const popoverOnRight = popRect.left > targetRect.right;
+            pointer.classList.add('from-right');
+            pointer.innerHTML = popoverOnRight
+                ? '<i class="fas fa-arrow-left"></i>'
+                : '<i class="fas fa-arrow-right"></i>';
+            pointer.style.top = (targetRect.top + targetRect.height / 2 - 15) + 'px';
+            pointer.style.left = popoverOnRight
+                ? (targetRect.right + 10) + 'px'
+                : (targetRect.left - 40) + 'px';
+        }
+        document.body.appendChild(pointer);
+    }
+
     advanceToNextBlock() {
         const state = this.loadTourState();
         if (!state) return;
@@ -836,7 +993,8 @@ class HelpSystem {
         welcomeEl?.remove();
         this.tourActive = false;
         this.saveTourState(null);
-        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-welcome, .tour-backdrop-tour, .tour-click-catcher').forEach(el => el.remove());
+        if (this._demoTimer) { clearTimeout(this._demoTimer); this._demoTimer = null; }
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-welcome, .tour-backdrop-tour, .tour-click-catcher, .tour-pointer').forEach(el => el.remove());
 
         // Marquer comme vu côté serveur
         fetch('/api/help/tour-completed', {

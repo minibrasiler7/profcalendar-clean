@@ -368,6 +368,171 @@
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
 }
+.tour-spotlight::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 3px solid #F59E0B;
+    border-radius: 0.6rem;
+    animation: tourSpotlightPulse 1.6s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes tourSpotlightPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.04); }
+}
+
+/* Flèche animée pointant vers le spotlight (rendue séparément, se positionne en JS) */
+.tour-pointer {
+    position: fixed;
+    z-index: 1087;
+    pointer-events: none;
+    color: #F59E0B;
+    font-size: 2.2rem;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+    animation: tourPointerBounce 1s ease-in-out infinite;
+}
+@keyframes tourPointerBounce {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(0, 8px); }
+}
+.tour-pointer.from-right { animation: tourPointerBounceX 1s ease-in-out infinite; }
+@keyframes tourPointerBounceX {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-8px, 0); }
+}
+
+/* === MOCKUP DÉMO (dans le popover) === */
+.tour-demo {
+    margin: 0.75rem 0 0;
+    background: #F9FAFB;
+    border: 1px dashed #D1D5DB;
+    border-radius: 0.5rem;
+    padding: 0.85rem;
+    font-size: 0.82rem;
+}
+.tour-demo-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9CA3AF;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.tour-demo-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #EF4444;
+    animation: tourDemoDot 1.2s ease-in-out infinite;
+}
+@keyframes tourDemoDot {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* Mockup formulaire */
+.tour-demo-form { display: flex; flex-direction: column; gap: 0.5rem; }
+.tour-demo-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.35rem;
+    padding: 0.4rem 0.6rem;
+}
+.tour-demo-field-label {
+    color: #6B7280;
+    font-weight: 500;
+    flex-shrink: 0;
+    min-width: 60px;
+    font-size: 0.78rem;
+}
+.tour-demo-field-value {
+    flex: 1;
+    color: #1F2937;
+    font-family: monospace;
+    font-size: 0.82rem;
+    position: relative;
+    min-height: 1em;
+}
+.tour-demo-field-value::after {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background: #4F46E5;
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: tourDemoCursor 0.8s ease-in-out infinite;
+}
+@keyframes tourDemoCursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+.tour-demo-field.typed .tour-demo-field-value::after { display: none; }
+
+/* Mockup drag & drop */
+.tour-demo-drag {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    min-height: 70px;
+}
+.tour-demo-panel {
+    flex: 1;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.35rem;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6B7280;
+}
+.tour-demo-panel-title {
+    font-weight: 600;
+    color: #4B5563;
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+}
+.tour-demo-file {
+    position: absolute;
+    left: 15%;
+    top: 50%;
+    background: #4F46E5;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(79,70,229,0.3);
+    animation: tourDemoDrag 3s ease-in-out infinite;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+}
+@keyframes tourDemoDrag {
+    0%, 10% { left: 15%; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    50%, 60% { left: 85%; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    70%, 100% { left: 85%; opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+}
+.tour-demo-arrow-trail {
+    position: absolute;
+    top: 50%;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background: repeating-linear-gradient(to right, #F59E0B 0 6px, transparent 6px 12px);
+    transform: translateY(-50%);
+    opacity: 0.6;
+}
 
 .tour-popover {
     position: fixed;
