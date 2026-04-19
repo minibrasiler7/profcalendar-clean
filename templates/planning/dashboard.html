@@ -267,6 +267,12 @@
             <i class="fas fa-folder-open" style="color: var(--primary-color);"></i>
             <span>Gestionnaire de fichiers</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Gestionnaire de fichiers</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
@@ -280,6 +286,12 @@
             <i class="fas fa-flask" style="color: #A855F7;"></i>
             <span>Exercices interactifs</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-flask" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Exercices interactifs</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-flask" style="color: #9CA3AF;"></i>
@@ -293,6 +305,12 @@
             <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
             <span>Gestion des sanctions</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Gestion des sanctions</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
@@ -306,6 +324,12 @@
             <i class="fas fa-calendar-check" style="color: var(--success-color);"></i>
             <span>Suivi des absences</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Suivi des absences</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
@@ -324,6 +348,12 @@
             <i class="fas fa-users" style="color: var(--secondary-color);"></i>
             <span>Gérer les classes</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-users" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Gérer les classes</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-users" style="color: #9CA3AF;"></i>
@@ -342,6 +372,12 @@
             <i class="fas fa-handshake" style="color: var(--primary-color);"></i>
             <span>Collaboration</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Collaboration</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
@@ -355,6 +391,12 @@
             <i class="fas fa-cut" style="color: var(--primary-color);"></i>
             <span>Création de découpage</span>
         </a>
+        {% elif is_ios_native_app %}
+        <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
+            <i class="fas fa-cut" style="color: #9CA3AF;"></i>
+            <span style="color: #6B7280;">Création de découpage</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+        </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-cut" style="color: #9CA3AF;"></i>

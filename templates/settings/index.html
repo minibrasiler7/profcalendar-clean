@@ -359,21 +359,35 @@
                     </p>
                     {% endif %}
                 </div>
-                {% if current_user.stripe_subscription_id %}
+                {% if current_user.stripe_subscription_id and not is_ios_native_app %}
                 <a href="{{ url_for('subscription.manage') }}" class="btn btn-primary">
                     <i class="fas fa-cog"></i> Gérer mon abonnement
                 </a>
                 {% endif %}
                 {% else %}
                 <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    {% if is_ios_native_app %}
+                    <p style="color: #9A3412; margin-bottom: 0;">
+                        <i class="fas fa-info-circle"></i> Vous utilisez la version de base de ProfCalendar.
+                        Certaines fonctionnalités avancées ne sont pas disponibles sur ce compte.
+                    </p>
+                    {% else %}
                     <p style="color: #9A3412; margin-bottom: 0;">
                         <i class="fas fa-info-circle"></i> Vous utilisez la version <strong>Freemium</strong>.
                         Passez à Premium pour accéder à la gestion de classe, aux évaluations, au suivi des présences et bien plus.
                     </p>
+                    {% endif %}
                 </div>
+                {% if is_ios_native_app %}
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
+                    Les fonctionnalités avancées sont disponibles avec les comptes
+                    qui en bénéficient. Connectez-vous avec un tel compte pour y accéder.
+                </p>
+                {% else %}
                 <a href="{{ url_for('subscription.pricing') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #F59E0B, #D97706); border: none;">
                     <i class="fas fa-crown"></i> Voir les offres Premium
                 </a>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

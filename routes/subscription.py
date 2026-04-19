@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort
 from flask_login import login_required, current_user
 from extensions import db
 from models.user import User
@@ -6,16 +6,25 @@ from models.subscription import Subscription
 from models.voucher import Voucher
 from datetime import datetime
 import stripe
+from utils.platform_detection import is_ios_native_app
 
 subscription_bp = Blueprint('subscription', __name__, url_prefix='/subscription')
 
 
 @subscription_bp.route('/pricing')
 def pricing():
-    """Page de tarification avec les différentes offres"""
+    """Page de tarification avec les différentes offres.
+
+    Sur les apps iOS natives, Apple impose que les abonnements digitaux
+    passent obligatoirement par In-App Purchase. On affiche donc un template
+    dédié qui invite l'utilisateur à souscrire depuis le site web.
+    """
     is_premium = False
     if current_user.is_authenticated and hasattr(current_user, 'has_premium_access'):
         is_premium = current_user.has_premium_access()
+
+    if is_ios_native_app():
+        return render_template('subscription/pricing_ios.html', is_premium=is_premium)
 
     return render_template('subscription/pricing.html',
                            stripe_public_key=current_app.config.get('STRIPE_PUBLIC_KEY'),
@@ -26,6 +35,14 @@ def pricing():
 @login_required
 def checkout():
     """Créer une session Stripe Checkout"""
+    # Conformité App Store (guideline 3.1.1) : les paiements digitaux depuis
+    # les apps iOS natives doivent passer par In-App Purchase, pas Stripe.
+    if is_ios_native_app():
+        return jsonify({
+            'error': "L'abonnement n'est pas disponible depuis l'application. "
+                     "Rendez-vous sur profcalendar.org depuis votre navigateur."
+        }), 403
+
     data = request.get_json()
     billing_cycle = data.get('billing_cycle', 'monthly')
 
@@ -133,6 +150,9 @@ def success():
 @login_required
 def manage():
     """Page de gestion de l'abonnement"""
+    if is_ios_native_app():
+        return redirect(url_for('planning.dashboard'))
+
     subscription = Subscription.query.filter_by(
         user_id=current_user.id
     ).order_by(Subscription.created_at.desc()).first()
@@ -171,6 +191,9 @@ def manage():
 @login_required
 def customer_portal():
     """Rediriger vers le portail client Stripe"""
+    if is_ios_native_app():
+        return redirect(url_for('planning.dashboard'))
+
     if not current_user.stripe_customer_id:
         flash('Aucun abonnement actif trouvé.', 'error')
         return redirect(url_for('subscription.pricing'))

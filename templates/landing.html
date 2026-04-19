@@ -383,10 +383,10 @@
                 <div class="showcase-mockup">
                     <div class="mockup-header" style="background: var(--warning);"><i class="fas fa-user-check"></i> Suivi - 11VG niveau 2</div>
                     <div class="mockup-body">
-                        <div class="mockup-row"><div class="dot green"></div> Alexander C. <span style="margin-left:auto;">Present</span></div>
-                        <div class="mockup-row"><div class="dot green"></div> Callistine M. <span style="margin-left:auto;">Present</span></div>
-                        <div class="mockup-row"><div class="dot red"></div> Ilyana A. <span style="margin-left:auto; color:#EF4444;">Absent</span></div>
-                        <div class="mockup-row"><div class="dot yellow"></div> Rory F. <span style="margin-left:auto; color:var(--warning);">Retard 5min</span></div>
+                        <div class="mockup-row"><div class="dot green"></div> Lucas M. <span style="margin-left:auto;">Present</span></div>
+                        <div class="mockup-row"><div class="dot green"></div> Emma D. <span style="margin-left:auto;">Present</span></div>
+                        <div class="mockup-row"><div class="dot red"></div> Noah B. <span style="margin-left:auto; color:#EF4444;">Absent</span></div>
+                        <div class="mockup-row"><div class="dot yellow"></div> Chloe R. <span style="margin-left:auto; color:var(--warning);">Retard 5min</span></div>
                     </div>
                 </div>
                 <h3>Presences en direct</h3>
@@ -430,6 +430,7 @@
     </div>
 </section>
 
+{% if not is_ios_native_app %}
 <!-- PRICING -->
 <section>
     <div class="container">
@@ -477,6 +478,7 @@
         </div>
     </div>
 </section>
+{% endif %}
 
 <!-- PLATFORMS -->
 <section class="platforms">

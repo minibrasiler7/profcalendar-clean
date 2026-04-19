@@ -36,8 +36,10 @@
     <h3>Comment fonctionnent les exercices et la gamification ?</h3>
     <p>Depuis l'Atelier, creez des exercices (QCM, reponses courtes) et publiez-les a vos classes. Le systeme RPG integre permet de motiver vos eleves avec des points d'experience, des niveaux et des combats de groupe en classe.</p>
 
+    {% if not is_ios_native_app %}
     <h3>Comment fonctionne l'abonnement ?</h3>
     <p>ProfCalendar propose un acces gratuit avec les fonctionnalites de base. L'abonnement Premium debloque l'ensemble des outils avances. Consultez notre <a href="/subscription/pricing">page tarifs</a> pour plus de details.</p>
+    {% endif %}
 
     <h3>Mes donnees sont-elles securisees ?</h3>
     <p>Oui. Vos donnees sont hebergees en Europe, chiffrees en transit et au repos. L'authentification a deux facteurs (2FA) est disponible. Consultez notre <a href="/privacy">politique de confidentialite</a> pour plus de details.</p>
