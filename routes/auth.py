@@ -159,6 +159,9 @@ def register():
         db.session.add(user)
         db.session.commit()
 
+        # Essai gratuit : 30 jours de Premium offerts à l'inscription
+        user.grant_premium_access(days=30)
+
         # Créer automatiquement un code d'accès par défaut pour les enseignants spécialisés
         from models.class_collaboration import TeacherAccessCode
         default_access_code = TeacherAccessCode(

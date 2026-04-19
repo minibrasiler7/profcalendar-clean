@@ -169,38 +169,252 @@ const HELP_CONTENT = {
 };
 
 // ============================================================
-// ÉTAPES DU TOUR GUIDÉ
+// TOUR GUIDÉ MULTI-PAGES
 // ============================================================
-const TOUR_STEPS = [
+// Chaque section correspond à une page du site. Le tour passe d'une
+// page à l'autre en utilisant `waitForClick: true` : l'étape attend
+// que l'utilisateur clique sur l'élément surligné, puis la suite du
+// tour reprend automatiquement sur la page d'arrivée grâce au state
+// persisté en localStorage.
+const TOUR_SEQUENCE = [
     {
-        target: '.nav-brand',
-        title: 'Bienvenue sur ProfCalendar !',
-        text: 'Votre plateforme de gestion scolaire tout-en-un. Ce rapide tour vous montre les fonctions essentielles.',
-        position: 'bottom'
+        page: 'planning.dashboard',
+        steps: [
+            {
+                target: '.nav-brand',
+                title: 'Bienvenue sur ProfCalendar !',
+                text: 'Ce tour vous guide à travers les fonctions principales : prochain cours, calendrier, gestion de classe, gestionnaire de fichiers, sanctions et exercices interactifs. Vous pouvez le quitter à tout moment et le reprendre plus tard via le menu utilisateur.'
+            },
+            {
+                target: '.nav-link[href*="lesson"]',
+                title: 'Prochain cours',
+                text: 'Ce lien affiche votre prochaine leçon programmée avec votre classe. Quand l\'heure du cours commence, le bouton change automatiquement pour indiquer que le cours est en cours. Depuis cette page vous pouvez voir les élèves de la classe, la planification du cours et les fichiers qui lui sont liés.'
+            },
+            {
+                target: '.nav-link[href*="calendar"]',
+                title: 'Calendrier',
+                text: 'Le calendrier vous permet de parcourir toutes les semaines de l\'année scolaire avec tous vos horaires. Cliquez sur une période vide pour planifier un prochain cours en quelques secondes.'
+            },
+            {
+                target: '.nav-link[href*="manage-classes"]',
+                title: 'Gestion de classe',
+                text: 'La Gestion de classe regroupe toutes les informations sur vos classes et vos élèves : inscriptions, notes, absences, plan de classe, groupes. Cliquez maintenant sur ce lien pour continuer le tour.',
+                waitForClick: true
+            }
+        ]
     },
     {
-        target: '.nav-link[href*="planning/lesson"], .nav-link[href*="lesson"]',
-        title: 'Prochain cours',
-        text: 'Accedez a votre prochaine leçon en un clic. Gerez les presences, les sanctions et ouvrez vos ressources PDF directement.',
-        position: 'bottom'
+        page: 'planning.manage_classes',
+        steps: [
+            {
+                target: '.tabs-nav, .nav-tabs, .classroom-tabs',
+                fallback: 'main',
+                title: 'Les onglets de la classe',
+                text: 'Cette page est organisée en onglets (Élèves, Notes, Fichiers, Absences, Coches, Plan de classe, Groupes, Aménagements). Nous allons les parcourir un par un.'
+            },
+            {
+                target: '[data-tab="students"], a[href*="#students"], .tab-students',
+                fallback: '.add-student-btn, button.add-student, [data-action="add-student"]',
+                title: 'Onglet Élèves — ajouter des élèves',
+                text: 'La première chose à faire est d\'ajouter des élèves à votre classe. Cliquez sur « + Ajouter un élève » et renseignez prénom, nom, ainsi que l\'email de l\'élève et de ses parents. Ces emails sont indispensables pour que les élèves et les parents puissent lier leur compte à votre classe.'
+            },
+            {
+                target: '.btn-student-code, [data-action="student-code"], button[title*="élèves" i]',
+                fallback: 'main',
+                title: 'Code élève',
+                text: 'Le code élève permet à vos élèves de créer leur compte et de se connecter à votre classe. Ils verront leurs exercices à faire, leurs notes, leurs absences et les fichiers partagés. IMPORTANT : ajoutez d\'abord l\'email de l\'élève dans sa fiche avant de lui communiquer le code, sinon il ne pourra pas lier son compte.'
+            },
+            {
+                target: '.btn-parent-code, [data-action="parent-code"], button[title*="parents" i]',
+                fallback: 'main',
+                title: 'Code parent',
+                text: 'Le code parent permet aux parents de créer leur compte pour suivre leur enfant. Ils pourront consulter les notes, les absences et justifier les absences manquantes. Même règle que pour l\'élève : ajoutez l\'email des parents dans la fiche de l\'élève avant de leur envoyer le code.'
+            },
+            {
+                target: '[data-tab="grades"], a[href*="#grades"], .tab-grades',
+                fallback: 'main',
+                title: 'Onglet Notes',
+                text: 'Créez des évaluations (tests, devoirs, examens) et saisissez les notes des élèves. Les moyennes se calculent automatiquement et sont visibles par les parents et les élèves.'
+            },
+            {
+                target: '[data-tab="files"], a[href*="#files"], .tab-files',
+                fallback: 'main',
+                title: 'Onglet Fichiers',
+                text: 'Les fichiers déposés dans cet onglet sont spécifiques à la classe. Vous pouvez les partager ensuite avec les élèves pour qu\'ils y accèdent depuis leur espace.'
+            },
+            {
+                target: '[data-tab="absences"], a[href*="#absences"], .tab-absences',
+                fallback: 'main',
+                title: 'Onglet Absences',
+                text: 'Consultez l\'historique complet des absences et retards de chaque élève, avec les justifications envoyées par les parents.'
+            },
+            {
+                target: '[data-tab="coches"], [data-tab="sanctions"], a[href*="#coches"], .tab-coches',
+                fallback: 'main',
+                title: 'Onglet Coches',
+                text: 'Les coches comptabilisent les oublis de matériel, bavardages ou autres comportements. Vous les configurez dans « Gestion des sanctions » (nous y passerons dans quelques étapes) et les incrémentez ici ou depuis la vue leçon.'
+            },
+            {
+                target: '[data-tab="class-plan"], [data-tab="plan"], a[href*="#plan"], .tab-plan',
+                fallback: 'main',
+                title: 'Onglet Plan de classe',
+                text: 'Disposez virtuellement les tables de votre salle et placez vos élèves dessus. Vous pouvez aussi imprimer le plan pour avoir une vue papier.'
+            },
+            {
+                target: '[data-tab="groups"], a[href*="#groups"], .tab-groups',
+                fallback: 'main',
+                title: 'Onglet Groupes',
+                text: 'Créez des sous-groupes d\'élèves pour le travail en équipe. Ces groupes sont utilisables dans le plan de classe et pour distribuer différents exercices.'
+            },
+            {
+                target: '[data-tab="accommodations"], a[href*="#accommodations"], .tab-accommodations',
+                fallback: 'main',
+                title: 'Onglet Aménagements',
+                text: 'Notez les aménagements spécifiques pour les élèves à besoins particuliers. Ils sont ensuite visibles à côté du nom de l\'élève partout dans l\'application.'
+            },
+            {
+                target: '.nav-link[href*="dashboard"]',
+                fallback: '.nav-brand',
+                title: 'Retour au tableau de bord',
+                text: 'Parfait ! Revenons maintenant au tableau de bord pour continuer avec le gestionnaire de fichiers. Cliquez sur le tableau de bord.',
+                waitForClick: true,
+                clickSelector: '.nav-link[href*="dashboard"]'
+            }
+        ]
     },
     {
-        target: '.nav-link[href*="manage-classes"]',
-        title: 'Gestion de classe',
-        text: 'Gerez vos eleves, saisissez les notes, suivez les absences et organisez les groupes. C\'est le coeur de ProfCalendar.',
-        position: 'bottom'
+        page: 'planning.dashboard',
+        requireFlag: 'tour_after_classes',
+        steps: [
+            {
+                target: 'a[href*="file_manager"], a[href*="file-manager"], .action-button[href*="file"]',
+                fallback: '.action-button',
+                title: 'Gestionnaire de fichiers',
+                text: 'Cliquez maintenant sur « Gestionnaire de fichiers » pour découvrir comment organiser vos documents.',
+                waitForClick: true
+            }
+        ]
     },
     {
-        target: '.nav-link[href*="calendar"]',
-        title: 'Calendrier',
-        text: 'Votre emploi du temps semaine par semaine. Cliquez sur une periode pour creer une planification de cours.',
-        position: 'bottom'
+        page: 'file_manager.index',
+        steps: [
+            {
+                target: '.upload-btn, [data-action="upload"], button[class*="upload" i]',
+                fallback: 'main',
+                title: 'Uploader des fichiers',
+                text: 'Le bouton « Uploader » ajoute des fichiers (PDF, images, documents) à votre espace. Vous pouvez aussi glisser-déposer des fichiers directement dans la page. Selon votre plan, vous disposez de 1 Go (Gratuit) à 3 Go (Premium annuel) de stockage.'
+            },
+            {
+                target: '.new-folder-btn, [data-action="new-folder"], button[class*="folder" i]',
+                fallback: 'main',
+                title: 'Créer des dossiers',
+                text: 'Organisez vos fichiers par thème, chapitre ou classe avec des dossiers colorés. Cliquez sur un dossier pour y entrer, et utilisez le fil d\'Ariane en haut pour naviguer.'
+            },
+            {
+                target: '.class-files-panel, .sidebar-classes, [data-panel="classes"]',
+                fallback: 'main',
+                title: 'Copier vers une classe (drag & drop)',
+                text: 'Dans la colonne de droite, vous voyez vos classes. Glissez-déposez un fichier de votre gestionnaire vers une classe pour en créer une copie dans les fichiers partagés avec cette classe. Les élèves y auront ainsi accès depuis leur espace.'
+            },
+            {
+                target: '.delete-btn, [data-action="delete"], button[class*="delete" i]',
+                fallback: 'main',
+                title: 'Supprimer des fichiers',
+                text: 'Pour supprimer, cliquez sur le bouton « Supprimer » rouge en haut, cochez les fichiers/dossiers à retirer, puis validez. Vous pouvez aussi cliquer « Annuler » pour quitter le mode suppression sans rien supprimer.'
+            },
+            {
+                target: '.nav-link[href*="dashboard"]',
+                fallback: '.nav-brand',
+                title: 'Retour au tableau de bord',
+                text: 'Retournons au tableau de bord pour voir la Gestion des sanctions.',
+                waitForClick: true,
+                clickSelector: '.nav-link[href*="dashboard"]'
+            }
+        ]
     },
     {
-        target: '.user-dropdown',
-        title: 'Parametres & Aide',
-        text: 'Accedez a vos parametres, votre abonnement et la deconnexion. Le bouton ? en bas a droite ouvre l\'aide a tout moment.',
-        position: 'bottom-left'
+        page: 'planning.dashboard',
+        requireFlag: 'tour_after_files',
+        steps: [
+            {
+                target: 'a[href*="sanctions"], .action-button[href*="sanctions"]',
+                fallback: '.action-button',
+                title: 'Gestion des sanctions',
+                text: 'Cliquez maintenant sur « Gestion des sanctions » pour apprendre à configurer les coches de comportement.',
+                waitForClick: true
+            }
+        ]
+    },
+    {
+        page: 'sanctions.index',
+        steps: [
+            {
+                target: '.add-sanction-btn, [data-action="add-sanction"], button[class*="sanction" i]',
+                fallback: 'main',
+                title: 'Créer un modèle de sanction',
+                text: 'Cliquez sur « + Nouveau modèle » pour créer un type de sanction (ex: « Oubli de matériel », « Bavardage »). Vous définissez un nom, une icône et un seuil d\'alerte (à partir de combien de coches l\'élève est signalé).'
+            },
+            {
+                target: 'main',
+                title: 'Où utiliser les coches ?',
+                text: 'Les coches que vous définissez ici apparaissent automatiquement sur la page de votre leçon (Prochain cours) dans l\'onglet « Coches ». Vous pouvez les incrémenter en un clic pendant votre cours, et elles sont aussi visibles dans la Gestion de classe.'
+            },
+            {
+                target: '.nav-link[href*="dashboard"]',
+                fallback: '.nav-brand',
+                title: 'Retour au tableau de bord',
+                text: 'Direction la dernière fonction : les exercices interactifs.',
+                waitForClick: true,
+                clickSelector: '.nav-link[href*="dashboard"]'
+            }
+        ]
+    },
+    {
+        page: 'planning.dashboard',
+        requireFlag: 'tour_after_sanctions',
+        steps: [
+            {
+                target: 'a[href*="exercises"], .action-button[href*="exercise"]',
+                fallback: '.action-button',
+                title: 'Exercices interactifs',
+                text: 'Cliquez sur « Exercices interactifs » pour découvrir comment créer et publier des exercices auprès de vos élèves.',
+                waitForClick: true
+            }
+        ]
+    },
+    {
+        page: 'exercises.index',
+        steps: [
+            {
+                target: '.create-exercise-btn, [data-action="create-exercise"], a[href*="create"]',
+                fallback: 'main',
+                title: 'Créer un nouvel exercice',
+                text: 'Cliquez sur « + Nouvel exercice » pour ouvrir l\'éditeur. Vous donnez un titre à l\'exercice, puis vous ajoutez des blocs de différents types.'
+            },
+            {
+                target: 'main',
+                title: 'Les types d\'exercices disponibles',
+                text: 'Dans l\'éditeur vous pouvez ajouter : QCM (choix multiples), Réponse courte (texte libre), Texte à trous, Classement/Tri, Correspondances (relier des paires) et Image interactive (zones cliquables). Chaque bloc a ses propres paramètres : question, réponses attendues, timer, nombre de points.'
+            },
+            {
+                target: 'main',
+                title: 'Envoyer l\'exercice aux élèves',
+                text: 'Deux options pour publier un exercice : (1) depuis la liste des exercices, cliquez sur l\'icône avion à côté de l\'exercice et choisissez la classe cible ; (2) depuis la vue d\'une leçon, ajoutez l\'exercice dans les ressources puis cliquez « Lancer ». Les élèves le verront immédiatement dans leur espace « Missions » et pourront y répondre.'
+            },
+            {
+                target: 'main',
+                title: 'Côté élève',
+                text: 'L\'élève se connecte avec son compte (créé grâce au code élève), va dans l\'onglet « Missions » et voit tous les exercices publiés. Il répond, reçoit un retour immédiat sur ses réponses et vous pouvez consulter ses résultats dans les statistiques de l\'exercice.'
+            },
+            {
+                target: '.nav-link[href*="dashboard"]',
+                fallback: '.nav-brand',
+                title: 'Fin du tour !',
+                text: 'Vous avez fait le tour des fonctions principales de ProfCalendar. Retournez au tableau de bord pour terminer. Vous pouvez relancer ce tour à tout moment depuis le menu utilisateur en haut à droite > « Revoir le tutoriel ».',
+                waitForClick: true,
+                clickSelector: '.nav-link[href*="dashboard"]'
+            }
+        ]
     }
 ];
 
@@ -220,9 +434,49 @@ class HelpSystem {
         this.createElements();
         this.bindEvents();
         this.initTooltips();
-        if (document.body.dataset.firstVisit === 'true') {
+
+        // Reprise automatique du tour multi-pages (après un clic qui a
+        // déclenché une navigation) ou premier lancement au premier login.
+        const tourState = this.loadTourState();
+        if (tourState && tourState.active) {
+            setTimeout(() => this.resumeTour(), 400);
+        } else if (document.body.dataset.firstVisit === 'true') {
             setTimeout(() => this.startTour(), 800);
         }
+    }
+
+    // === STATE PERSISTÉ (multi-pages) ===
+    loadTourState() {
+        try {
+            return JSON.parse(localStorage.getItem('pc_tour_state')) || null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    saveTourState(state) {
+        if (state) {
+            localStorage.setItem('pc_tour_state', JSON.stringify(state));
+        } else {
+            localStorage.removeItem('pc_tour_state');
+        }
+    }
+
+    currentPageKey() {
+        return document.querySelector('main')?.dataset.helpPage || '';
+    }
+
+    findNextSequenceBlock(fromIdx, pageKey) {
+        // Cherche le prochain bloc de TOUR_SEQUENCE dont la page correspond
+        // à pageKey et dont le flag (si présent) a été posé.
+        const flags = (this.loadTourState() || {}).flags || {};
+        for (let i = fromIdx; i < TOUR_SEQUENCE.length; i++) {
+            const block = TOUR_SEQUENCE[i];
+            if (block.page !== pageKey) continue;
+            if (block.requireFlag && !flags[block.requireFlag]) continue;
+            return i;
+        }
+        return -1;
     }
 
     // === CREATION DES ELEMENTS HTML ===
@@ -358,9 +612,11 @@ class HelpSystem {
         }
     }
 
-    // === TOUR GUIDÉ ===
+    // === TOUR GUIDÉ MULTI-PAGES ===
     startTour() {
-        // Afficher le modal de bienvenue
+        // Afficher le modal de bienvenue sur le tableau de bord. Si on
+        // n'est pas sur le dashboard, on pose le state et on ne fait rien
+        // (le tour se déclenchera quand l'utilisateur y reviendra).
         const welcome = document.createElement('div');
         welcome.className = 'tour-welcome';
         welcome.innerHTML = `
@@ -368,7 +624,7 @@ class HelpSystem {
             <div class="tour-welcome-card">
                 <div class="tour-welcome-icon">🎓</div>
                 <h2>Bienvenue sur ProfCalendar !</h2>
-                <p>Decouvrons ensemble les fonctions principales en quelques etapes. Ce tour ne prend que 30 secondes.</p>
+                <p>Découvrons ensemble les fonctions principales. Le tour passe par plusieurs pages du site : laissez-vous guider et cliquez là où il vous l'indique. Vous pouvez quitter à tout moment.</p>
                 <div class="tour-welcome-buttons">
                     <button class="tour-welcome-skip" onclick="window._helpSystem.endTour(this.closest('.tour-welcome'))">Passer</button>
                     <button class="tour-welcome-start" onclick="window._helpSystem.beginTourSteps(this.closest('.tour-welcome'))">
@@ -383,29 +639,103 @@ class HelpSystem {
     beginTourSteps(welcomeEl) {
         welcomeEl?.remove();
         this.tourActive = true;
-        this.currentTourStep = 0;
-        this.showTourStep();
-    }
 
-    showTourStep() {
-        // Nettoyer les elements precedents
-        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour').forEach(el => el.remove());
-
-        if (this.currentTourStep >= TOUR_STEPS.length) {
+        // Démarrer depuis le premier bloc correspondant à la page courante
+        const pageKey = this.currentPageKey();
+        const blockIdx = this.findNextSequenceBlock(0, pageKey);
+        if (blockIdx < 0) {
             this.endTour();
             return;
         }
+        this.saveTourState({
+            active: true,
+            blockIdx: blockIdx,
+            stepIdx: 0,
+            flags: {}
+        });
+        this.showTourStep();
+    }
 
-        const step = TOUR_STEPS[this.currentTourStep];
-        const target = document.querySelector(step.target);
+    resumeTour() {
+        const state = this.loadTourState();
+        if (!state || !state.active) return;
 
-        if (!target) {
-            this.currentTourStep++;
+        // Si on est au-delà du dernier bloc, le tour est terminé : on
+        // affiche un message de félicitations puis on clôt.
+        if (state.blockIdx >= TOUR_SEQUENCE.length) {
+            this.showTourCompleted();
+            return;
+        }
+
+        const pageKey = this.currentPageKey();
+        const block = TOUR_SEQUENCE[state.blockIdx];
+
+        // Si on arrive sur la page du bloc courant, continuer ses étapes.
+        if (block && block.page === pageKey) {
+            this.tourActive = true;
             this.showTourStep();
             return;
         }
 
-        // Spotlight
+        // Sinon, chercher le prochain bloc qui correspond à cette page (en
+        // tenant compte des flags déjà posés) et avancer l'index.
+        const nextIdx = this.findNextSequenceBlock(state.blockIdx + 1, pageKey);
+        if (nextIdx >= 0) {
+            this.tourActive = true;
+            this.saveTourState({ ...state, blockIdx: nextIdx, stepIdx: 0 });
+            this.showTourStep();
+        }
+        // Sinon on reste silencieux : l'utilisateur a navigué ailleurs,
+        // le tour reprendra quand il reviendra sur une page attendue.
+    }
+
+    showTourCompleted() {
+        const card = document.createElement('div');
+        card.className = 'tour-welcome';
+        card.innerHTML = `
+            <div class="tour-backdrop visible"></div>
+            <div class="tour-welcome-card">
+                <div class="tour-welcome-icon">🎉</div>
+                <h2>Tour terminé !</h2>
+                <p>Vous avez fait le tour des fonctions principales de ProfCalendar. Bon enseignement ! Vous pouvez relancer ce tour à tout moment depuis le menu utilisateur en haut à droite > « Revoir le tutoriel ».</p>
+                <div class="tour-welcome-buttons">
+                    <button class="tour-welcome-start" onclick="window._helpSystem.endTour(this.closest('.tour-welcome'))">
+                        <i class="fas fa-check"></i> Terminer
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(card);
+    }
+
+    showTourStep() {
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour, .tour-click-catcher').forEach(el => el.remove());
+
+        const state = this.loadTourState();
+        if (!state || !state.active) return;
+
+        const block = TOUR_SEQUENCE[state.blockIdx];
+        if (!block) { this.endTour(); return; }
+
+        const stepIdx = state.stepIdx;
+        if (stepIdx >= block.steps.length) {
+            this.advanceToNextBlock();
+            return;
+        }
+
+        const step = block.steps[stepIdx];
+        let target = document.querySelector(step.target);
+        if (!target && step.fallback) target = document.querySelector(step.fallback);
+        if (!target) {
+            // Cible introuvable : on saute l'étape pour ne pas bloquer.
+            this.saveTourState({ ...state, stepIdx: stepIdx + 1 });
+            this.showTourStep();
+            return;
+        }
+
+        // Scroll doux vers la cible
+        try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+
         const rect = target.getBoundingClientRect();
         const pad = 8;
         const spotlight = document.createElement('div');
@@ -417,52 +747,123 @@ class HelpSystem {
         document.body.appendChild(spotlight);
 
         // Popover
+        const totalSteps = block.steps.length;
         const popover = document.createElement('div');
         popover.className = 'tour-popover';
+        const isLastStepOfBlock = (stepIdx === totalSteps - 1);
+        const nextBtnLabel = step.waitForClick
+            ? `<button class="tour-btn tour-btn-skip" onclick="window._helpSystem.endTour()">Quitter le tour</button>`
+            : `<button class="tour-btn tour-btn-skip" onclick="window._helpSystem.endTour()">Passer</button>
+               <button class="tour-btn tour-btn-next" onclick="window._helpSystem.nextTourStep()">
+                   ${isLastStepOfBlock ? 'Suite →' : 'Suivant →'}
+               </button>`;
+
         popover.innerHTML = `
             <div class="tour-popover-header">
-                <span class="tour-popover-step">Etape ${this.currentTourStep + 1}/${TOUR_STEPS.length}</span>
+                <span class="tour-popover-step">${block.page.replace(/[._]/g, ' ')} · ${stepIdx + 1}/${totalSteps}</span>
                 <h3>${step.title}</h3>
             </div>
             <div class="tour-popover-body">${step.text}</div>
             <div class="tour-popover-footer">
                 <div class="tour-dots">
-                    ${TOUR_STEPS.map((_, i) => `<div class="tour-dot ${i === this.currentTourStep ? 'active' : ''}"></div>`).join('')}
+                    ${block.steps.map((_, i) => `<div class="tour-dot ${i === stepIdx ? 'active' : ''}"></div>`).join('')}
                 </div>
-                <div class="tour-buttons">
-                    <button class="tour-btn tour-btn-skip" onclick="window._helpSystem.endTour()">Passer</button>
-                    <button class="tour-btn tour-btn-next" onclick="window._helpSystem.nextTourStep()">
-                        ${this.currentTourStep === TOUR_STEPS.length - 1 ? 'Terminer ✓' : 'Suivant →'}
-                    </button>
-                </div>
+                <div class="tour-buttons">${nextBtnLabel}</div>
             </div>
         `;
 
-        // Positionner le popover sous le spotlight
-        popover.style.top = (rect.bottom + pad + 15) + 'px';
+        // Position : sous la cible si possible, sinon au-dessus
+        const popoverHeight = 280;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow > popoverHeight + 20) {
+            popover.style.top = (rect.bottom + pad + 15) + 'px';
+        } else {
+            popover.style.top = Math.max(10, rect.top - popoverHeight - 15) + 'px';
+        }
         popover.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 400)) + 'px';
 
         document.body.appendChild(popover);
+
+        // Si waitForClick : attendre le clic sur la cible (ou sélecteur spécifique)
+        if (step.waitForClick) {
+            const clickEl = step.clickSelector
+                ? document.querySelector(step.clickSelector)
+                : target;
+            if (clickEl) {
+                const onClick = () => {
+                    clickEl.removeEventListener('click', onClick, true);
+                    // On pose un flag éventuel pour reconnaître où on en est au retour
+                    const flagName = block.page === 'planning.manage_classes' ? 'tour_after_classes'
+                        : block.page === 'file_manager.index' ? 'tour_after_files'
+                        : block.page === 'sanctions.index' ? 'tour_after_sanctions'
+                        : block.page === 'exercises.index' ? 'tour_after_exercises'
+                        : null;
+                    const st = this.loadTourState() || { active: true, blockIdx: state.blockIdx, stepIdx: 0, flags: {} };
+                    const flags = { ...(st.flags || {}) };
+                    if (flagName) flags[flagName] = true;
+                    this.saveTourState({
+                        active: true,
+                        blockIdx: state.blockIdx + 1,
+                        stepIdx: 0,
+                        flags
+                    });
+                    // La page va naviguer automatiquement via le clic natif.
+                };
+                clickEl.addEventListener('click', onClick, true);
+            }
+        }
     }
 
     nextTourStep() {
-        this.currentTourStep++;
+        const state = this.loadTourState();
+        if (!state) return;
+        this.saveTourState({ ...state, stepIdx: state.stepIdx + 1 });
         this.showTourStep();
+    }
+
+    advanceToNextBlock() {
+        const state = this.loadTourState();
+        if (!state) return;
+        // Avancer à la fin naturelle d'un bloc sans clic (rare) :
+        // on cherche le prochain bloc exécutable.
+        const pageKey = this.currentPageKey();
+        const nextIdx = this.findNextSequenceBlock(state.blockIdx + 1, pageKey);
+        if (nextIdx >= 0) {
+            this.saveTourState({ ...state, blockIdx: nextIdx, stepIdx: 0 });
+            this.showTourStep();
+        } else {
+            this.endTour();
+        }
     }
 
     endTour(welcomeEl) {
         welcomeEl?.remove();
         this.tourActive = false;
-        this.currentTourStep = -1;
-        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-welcome, .tour-backdrop-tour').forEach(el => el.remove());
+        this.saveTourState(null);
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-welcome, .tour-backdrop-tour, .tour-click-catcher').forEach(el => el.remove());
 
-        // Marquer comme vu cote serveur
+        // Marquer comme vu côté serveur
         fetch('/api/help/tour-completed', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         }).catch(() => {});
     }
 }
+
+// === FONCTION GLOBALE : relancer le tutoriel depuis le menu utilisateur ===
+window.replayTutorial = function() {
+    // Réinitialiser côté serveur, nettoyer le state local, rediriger vers
+    // le dashboard (où le tour démarre).
+    fetch('/api/help/tour-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    }).catch(() => {}).finally(() => {
+        try { localStorage.removeItem('pc_tour_state'); } catch (e) {}
+        // Forcer le flag de première visite puis rediriger
+        const url = '/planning?replay_tour=1';
+        window.location.href = url;
+    });
+};
 
 // ============================================================
 // INITIALISATION

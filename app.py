@@ -199,6 +199,16 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ subscription blueprint non trouvé")
 
+    # Context processor : expose `is_ios_native_app` dans tous les templates
+    # afin de masquer les flux d'abonnement Stripe dans les apps iOS natives
+    # (conformité guideline 3.1.1 de l'App Store).
+    try:
+        from utils.platform_detection import platform_context
+        app.context_processor(platform_context)
+        print("✅ platform_context processor ajouté")
+    except ImportError as e:
+        print(f"❌ platform_context processor non chargé: {e}")
+
     # Blueprint exercices interactifs
     try:
         from routes.exercises import exercises_bp
@@ -811,6 +821,17 @@ def create_app(config_name='development'):
         from models.user import User
         if isinstance(current_user, User):
             current_user.has_seen_tour = True
+            db.session.commit()
+        return jsonify({'success': True})
+
+    @app.route('/api/help/tour-reset', methods=['POST'])
+    @login_required
+    def help_tour_reset():
+        """Relance le tour d'aide depuis le début pour l'utilisateur courant"""
+        from flask import jsonify
+        from models.user import User
+        if isinstance(current_user, User):
+            current_user.has_seen_tour = False
             db.session.commit()
         return jsonify({'success': True})
 
