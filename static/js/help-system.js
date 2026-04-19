@@ -273,12 +273,11 @@ const TOUR_SEQUENCE = [
                 text: 'Notez les aménagements spécifiques pour les élèves à besoins particuliers. Ils sont ensuite visibles à côté du nom de l\'élève partout dans l\'application.'
             },
             {
-                target: '.nav-link[href*="dashboard"]',
-                fallback: '.nav-brand',
+                target: '.nav-link[href$="/planning"]',
                 title: 'Retour au tableau de bord',
-                text: 'Parfait ! Revenons maintenant au tableau de bord pour continuer avec le gestionnaire de fichiers. Cliquez sur le tableau de bord.',
+                text: 'Parfait ! Revenons maintenant au tableau de bord pour continuer avec le gestionnaire de fichiers. Cliquez sur « Tableau de bord » dans la barre de navigation.',
                 waitForClick: true,
-                clickSelector: '.nav-link[href*="dashboard"]'
+                clickSelector: '.nav-link[href$="/planning"]'
             }
         ]
     },
@@ -323,12 +322,11 @@ const TOUR_SEQUENCE = [
                 text: 'Pour supprimer, cliquez sur le bouton « Supprimer » rouge en haut, cochez les fichiers/dossiers à retirer, puis validez. Vous pouvez aussi cliquer « Annuler » pour quitter le mode suppression sans rien supprimer.'
             },
             {
-                target: '.nav-link[href*="dashboard"]',
-                fallback: '.nav-brand',
+                target: '.nav-link[href$="/planning"]',
                 title: 'Retour au tableau de bord',
-                text: 'Retournons au tableau de bord pour voir la Gestion des sanctions.',
+                text: 'Retournons au tableau de bord pour voir la Gestion des sanctions. Cliquez sur « Tableau de bord » dans la barre de navigation.',
                 waitForClick: true,
-                clickSelector: '.nav-link[href*="dashboard"]'
+                clickSelector: '.nav-link[href$="/planning"]'
             }
         ]
     },
@@ -360,12 +358,11 @@ const TOUR_SEQUENCE = [
                 text: 'Les coches que vous définissez ici apparaissent automatiquement sur la page de votre leçon (Prochain cours) dans l\'onglet « Coches ». Vous pouvez les incrémenter en un clic pendant votre cours, et elles sont aussi visibles dans la Gestion de classe.'
             },
             {
-                target: '.nav-link[href*="dashboard"]',
-                fallback: '.nav-brand',
+                target: '.nav-link[href$="/planning"]',
                 title: 'Retour au tableau de bord',
-                text: 'Direction la dernière fonction : les exercices interactifs.',
+                text: 'Direction la dernière fonction : les exercices interactifs. Cliquez sur « Tableau de bord » dans la barre de navigation.',
                 waitForClick: true,
-                clickSelector: '.nav-link[href*="dashboard"]'
+                clickSelector: '.nav-link[href$="/planning"]'
             }
         ]
     },
@@ -407,12 +404,11 @@ const TOUR_SEQUENCE = [
                 text: 'L\'élève se connecte avec son compte (créé grâce au code élève), va dans l\'onglet « Missions » et voit tous les exercices publiés. Il répond, reçoit un retour immédiat sur ses réponses et vous pouvez consulter ses résultats dans les statistiques de l\'exercice.'
             },
             {
-                target: '.nav-link[href*="dashboard"]',
-                fallback: '.nav-brand',
+                target: '.nav-link[href$="/planning"]',
                 title: 'Fin du tour !',
-                text: 'Vous avez fait le tour des fonctions principales de ProfCalendar. Retournez au tableau de bord pour terminer. Vous pouvez relancer ce tour à tout moment depuis le menu utilisateur en haut à droite > « Revoir le tutoriel ».',
+                text: 'Vous avez fait le tour des fonctions principales de ProfCalendar. Cliquez sur « Tableau de bord » dans la barre de navigation pour terminer. Vous pouvez relancer ce tour à tout moment depuis le menu utilisateur en haut à droite > « Revoir le tutoriel ».',
                 waitForClick: true,
-                clickSelector: '.nav-link[href*="dashboard"]'
+                clickSelector: '.nav-link[href$="/planning"]'
             }
         ]
     }
