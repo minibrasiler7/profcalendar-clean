@@ -280,9 +280,6 @@ class CleanPDFViewer {
                     </div>
 
                     <div class="toolbar-right">
-                        <button class="btn-action" id="btn-pen-settings" title="Réglages du stylo">
-                            <i class="fas fa-sliders-h"></i>
-                        </button>
                         <button class="btn-action" id="btn-undo" title="Annuler">
                             <i class="fas fa-undo"></i>
                         </button>
@@ -299,23 +296,6 @@ class CleanPDFViewer {
                         <button class="btn-action" id="btn-close" title="Fermer">
                             <i class="fas fa-times"></i>
                         </button>
-                    </div>
-                </div>
-
-                <div class="pen-settings-panel" id="pen-settings-panel" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <strong style="font-size: 13px;">Réglages du stylo</strong>
-                        <button id="btn-close-pen-settings" style="background: none; border: none; cursor: pointer; font-size: 16px; color: #666;">&times;</button>
-                    </div>
-                    <div class="pen-setting-row"><label>Épaisseur: <span id="pen-size-val">2</span>px</label><input type="range" id="slider-pen-size" min="0.5" max="20" step="0.5" value="2"></div>
-                    <div class="pen-setting-row"><label>Sensibilité pression: <span id="pen-thinning-val">0.00</span></label><input type="range" id="slider-pen-thinning" min="0" max="1" step="0.05" value="0"></div>
-                    <div class="pen-setting-row"><label>Lissage: <span id="pen-smoothing-val">0.50</span></label><input type="range" id="slider-pen-smoothing" min="0" max="1" step="0.05" value="0.5"></div>
-                    <div class="pen-setting-row"><label>Stabilisation: <span id="pen-streamline-val">0.00</span></label><input type="range" id="slider-pen-streamline" min="0" max="1" step="0.05" value="0"></div>
-                    <div class="pen-setting-row"><label>Opacité: <span id="pen-opacity-val">1.00</span></label><input type="range" id="slider-pen-opacity" min="0" max="1" step="0.05" value="1.0"></div>
-                    <div class="pen-setting-row"><label><input type="checkbox" id="chk-simulate-pressure"> Simuler la pression</label></div>
-                    <div style="display: flex; gap: 6px; margin-top: 8px;">
-                        <button id="btn-reset-pen" style="flex:1; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer; font-size: 12px;">Réinitialiser</button>
-                        <button id="btn-save-pen" style="flex:1; padding: 4px 8px; border: none; border-radius: 4px; background: #4285f4; color: white; cursor: pointer; font-size: 12px;">Sauvegarder</button>
                     </div>
                 </div>
 
@@ -416,12 +396,6 @@ class CleanPDFViewer {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 z-index: 9999;
             }
-
-            .pen-settings-panel { position: fixed; top: 60px; right: 16px; width: 280px; background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 1000000; font-size: 12px; }
-            .pen-setting-row { margin-bottom: 8px; }
-            .pen-setting-row label { display: block; margin-bottom: 2px; font-size: 12px; color: #333; }
-            .pen-setting-row input[type="range"] { width: 100%; margin: 0; -webkit-appearance: none; height: 4px; background: #ddd; border-radius: 2px; outline: none; }
-            .pen-setting-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #4285f4; cursor: pointer; }
 
             /* Toolbar */
             .pdf-toolbar {
@@ -1474,9 +1448,6 @@ class CleanPDFViewer {
         this.elements.btnDownload.addEventListener('click', () => this.showDownloadMenu());
         this.elements.btnClose.addEventListener('click', () => this.close());
 
-        // Panneau de réglages du stylo
-        this.initPenSettingsPanel();
-
         // Mini-toolbar event handlers
         this.elements.miniToolbar.querySelectorAll('[data-mini-tool]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1767,18 +1738,22 @@ class CleanPDFViewer {
             }
 
             // Activer visuellement les canvas au premier contact stylet
-            // OPTIMISÉ: Utiliser requestAnimationFrame pour éviter de bloquer le thread principal
             if (e.pointerType === 'pen' && !this.penDetected) {
                 console.log('[Viewer NEW] PREMIER contact stylet - activation visuelle des canvas');
                 this.penDetected = true;
 
-                // Activation asynchrone pour ne pas bloquer le début du trait
-                requestAnimationFrame(() => {
-                    const canvases = this.container.querySelectorAll('.annotation-canvas');
-                    canvases.forEach(canvas => {
-                        canvas.classList.add('pen-active');
-                    });
+                const canvases = this.container.querySelectorAll('.annotation-canvas');
+                canvases.forEach(canvas => {
+                    canvas.classList.add('pen-active');
                 });
+            }
+
+            // Pour le stylet : forcer touch-action: none immédiatement pour éliminer
+            // le délai de détection de geste iOS Safari (1-2s avant le premier trait).
+            // Restauré sur pointerup/pointerleave pour permettre le scroll au doigt.
+            if (e.pointerType === 'pen') {
+                this.elements.viewer.style.touchAction = 'none';
+                try { this.elements.viewer.setPointerCapture(e.pointerId); } catch (_) {}
             }
 
             // Stylet = annotation, bloquer scroll et démarrer annotation
@@ -1876,11 +1851,32 @@ class CleanPDFViewer {
                     const relativeX = e.clientX - viewerRect.left + this.elements.viewer.scrollLeft;
                     const relativeY = e.clientY - viewerRect.top + this.elements.viewer.scrollTop;
                     this.updatePencilCursor(relativeX, relativeY, true);
+                    // Restaurer le touch-action pour permettre le scroll au doigt
+                    this.elements.viewer.style.touchAction = '';
+                    try { this.elements.viewer.releasePointerCapture(e.pointerId); } catch (_) {}
                 }
             }
         }, { passive: false });
 
+        // Hover Apple Pencil Pro/3 : pré-activer touch-action: none au survol
+        // pour éliminer le délai de gesture detection avant même le contact
+        this.elements.viewer.addEventListener('pointerenter', (e) => {
+            if (e.pointerType === 'pen') {
+                this.elements.viewer.style.touchAction = 'none';
+            }
+        });
+
+        this.elements.viewer.addEventListener('pointerleave', (e) => {
+            if (e.pointerType === 'pen' && !this.isDrawing) {
+                this.elements.viewer.style.touchAction = '';
+            }
+        });
+
         this.elements.viewer.addEventListener('pointercancel', (e) => {
+            if (e.pointerType === 'pen') {
+                this.elements.viewer.style.touchAction = '';
+                try { this.elements.viewer.releasePointerCapture(e.pointerId); } catch (_) {}
+            }
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 console.log('[Viewer NEW] pointercancel - annulation annotation');
                 this.isAnnotating = false;
@@ -8940,68 +8936,6 @@ class CleanPDFViewer {
     // Obtenir l'ID de la page courante
     getCurrentPageId() {
         return 'page-' + (this.currentPage || 1);
-    }
-
-    initPenSettingsPanel() {
-        const toggleBtn = this.container.querySelector('#btn-pen-settings');
-        const panel = this.container.querySelector('#pen-settings-panel');
-        const closeBtn = this.container.querySelector('#btn-close-pen-settings');
-        if (!toggleBtn || !panel) return;
-        try {
-            const saved = localStorage.getItem('clean-pen-settings');
-            if (saved) {
-                const s = JSON.parse(saved);
-                this.currentSize = s.size || this.currentSize;
-                this.penThinning = s.thinning || 0;
-                this.penSmoothing = s.smoothing !== undefined ? s.smoothing : 0.5;
-                this.penStreamline = s.streamline || 0;
-                this.penSimulatePressure = s.simulatePressure || false;
-                this.currentOpacity = s.opacity !== undefined ? s.opacity : 1.0;
-                const el = (id) => this.container.querySelector('#' + id);
-                if (el('slider-pen-size')) el('slider-pen-size').value = this.currentSize;
-                if (el('slider-pen-thinning')) el('slider-pen-thinning').value = this.penThinning;
-                if (el('slider-pen-smoothing')) el('slider-pen-smoothing').value = this.penSmoothing;
-                if (el('slider-pen-streamline')) el('slider-pen-streamline').value = this.penStreamline;
-                if (el('slider-pen-opacity')) el('slider-pen-opacity').value = this.currentOpacity;
-                if (el('chk-simulate-pressure')) el('chk-simulate-pressure').checked = this.penSimulatePressure;
-                if (el('pen-size-val')) el('pen-size-val').textContent = this.currentSize;
-                if (el('pen-thinning-val')) el('pen-thinning-val').textContent = this.penThinning.toFixed(2);
-                if (el('pen-smoothing-val')) el('pen-smoothing-val').textContent = this.penSmoothing.toFixed(2);
-                if (el('pen-streamline-val')) el('pen-streamline-val').textContent = this.penStreamline.toFixed(2);
-                if (el('pen-opacity-val')) el('pen-opacity-val').textContent = this.currentOpacity.toFixed(2);
-            }
-        } catch (e) {}
-        toggleBtn.addEventListener('click', () => { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; });
-        if (closeBtn) closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
-        const bind = (sId, vId, prop, parser) => {
-            const s = this.container.querySelector('#' + sId);
-            const v = this.container.querySelector('#' + vId);
-            if (!s) return;
-            s.addEventListener('input', (e) => { const val = parser(e.target.value); this[prop] = val; if (v) v.textContent = typeof val === 'number' ? (Number.isInteger(val) ? val : val.toFixed(2)) : val; });
-        };
-        bind('slider-pen-size', 'pen-size-val', 'currentSize', parseFloat);
-        bind('slider-pen-thinning', 'pen-thinning-val', 'penThinning', parseFloat);
-        bind('slider-pen-smoothing', 'pen-smoothing-val', 'penSmoothing', parseFloat);
-        bind('slider-pen-streamline', 'pen-streamline-val', 'penStreamline', parseFloat);
-        bind('slider-pen-opacity', 'pen-opacity-val', 'currentOpacity', parseFloat);
-        const chk = this.container.querySelector('#chk-simulate-pressure');
-        if (chk) chk.addEventListener('change', (e) => { this.penSimulatePressure = e.target.checked; });
-        const resetBtn = this.container.querySelector('#btn-reset-pen');
-        if (resetBtn) resetBtn.addEventListener('click', () => {
-            this.currentSize = 2; this.penThinning = 0; this.penSmoothing = 0.5; this.penStreamline = 0; this.penSimulatePressure = false; this.currentOpacity = 1.0;
-            const el = (id) => this.container.querySelector('#' + id);
-            if (el('slider-pen-size')) { el('slider-pen-size').value = 2; el('pen-size-val').textContent = '2'; }
-            if (el('slider-pen-thinning')) { el('slider-pen-thinning').value = 0; el('pen-thinning-val').textContent = '0.00'; }
-            if (el('slider-pen-smoothing')) { el('slider-pen-smoothing').value = 0.5; el('pen-smoothing-val').textContent = '0.50'; }
-            if (el('slider-pen-streamline')) { el('slider-pen-streamline').value = 0; el('pen-streamline-val').textContent = '0.00'; }
-            if (el('slider-pen-opacity')) { el('slider-pen-opacity').value = 1.0; el('pen-opacity-val').textContent = '1.00'; }
-            if (el('chk-simulate-pressure')) el('chk-simulate-pressure').checked = false;
-        });
-        const saveBtn = this.container.querySelector('#btn-save-pen');
-        if (saveBtn) saveBtn.addEventListener('click', () => {
-            try { localStorage.setItem('clean-pen-settings', JSON.stringify({ size: this.currentSize, thinning: this.penThinning, smoothing: this.penSmoothing, streamline: this.penStreamline, simulatePressure: this.penSimulatePressure, opacity: this.currentOpacity })); } catch(e) {}
-            alert('Paramètres sauvegardés !');
-        });
     }
 
     setTool(tool) {

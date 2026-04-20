@@ -11,3 +11,22 @@ mobile/android/
 mobile/ios/
 mobile/web-dist/*
 !mobile/web-dist/index.html
+
+# Claude Code session state
+.claude/launch.json
+.claude/worktrees/
+
+# Expo app native code — regenerated via `npx expo prebuild`
+profcalendar-app/ios/
+profcalendar-app/android/
+profcalendar-app/.ios-old-viewer-backup/
+
+# File duplicates created by Finder ("Copie" / "XXX 2.ext")
+*\ 2.py
+*\ 2.js
+*\ 2.json
+*\ 2.ts
+*\ 2.tsx
+*\ 2.md
+*\ 3.py
+*\ 3.js
