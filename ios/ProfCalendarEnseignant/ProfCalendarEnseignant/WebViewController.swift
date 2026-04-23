@@ -34,18 +34,15 @@ class WebViewController: UIViewController {
 
     // MARK: - Cross-scene navigation sync (external display mirroring)
 
-    // Toutes les instances actives, pour synchroniser la navigation entre
-    // la scène iPad et une éventuelle scène d'écran externe (Stage Manager,
-    // AirPlay étendu). Dès qu'une instance termine une navigation, elle
-    // pousse l'URL aux autres.
-    private static var liveInstances = NSHashTable<WebViewController>.weakObjects()
+    // Observateur NotificationCenter pour recevoir les URL changes poussées
+    // par d'autres WebViewController / ExternalDisplayViewController.
+    private var navSyncObserver: NSObjectProtocol?
 
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        WebViewController.liveInstances.add(self)
         setupDrawingCoordinator()
         setupWebView()
         setupPencilKitCanvas()
@@ -55,7 +52,25 @@ class WebViewController: UIViewController {
         setupSwipeNavigation()
         setupKeyboardObservers()
         setupApplePencilInteraction()
+        observeNavigationSync()
         loadBaseURL()
+    }
+
+    private func observeNavigationSync() {
+        navSyncObserver = NotificationCenter.default.addObserver(
+            forName: SceneNavigationSync.notificationName,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let sender = notification.object as AnyObject?,
+                  sender !== self,
+                  let url = notification.userInfo?["url"] as? URL,
+                  self.webView?.url?.absoluteString != url.absoluteString else {
+                return
+            }
+            self.webView?.load(URLRequest(url: url))
+        }
     }
 
     override func viewDidLayoutSubviews() {
@@ -85,6 +100,9 @@ class WebViewController: UIViewController {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+        if let observer = navSyncObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Setup
@@ -541,16 +559,13 @@ extension WebViewController: WKNavigationDelegate {
         broadcastCurrentURLToOtherScenes()
     }
 
-    /// Propage l'URL courante aux autres WebViewController actifs
-    /// (écran externe en Stage Manager ou AirPlay étendu) afin que tous
-    /// affichent la même page que l'iPad.
+    /// Propage l'URL courante aux autres scènes (ExternalDisplayViewController
+    /// sur TV/Apple TV, ou autre fenêtre Split View). Le broadcast passe par
+    /// NotificationCenter via SceneNavigationSync, qui stocke aussi la dernière
+    /// URL pour que la scène externe puisse démarrer au bon endroit.
     private func broadcastCurrentURLToOtherScenes() {
         guard let url = webView.url, !url.absoluteString.isEmpty else { return }
-        for other in WebViewController.liveInstances.allObjects {
-            if other === self { continue }
-            if other.webView?.url?.absoluteString == url.absoluteString { continue }
-            other.webView?.load(URLRequest(url: url))
-        }
+        SceneNavigationSync.broadcast(url: url, from: self)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
