@@ -5,18 +5,53 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "scheme": "profcalendar",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.profcalendar.app"
+      "bundleIdentifier": "com.profcalendar.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Pour téléverser des fichiers ou documents",
+        "NSCameraUsageDescription": "Pour scanner des documents",
+        "NSDocumentsFolderUsageDescription": "Pour accéder et enregistrer tes fichiers"
+      }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4F46E5"
       },
-      "package": "com.profcalendar.app"
+      "package": "com.profcalendar.app",
+      "versionCode": 1,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#4F46E5"
+        }
+      ],
+      "expo-secure-store",
+      "expo-font",
+      "expo-asset"
+    ]
   }
 }

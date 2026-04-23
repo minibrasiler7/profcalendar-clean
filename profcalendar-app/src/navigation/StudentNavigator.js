@@ -8,8 +8,6 @@ import FilesScreen from '../screens/student/FilesScreen';
 import TeachersScreen from '../screens/student/TeachersScreen';
 import MissionsScreen from '../screens/student/MissionsScreen';
 import ExerciseSolveScreen from '../screens/student/ExerciseSolveScreen';
-import RPGDashboardScreen from '../screens/student/RPGDashboardScreen';
-import CombatScreen from '../screens/student/CombatScreen';
 import colors from '../theme/colors';
 
 const Tab = createBottomTabNavigator();
@@ -42,33 +40,6 @@ function MissionsStackNavigator() {
   );
 }
 
-function RPGStackNavigator() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="RPGProfile"
-        component={RPGDashboardScreen}
-        options={{
-          title: 'Profil RPG',
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: '#FFF',
-          headerTitleStyle: { fontWeight: '600' },
-        }}
-      />
-      <Stack.Screen
-        name="Combat"
-        component={CombatScreen}
-        options={{
-          title: 'Combat',
-          headerStyle: { backgroundColor: '#1a1a2e' },
-          headerTintColor: '#FFF',
-          headerTitleStyle: { fontWeight: '600' },
-        }}
-      />
-    </Stack.Navigator>
-  );
-}
-
 export default function StudentNavigator() {
   return (
     <Tab.Navigator
@@ -83,7 +54,6 @@ export default function StudentNavigator() {
             Notes: 'school',
             Fichiers: 'document-text',
             Missions: 'game-controller',
-            RPG: 'trophy',
             Profs: 'people',
           };
           return <Ionicons name={icons[route.name]} size={size} color={color} />;
@@ -98,7 +68,6 @@ export default function StudentNavigator() {
         component={MissionsStackNavigator}
         options={{ title: 'Missions' }}
       />
-      <Tab.Screen name="RPG" component={RPGStackNavigator} options={{ title: 'RPG' }} />
       <Tab.Screen name="Profs" component={TeachersScreen} options={{ title: 'Enseignants' }} />
     </Tab.Navigator>
   );
