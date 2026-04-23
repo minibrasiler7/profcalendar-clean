@@ -32,11 +32,20 @@ class WebViewController: UIViewController {
     private var pencilCanvas: PKCanvasView!
     private var pencilKitMessageHandler: PencilKitMessageHandler!
 
+    // MARK: - Cross-scene navigation sync (external display mirroring)
+
+    // Toutes les instances actives, pour synchroniser la navigation entre
+    // la scène iPad et une éventuelle scène d'écran externe (Stage Manager,
+    // AirPlay étendu). Dès qu'une instance termine une navigation, elle
+    // pousse l'URL aux autres.
+    private static var liveInstances = NSHashTable<WebViewController>.weakObjects()
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
+        WebViewController.liveInstances.add(self)
         setupDrawingCoordinator()
         setupWebView()
         setupPencilKitCanvas()
@@ -529,6 +538,19 @@ extension WebViewController: WKNavigationDelegate {
         offlineView.isHidden = true
         injectSafeAreaCSS()
         injectPencilKitBridge()
+        broadcastCurrentURLToOtherScenes()
+    }
+
+    /// Propage l'URL courante aux autres WebViewController actifs
+    /// (écran externe en Stage Manager ou AirPlay étendu) afin que tous
+    /// affichent la même page que l'iPad.
+    private func broadcastCurrentURLToOtherScenes() {
+        guard let url = webView.url, !url.absoluteString.isEmpty else { return }
+        for other in WebViewController.liveInstances.allObjects {
+            if other === self { continue }
+            if other.webView?.url?.absoluteString == url.absoluteString { continue }
+            other.webView?.load(URLRequest(url: url))
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
