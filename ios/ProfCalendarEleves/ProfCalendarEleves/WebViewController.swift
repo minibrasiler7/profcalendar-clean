@@ -12,18 +12,53 @@ class WebViewController: UIViewController {
     private let baseURLString = "https://profcalendar.org/student/login"
     private let hostName = "profcalendar.org"
     private let themeColor = UIColor(red: 26/255, green: 26/255, blue: 46/255, alpha: 1)
+    private let backgroundColorValue = UIColor.white
 
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "ProfCalendar"
-        view.backgroundColor = themeColor
+        view.backgroundColor = backgroundColorValue
         setupWebView()
         setupActivityIndicator()
         setupOfflineView()
+        observePushToken()
         loadApp()
     }
 
-    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+    // MARK: - Push token bridge
+
+    private func observePushToken() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePushTokenReceived(_:)),
+            name: AppDelegate.deviceTokenNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handlePushTokenReceived(_ note: Notification) {
+        guard let token = note.userInfo?["token"] as? String else { return }
+        sendPushTokenToWeb(token: token)
+    }
+
+    private func sendPushTokenToWeb(token: String) {
+        // Envoie le token au backend via fetch depuis la WebView (cookies de session inclus)
+        let js = """
+        (function() {
+          try {
+            fetch('/api/push/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ token: '\(token)', platform: 'ios' })
+            }).catch(function(e){ console.warn('push register failed', e); });
+          } catch (e) { console.warn('push bridge error', e); }
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle { .darkContent }
     override var prefersStatusBarHidden: Bool { false }
 
     private func setupWebView() {
@@ -41,14 +76,19 @@ class WebViewController: UIViewController {
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.bounces = true
         webView.isOpaque = false
-        webView.backgroundColor = themeColor
-        webView.scrollView.backgroundColor = themeColor
+        webView.backgroundColor = backgroundColorValue
+        webView.scrollView.backgroundColor = backgroundColorValue
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
 
-        // Layout
+        // Marquer l'app native pour détection côté serveur / JS
+        let existingUA = webView.value(forKey: "userAgent") as? String ?? ""
+        webView.customUserAgent = existingUA + " ProfCalendarApp-iOS/1.0"
+
+        // Layout - le webView démarre sous la safe area top (status bar iPad)
         webView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(webView)
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
@@ -155,6 +195,11 @@ extension WebViewController: WKNavigationDelegate {
         document.documentElement.style.setProperty('--sab', 'env(safe-area-inset-bottom)');
         """
         webView.evaluateJavaScript(js, completionHandler: nil)
+
+        // Si le token push a déjà été obtenu, le renvoyer après que le user soit connecté
+        if let existingToken = UserDefaults.standard.string(forKey: AppDelegate.pushTokenUserDefaultsKey) {
+            sendPushTokenToWeb(token: existingToken)
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

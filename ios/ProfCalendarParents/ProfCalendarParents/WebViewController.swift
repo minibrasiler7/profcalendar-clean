@@ -9,6 +9,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
     private let hostName = "profcalendar.org"
     private let themeColor = UIColor(red: 26/255, green: 26/255, blue: 46/255, alpha: 1)
     private let accentColor = UIColor(red: 99/255, green: 102/255, blue: 241/255, alpha: 1)
+    private let backgroundColorValue = UIColor.white
 
     // MARK: - UI Elements
 
@@ -21,17 +22,50 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = themeColor
+        view.backgroundColor = backgroundColorValue
         setupWebView()
         setupActivityIndicator()
         setupOfflineView()
         setupPullToRefresh()
         setupSwipeNavigation()
+        observePushToken()
         loadBaseURL()
     }
 
+    // MARK: - Push token bridge
+
+    private func observePushToken() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePushTokenReceived(_:)),
+            name: AppDelegate.deviceTokenNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handlePushTokenReceived(_ note: Notification) {
+        guard let token = note.userInfo?["token"] as? String else { return }
+        sendPushTokenToWeb(token: token)
+    }
+
+    private func sendPushTokenToWeb(token: String) {
+        let js = """
+        (function() {
+          try {
+            fetch('/api/push/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ token: '\(token)', platform: 'ios' })
+            }).catch(function(e){ console.warn('push register failed', e); });
+          } catch (e) { console.warn('push bridge error', e); }
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
-        return .lightContent
+        return .darkContent
     }
 
     // MARK: - Setup
@@ -50,13 +84,18 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.isOpaque = false
-        webView.backgroundColor = themeColor
-        webView.scrollView.backgroundColor = themeColor
+        webView.backgroundColor = backgroundColorValue
+        webView.scrollView.backgroundColor = backgroundColorValue
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.allowsBackForwardNavigationGestures = true
+
+        // Marquer l'app native pour détection côté serveur / JS
+        let existingUA = webView.value(forKey: "userAgent") as? String ?? ""
+        webView.customUserAgent = existingUA + " ProfCalendarApp-iOS/1.0"
 
         view.addSubview(webView)
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
@@ -207,6 +246,11 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
         refreshControl.endRefreshing()
         offlineView.isHidden = true
         injectSafeAreaCSS()
+
+        // Si le token push a déjà été obtenu, le renvoyer après que le user soit connecté
+        if let existingToken = UserDefaults.standard.string(forKey: AppDelegate.pushTokenUserDefaultsKey) {
+            sendPushTokenToWeb(token: existingToken)
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

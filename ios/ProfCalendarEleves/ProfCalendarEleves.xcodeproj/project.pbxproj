@@ -19,9 +19,10 @@
 		3B2D33DDCF6E46890FDE0B40 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		4E575C0A416F25354C85267C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		56A721681FDBA1534BE599C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		5DD8F6FF4474F914AA6187B9 /* ProfCalendarEleves.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProfCalendarEleves.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5DD8F6FF4474F914AA6187B9 /* ProfCalendarEleves.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ProfCalendarEleves.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		60EC9A426913089CBAB6B02A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		76A708209EA5E16C2237DF49 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		CF861ABA52D008EE93B1C8D2 /* ProfCalendarEleves.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProfCalendarEleves.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -31,6 +32,7 @@
 				4E575C0A416F25354C85267C /* AppDelegate.swift */,
 				56A721681FDBA1534BE599C6 /* Assets.xcassets */,
 				60EC9A426913089CBAB6B02A /* Info.plist */,
+				CF861ABA52D008EE93B1C8D2 /* ProfCalendarEleves.entitlements */,
 				76A708209EA5E16C2237DF49 /* SceneDelegate.swift */,
 				0B751699426493328DE626FA /* WebViewController.swift */,
 				D7A733B4740DAFD5DC9FDCED /* LaunchScreen.storyboard */,
@@ -85,6 +87,7 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					08A0176306CBC538099F1FC2 = {
+						DevelopmentTeam = 267P8NFWYA;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -179,7 +182,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -215,9 +218,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ProfCalendarEleves/ProfCalendarEleves.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 267P8NFWYA;
 				INFOPLIST_FILE = ProfCalendarEleves/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -227,7 +230,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.students;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -235,9 +238,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ProfCalendarEleves/ProfCalendarEleves.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 267P8NFWYA;
 				INFOPLIST_FILE = ProfCalendarEleves/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -247,7 +250,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.students;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -285,7 +288,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				ENABLE_NS_ASSERTIONS = NO;

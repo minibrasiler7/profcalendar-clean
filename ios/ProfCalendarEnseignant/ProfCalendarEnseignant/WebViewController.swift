@@ -36,7 +36,7 @@ class WebViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = themeColor
+        view.backgroundColor = .white
         setupDrawingCoordinator()
         setupWebView()
         setupPencilKitCanvas()
@@ -49,8 +49,25 @@ class WebViewController: UIViewController {
         loadBaseURL()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Le webView démarre juste sous la status bar pour éviter que le contenu ne passe dessous
+        let topInset = view.safeAreaInsets.top
+        let bottomInset = view.safeAreaInsets.bottom
+        let contentFrame = CGRect(
+            x: 0,
+            y: topInset,
+            width: view.bounds.width,
+            height: view.bounds.height - topInset
+        )
+        webView?.frame = contentFrame
+        offlineView?.frame = contentFrame
+        pencilCanvas?.frame = contentFrame
+        _ = bottomInset
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
-        return .lightContent
+        return .darkContent
     }
 
     override var prefersStatusBarHidden: Bool {
@@ -88,14 +105,17 @@ class WebViewController: UIViewController {
         config.userContentController.add(pencilKitMessageHandler, name: "pencilKit")
 
         webView = WKWebView(frame: view.bounds, configuration: config)
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        webView.backgroundColor = themeColor
+        webView.backgroundColor = .white
         webView.isOpaque = false
-        webView.scrollView.backgroundColor = themeColor
+        webView.scrollView.backgroundColor = .white
         webView.allowsBackForwardNavigationGestures = true
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+
+        // Marquer l'app native pour détection côté serveur / JS
+        let existingUA = webView.value(forKey: "userAgent") as? String ?? ""
+        webView.customUserAgent = existingUA + " ProfCalendarApp-iOS/1.0"
 
         // Apple Pencil: seul le doigt scroll, le stylet passe au canvas PencilKit
         webView.scrollView.panGestureRecognizer.allowedTouchTypes = [

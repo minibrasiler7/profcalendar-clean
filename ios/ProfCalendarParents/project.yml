@@ -3,18 +3,28 @@ options:
   bundleIdPrefix: ch.teacherplanner
   deploymentTarget:
     iOS: "15.0"
+  xcodeVersion: "15.0"
+  defaultConfig: Release
+settings:
+  MARKETING_VERSION: "1.0.0"
+  CURRENT_PROJECT_VERSION: 2
+  DEVELOPMENT_TEAM: "267P8NFWYA"
 targets:
   ProfCalendarParents:
     type: application
     platform: iOS
     sources:
       - ProfCalendarParents
+    entitlements:
+      path: ProfCalendarParents/ProfCalendarParents.entitlements
+      properties:
+        aps-environment: production
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: ch.teacherplanner.parents
       INFOPLIST_FILE: ProfCalendarParents/Info.plist
-      TARGETED_DEVICE_FAMILY: "1"
+      CODE_SIGN_ENTITLEMENTS: ProfCalendarParents/ProfCalendarParents.entitlements
+      TARGETED_DEVICE_FAMILY: "1,2"
+      IPHONEOS_DEPLOYMENT_TARGET: "15.0"
       SWIFT_VERSION: "5.0"
       CODE_SIGN_STYLE: Automatic
-      DEVELOPMENT_TEAM: "267P8NFWYA"
-      MARKETING_VERSION: "1.0.0"
-      CURRENT_PROJECT_VERSION: 1
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

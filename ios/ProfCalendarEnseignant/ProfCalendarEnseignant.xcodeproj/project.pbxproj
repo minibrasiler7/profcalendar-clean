@@ -1,0 +1,387 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		144CE141F7EE28DB5BD77884 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */; };
+		442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */; };
+		7B0CA564CD073238D3204AE1 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png in Resources */ = {isa = PBXBuildFile; fileRef = 866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */; };
+		A8234C140678169FE8AB92D6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */; };
+		B06BD7080094D1411861CB97 /* PencilKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5A03B9546255053474FE195 /* PencilKit.framework */; };
+		DBADDF369A3CEDC0AE628515 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */; };
+		E58368105741ECCE6DF558AD /* DrawingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99537D6858399375F5951050 /* DrawingCoordinator.swift */; };
+		F65D215C6B18A879652B58E2 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E8C3921A2C7A1DD7123496C /* WebViewController.swift */; };
+		FA3FC373F60C5C54F12ECDF3 /* PencilKitMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F5E08A64F2CB1BD831D2FF /* PencilKitMessageHandler.swift */; };
+		FF5816557878A1BF0CAA2F36 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E673B55260908774C9F53F1F /* SceneDelegate.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		11ED248BE5765C6192C65D2D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2E8C3921A2C7A1DD7123496C /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		44F5E08A64F2CB1BD831D2FF /* PencilKitMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilKitMessageHandler.swift; sourceTree = "<group>"; };
+		489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ProfCalendarEnseignant.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ChatGPT Image 15 avr. 2026 à 20_40_56.png"; sourceTree = "<group>"; };
+		99537D6858399375F5951050 /* DrawingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCoordinator.swift; sourceTree = "<group>"; };
+		CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		CDBD50147ABC1C311446DB8E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeConverter.swift; sourceTree = "<group>"; };
+		E5A03B9546255053474FE195 /* PencilKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PencilKit.framework; path = System/Library/Frameworks/PencilKit.framework; sourceTree = SDKROOT; };
+		E673B55260908774C9F53F1F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8805E41EDB60FC9B945F1B01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B06BD7080094D1411861CB97 /* PencilKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		307C77CBD09E01C65DB96C59 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3BCB81DF90AABA640A8EB4A2 /* Drawing */ = {
+			isa = PBXGroup;
+			children = (
+				99537D6858399375F5951050 /* DrawingCoordinator.swift */,
+				44F5E08A64F2CB1BD831D2FF /* PencilKitMessageHandler.swift */,
+				CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */,
+			);
+			path = Drawing;
+			sourceTree = "<group>";
+		};
+		4E759DE67589EABE994AA3F6 /* ProfCalendarEnseignant */ = {
+			isa = PBXGroup;
+			children = (
+				CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */,
+				4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */,
+				866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */,
+				11ED248BE5765C6192C65D2D /* Info.plist */,
+				E673B55260908774C9F53F1F /* SceneDelegate.swift */,
+				2E8C3921A2C7A1DD7123496C /* WebViewController.swift */,
+				3BCB81DF90AABA640A8EB4A2 /* Drawing */,
+				026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */,
+			);
+			path = ProfCalendarEnseignant;
+			sourceTree = "<group>";
+		};
+		4FFA64A94904A343A4CDCAD9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E5A03B9546255053474FE195 /* PencilKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7B2468B87A2CF662F9A1EF03 = {
+			isa = PBXGroup;
+			children = (
+				4E759DE67589EABE994AA3F6 /* ProfCalendarEnseignant */,
+				4FFA64A94904A343A4CDCAD9 /* Frameworks */,
+				307C77CBD09E01C65DB96C59 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		289F6FB3CA6B2A1465FD3741 /* ProfCalendarEnseignant */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8B722B69019E6BAF6E9FCC13 /* Build configuration list for PBXNativeTarget "ProfCalendarEnseignant" */;
+			buildPhases = (
+				48FEB54ECAA484DF7EBC867B /* Sources */,
+				2B1277774E557754A8DDA7DD /* Resources */,
+				8805E41EDB60FC9B945F1B01 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ProfCalendarEnseignant;
+			packageProductDependencies = (
+			);
+			productName = ProfCalendarEnseignant;
+			productReference = 489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DCA0068DAEB29CF8408CD07A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					289F6FB3CA6B2A1465FD3741 = {
+						DevelopmentTeam = 267P8NFWYA;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 6DFF72C3396AFE8BF3B72978 /* Build configuration list for PBXProject "ProfCalendarEnseignant" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7B2468B87A2CF662F9A1EF03;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 307C77CBD09E01C65DB96C59 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				289F6FB3CA6B2A1465FD3741 /* ProfCalendarEnseignant */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2B1277774E557754A8DDA7DD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DBADDF369A3CEDC0AE628515 /* Assets.xcassets in Resources */,
+				7B0CA564CD073238D3204AE1 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png in Resources */,
+				144CE141F7EE28DB5BD77884 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		48FEB54ECAA484DF7EBC867B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8234C140678169FE8AB92D6 /* AppDelegate.swift in Sources */,
+				E58368105741ECCE6DF558AD /* DrawingCoordinator.swift in Sources */,
+				FA3FC373F60C5C54F12ECDF3 /* PencilKitMessageHandler.swift in Sources */,
+				FF5816557878A1BF0CAA2F36 /* SceneDelegate.swift in Sources */,
+				442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */,
+				F65D215C6B18A879652B58E2 /* WebViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CDBD50147ABC1C311446DB8E /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		48182C0A4228C811575788F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		87BA50DB0785632B7C31B76C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 267P8NFWYA;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+		C90D5D4BD2256A8D2E2690A9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 267P8NFWYA;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		E59ADB2870DBB8A767A8083E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6DFF72C3396AFE8BF3B72978 /* Build configuration list for PBXProject "ProfCalendarEnseignant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				48182C0A4228C811575788F4 /* Debug */,
+				E59ADB2870DBB8A767A8083E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8B722B69019E6BAF6E9FCC13 /* Build configuration list for PBXNativeTarget "ProfCalendarEnseignant" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C90D5D4BD2256A8D2E2690A9 /* Debug */,
+				87BA50DB0785632B7C31B76C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DCA0068DAEB29CF8408CD07A /* Project object */;
+}

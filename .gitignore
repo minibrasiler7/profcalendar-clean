@@ -28,5 +28,18 @@ profcalendar-app/.ios-old-viewer-backup/
 *\ 2.ts
 *\ 2.tsx
 *\ 2.md
+*\ 2.png
+*\ 2.jpg
+*\ 2.html
+*\ 2.css
 *\ 3.py
 *\ 3.js
+*\ 3.png
+
+# Xcode user state (shouldn't be committed)
+**/xcuserdata/
+**/*.xcuserstate
+
+# Claude Code session scratch docs
+CLAUDE_CODE_CONTEXT.md
+CLAUDE_CODE_TEST_PROMPT.md
