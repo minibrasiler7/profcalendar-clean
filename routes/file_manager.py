@@ -138,17 +138,36 @@ def _find_class_file_candidates(file_id, user):
     candidates = []
 
     v2 = ClassFile.query.filter_by(id=file_id).first()
-    if v2 and v2.classroom and v2.classroom.user_id == user.id:
-        candidates.append(('v2', v2))
+    if v2:
+        owner_ok = bool(v2.classroom and v2.classroom.user_id == user.id)
+        current_app.logger.error(
+            f"=== SERVE DEBUG === lookup v2: file_id={file_id} found "
+            f"(name={v2.original_filename!r}, classroom_id={v2.classroom_id}, "
+            f"user_file_id={v2.user_file_id}, own_filename={v2.own_filename!r}, "
+            f"r2_key={v2.r2_key!r}, owner_ok={owner_ok})"
+        )
+        if owner_ok:
+            candidates.append(('v2', v2))
 
     legacy = LegacyClassFile.query.filter_by(id=file_id).first()
-    if legacy and legacy.classroom and legacy.classroom.user_id == user.id:
-        candidates.append(('legacy', legacy))
+    if legacy:
+        owner_ok = bool(legacy.classroom and legacy.classroom.user_id == user.id)
+        current_app.logger.error(
+            f"=== SERVE DEBUG === lookup legacy: file_id={file_id} found "
+            f"(name={legacy.original_filename!r}, classroom_id={legacy.classroom_id}, "
+            f"has_blob={bool(legacy.file_content)}, owner_ok={owner_ok})"
+        )
+        if owner_ok:
+            candidates.append(('legacy', legacy))
 
     own = UserFile.query.filter_by(id=file_id, user_id=user.id).first()
     if own:
         candidates.append(('userfile', own))
 
+    current_app.logger.error(
+        f"=== SERVE DEBUG === candidates for file_id={file_id} user_id={user.id}: "
+        f"{[k for k, _ in candidates]}"
+    )
     return candidates
 
 
@@ -161,12 +180,58 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
     from flask import Response
 
     if kind == 'userfile':
-        return serve_user_file_content(obj, as_attachment=as_attachment)
+        response = serve_user_file_content(obj, as_attachment=as_attachment)
+        if response is None:
+            current_app.logger.error(
+                f"=== SERVE DEBUG === userfile id={obj.id} ({obj.original_filename!r}) "
+                f"a échoué : r2_key={bool(obj.r2_key)} blob={bool(obj.file_content)}"
+            )
+        return response
 
     if kind == 'v2':
-        # Un ClassFile v2 est toujours servi via son UserFile source.
+        # 1. Servir via le UserFile source si disponible (R2/BLOB/disque).
         if obj.user_file:
-            return serve_user_file_content(obj.user_file, as_attachment=as_attachment)
+            response = serve_user_file_content(obj.user_file, as_attachment=as_attachment)
+            if response is not None:
+                return response
+            current_app.logger.error(
+                f"=== SERVE DEBUG === v2 id={obj.id} via user_file id={obj.user_file.id} "
+                f"({obj.user_file.original_filename!r}) introuvable partout : "
+                f"r2_key={bool(obj.user_file.r2_key)} blob={bool(obj.user_file.file_content)}"
+            )
+        else:
+            current_app.logger.error(
+                f"=== SERVE DEBUG === v2 id={obj.id} ({obj.original_filename!r}) sans user_file "
+                f"(user_file_id={obj.user_file_id})"
+            )
+
+        # 2. Fallback : la copie de classe a parfois sa propre clé R2 indépendante
+        # du UserFile source (utile si le source a été supprimé mais la copie
+        # R2 dans la classe est encore là).
+        if obj.r2_key and obj.own_filename and obj.classroom:
+            try:
+                from services.r2_storage import download_file_from_r2
+                owner_id = obj.classroom.user_id
+                r2_data = download_file_from_r2(owner_id, obj.own_filename)
+                if r2_data:
+                    mimetype = obj.own_mime_type or obj.mime_type or 'application/pdf'
+                    disposition = 'attachment' if as_attachment else 'inline'
+                    current_app.logger.error(
+                        f"=== SERVE DEBUG === v2 id={obj.id} servi via own r2_key={obj.r2_key}"
+                    )
+                    return Response(
+                        r2_data,
+                        mimetype=mimetype,
+                        headers={'Content-Disposition': f'{disposition}; filename="{obj.original_filename}"'}
+                    )
+                current_app.logger.error(
+                    f"=== SERVE DEBUG === v2 id={obj.id} own r2_key={obj.r2_key!r} "
+                    f"introuvable sur R2 (owner={owner_id}, file={obj.own_filename!r})"
+                )
+            except Exception as e:
+                current_app.logger.error(
+                    f"=== SERVE DEBUG === v2 id={obj.id} R2 download exception: {e}"
+                )
         return None
 
     if kind == 'legacy':
@@ -187,6 +252,10 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
         if os.path.exists(file_path):
             mimetype = 'application/pdf' if obj.file_type == 'pdf' else 'application/octet-stream'
             return send_file(file_path, mimetype=mimetype, as_attachment=as_attachment)
+        current_app.logger.error(
+            f"=== SERVE DEBUG === legacy id={obj.id} ({obj.original_filename!r}) "
+            f"sans BLOB et fichier disque manquant ({file_path})"
+        )
         return None
 
     return None
@@ -1588,10 +1657,13 @@ def serve_file(file_id):
     supprimé, on tombe naturellement sur la version legacy.
     """
     try:
+        current_app.logger.error(
+            f"=== SERVE DEBUG === serve_file ENTRY file_id={file_id} user_id={current_user.id}"
+        )
         candidates = _find_class_file_candidates(file_id, current_user)
         if not candidates:
-            current_app.logger.info(
-                f"serve_file: aucun candidat pour file_id={file_id} user_id={current_user.id}"
+            current_app.logger.error(
+                f"=== SERVE DEBUG === aucun candidat pour file_id={file_id} → 404"
             )
             return "Fichier introuvable", 404
 
@@ -1601,18 +1673,26 @@ def serve_file(file_id):
             try:
                 response = _serve_class_file_candidate(kind, obj, as_attachment=False)
                 if response is not None:
+                    current_app.logger.error(
+                        f"=== SERVE DEBUG === serve_file id={file_id} servi via {kind}"
+                    )
                     return response
-                current_app.logger.info(
-                    f"serve_file: candidat {kind} (id={getattr(obj, 'id', '?')}) sans contenu, on tente le suivant"
+                current_app.logger.error(
+                    f"=== SERVE DEBUG === candidat {kind} sans contenu, on tente le suivant"
                 )
             except Exception as e:
-                current_app.logger.warning(f"serve_file: candidat {kind} a échoué: {e}")
+                current_app.logger.error(
+                    f"=== SERVE DEBUG === candidat {kind} exception: {e}"
+                )
 
         name = getattr(last_obj, 'original_filename', None) or f"id={file_id}"
+        current_app.logger.error(
+            f"=== SERVE DEBUG === serve_file id={file_id} ({name}) → 404 (aucun candidat n'a servi)"
+        )
         return f"Fichier '{name}' introuvable sur le serveur", 404
 
     except Exception as e:
-        current_app.logger.exception(f"serve_file: erreur inattendue: {e}")
+        current_app.logger.exception(f"=== SERVE DEBUG === serve_file erreur inattendue: {e}")
         return f"Erreur serveur: {str(e)}", 500
 
 @file_manager_bp.route('/download/<int:file_id>')
