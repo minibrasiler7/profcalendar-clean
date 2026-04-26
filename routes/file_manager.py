@@ -120,6 +120,78 @@ def serve_user_file_content(user_file, as_attachment=False):
     return None
 
 
+def _find_class_file_candidates(file_id, user):
+    """Cherche un file_id dans les 3 systèmes (ClassFile v2, LegacyClassFile,
+    UserFile) et retourne la liste de candidats que l'utilisateur peut voir.
+
+    Les ID des tables `class_files` (legacy) et `class_files_v2` (nouveau)
+    sont indépendantes : il existe des collisions où un même file_id pointe
+    vers un fichier différent dans chaque table. Cette fonction collecte
+    tout, charge à l'appelant de servir le bon.
+
+    Returns: list of (kind, obj) where kind is 'v2' | 'legacy' | 'userfile'.
+    """
+    from models.class_file import ClassFile
+    from models.student import LegacyClassFile
+    from models.file_manager import UserFile
+
+    candidates = []
+
+    v2 = ClassFile.query.filter_by(id=file_id).first()
+    if v2 and v2.classroom and v2.classroom.user_id == user.id:
+        candidates.append(('v2', v2))
+
+    legacy = LegacyClassFile.query.filter_by(id=file_id).first()
+    if legacy and legacy.classroom and legacy.classroom.user_id == user.id:
+        candidates.append(('legacy', legacy))
+
+    own = UserFile.query.filter_by(id=file_id, user_id=user.id).first()
+    if own:
+        candidates.append(('userfile', own))
+
+    return candidates
+
+
+def _serve_class_file_candidate(kind, obj, as_attachment=False):
+    """Sert un candidat issu de _find_class_file_candidates. Renvoie None
+    si aucun contenu n'est disponible pour ce candidat (ex : ClassFile v2
+    dont le UserFile source a été supprimé), ce qui permet à l'appelant
+    de tester le candidat suivant.
+    """
+    from flask import Response
+
+    if kind == 'userfile':
+        return serve_user_file_content(obj, as_attachment=as_attachment)
+
+    if kind == 'v2':
+        # Un ClassFile v2 est toujours servi via son UserFile source.
+        if obj.user_file:
+            return serve_user_file_content(obj.user_file, as_attachment=as_attachment)
+        return None
+
+    if kind == 'legacy':
+        disposition = 'attachment' if as_attachment else 'inline'
+        # 1. BLOB en base
+        if obj.file_content:
+            mimetype = obj.mime_type or 'application/octet-stream'
+            return Response(
+                obj.file_content,
+                mimetype=mimetype,
+                headers={'Content-Disposition': f'{disposition}; filename="{obj.original_filename}"'}
+            )
+        # 2. Fichier disque (compat héritée)
+        if obj.is_student_shared:
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(obj.classroom_id), obj.filename)
+        else:
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(obj.classroom_id), obj.filename)
+        if os.path.exists(file_path):
+            mimetype = 'application/pdf' if obj.file_type == 'pdf' else 'application/octet-stream'
+            return send_file(file_path, mimetype=mimetype, as_attachment=as_attachment)
+        return None
+
+    return None
+
+
 def get_user_total_storage(user):
     """Calcule l'utilisation totale de stockage d'un utilisateur"""
     from models.file_manager import UserFile
@@ -1507,104 +1579,40 @@ def test_serve(file_id):
 @file_manager_bp.route('/serve_file/<int:file_id>')
 @login_required
 def serve_file(file_id):
-    """Sert un fichier pour l'affichage inline (pour le viewer d'annotation)"""
+    """Sert un fichier pour l'affichage inline (pour le viewer d'annotation).
+
+    Tolérant aux collisions d'ID entre `class_files` (legacy) et
+    `class_files_v2` (nouveau) : on collecte tous les candidats accessibles
+    pour cet ID puis on essaie de servir le premier qui a effectivement
+    du contenu. Si v2 a un ClassFile dont le UserFile source a été
+    supprimé, on tombe naturellement sur la version legacy.
+    """
     try:
-        from models.class_file import ClassFile
-        from flask import Response
-        
-        current_app.logger.error(f"=== SERVE_FILE DEBUG === file_id={file_id}, user_id={current_user.id}")
-        
-        # 1. D'abord chercher dans le nouveau système ClassFile
-        new_class_file = ClassFile.query.filter_by(id=file_id).first()
-        current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile found: {new_class_file is not None}")
-        
-        if new_class_file:
-            # Vérifier les droits
-            if new_class_file.classroom.user_id != current_user.id:
-                return "Accès refusé", 403
-            
-            # Debug détaillé
-            current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile.user_file_id: {new_class_file.user_file_id}")
-            current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile.user_file exists: {new_class_file.user_file is not None}")
-            
-            if new_class_file.user_file:
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.id: {new_class_file.user_file.id}")
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.original_filename: {new_class_file.user_file.original_filename}")
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile has file_content: {new_class_file.user_file.file_content is not None}")
-                if new_class_file.user_file.file_content:
-                    current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile.file_content size: {len(new_class_file.user_file.file_content)} bytes")
-            
-            # Servir via user_file (R2 > BLOB > disque)
-            if new_class_file.user_file:
-                user_file = new_class_file.user_file
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving New ClassFile via UserFile: {user_file.original_filename}")
-                response = serve_user_file_content(user_file, as_attachment=False)
-                if response:
-                    return response
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === File not found anywhere for UserFile {user_file.id}")
-                return "Fichier introuvable", 404
-            else:
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === New ClassFile {file_id} has no user_file")
-                return "Fichier de classe sans user_file", 404
-        
-        # 2. Ensuite chercher dans le système legacy
-        from models.student import LegacyClassFile
-        class_file = LegacyClassFile.query.filter_by(id=file_id).first()
-        current_app.logger.error(f"=== SERVE_FILE DEBUG === LegacyClassFile found: {class_file is not None}")
-        
-        if not class_file:
-            # Essayer avec UserFile aussi pour les fichiers personnels
-            from models.file_manager import UserFile
-            user_file = UserFile.query.filter_by(id=file_id, user_id=current_user.id).first()
-            current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile found: {user_file is not None}")
-            
-            if user_file:
-                # Servir le fichier utilisateur (R2 > BLOB > disque)
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving UserFile: {user_file.original_filename}")
-                response = serve_user_file_content(user_file, as_attachment=False)
-                if response:
-                    return response
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === UserFile {file_id} not found anywhere")
-                return f"Fichier utilisateur '{user_file.original_filename}' introuvable", 404
-            else:
-                current_app.logger.error(f"=== SERVE_FILE DEBUG === No file found with ID {file_id}")
-                return "Fichier introuvable dans la base de données", 404
-        
-        # Vérification des droits pour LegacyClassFile
-        if hasattr(class_file, 'classroom') and hasattr(class_file.classroom, 'user_id'):
-            if class_file.classroom.user_id != current_user.id:
-                return "Accès refusé", 403
-        
-        # Vérifier le contenu BLOB
-        if class_file.file_content:
-            # Servir depuis la base de données (BLOB)
-            mimetype = class_file.mime_type or 'application/octet-stream'
-            current_app.logger.error(f"=== SERVE_FILE DEBUG === Serving ClassFile BLOB: {class_file.original_filename}")
-            return Response(
-                class_file.file_content,
-                mimetype=mimetype,
-                headers={
-                    'Content-Disposition': f'inline; filename="{class_file.original_filename}"'
-                }
+        candidates = _find_class_file_candidates(file_id, current_user)
+        if not candidates:
+            current_app.logger.info(
+                f"serve_file: aucun candidat pour file_id={file_id} user_id={current_user.id}"
             )
-        else:
-            current_app.logger.error(f"=== SERVE_FILE DEBUG === ClassFile {file_id} has no BLOB content")
-            # Fallback: essayer de servir depuis le fichier physique (pour compatibilité)
-            if class_file.is_student_shared:
-                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'student_shared', str(class_file.classroom_id), class_file.filename)
-            else:
-                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(class_file.classroom_id), class_file.filename)
-            
-            if os.path.exists(file_path):
-                mimetype = 'application/pdf' if class_file.file_type == 'pdf' else 'application/octet-stream'
-                return send_file(file_path, mimetype=mimetype, as_attachment=False)
-            else:
-                return f"Fichier '{class_file.original_filename}' manquant sur le serveur.", 404
-        
+            return "Fichier introuvable", 404
+
+        last_obj = None
+        for kind, obj in candidates:
+            last_obj = obj
+            try:
+                response = _serve_class_file_candidate(kind, obj, as_attachment=False)
+                if response is not None:
+                    return response
+                current_app.logger.info(
+                    f"serve_file: candidat {kind} (id={getattr(obj, 'id', '?')}) sans contenu, on tente le suivant"
+                )
+            except Exception as e:
+                current_app.logger.warning(f"serve_file: candidat {kind} a échoué: {e}")
+
+        name = getattr(last_obj, 'original_filename', None) or f"id={file_id}"
+        return f"Fichier '{name}' introuvable sur le serveur", 404
+
     except Exception as e:
-        print(f"[ERROR] ERREUR dans serve_file: {e}")
-        import traceback
-        traceback.print_exc()
+        current_app.logger.exception(f"serve_file: erreur inattendue: {e}")
         return f"Erreur serveur: {str(e)}", 500
 
 @file_manager_bp.route('/download/<int:file_id>')
@@ -1660,32 +1668,48 @@ def download_file(file_id):
 @file_manager_bp.route('/preview/<int:file_id>')
 @login_required
 def preview_file(file_id):
-    """Aperçu d'un fichier"""
+    """Aperçu d'un fichier (UserFile, ClassFile v2, ou LegacyClassFile).
+
+    Pour le UserFile / ClassFile v2 résolu en UserFile, on a accès aux
+    miniatures et au pipeline R2/BLOB/disque complet. Pour les
+    LegacyClassFile et les v2 dont le UserFile a été supprimé, on
+    délègue à _serve_class_file_candidate qui gère BLOB et fichier disque.
+    """
     from models.file_manager import UserFile
-    from models.class_file import ClassFile
     from flask import Response
 
-    # D'abord essayer de trouver un UserFile appartenant à l'utilisateur
+    # 1. UserFile personnel (full pipeline incluant thumbnails)
     file = UserFile.query.filter_by(
         id=file_id,
         user_id=current_user.id
     ).first()
 
-    # Sinon chercher un ClassFile de ses classes
+    # 2. Sinon : chercher dans les class files (v2 + legacy), tolérant aux
+    # collisions d'ID.
     if not file:
-        from models.classroom import Classroom
-        class_file = ClassFile.query.filter_by(id=file_id).first()
-        if class_file:
-            # Vérifier que l'utilisateur appartient à cette classe (en tant que professeur)
-            classroom = Classroom.query.filter_by(
-                id=class_file.classroom_id,
-                teacher_id=current_user.id
-            ).first()
-            if classroom:
-                file = class_file.user_file
+        candidates = _find_class_file_candidates(file_id, current_user)
 
-    if not file:
-        return abort(404)
+        # 2a. Préférer un v2 dont le UserFile source est encore là — on
+        # garde ainsi le support des miniatures et le pipeline complet.
+        for kind, obj in candidates:
+            if kind == 'v2' and obj.user_file:
+                file = obj.user_file
+                break
+
+        # 2b. Sinon servir directement (legacy BLOB ou disque, ou v2 cassé).
+        if not file:
+            last_obj = None
+            for kind, obj in candidates:
+                last_obj = obj
+                try:
+                    response = _serve_class_file_candidate(kind, obj, as_attachment=False)
+                    if response is not None:
+                        return response
+                except Exception as e:
+                    current_app.logger.warning(f"preview_file: candidat {kind} échoué: {e}")
+            if not candidates:
+                current_app.logger.info(f"preview_file: aucun candidat pour file_id={file_id} user_id={current_user.id}")
+            return abort(404)
 
     mimetype = file.mime_type or 'application/octet-stream'
 
