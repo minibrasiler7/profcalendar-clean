@@ -48,6 +48,11 @@ final class ExternalDisplayViewController: UIViewController, WKNavigationDelegat
         loadInitialURL()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        adjustPageZoomForScreenSize()
+    }
+
     deinit {
         if let observer = navSyncObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -56,6 +61,28 @@ final class ExternalDisplayViewController: UIViewController, WKNavigationDelegat
 
     override var prefersStatusBarHidden: Bool { return true }
     override var prefersHomeIndicatorAutoHidden: Bool { return true }
+
+    // MARK: - Dynamic scaling
+    //
+    // Le site est dessiné pour une viewport iPad (~1024 pt landscape).
+    // Sur une TV FHD on a typiquement ~1920 pt de large, sur 4K ~3840 pt.
+    // On calcule dynamiquement un pageZoom pour que le contenu remplisse
+    // la TV au lieu d'apparaître minuscule.
+
+    private let referenceViewportWidth: CGFloat = 1024
+    private let minZoom: CGFloat = 1.0
+    private let maxZoom: CGFloat = 3.0
+
+    private func adjustPageZoomForScreenSize() {
+        guard let webView = webView else { return }
+        let availableWidth = view.bounds.width
+        guard availableWidth > 0 else { return }
+        let rawZoom = availableWidth / referenceViewportWidth
+        let clamped = max(minZoom, min(maxZoom, rawZoom))
+        if abs(webView.pageZoom - clamped) > 0.01 {
+            webView.pageZoom = clamped
+        }
+    }
 
     // MARK: - Setup
 
@@ -122,14 +149,14 @@ final class ExternalDisplayViewController: UIViewController, WKNavigationDelegat
         }
     }
 
-    /// CSS injection pour rendre le contenu lisible à distance sur TV :
-    /// zoom 1.3x et fond noir derrière tout ce qui dépasse.
+    /// Marque la page comme "mode TV" pour d'éventuelles règles CSS
+    /// spécifiques côté serveur. Le scaling lui-même passe par
+    /// webView.pageZoom (voir adjustPageZoomForScreenSize).
     private func injectTVStyling() {
         let js = """
         (function() {
             if (window.__profCalendarTVMode) return;
             window.__profCalendarTVMode = true;
-            document.documentElement.style.zoom = '1.3';
             document.documentElement.dataset.profcalendarTvMode = 'true';
             document.body && (document.body.style.backgroundColor = '#000');
         })();
