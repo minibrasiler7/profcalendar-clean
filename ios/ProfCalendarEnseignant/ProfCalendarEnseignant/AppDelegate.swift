@@ -11,19 +11,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     // MARK: UISceneSession Lifecycle
-
-    func application(
-        _ application: UIApplication,
-        configurationForConnecting connectingSceneSession: UISceneSession,
-        options: UIScene.ConnectionOptions
-    ) -> UISceneConfiguration {
-        let config = UISceneConfiguration(
-            name: "Default Configuration",
-            sessionRole: connectingSceneSession.role
-        )
-        config.delegateClass = SceneDelegate.self
-        return config
-    }
+    //
+    // On ne fournit volontairement PAS d'override de
+    // `application(_:configurationForConnecting:options:)`. Le comportement
+    // par défaut d'UIKit est de chercher la configuration dans la clé
+    // `UISceneConfigurations` de l'Info.plist. Notre Info.plist ne déclare
+    // que `UIWindowSceneSessionRoleApplication` — donc iOS ne crée une
+    // scène que pour la fenêtre principale iPad. Pour un écran externe
+    // (Apple TV / HDMI), aucun rôle n'est configuré, ce qui force iOS à
+    // basculer sur le miroir système : la TV recopie l'iPad au lieu
+    // d'avoir sa propre scène / WebView désynchronisée.
 
     func application(
         _ application: UIApplication,
