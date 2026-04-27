@@ -32,11 +32,20 @@ class WebViewController: UIViewController {
     private var pencilCanvas: PKCanvasView!
     private var pencilKitMessageHandler: PencilKitMessageHandler!
 
-    // MARK: - Cross-scene navigation sync (external display mirroring)
-
-    // Observateur NotificationCenter pour recevoir les URL changes poussées
-    // par d'autres WebViewController / ExternalDisplayViewController.
-    private var navSyncObserver: NSObjectProtocol?
+    // MARK: - External display detection
+    //
+    // Quand un écran externe est connecté (Apple TV / HDMI), on cache la
+    // status bar pour que la WebView occupe TOUTE la hauteur de l'iPad.
+    // Comme on est en mode mirror (UIApplicationSupportsMultipleScenes =
+    // false), la TV recopie l'iPad : plus l'iPad est plein écran, plus la
+    // TV l'est aussi. Réduit les bandes noires en haut/bas.
+    private var hasExternalDisplay: Bool = false {
+        didSet {
+            guard hasExternalDisplay != oldValue else { return }
+            setNeedsStatusBarAppearanceUpdate()
+            view.setNeedsLayout()
+        }
+    }
 
     // MARK: - Lifecycle
 
@@ -52,32 +61,36 @@ class WebViewController: UIViewController {
         setupSwipeNavigation()
         setupKeyboardObservers()
         setupApplePencilInteraction()
-        observeNavigationSync()
+        observeExternalDisplay()
         loadBaseURL()
     }
 
-    private func observeNavigationSync() {
-        navSyncObserver = NotificationCenter.default.addObserver(
-            forName: SceneNavigationSync.notificationName,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self,
-                  let sender = notification.object as AnyObject?,
-                  sender !== self,
-                  let url = notification.userInfo?["url"] as? URL,
-                  self.webView?.url?.absoluteString != url.absoluteString else {
-                return
-            }
-            self.webView?.load(URLRequest(url: url))
-        }
+    private func observeExternalDisplay() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateExternalDisplayState),
+            name: UIScreen.didConnectNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateExternalDisplayState),
+            name: UIScreen.didDisconnectNotification,
+            object: nil
+        )
+        updateExternalDisplayState()
+    }
+
+    @objc private func updateExternalDisplayState() {
+        hasExternalDisplay = UIScreen.screens.count > 1
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // Le webView démarre juste sous la status bar pour éviter que le contenu ne passe dessous
-        let topInset = view.safeAreaInsets.top
-        let bottomInset = view.safeAreaInsets.bottom
+        // En mode TV (status bar masquée) la WebView prend tout l'écran ;
+        // sinon on conserve l'inset du haut pour ne pas passer sous la
+        // status bar.
+        let topInset = hasExternalDisplay ? 0 : view.safeAreaInsets.top
         let contentFrame = CGRect(
             x: 0,
             y: topInset,
@@ -87,7 +100,6 @@ class WebViewController: UIViewController {
         webView?.frame = contentFrame
         offlineView?.frame = contentFrame
         pencilCanvas?.frame = contentFrame
-        _ = bottomInset
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -95,14 +107,11 @@ class WebViewController: UIViewController {
     }
 
     override var prefersStatusBarHidden: Bool {
-        return false
+        return hasExternalDisplay
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
-        if let observer = navSyncObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
     }
 
     // MARK: - Setup
@@ -556,16 +565,6 @@ extension WebViewController: WKNavigationDelegate {
         offlineView.isHidden = true
         injectSafeAreaCSS()
         injectPencilKitBridge()
-        broadcastCurrentURLToOtherScenes()
-    }
-
-    /// Propage l'URL courante aux autres scènes (ExternalDisplayViewController
-    /// sur TV/Apple TV, ou autre fenêtre Split View). Le broadcast passe par
-    /// NotificationCenter via SceneNavigationSync, qui stocke aussi la dernière
-    /// URL pour que la scène externe puisse démarrer au bon endroit.
-    private func broadcastCurrentURLToOtherScenes() {
-        guard let url = webView.url, !url.absoluteString.isEmpty else { return }
-        SceneNavigationSync.broadcast(url: url, from: self)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
