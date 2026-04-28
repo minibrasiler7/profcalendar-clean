@@ -4983,7 +4983,14 @@ function handleWorkspaceDragOver(e) {
 // Gestion du drop sur l'espace de travail
 function handleWorkspaceDrop(e) {
     e.preventDefault();
-    
+
+    // Si le drop est précisément sur une table, le handler `document.drop`
+    // (plus bas, ligne ~6007) s'en occupe avec un placement exact. Ce handler
+    // ne sert qu'à l'aimantation : drop dans le vide à proximité d'une table.
+    // Sans cette garde, les deux handlers tirent placeStudentOnDesk pour le
+    // même drop → l'élève apparaît en double.
+    if (e.target.closest('.seating-element')) return;
+
     // Trouver l'élément étudiant en cours de drag
     const draggedStudentId = e.dataTransfer.getData('studentId');
     if (!draggedStudentId) return;
@@ -5189,15 +5196,27 @@ function placeStudentOnDesk(studentLabel, desk, dropX = null) {
         console.log('No available slot on this desk');
         return;
     }
-    
+
     const studentId = studentLabel.dataset.studentId || studentLabel.dataset.studentid;
     const studentName = studentLabel.dataset.originalName || studentLabel.querySelector('span').textContent;
-    
+
     console.log('=== PLACING STUDENT ===');
     console.log('Student Name:', studentName);
     console.log('Student ID:', studentId);
     console.log('Desk ID:', desk.id);
     console.log('StudentLabel before removal:', studentLabel);
+
+    // Garde anti-doublon : si cet élève est déjà placé ailleurs (par exemple
+    // suite à un drop qui a fire deux fois, ou à un fantôme matché par
+    // querySelector), on retire l'ancienne occurrence avant d'en créer
+    // une nouvelle.
+    if (studentId) {
+        seatingWorkspace.querySelectorAll(`.student-placed[data-student-id="${studentId}"], .student-placed[data-studentid="${studentId}"]`).forEach(existing => {
+            const existingSlot = existing.parentElement;
+            if (existingSlot) existingSlot.classList.remove('occupied');
+            existing.remove();
+        });
+    }
     
     // Créer l'élément étudiant placé
     const studentPlaced = document.createElement('div');
@@ -5758,14 +5777,37 @@ function updateSeatingStats() {
 
 // Event listeners pour les étiquettes d'étudiants
 //
-// Au lieu de laisser le navigateur dessiner l'image-fantôme par défaut
-// (souvent peu lisible / décalée), on remplace par un clone DOM positionné
-// en `position: fixed` qui suit le curseur via les événements `drag`.
-// L'image native est masquée avec un GIF transparent 1×1.
+// Image-fantôme custom : un clone DOM en position: fixed suit le curseur via
+// les événements `drag`. L'image native est masquée par un GIF 1×1.
+//
+// Subtilité importante : on retire les attributs `data-student-id*` du clone
+// pour qu'il ne soit JAMAIS matché par les querySelector du handler de drop
+// (sinon il devient un faux candidat pour les drops suivants → placement
+// fantôme / nom dupliqué). On lui donne aussi une classe dédiée
+// `.student-drag-ghost` pour qu'il soit facile à nettoyer.
 let __studentDragGhost = null;
+
+function __killStudentDragGhost() {
+    if (__studentDragGhost) {
+        __studentDragGhost.remove();
+        __studentDragGhost = null;
+    }
+    // Filet de sécurité : nettoyer tout fantôme orphelin qui aurait survécu
+    // à un dragend manqué (élément source supprimé pendant drop, etc.).
+    document.querySelectorAll('.student-drag-ghost').forEach(el => el.remove());
+}
 
 document.addEventListener('dragstart', function(e) {
     if (!e.target.classList.contains('student-label')) return;
+    // Skip si on essaye de dragger un fantôme par erreur
+    if (e.target.classList.contains('student-drag-ghost')) {
+        e.preventDefault();
+        return;
+    }
+
+    // Avant de créer le nouveau, tuer tout fantôme qui traîne
+    __killStudentDragGhost();
+
     const label = e.target;
     label.style.opacity = '0.35';
     const studentId = label.dataset.studentId || label.dataset.studentid;
@@ -5775,6 +5817,11 @@ document.addEventListener('dragstart', function(e) {
 
     // Clone visible qui suit le curseur
     __studentDragGhost = label.cloneNode(true);
+    __studentDragGhost.classList.add('student-drag-ghost');
+    // Empêcher le clone d'être détecté comme étiquette d'élève déplaçable
+    __studentDragGhost.removeAttribute('data-student-id');
+    __studentDragGhost.removeAttribute('data-studentid');
+    __studentDragGhost.removeAttribute('draggable');
     Object.assign(__studentDragGhost.style, {
         position: 'fixed',
         pointerEvents: 'none',
@@ -5807,14 +5854,20 @@ document.addEventListener('drag', function(e) {
 });
 
 document.addEventListener('dragend', function(e) {
-    if (e.target.classList && e.target.classList.contains('student-label')) {
+    if (e.target && e.target.classList && e.target.classList.contains('student-label')) {
         e.target.style.opacity = '';
     }
-    if (__studentDragGhost) {
-        __studentDragGhost.remove();
-        __studentDragGhost = null;
-    }
+    __killStudentDragGhost();
 });
+
+// Filet de sécurité : si la source est removed pendant le drop (ce que fait
+// placeStudentOnDesk via studentLabel.remove()), `dragend` peut ne pas
+// remonter jusqu'à notre listener. On nettoie aussi sur le drop ET en
+// fallback sur tout `mouseup` document-wide.
+document.addEventListener('drop', function() {
+    setTimeout(__killStudentDragGhost, 0);
+}, true);  // capture pour passer AVANT les autres handlers
+document.addEventListener('mouseup', __killStudentDragGhost);
 
 // Support tactile pour les étudiants sur tablettes
 let touchDraggedStudent = null;
