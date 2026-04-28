@@ -1751,9 +1751,14 @@ class CleanPDFViewer {
             // Pour le stylet : forcer touch-action: none immédiatement pour éliminer
             // le délai de détection de geste iOS Safari (1-2s avant le premier trait).
             // Restauré sur pointerup/pointerleave pour permettre le scroll au doigt.
+            //
+            // NOTE: on n'appelle PAS setPointerCapture ici. Sur la WKWebView de
+            // l'app iPad, capturer le pointeur entrait en conflit avec la couche
+            // PencilKit/UIKit native — résultat : les traits étaient effacés au
+            // lever du stylet et l'UI se figeait. Le touch-action: none seul
+            // suffit à éliminer le lag iOS sans casser l'app native.
             if (e.pointerType === 'pen') {
                 this.elements.viewer.style.touchAction = 'none';
-                try { this.elements.viewer.setPointerCapture(e.pointerId); } catch (_) {}
             }
 
             // Stylet = annotation, bloquer scroll et démarrer annotation
@@ -1853,7 +1858,6 @@ class CleanPDFViewer {
                     this.updatePencilCursor(relativeX, relativeY, true);
                     // Restaurer le touch-action pour permettre le scroll au doigt
                     this.elements.viewer.style.touchAction = '';
-                    try { this.elements.viewer.releasePointerCapture(e.pointerId); } catch (_) {}
                 }
             }
         }, { passive: false });
@@ -1875,7 +1879,6 @@ class CleanPDFViewer {
         this.elements.viewer.addEventListener('pointercancel', (e) => {
             if (e.pointerType === 'pen') {
                 this.elements.viewer.style.touchAction = '';
-                try { this.elements.viewer.releasePointerCapture(e.pointerId); } catch (_) {}
             }
             if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
                 console.log('[Viewer NEW] pointercancel - annulation annotation');

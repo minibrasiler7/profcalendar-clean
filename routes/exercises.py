@@ -317,12 +317,21 @@ def delete(exercise_id):
 
     try:
         # Nettoyer dans l'ordre inverse des FK:
-        # StudentBlockAnswer → StudentExerciseAttempt → ExercisePublication → Exercise
+        # StudentBlockAnswer → StudentExerciseAttempt → ExercisePublication
+        # → CombatSession (cascade vers participants/monsters/rounds) → Exercise
         attempts = StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).all()
         for attempt in attempts:
             StudentBlockAnswer.query.filter_by(attempt_id=attempt.id).delete()
         StudentExerciseAttempt.query.filter_by(exercise_id=exercise_id).delete()
         ExercisePublication.query.filter_by(exercise_id=exercise_id).delete()
+
+        # CombatSession a une FK vers exercises sans ondelete='CASCADE' au niveau DB,
+        # donc il faut supprimer manuellement (les enfants — participants, monsters,
+        # rounds, actions — cascadent déjà via les relationships ORM).
+        from models.combat import CombatSession
+        sessions = CombatSession.query.filter_by(exercise_id=exercise_id).all()
+        for session in sessions:
+            db.session.delete(session)
 
         db.session.delete(exercise)
         db.session.commit()

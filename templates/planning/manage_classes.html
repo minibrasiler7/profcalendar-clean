@@ -4654,7 +4654,11 @@ function attachElementPointerDrag(element) {
 
     element.addEventListener('pointerdown', (e) => {
         if (e.button !== undefined && e.button !== 0) return;
-        if (e.target.closest('.element-delete')) return;
+        // Ne pas démarrer le drag pour les boutons d'action :
+        // - .element-delete : suppression de la table
+        // - .student-remove : retrait d'un élève d'un slot
+        // - .student-placed : étiquette élève (drag séparé géré ailleurs)
+        if (e.target.closest('.element-delete') || e.target.closest('.student-remove')) return;
         e.preventDefault();
 
         isDragging = true;
@@ -4678,6 +4682,21 @@ function attachElementPointerDrag(element) {
     element.style.cursor = 'grab';
 }
 
+// Génère un ID unique pour un nouvel élément, en évitant toute collision
+// avec un élément déjà présent dans le DOM (par exemple un plan chargé
+// depuis la base avec ses IDs d'origine `element-3`, `element-4`, etc.).
+// Sans cette protection, après un chargement, addElement réutilisait
+// `element-1` et `getElementById` retournait l'ancienne table — donc
+// supprimer la nouvelle effaçait visuellement l'ancienne.
+function nextUniqueElementId() {
+    let id;
+    do {
+        elementCounter++;
+        id = `element-${elementCounter}`;
+    } while (document.getElementById(id));
+    return id;
+}
+
 // Ajouter un élément (table ou bureau)
 function addElement(elementType) {
     // S'assurer que seatingWorkspace est initialisé
@@ -4688,11 +4707,9 @@ function addElement(elementType) {
             return;
         }
     }
-    
-    elementCounter++;
-    
+
     const element = document.createElement('div');
-    element.id = `element-${elementCounter}`;
+    element.id = nextUniqueElementId();
     element.className = 'seating-element';
     element.dataset.type = elementType;
     
@@ -5740,20 +5757,62 @@ function updateSeatingStats() {
 }
 
 // Event listeners pour les étiquettes d'étudiants
+//
+// Au lieu de laisser le navigateur dessiner l'image-fantôme par défaut
+// (souvent peu lisible / décalée), on remplace par un clone DOM positionné
+// en `position: fixed` qui suit le curseur via les événements `drag`.
+// L'image native est masquée avec un GIF transparent 1×1.
+let __studentDragGhost = null;
+
 document.addEventListener('dragstart', function(e) {
-    if (e.target.classList.contains('student-label')) {
-        e.target.style.opacity = '0.5';
-        // Stocker l'ID de l'étudiant dans dataTransfer (vérifier les deux cas)
-        const studentId = e.target.dataset.studentId || e.target.dataset.studentid;
-        e.dataTransfer.setData('studentId', studentId);
-        e.dataTransfer.effectAllowed = 'move';
-        console.log('Start dragging student:', studentId);
-    }
+    if (!e.target.classList.contains('student-label')) return;
+    const label = e.target;
+    label.style.opacity = '0.35';
+    const studentId = label.dataset.studentId || label.dataset.studentid;
+    e.dataTransfer.setData('studentId', studentId);
+    e.dataTransfer.effectAllowed = 'move';
+    console.log('Start dragging student:', studentId);
+
+    // Clone visible qui suit le curseur
+    __studentDragGhost = label.cloneNode(true);
+    Object.assign(__studentDragGhost.style, {
+        position: 'fixed',
+        pointerEvents: 'none',
+        opacity: '0.95',
+        zIndex: '10000',
+        boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
+        transform: 'rotate(-2deg) scale(1.04)',
+        transition: 'none',
+        left: (e.clientX + 12) + 'px',
+        top: (e.clientY + 12) + 'px',
+        width: label.offsetWidth + 'px',
+        margin: '0',
+    });
+    document.body.appendChild(__studentDragGhost);
+
+    // Masquer l'image-fantôme native (GIF 1×1 transparent)
+    try {
+        const blank = new Image();
+        blank.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+        e.dataTransfer.setDragImage(blank, 0, 0);
+    } catch (_) {}
+});
+
+document.addEventListener('drag', function(e) {
+    if (!__studentDragGhost) return;
+    // Le tout dernier `drag` event peut arriver à (0,0) — on ignore
+    if (e.clientX === 0 && e.clientY === 0) return;
+    __studentDragGhost.style.left = (e.clientX + 12) + 'px';
+    __studentDragGhost.style.top = (e.clientY + 12) + 'px';
 });
 
 document.addEventListener('dragend', function(e) {
-    if (e.target.classList.contains('student-label')) {
+    if (e.target.classList && e.target.classList.contains('student-label')) {
         e.target.style.opacity = '';
+    }
+    if (__studentDragGhost) {
+        __studentDragGhost.remove();
+        __studentDragGhost = null;
     }
 });
 
