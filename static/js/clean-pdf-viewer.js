@@ -6775,7 +6775,17 @@ class CleanPDFViewer {
         }
 
         // Redessiner toutes les annotations
-        this.redrawAnnotations(canvas, pageId);
+        // [Trace Diag] permet d'identifier pourquoi le trait disparaît parfois côté iPad :
+        // si on voit "before redraw" sans "after redraw", c'est que redrawAnnotations
+        // a jeté une exception sur une nouvelle annotation (ce qui clearRect le canvas
+        // sans dessiner ensuite — symptôme exact rapporté par l'utilisateur).
+        console.log('[Trace Diag] endAnnotation before redraw - canvas:', !!canvas, 'pageId:', pageId, 'stroke tool:', this.currentStroke && this.currentStroke.tool);
+        try {
+            this.redrawAnnotations(canvas, pageId);
+            console.log('[Trace Diag] endAnnotation after redraw OK');
+        } catch (err) {
+            console.error('[Trace Diag] endAnnotation redraw threw:', err && err.message, err && err.stack);
+        }
 
         this.currentStroke = null;
         this.isDirty = true;
@@ -6928,16 +6938,36 @@ class CleanPDFViewer {
      * Redessiner toutes les annotations d'une page
      */
     redrawAnnotations(canvas, pageId) {
+        if (!canvas || typeof canvas.getContext !== 'function') {
+            console.warn('[Redraw] Canvas invalide, abandon. canvas:', canvas, 'pageId:', pageId);
+            return;
+        }
+
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.warn('[Redraw] getContext("2d") a renvoyé null pour pageId:', pageId);
+            return;
+        }
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const pageAnnotations = this.annotations.get(pageId) || [];
         console.log(`[Redraw] Page ${pageId} (type: ${typeof pageId}) - ${pageAnnotations.length} annotations à dessiner`);
         console.log('[Redraw] Toutes les clés dans annotations:', [...this.annotations.keys()]);
 
+        // Isoler chaque drawAnnotation pour qu'une annotation corrompue
+        // n'efface pas TOUTES les autres (clearRect a déjà été appelé).
+        // Sans ce try/catch, une exception ici laisse le canvas vide :
+        // exactement le symptôme "le trait disparaît au lever du stylet".
+        let drawn = 0;
         for (const annotation of pageAnnotations) {
-            this.drawAnnotation(ctx, annotation);
+            try {
+                this.drawAnnotation(ctx, annotation);
+                drawn++;
+            } catch (err) {
+                console.error('[Redraw] drawAnnotation a jeté pour', annotation && annotation.tool, '-', err && err.message);
+            }
         }
+        console.log(`[Redraw] ${drawn}/${pageAnnotations.length} annotations dessinées avec succès pour page ${pageId}`);
     }
 
     /**
