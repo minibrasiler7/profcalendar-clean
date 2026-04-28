@@ -946,13 +946,6 @@ extension WebViewController: DrawingCoordinatorDelegate {
 
     func drawingCoordinator(_ coordinator: DrawingCoordinator, didChangeActiveState isActive: Bool) {
         pencilCanvas.isHidden = !isActive
-        // En plus de isHidden, on coupe explicitement l'interaction utilisateur
-        // sur le canvas PencilKit quand il est inactif. Sans cette ceinture-
-        // bretelle, on a observé des cas où changer d'outil pendant un stroke
-        // laissait le canvas dans un état où il continuait à intercepter les
-        // touchers sans rien afficher → l'app paraît figée tant qu'on ne la
-        // ferme pas.
-        pencilCanvas.isUserInteractionEnabled = isActive
 
         if isActive {
             // Desactiver le scroll de la WebView pendant le dessin
@@ -971,9 +964,6 @@ extension WebViewController: DrawingCoordinatorDelegate {
             // Reactiver le scroll
             webView.scrollView.isScrollEnabled = true
             webView.scrollView.bounces = true
-            // Renvoyer le canvas en arrière-plan pour qu'il ne capte rien
-            // même si une couche au-dessus est ratée.
-            view.sendSubviewToBack(pencilCanvas)
         }
     }
 
