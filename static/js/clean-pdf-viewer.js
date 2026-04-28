@@ -145,6 +145,13 @@ class CleanPDFViewer {
             this.annotationTools = new AnnotationTools(this);
         }
 
+        // Initialiser le bridge PencilKit (WKWebView iOS uniquement).
+        // Sans cet appel, window.pencilKitBridge.onStrokeCompleted n'existe
+        // jamais → quand Swift envoie un trait Apple Pencil, l'évaluation JS
+        // jette une TypeError et le trait est perdu (PencilKit s'efface 100ms
+        // plus tard côté Swift, donc l'utilisateur voit son trait disparaître).
+        this.initPencilKitBridge();
+
         // Charger le PDF si URL fournie
         if (this.options.pdfUrl) {
             console.log('[Init] Chargement du PDF:', this.options.pdfUrl);
@@ -6597,15 +6604,13 @@ class CleanPDFViewer {
         this.currentCanvas = null;
         this.currentPageId = null;
 
-        // Gérer la gomme - sauvegarder l'état final dans l'historique
+        // Gérer la gomme : on retire juste le stroke courant. La méthode
+        // saveToHistory() qui était appelée ici n'existe pas dans cette
+        // classe, ce qui levait une TypeError non rattrapée à chaque
+        // levée de stylet en mode gomme — bloquant tous les outils
+        // suivants. L'undo/redo de la gomme reste à reconstruire (TODO),
+        // mais au moins la gomme ne crashe plus l'app.
         if (this.currentTool === 'eraser') {
-            // Sauvegarder l'état complet de la page dans l'historique
-            // Cela permet de garder la cohérence pour undo/redo
-            const pageAnnotations = this.annotations.get(pageId) || [];
-            if (pageAnnotations.length >= 0) {
-                // Créer un snapshot de l'état actuel
-                this.saveToHistory();
-            }
             this.currentStroke = null;
             return;
         }
