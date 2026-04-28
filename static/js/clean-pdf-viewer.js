@@ -18,6 +18,46 @@
 
 'use strict';
 
+// ==========================================================================
+// Pre-init PencilKit bridge stub
+// --------------------------------------------------------------------------
+// WKWebView (iOS Enseignant) appelle window.pencilKitBridge.onStrokeCompleted
+// dès qu'un trait Apple Pencil est terminé. Si le viewer n'est pas encore
+// instancié, ou si init() n'a pas encore exécuté initPencilKitBridge(),
+// l'appel jetait une TypeError ("onStrokeCompleted is not a function") et le
+// trait était perdu pendant que Swift effaçait son canvas 100ms plus tard.
+//
+// Ce stub garantit que window.pencilKitBridge.onStrokeCompleted existe TOUJOURS
+// dès le chargement du script. Les traits arrivés trop tôt sont mis en file
+// d'attente puis rejoués par initPencilKitBridge() lorsque le vrai bridge est
+// installé.
+// ==========================================================================
+(function installPencilKitBridgeStub() {
+    if (typeof window === 'undefined') return;
+    if (window.pencilKitBridge && window.pencilKitBridge.__realBridge) return;
+
+    const buffered = (window.pencilKitBridge && window.pencilKitBridge.__buffered) || [];
+
+    window.pencilKitBridge = {
+        __isStub: true,
+        __buffered: buffered,
+        onStrokeCompleted: function (strokeData) {
+            try {
+                console.log('[PencilKit] Stub received stroke (viewer not ready), buffering');
+                buffered.push(strokeData);
+            } catch (e) {
+                // Swallow — never throw back to Swift, sinon le trait peut être perdu côté natif.
+            }
+        },
+        getPageInfo: function () {
+            return null;
+        },
+        onOrientationChanged: function () {
+            // no-op until real bridge installed
+        }
+    };
+})();
+
 class CleanPDFViewer {
     constructor(containerId, options = {}) {
         // Configuration
@@ -8808,15 +8848,20 @@ class CleanPDFViewer {
             console.log('[PencilKit] Not in WKWebView, bridge disabled');
             return;
         }
-        
+
         console.log('[PencilKit] Bridge initialized');
         const viewer = this;
-        
-        // API globale que Swift appelle
-        window.pencilKitBridge = {
-            // Appele par Swift quand un trait est termine
-            onStrokeCompleted: (strokeData) => {
-                console.log('[PencilKit] Stroke received:', strokeData.points?.length, 'points');
+
+        // Récupérer les traits éventuellement bufferisés par le stub installé
+        // au chargement du script (avant que la classe soit instanciée).
+        const previousBridge = window.pencilKitBridge;
+        const buffered = (previousBridge && Array.isArray(previousBridge.__buffered))
+            ? previousBridge.__buffered.slice()
+            : [];
+
+        const handleStroke = (strokeData) => {
+            try {
+                console.log('[PencilKit] Stroke received:', strokeData && strokeData.points ? strokeData.points.length : 0, 'points');
                 const annotation = viewer.convertPencilKitStroke(strokeData);
                 if (annotation) {
                     // Sauvegarder comme annotation standard
@@ -8825,19 +8870,32 @@ class CleanPDFViewer {
                         viewer.annotations.set(pageId, []);
                     }
                     viewer.annotations.get(pageId).push(annotation);
-                    
+
                     // Redessiner
                     const canvas = document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
                     if (canvas) {
                         viewer.redrawAnnotations(canvas, pageId);
                     }
-                    
+
                     // Sauvegarder en base
                     viewer.saveAnnotations();
                     console.log('[PencilKit] Stroke saved as annotation');
                 }
-            },
-            
+            } catch (err) {
+                // Ne JAMAIS jeter — Swift utilise un Result<>; un throw ici
+                // déclencherait la trace "is not a function" déjà observée
+                // et le canvas natif serait effacé sans que le trait soit conservé.
+                console.error('[PencilKit] handleStroke error:', err);
+            }
+        };
+
+        // API globale que Swift appelle
+        window.pencilKitBridge = {
+            __realBridge: true,
+            __buffered: [],
+            // Appele par Swift quand un trait est termine
+            onStrokeCompleted: handleStroke,
+
             // Appele par Swift pour obtenir les infos de la page visible
             getPageInfo: () => {
                 return {
@@ -8849,12 +8907,18 @@ class CleanPDFViewer {
                     opacity: viewer.currentOpacity
                 };
             },
-            
+
             // Appele par Swift quand l'orientation change
             onOrientationChanged: () => {
                 viewer.notifyPencilKitPageRect();
             }
         };
+
+        // Rejouer les traits arrivés avant que le viewer soit prêt
+        if (buffered.length > 0) {
+            console.log('[PencilKit] Replaying', buffered.length, 'buffered strokes');
+            buffered.forEach(handleStroke);
+        }
     }
     
     // Convertir un stroke PencilKit en annotation standard
