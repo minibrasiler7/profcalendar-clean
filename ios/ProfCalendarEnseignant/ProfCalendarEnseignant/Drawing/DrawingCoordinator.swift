@@ -141,12 +141,57 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
             scale: currentScale
         )
 
-        // Envoyer au web via JavaScript bridge
-        sendStrokeToWeb(strokeData: strokeData)
+        // Envoyer au web ET attendre la confirmation avant d'effacer PencilKit.
+        //
+        // L'ancien code utilisait `asyncAfter(0.1)` pour effacer le canvas natif
+        // 100 ms après l'envoi. Le problème : si le bridge JS échouait à
+        // restituer le trait (conversion qui retourne null, pageId introuvable,
+        // canvas web pas encore prêt, etc.), PencilKit s'effaçait quand même
+        // et l'utilisateur voyait son trait disparaître.
+        //
+        // Maintenant on demande au JS de confirmer (return true) avant d'effacer.
+        // Si le bridge échoue, on garde la trace native — l'utilisateur verra
+        // son trait au moins en PencilKit, le temps qu'on diagnostique.
+        sendStrokeAndClearOnSuccess(strokeData: strokeData, canvasView: canvasView)
+    }
+}
 
-        // Effacer le canvas PencilKit (le web prend le relais pour l'affichage)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            canvasView.drawing = PKDrawing()
+extension DrawingCoordinator {
+    fileprivate func sendStrokeAndClearOnSuccess(strokeData: StrokeData, canvasView: PKCanvasView) {
+        guard let json = StrokeConverter.toJSON(strokeData) else {
+            print("[DrawingCoordinator] toJSON failed, keeping PencilKit stroke visible")
+            return
+        }
+
+        // JS qui appelle le bridge et retourne true seulement si la trace a
+        // été enregistrée et redessinée côté web. Toute exception → false.
+        let js = """
+        (function() {
+            try {
+                if (window.pencilKitBridge && typeof window.pencilKitBridge.onStrokeCompleted === 'function') {
+                    window.pencilKitBridge.onStrokeCompleted(\(json));
+                    return true;
+                }
+            } catch (e) {
+                console.log('[bridge] onStrokeCompleted threw', e && e.message);
+            }
+            return false;
+        })();
+        """
+
+        DispatchQueue.main.async { [weak self, weak canvasView] in
+            self?.webView?.evaluateJavaScript(js) { result, error in
+                if let error = error {
+                    print("[DrawingCoordinator] JS error, NOT clearing PencilKit: \(error.localizedDescription)")
+                    return
+                }
+                let success = (result as? Bool) ?? false
+                guard success, let canvasView = canvasView else {
+                    print("[DrawingCoordinator] JS bridge did not confirm stroke, keeping PencilKit drawing")
+                    return
+                }
+                canvasView.drawing = PKDrawing()
+            }
         }
     }
 }

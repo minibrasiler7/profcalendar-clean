@@ -8809,27 +8809,41 @@ class CleanPDFViewer {
         
         // API globale que Swift appelle
         window.pencilKitBridge = {
-            // Appele par Swift quand un trait est termine
+            // Appelé par Swift quand un trait est terminé.
+            // RETOURNE true si la trace a bien été enregistrée + redessinée
+            // sur le canvas web, false sinon. Swift n'efface PencilKit que
+            // sur true — sinon le trait reste visible en natif et on évite
+            // l'effacement fantôme observé en classe.
             onStrokeCompleted: (strokeData) => {
-                console.log('[PencilKit] Stroke received:', strokeData.points?.length, 'points');
-                const annotation = viewer.convertPencilKitStroke(strokeData);
-                if (annotation) {
-                    // Sauvegarder comme annotation standard
+                try {
+                    console.log('[PencilKit] Stroke received:', strokeData?.points?.length, 'points');
+                    const annotation = viewer.convertPencilKitStroke(strokeData);
+                    if (!annotation) {
+                        console.log('[PencilKit] convertPencilKitStroke returned null, NOT confirming');
+                        return false;
+                    }
+
                     const pageId = annotation.pageId;
                     if (!viewer.annotations.has(pageId)) {
                         viewer.annotations.set(pageId, []);
                     }
                     viewer.annotations.get(pageId).push(annotation);
-                    
-                    // Redessiner
+
                     const canvas = document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
-                    if (canvas) {
-                        viewer.redrawAnnotations(canvas, pageId);
+                    if (!canvas) {
+                        console.log('[PencilKit] No annotation-canvas for pageId', pageId, '— rolling back');
+                        // Retirer l'annotation qu'on vient d'ajouter pour ne pas créer
+                        // un orphelin que Swift considère "réussi".
+                        viewer.annotations.get(pageId).pop();
+                        return false;
                     }
-                    
-                    // Sauvegarder en base
+                    viewer.redrawAnnotations(canvas, pageId);
                     viewer.saveAnnotations();
                     console.log('[PencilKit] Stroke saved as annotation');
+                    return true;
+                } catch (e) {
+                    console.log('[PencilKit] onStrokeCompleted threw:', e && e.message);
+                    return false;
                 }
             },
             
@@ -8942,6 +8956,29 @@ class CleanPDFViewer {
     }
 
     setTool(tool) {
+        console.log('[Tool] setTool appelé avec:', tool);
+
+        // Filet de sécurité : si on change d'outil pendant qu'un stroke est
+        // encore en cours (transition rapide depuis l'iPad), on commit ou on
+        // jette le stroke courant pour éviter de bloquer le viewer dans un
+        // état "isDrawing=true" perpétuel — symptôme observé : aucun toucher
+        // ne réagit, il faut fermer/rouvrir l'app.
+        if (this.isDrawing) {
+            console.log('[Tool] Drawing en cours au moment du changement d\'outil, reset défensif');
+            try {
+                if (this.currentCanvas && this.currentPageId) {
+                    this.endAnnotation({clientX: 0, clientY: 0, pressure: 0}, this.currentCanvas, this.currentPageId);
+                }
+            } catch (e) {
+                console.log('[Tool] endAnnotation a throwé pendant le reset:', e && e.message);
+            }
+            this.isDrawing = false;
+            this.isAnnotating = false;
+            this.currentCanvas = null;
+            this.currentPageId = null;
+            this.currentStroke = null;
+        }
+
         // PencilKit: activer/desactiver selon l'outil
         if (this.isPencilKitAvailable) {
             if (tool === 'pen' || tool === 'highlighter') {
@@ -8950,8 +8987,6 @@ class CleanPDFViewer {
                 this.deactivatePencilKit();
             }
         }
-        
-        console.log('[Tool] setTool appelé avec:', tool);
 
         // Désélectionner la zone de texte si on change d'outil (sauf si on reste sur text)
         if (tool !== 'text' && this.selectedTextBox) {
