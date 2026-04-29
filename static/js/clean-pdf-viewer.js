@@ -8894,18 +8894,62 @@ class CleanPDFViewer {
                 console.log('[PencilKit] Stroke received:', strokeData && strokeData.points ? strokeData.points.length : 0, 'points');
                 const annotation = viewer.convertPencilKitStroke(strokeData);
                 if (annotation) {
-                    // Sauvegarder comme annotation standard
-                    const pageId = annotation.pageId;
+                    // ÉTAPE CRITIQUE : normaliser pageId pour qu'il corresponde au
+                    // format utilisé par les attributs data-page-id du DOM ET aux
+                    // clés de viewer.annotations (Map).
+                    //  - "page-1" (ancien getCurrentPageId)  → 1
+                    //  - "1"                                  → 1
+                    //  - 1                                    → 1
+                    //  - "1_1765040967410" (page custom)      → "1_1765040967410"
+                    let pageId = annotation.pageId;
+                    if (typeof pageId === 'string') {
+                        if (pageId.startsWith('page-')) {
+                            const num = parseInt(pageId.substring(5));
+                            if (!isNaN(num)) pageId = num;
+                        } else if (!pageId.includes('_')) {
+                            const num = parseInt(pageId);
+                            if (!isNaN(num)) pageId = num;
+                        }
+                    }
+                    annotation.pageId = pageId;
+
                     if (!viewer.annotations.has(pageId)) {
                         viewer.annotations.set(pageId, []);
                     }
                     viewer.annotations.get(pageId).push(annotation);
 
-                    // Redessiner
-                    const canvas = document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
+                    // Mettre à jour l'historique pour que undo/redo fonctionne
+                    if (typeof viewer.addAnnotationToHistory === 'function') {
+                        // addAnnotationToHistory ré-ajoute aussi à viewer.annotations,
+                        // donc on doit retirer celui qu'on vient de pousser pour
+                        // éviter le doublon.
+                        viewer.annotations.get(pageId).pop();
+                        viewer.addAnnotationToHistory(pageId, annotation);
+                    }
+
+                    // Chercher le canvas correspondant
+                    let canvas = document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
+                    if (!canvas) {
+                        // Fallback : prendre n'importe quel canvas visible si la
+                        // recherche par data-page-id échoue (pageId mal formé).
+                        const wrappers = viewer.container.querySelectorAll('.pdf-page-wrapper');
+                        for (const wrapper of wrappers) {
+                            const rect = wrapper.getBoundingClientRect();
+                            if (rect.bottom > 0 && rect.top < window.innerHeight) {
+                                canvas = wrapper.querySelector('.annotation-canvas');
+                                if (canvas) break;
+                            }
+                        }
+                    }
                     if (canvas) {
                         viewer.redrawAnnotations(canvas, pageId);
+                    } else {
+                        console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
                     }
+
+                    // Sans isDirty=true, saveAnnotations log "Pas de modifications,
+                    // sauvegarde ignorée" et le trait est perdu au prochain reload.
+                    viewer.isDirty = true;
 
                     // Sauvegarder en base
                     viewer.saveAnnotations();
@@ -9036,8 +9080,39 @@ class CleanPDFViewer {
     }
     
     // Obtenir l'ID de la page courante
+    // IMPORTANT : doit retourner le MÊME format que `data-page-id` dans le DOM
+    // (entier "1", "2"... pour les pages PDF, ou string "1_xxx" pour les pages
+    // ajoutées). Si on retourne autre chose ("page-1"), document.querySelector
+    // sur l'attribut data-page-id échoue silencieusement et le trait du stylet
+    // PencilKit n'est jamais redessiné — symptôme : "le trait disparaît".
     getCurrentPageId() {
-        return 'page-' + (this.currentPage || 1);
+        // Essayer d'abord la page en cours d'affichage (currentPage)
+        const wrappers = this.container ? this.container.querySelectorAll('.pdf-page-wrapper') : [];
+        const targetPage = this.currentPage || 1;
+
+        // Chercher un wrapper dont data-page-id correspond à la page logique
+        for (const wrapper of wrappers) {
+            const pid = wrapper.dataset && wrapper.dataset.pageId;
+            if (!pid) continue;
+            // Pour les pages standards, data-page-id est juste un nombre
+            if (parseInt(pid) === targetPage && !pid.includes('_')) {
+                return parseInt(pid);
+            }
+        }
+
+        // Fallback : prendre le premier wrapper visible à l'écran
+        for (const wrapper of wrappers) {
+            const rect = wrapper.getBoundingClientRect();
+            if (rect.bottom > 0 && rect.top < window.innerHeight) {
+                const pid = wrapper.dataset && wrapper.dataset.pageId;
+                if (pid) {
+                    return pid.includes('_') ? pid : parseInt(pid);
+                }
+            }
+        }
+
+        // Fallback final
+        return targetPage;
     }
 
     setTool(tool) {
