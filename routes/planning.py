@@ -1035,6 +1035,33 @@ def calendar_view():
 
     logger.error(f"DEBUG Calendar - memos_by_date_period keys: {list(memos_by_date_period.keys())}")
 
+    # Mode "fragment" : la navigation client-side (boutons précédent/suivant
+    # de semaine) demande seulement la grille hebdomadaire sous forme JSON
+    # plutôt que la page entière. On évite ainsi le rechargement complet
+    # (PDF, modals, JS, CSS) qui rendait la navigation lente.
+    fragment_kind = request.args.get('fragment')
+    if fragment_kind == 'week':
+        from utils.jinja_filters import format_date_full, format_date
+        grid_html = render_template(
+            'planning/_week_grid.html',
+            week_dates=week_dates,
+            current_week=current_week,
+            periods=periods,
+            schedule_grid=schedule_grid,
+            planning_grid=planning_grid,
+            holidays_info=holidays_info,
+            days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+            today=date_type.today(),
+            merged_info=merged_info,
+            memos_by_date_period=memos_by_date_period,
+        )
+        return jsonify({
+            'success': True,
+            'week': current_week.isoformat(),
+            'title': f"Semaine du {format_date_full(week_dates[0])} au {format_date(week_dates[4])}",
+            'grid_html': grid_html,
+        })
+
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
                          current_week=current_week,
@@ -1484,6 +1511,9 @@ def save_planning():
             period_number=period_number
         ).first()
 
+        # Action déterminée par les champs : si tous vides, on supprime ;
+        # sinon on crée/met à jour.
+        deleted = False
         if (classroom_id or mixed_group_id or title or description):
             if existing:
                 # Mettre à jour
@@ -1491,8 +1521,8 @@ def save_planning():
                 existing.mixed_group_id = mixed_group_id
                 existing.title = title
                 existing.description = description
-                existing.group_id = group_id  # Sauvegarder l'ID du groupe
-                existing.set_checklist_states(checklist_states)  # Sauvegarder les états des checkboxes
+                existing.group_id = group_id
+                existing.set_checklist_states(checklist_states)
             else:
                 # Créer nouveau
                 planning = Planning(
@@ -1503,17 +1533,68 @@ def save_planning():
                     period_number=period_number,
                     title=title,
                     description=description,
-                    group_id=group_id  # Sauvegarder l'ID du groupe
+                    group_id=group_id
                 )
-                planning.set_checklist_states(checklist_states)  # Sauvegarder les états des checkboxes
+                planning.set_checklist_states(checklist_states)
                 db.session.add(planning)
         else:
-            # Supprimer si vide
             if existing:
                 db.session.delete(existing)
+                deleted = True
 
         db.session.commit()
-        return jsonify({'success': True})
+
+        # Construire la réponse enrichie : permet au JS de mettre à jour
+        # juste la cellule concernée sans recharger la page.
+        planning_payload = None
+        if not deleted and (classroom_id or mixed_group_id or title or description):
+            classroom_info = None
+            if classroom_id:
+                cls = Classroom.query.get(classroom_id)
+                if cls:
+                    classroom_info = {
+                        'id': cls.id,
+                        'name': cls.name,
+                        'subject': cls.subject,
+                        'color': cls.color,
+                    }
+            mixed_group_info = None
+            if mixed_group_id:
+                from models.mixed_group import MixedGroup
+                mg = MixedGroup.query.get(mixed_group_id)
+                if mg:
+                    mixed_group_info = {
+                        'id': mg.id,
+                        'name': mg.name,
+                        'subject': mg.subject,
+                        'color': mg.color,
+                    }
+            group_name = None
+            if group_id:
+                from models.student_group import StudentGroup
+                grp = StudentGroup.query.get(group_id)
+                if grp:
+                    group_name = grp.name
+
+            planning_payload = {
+                'date': date_str,
+                'period_number': period_number,
+                'classroom': classroom_info,
+                'mixed_group': mixed_group_info,
+                'title': title or '',
+                'description': description or '',
+                'group_name': group_name,
+                'is_custom_task': not classroom_id and not mixed_group_id and bool(title),
+            }
+
+        return jsonify({
+            'success': True,
+            'deleted': deleted,
+            'planning': planning_payload,
+            # Pour le fallback "horaire type" si la planif est supprimée
+            'date': date_str,
+            'period_number': period_number,
+        })
 
     except Exception as e:
         db.session.rollback()

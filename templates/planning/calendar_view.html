@@ -1650,176 +1650,8 @@ if (typeof pdfjsLib !== 'undefined') {
                 <i class="fas fa-calendar-week"></i> Vue hebdomadaire
             </h3>
 
-            <div class="weekly-schedule">
-                <table class="schedule-table">
-                    <thead>
-                        <tr>
-                            <th class="time-column">Heure</th>
-                            {% for date in week_dates %}
-                            <th class="day-header {% if date == today %}today{% endif %}">
-                                <div class="day-name">{{ days[loop.index0] }}</div>
-                                <div class="day-date">{{ date.strftime('%d/%m') }}</div>
-                            </th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for period in periods %}
-                        {% set period_num = period.number %}
-                        
-                        {# Vérifier si cette période doit être skippée car fusionnée avec la précédente #}
-                        {% set should_skip = false %}
-                        {% for day_idx in range(5) %}
-                            {% if not should_skip and merged_info.get(day_idx, {}).get(period_num, {}).get('merged_with_previous', false) %}
-                                {% set should_skip = true %}
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if not should_skip %}
-                        <tr>
-                            <td class="time-slot">
-                                <div class="period-number">P{{ period_num }}</div>
-                                <div class="period-time">
-                                    {{ period.start.strftime('%H:%M') }}<br>
-                                    {{ period.end.strftime('%H:%M') }}
-                                </div>
-                            </td>
-                            {% for date in week_dates %}
-                            {% set i = loop.index0 %}
-                            {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period_num|string %}
-                            {% set schedule_key = i|string + '_' + period_num|string %}
-                            
-                            {# Vérifier si cette période est fusionnée pour ce jour spécifique #}
-                            {% set day_merged_info = merged_info.get(i, {}).get(period_num, {}) %}
-                            {% set is_merged_for_day = day_merged_info.get('has_merged_next', false) %}
-                            {% set is_merged_with_previous = day_merged_info.get('merged_with_previous', false) %}
-                            
-                            <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}{% if is_merged_with_previous %} merged-continuation{% endif %}"
-                                data-date="{{ date.strftime('%Y-%m-%d') }}"
-                                data-period="{% if is_merged_for_day %}{{ period_num }}-{{ period_num + 1 }}{% else %}{{ period_num }}{% endif %}"
-                                {% if schedule_key in schedule_grid %}
-                                    {% set schedule = schedule_grid[schedule_key] %}
-                                    {% if schedule.classroom_id %}
-                                        data-default-classroom="{{ schedule.classroom_id }}"
-                                    {% elif schedule.mixed_group_id %}
-                                        data-default-mixed-group="{{ schedule.mixed_group_id }}"
-                                    {% elif schedule.custom_task_title %}
-                                        data-default-custom-task="true"
-                                    {% endif %}
-                                {% endif %}
-                                data-debug-schedule-key="{{ schedule_key }}"
-                                data-debug-has-schedule="{{ schedule_key in schedule_grid }}"
-                                onclick="openPlanningModal(this)">
-                                {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
-
-                                {# Si cette période est fusionnée avec la précédente, ne rien afficher #}
-                                {% if is_merged_with_previous %}
-                                    <!-- Cellule fusionnée - contenu affiché dans la période précédente -->
-                                {% elif holiday_info.is_holiday %}
-                                    <!-- Jour férié -->
-                                    <div class="holiday-block">
-                                        <div class="holiday-day-name">{{ holiday_info.name }}</div>
-                                    </div>
-                                {% elif date >= current_user.school_year_start and date <= current_user.school_year_end %}
-                                    {% if planning_key in planning_grid %}
-                                        <!-- Planification spécifique -->
-                                        {% set planning = planning_grid[planning_key] %}
-                                        {% if planning.classroom_id %}
-                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.classroom.color }};">
-                                            <div class="class-name">{{ planning.classroom.name }}</div>
-                                            <div class="class-subject">{{ planning.classroom.subject }}</div>
-                                        {% elif planning.mixed_group_id %}
-                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.mixed_group.color }};">
-                                            <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
-                                            <div class="class-subject">{{ planning.mixed_group.subject }}</div>
-                                        {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
-                                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280;">
-                                            <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
-                                            <div class="class-subject">Autre</div>
-                                        {% endif %}
-                                            {% if planning.title %}
-                                            <div class="planning-title">
-                                                {{ planning.title }}
-                                            </div>
-                                            {% endif %}
-                                            {% if planning.group %}
-                                            <div class="group-name" style="font-size: 0.65rem; color: white; font-style: italic; margin-top: 2px;">
-                                                {{ planning.group.name }}
-                                            </div>
-                                            {% endif %}
-                                            {% if planning.checklist_summary %}
-                                            <div class="checklist-summary">
-                                                {% if planning.checklist_summary.all_checked %}
-                                                    <i class="fas fa-check-circle checklist-icon all-checked"></i>
-                                                {% elif planning.checklist_summary.checked > 0 %}
-                                                    <i class="fas fa-tasks checklist-icon partial"></i>
-                                                {% else %}
-                                                    <i class="fas fa-times-circle checklist-icon none-checked"></i>
-                                                {% endif %}
-                                                <span class="checklist-count">{{ planning.checklist_summary.checked }}/{{ planning.checklist_summary.total }}</span>
-                                            </div>
-                                            {% endif %}
-                                            {% set date_str = date.strftime('%Y-%m-%d') %}
-                                            {% set memo_key = date_str ~ '_' ~ period.number %}
-                                            {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                            <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
-                                                <i class="fas fa-sticky-note"></i>
-                                                <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    {% elif schedule_key in schedule_grid %}
-                                        <!-- Horaire type -->
-                                        {% set schedule = schedule_grid[schedule_key] %}
-                                        {% if schedule.classroom_id %}
-                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
-                                                <div class="class-name">{{ schedule.classroom.name }}</div>
-                                                <div class="class-subject">{{ schedule.classroom.subject }}</div>
-                                                {% set date_str = date.strftime('%Y-%m-%d') %}
-                                                {% set memo_key = date_str ~ '_' ~ period.number %}
-                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
-                                                    <i class="fas fa-sticky-note"></i>
-                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        {% elif schedule.mixed_group_id %}
-                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
-                                                <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
-                                                <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
-                                                {% set date_str = date.strftime('%Y-%m-%d') %}
-                                                {% set memo_key = date_str ~ '_' ~ period.number %}
-                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
-                                                    <i class="fas fa-sticky-note"></i>
-                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        {% elif schedule.custom_task_title %}
-                                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280; opacity: 0.7;">
-                                                <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
-                                                <div class="class-subject">Autre</div>
-                                                {% set date_str = date.strftime('%Y-%m-%d') %}
-                                                {% set memo_key = date_str ~ '_' ~ period.number %}
-                                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
-                                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
-                                                    <i class="fas fa-sticky-note"></i>
-                                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
-                                                </div>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endif %}
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="weekly-schedule" id="weeklyScheduleContainer">
+                {% include "planning/_week_grid.html" %}
             </div>
         </div>
 
@@ -2105,6 +1937,12 @@ if (typeof pdfjsLib !== 'undefined') {
 
         <div class="modal-footer">
             <button class="btn btn-outline" onclick="closePlanningModal()">Annuler</button>
+            {# Bouton "Effacer" : visible seulement quand une planification existe
+               déjà sur la période (classe ou titre rempli). Activé/désactivé
+               dynamiquement par openPlanningModal en fonction du contenu. #}
+            <button class="btn btn-danger" id="planningClearBtn" onclick="clearPlanningFromModal()" style="display: none;">
+                <i class="fas fa-trash-alt"></i> Effacer
+            </button>
             <button class="btn btn-primary" onclick="savePlanning()">
                 <i class="fas fa-save"></i> Enregistrer
             </button>
@@ -2499,43 +2337,87 @@ function handleAnnualDayClick(element, dateStr) {
     openDayPlanningModal(dateStr, classroomId);
 }
 
-function navigateToWeek(weekStartDate) {
-    // Ajouter un effet visuel de chargement sur la vue hebdomadaire uniquement
+// Date ISO (YYYY-MM-DD) de la semaine actuellement affichée. Mise à jour à
+// chaque navigation via fetchWeekFragment().
+let currentDisplayedWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
+
+/**
+ * Récupère la grille hebdomadaire pour la semaine demandée et la remplace
+ * dans le DOM sans recharger la page.
+ *
+ * Utilise l'endpoint `/planning/calendar?week=YYYY-MM-DD&fragment=week` qui
+ * retourne `{title, grid_html}` au lieu de la page complète. Évite le full
+ * reload (PDF.js, modals, JS, CSS) qui rendait la navigation lente.
+ */
+async function fetchWeekFragment(weekStartDate, opts = {}) {
     const weeklyView = document.querySelector('.weekly-view');
-    weeklyView.classList.add('loading');
+    if (weeklyView) weeklyView.classList.add('loading');
 
-    // Utiliser le formulaire existant avec la date de début de semaine
-    document.getElementById('weekInput').value = weekStartDate;
+    try {
+        const url = `/planning/calendar?week=${encodeURIComponent(weekStartDate)}&fragment=week`;
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Erreur fragment');
 
-    // Soumettre le formulaire
-    document.getElementById('weekNavigationForm').submit();
+        // Mettre à jour le titre "Semaine du X au Y"
+        const titleEl = document.querySelector('.current-week-title');
+        if (titleEl) titleEl.textContent = data.title;
+
+        // Remplacer le contenu de la grille (les data-attributes onclick
+        // sont conservés car ils sont dans le HTML inline rendu par Jinja).
+        const container = document.getElementById('weeklyScheduleContainer');
+        if (container) container.innerHTML = data.grid_html;
+
+        // Mettre à jour l'URL pour cohérence (back-button, refresh).
+        currentDisplayedWeek = data.week;
+        const params = new URLSearchParams(window.location.search);
+        params.set('week', data.week);
+        const newUrl = window.location.pathname + '?' + params.toString();
+        if (opts.replaceState) {
+            history.replaceState({week: data.week}, '', newUrl);
+        } else {
+            history.pushState({week: data.week}, '', newUrl);
+        }
+    } catch (err) {
+        console.error('Erreur navigation semaine :', err);
+        // Fallback : ancien comportement (full reload) si le fragment échoue,
+        // pour ne pas bloquer l'utilisateur.
+        document.getElementById('weekInput').value = weekStartDate;
+        document.getElementById('weekNavigationForm').submit();
+        return;
+    } finally {
+        if (weeklyView) weeklyView.classList.remove('loading');
+    }
+}
+
+function navigateToWeek(weekStartDate) {
+    fetchWeekFragment(weekStartDate);
 }
 
 function navigateWeek(direction) {
-    // Ajouter un effet de chargement sur la vue hebdomadaire
-    const weeklyView = document.querySelector('.weekly-view');
-    weeklyView.classList.add('loading');
-
-    const currentDate = new Date('{{ current_week }}');
+    const currentDate = new Date(currentDisplayedWeek);
     if (direction === 'prev') {
         currentDate.setDate(currentDate.getDate() - 7);
     } else {
         currentDate.setDate(currentDate.getDate() + 7);
     }
-
-    document.getElementById('weekInput').value = formatDate(currentDate);
-    document.getElementById('weekNavigationForm').submit();
+    fetchWeekFragment(formatDate(currentDate));
 }
 
 function navigateToToday() {
-    // Ajouter un effet de chargement sur la vue hebdomadaire
-    const weeklyView = document.querySelector('.weekly-view');
-    weeklyView.classList.add('loading');
-
     const today = new Date();
-    document.getElementById('weekInput').value = formatDate(today);
-    document.getElementById('weekNavigationForm').submit();
+    fetchWeekFragment(formatDate(today));
 }
+
+// Bouton "back" du navigateur : revenir à la semaine de l'historique.
+window.addEventListener('popstate', (event) => {
+    const params = new URLSearchParams(window.location.search);
+    const week = params.get('week') || (event.state && event.state.week);
+    if (week && week !== currentDisplayedWeek) {
+        fetchWeekFragment(week, {replaceState: true});
+    }
+});
 
 function selectClassroom(classroomId) {
     const url = new URL(window.location);
@@ -6598,6 +6480,7 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
 
     // Charger la planification existante si elle existe (avant de charger les groupes)
     let existingGroupId = null;
+    let hasExistingPlanning = false;
     try {
         const response = await fetch(`/planning/api/slot/${date}/${periodNumber}?classroom_id=${classroomId}`);
         const data = await response.json();
@@ -6607,6 +6490,9 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
             document.getElementById('modalPlanningTitle').value = data.slot.title || '';
             document.getElementById('modalDescription').value = data.slot.description || '';
             existingGroupId = data.slot.group_id;
+            hasExistingPlanning = !!(data.slot.has_planning ||
+                                      data.slot.title ||
+                                      data.slot.description);
 
             console.log('📄 Planification chargée:', {
                 title: data.slot.title,
@@ -6624,6 +6510,12 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
         // Vider les champs en cas d'erreur
         document.getElementById('modalPlanningTitle').value = '';
         document.getElementById('modalDescription').value = '';
+    }
+
+    // Bouton "Effacer" : visible uniquement quand une planification existe.
+    const clearBtn = document.getElementById('planningClearBtn');
+    if (clearBtn) {
+        clearBtn.style.display = hasExistingPlanning ? '' : 'none';
     }
 
     // Charger les groupes si c'est une classe normale
@@ -6666,9 +6558,120 @@ function closePlanningModal() {
         overlay.style.display = 'none';
     }
 
+    // Cacher le bouton Effacer (sera réactivé par openPlanningModal/showPeriodAttendance si besoin)
+    const clearBtn = document.getElementById('planningClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+
     // Nettoyer le contexte
     window.currentPlanningContext = null;
     currentPlanningCell = null;
+}
+
+// ============================================================
+// Helpers pour mise à jour locale d'une cellule (pas de reload)
+// ============================================================
+
+function _calendarEscapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+}
+
+function _findCellByDateAndPeriod(dateStr, periodNumber) {
+    // La cellule peut avoir data-period="3" ou "3-4" (fusionnée).
+    const num = String(periodNumber);
+    const direct = document.querySelector(
+        `.schedule-cell[data-date="${dateStr}"][data-period="${num}"]`
+    );
+    if (direct) return direct;
+    // Fallback : période fusionnée commençant par ce numéro.
+    const merged = document.querySelector(
+        `.schedule-cell[data-date="${dateStr}"][data-period^="${num}-"]`
+    );
+    return merged;
+}
+
+/**
+ * Reconstruit le HTML d'un .class-block.planned à partir de la réponse
+ * server du save_planning. Réplique la logique Jinja de calendar_view.html.
+ */
+function _buildPlannedClassBlockHTML(planning, isMerged) {
+    const mergedClass = isMerged ? ' merged-block' : '';
+    let bgColor = '#6B7280';
+    let nameHtml = '<i class="fas fa-tasks"></i> Tâche personnalisée';
+    let subject = 'Autre';
+
+    if (planning.classroom) {
+        bgColor = planning.classroom.color || '#6B7280';
+        nameHtml = _calendarEscapeHtml(planning.classroom.name);
+        subject = planning.classroom.subject || '';
+    } else if (planning.mixed_group) {
+        bgColor = planning.mixed_group.color || '#6B7280';
+        nameHtml = '<i class="fas fa-users"></i> ' + _calendarEscapeHtml(planning.mixed_group.name);
+        subject = planning.mixed_group.subject || '';
+    }
+
+    let html = `<div class="class-block planned${mergedClass}" style="background-color: ${bgColor};">`;
+    html += `<div class="class-name">${nameHtml}</div>`;
+    html += `<div class="class-subject">${_calendarEscapeHtml(subject)}</div>`;
+    if (planning.title) {
+        html += `<div class="planning-title">${_calendarEscapeHtml(planning.title)}</div>`;
+    }
+    if (planning.group_name) {
+        html += `<div class="group-name" style="font-size: 0.65rem; color: white; font-style: italic; margin-top: 2px;">${_calendarEscapeHtml(planning.group_name)}</div>`;
+    }
+    html += '</div>';
+    return html;
+}
+
+/**
+ * Reconstruit le HTML "horaire type" (cellule sans planification mais avec
+ * un Schedule par défaut). Utilise les variables globales scheduleGrid et
+ * classrooms déjà injectées par Jinja.
+ */
+function _buildScheduleFallbackHTML(cell) {
+    const defaultClassroom = cell.dataset.defaultClassroom;
+    const defaultMixedGroup = cell.dataset.defaultMixedGroup;
+    const defaultCustomTask = cell.dataset.defaultCustomTask;
+
+    if (defaultClassroom) {
+        const cls = (classrooms || []).find(c => String(c.id) === String(defaultClassroom) && c.type !== 'mixed_group');
+        if (cls) {
+            return `<div class="class-block" style="background-color: ${cls.color}; opacity: 0.7;">`
+                 + `<div class="class-name">${_calendarEscapeHtml(cls.name)}</div>`
+                 + `<div class="class-subject">${_calendarEscapeHtml(cls.subject || '')}</div>`
+                 + `</div>`;
+        }
+    }
+    if (defaultMixedGroup) {
+        const mg = (classrooms || []).find(c => String(c.id) === String(defaultMixedGroup) && c.type === 'mixed_group');
+        if (mg) {
+            return `<div class="class-block" style="background-color: ${mg.color}; opacity: 0.7;">`
+                 + `<div class="class-name"><i class="fas fa-users"></i> ${_calendarEscapeHtml(mg.name)}</div>`
+                 + `<div class="class-subject">${_calendarEscapeHtml(mg.subject || '')}</div>`
+                 + `</div>`;
+        }
+    }
+    return ''; // pas de schedule par défaut → cellule vide
+}
+
+/**
+ * Met à jour la cellule (date, period_number) avec la planification donnée.
+ * Si planning est null/undefined, on remet la cellule en mode "horaire type"
+ * (ou vide si pas d'horaire).
+ */
+function updateCellAfterSave(dateStr, periodNumber, planning) {
+    const cell = _findCellByDateAndPeriod(dateStr, periodNumber);
+    if (!cell) return;
+
+    const isMerged = (cell.dataset.period || '').includes('-');
+
+    if (planning) {
+        cell.innerHTML = _buildPlannedClassBlockHTML(planning, isMerged);
+    } else {
+        cell.innerHTML = _buildScheduleFallbackHTML(cell);
+    }
 }
 
 /**
@@ -6727,14 +6730,13 @@ async function savePlanning() {
             if (data.success) {
                 console.log('✅ Planification sauvegardée avec succès');
 
-                // Si une option de répétition est sélectionnée, appliquer le pattern
+                // Pattern de répétition : touche plusieurs semaines → reload nécessaire.
+                let needsFullReload = false;
                 if (shouldApplyPattern) {
                     console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${finalGroupId}, classroomId=${finalClassroomId}`);
                     const patternResponse = await fetch('/planning/apply-group-pattern', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             start_date: date,
                             period_number: finalPeriodNumber,
@@ -6743,19 +6745,22 @@ async function savePlanning() {
                             group_id: finalGroupId
                         })
                     });
-
                     const patternResult = await patternResponse.json();
-
                     if (patternResult.success) {
                         console.log(`✅ Pattern appliqué: ${patternResult.message}`);
+                        needsFullReload = true;
                     } else {
                         console.log(`⚠️ Erreur lors de l'application du pattern: ${patternResult.message}`);
                     }
                 }
 
                 closePlanningModal();
-                // Recharger la page pour afficher la mise à jour
-                location.reload();
+                if (needsFullReload) {
+                    location.reload();
+                } else {
+                    // Mise à jour locale de la cellule (instantané, pas de reload)
+                    updateCellAfterSave(date, finalPeriodNumber, data.planning);
+                }
             } else {
                 alert('Erreur lors de la sauvegarde: ' + (data.error || 'Erreur inconnue'));
             }
@@ -6830,13 +6835,61 @@ async function savePlanning() {
         if (data.success) {
             console.log('✅ Planification sauvegardée avec succès');
             closePlanningModal();
-            // Recharger la page pour afficher la mise à jour
-            location.reload();
+            // Mise à jour locale de la cellule (pas de reload)
+            updateCellAfterSave(date, parseInt(basePeriod), data.planning);
         } else {
             alert('Erreur lors de la sauvegarde: ' + (data.error || data.message || 'Erreur inconnue'));
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur de connexion au serveur');
+    }
+}
+
+/**
+ * Effacer la planification de la période actuellement ouverte dans le modal.
+ * Envoie un POST avec tous les champs vides → le serveur supprime la
+ * planification et retourne `deleted: true`. La cellule retombe alors sur
+ * son horaire type s'il existe, sinon devient vide.
+ */
+async function clearPlanningFromModal() {
+    if (!confirm('Effacer la planification de cette période ?')) return;
+
+    let date, periodNumber;
+    if (window.currentPlanningContext) {
+        date = window.currentPlanningContext.date;
+        periodNumber = parseInt(window.currentPlanningContext.periodNumber);
+    } else if (currentPlanningCell) {
+        date = currentPlanningCell.dataset.date;
+        const period = currentPlanningCell.dataset.period || '';
+        periodNumber = parseInt(period.includes('-') ? period.split('-')[0] : period);
+    } else {
+        console.error('Aucune période sélectionnée pour effacer');
+        return;
+    }
+
+    try {
+        const response = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                date: date,
+                period_number: periodNumber,
+                classroom_id: null,
+                title: '',
+                description: '',
+                group_id: null
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            closePlanningModal();
+            updateCellAfterSave(date, periodNumber, null);  // null = restore schedule fallback
+        } else {
+            alert('Erreur : ' + (data.error || data.message || 'Erreur inconnue'));
+        }
+    } catch (e) {
+        console.error('Erreur lors de l\'effacement :', e);
         alert('Erreur de connexion au serveur');
     }
 }

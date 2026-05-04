@@ -1,0 +1,184 @@
+{# Partial template : grille hebdomadaire de planification.
+
+   Extrait de calendar_view.html (lignes 1654-1822 dans la version pré-extraction)
+   pour pouvoir être rendu indépendamment depuis l'endpoint fragment :
+     /planning/calendar?week=YYYY-MM-DD&fragment=week
+
+   Variables attendues dans le contexte (toutes déjà fournies par
+   `routes/planning.py::calendar_view`) :
+     - week_dates, today, days
+     - periods, merged_info
+     - planning_grid (dict 'YYYY-MM-DD_N' -> Planning)
+     - schedule_grid (dict 'i_N' -> Schedule)
+     - holidays_info (dict 'YYYY-MM-DD' -> {is_holiday, name})
+     - memos_by_date_period (dict 'YYYY-MM-DD_N' -> [memos])
+#}
+<table class="schedule-table">
+    <thead>
+        <tr>
+            <th class="time-column">Heure</th>
+            {% for date in week_dates %}
+            <th class="day-header {% if date == today %}today{% endif %}">
+                <div class="day-name">{{ days[loop.index0] }}</div>
+                <div class="day-date">{{ date.strftime('%d/%m') }}</div>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for period in periods %}
+        {% set period_num = period.number %}
+
+        {# Vérifier si cette période doit être skippée car fusionnée avec la précédente #}
+        {% set should_skip = false %}
+        {% for day_idx in range(5) %}
+            {% if not should_skip and merged_info.get(day_idx, {}).get(period_num, {}).get('merged_with_previous', false) %}
+                {% set should_skip = true %}
+            {% endif %}
+        {% endfor %}
+
+        {% if not should_skip %}
+        <tr>
+            <td class="time-slot">
+                <div class="period-number">P{{ period_num }}</div>
+                <div class="period-time">
+                    {{ period.start.strftime('%H:%M') }}<br>
+                    {{ period.end.strftime('%H:%M') }}
+                </div>
+            </td>
+            {% for date in week_dates %}
+            {% set i = loop.index0 %}
+            {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period_num|string %}
+            {% set schedule_key = i|string + '_' + period_num|string %}
+
+            {# Vérifier si cette période est fusionnée pour ce jour spécifique #}
+            {% set day_merged_info = merged_info.get(i, {}).get(period_num, {}) %}
+            {% set is_merged_for_day = day_merged_info.get('has_merged_next', false) %}
+            {% set is_merged_with_previous = day_merged_info.get('merged_with_previous', false) %}
+
+            <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}{% if is_merged_with_previous %} merged-continuation{% endif %}"
+                data-date="{{ date.strftime('%Y-%m-%d') }}"
+                data-period="{% if is_merged_for_day %}{{ period_num }}-{{ period_num + 1 }}{% else %}{{ period_num }}{% endif %}"
+                {% if schedule_key in schedule_grid %}
+                    {% set schedule = schedule_grid[schedule_key] %}
+                    {% if schedule.classroom_id %}
+                        data-default-classroom="{{ schedule.classroom_id }}"
+                    {% elif schedule.mixed_group_id %}
+                        data-default-mixed-group="{{ schedule.mixed_group_id }}"
+                    {% elif schedule.custom_task_title %}
+                        data-default-custom-task="true"
+                    {% endif %}
+                {% endif %}
+                data-debug-schedule-key="{{ schedule_key }}"
+                data-debug-has-schedule="{{ schedule_key in schedule_grid }}"
+                onclick="openPlanningModal(this)">
+                {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
+
+                {# Si cette période est fusionnée avec la précédente, ne rien afficher #}
+                {% if is_merged_with_previous %}
+                    <!-- Cellule fusionnée - contenu affiché dans la période précédente -->
+                {% elif holiday_info.is_holiday %}
+                    <!-- Jour férié -->
+                    <div class="holiday-block">
+                        <div class="holiday-day-name">{{ holiday_info.name }}</div>
+                    </div>
+                {% elif date >= current_user.school_year_start and date <= current_user.school_year_end %}
+                    {% if planning_key in planning_grid %}
+                        <!-- Planification spécifique -->
+                        {% set planning = planning_grid[planning_key] %}
+                        {% if planning.classroom_id %}
+                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.classroom.color }};">
+                            <div class="class-name">{{ planning.classroom.name }}</div>
+                            <div class="class-subject">{{ planning.classroom.subject }}</div>
+                        {% elif planning.mixed_group_id %}
+                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.mixed_group.color }};">
+                            <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
+                            <div class="class-subject">{{ planning.mixed_group.subject }}</div>
+                        {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
+                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280;">
+                            <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
+                            <div class="class-subject">Autre</div>
+                        {% endif %}
+                            {% if planning.title %}
+                            <div class="planning-title">
+                                {{ planning.title }}
+                            </div>
+                            {% endif %}
+                            {% if planning.group %}
+                            <div class="group-name" style="font-size: 0.65rem; color: white; font-style: italic; margin-top: 2px;">
+                                {{ planning.group.name }}
+                            </div>
+                            {% endif %}
+                            {% if planning.checklist_summary %}
+                            <div class="checklist-summary">
+                                {% if planning.checklist_summary.all_checked %}
+                                    <i class="fas fa-check-circle checklist-icon all-checked"></i>
+                                {% elif planning.checklist_summary.checked > 0 %}
+                                    <i class="fas fa-tasks checklist-icon partial"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle checklist-icon none-checked"></i>
+                                {% endif %}
+                                <span class="checklist-count">{{ planning.checklist_summary.checked }}/{{ planning.checklist_summary.total }}</span>
+                            </div>
+                            {% endif %}
+                            {% set date_str = date.strftime('%Y-%m-%d') %}
+                            {% set memo_key = date_str ~ '_' ~ period.number %}
+                            {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                            <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                <i class="fas fa-sticky-note"></i>
+                                <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% elif schedule_key in schedule_grid %}
+                        <!-- Horaire type -->
+                        {% set schedule = schedule_grid[schedule_key] %}
+                        {% if schedule.classroom_id %}
+                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
+                                <div class="class-name">{{ schedule.classroom.name }}</div>
+                                <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                    <i class="fas fa-sticky-note"></i>
+                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% elif schedule.mixed_group_id %}
+                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
+                                <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
+                                <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                    <i class="fas fa-sticky-note"></i>
+                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% elif schedule.custom_task_title %}
+                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280; opacity: 0.7;">
+                                <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
+                                <div class="class-subject">Autre</div>
+                                {% set date_str = date.strftime('%Y-%m-%d') %}
+                                {% set memo_key = date_str ~ '_' ~ period.number %}
+                                {% if memos_by_date_period and memo_key in memos_by_date_period %}
+                                <div class="memo-badge" title="{{ memos_by_date_period[memo_key]|length }} mémo(s)">
+                                    <i class="fas fa-sticky-note"></i>
+                                    <span class="memo-count">{{ memos_by_date_period[memo_key]|length }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>

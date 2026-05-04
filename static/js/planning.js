@@ -141,6 +141,15 @@ function openPlanningModal(cell, fromAnnualView = false) {
             }
         }
 
+        // Bouton "Effacer" : ne l'afficher que si une planification existe déjà.
+        const clearBtn = document.getElementById('planningClearBtn');
+        if (clearBtn) {
+            const hasExisting = !!(data.success && data.planning &&
+                (data.planning.classroom_id || data.planning.mixed_group_id ||
+                 data.planning.title || data.planning.description));
+            clearBtn.style.display = hasExisting ? '' : 'none';
+        }
+
         // Adapter l'interface selon si la période est passée ou non
         const descriptionContainer = document.getElementById('modalDescriptionContainer');
         const saveButton = document.querySelector('.modal-footer .btn-primary');
