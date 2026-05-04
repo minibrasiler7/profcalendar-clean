@@ -279,6 +279,27 @@ def create_app(config_name='development'):
         except Exception:
             db.session.rollback()
 
+        # Filet de sécurité : colonnes Exercise (badge_pattern, badge_color)
+        # ajoutées par la migration 20260504_badge_image_001. Si l'arbre
+        # Alembic est dans un état multi-head sur Render, la migration peut
+        # ne jamais s'appliquer alors que le code Python lit déjà ces
+        # colonnes — ce qui empoisonne les transactions Postgres
+        # (psycopg.errors.InFailedSqlTransaction). Cet ALTER idempotent
+        # garantit que les colonnes existent à chaque démarrage de l'app,
+        # indépendamment de l'état Alembic.
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_pattern VARCHAR(25)"
+            ))
+            db.session.execute(db.text(
+                "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_color VARCHAR(7)"
+            ))
+            db.session.commit()
+            print("✅ Colonnes badge_pattern/badge_color vérifiées sur exercises")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification colonnes badge échouée: {e}")
+
         # Table subscriptions
         try:
             db.session.execute(db.text("""
