@@ -26,12 +26,14 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table('exercises', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('badge_pattern', sa.String(length=25), nullable=True))
-        batch_op.add_column(sa.Column('badge_color', sa.String(length=7), nullable=True))
+    # Idempotent : si la migration a été partiellement appliquée (cas rencontré
+    # quand l'arbre Alembic était dans un état multi-head), `ADD COLUMN IF NOT
+    # EXISTS` évite l'erreur "column already exists" sans rien casser.
+    # Postgres ≥ 9.6, ce qui est largement satisfait sur Render.
+    op.execute("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_pattern VARCHAR(25)")
+    op.execute("ALTER TABLE exercises ADD COLUMN IF NOT EXISTS badge_color VARCHAR(7)")
 
 
 def downgrade():
-    with op.batch_alter_table('exercises', schema=None) as batch_op:
-        batch_op.drop_column('badge_color')
-        batch_op.drop_column('badge_pattern')
+    op.execute("ALTER TABLE exercises DROP COLUMN IF EXISTS badge_color")
+    op.execute("ALTER TABLE exercises DROP COLUMN IF EXISTS badge_pattern")
