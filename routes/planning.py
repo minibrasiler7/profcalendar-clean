@@ -2066,7 +2066,15 @@ def lesson_view():
 @planning_bp.route('/get-class-resources/<int:classroom_id>')
 @login_required
 def get_class_resources(classroom_id):
-    """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage"""
+    """Récupérer les ressources d'une classe avec structure hiérarchique et épinglage.
+
+    Utilise le helper centralisé `list_classroom_files` qui :
+      - lit les DEUX tables (`class_files_v2` + `class_files` legacy)
+      - ne supprime AUCUNE ligne (auparavant cette fonction effaçait
+        silencieusement les entrées v2 orphelines, ce qui faisait disparaître
+        des fichiers visibles dans le file_manager)
+      - signale les références cassées au lieu de les masquer
+    """
     try:
         # Nettoyer toute transaction corrompue (ex: orphelins StudentFileShare)
         try:
@@ -2074,10 +2082,8 @@ def get_class_resources(classroom_id):
         except Exception:
             pass
 
-        from models.class_file import ClassFile
-        from models.student import LegacyClassFile
         from models.classroom import Classroom
-        from models.exercise import Exercise
+        from utils.class_files_listing import list_classroom_files
 
         # Déterminer si c'est un groupe mixte ou une classe normale
         item_type = request.args.get('type', 'classroom')
@@ -2116,111 +2122,10 @@ def get_class_resources(classroom_id):
         if not class_name:
             class_name = classroom.name
 
-        # Récupérer les fichiers des DEUX systèmes
-        new_class_files = ClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
-        legacy_class_files = LegacyClassFile.query.filter_by(classroom_id=actual_classroom_id).all()
-
-        # Récupérer les exercices liés à cette classe
-        class_exercises = Exercise.query.filter_by(classroom_id=actual_classroom_id).all()
-
-        total_files = len(new_class_files) + len(legacy_class_files) + len(class_exercises)
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Found {len(new_class_files)} new files + {len(legacy_class_files)} legacy files + {len(class_exercises)} exercises = {total_files} total for classroom {actual_classroom_id} (type={item_type}, original_id={classroom_id})")
-        current_app.logger.error(f"=== CLASS RESOURCES DEBUG === Classroom name: {class_name}")
-        
-        # Organiser les fichiers par structure hiérarchique
-        files_data = []
-        pinned_files = []
-        
-        # Traiter les fichiers du nouveau système
-        for file in new_class_files:
-            folder_path = file.folder_path or ''
-
-            # Déterminer le nom du fichier — ignorer les fichiers orphelins (supprimés)
-            filename = file.own_original_filename
-            filetype = file.own_file_type
-            filesize = file.own_file_size
-
-            if not filename:
-                # Pas de métadonnées propres → vérifier le UserFile source
-                uf = file.user_file
-                if uf:
-                    filename = uf.original_filename
-                    filetype = filetype or uf.file_type
-                    filesize = filesize if filesize is not None else uf.file_size
-                else:
-                    # Fichier orphelin (source supprimée + pas de métadonnées propres)
-                    # Ne pas l'afficher — le supprimer silencieusement de la base
-                    try:
-                        db.session.delete(file)
-                    except Exception:
-                        pass
-                    continue  # Passer au fichier suivant
-
-            file_data = {
-                'id': file.id,
-                'original_filename': filename,
-                'file_type': filetype or 'unknown',
-                'file_size': filesize or 0,
-                'folder_path': folder_path,
-                'is_pinned': file.is_pinned,
-                'pin_order': file.pin_order,
-                'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
-            }
-
-            if file.is_pinned:
-                pinned_files.append(file_data)
-            else:
-                files_data.append(file_data)
-
-        # Committer les suppressions d'orphelins si nécessaire
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-        
-        # Traiter les fichiers du système legacy (avec épinglage)
-        for file in legacy_class_files:
-            # Extraire le chemin du dossier depuis la description
-            folder_path = ''
-            if file.description and "Copié dans le dossier:" in file.description:
-                folder_path = file.description.split("Copié dans le dossier:")[1].strip()
-            
-            file_data = {
-                'id': file.id,
-                'original_filename': file.original_filename,
-                'file_type': file.file_type,
-                'file_size': file.file_size,
-                'folder_path': folder_path,
-                'is_pinned': file.is_pinned,
-                'pin_order': file.pin_order,
-                'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None
-            }
-            
-            if file.is_pinned:
-                pinned_files.append(file_data)
-            else:
-                files_data.append(file_data)
-        
-        # Ajouter les exercices comme des fichiers spéciaux
-        for ex in class_exercises:
-            ex_data = {
-                'id': f'exercise-{ex.id}',
-                'exercise_id': ex.id,
-                'original_filename': ex.title or 'Exercice sans titre',
-                'file_type': 'exercise',
-                'file_size': 0,
-                'folder_path': '',
-                'is_pinned': False,
-                'pin_order': 0,
-                'uploaded_at': ex.created_at.isoformat() if ex.created_at else None,
-                'total_points': ex.total_points,
-                'block_count': ex.blocks.count() if ex.blocks else 0,
-                'is_exercise': True
-            }
-            files_data.append(ex_data)
-
-        # Trier les fichiers épinglés par pin_order
-        pinned_files.sort(key=lambda x: x['pin_order'])
+        # Récupérer fichiers (v2 + legacy) + exercices via le helper unifié
+        pinned_files, files_data = list_classroom_files(
+            actual_classroom_id, include_exercises=True
+        )
 
         # Restaurer l'autoflush
         db.session.autoflush = old_autoflush
@@ -2229,7 +2134,7 @@ def get_class_resources(classroom_id):
             'success': True,
             'pinned_files': pinned_files,
             'files': files_data,
-            'class_name': mixed_group.name if item_type == 'mixed_group' else classroom.name
+            'class_name': class_name
         })
 
     except Exception as e:

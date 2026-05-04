@@ -614,74 +614,34 @@ def get_classes():
 @file_manager_bp.route('/get-class-files/<int:class_id>')
 @login_required
 def get_class_files(class_id):
-    """Récupérer les fichiers d'une classe"""
+    """Récupérer les fichiers d'une classe (helper unifié v2 + legacy)."""
     try:
-        print(f"🔍 get_class_files appelée pour class_id={class_id}, user_id={current_user.id}")
-        
-        # Importer ici pour éviter les imports circulaires
         from models.classroom import Classroom
+        from utils.class_files_listing import list_classroom_files
 
-        # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=class_id,
             user_id=current_user.id
         ).first()
-
         if not classroom:
-            print(f"❌ get_class_files: Classe {class_id} introuvable pour user {current_user.id}")
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-            
-        print(f"✅ get_class_files: Classe trouvée - {classroom.name} (ID: {classroom.id})")
 
-        # Récupérer tous les fichiers de la classe (incluant ceux copiés et partagés)
-        print(f"🔍 Requête ClassFile.query.filter_by(classroom_id={class_id})")
-        class_files = ClassFile.query.filter_by(
-            classroom_id=class_id
-        ).all()
-        
-        print(f"🔍 get_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
-        
-        # Debug: Vérifier aussi tous les fichiers de toutes les classes de cet utilisateur
-        all_user_class_files = db.session.query(ClassFile).join(
-            Classroom, ClassFile.classroom_id == Classroom.id
-        ).filter(
-            Classroom.user_id == current_user.id
-        ).all()
-        print(f"🔍 DEBUG: {len(all_user_class_files)} fichier(s) total pour toutes les classes de user {current_user.id}")
-        for i, file in enumerate(all_user_class_files):
-            filename = file.original_filename or 'Fichier supprimé'
-            print(f"🔍   ALL_FILES [{i+1}] ClassID:{file.classroom_id} | ID:{file.id} | {filename}")
+        # Récupérer fichiers v2 + legacy (sans exercices ici)
+        pinned_files, files_data = list_classroom_files(class_id, include_exercises=False)
 
-        # Diagnostic: Afficher les détails de chaque fichier
-        for i, file in enumerate(class_files):
-            filename = file.original_filename or 'Fichier supprimé'
-            file_type = file.file_type or 'Unknown'
-            print(f"🔍   [{i+1}] {filename} | Type: {file_type} | Dossier: {file.folder_path}")
-
-        files_data = []
-        for file in class_files:
-            if not file.original_filename:
-                # Pas de métadonnées, on ignore
-                continue
-
-            files_data.append({
-                'id': file.id,
-                'original_filename': file.original_filename,
-                'file_type': file.file_type,
-                'file_size': file.file_size,
-                'folder_name': file.folder_path,
-                'uploaded_at': file.copied_at.isoformat() if file.copied_at else None
-            })
-
-        # Exercices interactifs sont maintenant dans le gestionnaire d'exercices séparé (/exercises/manager)
+        # Format historique attendu par le file_manager UI : champ `folder_name`
+        # au lieu de `folder_path`. On adapte sans casser la compat.
+        all_files = pinned_files + files_data
+        for f in all_files:
+            f['folder_name'] = f.get('folder_path', '')
 
         return jsonify({
             'success': True,
-            'files': files_data
+            'files': all_files,
         })
 
     except Exception as e:
-        print(f"Erreur lors de la récupération des fichiers: {e}")
+        current_app.logger.error(f"get_class_files error: {e}")
         return jsonify({
             'success': False,
             'message': 'Erreur lors de la récupération des fichiers',

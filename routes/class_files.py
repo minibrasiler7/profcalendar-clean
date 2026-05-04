@@ -337,46 +337,38 @@ def copy_folder_recursive(folder, class_id, base_path):
 @class_files_bp.route('/list/<int:class_id>')
 @login_required
 def list_class_files(class_id):
-    """Lister tous les fichiers d'une classe avec leur structure"""
+    """Lister tous les fichiers d'une classe (helper unifié v2 + legacy).
+
+    Avant : ne lisait que la table legacy (`class_files`) via l'alias
+    `LegacyClassFile as ClassFile` du fichier. Résultat : les fichiers
+    récents stockés en `class_files_v2` n'apparaissaient pas ici, créant
+    une incohérence avec le calendrier.
+    """
     try:
-        # Vérifier que la classe appartient à l'utilisateur
+        from utils.class_files_listing import list_classroom_files
+
         classroom = Classroom.query.filter_by(
             id=class_id,
             user_id=current_user.id
         ).first()
-        
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
-        
-        # Récupérer tous les fichiers de la classe
-        class_files = ClassFile.query.filter_by(classroom_id=class_id).order_by(ClassFile.original_filename).all()
-        
-        print(f"🔍 [class_files] list_class_files pour classe {class_id}: {len(class_files)} fichier(s) trouvé(s)")
-        
-        # Organiser les fichiers par structure
-        files_data = []
-        for class_file in class_files:
-            # Extraire le chemin du dossier depuis la description
-            folder_path = ''
-            if class_file.description and "Copié dans le dossier:" in class_file.description:
-                folder_path = class_file.description.split("Copié dans le dossier:")[1].strip()
-            
-            files_data.append({
-                'id': class_file.id,
-                'original_filename': class_file.original_filename,
-                'file_type': class_file.file_type,
-                'file_size': class_file.file_size,
-                'folder_path': folder_path,
-                'copied_at': class_file.uploaded_at.isoformat() if class_file.uploaded_at else None,
-                'thumbnail': False  # Pour l'instant pas de miniatures pour les fichiers de classe
-            })
-        
+
+        pinned, files = list_classroom_files(class_id, include_exercises=False)
+        all_files = pinned + files
+
+        # Format historique : la clé `copied_at` est utilisée par certains
+        # consommateurs JS au lieu de `uploaded_at`. On garde les deux.
+        for f in all_files:
+            f.setdefault('copied_at', f.get('uploaded_at'))
+            f.setdefault('thumbnail', False)
+
         return jsonify({
             'success': True,
-            'files': files_data,
+            'files': all_files,
             'class_name': classroom.name
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
