@@ -922,10 +922,14 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 <div class="reward-value" style="color:#f59e0b;" id="results-xp">0</div>
                 <div class="reward-label">XP gagnés</div>
             </div>
-            <div class="reward-item">
-                <div class="reward-value" style="color:#fbbf24;" id="results-gold">0</div>
-                <div class="reward-label">Or gagné</div>
-            </div>
+        </div>
+        <!-- Badge gagné (si seuil atteint) -->
+        <div id="results-badge" style="display:none;margin-top:1rem;padding:1rem;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;border:2px solid #fbbf24;text-align:center;">
+            <p style="font-weight:800;color:#92400e;margin:0 0 0.5rem;font-size:1rem;">
+                <i class="fas fa-award"></i> Badge débloqué !
+            </p>
+            <div id="results-badge-img" style="width:96px;height:96px;margin:0 auto 0.5rem;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.15);"></div>
+            <p id="results-badge-title" style="font-weight:700;color:#92400e;margin:0;font-size:0.9rem;"></p>
         </div>
         <div id="results-item" style="display:none;margin-top:1rem;padding:0.8rem;background:linear-gradient(135deg,#f0f4ff,#eef2ff);border-radius:12px;border:2px solid #c7d2fe;text-align:center;">
             <p style="font-weight:700;color:#4338ca;margin:0 0 0.3rem;font-size:0.9rem;">
@@ -943,6 +947,26 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 </div>
 
 <script>
+// ============================================================
+// Construit le SVG du badge à partir d'un pattern + couleur.
+// Utilisé sur l'écran de résultats quand le seuil est atteint.
+// ============================================================
+function buildBadgeSvg(pattern, color, size) {
+    if (!pattern || pattern.length !== 25) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 5 5" style="display:block;"><rect width="5" height="5" fill="#E5E7EB"/></svg>`;
+    }
+    const fill = color || '#9CA3AF';
+    let parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 5 5" shape-rendering="crispEdges" style="display:block;"><rect width="5" height="5" fill="#FFFFFF"/>`];
+    for (let i = 0; i < 25; i++) {
+        if (pattern[i] === '1') {
+            const x = i % 5, y = Math.floor(i / 5);
+            parts.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>`);
+        }
+    }
+    parts.push('</svg>');
+    return parts.join('');
+}
+
 // ============================================================
 // Confirm leave
 // ============================================================
@@ -1494,8 +1518,17 @@ async function submitExercise() {
             }
             document.getElementById('results-detail').textContent = detailText;
             document.getElementById('results-xp').textContent = '+' + data.xp_earned;
-            document.getElementById('results-gold').textContent = '+' + data.gold_earned;
             document.getElementById('results-level').textContent = 'Niveau ' + data.new_level;
+
+            // Show badge if earned
+            if (data.badge_earned && data.badge_pattern && data.badge_color) {
+                const badgeDiv = document.getElementById('results-badge');
+                if (badgeDiv) {
+                    badgeDiv.style.display = 'block';
+                    document.getElementById('results-badge-img').innerHTML = buildBadgeSvg(data.badge_pattern, data.badge_color, 96);
+                    document.getElementById('results-badge-title').textContent = data.exercise_title || '';
+                }
+            }
 
             // Show item won
             if (data.item_won) {

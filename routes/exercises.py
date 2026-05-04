@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, send_file
 from flask_login import login_required, current_user
 from extensions import db
+import io
 from models.exercise import Exercise, ExerciseBlock, ExerciseFolder
 from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
 from models.rpg import StudentRPGProfile, Badge, StudentBadge
@@ -105,8 +106,18 @@ def save():
             exercise.subject = data.get('subject', exercise.subject if exercise_id else '')
             exercise.level = data.get('level', exercise.level if exercise_id else '')
             exercise.accept_typos = data.get('accept_typos', exercise.accept_typos if exercise_id else False)
-            exercise.bonus_gold_threshold = data.get('bonus_gold_threshold', exercise.bonus_gold_threshold if exercise_id else 80)
+            # bonus_gold_threshold : champ ignoré (or supprimé du jeu en 2026-05).
             exercise.badge_threshold = data.get('badge_threshold', exercise.badge_threshold if exercise_id else 100)
+
+            # Image du badge : générée une seule fois, à la première sauvegarde
+            # (ou lors d'une sauvegarde si elle n'existe pas encore). On ne la
+            # régénère pas à chaque modification pour que l'enseignant puisse
+            # compter sur une image stable une fois publiée.
+            if not exercise.badge_pattern or not exercise.badge_color:
+                from utils.badge_generator import generate_badge
+                pattern, color = generate_badge()
+                exercise.badge_pattern = pattern
+                exercise.badge_color = color
 
             exercise.is_draft = data.get('is_draft', True)
             if 'folder_id' in data:
@@ -162,7 +173,11 @@ def save():
         return jsonify({
             'success': True,
             'exercise_id': exercise.id,
-            'message': 'Exercice sauvegardé'
+            'message': 'Exercice sauvegardé',
+            # Image du badge : permet à l'éditeur d'afficher l'aperçu
+            # juste après la première sauvegarde, sans recharger la page.
+            'badge_pattern': exercise.badge_pattern,
+            'badge_color': exercise.badge_color,
         })
 
     except Exception as e:
@@ -1003,3 +1018,94 @@ def manager_breadcrumb():
             breadcrumb.insert(0, {'id': folder.id, 'name': folder.name})
             folder = folder.parent
     return jsonify({'success': True, 'breadcrumb': breadcrumb})
+
+
+@exercises_bp.route('/<int:exercise_id>/quick-publish-current-class')
+@login_required
+@teacher_required
+def quick_publish_current_class(exercise_id):
+    """Publie l'exercice à la classe en cours de cours (lesson_view).
+
+    Cette route est conçue pour être :
+      - scannée via un QR code affiché dans l'éditeur
+      - cliquée depuis un lien partagé sur un autre appareil
+
+    Elle utilise `get_current_or_next_lesson` pour identifier la classe
+    actuellement enseignée par l'utilisateur connecté, puis crée (ou réutilise)
+    une ExercisePublication, et redirige vers une page de confirmation.
+    """
+    from routes.planning import get_current_or_next_lesson
+
+    exercise = Exercise.query.get_or_404(exercise_id)
+    if exercise.user_id != current_user.id:
+        flash("Vous n'avez pas accès à cet exercice.", 'error')
+        return redirect(url_for('exercises.index'))
+
+    result = get_current_or_next_lesson(current_user)
+    if not result:
+        flash("Aucun cours en cours pour le moment.", 'warning')
+        return redirect(url_for('exercises.edit', exercise_id=exercise_id))
+
+    lesson, is_now, lesson_date = result
+    if not lesson or not lesson.classroom_id:
+        flash("Pas de classe associée au cours actuel.", 'warning')
+        return redirect(url_for('exercises.edit', exercise_id=exercise_id))
+
+    classroom_id = lesson.classroom_id
+    classroom = Classroom.query.get(classroom_id)
+    classroom_name = classroom.name if classroom else f'Classe #{classroom_id}'
+
+    # Créer ou réutiliser la publication
+    existing = ExercisePublication.query.filter_by(
+        exercise_id=exercise_id,
+        classroom_id=classroom_id
+    ).first()
+
+    if not existing:
+        pub = ExercisePublication(
+            exercise_id=exercise_id,
+            classroom_id=classroom_id,
+            published_by=current_user.id,
+            published_at=datetime.utcnow(),
+            mode='classique',
+        )
+        db.session.add(pub)
+        exercise.is_published = True
+        exercise.is_draft = False
+        # Ne pas écraser exercise.classroom_id si déjà lié à une autre classe
+        if not exercise.classroom_id:
+            exercise.classroom_id = classroom_id
+        db.session.commit()
+        flash(f'« {exercise.title} » envoyé à la classe {classroom_name}.', 'success')
+    else:
+        flash(f'« {exercise.title} » est déjà publié dans la classe {classroom_name}.', 'info')
+
+    return render_template('exercises/quick_publish_confirmation.html',
+                           exercise=exercise,
+                           classroom_name=classroom_name,
+                           is_current_lesson=is_now)
+
+
+@exercises_bp.route('/<int:exercise_id>/qr-image.png')
+@login_required
+@teacher_required
+def qr_image(exercise_id):
+    """Génère le QR code PNG pour publier l'exercice à la classe en cours.
+
+    Le QR code encode l'URL `quick_publish_current_class` et permet à un
+    enseignant de scanner depuis un autre appareil pour déclencher la
+    publication sans manipuler l'éditeur.
+    """
+    exercise = Exercise.query.get_or_404(exercise_id)
+    if exercise.user_id != current_user.id:
+        return jsonify({'error': 'forbidden'}), 403
+
+    import qrcode
+    target_url = url_for('exercises.quick_publish_current_class',
+                         exercise_id=exercise_id, _external=True)
+
+    img = qrcode.make(target_url)
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return send_file(buf, mimetype='image/png')

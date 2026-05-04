@@ -7,14 +7,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../api/client';
 import colors from '../../theme/colors';
+import BadgeImage from '../../components/BadgeImage';
 
 export default function MissionsScreen({ navigation }) {
   const [missions, setMissions] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const timerRef = useRef(null);
@@ -26,6 +29,14 @@ export default function MissionsScreen({ navigation }) {
       setMissions(all.filter((m) => m.mode !== 'combat'));
     } catch (err) {
       console.log('Missions error:', err.response?.data);
+    }
+    try {
+      const badgeRes = await api.get('/student/exercise-badges');
+      setBadges(badgeRes.data.badges || []);
+    } catch (err) {
+      // Endpoint optionnel : si l'API ne le supporte pas (ancienne version),
+      // on n'affiche simplement pas la galerie.
+      console.log('Badges error:', err.response?.data);
     } finally {
       setLoading(false);
     }
@@ -139,12 +150,56 @@ export default function MissionsScreen({ navigation }) {
     );
   }
 
+  // Galerie de badges affichée en en-tête de la liste des missions.
+  // Chaque badge est en couleur si l'élève a atteint le seuil de l'exercice,
+  // grisé sinon. Tap sur un badge → ouvre l'exercice correspondant.
+  const renderBadgeGallery = () => {
+    if (!badges || badges.length === 0) return null;
+    return (
+      <View style={styles.badgeGalleryContainer}>
+        <Text style={styles.badgeGalleryTitle}>🏅 Mes badges</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.badgeGalleryScroll}
+        >
+          {badges.map((b) => (
+            <View
+              key={b.exercise_id}
+              style={[
+                styles.badgeItem,
+                b.earned ? styles.badgeItemEarned : styles.badgeItemLocked,
+              ]}
+            >
+              <BadgeImage
+                pattern={b.badge_pattern}
+                color={b.badge_color}
+                size={64}
+                greyed={!b.earned}
+              />
+              <Text
+                style={[
+                  styles.badgeItemTitle,
+                  b.earned ? styles.badgeItemTitleEarned : styles.badgeItemTitleLocked,
+                ]}
+                numberOfLines={2}
+              >
+                {b.exercise_title}
+              </Text>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
         data={missions}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderMissionItem}
+        ListHeaderComponent={renderBadgeGallery}
         ListEmptyComponent={<Text style={styles.empty}>Aucune mission pour le moment</Text>}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -199,5 +254,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 40,
     fontStyle: 'italic',
+  },
+  // Galerie de badges
+  badgeGalleryContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  badgeGalleryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  badgeGalleryScroll: {
+    gap: 10,
+    paddingRight: 8,
+  },
+  badgeItem: {
+    width: 90,
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  badgeItemEarned: {
+    backgroundColor: '#fefce8',
+    borderColor: '#fde047',
+  },
+  badgeItemLocked: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+  },
+  badgeItemTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 14,
+  },
+  badgeItemTitleEarned: {
+    color: '#92400e',
+  },
+  badgeItemTitleLocked: {
+    color: colors.textLight,
   },
 });

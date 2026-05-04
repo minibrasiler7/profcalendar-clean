@@ -49,8 +49,11 @@ class Exercise(db.Model):
     is_published = db.Column(db.Boolean, default=False)
     is_draft = db.Column(db.Boolean, default=True)
     total_points = db.Column(db.Integer, default=0)  # XP total calculé
-    bonus_gold_threshold = db.Column(db.Integer, default=80)  # % pour bonus or
+    bonus_gold_threshold = db.Column(db.Integer, default=80)  # LEGACY - or supprimé du jeu (2026-05). Conservé pour compat DB.
     badge_threshold = db.Column(db.Integer, default=100)  # % minimum pour badge
+    # Image du badge générée à la création/sauvegarde (cf. utils/badge_generator.py)
+    badge_pattern = db.Column(db.String(25), nullable=True)  # 25 chars '0'/'1' (0=blanc, 1=couleur)
+    badge_color = db.Column(db.String(7), nullable=True)    # hex #RRGGBB de la couleur "remplie"
     folder_id = db.Column(db.Integer, nullable=True)  # LEGACY - ancien lien vers FileFolder
     exercise_folder_id = db.Column(db.Integer, db.ForeignKey('exercise_folders.id'), nullable=True)  # Nouveau gestionnaire
     classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=True)  # Lien vers une classe
@@ -81,8 +84,9 @@ class Exercise(db.Model):
             'is_published': self.is_published,
             'is_draft': self.is_draft,
             'total_points': self.total_points,
-            'bonus_gold_threshold': self.bonus_gold_threshold,
             'badge_threshold': self.badge_threshold,
+            'badge_pattern': self.badge_pattern,
+            'badge_color': self.badge_color,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
         if include_blocks:

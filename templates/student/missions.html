@@ -316,9 +316,6 @@
                 <strong>Niveau {{ rpg.level }} — {{ rpg.xp_total }} XP</strong>
                 <div class="xp-bar"><div class="xp-bar-fill" style="width: {{ rpg.xp_progress }}%;"></div></div>
             </div>
-            <div class="rpg-mini-info">
-                <span><i class="fas fa-coins" style="color:#f59e0b;"></i> {{ rpg.gold }}</span>
-            </div>
         </a>
         {% endif %}
     </div>
@@ -341,6 +338,31 @@
     {% endif %}
 
     {% if missions %}
+        {# Galerie de badges : tous les exercices publiés à la classe, en couleur si gagnés, grisés sinon. #}
+        {% from "exercises/_badge_macros.html" import render_badge %}
+        {% set has_badges = missions|selectattr('exercise.badge_pattern')|list %}
+        {% if has_badges %}
+        <div style="margin: 1.25rem 0; padding: 1rem; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h2 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #1f2937; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-award" style="color: #f59e0b;"></i> Mes badges
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.75rem;">
+                {% for m in has_badges %}
+                    {% set ex = m.exercise %}
+                    {% set earned = m.attempt and m.attempt.is_completed and m.attempt.score_percentage >= ex.badge_threshold %}
+                    <div style="text-align: center; padding: 0.5rem; background: {{ '#fefce8' if earned else '#f9fafb' }}; border-radius: 10px; border: 1px solid {{ '#fde047' if earned else '#e5e7eb' }};">
+                        <div style="width: 64px; height: 64px; margin: 0 auto 0.4rem; border-radius: 8px; overflow: hidden; opacity: {{ 1 if earned else 0.55 }};">
+                            {{ render_badge(ex.badge_pattern, ex.badge_color, 64, not earned) }}
+                        </div>
+                        <div style="font-size: 0.7rem; font-weight: 600; color: {{ '#92400e' if earned else '#9ca3af' }}; line-height: 1.2; word-break: break-word;">
+                            {{ ex.title }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         {% for m in missions %}
         {% if rpg and rpg.avatar_class and not m.on_cooldown %}
         <a href="{{ url_for('student_auth.solve_exercise', exercise_id=m.exercise.id) }}"

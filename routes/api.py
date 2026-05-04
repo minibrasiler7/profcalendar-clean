@@ -1691,27 +1691,21 @@ def student_submit_mission(mission_id):
     attempt.max_score = max_points
     attempt.completed_at = datetime.utcnow()
 
-    # XP et or via le profil RPG
+    # XP via le profil RPG (or supprimé du jeu en 2026-05).
     from models.rpg import StudentRPGProfile
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
     xp_earned = 0
-    gold_earned = 0
+    gold_earned = 0  # legacy, toujours 0 maintenant
 
     old_level = rpg.level if rpg else 1
     if rpg:
         xp_earned = base_score + combo_bonus_xp
         rpg.add_xp(xp_earned)
         attempt.xp_earned = xp_earned
-
-        # Bonus or si score >= seuil
+        attempt.gold_earned = 0
         score_pct = (base_score / max_points * 100) if max_points > 0 else 0
-        gold_threshold = exercise.bonus_gold_threshold or 80
-        if score_pct >= gold_threshold:
-            gold_earned = max(1, xp_earned // 10)
-            rpg.add_gold(gold_earned)
-            attempt.gold_earned = gold_earned
 
-        # Vérifier les badges (la fonction ajoute directement en DB)
+        # Vérifier les badges RPG (achievements globaux)
         check_badges(student, rpg)
 
         # Attribuer un objet RPG aléatoire
@@ -1721,21 +1715,33 @@ def student_submit_mission(mission_id):
     db.session.commit()
 
     score_pct_result = round((base_score / max_points * 100) if max_points > 0 else 0, 1)
+
+    # Badge d'exercice : gagné si score >= seuil. Toujours envoyé pour que
+    # l'app mobile puisse afficher l'animation "badge débloqué" et stocker
+    # l'image générée à la création de l'exercice.
+    badge_threshold = exercise.badge_threshold if exercise.badge_threshold is not None else 100
+    badge_earned = score_pct_result >= badge_threshold
+
     result = {
         'success': True,
-        'server_version': 'v7-api-combo-2026-02-28',
+        'server_version': 'v8-api-no-gold-2026-05-04',
         'attempt_id': attempt.id,
         'score': base_score,
         'max_score': max_points,
         'score_percentage': score_pct_result,
         'percentage': score_pct_result,
         'xp_earned': xp_earned,
-        'gold_earned': gold_earned,
+        'gold_earned': 0,  # legacy, toujours 0
         'combo_bonus_xp': combo_bonus_xp,
         'new_level': rpg.level if rpg else 1,
         'old_level': old_level,
         'leveled_up': (rpg.level > old_level) if rpg else False,
-        'blocks_results': blocks_results
+        'blocks_results': blocks_results,
+        'badge_earned': badge_earned,
+        'badge_pattern': exercise.badge_pattern,
+        'badge_color': exercise.badge_color,
+        'badge_threshold': badge_threshold,
+        'exercise_title': exercise.title,
     }
     if rpg and item_won:
         result['item_won'] = item_won.to_dict()
@@ -1850,7 +1856,7 @@ def student_rpg_profile():
             'level': level,
             'xp_for_next_level': xp_for_next_level,
             'xp_progress': xp_progress,
-            'gold': rpg_profile.gold,
+            'gold': 0,  # legacy, conservé pour compat clients ; or supprimé du jeu
             'avatar_class': rpg_profile.avatar_class,
             'sprite_name': sprite_name,
             'sprite_path': sprite_path,
@@ -1865,6 +1871,75 @@ def student_rpg_profile():
         },
         'class_descriptions': CLASS_DESCRIPTIONS,
     })
+
+
+@api_bp.route('/student/exercise-badges', methods=['GET'])
+@jwt_required(user_type='student')
+def student_exercise_badges():
+    """Liste des badges d'exercices interactifs publiés à la classe de l'élève.
+
+    Pour chaque exercice publié à sa classe, renvoie :
+      - id, title, badge_pattern, badge_color, badge_threshold
+      - earned : True si la meilleure tentative atteint le seuil
+      - best_percentage : meilleur score % (0 si aucune tentative)
+
+    L'app mobile utilise cette liste pour afficher la galerie des badges
+    sur l'écran d'accueil (en couleur si gagné, grisé sinon).
+    """
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    from models.exercise import Exercise
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
+
+    # Tous les exercices publiés à la classe de l'élève (un exercice peut
+    # apparaître plusieurs fois si publié plusieurs fois ; on dédoublonne).
+    publications = ExercisePublication.query.filter_by(
+        classroom_id=student.classroom_id
+    ).all()
+    seen_exercise_ids = set()
+    exercises = []
+    for pub in publications:
+        if pub.exercise_id in seen_exercise_ids:
+            continue
+        seen_exercise_ids.add(pub.exercise_id)
+        ex = Exercise.query.get(pub.exercise_id)
+        if ex:
+            exercises.append(ex)
+
+    # Pour chaque exercice, récupérer la meilleure tentative de l'élève.
+    badges = []
+    for ex in exercises:
+        if not ex.badge_pattern or not ex.badge_color:
+            # Exercice sans image badge (ancien) : on saute pour éviter d'afficher
+            # un carré vide. L'enseignant doit re-sauvegarder pour générer.
+            continue
+
+        best = (
+            StudentExerciseAttempt.query
+            .filter_by(student_id=student.id, exercise_id=ex.id)
+            .filter(StudentExerciseAttempt.completed_at.isnot(None))
+            .all()
+        )
+        best_pct = max((a.score_percentage or 0 for a in best), default=0)
+        threshold = ex.badge_threshold if ex.badge_threshold is not None else 100
+        earned = best_pct >= threshold
+
+        badges.append({
+            'exercise_id': ex.id,
+            'exercise_title': ex.title,
+            'badge_pattern': ex.badge_pattern,
+            'badge_color': ex.badge_color,
+            'badge_threshold': threshold,
+            'best_percentage': best_pct,
+            'earned': earned,
+        })
+
+    # Trier : gagnés d'abord, puis par titre.
+    badges.sort(key=lambda b: (not b['earned'], b['exercise_title'].lower()))
+
+    return jsonify({'badges': badges})
 
 
 @api_bp.route('/student/rpg/avatar', methods=['POST'])

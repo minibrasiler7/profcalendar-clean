@@ -894,15 +894,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="zone-title orange"><i class="fas fa-gamepad"></i> Gamification</div>
                 <div class="zone-body">
                     <div class="form-group">
-                        <label>Seuil bonus or (%)</label>
-                        <input type="number" id="ex-gold-threshold" min="50" max="100" value="{{ exercise.bonus_gold_threshold if exercise else 80 }}">
-                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne de l'or si son score dépasse ce seuil</small>
-                    </div>
-                    <div class="form-group">
                         <label>Seuil badge (%)</label>
                         <input type="number" id="ex-badge-threshold" min="10" max="100" value="{{ exercise.badge_threshold if exercise else 100 }}">
-                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne un badge s'il atteint ce pourcentage</small>
+                        <small style="color: #6b7280; font-size: 0.75rem;">L'élève gagne le badge s'il atteint ce pourcentage</small>
                     </div>
+
+                    <!-- Aperçu du badge généré aléatoirement -->
+                    <div class="form-group" id="badge-preview-container">
+                        <label>Aperçu du badge</label>
+                        <div id="badge-preview" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            {% if exercise and exercise.badge_pattern and exercise.badge_color %}
+                                <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+                                    {% from "exercises/_badge_macros.html" import render_badge %}
+                                    {{ render_badge(exercise.badge_pattern, exercise.badge_color, 80, false) }}
+                                </div>
+                                <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
+                                    Image générée automatiquement.<br>
+                                    <small style="color: #9ca3af;">5×5 cases, couleur aléatoire flashy.</small>
+                                </div>
+                            {% else %}
+                                <div style="width: 80px; height: 80px; border-radius: 8px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                    <i class="fas fa-question"></i>
+                                </div>
+                                <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
+                                    Badge généré à la première sauvegarde.<br>
+                                    <small style="color: #9ca3af;">Une grille 5×5 colorée aléatoirement.</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
                     <div style="padding: 0.75rem; background: #fffbeb; border-radius: 8px; font-size: 0.8rem; color: #92400e;">
                         <i class="fas fa-star" style="color: #f59e0b;"></i>
                         <strong>XP total : <span id="total-xp">0</span></strong>
@@ -910,6 +931,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
+
+            {# QR code / lien rapide pour publier dans la classe en cours.
+               Ne s'affiche qu'une fois l'exercice sauvegardé (il faut un ID). #}
+            {% if exercise %}
+            <div class="zone-card" style="margin-top: 1rem;">
+                <div class="zone-title" style="color: #6366f1;"><i class="fas fa-qrcode"></i> Envoi rapide (classe en cours)</div>
+                <div class="zone-body">
+                    <p style="font-size: 0.8rem; color: #6b7280; margin: 0 0 0.75rem;">
+                        Scanne ce QR code ou clique le lien pour publier instantanément
+                        cet exercice dans la classe à laquelle tu donnes cours en ce moment.
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <img src="{{ url_for('exercises.qr_image', exercise_id=exercise.id) }}"
+                             alt="QR code"
+                             style="width: 130px; height: 130px; border-radius: 8px; border: 1px solid #e5e7eb; background: white;">
+                        <div style="flex: 1;">
+                            <a href="{{ url_for('exercises.quick_publish_current_class', exercise_id=exercise.id) }}"
+                               target="_blank"
+                               style="display: inline-block; padding: 8px 14px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <i class="fas fa-paper-plane"></i> Envoyer maintenant
+                            </a>
+                            <button type="button" onclick="copyQuickPublishLink()"
+                                    style="display: inline-block; padding: 8px 14px; background: #f3f4f6; color: #1f2937; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 0.4rem;">
+                                <i class="fas fa-link"></i> Copier le lien
+                            </button>
+                            <input type="hidden" id="quick-publish-url"
+                                   value="{{ url_for('exercises.quick_publish_current_class', exercise_id=exercise.id, _external=True) }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Zone 2 : Construction de l'exercice -->
@@ -3427,7 +3480,7 @@ async function saveExercise(asDraft) {
         subject: document.getElementById('ex-subject').value,
         level: document.getElementById('ex-level').value,
         accept_typos: document.getElementById('ex-accept-typos').checked,
-        bonus_gold_threshold: parseInt(document.getElementById('ex-gold-threshold').value) || 80,
+        // bonus_gold_threshold : retiré (or supprimé du jeu en 2026-05).
         badge_threshold: parseInt(document.getElementById('ex-badge-threshold').value) || 100,
         is_draft: asDraft,
         blocks: blocks.map((b, i) => ({
@@ -3455,6 +3508,12 @@ async function saveExercise(asDraft) {
             const isNew = !data.id;
             exerciseId = result.exercise_id;
             showToast(asDraft ? 'Brouillon sauvegardé' : 'Exercice sauvegardé', 'success');
+
+            // Mettre à jour l'aperçu du badge si on vient de le générer
+            if (result.badge_pattern && result.badge_color) {
+                updateBadgePreview(result.badge_pattern, result.badge_color);
+            }
+
             // Update URL if new exercise
             if (isNew) {
                 history.replaceState(null, '', `{{ url_for('exercises.edit', exercise_id=0) }}`.replace('0', exerciseId));
@@ -3467,6 +3526,50 @@ async function saveExercise(asDraft) {
     } catch(e) {
         showToast('Erreur de connexion', 'error');
     }
+}
+
+// Construit le SVG du badge côté client (équivalent du macro Jinja).
+// pattern : 25 chars '0'/'1', color : hex #RRGGBB.
+function buildBadgeSVG(pattern, color, size) {
+    if (!pattern || pattern.length !== 25) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 5 5" style="display:block;"><rect width="5" height="5" fill="#E5E7EB"/></svg>`;
+    }
+    const fill = color || '#9CA3AF';
+    let parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 5 5" shape-rendering="crispEdges" style="display:block;"><rect width="5" height="5" fill="#FFFFFF"/>`];
+    for (let i = 0; i < 25; i++) {
+        if (pattern[i] === '1') {
+            const x = i % 5, y = Math.floor(i / 5);
+            parts.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>`);
+        }
+    }
+    parts.push('</svg>');
+    return parts.join('');
+}
+
+// Copie le lien rapide de publication dans le presse-papiers.
+function copyQuickPublishLink() {
+    const input = document.getElementById('quick-publish-url');
+    if (!input) return;
+    const url = input.value;
+    navigator.clipboard.writeText(url).then(
+        () => showToast('Lien copié !', 'success'),
+        () => showToast('Impossible de copier', 'error')
+    );
+}
+
+// Remplace l'aperçu du badge dans le panneau Gamification.
+function updateBadgePreview(pattern, color) {
+    const container = document.getElementById('badge-preview');
+    if (!container) return;
+    container.innerHTML = `
+        <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);">
+            ${buildBadgeSVG(pattern, color, 80)}
+        </div>
+        <div style="flex: 1; font-size: 0.8rem; color: #4b5563;">
+            Image générée automatiquement.<br>
+            <small style="color: #9ca3af;">5×5 cases, couleur aléatoire flashy.</small>
+        </div>
+    `;
 }
 
 function showPublishModal() {

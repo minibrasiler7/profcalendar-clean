@@ -1124,7 +1124,7 @@ def submit_exercise(exercise_id):
             db.session.flush()
 
         rpg.add_xp(attempt.xp_earned)
-        rpg.add_gold(attempt.gold_earned)
+        # add_gold supprimé : l'or n'est plus crédité (système retiré 2026-05).
 
         # Vérifier les badges
         check_badges(student, rpg)
@@ -1136,6 +1136,14 @@ def submit_exercise(exercise_id):
         db.session.commit()
 
         total_with_combo = base_score + combo_bonus_xp
+
+        # Badge d'exercice : gagné si le score atteint le seuil. On informe le
+        # client pour qu'il puisse afficher l'animation "badge débloqué".
+        badge_earned = (
+            exercise.badge_threshold is not None
+            and (attempt.score_percentage or 0) >= exercise.badge_threshold
+        )
+
         result = {
             'success': True,
             'server_version': SUBMIT_CODE_VERSION,
@@ -1143,11 +1151,16 @@ def submit_exercise(exercise_id):
             'max_score': total_max,
             'percentage': attempt.score_percentage,
             'xp_earned': attempt.xp_earned,
-            'gold_earned': attempt.gold_earned,
+            'gold_earned': 0,  # legacy, conservé pour compat clients ; toujours 0
             'combo_bonus_xp': combo_bonus_xp,
             'total_with_combo': total_with_combo,
             'new_level': rpg.level,
             'results': block_results,
+            'badge_earned': badge_earned,
+            'badge_pattern': exercise.badge_pattern,
+            'badge_color': exercise.badge_color,
+            'badge_threshold': exercise.badge_threshold,
+            'exercise_title': exercise.title,
         }
         if item_won:
             result['item_won'] = item_won.to_dict()

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import api from '../../api/client';
 import colors from '../../theme/colors';
+import BadgeImage from '../../components/BadgeImage';
 
 const BASE_URL = 'https://profcalendar-clean.onrender.com';
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -1466,8 +1467,17 @@ export default function ExerciseSolveScreen({ route, navigation }) {
             )}
             <View style={styles.resultRewards}>
               <View style={styles.rewardItem}><Ionicons name="star" size={28} color="#f59e0b" /><Text style={styles.rewardValue}>+{result?.xp_earned || 0}</Text><Text style={styles.rewardLabel}>XP</Text></View>
-              <View style={styles.rewardItem}><Ionicons name="cash-outline" size={28} color="#fbbf24" /><Text style={styles.rewardValue}>+{result?.gold_earned || 0}</Text><Text style={styles.rewardLabel}>Or</Text></View>
             </View>
+            {/* Badge débloqué : 5x5 grid coloré quand le seuil est atteint. */}
+            {result?.badge_earned && result?.badge_pattern && result?.badge_color ? (
+              <View style={styles.badgeUnlockedContainer}>
+                <Text style={styles.badgeUnlockedTitle}>🏅 Badge débloqué !</Text>
+                <BadgeImage pattern={result.badge_pattern} color={result.badge_color} size={96} greyed={false} />
+                {!!result.exercise_title && (
+                  <Text style={styles.badgeUnlockedExerciseTitle}>{result.exercise_title}</Text>
+                )}
+              </View>
+            ) : null}
             <Text style={styles.resultLevel}>Niveau {result?.new_level || '?'}</Text>
             <TouchableOpacity style={styles.closeModalButton} onPress={handleResultClose}>
               <Ionicons name="arrow-back" size={18} color="#FFF" /><Text style={styles.closeModalButtonText}>Retour aux missions</Text>
@@ -1619,6 +1629,31 @@ const styles = StyleSheet.create({
   rewardValue: { fontSize: 22, fontWeight: '800', color: '#FFF', marginTop: 4 },
   rewardLabel: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   resultLevel: { fontSize: 16, fontWeight: '700', color: '#a78bfa', marginBottom: 20 },
+  // Badge débloqué (résultat d'exercice)
+  badgeUnlockedContainer: {
+    alignItems: 'center',
+    marginVertical: 12,
+    padding: 12,
+    backgroundColor: 'rgba(251, 191, 36, 0.12)',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+  },
+  badgeUnlockedTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#fde68a',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  badgeUnlockedExerciseTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fde68a',
+    marginTop: 8,
+    textAlign: 'center',
+  },
   closeModalButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24 },
   closeModalButtonText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
   undoButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#667eea', borderRadius: 12, paddingVertical: 12, marginTop: 12 },

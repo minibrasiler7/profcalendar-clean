@@ -67,18 +67,14 @@ class StudentExerciseAttempt(db.Model):
         return round((self.score / self.max_score) * 100)
 
     def calculate_rewards(self, exercise):
-        """Calculer XP et or gagnés"""
+        """Calculer XP gagné. L'or est conservé en DB mais n'est plus crédité (2026-05)."""
         if self.max_score == 0:
             return
 
-        percentage = self.score_percentage
         # XP = proportionnel au score
         self.xp_earned = round((self.score / self.max_score) * exercise.total_points)
-        # Or : bonus si au-dessus du seuil
-        if percentage >= exercise.bonus_gold_threshold:
-            self.gold_earned = max(1, self.xp_earned // 5)
-        else:
-            self.gold_earned = 0
+        # Or supprimé du jeu : on ne crédite plus rien.
+        self.gold_earned = 0
 
     def to_dict(self):
         return {

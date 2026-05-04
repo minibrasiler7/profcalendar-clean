@@ -1,0 +1,31 @@
+{# Macros Jinja pour rendre les badges d'exercices interactifs.
+
+   Un badge = grille 5x5 (25 cases). Chaque case est soit blanche soit
+   peinte d'une couleur "flashy" tirée à la création de l'exercice.
+
+   Usage :
+     {% from "exercises/_badge_macros.html" import render_badge %}
+     {{ render_badge(exercise.badge_pattern, exercise.badge_color, 80, false) }}
+#}
+
+{% macro render_badge(pattern, color, size=80, greyed=False) -%}
+    {%- if not pattern or pattern|length != 25 -%}
+        {# Pattern invalide : on rend un carré gris uniforme. #}
+        <svg xmlns="http://www.w3.org/2000/svg" width="{{ size }}" height="{{ size }}" viewBox="0 0 5 5" style="display:block;">
+            <rect width="5" height="5" fill="#E5E7EB"/>
+        </svg>
+    {%- else -%}
+        {%- set fill = '#9CA3AF' if greyed else (color or '#9CA3AF') -%}
+        {%- set bg = '#F9FAFB' if greyed else '#FFFFFF' -%}
+        <svg xmlns="http://www.w3.org/2000/svg" width="{{ size }}" height="{{ size }}" viewBox="0 0 5 5" shape-rendering="crispEdges" style="display:block;">
+            <rect width="5" height="5" fill="{{ bg }}"/>
+            {%- for i in range(25) -%}
+                {%- if pattern[i] == '1' -%}
+                    {%- set x = i % 5 -%}
+                    {%- set y = i // 5 -%}
+                    <rect x="{{ x }}" y="{{ y }}" width="1" height="1" fill="{{ fill }}"/>
+                {%- endif -%}
+            {%- endfor -%}
+        </svg>
+    {%- endif -%}
+{%- endmacro %}
