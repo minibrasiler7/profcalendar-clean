@@ -169,6 +169,787 @@ const HELP_CONTENT = {
 };
 
 // ============================================================
+// GUIDE DU TABLEAU DE BORD (vue d'ensemble des pages)
+// ============================================================
+// Sert à remplir le panneau d'aide quand on clique le bouton ? sur le
+// tableau de bord. Chaque entrée décrit une page principale, avec un
+// bouton « Voir le tutoriel » qui amène l'utilisateur sur la page et
+// déclenche automatiquement le tutoriel pas-à-pas associé.
+const DASHBOARD_GUIDE = [
+    {
+        key: 'planning.lesson_view',
+        url: '/planning/lesson',
+        icon: 'fa-rocket',
+        color: '#4F46E5',
+        title: 'Prochain cours',
+        // Le bouton change de libellé (« Cours en cours ») quand vous êtes
+        // dans le créneau d'une leçon en cours.
+        body: `
+            <p>Cette carte vous emmène vers votre prochaine leçon planifiée. Quand l'heure
+            d'un cours commence, le bouton se transforme en <strong>« Cours en cours »</strong>.</p>
+            <p>Sur la page de la leçon vous pouvez :</p>
+            <ul>
+                <li>ouvrir et <strong>annoter les fichiers</strong> du cours (PDF, images…)</li>
+                <li>consulter la liste des élèves <strong>présents, absents ou en retard</strong></li>
+                <li>ajouter des <strong>coches/sanctions</strong> aux élèves (à condition d'avoir d'abord créé un modèle dans <em>Gestion des sanctions</em>)</li>
+                <li>afficher le <strong>plan de classe</strong> de la salle</li>
+                <li><strong>publier un exercice interactif</strong> à la classe en un clic</li>
+            </ul>
+        `
+    },
+    {
+        key: 'planning.calendar_view',
+        url: '/planning/calendar',
+        icon: 'fa-calendar-alt',
+        color: '#06B6D4',
+        title: 'Voir le calendrier',
+        body: `
+            <p>Le calendrier est l'outil principal pour <strong>planifier vos cours</strong>
+            sur l'année. Vous voyez en un coup d'œil l'horaire hebdomadaire et la vue
+            annuelle par classe.</p>
+            <p>Pour chaque période vous pouvez écrire un titre, une description, et
+            associer un groupe d'élèves. Le panneau latéral montre les
+            <strong>fichiers de la classe</strong> pour vous permettre de préparer la
+            leçon en parallèle.</p>
+        `
+    },
+    {
+        key: 'schedule.weekly_schedule',
+        url: '/schedule/weekly',
+        icon: 'fa-clock',
+        color: '#F59E0B',
+        title: 'Modifier l\'horaire',
+        body: `
+            <p>Modifiez votre horaire-type quand votre emploi du temps change. Vous
+            pouvez :</p>
+            <ul>
+                <li>ajouter ou retirer des <strong>périodes</strong> à n'importe quel jour de la semaine</li>
+                <li>assigner une <strong>classe</strong> (ou un groupe mixte) à chaque créneau</li>
+                <li>marquer des périodes comme <strong>fusionnées</strong> (ex : double leçon de 90 min)</li>
+            </ul>
+            <p>Les changements se propagent automatiquement dans le calendrier.</p>
+        `
+    },
+    {
+        key: 'file_manager.index',
+        url: '/file_manager/',
+        icon: 'fa-folder-open',
+        color: '#10B981',
+        title: 'Gestionnaire de fichiers',
+        body: `
+            <p>Importez vos fichiers personnels (PDF, images, documents) depuis votre
+            ordinateur, organisez-les en dossiers colorés, puis copiez-les vers les
+            classes qui en ont besoin.</p>
+            <p><strong>Quota de stockage :</strong> 1 Go avec le plan Gratuit, 3 Go
+            avec le Premium annuel. Vous voyez votre consommation en haut de la page.</p>
+        `
+    },
+    {
+        key: 'exercises.index',
+        url: '/exercises/',
+        icon: 'fa-flask',
+        color: '#A855F7',
+        title: 'Exercices interactifs',
+        body: `
+            <p>Créez des exercices à résoudre en ligne par vos élèves : <strong>QCM,
+            réponses courtes, textes à trous, classements, associations, images
+            interactives, graphiques</strong>… Quand l'élève atteint le seuil de
+            réussite, il <strong>débloque un badge unique</strong> attaché à
+            l'exercice.</p>
+            <p><em>Pré-requis :</em> les élèves doivent avoir un compte. Pour ça :
+            renseignez leur email dans <em>Gérer les classes</em> et donnez-leur le
+            <strong>code élèves</strong> (onglet « Codes élèves » de la même page).</p>
+        `
+    },
+    {
+        key: 'sanctions.index',
+        url: '/sanctions/',
+        icon: 'fa-exclamation-triangle',
+        color: '#EF4444',
+        title: 'Gestion des sanctions',
+        body: `
+            <p>Créez des <strong>modèles de sanctions</strong> (« Oubli de matériel »,
+            « Bavardage »…) avec leur seuil d'alerte. Quand un élève atteint le seuil,
+            le système peut générer <strong>automatiquement</strong> une remise et la
+            programmer dans votre agenda.</p>
+            <p>Une fois les modèles créés, vous incrémentez/décrémentez les coches
+            depuis <em>Prochain cours</em> ou <em>Gérer les classes</em>.</p>
+        `
+    },
+    {
+        key: 'attendance.index',
+        url: '/attendance/',
+        icon: 'fa-user-check',
+        color: '#8B5CF6',
+        title: 'Suivi des absences',
+        body: `
+            <p>Vue centralisée des absences et retards de tous vos élèves, avec les
+            <strong>justifications validées par les parents</strong>.</p>
+            <p><em>Pour que les parents puissent justifier en ligne :</em></p>
+            <ol>
+                <li>renseignez leur email dans la fiche de l'élève (<em>Gérer les classes</em>)</li>
+                <li>donnez-leur le <strong>code parents</strong> (onglet « Codes parents » de la même page)</li>
+                <li>ils créent leur compte avec ce code et accèdent à l'espace parents</li>
+            </ol>
+        `
+    },
+    {
+        key: 'settings.index',
+        url: '/settings/',
+        icon: 'fa-cog',
+        color: '#6B7280',
+        title: 'Paramètres',
+        body: `
+            <p>Configurez les <strong>paramètres généraux</strong> de votre compte :</p>
+            <ul>
+                <li>dates de <strong>début et fin d'année scolaire</strong></li>
+                <li>périodes de <strong>vacances</strong></li>
+                <li>horaires-types (heures de cours)</li>
+                <li>liste de vos <strong>classes</strong></li>
+                <li>préférences d'affichage et notifications</li>
+            </ul>
+        `
+    },
+    {
+        key: 'planning.manage_classes',
+        url: '/planning/manage-classes',
+        icon: 'fa-users',
+        color: '#0EA5E9',
+        title: 'Gérer les classes',
+        body: `
+            <p>Centre de pilotage de chaque classe. Pour chaque élève vous gérez :</p>
+            <ul>
+                <li><strong>Fiche élève :</strong> nom, prénom, email élève + emails parents</li>
+                <li><strong>Notes</strong> et évaluations (calcul automatique des moyennes)</li>
+                <li><strong>Fichiers</strong> spécifiques à la classe</li>
+                <li><strong>Coches</strong> de comportement (créez d'abord les modèles dans <em>Gestion des sanctions</em>)</li>
+                <li><strong>Absences</strong> et historique de présence</li>
+                <li><strong>Plan de classe</strong> visualisé dans <em>Prochain cours</em></li>
+                <li><strong>Groupes</strong> si la classe est divisée selon les périodes</li>
+                <li><strong>Aménagements</strong> des élèves à besoins particuliers</li>
+            </ul>
+        `
+    },
+    {
+        key: 'setup.manage_classrooms',
+        url: '/setup/classrooms?from_dashboard=1',
+        icon: 'fa-chalkboard-teacher',
+        color: '#14B8A6',
+        title: 'Configuration des classes',
+        body: `
+            <p>Créez ou supprimez vos classes. Pour chaque classe vous indiquez aussi
+            si vous en êtes <strong>maître de classe</strong>. C'est nécessaire si vous
+            voulez collaborer avec d'autres enseignants (chaque maître de classe gère
+            la fiche officielle de l'élève, les autres collaborateurs ne voient que
+            leur discipline).</p>
+        `
+    },
+    {
+        key: 'collaboration.index',
+        url: '/collaboration/',
+        icon: 'fa-handshake',
+        color: '#F472B6',
+        title: 'Collaboration',
+        body: `
+            <p>Cette page centralise tous les <strong>codes d'accès</strong> :</p>
+            <ul>
+                <li><strong>Codes élèves</strong> et <strong>codes parents</strong> par classe : vos élèves
+                et parents s'inscrivent avec ces codes pour accéder à leurs notes,
+                remarques, fichiers et exercices interactifs.</li>
+                <li><strong>Code enseignant :</strong> permet à un autre enseignant de collaborer
+                avec une de vos classes (vous devez en être le maître). Il pourra alors
+                voir les notes et remarques de cette classe dans sa propre discipline.</li>
+            </ul>
+        `
+    },
+    {
+        key: 'planning.decoupage',
+        url: '/planning/decoupage',
+        icon: 'fa-cut',
+        color: '#EAB308',
+        title: 'Création de découpage',
+        body: `
+            <p>Le découpage est le <strong>fil rouge pédagogique</strong> d'une
+            discipline. Vous écrivez la séquence des thèmes/chapitres prévus sur
+            l'année, puis vous l'assignez à une ou plusieurs classes.</p>
+            <p>Bénéfice : dans la <strong>vue annuelle du calendrier</strong>, vous
+            voyez immédiatement si vous êtes en avance ou en retard sur votre
+            planification annuelle.</p>
+        `
+    },
+    {
+        key: 'year_end.step1',
+        url: '/year-end/',
+        icon: 'fa-graduation-cap',
+        color: '#DC2626',
+        title: 'Nouvelle année',
+        body: `
+            <p>Assistant de fin d'année qui vous guide pour <strong>recommencer une
+            année scolaire propre</strong> :</p>
+            <ol>
+                <li>archive les données des classes terminées</li>
+                <li>permet d'exporter les notes/présences en PDF avant nettoyage</li>
+                <li>réinitialise le calendrier et la liste des classes</li>
+                <li>vous redéfinissez les paramètres pour la rentrée</li>
+            </ol>
+            <p>Lancez-le typiquement en juin/juillet, après avoir clos les notes.</p>
+        `
+    },
+];
+
+// ============================================================
+// TUTORIELS PAS-À-PAS PAR PAGE (lancement standalone)
+// ============================================================
+// Chaque tutoriel s'exécute sur une seule page (pas de chaînage entre
+// pages, contrairement à TOUR_SEQUENCE qui sert au tour multi-pages
+// du premier login). Déclenché depuis le panneau d'aide du Dashboard
+// via le bouton « Voir le tutoriel ».
+const PAGE_TUTORIALS = {
+    'planning.lesson_view': {
+        title: 'Tutoriel : Prochain cours',
+        steps: [
+            {
+                target: 'main, .lesson-container, body',
+                title: 'Bienvenue dans la vue Leçon',
+                text: `Cette page est votre tableau de bord pendant un cours. Elle regroupe la planification, les ressources, les présences et le plan de classe. La disposition s'adapte selon ce que vous voulez mettre en avant.`
+            },
+            {
+                target: '.attendance-section, [data-section="attendance"], .presences-panel, main',
+                fallback: 'main',
+                title: 'Marquer les présences en un clic',
+                text: `Cliquez sur le nom d'un élève pour basculer présent/absent (vert/rouge). Pour un retard : tapez les minutes dans le petit champ « min » puis cliquez l'icône horloge à droite. Les compteurs en haut se mettent à jour en temps réel.`
+            },
+            {
+                target: '.tab-coches, [data-tab="coches"], button[onclick*="coches"], main',
+                fallback: 'main',
+                title: 'Onglet Coches',
+                text: `Si vous avez créé des modèles dans Gestion des sanctions, ils apparaissent ici sous forme de boutons + et −. Un clic incrémente la coche d'un élève. Quand le seuil que vous avez défini est atteint, l'élève est automatiquement signalé.`
+            },
+            {
+                target: '.tab-seating, [data-tab="seating"], button[onclick*="seating"], main',
+                fallback: 'main',
+                title: 'Plan de classe',
+                text: `Si vous avez créé un plan de classe dans Gérer les classes, il s'affiche ici. Vous pouvez cliquer sur une table pour ajouter un avertissement visuel à l'élève (jaune → rouge → noir).`
+            },
+            {
+                target: '.add-resource-btn, [data-action="add-files"], button[class*="resource"], main',
+                fallback: 'main',
+                title: 'Ajouter des fichiers / exercices',
+                text: `Le bouton vert « Ajout de fichiers » ouvre un sélecteur. Onglet « Fichiers de classe » : ajoutez un PDF déjà copié vers la classe. Onglet « Exercices interactifs » : ajoutez un exercice à lancer pendant la leçon.`
+            },
+            {
+                target: '.launch-exercise-btn, [data-action="launch-exercise"], main',
+                fallback: 'main',
+                title: 'Publier un exercice à la classe',
+                text: `Une fois un exercice ajouté, le bouton « Lancer » publie l'exercice : les élèves le voient apparaître immédiatement dans leur application/espace « Missions ». Choisissez « Classique » (à leur rythme) ou « Combat » (mode gamifié).`
+            },
+            {
+                target: '.pdf-viewer-trigger, .resource-item, main',
+                fallback: 'main',
+                title: 'Annoter un PDF',
+                text: `Cliquez un fichier PDF dans la liste de ressources : il s'ouvre dans le visualiseur. Sur iPad vous annotez avec l'Apple Pencil ; sur ordi avec les outils stylo/surligneur. Tout est sauvegardé en continu.`
+            }
+        ]
+    },
+
+    'planning.calendar_view': {
+        title: 'Tutoriel : Calendrier',
+        steps: [
+            {
+                target: '.calendar-nav, main',
+                fallback: 'main',
+                title: 'Vue hebdomadaire',
+                text: `Vous êtes sur la grille de la semaine. Les flèches ‹ et › naviguent de semaine en semaine sans recharger la page. « Aujourd'hui » revient à la semaine courante.`
+            },
+            {
+                target: '.schedule-cell, td.schedule-cell, main',
+                fallback: 'main',
+                title: 'Cliquer sur une période pour planifier',
+                text: `Chaque case de la grille = une période de cours. Cliquez dessus pour ouvrir le modal de planification : choisissez la classe, écrivez un titre, une description, optionnellement un groupe d'élèves.`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple de saisie',
+                    fields: [
+                        { label: 'Classe', value: '11VG2' },
+                        { label: 'Titre', value: 'Système d\'équations' },
+                        { label: 'Description', value: 'Exercices p. 42' }
+                    ]
+                }
+            },
+            {
+                target: '.schedule-cell.planned, .class-block.planned, main',
+                fallback: 'main',
+                title: 'Modifier ou effacer une planification',
+                text: `Sur une période déjà planifiée (couleur pleine), cliquez à nouveau pour ouvrir le modal de modification. Le bouton rouge « Effacer » retire la planification (le cellule revient à l'horaire-type, ou se vide).`
+            },
+            {
+                target: '.annual-view, [class*="annual"], main',
+                fallback: 'main',
+                title: 'Vue annuelle par classe',
+                text: `À droite, la vue annuelle montre l'année entière en mini-vignettes. Si vous avez créé un découpage pédagogique, vous voyez en couleur où vous en êtes par rapport à votre planification annuelle.`
+            },
+            {
+                target: '.file-panel, .resources-panel, main',
+                fallback: 'main',
+                title: 'Panneau ressources',
+                text: `Quand vous sélectionnez une période, les fichiers de la classe associée apparaissent dans le panneau latéral. Pratique pour préparer la leçon sans changer de page.`
+            }
+        ]
+    },
+
+    'schedule.weekly_schedule': {
+        title: 'Tutoriel : Modifier l\'horaire',
+        steps: [
+            {
+                target: '.schedule-grid, table, main',
+                fallback: 'main',
+                title: 'Votre horaire-type',
+                text: `Cette grille représente une semaine "modèle" : ce qui se répète chaque semaine. C'est elle qui peuple le calendrier annuel automatiquement, en tenant compte des vacances et jours fériés.`
+            },
+            {
+                target: 'td, .empty-cell, main',
+                fallback: 'main',
+                title: 'Assigner une classe à un créneau',
+                text: `Cliquez sur une case vide. Une popup vous propose la liste de vos classes : sélectionnez celle qui occupe ce créneau. La case se colore avec la couleur de la classe.`
+            },
+            {
+                target: 'td.filled, .filled-cell, main',
+                fallback: 'main',
+                title: 'Modifier ou retirer',
+                text: `Cliquez sur une case déjà remplie pour la changer. Vous pouvez assigner une autre classe ou choisir « Retirer la classe » pour vider la case.`
+            },
+            {
+                target: '.merge-btn, [data-action="merge"], main',
+                fallback: 'main',
+                title: 'Périodes fusionnées',
+                text: `Si vous avez un cours de 90 min sur deux périodes consécutives, fusionnez-les : sélectionnez la première, puis activez « Fusionner avec la suivante ». Dans le calendrier la cellule sera doublée en hauteur.`
+            },
+            {
+                target: '.validate-btn, [data-action="validate"], button[class*="valid"], main',
+                fallback: 'main',
+                title: 'Valider',
+                text: `Quand toutes vos périodes sont remplies, cliquez « Valider l'horaire » en bas pour générer/régénérer le calendrier. Vos planifications déjà saisies sont préservées.`
+            }
+        ]
+    },
+
+    'file_manager.index': {
+        title: 'Tutoriel : Gestionnaire de fichiers',
+        steps: [
+            {
+                target: '.upload-btn, button[class*="upload"], main',
+                fallback: 'main',
+                title: 'Uploader vos fichiers',
+                text: `Le bouton vert « Uploader » importe des PDF, images ou documents depuis votre ordinateur. Vous pouvez aussi simplement glisser-déposer les fichiers dans la page.`
+            },
+            {
+                target: '.new-folder-btn, button[class*="folder"], main',
+                fallback: 'main',
+                title: 'Créer des dossiers colorés',
+                text: `Organisez vos fichiers en dossiers. Choisissez une couleur parmi les 8 proposées pour repérer rapidement vos thèmes. Les dossiers peuvent contenir des sous-dossiers (arborescence).`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple de dossier',
+                    fields: [
+                        { label: 'Nom', value: 'Maths 11VG' },
+                        { label: 'Couleur', value: '🟢 Vert' }
+                    ]
+                }
+            },
+            {
+                target: '.classes-section, [data-panel="classes"], main',
+                fallback: 'main',
+                title: 'Copier vers une classe',
+                text: `À droite, vos classes. Glissez un fichier ou un dossier de votre gestionnaire vers une classe : une copie est créée dans les fichiers partagés de cette classe. Les élèves la voient depuis leur espace.`,
+                demo: {
+                    type: 'drag',
+                    label: 'Glisser-déposer',
+                    source: 'Mes fichiers',
+                    target: 'Classe 11VG',
+                    fileLabel: '📄 Cours.pdf'
+                }
+            },
+            {
+                target: '.delete-btn, button[class*="delete"], main',
+                fallback: 'main',
+                title: 'Supprimer plusieurs éléments',
+                text: `Pour supprimer, cliquez le bouton rouge « Supprimer » en haut. Cochez les fichiers/dossiers à retirer puis validez. « Annuler » quitte le mode sans rien supprimer.`
+            },
+            {
+                target: '.storage-info, [class*="storage"], main',
+                fallback: 'main',
+                title: 'Quota de stockage',
+                text: `Tout en haut, vous voyez votre consommation. 1 Go avec le plan Gratuit ; 3 Go avec le Premium annuel. Les fichiers copiés dans les classes comptent dans le quota.`
+            }
+        ]
+    },
+
+    'exercises.index': {
+        title: 'Tutoriel : Exercices interactifs',
+        steps: [
+            {
+                target: '.create-exercise-btn, a[href*="create"], main',
+                fallback: 'main',
+                title: 'Créer un nouvel exercice',
+                text: `Cliquez « + Nouvel exercice » pour ouvrir l'éditeur. Vous donnez un titre, choisissez la matière et le niveau, puis vous ajoutez des blocs.`
+            },
+            {
+                target: 'main',
+                title: 'Les types de blocs disponibles',
+                text: `QCM, Réponse courte, Texte à trous, Classement/Tri, Associations, Image interactive, Graphique. Chaque bloc a son timer, son nombre de points et un éventuel feedback automatique.`
+            },
+            {
+                target: 'main',
+                title: 'Badge unique par exercice',
+                text: `À la sauvegarde, ProfCalendar génère automatiquement un badge 5×5 aléatoire pour cet exercice. L'élève le débloque en couleur s'il atteint le seuil que vous avez défini, et le voit grisé sinon.`
+            },
+            {
+                target: 'main',
+                title: 'Publier à une classe',
+                text: `Deux options : (1) depuis cette liste, l'icône avion ; (2) depuis la vue Leçon, ajoutez l'exercice aux ressources puis cliquez « Lancer ». Les élèves le voient instantanément dans leur écran « Missions ».`
+            },
+            {
+                target: 'main',
+                title: 'QR Code de publication rapide',
+                text: `Dans l'éditeur d'un exercice, vous trouvez un QR Code. Scannez-le avec un autre appareil connecté à votre compte (par ex. une tablette pendant un cours) : l'exercice est publié à la classe que vous êtes en train d'enseigner.`
+            },
+            {
+                target: 'main',
+                title: 'Pré-requis côté élèves',
+                text: `Pour que les élèves voient les exercices, ils doivent avoir un compte. Renseignez leur email dans <em>Gérer les classes</em>, donnez-leur le code élèves, et ils s'inscrivent depuis l'espace élève.`
+            }
+        ]
+    },
+
+    'sanctions.index': {
+        title: 'Tutoriel : Gestion des sanctions',
+        steps: [
+            {
+                target: '.add-sanction-btn, button[class*="sanction"], a[href*="create"], main',
+                fallback: 'main',
+                title: 'Créer un modèle de sanction',
+                text: `Cliquez « + Nouveau modèle ». Vous définissez un nom (« Oubli matériel »), une icône, le type (cumul ou retrait) et un seuil (ex : 3 coches = remise programmée).`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple',
+                    fields: [
+                        { label: 'Nom', value: 'Oubli matériel' },
+                        { label: 'Icône', value: '📚' },
+                        { label: 'Seuil', value: '3 coches' }
+                    ]
+                }
+            },
+            {
+                target: 'main',
+                title: 'Importer dans une classe',
+                text: `Une fois le modèle créé, importez-le dans les classes voulues. Le compteur démarre à 0 pour chaque élève et s'incrémente à chaque coche que vous donnez.`
+            },
+            {
+                target: 'main',
+                title: 'Donner une coche pendant un cours',
+                text: `Allez dans <em>Prochain cours</em> ou <em>Gérer les classes</em>, onglet « Coches ». Les modèles importés sont là avec un + et un − par élève. Un clic et c'est noté.`
+            },
+            {
+                target: 'main',
+                title: 'Programmation automatique',
+                text: `Quand un élève atteint le seuil, ProfCalendar peut programmer automatiquement la remise dans votre agenda à la date que vous précisez. Vous gardez la trace dans le rapport élève.`
+            }
+        ]
+    },
+
+    'attendance.index': {
+        title: 'Tutoriel : Suivi des absences',
+        steps: [
+            {
+                target: 'main',
+                title: 'Vue centralisée',
+                text: `Cette page agrège les absences et retards de tous vos élèves, toutes classes confondues. Filtrez par classe, par élève ou par date depuis la barre du haut.`
+            },
+            {
+                target: 'main',
+                title: 'Justifications des parents',
+                text: `Quand un parent justifie une absence depuis son espace, le motif apparaît automatiquement ici. Vous voyez d'un coup d'œil ce qui est justifié et ce qui ne l'est pas.`
+            },
+            {
+                target: 'main',
+                title: 'Comment activer l\'accès parents',
+                text: `1) Dans <em>Gérer les classes</em>, ajoutez l'email des parents dans la fiche de l'élève. 2) Toujours dans Gérer les classes, copiez le « code parents ». 3) Donnez-le aux parents : ils s'inscrivent depuis l'espace parents avec ce code.`
+            },
+            {
+                target: 'main',
+                title: 'Statistiques',
+                text: `Les graphiques en bas montrent l'évolution des absences au fil de l'année. Pratique pour repérer les périodes problématiques ou pour un entretien parents.`
+            }
+        ]
+    },
+
+    'settings.index': {
+        title: 'Tutoriel : Paramètres',
+        steps: [
+            {
+                target: 'main',
+                title: 'Centre de configuration',
+                text: `Tout ce qui est commun à votre compte se règle ici : année scolaire, vacances, horaires, classes, préférences d'affichage et notifications.`
+            },
+            {
+                target: 'main',
+                title: 'Année scolaire',
+                text: `Définissez les dates de début et fin d'année. Le calendrier ne génèrera pas de planifications avant ou après ces dates. À ajuster en début d'année.`
+            },
+            {
+                target: 'main',
+                title: 'Vacances et jours fériés',
+                text: `Ajoutez vos périodes de vacances (Toussaint, Noël, etc.). Les jours fériés cantonaux sont déjà pré-remplis. Les périodes en vacances sont grisées dans le calendrier.`
+            },
+            {
+                target: 'main',
+                title: 'Horaires des périodes',
+                text: `Précisez à quelle heure commence et finit chaque période de la journée. Ces horaires sont utilisés pour détecter quand un cours est « en cours » (bouton Prochain cours).`
+            },
+            {
+                target: 'main',
+                title: 'Classes',
+                text: `Vue de toutes vos classes avec leur couleur. Pour ajouter ou supprimer une classe, c'est dans <em>Configuration des classes</em> (depuis le tableau de bord).`
+            }
+        ]
+    },
+
+    'planning.manage_classes': {
+        title: 'Tutoriel : Gérer les classes',
+        steps: [
+            {
+                activateTab: 'students',
+                target: 'button.tab-button[onclick*="students"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Élèves : ajouter votre liste',
+                text: `Cliquez « + Ajouter un élève ». Renseignez prénom, nom, email élève (essentiel pour qu'il puisse créer son compte) et email des parents. Ces emails servent ensuite aux liaisons élève/parent quand ils utilisent les codes d'accès.`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple',
+                    fields: [
+                        { label: 'Prénom', value: 'Alice' },
+                        { label: 'Nom', value: 'Dupont' },
+                        { label: 'Email élève', value: 'alice@ecole.ch' },
+                        { label: 'Email parent', value: 'parent@famille.ch' }
+                    ]
+                }
+            },
+            {
+                activateTab: 'students',
+                target: 'button[onclick="generateClassCode()"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Code élèves',
+                text: `Génère un code unique à donner à vos élèves. Ils s'inscrivent depuis l'espace élève avec ce code et leur email pré-renseigné. <strong>L'email doit être saisi dans la fiche AVANT de transmettre le code.</strong>`
+            },
+            {
+                activateTab: 'students',
+                target: 'button[onclick="showParentCode()"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Code parents',
+                text: `Même principe pour les parents. Ils créent un compte avec le code et l'email de famille saisi dans la fiche. Ils peuvent ensuite consulter notes et absences, et justifier des absences.`
+            },
+            {
+                activateTab: 'grades',
+                target: 'button.tab-button[onclick*="grades"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Notes',
+                text: `Créez des évaluations (« + Nouvelle évaluation »), choisissez le type (test significatif, TA), saisissez les notes. Les moyennes se calculent automatiquement et sont visibles côté élève/parent.`
+            },
+            {
+                activateTab: 'files',
+                target: 'button.tab-button[onclick*="files"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Fichiers',
+                text: `Les fichiers déposés ici sont spécifiques à cette classe. Vous pouvez aussi y glisser-déposer une copie depuis le Gestionnaire de fichiers principal.`
+            },
+            {
+                activateTab: 'sanctions',
+                target: 'button.tab-button[onclick*="sanctions"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Coches',
+                text: `Si vous avez créé des modèles dans <em>Gestion des sanctions</em>, importez-les ici. Les compteurs sont disponibles à la fois ici et depuis <em>Prochain cours</em>.`
+            },
+            {
+                activateTab: 'attendance',
+                target: 'button.tab-button[onclick*="attendance"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Absences',
+                text: `Historique complet par élève. Les justifications postées par les parents apparaissent automatiquement.`
+            },
+            {
+                activateTab: 'seating',
+                target: 'button.tab-button[onclick*="seating"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Plan de classe',
+                text: `Outil de disposition des tables. Glissez des tables (simple, double, bureau prof), placez les élèves dessus, sauvegardez. Le plan apparaît ensuite dans <em>Prochain cours</em>.`
+            },
+            {
+                activateTab: 'groups',
+                target: 'button.tab-button[onclick*="groups"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Groupes',
+                text: `Si la classe est divisée selon les périodes (ex : groupes A et B en sciences), créez les groupes ici. Vous pourrez ensuite associer un groupe à une période dans le calendrier.`
+            },
+            {
+                activateTab: 'accommodations',
+                target: 'button.tab-button[onclick*="accommodations"], main',
+                fallback: 'main',
+                popoverPosition: 'bottom-left',
+                title: 'Onglet Aménagements',
+                text: `Notez les aménagements pour les élèves à besoins particuliers (DYS, suivis spécifiques…). Ils sont signalés par une icône à côté du nom partout dans l'application.`
+            }
+        ]
+    },
+
+    'setup.manage_classrooms': {
+        title: 'Tutoriel : Configuration des classes',
+        steps: [
+            {
+                target: 'main',
+                title: 'Liste de vos classes',
+                text: `Toutes vos classes sont listées ici. Pour chacune : nom, matière, couleur, et le statut « Maître de classe » qui est important pour la collaboration.`
+            },
+            {
+                target: '.add-classroom-btn, button[class*="add"], main',
+                fallback: 'main',
+                title: 'Ajouter une classe',
+                text: `Cliquez « + Nouvelle classe ». Choisissez un nom court (ex: « 11VG2 »), la matière, et une couleur de fond pour la repérer dans le calendrier.`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple',
+                    fields: [
+                        { label: 'Nom', value: '11VG2' },
+                        { label: 'Matière', value: 'Mathématiques' },
+                        { label: 'Couleur', value: '🟦 Bleu' }
+                    ]
+                }
+            },
+            {
+                target: 'main',
+                title: 'Maître de classe',
+                text: `Cochez « Je suis maître de classe » si vous l'êtes. Cela vous permet de partager la classe avec d'autres enseignants (Allemand, Sciences…) tout en gardant la fiche élève officielle.`
+            },
+            {
+                target: 'main',
+                title: 'Supprimer',
+                text: `Le bouton corbeille supprime la classe et tout ce qui y est rattaché (élèves, notes, plannings). Confirmation demandée. À utiliser surtout en fin d'année — préférez l'assistant <em>Nouvelle année</em> qui archive d'abord.`
+            }
+        ]
+    },
+
+    'collaboration.index': {
+        title: 'Tutoriel : Collaboration',
+        steps: [
+            {
+                target: 'main',
+                title: 'Codes d\'accès centralisés',
+                text: `Cette page rassemble tous les codes que vous distribuez. Vous voyez par classe les codes élèves, parents, et le code enseignant.`
+            },
+            {
+                target: '.student-code-card, [class*="student"], main',
+                fallback: 'main',
+                title: 'Codes élèves',
+                text: `Pour chaque classe, le code que vos élèves utilisent pour rejoindre leur compte. Il leur permet de voir leurs notes, leurs missions (exercices interactifs) et les fichiers que vous partagez avec la classe.`
+            },
+            {
+                target: '.parent-code-card, [class*="parent"], main',
+                fallback: 'main',
+                title: 'Codes parents',
+                text: `Code à donner aux parents pour qu'ils créent leur compte. Ils accèdent aux notes, à l'historique d'absences, et peuvent justifier les absences en ligne.`
+            },
+            {
+                target: '.teacher-code-card, [class*="teacher"], main',
+                fallback: 'main',
+                title: 'Code enseignant (collaboration)',
+                text: `Si vous êtes maître de classe, vous générez ici un code que vous donnez à un autre enseignant. Avec ce code, il rejoint votre classe pour SA discipline. Il voit toutes les notes/remarques mais reste cantonné à sa matière.`
+            }
+        ]
+    },
+
+    'planning.decoupage': {
+        title: 'Tutoriel : Création de découpage',
+        steps: [
+            {
+                target: 'main',
+                title: 'À quoi sert un découpage ?',
+                text: `Un découpage = un plan de l'année dans une discipline. Vous décrivez les thèmes prévus dans l'ordre, avec une durée estimée. C'est votre fil rouge pédagogique.`
+            },
+            {
+                target: '.create-decoupage-btn, button[class*="add"], main',
+                fallback: 'main',
+                title: 'Créer un nouveau découpage',
+                text: `Cliquez « + Nouveau découpage ». Donnez-lui un nom (« Maths 11VG »), choisissez la matière, et ajoutez les thèmes/chapitres dans l'ordre prévu.`,
+                demo: {
+                    type: 'form',
+                    label: 'Exemple',
+                    fields: [
+                        { label: 'Nom', value: 'Maths 11VG' },
+                        { label: 'Thème 1', value: 'Nombres rationnels' },
+                        { label: 'Thème 2', value: 'Équations' },
+                        { label: 'Thème 3', value: 'Géométrie' }
+                    ]
+                }
+            },
+            {
+                target: 'main',
+                title: 'Durée estimée par thème',
+                text: `Pour chaque thème, indiquez le nombre de périodes prévues. ProfCalendar calcule automatiquement à quelle date vous devriez aborder chaque thème.`
+            },
+            {
+                target: 'main',
+                title: 'Assigner à une classe',
+                text: `Une fois le découpage créé, assignez-le à une ou plusieurs classes. Vous pouvez avoir un découpage différent par niveau (11VG, 11VP…) en gardant la même matière.`
+            },
+            {
+                target: 'main',
+                title: 'Suivi dans le calendrier',
+                text: `Dans la vue annuelle du calendrier, le thème courant est mis en couleur. Si vous prenez du retard, vous le voyez immédiatement et pouvez réajuster votre planification.`
+            }
+        ]
+    },
+
+    'year_end.step1': {
+        title: 'Tutoriel : Fin d\'année / Nouvelle année',
+        steps: [
+            {
+                target: 'main',
+                title: 'Assistant de fin d\'année',
+                text: `Cet assistant en plusieurs étapes vous guide pour passer proprement à la rentrée suivante : archives, exports, nettoyage, reconfiguration.`
+            },
+            {
+                target: 'main',
+                title: 'Étape 1 — Archiver les classes',
+                text: `Cochez les classes que vous voulez archiver (= conserver pour consultation mais retirer du calendrier actif). Toutes leurs données (notes, absences, plannings) restent accessibles en lecture.`
+            },
+            {
+                target: 'main',
+                title: 'Étape 2 — Exporter en PDF',
+                text: `Avant le nettoyage, vous pouvez exporter par classe ou tout d'un coup : moyennes, présences, sanctions… Idéal pour conserver une copie papier ou la partager avec votre direction.`
+            },
+            {
+                target: 'main',
+                title: 'Étape 3 — Reconfigurer',
+                text: `Mettez à jour les dates de la nouvelle année scolaire et les vacances. Recréez vos nouvelles classes et leur horaire-type. ProfCalendar repart sur une base propre tout en gardant l'historique.`
+            },
+            {
+                target: 'main',
+                title: 'Quand lancer ?',
+                text: `Typiquement en juin/juillet, après avoir clos les évaluations et imprimé les bulletins. Vous pouvez préparer la rentrée à l'avance même pendant l'été.`
+            }
+        ]
+    }
+};
+
+// ============================================================
 // TOUR GUIDÉ MULTI-PAGES
 // ============================================================
 // Chaque section correspond à une page du site. Le tour passe d'une
@@ -478,6 +1259,12 @@ class HelpSystem {
         } else if (document.body.dataset.firstVisit === 'true') {
             setTimeout(() => this.startTour(), 800);
         }
+
+        // Tutoriel autonome demandé depuis le panneau d'aide du Dashboard :
+        // si l'utilisateur a cliqué « Voir le tutoriel » sur une carte
+        // d'une autre page, on a posé un flag avant la navigation. À
+        // l'arrivée on déclenche le tutoriel correspondant.
+        setTimeout(() => this.checkPendingTutorial(), 600);
     }
 
     // === STATE PERSISTÉ (multi-pages) ===
@@ -535,6 +1322,15 @@ class HelpSystem {
     loadPanelContent() {
         if (!this.panelBody) return;
         const page = document.querySelector('main')?.dataset.helpPage || '';
+
+        // Cas spécial : sur le Dashboard, on affiche le guide d'ensemble
+        // qui liste toutes les pages avec un bouton « Voir le tutoriel ».
+        if (page === 'planning.dashboard') {
+            this.loadDashboardGuide();
+            return;
+        }
+
+        // Pour les autres pages : aide contextuelle + bouton vers le tutoriel.
         let content = HELP_CONTENT[page];
         if (!content && page) {
             const fallbacks = Object.keys(HELP_CONTENT);
@@ -547,7 +1343,17 @@ class HelpSystem {
                 { icon: 'fa-question-circle', color: '#4F46E5', title: 'Besoin d\'aide ?', desc: 'Naviguez vers une page specifique pour voir l\'aide contextuelle.', steps: [] }
             ]}]};
         }
-        this.panelBody.innerHTML = content.sections.map(section => `
+
+        const tutorialBtn = PAGE_TUTORIALS[page] ? `
+            <div class="help-tutorial-launcher">
+                <p class="help-tutorial-launcher-text">Envie d'un tour guidé pas à pas de cette page ?</p>
+                <button class="help-tutorial-launcher-btn" onclick="window._helpSystem.runStandaloneTutorial('${page}')">
+                    <i class="fas fa-play-circle"></i> Lancer le tutoriel
+                </button>
+            </div>
+        ` : '';
+
+        this.panelBody.innerHTML = tutorialBtn + content.sections.map(section => `
             <div class="help-section">
                 <div class="help-section-title">${section.title}</div>
                 ${section.items.map(item => `
@@ -567,6 +1373,244 @@ class HelpSystem {
                 `).join('')}
             </div>
         `).join('');
+    }
+
+    // ============================================================
+    // GUIDE DU TABLEAU DE BORD : liste des pages + bouton tutoriel
+    // ============================================================
+    loadDashboardGuide() {
+        if (!this.panelBody) return;
+        const intro = `
+            <div class="help-dashboard-intro">
+                <p>ProfCalendar est organisé en plusieurs pages, chacune dédiée à une
+                fonction. Cliquez sur une carte ci-dessous pour découvrir ce que fait
+                la page, ou lancez directement son <strong>tutoriel pas à pas</strong>.</p>
+            </div>
+        `;
+        const cards = DASHBOARD_GUIDE.map((entry, idx) => `
+            <div class="help-dashboard-card" data-key="${entry.key}">
+                <div class="help-dashboard-card-header" onclick="window._helpSystem.toggleDashboardCard(this)">
+                    <div class="help-dashboard-card-icon" style="background: ${entry.color};">
+                        <i class="fas ${entry.icon}"></i>
+                    </div>
+                    <div class="help-dashboard-card-title">${entry.title}</div>
+                    <i class="fas fa-chevron-down help-dashboard-card-chevron"></i>
+                </div>
+                <div class="help-dashboard-card-body">
+                    <div class="help-dashboard-card-content">${entry.body}</div>
+                    ${PAGE_TUTORIALS[entry.key] ? `
+                        <button class="help-dashboard-card-btn"
+                                onclick="window._helpSystem.triggerTutorial('${entry.key}', '${entry.url}')">
+                            <i class="fas fa-play-circle"></i> Voir le tutoriel
+                        </button>
+                    ` : `
+                        <a href="${entry.url}" class="help-dashboard-card-btn help-dashboard-card-btn-secondary">
+                            <i class="fas fa-arrow-right"></i> Aller à la page
+                        </a>
+                    `}
+                </div>
+            </div>
+        `).join('');
+
+        this.panelBody.innerHTML = intro + `<div class="help-dashboard-cards">${cards}</div>`;
+    }
+
+    toggleDashboardCard(headerEl) {
+        const card = headerEl.closest('.help-dashboard-card');
+        if (!card) return;
+        // Refermer les autres cartes pour garder le panneau lisible.
+        card.parentElement?.querySelectorAll('.help-dashboard-card.open').forEach(c => {
+            if (c !== card) c.classList.remove('open');
+        });
+        card.classList.toggle('open');
+    }
+
+    // ============================================================
+    // TUTORIEL AUTONOME (déclenché depuis le panneau Dashboard)
+    // ============================================================
+    triggerTutorial(pageKey, url) {
+        // On pose un flag dans localStorage pour qu'à l'arrivée sur la
+        // page, init() lance automatiquement le tutoriel pas-à-pas.
+        try {
+            localStorage.setItem('pc_pending_tutorial', JSON.stringify({
+                pageKey: pageKey,
+                ts: Date.now()
+            }));
+        } catch (e) {}
+        window.location.href = url;
+    }
+
+    checkPendingTutorial() {
+        let pending = null;
+        try {
+            const raw = localStorage.getItem('pc_pending_tutorial');
+            if (raw) pending = JSON.parse(raw);
+        } catch (e) { return; }
+        if (!pending) return;
+        // Anti-fuite : on n'attend pas plus de 30 s entre le clic et l'arrivée.
+        if (Date.now() - (pending.ts || 0) > 30000) {
+            try { localStorage.removeItem('pc_pending_tutorial'); } catch (e) {}
+            return;
+        }
+        const currentPage = this.currentPageKey();
+        if (pending.pageKey !== currentPage) return;
+        // Tout va bien : on supprime le flag et on lance le tutoriel.
+        try { localStorage.removeItem('pc_pending_tutorial'); } catch (e) {}
+        this.runStandaloneTutorial(pending.pageKey);
+    }
+
+    runStandaloneTutorial(pageKey) {
+        const tutorial = PAGE_TUTORIALS[pageKey];
+        if (!tutorial || !tutorial.steps?.length) return;
+        // Si un tour multi-pages est en cours, on l'interrompt poliment.
+        if (this.tourActive) this.endTour();
+        // On ferme le panneau d'aide si ouvert (sinon il masque la cible).
+        this.closePanel();
+
+        this._standaloneActive = true;
+        this._standaloneSteps = tutorial.steps;
+        this._standaloneTitle = tutorial.title || 'Tutoriel';
+        this._standaloneIdx = 0;
+        this._standalonePage = pageKey;
+        this.tourActive = true;
+        // Petit délai pour laisser le panneau se fermer
+        setTimeout(() => this.showStandaloneStep(), 350);
+    }
+
+    showStandaloneStep() {
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour, .tour-click-catcher, .tour-pointer').forEach(el => el.remove());
+        if (this._demoTimer) { clearTimeout(this._demoTimer); this._demoTimer = null; }
+
+        if (!this._standaloneActive) return;
+        const steps = this._standaloneSteps || [];
+        const idx = this._standaloneIdx || 0;
+
+        if (idx >= steps.length) {
+            this.endStandaloneTutorial(true);
+            return;
+        }
+
+        const step = steps[idx];
+
+        if (step.activateTab && typeof window.showTab === 'function') {
+            try { window.showTab(step.activateTab); } catch (e) {}
+        }
+
+        let target = document.querySelector(step.target);
+        if (!target && step.fallback) target = document.querySelector(step.fallback);
+        if (!target) {
+            // Cible introuvable : on saute l'étape.
+            this._standaloneIdx = idx + 1;
+            this.showStandaloneStep();
+            return;
+        }
+
+        try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+
+        const rect = target.getBoundingClientRect();
+        const pad = 8;
+        const spotlight = document.createElement('div');
+        spotlight.className = 'tour-spotlight';
+        spotlight.style.top = (rect.top - pad) + 'px';
+        spotlight.style.left = (rect.left - pad) + 'px';
+        spotlight.style.width = (rect.width + pad * 2) + 'px';
+        spotlight.style.height = (rect.height + pad * 2) + 'px';
+        document.body.appendChild(spotlight);
+
+        const totalSteps = steps.length;
+        const popover = document.createElement('div');
+        popover.className = 'tour-popover';
+        const isLast = (idx === totalSteps - 1);
+        const prevBtn = idx > 0
+            ? `<button class="tour-btn tour-btn-skip" onclick="window._helpSystem.prevStandaloneStep()">← Précédent</button>`
+            : `<button class="tour-btn tour-btn-skip" onclick="window._helpSystem.endStandaloneTutorial(false)">Quitter</button>`;
+        const nextBtn = `<button class="tour-btn tour-btn-next" onclick="window._helpSystem.nextStandaloneStep()">
+            ${isLast ? 'Terminer' : 'Suivant →'}
+        </button>`;
+
+        const demoHtml = step.demo ? this.renderDemo(step.demo) : '';
+        popover.innerHTML = `
+            <div class="tour-popover-header">
+                <span class="tour-popover-step">${this._standaloneTitle} · ${idx + 1}/${totalSteps}</span>
+                <h3>${step.title}</h3>
+            </div>
+            <div class="tour-popover-body">
+                ${step.text}
+                ${demoHtml}
+            </div>
+            <div class="tour-popover-footer">
+                <div class="tour-dots">
+                    ${steps.map((_, i) => `<div class="tour-dot ${i === idx ? 'active' : ''}"></div>`).join('')}
+                </div>
+                <div class="tour-buttons">${prevBtn}${nextBtn}</div>
+            </div>
+        `;
+
+        if (step.popoverPosition === 'bottom-left') {
+            popover.style.bottom = '20px';
+            popover.style.left = '20px';
+            popover.style.top = 'auto';
+        } else if (step.popoverPosition === 'bottom-right') {
+            popover.style.bottom = '20px';
+            popover.style.right = '20px';
+            popover.style.top = 'auto';
+            popover.style.left = 'auto';
+        } else {
+            const popoverHeight = 280;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow > popoverHeight + 20) {
+                popover.style.top = (rect.bottom + pad + 15) + 'px';
+            } else {
+                popover.style.top = Math.max(10, rect.top - popoverHeight - 15) + 'px';
+            }
+            popover.style.left = Math.max(10, Math.min(rect.left, window.innerWidth - 400)) + 'px';
+        }
+
+        document.body.appendChild(popover);
+        this.addTourPointer(rect, popover);
+
+        if (step.demo) {
+            this.animateDemo(popover.querySelector('.tour-demo'), step.demo);
+        }
+    }
+
+    nextStandaloneStep() {
+        this._standaloneIdx = (this._standaloneIdx || 0) + 1;
+        this.showStandaloneStep();
+    }
+
+    prevStandaloneStep() {
+        this._standaloneIdx = Math.max(0, (this._standaloneIdx || 0) - 1);
+        this.showStandaloneStep();
+    }
+
+    endStandaloneTutorial(completed) {
+        this._standaloneActive = false;
+        this._standaloneSteps = null;
+        this._standaloneIdx = 0;
+        this.tourActive = false;
+        if (this._demoTimer) { clearTimeout(this._demoTimer); this._demoTimer = null; }
+        document.querySelectorAll('.tour-spotlight, .tour-popover, .tour-backdrop-tour, .tour-click-catcher, .tour-pointer').forEach(el => el.remove());
+
+        if (completed) {
+            const card = document.createElement('div');
+            card.className = 'tour-welcome';
+            card.innerHTML = `
+                <div class="tour-backdrop visible"></div>
+                <div class="tour-welcome-card">
+                    <div class="tour-welcome-icon">✅</div>
+                    <h2>Tutoriel terminé !</h2>
+                    <p>Vous pouvez relancer ce tutoriel à tout moment depuis le panneau d'aide
+                    de cette page (bouton bleu en bas à droite) ou depuis l'aide du tableau de bord.</p>
+                    <div class="tour-welcome-buttons">
+                        <button class="tour-welcome-start" onclick="this.closest('.tour-welcome').remove()">
+                            <i class="fas fa-check"></i> Fermer
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(card);
+        }
     }
 
     // === EVENTS ===
