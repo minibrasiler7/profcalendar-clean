@@ -6658,10 +6658,14 @@ function _buildScheduleFallbackHTML(cell) {
 
 /**
  * Met à jour la cellule (date, period_number) avec la planification donnée.
- * Si planning est null/undefined, on remet la cellule en mode "horaire type"
- * (ou vide si pas d'horaire).
+ *  - planning non-null : on rend le bloc planifié.
+ *  - planning null + opts.cleared : l'utilisateur vient de cliquer Effacer
+ *    → on vide totalement la cellule (pas de fallback "horaire type"),
+ *      pour qu'il voie clairement que son action a pris effet. Le fallback
+ *      réapparaîtra naturellement au prochain reload (c'est l'état DB réel).
+ *  - planning null + pas de flag : retombe sur l'horaire type s'il existe.
  */
-function updateCellAfterSave(dateStr, periodNumber, planning) {
+function updateCellAfterSave(dateStr, periodNumber, planning, opts = {}) {
     const cell = _findCellByDateAndPeriod(dateStr, periodNumber);
     if (!cell) return;
 
@@ -6669,6 +6673,9 @@ function updateCellAfterSave(dateStr, periodNumber, planning) {
 
     if (planning) {
         cell.innerHTML = _buildPlannedClassBlockHTML(planning, isMerged);
+    } else if (opts.cleared) {
+        // Effacement explicite : cellule complètement vide.
+        cell.innerHTML = '';
     } else {
         cell.innerHTML = _buildScheduleFallbackHTML(cell);
     }
@@ -6849,8 +6856,9 @@ async function savePlanning() {
 /**
  * Effacer la planification de la période actuellement ouverte dans le modal.
  * Envoie un POST avec tous les champs vides → le serveur supprime la
- * planification et retourne `deleted: true`. La cellule retombe alors sur
- * son horaire type s'il existe, sinon devient vide.
+ * planification et retourne `deleted: true`. La cellule devient ensuite
+ * complètement vide (option `cleared: true`) pour donner un retour visuel
+ * net à l'utilisateur. L'horaire-type réapparaît au prochain refresh.
  */
 async function clearPlanningFromModal() {
     if (!confirm('Effacer la planification de cette période ?')) return;
@@ -6884,7 +6892,7 @@ async function clearPlanningFromModal() {
         const data = await response.json();
         if (data.success) {
             closePlanningModal();
-            updateCellAfterSave(date, periodNumber, null);  // null = restore schedule fallback
+            updateCellAfterSave(date, periodNumber, null, { cleared: true });
         } else {
             alert('Erreur : ' + (data.error || data.message || 'Erreur inconnue'));
         }

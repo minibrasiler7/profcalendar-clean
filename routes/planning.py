@@ -948,11 +948,63 @@ def calendar_view():
             'name': holiday_name
         }
 
+    # Récupérer les mémos pour la semaine AFFICHÉE — utilisés à la fois par
+    # le rendu complet et par le fragment, donc on les calcule avant le
+    # branchement.
+    from models.lesson_memo import LessonMemo
+    week_memos = LessonMemo.query.filter(
+        LessonMemo.user_id == current_user.id,
+        LessonMemo.target_date >= week_dates[0],
+        LessonMemo.target_date <= week_dates[4],
+        LessonMemo.is_completed == False
+    ).options(
+        db.joinedload(LessonMemo.classroom),
+        db.joinedload(LessonMemo.mixed_group)
+    ).all()
+    memos_by_date_period = {}
+    for memo in week_memos:
+        date_str = memo.target_date.strftime('%Y-%m-%d')
+        period = memo.target_period
+        key = f"{date_str}_{period}" if period else f"{date_str}_none"
+        memos_by_date_period.setdefault(key, []).append(memo)
+
+    # ============================================================
+    # SHORTCUT pour le mode fragment (navigation client-side de semaine)
+    # ============================================================
+    # IMPORTANT : ce shortcut DOIT venir AVANT generate_annual_calendar()
+    # qui itère sur toutes les classes et tous les groupes mixtes pour
+    # toute l'année scolaire. Sur un compte avec plusieurs classes c'est
+    # le calcul le plus coûteux de la route, et il est totalement inutile
+    # pour rafraîchir la grille d'une seule semaine.
+    fragment_kind = request.args.get('fragment')
+    if fragment_kind == 'week':
+        from utils.jinja_filters import format_date_full, format_date
+        grid_html = render_template(
+            'planning/_week_grid.html',
+            week_dates=week_dates,
+            current_week=current_week,
+            periods=periods,
+            schedule_grid=schedule_grid,
+            planning_grid=planning_grid,
+            holidays_info=holidays_info,
+            days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+            today=date_type.today(),
+            merged_info=merged_info,
+            memos_by_date_period=memos_by_date_period,
+        )
+        return jsonify({
+            'success': True,
+            'week': current_week.isoformat(),
+            'title': f"Semaine du {format_date_full(week_dates[0])} au {format_date(week_dates[4])}",
+            'grid_html': grid_html,
+        })
+
     # Générer les données annuelles pour chaque classe et groupe mixte
+    # (utilisé seulement par la vue annuelle de la page complète).
     annual_data = {}
     for classroom in classrooms:
         annual_data[f"classroom_{classroom.id}"] = generate_annual_calendar(classroom, 'classroom')
-    
+
     for group in mixed_groups:
         annual_data[f"mixed_group_{group.id}"] = generate_annual_calendar(group, 'mixed_group')
 
@@ -1001,66 +1053,9 @@ def calendar_view():
                 'type': 'custom'
             }
 
-    # Récupérer les mémos pour la semaine AFFICHÉE (pas forcément la semaine actuelle)
-    from models.lesson_memo import LessonMemo
-    import logging
-    logger = logging.getLogger(__name__)
-
-    logger.error(f"DEBUG Calendar - week_dates: {week_dates}")
-    logger.error(f"DEBUG Calendar - Searching memos from {week_dates[0]} to {week_dates[4]}")
-
-    week_memos = LessonMemo.query.filter(
-        LessonMemo.user_id == current_user.id,
-        LessonMemo.target_date >= week_dates[0],
-        LessonMemo.target_date <= week_dates[4],
-        LessonMemo.is_completed == False
-    ).options(
-        db.joinedload(LessonMemo.classroom),
-        db.joinedload(LessonMemo.mixed_group)
-    ).all()
-
-    logger.error(f"DEBUG Calendar - Found {len(week_memos)} memos")
-
-    # Organiser les mémos par date ET période
-    memos_by_date_period = {}
-    for memo in week_memos:
-        date_str = memo.target_date.strftime('%Y-%m-%d')
-        period = memo.target_period
-        key = f"{date_str}_{period}" if period else f"{date_str}_none"
-
-        if key not in memos_by_date_period:
-            memos_by_date_period[key] = []
-        memos_by_date_period[key].append(memo)
-        logger.error(f"DEBUG Calendar - Memo ID {memo.id}: date={date_str}, period={period}, key={key}")
-
-    logger.error(f"DEBUG Calendar - memos_by_date_period keys: {list(memos_by_date_period.keys())}")
-
-    # Mode "fragment" : la navigation client-side (boutons précédent/suivant
-    # de semaine) demande seulement la grille hebdomadaire sous forme JSON
-    # plutôt que la page entière. On évite ainsi le rechargement complet
-    # (PDF, modals, JS, CSS) qui rendait la navigation lente.
-    fragment_kind = request.args.get('fragment')
-    if fragment_kind == 'week':
-        from utils.jinja_filters import format_date_full, format_date
-        grid_html = render_template(
-            'planning/_week_grid.html',
-            week_dates=week_dates,
-            current_week=current_week,
-            periods=periods,
-            schedule_grid=schedule_grid,
-            planning_grid=planning_grid,
-            holidays_info=holidays_info,
-            days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
-            today=date_type.today(),
-            merged_info=merged_info,
-            memos_by_date_period=memos_by_date_period,
-        )
-        return jsonify({
-            'success': True,
-            'week': current_week.isoformat(),
-            'title': f"Semaine du {format_date_full(week_dates[0])} au {format_date(week_dates[4])}",
-            'grid_html': grid_html,
-        })
+    # NOTE : memos_by_date_period et le shortcut fragment sont calculés plus
+    # haut dans la fonction (avant generate_annual_calendar). Le bloc
+    # dupliqué qui se trouvait ici a été supprimé.
 
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
