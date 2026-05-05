@@ -141,13 +141,23 @@ function openPlanningModal(cell, fromAnnualView = false) {
             }
         }
 
-        // Bouton "Effacer" : ne l'afficher que si une planification existe déjà.
+        // Bouton "Effacer" : visible dès qu'il y a quelque chose à effacer
+        // dans la cellule. Deux cas :
+        //   - une vraie planification (classroom_id, mixed_group_id, title…)
+        //   - juste un fallback "horaire-type" (data-default-classroom etc.)
+        //     → la cellule grisée vient de l'horaire de référence ; cliquer
+        //       Effacer la vide visuellement (pas de DELETE en base puisqu'il
+        //       n'y a rien à supprimer ; l'endpoint /save_planning est
+        //       idempotent dans ce cas).
         const clearBtn = document.getElementById('planningClearBtn');
         if (clearBtn) {
             const hasExisting = !!(data.success && data.planning &&
                 (data.planning.classroom_id || data.planning.mixed_group_id ||
                  data.planning.title || data.planning.description));
-            clearBtn.style.display = hasExisting ? '' : 'none';
+            const hasScheduleFallback = !!(cell.dataset.defaultClassroom ||
+                                            cell.dataset.defaultMixedGroup ||
+                                            cell.dataset.defaultCustomTask);
+            clearBtn.style.display = (hasExisting || hasScheduleFallback) ? '' : 'none';
         }
 
         // Adapter l'interface selon si la période est passée ou non
