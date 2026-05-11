@@ -553,6 +553,53 @@ def upload_class_file():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
+
+@class_files_bp.route('/create-folder-structure', methods=['POST'])
+@login_required
+def create_folder_structure():
+    """Créer une arborescence de dossiers pour une classe.
+
+    Endpoint appelé par le JS de manage-classes quand on upload un dossier
+    entier : il envoie d'abord la liste des chemins de dossiers (folders[])
+    puis les fichiers via /upload avec leur `folder_path`.
+
+    Côté legacy `class_files`, les "dossiers" ne sont pas des entités à
+    part : le chemin est encodé dans `description` (« Copié dans le dossier:
+    foo/bar ») et reconstruit côté JS. Cette route est donc essentiellement
+    un endpoint de validation/idempotent pour ne pas casser le flux JS qui
+    s'attend à un succès avant de pousser les fichiers.
+
+    Si plus tard on veut des dossiers "vides" visibles, on peut créer des
+    enregistrements ClassFolder ici — l'implémentation actuelle reste un
+    no-op qui valide la classe et renvoie OK.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        classroom_id = data.get('classroom_id')
+        folders = data.get('folders', []) or []
+
+        if not classroom_id:
+            return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+
+        classroom = Classroom.query.filter_by(
+            id=classroom_id,
+            user_id=current_user.id
+        ).first()
+        if not classroom:
+            return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
+
+        # Pas de création effective de dossiers : l'arborescence est portée
+        # par `folder_path` des fichiers. On renvoie juste OK pour que le
+        # flux JS continue avec /upload.
+        return jsonify({
+            'success': True,
+            'message': f'{len(folders)} dossier(s) prêts à recevoir des fichiers',
+            'folders': folders,
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+
+
 @class_files_bp.route('/preview/<int:file_id>')
 @login_required
 def preview_class_file(file_id):

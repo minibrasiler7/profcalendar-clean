@@ -8699,22 +8699,23 @@ async function createClassFolderStructure(folderPaths) {
 async function uploadClassFilesWithStructure(filesData) {
     const totalFiles = filesData.length;
     let uploadedCount = 0;
-    
+    const errors = [];
+
     showClassUploadProgress();
-    
+
     for (const fileData of filesData) {
         const formData = new FormData();
         formData.append('file', fileData.file);
         formData.append('classroom_id', "{{ primary_classroom.id }}");
         formData.append('folder_path', fileData.path);
-        
+
         if (currentClassFolder) {
             formData.append('parent_folder_id', currentClassFolder);
         }
-        
+
         try {
             const xhr = new XMLHttpRequest();
-            
+
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const fileProgress = (e.loaded / e.total) * 100;
@@ -8722,30 +8723,39 @@ async function uploadClassFilesWithStructure(filesData) {
                     updateClassUploadProgress(totalProgress, `${fileData.file.name} (${uploadedCount + 1}/${totalFiles})`);
                 }
             });
-            
+
             await new Promise((resolve, reject) => {
                 xhr.onload = () => {
-                    if (xhr.status === 200) {
+                    let parsed = null;
+                    try { parsed = JSON.parse(xhr.responseText); } catch (e) {}
+                    if (xhr.status === 200 && parsed && parsed.success !== false) {
                         uploadedCount++;
-                        resolve(JSON.parse(xhr.responseText));
+                        resolve(parsed);
                     } else {
-                        reject(new Error(`Upload failed: ${xhr.status}`));
+                        const msg = parsed && parsed.message ? parsed.message : `HTTP ${xhr.status}`;
+                        reject(new Error(msg));
                     }
                 };
-                xhr.onerror = reject;
-                
+                xhr.onerror = () => reject(new Error('Erreur réseau'));
+
                 xhr.open('POST', '/api/class-files/upload');
                 xhr.send(formData);
             });
-            
+
         } catch (error) {
             console.error(`Erreur lors de l'upload de ${fileData.file.name}:`, error);
+            errors.push(`${fileData.file.name}: ${error.message || 'erreur inconnue'}`);
         }
     }
-    
+
     hideClassUploadProgress();
-    showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
-    
+    if (uploadedCount > 0) {
+        showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    }
+    if (errors.length) {
+        showNotification('error', `${errors.length} échec(s). Premier : ${errors[0]}`);
+    }
+
     // Recharger les fichiers
     loadClassFiles(currentClassFolder);
 }
@@ -8873,24 +8883,28 @@ async function uploadClassFiles(files, classroomId = null) {
     if (!classroomId) {
         classroomId = "{{ primary_classroom.id }}";
     }
-    
+    if (!classroomId) {
+        showNotification('error', 'Aucune classe sélectionnée pour l\'upload');
+        return;
+    }
+
     showClassUploadProgress();
-    
+
     let uploadedCount = 0;
     const totalFiles = files.length;
-    
+
     for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('classroom_id', classroomId);
-        
+
         if (currentClassFolder) {
             formData.append('folder_id', currentClassFolder);
         }
-        
+
         try {
             const xhr = new XMLHttpRequest();
-            
+
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const fileProgress = (e.loaded / e.total) * 100;
@@ -8898,34 +8912,46 @@ async function uploadClassFiles(files, classroomId = null) {
                     updateClassUploadProgress(totalProgress, `${file.name} (${uploadedCount + 1}/${totalFiles})`);
                 }
             });
-            
+
             const response = await new Promise((resolve, reject) => {
                 xhr.onload = () => {
+                    // Renvoie le payload même en cas d'erreur HTTP pour
+                    // pouvoir afficher le message exact du serveur.
+                    let parsed = null;
+                    try { parsed = JSON.parse(xhr.responseText); } catch (e) {}
                     if (xhr.status === 200) {
-                        resolve(JSON.parse(xhr.responseText));
+                        resolve(parsed || { success: true });
                     } else {
-                        reject(new Error(`Upload failed: ${xhr.status}`));
+                        const msg = parsed && parsed.message
+                            ? parsed.message
+                            : `HTTP ${xhr.status}`;
+                        const err = new Error(msg);
+                        err.status = xhr.status;
+                        err.payload = parsed;
+                        reject(err);
                     }
                 };
-                xhr.onerror = reject;
-                
+                xhr.onerror = () => reject(new Error('Erreur réseau'));
+
                 xhr.open('POST', '/api/class-files/upload');
                 xhr.send(formData);
             });
-            
+
             if (response.success) {
                 uploadedCount++;
             } else {
                 showNotification('error', response.message || `Erreur lors de l'upload de ${file.name}`);
             }
         } catch (error) {
-            console.error('Erreur upload:', error);
-            showNotification('error', `Erreur lors de l'upload de ${file.name}`);
+            console.error('Erreur upload:', error, 'classroom_id=', classroomId);
+            // Surfaces le message exact du serveur (vu en console + toast)
+            const detail = error.message ? ` (${error.message})` : '';
+            showNotification('error', `Erreur lors de l'upload de ${file.name}${detail}`);
         }
     }
-    
+
     hideClassUploadProgress();
-    
+
     if (uploadedCount > 0) {
         showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
         loadClassFiles(currentClassFolder, classroomId);

@@ -1681,126 +1681,8 @@ if (typeof pdfjsLib !== 'undefined') {
             </div>
 
             <!-- Calendrier annuel -->
-            <div class="annual-calendar">
-                {% if selected_classroom_id and selected_classroom_id in annual_data %}
-                    {% if selected_classroom_id.startswith('mixed_group_') %}
-                        {% set item_id = selected_classroom_id.split('_')[2]|int %}
-                        {% set selected_item = classrooms_json | selectattr('type', 'equalto', 'mixed_group') | selectattr('id', 'equalto', item_id) | first %}
-                    {% else %}
-                        {% set item_id = selected_classroom_id.split('_')[1]|int %}
-                        {% set selected_item = classrooms_json | selectattr('type', 'equalto', 'classroom') | selectattr('id', 'equalto', item_id) | first %}
-                    {% endif %}
-                    <div class="annual-grid" data-classroom-color="{{ selected_item.color if selected_item else '#4F46E5' }}">
-                        {% for week in annual_data[selected_classroom_id] %}
-                        <div class="annual-week-wrapper {% if week.start_date <= today and today <= week.dates[4] %}current-week{% endif %} {% if week.is_holiday %}holiday-week{% endif %}">
-                            <div class="annual-week-row">
-                                <div class="week-info">
-                                    <div class="week-date">{{ week.formatted_date }}</div>
-                                    <div class="week-number" {% if not week.is_holiday %}onclick="navigateToWeek('{{ week.start_date.strftime('%Y-%m-%d') }}')" title="Cliquez pour voir cette semaine"{% endif %}>
-                                        {% if week.is_holiday %}
-                                            <span class="holiday-label" title="{{ week.holiday_name }}">
-                                                {% if week.holiday_name_short %}
-                                                    {{ week.holiday_name_short }}
-                                                {% else %}
-                                                    {% set holiday_parts = week.holiday_name.split(' ') %}
-                                                    {% if holiday_parts|length > 1 and week.holiday_name|length > 12 %}
-                                                        {{ holiday_parts[0] }}<br>{{ holiday_parts[1:] | join(' ') }}
-                                                    {% else %}
-                                                        {{ week.holiday_name }}
-                                                    {% endif %}
-                                                {% endif %}
-                                            </span>
-                                        {% else %}
-                                            <span class="week-number-link">S{{ week.week_number }}</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="week-days">
-                                    {% for has_class in week.has_class %}
-                                    {% set i = loop.index0 %}
-                                    {% set date = week.dates[i] %}
-                                    {% set date_str = date.strftime('%Y-%m-%d') %}
-                                    {% set holiday_name = week.holidays_by_day[i] %}
-                                    <div class="annual-day {% if has_class %}has-class{% endif %} {% if date == today %}today{% endif %} {% if holiday_name %}holiday single-day-holiday{% endif %}"
-                                         data-date="{{ date_str }}"
-                                         data-weekday="{{ i }}"
-                                         data-has-class="{{ 'true' if has_class else 'false' }}"
-                                         onclick="{% if has_class and not holiday_name %}handleAnnualDayClick(this, '{{ date_str }}'){% endif %}"
-                                         title="{{ days[i] }} {{ date.strftime('%d/%m') }}{% if holiday_name %} - {{ holiday_name }}{% endif %}">
-                                        <div class="annual-day-content">
-                                            {% if holiday_name %}
-                                                <div class="annual-holiday-name">{{ holiday_name[:3] }}</div>
-                                            {% elif week.plannings and date_str in week.plannings %}
-                                                <div class="annual-plannings">
-                                                    {% for planning in week.plannings[date_str][:3] %}
-                                                        <div class="annual-planning-item" title="{{ planning.title }}">
-                                                            {% if planning.checklist_summary %}
-                                                            <div class="annual-planning-checklist">
-                                                                {% if planning.checklist_summary.all_checked %}
-                                                                    <i class="fas fa-check-circle annual-checklist-icon all-checked"></i>
-                                                                {% elif planning.checklist_summary.checked > 0 %}
-                                                                    <i class="fas fa-tasks annual-checklist-icon partial"></i>
-                                                                {% else %}
-                                                                    <i class="fas fa-times-circle annual-checklist-icon none-checked"></i>
-                                                                {% endif %}
-                                                            </div>
-                                                            {% endif %}
-                                                            <span class="annual-planning-text">{{ planning.title }}</span>
-                                                        </div>
-                                                    {% endfor %}
-                                                    {% if week.plannings[date_str]|length > 3 %}
-                                                        <div class="annual-planning-more">+{{ week.plannings[date_str]|length - 3 }}</div>
-                                                    {% endif %}
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% if week.decoupage_ribbon %}
-                            <div class="decoupage-ribbon-row">
-                                <div class="ribbon-spacer"></div>
-                                {% if week.decoupage_ribbon.type == 'full' %}
-                                <div class="decoupage-ribbon full"
-                                     style="background-color: {{ week.decoupage_ribbon.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.color }};"
-                                     title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }})">
-                                    <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
-                                        {{ week.decoupage_ribbon.name }}
-                                    </span>
-                                </div>
-                                {% elif week.decoupage_ribbon.type == 'split' %}
-                                <div class="decoupage-ribbon-split">
-                                    {% if week.decoupage_ribbon.first_half %}
-                                    <div class="decoupage-ribbon half first-half"
-                                         style="background-color: {{ week.decoupage_ribbon.first_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.first_half.color }};"
-                                         title="{{ week.decoupage_ribbon.first_half.name }}">
-                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.first_half.color }};">
-                                            {{ week.decoupage_ribbon.first_half.name }}
-                                        </span>
-                                    </div>
-                                    {% else %}
-                                    <div class="decoupage-ribbon half first-half empty"></div>
-                                    {% endif %}
-                                    {% if week.decoupage_ribbon.second_half %}
-                                    <div class="decoupage-ribbon half second-half"
-                                         style="background-color: {{ week.decoupage_ribbon.second_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.second_half.color }};"
-                                         title="{{ week.decoupage_ribbon.second_half.name }}">
-                                        <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.second_half.color }};">
-                                            {{ week.decoupage_ribbon.second_half.name }}
-                                        </span>
-                                    </div>
-                                    {% else %}
-                                    <div class="decoupage-ribbon half second-half empty"></div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            <div class="annual-calendar" id="annualCalendarContainer">
+                {% include "planning/_annual_grid.html" %}
             </div>
 
             <!-- Légende -->
@@ -2003,7 +1885,11 @@ if (typeof pdfjsLib !== 'undefined') {
     </div>
 
     <!-- Conteneur pour le lecteur PDF Clean en mode split 50% -->
-    <div id="pdf-viewer-container-calendar" style="display: none; position: fixed; top: 0; right: 0; width: 50%; height: 100vh; z-index: 11000; background: #F8FAFC; box-shadow: -4px 0 12px rgba(0,0,0,0.1);"></div>
+    {# Le top est calculé dynamiquement par openPdfViewerCalendar/Day pour
+       descendre sous la navbar sticky. On ne fixe pas top: 0 ici, sinon
+       la toolbar du lecteur PDF est masquée derrière la navbar et
+       l'utilisateur ne peut plus la fermer. #}
+    <div id="pdf-viewer-container-calendar" style="display: none; position: fixed; right: 0; width: 50%; z-index: 11000; background: #F8FAFC; box-shadow: -4px 0 12px rgba(0,0,0,0.1);"></div>
 
 </div>
 
@@ -2538,15 +2424,51 @@ function applyClassroomColor() {
 }
 
 // Changer d'onglet de classe dans la vue annuelle
-function switchClassroomTab(classroomId, buttonElement) {
-    console.log('🔄 Switching to classroom:', classroomId);
-    
-    // Mettre à jour l'URL pour recharger avec la nouvelle classe
-    const currentUrl = new URL(window.location);
-    currentUrl.searchParams.set('classroom', classroomId);
-    
-    // Recharger la page avec la nouvelle classe sélectionnée
-    window.location.href = currentUrl.toString();
+async function switchClassroomTab(classroomId, buttonElement) {
+    console.log('🔄 Switching to classroom (fragment):', classroomId);
+
+    // Effet visuel de chargement sur la vue annuelle
+    const annualView = document.querySelector('.annual-view');
+    if (annualView) annualView.classList.add('loading');
+
+    // Mettre à jour le style des onglets immédiatement
+    document.querySelectorAll('.class-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    } else {
+        const target = document.querySelector(`.class-tabs .tab-btn[data-classroom-id="${classroomId}"]`);
+        if (target) target.classList.add('active');
+    }
+
+    try {
+        // Le fragment endpoint ne calcule generate_annual_calendar QUE
+        // pour la classe demandée (1 itération au lieu de N) → ~10x plus
+        // rapide qu'un full reload qui re-rend toute la page.
+        const url = `/planning/calendar?classroom=${encodeURIComponent(classroomId)}&fragment=annual`;
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || 'Erreur fragment');
+
+        const container = document.getElementById('annualCalendarContainer');
+        if (container) container.innerHTML = data.grid_html;
+
+        // Mettre à jour la globale + URL pour cohérence et back-button.
+        window.selectedClassroomId = classroomId;
+        const params = new URLSearchParams(window.location.search);
+        params.set('classroom', classroomId);
+        const newUrl = window.location.pathname + '?' + params.toString();
+        history.replaceState({classroom: classroomId}, '', newUrl);
+    } catch (err) {
+        console.error('Erreur switch classroom :', err);
+        // Fallback : ancien comportement (full reload) si le fragment échoue,
+        // pour ne pas bloquer l'utilisateur.
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('classroom', classroomId);
+        window.location.href = currentUrl.toString();
+    } finally {
+        if (annualView) annualView.classList.remove('loading');
+    }
 }
 
 // Calculer dynamiquement les hauteurs des blocs fusionnés
@@ -2610,15 +2532,10 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleViewMode();
     }
     
-    // Gestionnaire pour les onglets de classe
-    document.querySelectorAll('.tab-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const classroomId = this.getAttribute('data-classroom-id');
-            if (classroomId) {
-                selectClassroom(classroomId);
-            }
-        });
-    });
+    // (anciennement : event listener sur .tab-btn → selectClassroom() qui
+    // faisait un full reload. C'était redondant avec l'onclick inline qui
+    // appelle déjà switchClassroomTab(...) en mode fragment. On le retire
+    // pour éviter le double déclenchement reload+fragment.)
 });
 
 
@@ -3144,7 +3061,9 @@ async function openPdfInViewer(fileId, fileName) {
             return;
         }
 
-        // Afficher le conteneur
+        // Afficher le conteneur (positionné sous la navbar pour ne pas masquer
+        // la toolbar du lecteur PDF derrière celle-ci)
+        positionPdfViewerBelowNav(container);
         container.style.display = 'block';
 
         // Détruire l'instance précédente si elle existe
@@ -3283,7 +3202,8 @@ async function openNewBlankSheetCalendar(lessonDate, periodNumber, classroomId) 
         return;
     }
 
-    // Afficher le conteneur
+    // Afficher le conteneur (positionné sous la navbar)
+    positionPdfViewerBelowNav(container);
     container.style.display = 'block';
 
     // Détruire l'instance précédente si elle existe
@@ -3364,7 +3284,9 @@ async function openExistingBlankSheetCalendar(sheetId) {
             return;
         }
 
-        // Afficher le conteneur
+        // Afficher le conteneur (positionné sous la navbar pour ne pas masquer
+        // la toolbar du lecteur PDF derrière celle-ci)
+        positionPdfViewerBelowNav(container);
         container.style.display = 'block';
 
         // Détruire l'instance précédente si elle existe
@@ -5332,7 +5254,9 @@ async function openDayPdfInViewer(fileId, fileName) {
             document.body.appendChild(container);
         }
 
-        // Afficher le conteneur
+        // Afficher le conteneur (positionné sous la navbar pour ne pas masquer
+        // la toolbar du lecteur PDF derrière celle-ci)
+        positionPdfViewerBelowNav(container);
         container.style.display = 'block';
 
         // Détruire l'instance précédente si elle existe
@@ -6562,9 +6486,28 @@ function closePlanningModal() {
     const clearBtn = document.getElementById('planningClearBtn');
     if (clearBtn) clearBtn.style.display = 'none';
 
+    // Fermer aussi le lecteur PDF (split 50%). Sans ça, on revoyait le
+    // même PDF rouvert à la prochaine ouverture du modal de planification.
+    if (typeof closePdfViewer === 'function') {
+        try { closePdfViewer(); } catch (e) {}
+    }
+
     // Nettoyer le contexte
     window.currentPlanningContext = null;
     currentPlanningCell = null;
+}
+
+/**
+ * Positionne le conteneur PDF (split 50%) JUSTE SOUS la navbar sticky pour
+ * que sa toolbar (boutons stylo, fermer…) ne soit pas masquée derrière.
+ * Appelé chaque fois qu'on rend le conteneur visible.
+ */
+function positionPdfViewerBelowNav(container) {
+    if (!container) return;
+    const nav = document.querySelector('.navbar');
+    const navH = nav ? nav.getBoundingClientRect().height : 0;
+    container.style.top = navH + 'px';
+    container.style.height = `calc(100vh - ${navH}px)`;
 }
 
 // ============================================================

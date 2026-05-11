@@ -999,18 +999,57 @@ def calendar_view():
             'grid_html': grid_html,
         })
 
-    # Générer les données annuelles pour chaque classe et groupe mixte
-    # (utilisé seulement par la vue annuelle de la page complète).
+    # Sélectionner la classe demandée (param URL ou première par défaut)
+    default_id = f"classroom_{classrooms[0].id}" if classrooms else (f"mixed_group_{mixed_groups[0].id}" if mixed_groups else None)
+    selected_classroom_id = request.args.get('classroom', default_id)
+
+    # Mode fragment "annual" : on ne calcule QUE pour la classe demandée,
+    # pas pour toutes les classes de l'utilisateur. C'est l'opération la
+    # plus coûteuse de la route (generate_annual_calendar fait un balayage
+    # complet de l'année scolaire). En full reload on l'évite pour les
+    # navigations entre onglets ; en fragment on la limite à 1 itération.
+    if fragment_kind == 'annual':
+        target_classroom = None
+        target_group = None
+        target_kind = None
+        if selected_classroom_id and selected_classroom_id.startswith('classroom_'):
+            target_id = int(selected_classroom_id.split('_')[1])
+            target_classroom = next((c for c in classrooms if c.id == target_id), None)
+            target_kind = 'classroom'
+        elif selected_classroom_id and selected_classroom_id.startswith('mixed_group_'):
+            target_id = int(selected_classroom_id.split('_')[2])
+            target_group = next((g for g in mixed_groups if g.id == target_id), None)
+            target_kind = 'mixed_group'
+
+        annual_data = {}
+        if target_classroom:
+            annual_data[selected_classroom_id] = generate_annual_calendar(target_classroom, 'classroom')
+        elif target_group:
+            annual_data[selected_classroom_id] = generate_annual_calendar(target_group, 'mixed_group')
+
+        grid_html = render_template(
+            'planning/_annual_grid.html',
+            selected_classroom_id=selected_classroom_id,
+            annual_data=annual_data,
+            classrooms_json=classrooms_dict,
+            today=date_type.today(),
+            days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+        )
+        return jsonify({
+            'success': True,
+            'classroom_id': selected_classroom_id,
+            'grid_html': grid_html,
+        })
+
+    # Sinon : page complète → on calcule l'annual_data pour TOUTES les
+    # classes (utilisé par le rendu initial + la légende + la cohérence
+    # du <select>).
     annual_data = {}
     for classroom in classrooms:
         annual_data[f"classroom_{classroom.id}"] = generate_annual_calendar(classroom, 'classroom')
 
     for group in mixed_groups:
         annual_data[f"mixed_group_{group.id}"] = generate_annual_calendar(group, 'mixed_group')
-
-    # Sélectionner la première classe par défaut
-    default_id = f"classroom_{classrooms[0].id}" if classrooms else (f"mixed_group_{mixed_groups[0].id}" if mixed_groups else None)
-    selected_classroom_id = request.args.get('classroom', default_id)
 
     # Créer une version JSON-serializable de schedule_grid
     schedule_grid_json = {}
