@@ -9116,27 +9116,27 @@ class CleanPDFViewer {
     }
 
     setTool(tool) {
-        // PencilKit native overlay : DÉSACTIVÉ.
-        // Raisons :
-        //  1. Le PKCanvasView est positionné par viewDidLayoutSubviews
-        //     (WebViewController.swift) au contentFrame complet, ce qui
-        //     couvre la barre d'outils → le stylet trace au lieu de cliquer
-        //     sur les boutons (impossible de changer d'outil).
-        //  2. StrokeConverter.swift divise les points par `scale`, mais le
-        //     canvas web a une résolution interne = natural × scale → le
-        //     trait apparaît rétréci et translaté après la levée du stylet.
-        // Le système web (pointer events sur la WebView) fonctionne sans
-        // ces problèmes : startAnnotation/continueAnnotation/endAnnotation
-        // utilisent (clientX - rect.left) * canvas.width/rect.width pour
-        // obtenir des coordonnées internes correctes, et le canvas reste
-        // sous la barre d'outils.
-        // Le bridge JS reste installé (stub + initPencilKitBridge) au cas
-        // où une future activation serait nécessaire — il est inerte tant
-        // que activatePencilKit() n'est pas appelé.
-        if (this.isPencilKitAvailable && this.pencilKitActive) {
-            // Si une session précédente avait laissé PencilKit actif,
-            // on le désactive proprement pour libérer la barre d'outils.
-            this.deactivatePencilKit();
+        // PencilKit native overlay : RÉACTIVÉ pour l'app iPad (latence
+        // ultra-basse + rendu d'encre natif). Sur web/Mac le bridge n'est
+        // pas disponible (isPencilKitAvailable == false) donc on retombe
+        // sur le système web (pointer events) — pas de régression.
+        //
+        // Les deux bugs historiques sont fixés côté Swift :
+        //  - WebViewController.viewDidLayoutSubviews ne réécrit plus le
+        //    frame du PKCanvasView quand il est visible (sinon il
+        //    couvrait la barre d'outils → impossible de changer d'outil).
+        //  - StrokeConverter ne divise plus par `scale` (le canvas web
+        //    est déjà à la résolution natural×scale, division inutile).
+        //
+        // Filet de sécurité côté JS : si l'utilisateur tourne encore une
+        // version Swift sans les fixes (StrokeConverter divise toujours),
+        // applyScaleCompensation() en handleStroke remultiplie par scale.
+        if (this.isPencilKitAvailable) {
+            if (tool === 'pen' || tool === 'highlighter') {
+                this.activatePencilKit();
+            } else if (this.pencilKitActive) {
+                this.deactivatePencilKit();
+            }
         }
 
         console.log('[Tool] setTool appelé avec:', tool);

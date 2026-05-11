@@ -2188,7 +2188,9 @@ if (typeof pdfjsLib !== 'undefined') {
 <script>
 // Définir les variables globales AVANT de charger planning.js qui les utilise
 const currentWeek = '{{ current_week.strftime("%Y-%m-%d") }}';
-const selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
+// `let` (et non `const`) car switchClassroomTab() le réassigne quand
+// l'utilisateur change d'onglet sans recharger la page.
+let selectedClassroomId = {{ selected_classroom_id|tojson if selected_classroom_id else 'null' }};
 const periodsData = {{ periods_json | tojson }};
 const classrooms = {{ classrooms_json | tojson }};
 const scheduleGrid = {{ schedule_grid_json | tojson }};
@@ -2453,8 +2455,16 @@ async function switchClassroomTab(classroomId, buttonElement) {
         const container = document.getElementById('annualCalendarContainer');
         if (container) container.innerHTML = data.grid_html;
 
-        // Mettre à jour la globale + URL pour cohérence et back-button.
+        // CRITIQUE : la couleur des cases « has-class » est appliquée via la
+        // variable CSS --classroom-color sur .annual-grid, posée par
+        // applyClassroomColor(). Le fragment renvoie un nouveau .annual-grid
+        // sans cette variable → toutes les cases apparaissent grises sans
+        // ce re-appel.
         window.selectedClassroomId = classroomId;
+        selectedClassroomId = classroomId;
+        if (typeof applyClassroomColor === 'function') {
+            applyClassroomColor();
+        }
         const params = new URLSearchParams(window.location.search);
         params.set('classroom', classroomId);
         const newUrl = window.location.pathname + '?' + params.toString();
@@ -6019,24 +6029,41 @@ async function getStudentsForClass(classId) {
 
 // Fermer le lecteur PDF unifié
 function closePdfViewer() {
+    // 1) Ancien viewer générique (window.currentPdfViewer + pdf-viewer-container)
     if (window.currentPdfViewer) {
-        window.currentPdfViewer.destroy();
+        try { window.currentPdfViewer.destroy(); } catch (e) {}
         window.currentPdfViewer = null;
     }
-    
     const container = document.getElementById('pdf-viewer-container');
     if (container) {
         container.style.display = 'none';
         container.innerHTML = '';
     }
-    
-    // Nettoyer aussi le conteneur journalier s'il existe
+
+    // 2) Conteneur calendrier (split 50% à droite, utilisé par openPdfInViewer
+    //    + ses variantes). Sans ce nettoyage, fermer le modal de planification
+    //    laissait le PDF visible, et le rouvrir le faisait réapparaître.
+    if (window.cleanPDFViewerCalendar) {
+        try { window.cleanPDFViewerCalendar.destroy(); } catch (e) {}
+        window.cleanPDFViewerCalendar = null;
+    }
+    const calContainer = document.getElementById('pdf-viewer-container-calendar');
+    if (calContainer) {
+        calContainer.style.display = 'none';
+        calContainer.innerHTML = '';
+    }
+
+    // 3) Conteneur journalier (créé dynamiquement par openDayPdfInViewer)
+    if (window.cleanPDFViewerDay) {
+        try { window.cleanPDFViewerDay.destroy(); } catch (e) {}
+        window.cleanPDFViewerDay = null;
+    }
     const dayContainer = document.getElementById('pdf-viewer-container-day');
     if (dayContainer && dayContainer.parentNode) {
         dayContainer.parentNode.removeChild(dayContainer);
     }
-    
-    // Nettoyer aussi le conteneur principal s'il existe
+
+    // 4) Conteneur principal (créé dynamiquement par certains flux)
     const mainContainer = document.getElementById('pdf-viewer-container-main');
     if (mainContainer && mainContainer.parentNode) {
         mainContainer.parentNode.removeChild(mainContainer);
@@ -7052,6 +7079,6 @@ function showAttendanceError(message) {
 </script>
 
 <!-- Nouveau lecteur PDF Clean -->
-<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.8&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 
 {% endblock %}

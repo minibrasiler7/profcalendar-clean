@@ -99,7 +99,19 @@ class WebViewController: UIViewController {
         )
         webView?.frame = contentFrame
         offlineView?.frame = contentFrame
-        pencilCanvas?.frame = contentFrame
+        // IMPORTANT : ne PAS réécrire le frame du PKCanvasView quand il est
+        // visible. Sinon updatePencilCanvasFrame() (appelé à l'activation
+        // avec le rect précis de la page PDF) est écrasé ici à la première
+        // invalidation de layout, et le PKCanvasView se met à couvrir TOUTE
+        // la WebView (incluant la barre d'outils du lecteur PDF) →
+        // impossible de changer d'outil avec le stylet.
+        if let pc = pencilCanvas, pc.isHidden {
+            pc.frame = contentFrame
+        } else {
+            // PencilKit actif → on redemande à la WebView de communiquer le
+            // nouveau pageRect côté JS si l'orientation/scroll a changé.
+            updatePencilCanvasFrame()
+        }
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {

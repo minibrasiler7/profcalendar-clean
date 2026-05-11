@@ -46,15 +46,29 @@ class StrokeConverter {
         
         for i in 0..<pointCount {
             let point = path[i]
-            
-            // Convertir les coordonnees PencilKit -> coordonnees web
-            // Diviser par le scale pour obtenir les coordonnees non-zoomees
-            let webX = Double(point.location.x) / scale
-            let webY = Double(point.location.y) / scale
-            
-            // La force PencilKit (0-1) mappe directement sur la pression
+
+            // Coordonnées PencilKit -> coordonnées canvas web.
+            //
+            // PencilKit retourne des points dans le repère local du
+            // PKCanvasView dont le frame est posé sur le rect CSS de la
+            // page PDF (ex: 800x1000 points). Le canvas web de PDF.js
+            // est dimensionné à viewport.width = natural × scale, soit
+            // exactement le même que la taille CSS où le canvas est
+            // rendu sur l'écran (canvas.width = canvas.style.width).
+            //
+            // → 1 point PencilKit = 1 pixel sur le canvas web.
+            //   Aucune conversion nécessaire.
+            //
+            // L'ancienne division par `scale` était fausse : elle
+            // produisait des points dans [0, natural], rendus ensuite
+            // sur un canvas de [0, natural×scale] = trait réduit à 1/scale
+            // et ancré en haut-gauche.
+            let webX = Double(point.location.x)
+            let webY = Double(point.location.y)
+
+            // La force PencilKit (0-1) mappe directement sur la pression.
             let pressure = Double(point.force)
-            
+
             points.append(StrokePoint(
                 x: webX,
                 y: webY,

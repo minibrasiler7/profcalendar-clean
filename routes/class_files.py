@@ -473,10 +473,18 @@ def upload_class_file():
         file = request.files['file']
         classroom_id = request.form.get('classroom_id')
         folder_path = request.form.get('folder_path', '').strip()
-        
+
         if not classroom_id:
             return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
-        
+
+        # Postgres en mode strict refuse de comparer un INTEGER avec un VARCHAR
+        # ("operator does not exist: integer = character varying"). request.form
+        # renvoie toujours des chaînes, donc on cast en int avant la query.
+        try:
+            classroom_id = int(classroom_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=classroom_id,
@@ -580,6 +588,12 @@ def create_folder_structure():
 
         if not classroom_id:
             return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+
+        # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
+        try:
+            classroom_id = int(classroom_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
 
         classroom = Classroom.query.filter_by(
             id=classroom_id,
