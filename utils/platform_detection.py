@@ -27,8 +27,26 @@ def is_ios_native_app() -> bool:
     return IOS_APP_UA_MARKER in ua
 
 
+def is_ipad_web_ua() -> bool:
+    """Détection serveur grossière (User-Agent uniquement) d'un iPad sur
+    le web.
+
+    Sur iPadOS ≥ 13, Safari se présente avec le UA « Macintosh » donc on
+    ne peut pas détecter de façon fiable depuis le serveur. La détection
+    fine se fait côté JS dans base.html en combinant userAgent et
+    navigator.maxTouchPoints > 1 — c'est ce JS qui décide d'afficher
+    la bannière. Cette fonction sert seulement à rendre la bannière
+    cachée par défaut côté SSR pour éviter le flash sur desktop.
+    """
+    if is_ios_native_app():
+        return False
+    ua = request.headers.get("User-Agent", "") or ""
+    return "iPad" in ua
+
+
 def platform_context() -> dict:
     """Retourne un petit dict utilisable dans les templates Jinja."""
     return {
         "is_ios_native_app": is_ios_native_app(),
+        "is_ipad_web_ua": is_ipad_web_ua(),
     }

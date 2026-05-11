@@ -1612,6 +1612,154 @@ if (typeof pdfjsLib !== 'undefined') {
 {% endblock %}
 
 {% block content %}
+
+{# Barre de chargement progressive : démarrée par un script inline en haut
+   de la page, terminée au DOMContentLoaded. L'utilisateur voit une
+   progression visuelle pendant que le HTML+annual_data+JS PDF se chargent. #}
+<div id="calendarPageLoader" class="calendar-page-loader">
+    <div class="calendar-page-loader-bar" id="calendarPageLoaderBar"></div>
+    <div class="calendar-page-loader-overlay">
+        <div class="calendar-page-loader-card">
+            <div class="calendar-page-loader-spinner">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="calendar-page-loader-title">Chargement du calendrier…</div>
+            <div class="calendar-page-loader-subtitle">Les données de l'année se mettent en place.</div>
+            <div class="calendar-page-loader-progress">
+                <div class="calendar-page-loader-progress-fill" id="calendarPageLoaderFill"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+.calendar-page-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    pointer-events: auto;
+}
+.calendar-page-loader-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899);
+    background-size: 200% 100%;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.55);
+    z-index: 12001;
+    transition: width 0.25s ease-out;
+    animation: calLoaderShimmer 1.5s linear infinite;
+}
+@keyframes calLoaderShimmer {
+    from { background-position: 0% 0%; }
+    to { background-position: -200% 0%; }
+}
+.calendar-page-loader-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(248, 250, 252, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.calendar-page-loader-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90vw;
+}
+.calendar-page-loader-spinner {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4F46E5;
+    font-size: 1.6rem;
+    animation: calLoaderPulse 1.2s ease-in-out infinite;
+}
+@keyframes calLoaderPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.45); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(79, 70, 229, 0); }
+}
+.calendar-page-loader-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1F2937;
+    margin-bottom: 0.25rem;
+}
+.calendar-page-loader-subtitle {
+    font-size: 0.85rem;
+    color: #6B7280;
+    margin-bottom: 1rem;
+}
+.calendar-page-loader-progress {
+    width: 100%;
+    height: 6px;
+    background: #F3F4F6;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.calendar-page-loader-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4F46E5, #7C3AED);
+    border-radius: 999px;
+    transition: width 0.4s ease-out;
+}
+.calendar-page-loader.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+.calendar-page-loader.hidden .calendar-page-loader-bar {
+    width: 100% !important;
+}
+</style>
+<script>
+(function() {
+    // Faux progress qui monte petit à petit (max 90%) jusqu'au
+    // DOMContentLoaded → on saute alors à 100% puis on cache.
+    var bar = document.getElementById('calendarPageLoaderBar');
+    var fill = document.getElementById('calendarPageLoaderFill');
+    var overlay = document.getElementById('calendarPageLoader');
+    if (!bar || !fill || !overlay) return;
+    var progress = 8;
+    bar.style.width = progress + '%';
+    fill.style.width = progress + '%';
+    var timer = setInterval(function() {
+        // Asymptote vers 88% pour laisser la place au "boom" final.
+        if (progress < 88) {
+            progress += (88 - progress) * 0.06;
+            bar.style.width = progress + '%';
+            fill.style.width = progress + '%';
+        }
+    }, 200);
+    function finish() {
+        clearInterval(timer);
+        bar.style.width = '100%';
+        fill.style.width = '100%';
+        overlay.classList.add('hidden');
+        setTimeout(function() { overlay.style.display = 'none'; }, 350);
+    }
+    if (document.readyState === 'complete') {
+        finish();
+    } else {
+        window.addEventListener('load', finish);
+        // Filet de sécurité : si load met trop de temps (>15s), on cache quand même.
+        setTimeout(finish, 15000);
+    }
+})();
+</script>
+
 <div class="calendar-container">
     <!-- En-tête avec navigation -->
     <div class="calendar-header">

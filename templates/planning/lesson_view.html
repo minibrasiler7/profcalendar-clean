@@ -922,11 +922,85 @@ input, textarea, select {
     .layout-label {
         display: none;
     }
-    
+
     .layout-btn {
         width: 36px;
         height: 36px;
         font-size: 0.875rem;
+    }
+}
+
+/* ============================================================================
+   REFONTE MOBILE (<= 768px) — Stack vertical, masquage des contrôles inutiles.
+   Tous les boutons de disposition (layout-controls) sont masqués : sur un
+   téléphone, la seule vue qui a du sens est le stack vertical de bout en bout.
+   ============================================================================ */
+@media (max-width: 768px) {
+    /* Header : moins encombrant */
+    .lesson-header {
+        padding: 0.75rem 0.5rem !important;
+        gap: 0.5rem !important;
+    }
+    .lesson-info { gap: 0.4rem !important; }
+    .lesson-info h1 { font-size: 1.05rem !important; line-height: 1.2 !important; }
+    .lesson-info .meta { font-size: 0.8rem !important; }
+
+    /* Cacher complètement les boutons de disposition (inutiles sur mobile) */
+    .layout-controls { display: none !important; }
+    .clock-widget { display: none !important; }
+
+    /* Forcer la disposition en stack vertical, peu importe la classe layout-* */
+    .lesson-main,
+    .lesson-main.layout-default,
+    .lesson-main.layout-planning-focus,
+    .lesson-main.layout-attendance-focus,
+    .lesson-main.layout-resources-focus,
+    .lesson-main.layout-vertical {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        padding: 0.5rem !important;
+        grid-template-columns: 1fr !important;
+    }
+    .lesson-main > * {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 0 0 auto !important;
+        grid-column: 1 / -1 !important;
+    }
+
+    /* Chaque section : padding plus serré */
+    .planning-section,
+    .attendance-section,
+    .resources-section,
+    .seating-plan-section {
+        padding: 0.75rem !important;
+        margin: 0 !important;
+    }
+    .section-header { padding: 0.5rem 0 !important; }
+    .section-header h2 { font-size: 1rem !important; }
+
+    /* Tableaux (présences, etc.) : permettre le scroll horizontal */
+    .attendance-section table,
+    .planning-section table {
+        font-size: 0.8rem;
+    }
+
+    /* Cacher les boutons "Pause timer" textuels si trop encombrants */
+    .timer-widget { padding: 0.3rem 0.5rem !important; }
+    .timer-display { font-size: 0.95rem !important; }
+}
+
+/* Très petits écrans : encore plus minimaliste */
+@media (max-width: 480px) {
+    .lesson-info h1 { font-size: 0.95rem !important; }
+    .section-header h2 { font-size: 0.95rem !important; }
+    .planning-section,
+    .attendance-section,
+    .resources-section,
+    .seating-plan-section {
+        padding: 0.6rem !important;
     }
 }
 

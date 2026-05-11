@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Choisir un plan - ProfCalendar{% endblock %}
+
+{% block content %}
+<div class="choose-plan-page">
+    <div class="choose-plan-header">
+        <div class="choose-plan-badge">
+            <i class="fas fa-rocket"></i> Bienvenue sur ProfCalendar !
+        </div>
+        <h1>Choisissez votre plan</h1>
+        <p class="choose-plan-subtitle">
+            Vous bénéficiez automatiquement de <strong>30 jours d'essai Premium gratuit</strong>.
+            Choisissez maintenant comment continuer ensuite — vous pouvez tout changer plus tard.
+        </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('subscription.choose_plan') }}" class="choose-plan-grid">
+
+        <!-- OPTION 1 : Essai gratuit -->
+        <label class="plan-card plan-card-trial">
+            <input type="radio" name="choice" value="trial" checked>
+            <div class="plan-card-inner">
+                <div class="plan-card-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="plan-card-title">Gratuit avec essai Premium</div>
+                <div class="plan-card-price">
+                    <span class="price-main">CHF 0</span>
+                    <span class="price-period">pendant 30 jours</span>
+                </div>
+                <ul class="plan-card-features">
+                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai Premium gratuit</strong></li>
+                    <li><i class="fas fa-check"></i> Toutes les fonctionnalités</li>
+                    <li><i class="fas fa-check"></i> Pas de carte bancaire requise</li>
+                    <li><i class="fas fa-check"></i> Bascule en plan Gratuit à la fin</li>
+                </ul>
+                <div class="plan-card-cta">Continuer en essai gratuit</div>
+            </div>
+        </label>
+
+        <!-- OPTION 2 : Premium mensuel -->
+        <label class="plan-card plan-card-monthly">
+            <input type="radio" name="choice" value="monthly">
+            <div class="plan-card-inner">
+                <div class="plan-card-icon" style="background: linear-gradient(135deg, #4F46E5, #7C3AED);">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="plan-card-title">Premium mensuel</div>
+                <div class="plan-card-price">
+                    <span class="price-main">CHF 4.90</span>
+                    <span class="price-period">/ mois</span>
+                </div>
+                <ul class="plan-card-features">
+                    <li><i class="fas fa-check"></i> Toutes les fonctionnalités</li>
+                    <li><i class="fas fa-check"></i> Support prioritaire</li>
+                    <li><i class="fas fa-check"></i> Sans engagement</li>
+                    <li><i class="fas fa-check"></i> Annulable à tout moment</li>
+                </ul>
+                <div class="plan-card-cta">Choisir mensuel</div>
+            </div>
+        </label>
+
+        <!-- OPTION 3 : Premium annuel -->
+        <label class="plan-card plan-card-annual">
+            <input type="radio" name="choice" value="annual">
+            <div class="plan-card-inner">
+                <div class="plan-card-badge-popular">⭐ Meilleure offre</div>
+                <div class="plan-card-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="plan-card-title">Premium annuel</div>
+                <div class="plan-card-price">
+                    <span class="price-main">CHF 39.90</span>
+                    <span class="price-period">/ an</span>
+                </div>
+                <ul class="plan-card-features">
+                    <li><i class="fas fa-check"></i> Tout du Premium mensuel</li>
+                    <li><i class="fas fa-check"></i> <strong>Économisez 32 %</strong></li>
+                    <li><i class="fas fa-check"></i> 3 Go de stockage</li>
+                    <li><i class="fas fa-check"></i> Support prioritaire</li>
+                </ul>
+                <div class="plan-card-cta">Choisir annuel</div>
+            </div>
+        </label>
+
+        <div class="choose-plan-actions">
+            <button type="submit" class="choose-plan-submit">
+                <i class="fas fa-arrow-right"></i> Continuer
+            </button>
+            <p class="choose-plan-note">
+                Les paiements sont sécurisés par Stripe. Vous pouvez changer de plan ou
+                annuler à tout moment depuis vos paramètres.
+            </p>
+        </div>
+    </form>
+</div>
+
+<style>
+.choose-plan-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 1rem;
+}
+.choose-plan-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+.choose-plan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #EEF2FF, #F5F3FF);
+    color: #4F46E5;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 1px solid #C7D2FE;
+    margin-bottom: 1rem;
+}
+.choose-plan-header h1 {
+    font-size: 2rem;
+    color: #1F2937;
+    margin: 0 0 0.75rem 0;
+}
+.choose-plan-subtitle {
+    color: #6B7280;
+    font-size: 1rem;
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.55;
+}
+
+.choose-plan-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.plan-card {
+    cursor: pointer;
+    position: relative;
+}
+.plan-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.plan-card-inner {
+    background: white;
+    border: 2px solid #E5E7EB;
+    border-radius: 1rem;
+    padding: 1.5rem 1.25rem;
+    height: 100%;
+    transition: all 0.2s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.plan-card:hover .plan-card-inner {
+    border-color: #C7D2FE;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+.plan-card input[type="radio"]:checked + .plan-card-inner {
+    border-color: var(--primary-color, #4F46E5);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18);
+    transform: translateY(-2px);
+}
+.plan-card input[type="radio"]:checked + .plan-card-inner .plan-card-cta {
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    color: white;
+}
+
+.plan-card-badge-popular {
+    position: absolute;
+    top: -10px;
+    right: 1rem;
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: white;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4);
+}
+
+.plan-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+.plan-card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 0.5rem;
+}
+.plan-card-price {
+    margin-bottom: 1rem;
+}
+.plan-card-price .price-main {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1F2937;
+}
+.plan-card-price .price-period {
+    color: #6B7280;
+    font-size: 0.85rem;
+    margin-left: 0.25rem;
+}
+
+.plan-card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem 0;
+    flex: 1;
+}
+.plan-card-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    color: #4B5563;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+.plan-card-features li i {
+    color: #10B981;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+}
+
+.plan-card-cta {
+    background: #F3F4F6;
+    color: #1F2937;
+    padding: 0.65rem 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.choose-plan-actions {
+    grid-column: 1 / -1;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+.choose-plan-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: linear-gradient(135deg, var(--primary-color, #4F46E5), #7C3AED);
+    color: white;
+    padding: 0.85rem 2rem;
+    border: none;
+    border-radius: 0.6rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+.choose-plan-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.45);
+}
+.choose-plan-note {
+    margin-top: 0.75rem;
+    color: #6B7280;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+    .choose-plan-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .choose-plan-header h1 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

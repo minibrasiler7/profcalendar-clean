@@ -882,6 +882,84 @@
     }
 }
 
+/* ============================================================================
+   Sélecteur d'onglets mobile (dropdown) — caché par défaut, montré <768px.
+   ============================================================================ */
+.tabs-mobile-selector {
+    display: none;
+    padding: 0.5rem 0.25rem 0.75rem;
+}
+.tabs-mobile-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-color, #6B7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+}
+.tabs-mobile-label i {
+    margin-right: 0.4rem;
+    color: var(--primary-color, #4F46E5);
+}
+.tabs-mobile-select {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.95rem;
+    border: 2px solid var(--primary-color, #4F46E5);
+    border-radius: 0.6rem;
+    background: white;
+    color: #1F2937;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234F46E5'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 1.4rem;
+    padding-right: 2.2rem;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.08);
+}
+.tabs-mobile-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+}
+
+@media (max-width: 768px) {
+    .tabs-mobile-selector { display: block; }
+    .tabs-container { border-bottom: none; margin-bottom: 1rem; }
+    .tabs-container > .tabs { display: none !important; }
+
+    /* Sections : plus compactes sur mobile */
+    .students-section,
+    .grades-section,
+    .files-section,
+    .sanctions-section,
+    .attendance-section,
+    .seating-section,
+    .groups-section,
+    .accommodations-section,
+    .student-report-section,
+    .teachers-section {
+        padding: 1rem !important;
+    }
+    .section-header { flex-direction: column !important; align-items: stretch !important; gap: 0.5rem !important; }
+    .section-title { font-size: 1rem !important; }
+    .header-actions { flex-wrap: wrap; gap: 0.4rem !important; }
+    .header-actions .btn { font-size: 0.8rem; padding: 0.5rem 0.7rem; }
+
+    /* Tableaux : scroll horizontal pour ne pas casser le layout */
+    .table-responsive, .students-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* JS support : synchroniser le select avec l'onglet actif. Sans ça, l'option
+   par défaut (Élèves) reste sélectionnée même après navigation. Le hook
+   s'insère dans la fonction showTab existante via wrapping ci-dessous. */
+
 /* Styles pour les en-têtes d'évaluations */
 .eval-header {
     display: flex;
@@ -3063,6 +3141,31 @@
 
         <!-- Tabs -->
         <div class="tabs-container">
+            {# Sur mobile : dropdown plus pratique que les onglets serrés.
+               Affiché via CSS @media. Le <select> appelle showTab() comme les
+               boutons. #}
+            <div class="tabs-mobile-selector">
+                <label for="tabsMobileSelect" class="tabs-mobile-label">
+                    <i class="fas fa-list"></i> Section
+                </label>
+                <select id="tabsMobileSelect"
+                        class="tabs-mobile-select"
+                        onchange="showTab(this.value); this.blur();">
+                    <option value="students">👨‍🎓 Élèves</option>
+                    <option value="student-report">📄 Rapport élève</option>
+                    <option value="grades">📋 Notes</option>
+                    <option value="files">📁 Fichiers</option>
+                    <option value="sanctions">⚠️ Coches</option>
+                    <option value="attendance">📅 Absences</option>
+                    <option value="seating">🪑 Plan de classe</option>
+                    <option value="groups">👥 Groupes</option>
+                    <option value="accommodations">♿ Aménagements</option>
+                    {% if show_teachers_tab %}
+                    <option value="teachers">👨‍🏫 Enseignants</option>
+                    {% endif %}
+                </select>
+            </div>
+
             <div class="tabs">
                 <button class="tab-button active" onclick="showTab('students')">
                     <i class="fas fa-user-graduate"></i> Élèves
@@ -7125,6 +7228,13 @@ function showTab(tabName) {
     const targetButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
     if (targetButton) {
         targetButton.classList.add('active');
+    }
+
+    // Synchroniser le sélecteur mobile avec l'onglet actif (sans
+    // re-déclencher onchange).
+    const mobileSelect = document.getElementById('tabsMobileSelect');
+    if (mobileSelect && mobileSelect.value !== tabName) {
+        mobileSelect.value = tabName;
     }
     
     // Charger les fichiers si on est sur l'onglet fichiers

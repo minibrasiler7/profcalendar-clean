@@ -232,7 +232,10 @@ def verify_email():
             session.pop('verification_email', None)
 
             flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
-            return redirect(url_for('setup.initial_setup'))
+            # Après vérification, on propose le choix d'abonnement
+            # (compte gratuit avec essai 30j déjà actif, ou Premium payant).
+            # Sur iPad app native, choose_plan saute lui-même vers le setup.
+            return redirect(url_for('subscription.choose_plan'))
         else:
             flash('Code invalide ou expiré.', 'error')
 

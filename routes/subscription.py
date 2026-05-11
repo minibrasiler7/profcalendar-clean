@@ -11,6 +11,78 @@ from utils.platform_detection import is_ios_native_app
 subscription_bp = Blueprint('subscription', __name__, url_prefix='/subscription')
 
 
+@subscription_bp.route('/choose-plan', methods=['GET', 'POST'])
+@login_required
+def choose_plan():
+    """Page de choix d'abonnement juste après l'inscription.
+
+    L'utilisateur vient d'avoir 30 jours d'essai Premium offerts par
+    `routes.auth.register` (auth.py grant_premium_access(30)). Il peut :
+      - garder le compte gratuit avec ces 30 jours d'essai → on continue
+        directement vers le setup initial
+      - s'abonner Premium mensuel ou annuel → Stripe Checkout, retour
+        sur /subscription/success qui pointera vers le setup
+
+    Si l'utilisateur est sur l'app iOS native (App Store guidelines
+    interdisent toute UI de paiement externe), on saute cette étape et
+    on file directement au setup — l'app n'affichera pas de prix.
+    """
+    # Sur iOS app : pas de page de choix d'abonnement, on file au setup.
+    if is_ios_native_app():
+        return redirect(url_for('setup.initial_setup'))
+
+    # Si l'utilisateur a déjà choisi (compte plus très récent) ou est
+    # déjà passé Premium payant, on saute aussi cette page.
+    if request.method == 'POST':
+        choice = request.form.get('choice', 'trial')
+        if choice == 'trial':
+            # Le trial 30 jours est déjà actif depuis l'inscription :
+            # rien à faire, on file au setup.
+            return redirect(url_for('setup.initial_setup'))
+        # Sinon on déclenche Stripe Checkout côté serveur.
+        billing_cycle = 'annual' if choice == 'annual' else 'monthly'
+        try:
+            stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
+            price_id = (current_app.config.get('STRIPE_PRICE_ANNUAL')
+                        if billing_cycle == 'annual'
+                        else current_app.config.get('STRIPE_PRICE_MONTHLY'))
+            if not price_id:
+                flash('Configuration de prix manquante côté serveur.', 'error')
+                return redirect(url_for('subscription.choose_plan'))
+
+            if not current_user.stripe_customer_id:
+                customer = stripe.Customer.create(
+                    email=current_user.email,
+                    name=current_user.username,
+                    metadata={'user_id': str(current_user.id)}
+                )
+                current_user.stripe_customer_id = customer.id
+                db.session.commit()
+
+            checkout_session = stripe.checkout.Session.create(
+                customer=current_user.stripe_customer_id,
+                payment_method_types=['card'],
+                line_items=[{'price': price_id, 'quantity': 1}],
+                mode='subscription',
+                # Retour : on passe par /subscription/success qui activera
+                # l'abonnement puis redirigera vers le setup.
+                success_url=url_for('subscription.success', _external=True)
+                            + '?session_id={CHECKOUT_SESSION_ID}&from_signup=1',
+                cancel_url=url_for('subscription.choose_plan', _external=True),
+                client_reference_id=str(current_user.id),
+                locale='fr',
+            )
+            return redirect(checkout_session.url)
+        except stripe.error.StripeError as e:
+            current_app.logger.error(f"Erreur Stripe choose_plan: {e}")
+            flash(f"Erreur de paiement : {str(e)}", 'error')
+            return redirect(url_for('subscription.choose_plan'))
+
+    # GET : afficher la page de choix
+    return render_template('subscription/choose_plan.html',
+                           premium_until=current_user.premium_until)
+
+
 @subscription_bp.route('/pricing')
 def pricing():
     """Page de tarification avec les différentes offres.
@@ -142,6 +214,12 @@ def success():
                     current_app.logger.info(f"Subscription activated for user {current_user.id} via success page")
         except Exception as e:
             current_app.logger.error(f"Error verifying checkout session: {e}")
+
+    # Si on vient juste de l'inscription, on enchaîne avec le setup initial
+    # au lieu d'afficher la page « merci » habituelle.
+    if request.args.get('from_signup') == '1':
+        flash('Bienvenue dans Premium ! On va maintenant configurer votre compte.', 'success')
+        return redirect(url_for('setup.initial_setup'))
 
     return render_template('subscription/success.html')
 

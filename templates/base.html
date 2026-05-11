@@ -26,6 +26,121 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body{% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
+
+    {# Bannière iPad-web : suggère l'app iPad native quand on détecte un iPad
+       qui navigue sur le site sans être dans l'app. Cachée par défaut, un
+       script en bas du body décide d'afficher en fonction de
+       navigator.maxTouchPoints + UA. Dismissable, mémorisée 7 jours. #}
+    {% if not is_ios_native_app %}
+    <div id="ipadAppBanner" class="ipad-app-banner" style="display: none;" role="region" aria-label="App iPad disponible">
+        <div class="ipad-app-banner-content">
+            <i class="fas fa-tablet-alt ipad-app-banner-icon"></i>
+            <div class="ipad-app-banner-text">
+                <strong>ProfCalendar pour iPad</strong>
+                <span>Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore.</span>
+            </div>
+            <a href="#" id="ipadAppBannerLink" class="ipad-app-banner-cta" aria-disabled="true">
+                <i class="fas fa-info-circle"></i> Bientôt disponible
+            </a>
+            <button type="button" class="ipad-app-banner-close" onclick="dismissIpadBanner()" aria-label="Fermer la bannière">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+        (function() {
+            function isIpad() {
+                var ua = navigator.userAgent || '';
+                if (/iPad/i.test(ua)) return true;
+                // iPadOS ≥ 13 : Safari iPad se présente comme Macintosh.
+                // On distingue d'un vrai Mac via maxTouchPoints (Mac = 0 ou 1, iPad ≥ 5).
+                if (/Macintosh/i.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) {
+                    return true;
+                }
+                return false;
+            }
+            // Ne pas montrer si déjà fermée récemment (7 jours)
+            try {
+                var dismissed = localStorage.getItem('pc_ipad_banner_dismissed');
+                if (dismissed && (Date.now() - parseInt(dismissed, 10)) < 7 * 24 * 60 * 60 * 1000) {
+                    return;
+                }
+            } catch (e) {}
+            if (isIpad()) {
+                var el = document.getElementById('ipadAppBanner');
+                if (el) el.style.display = 'block';
+            }
+        })();
+        function dismissIpadBanner() {
+            var el = document.getElementById('ipadAppBanner');
+            if (el) el.style.display = 'none';
+            try { localStorage.setItem('pc_ipad_banner_dismissed', Date.now()); } catch (e) {}
+        }
+    </script>
+    <style>
+        .ipad-app-banner {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: white;
+            padding: 0.75rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .ipad-app-banner-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .ipad-app-banner-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .ipad-app-banner-text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .ipad-app-banner-text strong { font-size: 0.95rem; }
+        .ipad-app-banner-text span { font-size: 0.8rem; opacity: 0.9; }
+        .ipad-app-banner-cta {
+            background: rgba(255, 255, 255, 0.18);
+            color: white;
+            padding: 0.5rem 0.9rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+        .ipad-app-banner-close {
+            background: transparent;
+            color: white;
+            border: none;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .ipad-app-banner-close:hover { background: rgba(255, 255, 255, 0.2); }
+        @media (max-width: 600px) {
+            .ipad-app-banner-text span { display: none; }
+        }
+    </style>
+    {% endif %}
+
     <!-- Navigation -->
     {% if session.get('user_type') != 'student' %}
     <nav class="navbar">
@@ -47,8 +162,18 @@
                 <span>ProfCalendar</span>
             </div>
 
+            {# Burger : visible uniquement sur mobile via CSS. Bascule la
+               classe .open sur .nav-menu pour afficher le drawer. #}
             {% if current_user.is_authenticated %}
-            <div class="nav-menu">
+            <button type="button" class="nav-burger" id="navBurger"
+                    aria-label="Ouvrir le menu" aria-expanded="false"
+                    onclick="toggleNavMenu(this)">
+                <span></span><span></span><span></span>
+            </button>
+            {% endif %}
+
+            {% if current_user.is_authenticated %}
+            <div class="nav-menu" id="navMenu">
                 <a href="{{ url_for('planning.dashboard') }}" class="nav-link {% if request.endpoint == 'planning.dashboard' %}active{% endif %}">
                     <i class="fas fa-home"></i> Tableau de bord
                 </a>
@@ -151,6 +276,127 @@
     </footer>
 
     {% include 'includes/cookie_banner.html' %}
+
+    {# Styles + JS du burger menu mobile et autres ajustements responsives
+       globaux. Volontairement inline dans base.html pour s'appliquer
+       partout sans dépendre du chargement de fichiers CSS externes. #}
+    <style>
+        .nav-burger {
+            display: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            padding: 8px;
+            margin-left: auto;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+        .nav-burger span {
+            display: block;
+            width: 22px;
+            height: 2.5px;
+            background: var(--primary-color, #4F46E5);
+            border-radius: 2px;
+            transition: transform 0.25s, opacity 0.25s;
+        }
+        .nav-burger.open span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+        .nav-burger.open span:nth-child(2) { opacity: 0; }
+        .nav-burger.open span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+
+        @media (max-width: 880px) {
+            .nav-burger { display: flex; }
+            .nav-container {
+                padding: 0.75rem 1rem !important;
+                position: relative;
+            }
+            .nav-menu {
+                position: fixed;
+                top: 64px;
+                right: -100vw;
+                width: 80vw;
+                max-width: 320px;
+                height: calc(100vh - 64px);
+                background: white;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0 !important;
+                padding: 1rem 0;
+                box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08);
+                transition: right 0.25s ease;
+                overflow-y: auto;
+                z-index: 1050;
+            }
+            .nav-menu.open { right: 0; }
+            .nav-menu .nav-link {
+                display: flex;
+                align-items: center;
+                gap: 0.65rem;
+                padding: 0.85rem 1.25rem;
+                border-bottom: 1px solid #F3F4F6;
+                font-size: 1rem;
+            }
+            .nav-menu .nav-link.active {
+                background: linear-gradient(90deg, #EEF2FF, transparent);
+                color: var(--primary-color, #4F46E5);
+            }
+            .nav-user {
+                margin-left: auto;
+                margin-right: 0.25rem;
+            }
+            .nav-user .user-btn span:not(.premium-nav-badge) {
+                display: none;
+            }
+            .nav-user .premium-nav-badge {
+                display: none;
+            }
+            /* Overlay sombre derrière le drawer */
+            body.nav-drawer-open::after {
+                content: '';
+                position: fixed;
+                inset: 64px 0 0 0;
+                background: rgba(0, 0, 0, 0.35);
+                z-index: 1045;
+                animation: navOverlayFade 0.25s;
+            }
+            @keyframes navOverlayFade {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+        }
+        /* Sur très petits écrans, masquer le badge PRO dans la nav pour
+           gagner de la place. */
+        @media (max-width: 480px) {
+            .nav-brand span { font-size: 1.05rem; }
+            .help-fab { bottom: 1rem !important; right: 1rem !important; }
+        }
+    </style>
+    <script>
+        function toggleNavMenu(btn) {
+            var menu = document.getElementById('navMenu');
+            var burger = document.getElementById('navBurger');
+            if (!menu || !burger) return;
+            var willOpen = !menu.classList.contains('open');
+            menu.classList.toggle('open', willOpen);
+            burger.classList.toggle('open', willOpen);
+            burger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            document.body.classList.toggle('nav-drawer-open', willOpen);
+        }
+        // Clic en dehors du menu → ferme
+        document.addEventListener('click', function(e) {
+            var menu = document.getElementById('navMenu');
+            var burger = document.getElementById('navBurger');
+            if (!menu || !menu.classList.contains('open')) return;
+            if (menu.contains(e.target) || (burger && burger.contains(e.target))) return;
+            menu.classList.remove('open');
+            burger.classList.remove('open');
+            burger.setAttribute('aria-expanded', 'false');
+            document.body.classList.remove('nav-drawer-open');
+        });
+    </script>
 
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <!-- Système d'aide enseignant -->
