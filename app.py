@@ -250,6 +250,15 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ Commandes seed non trouvées")
 
+    # Commande CLI pour inspecter le niveau d'engagement d'utilisateurs.
+    # Usage : flask check-users <email1> <email2> ...
+    try:
+        from commands.check_users import register_check_users_command
+        register_check_users_command(app)
+        print("✅ Commande check-users enregistrée")
+    except ImportError as e:
+        print(f"❌ Commande check-users non chargée : {e}")
+
     # Initialisation Stripe
     stripe.api_key = app.config.get('STRIPE_SECRET_KEY')
 
