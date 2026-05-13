@@ -15,7 +15,7 @@
         </p>
     </div>
 
-    <form method="POST" action="{{ url_for('subscription.choose_plan') }}" class="choose-plan-grid">
+    <form method="POST" action="{{ url_for('subscription.choose_plan') }}" class="choose-plan-grid" id="choosePlanForm">
 
         <!-- OPTION 1 : Essai gratuit -->
         <label class="plan-card plan-card-trial">
@@ -52,10 +52,10 @@
                     <span class="price-period">/ mois</span>
                 </div>
                 <ul class="plan-card-features">
+                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai gratuit</strong></li>
                     <li><i class="fas fa-check"></i> Toutes les fonctionnalités</li>
+                    <li><i class="fas fa-check"></i> Sans engagement, annulable</li>
                     <li><i class="fas fa-check"></i> Support prioritaire</li>
-                    <li><i class="fas fa-check"></i> Sans engagement</li>
-                    <li><i class="fas fa-check"></i> Annulable à tout moment</li>
                 </ul>
                 <div class="plan-card-cta">Choisir mensuel</div>
             </div>
@@ -75,26 +75,69 @@
                     <span class="price-period">/ an</span>
                 </div>
                 <ul class="plan-card-features">
+                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai gratuit</strong></li>
                     <li><i class="fas fa-check"></i> Tout du Premium mensuel</li>
                     <li><i class="fas fa-check"></i> <strong>Économisez 32 %</strong></li>
                     <li><i class="fas fa-check"></i> 3 Go de stockage</li>
-                    <li><i class="fas fa-check"></i> Support prioritaire</li>
                 </ul>
                 <div class="plan-card-cta">Choisir annuel</div>
             </div>
         </label>
 
         <div class="choose-plan-actions">
-            <button type="submit" class="choose-plan-submit">
+            {# Sur iOS app : le bouton ne soumet pas le formulaire (Apple
+               interdit toute UI de paiement externe). Il ouvre le paywall
+               natif StoreKit pour Mensuel/Annuel, ou continue vers le setup
+               pour l'option gratuite. #}
+            <button type="submit" class="choose-plan-submit" id="choosePlanSubmit">
                 <i class="fas fa-arrow-right"></i> Continuer
             </button>
-            <p class="choose-plan-note">
+            <p class="choose-plan-note" id="choosePlanNote">
+                {% if is_ios_native_app %}
+                Le paiement passe par votre compte Apple (App Store).
+                Vous pouvez annuler à tout moment depuis Réglages → Apple ID → Abonnements.
+                {% else %}
                 Les paiements sont sécurisés par Stripe. Vous pouvez changer de plan ou
                 annuler à tout moment depuis vos paramètres.
+                {% endif %}
             </p>
         </div>
     </form>
 </div>
+
+<script>
+(function() {
+    // Sur l'app iOS native, on intercepte la soumission du formulaire pour
+    // ouvrir le paywall natif StoreKit au lieu de poster vers Stripe.
+    // Le choix "trial" continue de POSTer normalement → setup direct.
+    var form = document.getElementById('choosePlanForm');
+    if (!form) return;
+
+    var IS_IOS_APP = {% if is_ios_native_app %}true{% else %}false{% endif %};
+
+    form.addEventListener('submit', function(e) {
+        if (!IS_IOS_APP) return;  // web : laisser Stripe Checkout faire son boulot
+
+        var choice = (form.querySelector('input[name="choice"]:checked') || {}).value;
+        if (choice === 'trial') {
+            // Laisser le POST se faire (le serveur saute au setup)
+            return;
+        }
+
+        // Mensuel ou Annuel sur iOS → bloquer le POST, ouvrir le paywall natif
+        e.preventDefault();
+        try {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iap) {
+                window.webkit.messageHandlers.iap.postMessage({action: 'openPaywall'});
+            } else {
+                alert("L'achat n'est disponible que depuis l'application iPad.");
+            }
+        } catch (err) {
+            console.error('Erreur openPaywall:', err);
+        }
+    });
+})();
+</script>
 
 <style>
 .choose-plan-page {

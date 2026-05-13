@@ -17,29 +17,39 @@ def choose_plan():
     """Page de choix d'abonnement juste après l'inscription.
 
     L'utilisateur vient d'avoir 30 jours d'essai Premium offerts par
-    `routes.auth.register` (auth.py grant_premium_access(30)). Il peut :
+    ``routes.auth.register`` (auth.py grant_premium_access(30)). Il peut :
       - garder le compte gratuit avec ces 30 jours d'essai → on continue
-        directement vers le setup initial
-      - s'abonner Premium mensuel ou annuel → Stripe Checkout, retour
-        sur /subscription/success qui pointera vers le setup
+        directement vers le setup initial (aucun moyen de paiement
+        demandé, l'accès retombe sur Free à expiration du trial)
+      - s'abonner Premium mensuel ou annuel → Stripe Checkout (web) ou
+        paywall natif StoreKit (iPad app native). Dans les deux cas un
+        essai gratuit de 30 jours est offert avant la première facture.
 
-    Si l'utilisateur est sur l'app iOS native (App Store guidelines
-    interdisent toute UI de paiement externe), on saute cette étape et
-    on file directement au setup — l'app n'affichera pas de prix.
+    Sur iOS l'écran reste accessible (avec les bons CTA déclenchant le
+    paywall natif) maintenant que l'app supporte l'In-App Purchase via
+    StoreKit 2. Apple guideline 3.1.1 reste respectée car la page n'envoie
+    PAS vers Stripe sur l'app native — les boutons appellent le bridge
+    `window.webkit.messageHandlers.iap.postMessage({...})` géré côté
+    Swift par PaywallViewController.
     """
-    # Sur iOS app : pas de page de choix d'abonnement, on file au setup.
-    if is_ios_native_app():
-        return redirect(url_for('setup.initial_setup'))
-
-    # Si l'utilisateur a déjà choisi (compte plus très récent) ou est
-    # déjà passé Premium payant, on saute aussi cette page.
+    # POST = choix soumis par le formulaire web (Stripe). L'iPad ne POSTe
+    # jamais ici : ses boutons « S'abonner » déclenchent le paywall natif
+    # via JavaScript bridge — voir templates/subscription/choose_plan.html.
     if request.method == 'POST':
         choice = request.form.get('choice', 'trial')
         if choice == 'trial':
             # Le trial 30 jours est déjà actif depuis l'inscription :
             # rien à faire, on file au setup.
             return redirect(url_for('setup.initial_setup'))
-        # Sinon on déclenche Stripe Checkout côté serveur.
+
+        # Sur iOS, on ne devrait jamais arriver ici (paywall natif appelé
+        # côté Swift via le bridge JS — le formulaire n'est pas soumis).
+        # Filet de sécurité : si quelqu'un POSTe quand même depuis iOS, on
+        # le ramène à la page choose_plan plutôt que d'ouvrir Stripe.
+        if is_ios_native_app():
+            return redirect(url_for('subscription.choose_plan'))
+
+        # Web : on déclenche Stripe Checkout avec un trial de 30 jours.
         billing_cycle = 'annual' if choice == 'annual' else 'monthly'
         try:
             stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
@@ -64,6 +74,10 @@ def choose_plan():
                 payment_method_types=['card'],
                 line_items=[{'price': price_id, 'quantity': 1}],
                 mode='subscription',
+                # Période d'essai gratuite de 30 jours. Stripe ne facture
+                # qu'à la fin de cette période — l'utilisateur peut annuler
+                # à tout moment sans être débité.
+                subscription_data={'trial_period_days': 30},
                 # Retour : on passe par /subscription/success qui activera
                 # l'abonnement puis redirigera vers le setup.
                 success_url=url_for('subscription.success', _external=True)
@@ -78,7 +92,7 @@ def choose_plan():
             flash(f"Erreur de paiement : {str(e)}", 'error')
             return redirect(url_for('subscription.choose_plan'))
 
-    # GET : afficher la page de choix
+    # GET : afficher la page de choix sur web ET iOS.
     return render_template('subscription/choose_plan.html',
                            premium_until=current_user.premium_until)
 
