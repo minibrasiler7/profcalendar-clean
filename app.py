@@ -199,6 +199,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ subscription blueprint non trouvé")
 
+    # Blueprint In-App Purchase Apple (StoreKit 2)
+    try:
+        from routes.iap import iap_bp
+        app.register_blueprint(iap_bp)
+        print("✅ iap blueprint ajouté")
+    except ImportError as e:
+        print(f"❌ iap blueprint non chargé: {e}")
+
     # Context processor : expose `is_ios_native_app` dans tous les templates
     # afin de masquer les flux d'abonnement Stripe dans les apps iOS natives
     # (conformité guideline 3.1.1 de l'App Store).
@@ -299,6 +307,43 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Vérification colonnes badge échouée: {e}")
+
+        # Filet de sécurité : table apple_subscriptions (In-App Purchase).
+        # Idempotent — créé si absent. Évite que User.has_premium_access()
+        # crashe sur "relation apple_subscriptions does not exist" si la
+        # migration n'a pas (encore) tourné.
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS apple_subscriptions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    original_transaction_id VARCHAR(64) UNIQUE NOT NULL,
+                    latest_transaction_id VARCHAR(64),
+                    product_id VARCHAR(120) NOT NULL,
+                    bundle_id VARCHAR(120),
+                    environment VARCHAR(20) DEFAULT 'production',
+                    status VARCHAR(20) DEFAULT 'active',
+                    purchase_date TIMESTAMP,
+                    expires_date TIMESTAMP,
+                    cancelled_at TIMESTAMP,
+                    revoked_at TIMESTAMP,
+                    auto_renew_status BOOLEAN DEFAULT TRUE,
+                    in_trial_period BOOLEAN DEFAULT FALSE,
+                    in_intro_offer_period BOOLEAN DEFAULT FALSE,
+                    last_signed_payload TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_apple_subscriptions_user_id "
+                "ON apple_subscriptions (user_id)"
+            ))
+            db.session.commit()
+            print("✅ Table apple_subscriptions vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification table apple_subscriptions échouée: {e}")
 
         # Table subscriptions
         try:

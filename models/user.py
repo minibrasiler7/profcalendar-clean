@@ -49,13 +49,37 @@ class User(UserMixin, db.Model):
     schedules = db.relationship('Schedule', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')
 
     def is_premium(self):
-        """Vérifie si l'utilisateur a un accès premium actif"""
+        """Vérifie si l'utilisateur a un accès premium actif.
+
+        Trois sources possibles :
+          1. Abonnement Stripe (web)  → champs subscription_tier + premium_until
+          2. Octroi manuel (voucher, essai 30j)  → même champs
+          3. Abonnement In-App Purchase Apple  → table apple_subscriptions
+
+        On retourne True si AU MOINS UNE source donne un accès valide.
+        """
+        # Source 1+2 : champ classique
         if self.subscription_tier == 'premium':
-            # Si premium_until est défini, vérifier qu'il n'est pas expiré
-            if self.premium_until:
-                return self.premium_until > datetime.utcnow()
-            # premium sans date d'expiration = illimité
-            return True
+            if self.premium_until is None:
+                return True  # illimité
+            if self.premium_until > datetime.utcnow():
+                return True
+
+        # Source 3 : abonnement Apple actif
+        try:
+            from models.apple_subscription import AppleSubscription
+            apple_sub = AppleSubscription.query.filter_by(
+                user_id=self.id
+            ).filter(
+                AppleSubscription.status.in_(['active', 'in_grace_period'])
+            ).order_by(AppleSubscription.expires_date.desc()).first()
+            if apple_sub and apple_sub.is_active():
+                return True
+        except Exception:
+            # En cas d'erreur d'import ou de DB (ex: table pas encore créée),
+            # on retombe sur le mode "Stripe seulement" sans bloquer la page.
+            pass
+
         return False
 
     def has_premium_access(self):
