@@ -7,6 +7,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Démarrer le gestionnaire In-App Purchase (StoreKit 2). Charge les
+        // produits Premium et écoute les Transaction.updates pour traiter
+        // les renouvellements automatiques.
+        if #available(iOS 15.0, *) {
+            IAPManager.shared.start()
+        }
         return true
     }
 

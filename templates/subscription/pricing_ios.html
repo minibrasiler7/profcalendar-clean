@@ -1,40 +1,66 @@
 {% extends "base.html" %}
 
-{% block title %}Fonctionnalités avancées - ProfCalendar{% endblock %}
+{% block title %}Premium - ProfCalendar{% endblock %}
 
 {% block content %}
 <div style="max-width: 680px; margin: 40px auto; padding: 0 20px;">
     {% if is_premium %}
     <div style="background: #d1fae5; color: #065f46; padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
         <i class="fas fa-check-circle"></i>
-        <span>Votre compte dispose déjà d'un accès complet aux fonctionnalités avancées.</span>
+        <span>Votre compte dispose déjà d'un accès Premium actif.</span>
     </div>
     {% endif %}
 
     <div style="background: white; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); padding: 32px; text-align: center;">
         <div style="font-size: 56px; margin-bottom: 16px;">
-            <i class="fas fa-sparkles" style="color: #6b7280;"></i>
+            <i class="fas fa-crown" style="color: #F59E0B;"></i>
         </div>
 
         <h1 style="margin: 0 0 12px; color: #1f2937; font-size: 26px;">
-            Fonctionnalités avancées
+            ProfCalendar Premium
         </h1>
 
         <p style="margin: 0 0 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Certaines fonctionnalités de ProfCalendar sont incluses avec les comptes
-            disposant d'un accès avancé.
+            Débloquez toutes les fonctionnalités pour gérer vos classes :
+            notes, présences, plan de classe, exercices interactifs, collaboration,
+            et bien plus.
         </p>
 
-        <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Si votre compte dispose de cet accès, connectez-vous avec ce compte
-            pour utiliser l'ensemble des fonctionnalités.
+        {% if not is_premium %}
+        <button onclick="openIAPPaywall()" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+            <i class="fas fa-crown"></i> Voir les abonnements
+        </button>
+        <p style="margin-top: 16px; color: #6b7280; font-size: 13px;">
+            Le paiement passe par votre compte Apple (App Store).
         </p>
+        {% endif %}
 
         <div style="margin-top: 28px;">
-            <a href="{{ url_for('planning.dashboard') }}" style="display: inline-block; padding: 12px 28px; background: #4f46e5; color: white; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            <a href="{{ url_for('planning.dashboard') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
                 Retour au tableau de bord
             </a>
         </div>
     </div>
 </div>
+
+<script>
+/**
+ * Demande à l'app iOS native d'ouvrir le paywall natif (StoreKit 2).
+ * Le bridge `iap` est enregistré par WebViewController.setupWebView()
+ * en Swift. Si on n'est pas dans l'app native, ce bouton ne devrait pas
+ * être visible (le template pricing_ios.html n'est rendu que pour
+ * is_ios_native_app == True côté Flask).
+ */
+function openIAPPaywall() {
+    try {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iap) {
+            window.webkit.messageHandlers.iap.postMessage({action: 'openPaywall'});
+        } else {
+            alert("L'achat n'est disponible que depuis l'application iPad.");
+        }
+    } catch (e) {
+        console.error('Erreur openIAPPaywall:', e);
+    }
+}
+</script>
 {% endblock %}

@@ -210,11 +210,13 @@
                             <i class="fas fa-shield-alt"></i> Administration
                         </a>
                         {% endif %}
-                        {% if not is_ios_native_app %}
+                        {# Bouton Abonnement : visible partout. Sur iOS, la
+                           route subscription.pricing rend pricing_ios.html
+                           qui propose le paywall natif StoreKit. Sur web,
+                           c'est pricing.html (Stripe). #}
                         <a href="{{ url_for('subscription.pricing') }}">
                             <i class="fas fa-crown"></i> Abonnement
                         </a>
-                        {% endif %}
                         <a href="{{ url_for('settings.index') }}">
                             <i class="fas fa-cog"></i> Paramètres
                         </a>

@@ -152,6 +152,13 @@ class WebViewController: UIViewController {
         // Le web envoie: window.webkit.messageHandlers.pencilKit.postMessage({action: "activate", config: {...}})
         config.userContentController.add(pencilKitMessageHandler, name: "pencilKit")
 
+        // Handler IAP : le web peut demander d'ouvrir le paywall natif via
+        //   window.webkit.messageHandlers.iap.postMessage({action: "openPaywall"})
+        // ou récupérer le statut Premium courant côté Apple.
+        if #available(iOS 15.0, *) {
+            config.userContentController.add(IAPMessageHandler(controller: self), name: "iap")
+        }
+
         webView = WKWebView(frame: view.bounds, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -312,6 +319,17 @@ class WebViewController: UIViewController {
         webView.load(request)
         activityIndicator.startAnimating()
         offlineView.isHidden = true
+    }
+
+    /// Recharge la page actuellement affichée dans la WebView.
+    /// Appelé après une activation Premium réussie pour que l'UI reflète
+    /// le nouveau statut.
+    func reloadCurrentPage() {
+        if webView.url != nil {
+            webView.reload()
+        } else {
+            loadBaseURL()
+        }
     }
 
     // MARK: - Actions
