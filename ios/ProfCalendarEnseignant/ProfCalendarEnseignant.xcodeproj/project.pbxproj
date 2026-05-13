@@ -8,11 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		144CE141F7EE28DB5BD77884 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */; };
+		24C032A16DF6EBA6C7B7BADB /* IAPMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC31114D471F618B3152C21A /* IAPMessageHandler.swift */; };
 		442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */; };
 		7B0CA564CD073238D3204AE1 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png in Resources */ = {isa = PBXBuildFile; fileRef = 866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */; };
 		A8234C140678169FE8AB92D6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */; };
 		B06BD7080094D1411861CB97 /* PencilKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5A03B9546255053474FE195 /* PencilKit.framework */; };
+		D5FCEFCAE4DE54E8D125BEBE /* IAPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C68682AD61B25884184B33BC /* IAPManager.swift */; };
 		DBADDF369A3CEDC0AE628515 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */; };
+		E4B967F014BCC48D2248119B /* PaywallViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6DA3FE9C04306F4310FCAE /* PaywallViewController.swift */; };
 		E58368105741ECCE6DF558AD /* DrawingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99537D6858399375F5951050 /* DrawingCoordinator.swift */; };
 		F65D215C6B18A879652B58E2 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E8C3921A2C7A1DD7123496C /* WebViewController.swift */; };
 		FA3FC373F60C5C54F12ECDF3 /* PencilKitMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F5E08A64F2CB1BD831D2FF /* PencilKitMessageHandler.swift */; };
@@ -26,10 +29,13 @@
 		489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ProfCalendarEnseignant.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ChatGPT Image 15 avr. 2026 à 20_40_56.png"; sourceTree = "<group>"; };
+		8C6DA3FE9C04306F4310FCAE /* PaywallViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallViewController.swift; sourceTree = "<group>"; };
 		99537D6858399375F5951050 /* DrawingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCoordinator.swift; sourceTree = "<group>"; };
+		C68682AD61B25884184B33BC /* IAPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IAPManager.swift; sourceTree = "<group>"; };
 		CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		CDBD50147ABC1C311446DB8E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeConverter.swift; sourceTree = "<group>"; };
+		DC31114D471F618B3152C21A /* IAPMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IAPMessageHandler.swift; sourceTree = "<group>"; };
 		E5A03B9546255053474FE195 /* PencilKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PencilKit.framework; path = System/Library/Frameworks/PencilKit.framework; sourceTree = SDKROOT; };
 		E673B55260908774C9F53F1F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -74,6 +80,7 @@
 				E673B55260908774C9F53F1F /* SceneDelegate.swift */,
 				2E8C3921A2C7A1DD7123496C /* WebViewController.swift */,
 				3BCB81DF90AABA640A8EB4A2 /* Drawing */,
+				F84C65FCFA2F8C01A4E13BF4 /* IAP */,
 				026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */,
 			);
 			path = ProfCalendarEnseignant;
@@ -94,6 +101,16 @@
 				4FFA64A94904A343A4CDCAD9 /* Frameworks */,
 				307C77CBD09E01C65DB96C59 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		F84C65FCFA2F8C01A4E13BF4 /* IAP */ = {
+			isa = PBXGroup;
+			children = (
+				C68682AD61B25884184B33BC /* IAPManager.swift */,
+				DC31114D471F618B3152C21A /* IAPMessageHandler.swift */,
+				8C6DA3FE9C04306F4310FCAE /* PaywallViewController.swift */,
+			);
+			path = IAP;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -172,6 +189,9 @@
 			files = (
 				A8234C140678169FE8AB92D6 /* AppDelegate.swift in Sources */,
 				E58368105741ECCE6DF558AD /* DrawingCoordinator.swift in Sources */,
+				D5FCEFCAE4DE54E8D125BEBE /* IAPManager.swift in Sources */,
+				24C032A16DF6EBA6C7B7BADB /* IAPMessageHandler.swift in Sources */,
+				E4B967F014BCC48D2248119B /* PaywallViewController.swift in Sources */,
 				FA3FC373F60C5C54F12ECDF3 /* PencilKitMessageHandler.swift in Sources */,
 				FF5816557878A1BF0CAA2F36 /* SceneDelegate.swift in Sources */,
 				442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */,
@@ -263,7 +283,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
@@ -271,7 +291,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
@@ -287,7 +307,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
@@ -295,7 +315,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
