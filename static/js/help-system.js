@@ -1256,7 +1256,16 @@ class HelpSystem {
         const tourState = this.loadTourState();
         if (tourState && tourState.active) {
             setTimeout(() => this.resumeTour(), 400);
-        } else if (document.body.dataset.firstVisit === 'true') {
+        } else if (document.body.dataset.firstVisit === 'true'
+                   && this.currentPageKey() === 'planning.dashboard') {
+            // IMPORTANT : on ne déclenche le tour QUE sur le dashboard.
+            // Sans ce garde-fou, le tour démarrait dès la page de choix
+            // d'abonnement ou le setup initial — ce qui n'a pas de sens
+            // (le user n'a pas encore la nav, les classes, etc.).
+            // Le flag data-first-visit reste posé tant que /api/help/tour-completed
+            // n'a pas été appelé, donc on attend tranquillement que
+            // l'utilisateur finisse son inscription et atterrisse sur le
+            // dashboard avant de déclencher.
             setTimeout(() => this.startTour(), 800);
         }
 
