@@ -44,12 +44,22 @@
         </div>
 
         <!-- Informations d'utilisation -->
+        {# On affiche maintenant utilisé / total + pourcentage, et on colore
+           la barre selon le niveau d'occupation (vert / orange / rouge)
+           pour que l'utilisateur sache où il en est. #}
+        {% set _max_gb = (max_storage or 1) / (1024*1024*1024) %}
+        {% set _used_gb = total_size / (1024*1024*1024) %}
+        {% set _used_mb = total_size / (1024*1024) %}
+        {% set _percent = (total_size / max_storage * 100) if max_storage else 0 %}
         <div class="storage-info">
             <div class="storage-bar">
-                <div class="storage-used" style="width: {{ (total_size / (1024*1024*1024) * 100 / 50) }}%"></div>
+                <div class="storage-used"
+                     style="width: {{ '%.1f'|format(_percent) }}%;{% if _percent >= 90 %} background: linear-gradient(90deg, #DC2626, #B91C1C);{% elif _percent >= 70 %} background: linear-gradient(90deg, #F59E0B, #D97706);{% endif %}"></div>
             </div>
             <span class="storage-text">
-                {{ "%.1f"|format(total_size / (1024*1024)) }} MB utilisés
+                {% if _used_gb >= 1 %}{{ "%.2f"|format(_used_gb) }} GB{% else %}{{ "%.1f"|format(_used_mb) }} MB{% endif %}
+                / {{ "%.0f"|format(_max_gb) }} GB utilisés
+                ({{ "%.1f"|format(_percent) }} %)
             </span>
         </div>
     </div>

@@ -28,7 +28,10 @@
             <i class="fas fa-crown"></i>
             Abonnement
         </a>
-        <a href="#danger" class="settings-nav-link" onclick="showSection('danger', this)">
+        {# Cet onglet est destructif (suppression de compte) — on le pousse à
+           droite avec un style rouge pour qu'il ne soit pas confondu avec un
+           onglet normal et ne soit pas cliqué par erreur. #}
+        <a href="#danger" class="settings-nav-link settings-nav-link-danger" onclick="showSection('danger', this)">
             <i class="fas fa-trash-alt"></i>
             Supprimer mon compte
         </a>
@@ -498,6 +501,27 @@
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
     font-weight: 600;
+}
+
+/* Variante "danger" : poussée à droite + couleur rouge pour bien isoler
+   l'onglet de suppression de compte des autres réglages. */
+.settings-nav-link-danger {
+    margin-left: auto;
+    color: #DC2626;
+}
+.settings-nav-link-danger:hover {
+    color: #991B1B;
+    background: #FEF2F2;
+    border-radius: 0.4rem 0.4rem 0 0;
+}
+.settings-nav-link-danger.active {
+    color: #DC2626;
+    border-bottom-color: #DC2626;
+}
+@media (max-width: 768px) {
+    /* En mobile, la nav passe en wrap : on retire le margin-left auto
+       pour éviter d'avoir l'onglet danger seul sur une ligne. */
+    .settings-nav-link-danger { margin-left: 0; }
 }
 
 .settings-section {

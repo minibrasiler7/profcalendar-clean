@@ -626,8 +626,11 @@
                     </div>
                 </div>
                 <div class="decoupage-card-stats">
-                    <span><i class="fas fa-layer-group"></i> {{ decoupage.periods.count() }} thèmes</span>
-                    <span><i class="fas fa-users"></i> {{ decoupage.assignments.count() }} classes</span>
+                    {# Pluralisation correcte : "1 thème", "2 thèmes", "1 classe", "2 classes". #}
+                    {% set _periods = decoupage.periods.count() %}
+                    {% set _classes = decoupage.assignments.count() %}
+                    <span><i class="fas fa-layer-group"></i> {{ _periods }} thème{{ 's' if _periods != 1 }}</span>
+                    <span><i class="fas fa-users"></i> {{ _classes }} classe{{ 's' if _classes != 1 }}</span>
                 </div>
             </div>
             {% endfor %}

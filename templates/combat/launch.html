@@ -101,7 +101,9 @@
                         <div>
                             <strong>Combat #{{ s.id }}</strong> — Round {{ s.current_round }}
                             <br>
-                            <small class="text-muted">{{ s.participants.count() }} élèves — {{ s.difficulty }}</small>
+                            {# Pluralisation correcte : "1 élève", "2 élèves". #}
+                            {% set _participants = s.participants.count() %}
+                            <small class="text-muted">{{ _participants }} élève{{ 's' if _participants != 1 }} — {{ s.difficulty }}</small>
                         </div>
                         <a href="{{ url_for('combat.arena', session_id=s.id) }}"
                            class="btn btn-outline-light btn-sm" target="_blank">

@@ -343,7 +343,8 @@ def index():
                          exercises=[],
                          current_folder=current_folder,
                          breadcrumb=breadcrumb,
-                         total_size=total_size)
+                         total_size=total_size,
+                         max_storage=MAX_TOTAL_STORAGE)
 
 @file_manager_bp.route('/test-classes')
 def test_classes():
