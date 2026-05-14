@@ -67,8 +67,15 @@
                     </div>
                     <div class="mb-3">
                         <label for="new_password" class="form-label">Nouveau mot de passe</label>
-                        <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
-                        <small class="text-muted">Minimum 6 caractères</small>
+                        {# Aligné sur les règles d'inscription (auth.py) : 8+ caractères avec
+                           une majuscule et un chiffre. La validation HTML5 ne couvre que la
+                           longueur ; le pattern force la complexité côté navigateur, et le
+                           backend revalide tout. #}
+                        <input type="password" class="form-control" id="new_password" name="new_password"
+                               required minlength="8"
+                               pattern="(?=.*[A-Z])(?=.*[0-9]).{8,}"
+                               title="Au moins 8 caractères, avec une majuscule et un chiffre">
+                        <small class="text-muted">Au moins 8 caractères, avec une majuscule et un chiffre</small>
                     </div>
                     <div class="mb-3">
                         <label for="confirm_password" class="form-label">Confirmer le nouveau mot de passe</label>

@@ -242,9 +242,14 @@ def change_password():
     if not current_user.check_password(current_password):
         return jsonify({'success': False, 'message': 'Le mot de passe actuel est incorrect'}), 400
 
-    # Vérifier la longueur minimale du nouveau mot de passe
-    if len(new_password) < 6:
-        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 8 caractères (avec une majuscule et un chiffre)'}), 400
+    # Vérifier que le nouveau mot de passe respecte les mêmes règles
+    # que l'inscription (auth.py RegisterForm) : 8+ caractères, une
+    # majuscule et un chiffre. Avant, on n'imposait que 6 caractères et
+    # sans complexité, ce qui permettait à l'utilisateur de descendre
+    # en force par rapport à son mot de passe initial.
+    import re
+    if len(new_password) < 8 or not re.search(r'[A-Z]', new_password) or not re.search(r'[0-9]', new_password):
+        return jsonify({'success': False, 'message': 'Le nouveau mot de passe doit contenir au moins 8 caractères avec une majuscule et un chiffre.'}), 400
 
     try:
         # Mettre à jour le mot de passe
