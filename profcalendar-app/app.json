@@ -52,6 +52,12 @@
       "expo-secure-store",
       "expo-font",
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "13bca72c-5070-4c4b-a4db-9d785f1e805b"
+      }
+    },
+    "owner": "minibrasiler"
   }
 }
