@@ -492,7 +492,16 @@ class StudentBadge(db.Model):
         db.UniqueConstraint('student_id', 'badge_id', name='uq_student_badge'),
     )
 
-    student = db.relationship('Student', backref=db.backref('student_badges', lazy='dynamic'))
+    # overlaps : on a 3 relations qui écrivent toutes vers la même colonne
+    # student_badges.student_id (cette relation `student`, StudentBadge.profile
+    # qui pointe vers StudentRPGProfile, et StudentRPGProfile.badges qui
+    # remplit la liste). Sans ce paramètre, SQLAlchemy émet un SAWarning
+    # au boot et peut générer des UPDATEs en double sur la FK.
+    student = db.relationship(
+        'Student',
+        backref=db.backref('student_badges', lazy='dynamic'),
+        overlaps='badges,profile',
+    )
     badge = db.relationship('Badge', backref=db.backref('student_badges', lazy='dynamic'))
 
     def to_dict(self):
