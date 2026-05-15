@@ -483,6 +483,10 @@
 <style>
 .settings-nav {
     display: flex;
+    /* Permet aux onglets de passer à la ligne sur les viewports étroits
+       (typiquement < 1100 px). Sans ça, l'onglet "Supprimer mon compte"
+       avec son margin-left:auto se faisait pousser hors de l'écran. */
+    flex-wrap: wrap;
     gap: 1rem;
     border-bottom: 2px solid var(--border-color);
     margin-bottom: 2rem;
@@ -493,6 +497,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 1rem 1.5rem;
+    /* Empêche le texte d'un onglet (ex. "Supprimer mon compte") de
+       wrapper sur 2-3 lignes quand la place se réduit. La nav-bar gère
+       le manque de place via flex-wrap au niveau du conteneur. */
+    white-space: nowrap;
     text-decoration: none;
     color: var(--gray-color);
     border-bottom: 3px solid transparent;
