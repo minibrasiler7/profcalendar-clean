@@ -140,7 +140,7 @@ def _find_class_file_candidates(file_id, user):
     v2 = ClassFile.query.filter_by(id=file_id).first()
     if v2:
         owner_ok = bool(v2.classroom and v2.classroom.user_id == user.id)
-        current_app.logger.error(
+        current_app.logger.debug(
             f"=== SERVE DEBUG === lookup v2: file_id={file_id} found "
             f"(name={v2.original_filename!r}, classroom_id={v2.classroom_id}, "
             f"user_file_id={v2.user_file_id}, own_filename={v2.own_filename!r}, "
@@ -152,7 +152,7 @@ def _find_class_file_candidates(file_id, user):
     legacy = LegacyClassFile.query.filter_by(id=file_id).first()
     if legacy:
         owner_ok = bool(legacy.classroom and legacy.classroom.user_id == user.id)
-        current_app.logger.error(
+        current_app.logger.debug(
             f"=== SERVE DEBUG === lookup legacy: file_id={file_id} found "
             f"(name={legacy.original_filename!r}, classroom_id={legacy.classroom_id}, "
             f"has_blob={bool(legacy.file_content)}, owner_ok={owner_ok})"
@@ -164,7 +164,7 @@ def _find_class_file_candidates(file_id, user):
     if own:
         candidates.append(('userfile', own))
 
-    current_app.logger.error(
+    current_app.logger.debug(
         f"=== SERVE DEBUG === candidates for file_id={file_id} user_id={user.id}: "
         f"{[k for k, _ in candidates]}"
     )
@@ -182,7 +182,7 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
     if kind == 'userfile':
         response = serve_user_file_content(obj, as_attachment=as_attachment)
         if response is None:
-            current_app.logger.error(
+            current_app.logger.debug(
                 f"=== SERVE DEBUG === userfile id={obj.id} ({obj.original_filename!r}) "
                 f"a échoué : r2_key={bool(obj.r2_key)} blob={bool(obj.file_content)}"
             )
@@ -194,13 +194,13 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
             response = serve_user_file_content(obj.user_file, as_attachment=as_attachment)
             if response is not None:
                 return response
-            current_app.logger.error(
+            current_app.logger.debug(
                 f"=== SERVE DEBUG === v2 id={obj.id} via user_file id={obj.user_file.id} "
                 f"({obj.user_file.original_filename!r}) introuvable partout : "
                 f"r2_key={bool(obj.user_file.r2_key)} blob={bool(obj.user_file.file_content)}"
             )
         else:
-            current_app.logger.error(
+            current_app.logger.debug(
                 f"=== SERVE DEBUG === v2 id={obj.id} ({obj.original_filename!r}) sans user_file "
                 f"(user_file_id={obj.user_file_id})"
             )
@@ -216,7 +216,7 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
                 if r2_data:
                     mimetype = obj.own_mime_type or obj.mime_type or 'application/pdf'
                     disposition = 'attachment' if as_attachment else 'inline'
-                    current_app.logger.error(
+                    current_app.logger.debug(
                         f"=== SERVE DEBUG === v2 id={obj.id} servi via own r2_key={obj.r2_key}"
                     )
                     return Response(
@@ -224,12 +224,12 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
                         mimetype=mimetype,
                         headers={'Content-Disposition': f'{disposition}; filename="{obj.original_filename}"'}
                     )
-                current_app.logger.error(
+                current_app.logger.debug(
                     f"=== SERVE DEBUG === v2 id={obj.id} own r2_key={obj.r2_key!r} "
                     f"introuvable sur R2 (owner={owner_id}, file={obj.own_filename!r})"
                 )
             except Exception as e:
-                current_app.logger.error(
+                current_app.logger.debug(
                     f"=== SERVE DEBUG === v2 id={obj.id} R2 download exception: {e}"
                 )
         return None
@@ -252,7 +252,7 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
         if os.path.exists(file_path):
             mimetype = 'application/pdf' if obj.file_type == 'pdf' else 'application/octet-stream'
             return send_file(file_path, mimetype=mimetype, as_attachment=as_attachment)
-        current_app.logger.error(
+        current_app.logger.debug(
             f"=== SERVE DEBUG === legacy id={obj.id} ({obj.original_filename!r}) "
             f"sans BLOB et fichier disque manquant ({file_path})"
         )
@@ -1247,7 +1247,7 @@ def upload_with_structure():
     from models.file_manager import UserFile, FileFolder
     
     if 'file' not in request.files:
-        current_app.logger.error(f'[UPLOAD-DEBUG] No file in request')
+        current_app.logger.info(f'[UPLOAD-DEBUG] No file in request')
         return jsonify({'success': False, 'message': 'Aucun fichier fourni'}), 400
 
     file = request.files['file']
@@ -1257,11 +1257,11 @@ def upload_with_structure():
     current_app.logger.info(f'[UPLOAD-DEBUG] Received: filename="{file.filename}", folder_path="{folder_path}", content_type="{file.content_type}"')
 
     if file.filename == '':
-        current_app.logger.error(f'[UPLOAD-DEBUG] Empty filename')
+        current_app.logger.info(f'[UPLOAD-DEBUG] Empty filename')
         return jsonify({'success': False, 'message': 'Aucun fichier sélectionné'}), 400
 
     if not allowed_file(file.filename):
-        current_app.logger.error(f'[UPLOAD-DEBUG] File not allowed: "{file.filename}"')
+        current_app.logger.info(f'[UPLOAD-DEBUG] File not allowed: "{file.filename}"')
         return jsonify({'success': False, 'message': 'Type de fichier non autorisé'}), 400
 
     # Vérifier la taille
@@ -1272,14 +1272,14 @@ def upload_with_structure():
     current_app.logger.info(f'[UPLOAD-DEBUG] File size: {file_size} bytes')
 
     if file_size > MAX_FILE_SIZE:
-        current_app.logger.error(f'[UPLOAD-DEBUG] File too large: {file_size}')
+        current_app.logger.info(f'[UPLOAD-DEBUG] File too large: {file_size}')
         return jsonify({'success': False, 'message': f'Fichier trop volumineux. Maximum: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
 
     # Vérifier la limite de stockage total
     current_storage = get_user_total_storage(current_user)
     if current_storage + file_size > MAX_TOTAL_STORAGE:
         remaining_space = (MAX_TOTAL_STORAGE - current_storage) / (1024 * 1024)
-        current_app.logger.error(f'[UPLOAD-DEBUG] Storage limit exceeded: current={current_storage}, file_size={file_size}')
+        current_app.logger.info(f'[UPLOAD-DEBUG] Storage limit exceeded: current={current_storage}, file_size={file_size}')
         return jsonify({'success': False, 'message': f'Limite de stockage dépassée. Espace restant: {remaining_space:.1f}MB'}), 400
     
     try:
@@ -1618,12 +1618,12 @@ def serve_file(file_id):
     supprimé, on tombe naturellement sur la version legacy.
     """
     try:
-        current_app.logger.error(
+        current_app.logger.debug(
             f"=== SERVE DEBUG === serve_file ENTRY file_id={file_id} user_id={current_user.id}"
         )
         candidates = _find_class_file_candidates(file_id, current_user)
         if not candidates:
-            current_app.logger.error(
+            current_app.logger.debug(
                 f"=== SERVE DEBUG === aucun candidat pour file_id={file_id} → 404"
             )
             return "Fichier introuvable", 404
@@ -1634,20 +1634,20 @@ def serve_file(file_id):
             try:
                 response = _serve_class_file_candidate(kind, obj, as_attachment=False)
                 if response is not None:
-                    current_app.logger.error(
+                    current_app.logger.debug(
                         f"=== SERVE DEBUG === serve_file id={file_id} servi via {kind}"
                     )
                     return response
-                current_app.logger.error(
+                current_app.logger.debug(
                     f"=== SERVE DEBUG === candidat {kind} sans contenu, on tente le suivant"
                 )
             except Exception as e:
-                current_app.logger.error(
+                current_app.logger.debug(
                     f"=== SERVE DEBUG === candidat {kind} exception: {e}"
                 )
 
         name = getattr(last_obj, 'original_filename', None) or f"id={file_id}"
-        current_app.logger.error(
+        current_app.logger.debug(
             f"=== SERVE DEBUG === serve_file id={file_id} ({name}) → 404 (aucun candidat n'a servi)"
         )
         return f"Fichier '{name}' introuvable sur le serveur", 404

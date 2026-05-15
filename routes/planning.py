@@ -402,14 +402,14 @@ def get_current_or_next_lesson(user):
     debug_time = request.args.get('debug_time')  # Format: 08:00 ou 14:30
     
     if debug_date or debug_time:
-        current_app.logger.error(f"=== DEBUG MODE === debug_date={debug_date}, debug_time={debug_time}")
+        current_app.logger.debug(f"=== DEBUG MODE === debug_date={debug_date}, debug_time={debug_time}")
         
         # Utiliser la date de debug si fournie, sinon la date actuelle
         if debug_date:
             try:
                 current_date = datetime.strptime(debug_date, '%Y-%m-%d').date()
             except ValueError:
-                current_app.logger.error(f"=== DEBUG MODE === Invalid debug_date format: {debug_date}")
+                current_app.logger.debug(f"=== DEBUG MODE === Invalid debug_date format: {debug_date}")
                 current_date = user.get_local_datetime().date()
         else:
             current_date = user.get_local_datetime().date()
@@ -419,13 +419,13 @@ def get_current_or_next_lesson(user):
             try:
                 current_time = datetime.strptime(debug_time, '%H:%M').time()
             except ValueError:
-                current_app.logger.error(f"=== DEBUG MODE === Invalid debug_time format: {debug_time}")
+                current_app.logger.debug(f"=== DEBUG MODE === Invalid debug_time format: {debug_time}")
                 current_time = user.get_local_datetime().time()
         else:
             current_time = user.get_local_datetime().time()
         
         weekday = current_date.weekday()
-        current_app.logger.error(f"=== DEBUG MODE === Using debug date/time: {current_date} {current_time} (weekday: {weekday})")
+        current_app.logger.debug(f"=== DEBUG MODE === Using debug date/time: {current_date} {current_time} (weekday: {weekday})")
     else:
         # Obtenir l'heure actuelle selon le fuseau horaire de l'utilisateur
         now = user.get_local_datetime()
@@ -433,11 +433,11 @@ def get_current_or_next_lesson(user):
         current_date = now.date()
         weekday = current_date.weekday()
     
-    current_app.logger.error(f"🚀 NEW LESSON DETECTION DEPLOYED 🚀 current_time: {current_time}, date: {current_date}, weekday: {weekday}")
+    current_app.logger.info(f"🚀 NEW LESSON DETECTION DEPLOYED 🚀 current_time: {current_time}, date: {current_date}, weekday: {weekday}")
 
     # Récupérer les périodes du jour
     periods = calculate_periods(user)
-    current_app.logger.error(f"=== LESSON DEBUG === Periods found: {len(periods)}")
+    current_app.logger.debug(f"=== LESSON DEBUG === Periods found: {len(periods)}")
     
     def is_lesson_period(planning=None, schedule=None):
         """Vérifie si une période représente un cours (pas de type 'Autre')"""
@@ -458,7 +458,7 @@ def get_current_or_next_lesson(user):
             period_number=period_number
         ).first()
         
-        current_app.logger.error(f"=== LESSON DEBUG === P{period_number} on {date}: Planning found: {planning is not None}, classroom_id: {getattr(planning, 'classroom_id', None)}, mixed_group_id: {getattr(planning, 'mixed_group_id', None)}")
+        current_app.logger.debug(f"=== LESSON DEBUG === P{period_number} on {date}: Planning found: {planning is not None}, classroom_id: {getattr(planning, 'classroom_id', None)}, mixed_group_id: {getattr(planning, 'mixed_group_id', None)}")
         
         if planning and is_lesson_period(planning=planning):
             period_info = next((p for p in periods if p['number'] == period_number), None)
@@ -477,9 +477,9 @@ def get_current_or_next_lesson(user):
                 period_number=period_number
             ).first()
             
-            current_app.logger.error(f"=== MERGED PERIODS DEBUG === P{period_number} weekday {weekday_num}: Schedule found: {schedule is not None}")
+            current_app.logger.debug(f"=== MERGED PERIODS DEBUG === P{period_number} weekday {weekday_num}: Schedule found: {schedule is not None}")
             if schedule:
-                current_app.logger.error(f"=== MERGED PERIODS DEBUG === Schedule has_merged_next: {getattr(schedule, 'has_merged_next', False)}")
+                current_app.logger.debug(f"=== MERGED PERIODS DEBUG === Schedule has_merged_next: {getattr(schedule, 'has_merged_next', False)}")
             
             if schedule and hasattr(schedule, 'has_merged_next') and schedule.has_merged_next:
                 # Utiliser la logique des Schedule pour les périodes fusionnées
@@ -552,7 +552,7 @@ def get_current_or_next_lesson(user):
             period_number=period_number
         ).first()
         
-        current_app.logger.error(f"=== LESSON DEBUG === P{period_number} on {date}: Schedule found: {schedule is not None}, classroom_id: {getattr(schedule, 'classroom_id', None)}, mixed_group_id: {getattr(schedule, 'mixed_group_id', None)}")
+        current_app.logger.debug(f"=== LESSON DEBUG === P{period_number} on {date}: Schedule found: {schedule is not None}, classroom_id: {getattr(schedule, 'classroom_id', None)}, mixed_group_id: {getattr(schedule, 'mixed_group_id', None)}")
         
         if schedule and is_lesson_period(schedule=schedule):
             period_info = next((p for p in periods if p['number'] == period_number), None)
@@ -608,7 +608,7 @@ def get_current_or_next_lesson(user):
         if period['start'] <= current_time <= period['end']:
             lesson = get_lesson_for_period(current_date, period['number'], weekday)
             if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Current lesson found: P{lesson.period_number}")
+                current_app.logger.debug(f"=== LESSON DEBUG === Current lesson found: P{lesson.period_number}")
                 return lesson, True, current_date
 
     # 2. Si pas de cours actuel, chercher le prochain aujourd'hui
@@ -616,7 +616,7 @@ def get_current_or_next_lesson(user):
         if period['start'] > current_time:
             lesson = get_lesson_for_period(current_date, period['number'], weekday)
             if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Next lesson today: P{lesson.period_number}")
+                current_app.logger.debug(f"=== LESSON DEBUG === Next lesson today: P{lesson.period_number}")
                 return lesson, False, current_date
 
     # 3. Chercher dans les jours suivants (jusqu'à 5 semaines pour couvrir les vacances)
@@ -624,15 +624,15 @@ def get_current_or_next_lesson(user):
         search_date = current_date + timedelta(days=days_ahead)
         search_weekday = search_date.weekday()
         
-        current_app.logger.error(f"=== LESSON DEBUG === Checking date: {search_date}, weekday: {search_weekday}")
+        current_app.logger.debug(f"=== LESSON DEBUG === Checking date: {search_date}, weekday: {search_weekday}")
         
         # Ignorer les week-ends et les jours fériés
         if search_weekday >= 5:  # Samedi ou dimanche
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping weekend: {search_date}")
+            current_app.logger.debug(f"=== LESSON DEBUG === Skipping weekend: {search_date}")
             continue
             
         if is_holiday(search_date, user):
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping holiday (Vaud): {search_date}")
+            current_app.logger.debug(f"=== LESSON DEBUG === Skipping holiday (Vaud): {search_date}")
             continue
         
         # Vérifier aussi les vacances personnalisées de l'utilisateur
@@ -642,16 +642,16 @@ def get_current_or_next_lesson(user):
                 user_holiday = h.name
                 break
         if user_holiday:
-            current_app.logger.error(f"=== LESSON DEBUG === Skipping user holiday: {search_date} ({user_holiday})")
+            current_app.logger.debug(f"=== LESSON DEBUG === Skipping user holiday: {search_date} ({user_holiday})")
             continue
         
         # Pour chaque période du jour, chercher une leçon
-        current_app.logger.error(f"=== LESSON DEBUG === Checking all periods for {search_date}")
+        current_app.logger.debug(f"=== LESSON DEBUG === Checking all periods for {search_date}")
         for period in periods:
-            current_app.logger.error(f"=== LESSON DEBUG === Checking period P{period['number']} on {search_date}")
+            current_app.logger.debug(f"=== LESSON DEBUG === Checking period P{period['number']} on {search_date}")
             lesson = get_lesson_for_period(search_date, period['number'], search_weekday)
             if lesson:
-                current_app.logger.error(f"=== LESSON DEBUG === Next lesson found on {search_date}: P{lesson.period_number}")
+                current_app.logger.debug(f"=== LESSON DEBUG === Next lesson found on {search_date}: P{lesson.period_number}")
                 return lesson, False, search_date
 
     return None, False, None
@@ -727,10 +727,10 @@ def dashboard():
 
     import logging
     logger = logging.getLogger(__name__)
-    logger.error(f"DEBUG Dashboard - today: {today}")
-    logger.error(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
+    logger.debug(f"DEBUG Dashboard - today: {today}")
+    logger.debug(f"DEBUG Dashboard - today_memos count: {len(today_memos)}")
     for memo in today_memos:
-        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+        logger.debug(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
     # Mémos pour cette semaine ET la semaine prochaine (sans compter aujourd'hui)
     # On affiche les mémos jusqu'à 14 jours dans le futur
@@ -745,11 +745,11 @@ def dashboard():
         db.joinedload(LessonMemo.mixed_group)
     ).order_by(LessonMemo.target_date, LessonMemo.target_period).all()
 
-    logger.error(f"DEBUG Dashboard - week_dates: {week_dates}")
-    logger.error(f"DEBUG Dashboard - Searching memos from {today} to {next_two_weeks}")
-    logger.error(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
+    logger.debug(f"DEBUG Dashboard - week_dates: {week_dates}")
+    logger.debug(f"DEBUG Dashboard - Searching memos from {today} to {next_two_weeks}")
+    logger.debug(f"DEBUG Dashboard - week_memos count: {len(week_memos)}")
     for memo in week_memos:
-        logger.error(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
+        logger.debug(f"  - Memo ID {memo.id}: target_date={memo.target_date}, content={memo.content[:50]}")
 
     # Récupérer les rapports de fin d'année archivés (pour enseignants spécialisés)
     from models.file_manager import UserFile, FileFolder
@@ -1716,7 +1716,7 @@ def debug_move_files(from_classroom, to_classroom):
         # Récupérer tous les fichiers de la classe source
         files_to_move = ClassFile.query.filter_by(classroom_id=from_classroom).all()
         
-        current_app.logger.error(f"=== FILE MOVE DEBUG === Moving {len(files_to_move)} files from {source_classroom.name} to {target_classroom.name}")
+        current_app.logger.debug(f"=== FILE MOVE DEBUG === Moving {len(files_to_move)} files from {source_classroom.name} to {target_classroom.name}")
         
         # Déplacer chaque fichier
         for file in files_to_move:
@@ -1744,13 +1744,13 @@ def lesson_view():
     from models.class_collaboration import ClassMaster
     from models.user_preferences import UserSanctionPreferences
 
-    current_app.logger.error("=== LESSON VIEW === Using get_current_or_next_lesson()")
+    current_app.logger.debug("=== LESSON VIEW === Using get_current_or_next_lesson()")
     
     # Utiliser la même logique que le dashboard
     lesson, is_current, lesson_date = get_current_or_next_lesson(current_user)
     
     if not lesson:
-        current_app.logger.error("=== LESSON VIEW === No lesson found")
+        current_app.logger.debug("=== LESSON VIEW === No lesson found")
         return render_template('planning/lesson_view.html',
                              lesson=None,
                              is_current_lesson=False,
@@ -1766,7 +1766,7 @@ def lesson_view():
                              is_class_master=False,
                              next_lesson_info=None)
     
-    current_app.logger.error(f"=== LESSON VIEW === Found lesson: P{lesson.period_number} on {lesson_date}")
+    current_app.logger.debug(f"=== LESSON VIEW === Found lesson: P{lesson.period_number} on {lesson_date}")
 
     # Obtenir les données nécessaires pour le template
     periods = calculate_periods(current_user)
@@ -1783,7 +1783,7 @@ def lesson_view():
         # Si pas de planification trouvée et que c'est une période fusionnée,
         # chercher dans les périodes précédentes fusionnées
         if not planning and hasattr(lesson, 'is_merged') and lesson.is_merged:
-            current_app.logger.error(f"=== MERGED PLANNING DEBUG === No planning for P{lesson.period_number}, searching in merged periods")
+            current_app.logger.debug(f"=== MERGED PLANNING DEBUG === No planning for P{lesson.period_number}, searching in merged periods")
             
             # Chercher dans les périodes précédentes jusqu'au début de la fusion
             for check_period in range(lesson.period_number - 1, 0, -1):
@@ -1794,7 +1794,7 @@ def lesson_view():
                 ).first()
                 
                 if planning:
-                    current_app.logger.error(f"=== MERGED PLANNING DEBUG === Found planning in P{check_period}, using for P{lesson.period_number}")
+                    current_app.logger.debug(f"=== MERGED PLANNING DEBUG === Found planning in P{check_period}, using for P{lesson.period_number}")
                     break
                 
                 # Vérifier si cette période précédente est aussi fusionnée
@@ -1817,9 +1817,9 @@ def lesson_view():
         is_completed=False
     ).all()
 
-    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Found {len(lesson_memos)} memos for date={lesson_date}, period={lesson.period_number}")
-    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning exists: {planning is not None}")
-    current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === lesson.classroom_id: {getattr(lesson, 'classroom_id', None)}")
+    current_app.logger.debug(f"=== MEMO AUTO-ADD DEBUG === Found {len(lesson_memos)} memos for date={lesson_date}, period={lesson.period_number}")
+    current_app.logger.debug(f"=== MEMO AUTO-ADD DEBUG === planning exists: {planning is not None}")
+    current_app.logger.debug(f"=== MEMO AUTO-ADD DEBUG === lesson.classroom_id: {getattr(lesson, 'classroom_id', None)}")
 
     # Si on a des mémos et pas de planification, en créer une avec les mémos comme tâches
     if lesson_memos and not planning and hasattr(lesson, 'classroom_id') and lesson.classroom_id:
@@ -1842,14 +1842,14 @@ def lesson_view():
         )
         db.session.add(planning)
         db.session.commit()
-        current_app.logger.error(f"=== MEMO AUTO-ADD === Created planning with {len(lesson_memos)} memo(s)")
+        current_app.logger.debug(f"=== MEMO AUTO-ADD === Created planning with {len(lesson_memos)} memo(s)")
     elif lesson_memos and planning:
         # Si une planification existe déjà, vérifier si les mémos y sont déjà
         # Initialiser description si elle n'existe pas
         if not planning.description:
             planning.description = ""
 
-        current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === planning.description exists: {bool(planning.description)}, value: '{planning.description}'")
+        current_app.logger.debug(f"=== MEMO AUTO-ADD DEBUG === planning.description exists: {bool(planning.description)}, value: '{planning.description}'")
 
         for memo in lesson_memos:
             memo_task = f"[ ] {memo.content}"
@@ -1859,14 +1859,14 @@ def lesson_view():
                     planning.description += f"\n{memo_task}"
                 else:
                     planning.description = memo_task
-                current_app.logger.error(f"=== MEMO AUTO-ADD DEBUG === Added memo: {memo.content}")
+                current_app.logger.debug(f"=== MEMO AUTO-ADD DEBUG === Added memo: {memo.content}")
         db.session.commit()
-        current_app.logger.error(f"=== MEMO AUTO-ADD === Updated planning with memo(s)")
+        current_app.logger.debug(f"=== MEMO AUTO-ADD === Updated planning with memo(s)")
 
     # Déterminer la classroom à utiliser
     lesson_classroom = None
-    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has classroom_id: {hasattr(lesson, 'classroom_id')}, value: {getattr(lesson, 'classroom_id', None)}")
-    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === lesson has mixed_group_id: {hasattr(lesson, 'mixed_group_id')}, value: {getattr(lesson, 'mixed_group_id', None)}")
+    current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === lesson has classroom_id: {hasattr(lesson, 'classroom_id')}, value: {getattr(lesson, 'classroom_id', None)}")
+    current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === lesson has mixed_group_id: {hasattr(lesson, 'mixed_group_id')}, value: {getattr(lesson, 'mixed_group_id', None)}")
     
     # Fonction pour trouver une classroom qui a des fichiers
     def find_classroom_with_files():
@@ -1881,9 +1881,9 @@ def lesson_view():
             Classroom.user_id == current_user.id
         ).group_by(Classroom.id, Classroom.name).all()
         
-        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Found {len(classrooms_with_files)} classrooms with files:")
+        current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Found {len(classrooms_with_files)} classrooms with files:")
         for classroom_id, name, file_count in classrooms_with_files:
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG ===   - Classroom {classroom_id} ({name}): {file_count} files")
+            current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG ===   - Classroom {classroom_id} ({name}): {file_count} files")
         
         # Si on trouve des classrooms avec des fichiers, utiliser la première
         if classrooms_with_files:
@@ -1894,31 +1894,31 @@ def lesson_view():
     
     if hasattr(lesson, 'classroom_id') and lesson.classroom_id:
         lesson_classroom = Classroom.query.get(lesson.classroom_id)
-        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using classroom {lesson.classroom_id}, found: {lesson_classroom is not None}")
+        current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Using classroom {lesson.classroom_id}, found: {lesson_classroom is not None}")
         
         # Vérifier si cette classroom a des fichiers
         from models.class_file import ClassFile
         file_count = ClassFile.query.filter_by(classroom_id=lesson.classroom_id).count()
-        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Classroom {lesson.classroom_id} has {file_count} files")
+        current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Classroom {lesson.classroom_id} has {file_count} files")
         
         # Si cette classroom n'a pas de fichiers, conserver la classe originale
         if file_count == 0:
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom {lesson.classroom_id}, but keeping original classroom")
+            current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === No files in lesson classroom {lesson.classroom_id}, but keeping original classroom")
             
     elif hasattr(lesson, 'mixed_group_id') and lesson.mixed_group_id:
         # Pour les groupes mixtes, utiliser la classe auto-créée
         from models.mixed_group import MixedGroup
         mixed_group = MixedGroup.query.get(lesson.mixed_group_id)
-        current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group {lesson.mixed_group_id}, found: {mixed_group is not None}")
+        current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Using mixed group {lesson.mixed_group_id}, found: {mixed_group is not None}")
 
         if mixed_group and mixed_group.auto_classroom_id:
             # Utiliser la classe auto-créée du groupe mixte
             lesson_classroom = Classroom.query.get(mixed_group.auto_classroom_id)
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Using mixed group auto_classroom: {mixed_group.auto_classroom_id}, found: {lesson_classroom is not None}")
+            current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Using mixed group auto_classroom: {mixed_group.auto_classroom_id}, found: {lesson_classroom is not None}")
         elif mixed_group:
             # Pas de classe auto-créée, chercher parmi les classes impliquées
             involved_classrooms = mixed_group.get_classrooms_involved()
-            current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === No auto_classroom, found {len(involved_classrooms)} involved classrooms")
+            current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === No auto_classroom, found {len(involved_classrooms)} involved classrooms")
             from models.class_file import ClassFile
             for classroom in involved_classrooms:
                 file_count = ClassFile.query.filter_by(classroom_id=classroom.id).count()
@@ -1928,18 +1928,18 @@ def lesson_view():
             if not lesson_classroom and involved_classrooms:
                 lesson_classroom = involved_classrooms[0]
     
-    current_app.logger.error(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
+    current_app.logger.debug(f"=== LESSON CLASSROOM DEBUG === Final lesson_classroom: {lesson_classroom.id if lesson_classroom else None}")
 
     # Récupérer les élèves
     students = []
     if planning:
         # Si on a une planification, utiliser sa méthode get_students() pour gérer les groupes
-        current_app.logger.error(f"=== STUDENTS DEBUG === Using planning.get_students(), group_id={planning.group_id}")
+        current_app.logger.debug(f"=== STUDENTS DEBUG === Using planning.get_students(), group_id={planning.group_id}")
         students = planning.get_students()
     elif lesson_classroom:
         # Pas de planification pour cette date - chercher le groupe dans les planifications précédentes
         # pour ce même jour de la semaine et cette même période
-        current_app.logger.error(f"=== STUDENTS DEBUG === No planning, searching for group pattern...")
+        current_app.logger.debug(f"=== STUDENTS DEBUG === No planning, searching for group pattern...")
 
         from models.student_group import StudentGroup
 
@@ -1968,21 +1968,21 @@ def lesson_view():
                 if recent_planning_with_group and recent_planning_with_group.date.weekday() != lesson_date.weekday():
                     recent_planning_with_group = None
             except Exception as e:
-                current_app.logger.error(f"=== STUDENTS DEBUG === Error searching for group pattern: {e}")
+                current_app.logger.debug(f"=== STUDENTS DEBUG === Error searching for group pattern: {e}")
                 recent_planning_with_group = None
 
         if recent_planning_with_group and recent_planning_with_group.group_id:
             # Utiliser le groupe de la planification précédente
             group = StudentGroup.query.get(recent_planning_with_group.group_id)
             if group:
-                current_app.logger.error(f"=== STUDENTS DEBUG === Found group pattern from {recent_planning_with_group.date}: group_id={group.id}, name={group.name}")
+                current_app.logger.debug(f"=== STUDENTS DEBUG === Found group pattern from {recent_planning_with_group.date}: group_id={group.id}, name={group.name}")
                 students = [membership.student for membership in group.memberships.all()]
             else:
-                current_app.logger.error(f"=== STUDENTS DEBUG === Group {recent_planning_with_group.group_id} not found, using all students")
+                current_app.logger.debug(f"=== STUDENTS DEBUG === Group {recent_planning_with_group.group_id} not found, using all students")
                 students = lesson_classroom.get_students()
         else:
             # Aucun pattern trouvé, utiliser tous les élèves de la classe
-            current_app.logger.error(f"=== STUDENTS DEBUG === No group pattern found, using all students")
+            current_app.logger.debug(f"=== STUDENTS DEBUG === No group pattern found, using all students")
             students = lesson_classroom.get_students()
 
     if students:
@@ -2042,7 +2042,7 @@ def lesson_view():
                 else:
                     now_datetime = current_user.get_local_datetime()
                     
-                current_app.logger.error(f"=== TIMER DEBUG === Using debug now: {now_datetime}, end: {end_datetime}")
+                current_app.logger.debug(f"=== TIMER DEBUG === Using debug now: {now_datetime}, end: {end_datetime}")
             else:
                 now_datetime = current_user.get_local_datetime()
 
@@ -7544,11 +7544,11 @@ def create_lesson_memo():
     """Créer un nouveau mémo de classe"""
     import logging
     logger = logging.getLogger(__name__)
-    logger.error("=" * 80)
-    logger.error("DEBUG create_lesson_memo - DEBUT")
+    logger.debug("=" * 80)
+    logger.debug("DEBUG create_lesson_memo - DEBUT")
     try:
         data = request.get_json()
-        logger.error(f"DEBUG - Raw data: {data}")
+        logger.debug(f"DEBUG - Raw data: {data}")
 
         classroom_id = data.get('classroom_id')
         mixed_group_id = data.get('mixed_group_id')
@@ -7558,13 +7558,13 @@ def create_lesson_memo():
         date_type_param = data.get('date_type')
         target_date_str = data.get('target_date')
 
-        logger.error(f"DEBUG - Parsed values:")
-        logger.error(f"  classroom_id: {classroom_id}")
-        logger.error(f"  mixed_group_id: {mixed_group_id}")
-        logger.error(f"  source_date_str: {source_date_str}")
-        logger.error(f"  source_period: {source_period}")
-        logger.error(f"  content: {content}")
-        logger.error(f"  date_type_param: {date_type_param}")
+        logger.debug(f"DEBUG - Parsed values:")
+        logger.debug(f"  classroom_id: {classroom_id}")
+        logger.debug(f"  mixed_group_id: {mixed_group_id}")
+        logger.debug(f"  source_date_str: {source_date_str}")
+        logger.debug(f"  source_period: {source_period}")
+        logger.debug(f"  content: {content}")
+        logger.debug(f"  date_type_param: {date_type_param}")
 
         if not content:
             print("DEBUG - ERROR: Content is empty!")
@@ -7583,14 +7583,14 @@ def create_lesson_memo():
         
         if date_type_param == 'next_lesson':
             # Trouver le prochain cours avec cette classe
-            logger.error(f"DEBUG - Calculating next_lesson from source_date={source_date}, classroom_id={classroom_id}, mixed_group_id={mixed_group_id}")
+            logger.debug(f"DEBUG - Calculating next_lesson from source_date={source_date}, classroom_id={classroom_id}, mixed_group_id={mixed_group_id}")
             next_schedule = None
             current_day = source_date + timedelta(days=1)
 
             # Chercher dans les 30 prochains jours
             for day_count in range(30):
                 weekday = current_day.weekday()
-                logger.error(f"DEBUG - Checking day {day_count}: {current_day}, weekday={weekday}")
+                logger.debug(f"DEBUG - Checking day {day_count}: {current_day}, weekday={weekday}")
 
                 # Chercher un créneau pour cette classe ce jour-là
                 if classroom_id:
@@ -7606,17 +7606,17 @@ def create_lesson_memo():
                         weekday=weekday
                     ).order_by(Schedule.period_number).all()
 
-                logger.error(f"DEBUG - Found {len(schedules)} schedules for this day")
+                logger.debug(f"DEBUG - Found {len(schedules)} schedules for this day")
 
                 if schedules:
                     # Prendre la première période non fusionnée avec la précédente
                     for sched in schedules:
-                        logger.error(f"DEBUG - Checking schedule period={sched.period_number}, merged_with_previous={sched.merged_with_previous}")
+                        logger.debug(f"DEBUG - Checking schedule period={sched.period_number}, merged_with_previous={sched.merged_with_previous}")
                         if not sched.merged_with_previous:
                             next_schedule = sched
                             target_date = current_day
                             target_period = sched.period_number
-                            logger.error(f"DEBUG - FOUND next lesson: date={target_date}, period={target_period}")
+                            logger.debug(f"DEBUG - FOUND next lesson: date={target_date}, period={target_period}")
                             break
 
                     if next_schedule:
@@ -7625,7 +7625,7 @@ def create_lesson_memo():
                 current_day += timedelta(days=1)
 
             if not next_schedule:
-                logger.error("DEBUG - WARNING: No next lesson found in the next 30 days!")
+                logger.debug("DEBUG - WARNING: No next lesson found in the next 30 days!")
                 
         elif date_type_param == 'next_week':
             target_date = source_date + timedelta(days=7)
@@ -7635,7 +7635,7 @@ def create_lesson_memo():
 
             # Chercher s'il y a un cours ce jour-là avec cette classe
             weekday = target_date.weekday()
-            logger.error(f"DEBUG - Custom date: {target_date}, weekday={weekday}")
+            logger.debug(f"DEBUG - Custom date: {target_date}, weekday={weekday}")
 
             if classroom_id:
                 schedules = Schedule.query.filter_by(
@@ -7650,14 +7650,14 @@ def create_lesson_memo():
                     weekday=weekday
                 ).order_by(Schedule.period_number).all()
 
-            logger.error(f"DEBUG - Found {len(schedules)} schedules for custom date")
+            logger.debug(f"DEBUG - Found {len(schedules)} schedules for custom date")
 
             if schedules:
                 # Prendre la première période non fusionnée
                 for sched in schedules:
                     if not sched.merged_with_previous:
                         target_period = sched.period_number
-                        logger.error(f"DEBUG - Using period {target_period} for custom date")
+                        logger.debug(f"DEBUG - Using period {target_period} for custom date")
                         break
 
         # Debug
@@ -7778,7 +7778,7 @@ def get_lesson_memos_remarks():
         period = request.args.get('period', type=int)
         mode = request.args.get('mode', 'target')  # 'source' ou 'target'
 
-        logger.error(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}, mode={mode}")
+        logger.debug(f"DEBUG get_lesson_memos_remarks - date={date_str}, period={period}, mode={mode}")
 
         lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
@@ -7790,7 +7790,7 @@ def get_lesson_memos_remarks():
                 source_date=lesson_date,
                 source_period=period
             ).all()
-            logger.error(f"DEBUG - Found {len(memos)} memos for source_date={lesson_date}, source_period={period}")
+            logger.debug(f"DEBUG - Found {len(memos)} memos for source_date={lesson_date}, source_period={period}")
         else:
             memos = LessonMemo.query.filter_by(
                 user_id=current_user.id,
@@ -7798,7 +7798,7 @@ def get_lesson_memos_remarks():
                 target_period=period,
                 is_completed=False
             ).all()
-            logger.error(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
+            logger.debug(f"DEBUG - Found {len(memos)} memos for target_date={lesson_date}, target_period={period}")
 
         # Récupérer les remarques (toujours par source_date)
         remarks = StudentRemark.query.filter_by(
@@ -7807,7 +7807,7 @@ def get_lesson_memos_remarks():
             source_period=period
         ).all()
 
-        logger.error(f"DEBUG - Found {len(remarks)} remarks for source_date={lesson_date}, source_period={period}")
+        logger.debug(f"DEBUG - Found {len(remarks)} remarks for source_date={lesson_date}, source_period={period}")
 
         # Formater les données
         memos_data = [{
@@ -7824,7 +7824,7 @@ def get_lesson_memos_remarks():
             'student_name': f"{r.student.first_name} {r.student.last_name}"
         } for r in remarks]
 
-        logger.error(f"DEBUG - Returning {len(memos_data)} memos and {len(remarks_data)} remarks")
+        logger.debug(f"DEBUG - Returning {len(memos_data)} memos and {len(remarks_data)} remarks")
 
         return jsonify({
             'success': True,
