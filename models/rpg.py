@@ -497,9 +497,15 @@ class StudentBadge(db.Model):
     # qui pointe vers StudentRPGProfile, et StudentRPGProfile.badges qui
     # remplit la liste). Sans ce paramètre, SQLAlchemy émet un SAWarning
     # au boot et peut générer des UPDATEs en double sur la FK.
+    # NB : il faut aussi passer overlaps au backref, sinon SQLAlchemy se
+    # plaint de la relation inverse `Student.student_badges` créée par
+    # le backref (qui pointe vers la même colonne).
     student = db.relationship(
         'Student',
-        backref=db.backref('student_badges', lazy='dynamic'),
+        backref=db.backref(
+            'student_badges', lazy='dynamic',
+            overlaps='badges,profile',
+        ),
         overlaps='badges,profile',
     )
     badge = db.relationship('Badge', backref=db.backref('student_badges', lazy='dynamic'))
