@@ -14,6 +14,21 @@ class WebViewController: UIViewController {
     private let themeColor = UIColor(red: 26/255, green: 26/255, blue: 46/255, alpha: 1)
     private let accentColor = UIColor(red: 99/255, green: 102/255, blue: 241/255, alpha: 1)
 
+    /// Hôtes de paiement externes que l'app NE DOIT JAMAIS ouvrir, ni dans
+    /// la WebView ni dans Safari. Apple Guideline 3.1.1 interdit aux apps
+    /// de mener l'utilisateur vers un autre système de paiement que
+    /// l'In-App Purchase. Si une route serveur essaie de rediriger vers
+    /// l'un de ces hôtes, on cancel la navigation et on déclenche le
+    /// paywall StoreKit natif à la place.
+    private let blockedPaymentHosts: [String] = [
+        "stripe.com",
+        "checkout.stripe.com",
+        "billing.stripe.com",
+        "buy.stripe.com",
+        "paypal.com",
+        "paypal.me",
+    ]
+
     // MARK: - UI Elements
 
     private var webView: WKWebView!
@@ -637,6 +652,22 @@ extension WebViewController: WKNavigationDelegate {
         // Handle external links (not our host)
         if let host = url.host?.lowercased(),
            scheme == "https" || scheme == "http" {
+
+            // Apple Guideline 3.1.1 : on ne doit JAMAIS mener l'utilisateur
+            // vers un système de paiement digital autre que IAP. Si le
+            // serveur tente une redirection vers Stripe/PayPal/etc., on
+            // cancel la navigation et on ouvre directement le paywall
+            // StoreKit natif à la place — c'est plus sûr que d'ouvrir
+            // Safari (que Apple considère aussi comme une violation).
+            if blockedPaymentHosts.contains(where: { host == $0 || host.hasSuffix(".\($0)") || host.hasSuffix($0) }) {
+                NSLog("[IAP] Blocked external payment URL: \(url.absoluteString) → opening native paywall")
+                decisionHandler(.cancel)
+                DispatchQueue.main.async { [weak self] in
+                    self?.presentNativePaywall()
+                }
+                return
+            }
+
             if !host.contains(hostName) {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 decisionHandler(.cancel)
@@ -682,6 +713,25 @@ extension WebViewController: WKNavigationDelegate {
         decisionHandler(.allow)
     }
 
+    // MARK: - Native paywall (Apple Guideline 3.1.1 fallback)
+    //
+    // Si une route serveur tente une redirection vers un système de
+    // paiement externe (Stripe, PayPal...), on intercepte côté navigation
+    // policy et on appelle cette méthode pour ouvrir le paywall StoreKit
+    // natif à la place. C'est l'option safe pour rester conforme à la
+    // règle 3.1.1 : l'utilisateur ne quitte jamais l'app pour payer.
+    fileprivate func presentNativePaywall() {
+        // Évite les doubles présentations si la WebView génère plusieurs
+        // tentatives de redirection en rafale.
+        if presentedViewController is UINavigationController {
+            return
+        }
+        let paywall = PaywallViewController()
+        let nav = UINavigationController(rootViewController: paywall)
+        nav.modalPresentationStyle = .formSheet
+        present(nav, animated: true)
+    }
+
     private func handleNavigationError(_ error: Error) {
         let nsError = error as NSError
         // Ignore cancelled navigations
@@ -714,6 +764,19 @@ extension WebViewController: WKUIDelegate {
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
         if let url = navigationAction.request.url {
+            // Apple Guideline 3.1.1 : blocage des paiements externes
+            // même via window.open / target=_blank. Si le site appelle
+            // par exemple window.open('https://checkout.stripe.com/...'),
+            // on intercepte ici et on ouvre le paywall StoreKit natif.
+            if let host = url.host?.lowercased(),
+               blockedPaymentHosts.contains(where: { host == $0 || host.hasSuffix(".\($0)") || host.hasSuffix($0) }) {
+                NSLog("[IAP] Blocked external payment window.open: \(url.absoluteString) → opening native paywall")
+                DispatchQueue.main.async { [weak self] in
+                    self?.presentNativePaywall()
+                }
+                return nil
+            }
+
             if let host = url.host, host.contains(hostName) {
                 webView.load(navigationAction.request)
             } else {
