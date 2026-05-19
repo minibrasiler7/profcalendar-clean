@@ -67,6 +67,49 @@ class CleanPDFViewer {
             throw new Error(`Container #${containerId} not found`);
         }
 
+        // AbortController pour la cleanup automatique des listeners.
+        //
+        // Pourquoi : le viewer attache une vingtaine de listeners sur
+        // `document` et `window` (Apple Pencil, touchstart/move, contextmenu,
+        // keydown, visibilitychange, beforeunload, etc.). Chacun est une
+        // arrow function inline non-référençable. À chaque création d'un
+        // nouveau viewer (changement de leçon), tous ces listeners se
+        // ré-attachent, et ceux du viewer précédent restent vivants (les
+        // closures retiennent l'ancien `this`). Sur une journée
+        // d'enseignement, on accumulait des centaines de listeners orphelins,
+        // ce qui finissait par geler la WebView quand un touch event
+        // déclenchait tous les handlers en cascade.
+        //
+        // Solution : les helpers `_docOn` / `_winOn` ci-dessous wrappent
+        // addEventListener et injectent automatiquement le signal de cet
+        // AbortController. Dans destroy(), `abort()` retire d'un seul coup
+        // tous les listeners qui ont ce signal.
+        this._listenerAbortController = new AbortController();
+
+        // Helper : addEventListener sur `document` avec cleanup auto.
+        // Gère les 3 formes d'options possibles :
+        //   _docOn('event', handler)                  → { signal }
+        //   _docOn('event', handler, true)            → { capture: true, signal }
+        //   _docOn('event', handler, false)           → { signal }
+        //   _docOn('event', handler, { passive: ... })→ { passive: ..., signal }
+        this._docOn = (type, listener, options) => {
+            const signal = this._listenerAbortController.signal;
+            let opts;
+            if (options === undefined || options === false) opts = { signal };
+            else if (options === true) opts = { capture: true, signal };
+            else opts = { ...options, signal };
+            document.addEventListener(type, listener, opts);
+        };
+        // Idem pour `window`.
+        this._winOn = (type, listener, options) => {
+            const signal = this._listenerAbortController.signal;
+            let opts;
+            if (options === undefined || options === false) opts = { signal };
+            else if (options === true) opts = { capture: true, signal };
+            else opts = { ...options, signal };
+            window.addEventListener(type, listener, opts);
+        };
+
         // Options
         this.options = {
             fileId: options.fileId || null,
@@ -1636,7 +1679,7 @@ class CleanPDFViewer {
         };
 
         // Intercepteur POINTERDOWN (capture phase) - priorité sur touchstart
-        document.addEventListener('pointerdown', (e) => {
+        this._docOn('pointerdown', (e) => {
             if (e.pointerType === 'pen' && !e._syntheticTextControl) {
                 const control = findControlButtonAtPoint(e.clientX, e.clientY);
                 if (control) {
@@ -1654,7 +1697,7 @@ class CleanPDFViewer {
         // Intercepteur TOUCHSTART (capture phase) - backup pour iPad
         // Apple Pencil peut aussi générer des touchstart avec touchType='stylus'
         // GARDE: ne déclenche l'action QUE si pointerdown ne l'a pas déjà fait
-        document.addEventListener('touchstart', (e) => {
+        this._docOn('touchstart', (e) => {
             const touch = e.touches[0];
             if (touch && (touch.touchType === 'stylus' || touch.force > 0)) {
                 const control = findControlButtonAtPoint(touch.clientX, touch.clientY);
@@ -1681,7 +1724,7 @@ class CleanPDFViewer {
         // sur le textarea. On bloque la propagation vers les éléments enfants (viewer, textarea)
         // mais on laisse les handlers document-level (dragHandler) fonctionner.
 
-        document.addEventListener('pointermove', (e) => {
+        this._docOn('pointermove', (e) => {
             if (this.textDragState && e.pointerType === 'pen') {
                 // Empêcher la propagation vers les éléments enfants (viewer, textarea)
                 // mais NE PAS appeler stopImmediatePropagation car le dragHandler
@@ -1693,7 +1736,7 @@ class CleanPDFViewer {
             }
         }, { capture: true, passive: false });
 
-        document.addEventListener('touchmove', (e) => {
+        this._docOn('touchmove', (e) => {
             if (this.textDragState) {
                 const touch = e.touches[0];
                 if (touch && (touch.touchType === 'stylus' || touch.force > 0)) {
@@ -1705,7 +1748,7 @@ class CleanPDFViewer {
         // ========== FIN INTERCEPTEUR ==========
 
         // Méthode 1: Événement pointerdown avec button spécial
-        document.addEventListener('pointerdown', (e) => {
+        this._docOn('pointerdown', (e) => {
             if (e.pointerType === 'pen') {
                 const now = Date.now();
                 const timeSinceLastInteraction = now - this.lastPencilInteraction;
@@ -1740,7 +1783,7 @@ class CleanPDFViewer {
 
         // Méthode 2: Écouter l'événement 'pencilsqueeze' (si disponible sur iOS)
         if ('onpencilsqueeze' in document) {
-            document.addEventListener('pencilsqueeze', (e) => {
+            this._docOn('pencilsqueeze', (e) => {
                 console.log('[Apple Pencil Pro] Événement pencilsqueeze natif détecté');
                 this.handlePencilDoubleTap();
                 e.preventDefault();
@@ -1748,7 +1791,7 @@ class CleanPDFViewer {
         }
 
         // Méthode 3: Tester avec contextmenu (squeeze peut déclencher le menu contextuel)
-        document.addEventListener('contextmenu', (e) => {
+        this._docOn('contextmenu', (e) => {
             console.log('[Apple Pencil Debug] contextmenu déclenché - type:', e.type);
 
             // Vérifier si c'est près d'un événement pen récent
@@ -1763,7 +1806,7 @@ class CleanPDFViewer {
         }, { capture: true });
 
         // Méthode 4: Écouter les événements avec modificateurs (iOS peut mapper le squeeze à un modificateur)
-        document.addEventListener('keydown', (e) => {
+        this._docOn('keydown', (e) => {
             if (e.key === 'Alt' || e.key === 'Control' || e.key === 'Meta') {
                 console.log('[Apple Pencil Debug] Touche modificateur:', e.key);
                 const timeSinceLastPen = Date.now() - this.lastPencilInteraction;
@@ -7786,12 +7829,12 @@ class CleanPDFViewer {
         const moveHandler = (e) => this.handleTextBoxDrag(e);
         const endHandler = (e) => this.endTextBoxDrag(e, moveHandler, endHandler);
 
-        document.addEventListener('mousemove', moveHandler);
-        document.addEventListener('mouseup', endHandler);
-        document.addEventListener('touchmove', moveHandler, {passive: false});
-        document.addEventListener('touchend', endHandler);
-        document.addEventListener('pointermove', moveHandler, {passive: false});
-        document.addEventListener('pointerup', endHandler);
+        this._docOn('mousemove', moveHandler);
+        this._docOn('mouseup', endHandler);
+        this._docOn('touchmove', moveHandler, {passive: false});
+        this._docOn('touchend', endHandler);
+        this._docOn('pointermove', moveHandler, {passive: false});
+        this._docOn('pointerup', endHandler);
     }
 
     /**
@@ -8078,7 +8121,7 @@ class CleanPDFViewer {
 
         // Fermer le menu si on clique ailleurs
         setTimeout(() => {
-            document.addEventListener('click', function closeMenu(e) {
+            this._docOn('click', function closeMenu(e) {
                 if (!menu.contains(e.target)) {
                     menu.remove();
                     document.removeEventListener('click', closeMenu);
@@ -10262,7 +10305,7 @@ class CleanPDFViewer {
                     document.removeEventListener('click', closeHandler);
                 }
             };
-            document.addEventListener('click', closeHandler);
+            this._docOn('click', closeHandler);
         }, 100);
     }
 
@@ -10391,7 +10434,7 @@ class CleanPDFViewer {
                     document.removeEventListener('click', closeHandler);
                 }
             };
-            document.addEventListener('click', closeHandler);
+            this._docOn('click', closeHandler);
         }, 100);
     }
 
@@ -11637,9 +11680,9 @@ class CleanPDFViewer {
             }
         };
 
-        document.addEventListener('visibilitychange', this.visibilityHandler);
-        window.addEventListener('beforeunload', this.beforeUnloadHandler);
-        window.addEventListener('pagehide', this.pagehideHandler);
+        this._docOn('visibilitychange', this.visibilityHandler);
+        this._winOn('beforeunload', this.beforeUnloadHandler);
+        this._winOn('pagehide', this.pagehideHandler);
     }
 
     /**
@@ -11793,6 +11836,26 @@ class CleanPDFViewer {
      */
     destroy() {
         console.log('[Destroy] Destruction du viewer PDF...');
+
+        // CRITIQUE : annuler tous les listeners attachés sur document/window
+        // via this._docOn() / this._winOn(). Sans cet abort(), les listeners
+        // (Apple Pencil, touchstart, contextmenu, keydown, etc.) restent
+        // accrochés et continuent de tirer pour les viewers détruits, ce
+        // qui finissait par geler la WebView après plusieurs changements
+        // de leçon dans une journée. Cf. constructor pour le détail.
+        if (this._listenerAbortController) {
+            try {
+                this._listenerAbortController.abort();
+            } catch (e) {
+                console.warn('[Destroy] Erreur abort listeners:', e);
+            }
+        }
+
+        // Annuler aussi l'animation walker si elle tourne encore
+        if (this.walkerAnimationId) {
+            cancelAnimationFrame(this.walkerAnimationId);
+            this.walkerAnimationId = null;
+        }
 
         // Fermer et nettoyer le modal de gestion de classe s'il existe
         this.closeClassManagementModal();
@@ -11961,8 +12024,8 @@ class CleanPDFViewer {
         };
 
         // Attacher au document pour capturer TOUS les événements touch
-        document.addEventListener('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
-        document.addEventListener('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
+        this._docOn('touchstart', this.globalTouchBlockHandler, { passive: false, capture: true });
+        this._docOn('touchmove', this.globalTouchBlockHandler, { passive: false, capture: true });
 
         console.log('[SetSquare] Gestionnaires globaux de blocage attachés');
     }
@@ -12184,7 +12247,7 @@ class CleanPDFViewer {
             }
         };
         // NE PAS utiliser capture: true - sinon on intercepte le stylet avant le viewer
-        document.addEventListener('pointerdown', handlePointerDown);
+        this._docOn('pointerdown', handlePointerDown);
         this.setSquarePointerDownHandler = handlePointerDown;
 
         const handlePointerMove = (e) => {
@@ -12220,7 +12283,7 @@ class CleanPDFViewer {
                 updateTransform();
             }
         };
-        document.addEventListener('pointermove', handlePointerMove);
+        this._docOn('pointermove', handlePointerMove);
         this.setSquarePointerMoveHandler = handlePointerMove;
 
         const handlePointerUp = (e) => {
@@ -12230,7 +12293,7 @@ class CleanPDFViewer {
                 pointers.delete(e.pointerId);
             }
         };
-        document.addEventListener('pointerup', handlePointerUp);
+        this._docOn('pointerup', handlePointerUp);
         this.setSquarePointerUpHandler = handlePointerUp;
 
         const handlePointerCancel = (e) => {
@@ -12240,7 +12303,7 @@ class CleanPDFViewer {
                 pointers.delete(e.pointerId);
             }
         };
-        document.addEventListener('pointercancel', handlePointerCancel);
+        this._docOn('pointercancel', handlePointerCancel);
         this.setSquarePointerCancelHandler = handlePointerCancel;
     }
 }
