@@ -1510,6 +1510,30 @@ class CleanPDFViewer {
 
             // Activer le wrapper du color picker
             this.container.querySelector('.custom-color-wrapper').classList.add('active');
+
+            // Appliquer immédiatement la couleur affichée dans le picker.
+            //
+            // Bug observé en classe : après avoir utilisé une couleur custom,
+            // l'utilisateur clique sur un bouton de couleur préset (bleu, rouge,
+            // etc.). Le currentColor passe à cette couleur préset. Quand il
+            // re-clique ENSUITE sur le bouton custom pour reprendre sa couleur
+            // personnalisée, le navigateur ouvre le color picker mais l'event
+            // 'change' ne se déclenche pas (la valeur n'a pas changé), donc
+            // currentColor reste sur la couleur préset. Résultat : impossible
+            // de réactiver la couleur custom sans en choisir une nouvelle.
+            //
+            // Fix : à chaque clic sur le picker, on synchronise tout de suite
+            // currentColor avec la valeur actuelle du picker. Si l'utilisateur
+            // change ensuite la couleur dans le picker natif, l'event 'change'
+            // ré-applique la nouvelle valeur — pas de conflit.
+            if (this.elements.colorPicker.value) {
+                this.currentColor = this.elements.colorPicker.value;
+                const btnCustom = this.container.querySelector('#btn-custom-color');
+                if (btnCustom) {
+                    btnCustom.style.background = this.elements.colorPicker.value;
+                }
+                console.log('[ColorPicker] Re-clic — réapplication couleur custom:', this.elements.colorPicker.value);
+            }
         });
 
         // Boutons de taille
@@ -1610,21 +1634,46 @@ class CleanPDFViewer {
         this._textControlInterceptedAt = 0;
 
         // Fonction utilitaire : trouver un bouton de contrôle sous des coordonnées données
+        //
+        // Cherche en priorité dans .text-box-controls (boutons déplacer /
+        // redimensionner / supprimer / etc. d'une zone de texte sélectionnée),
+        // PUIS dans la toolbar principale du PDF viewer (boutons d'outils,
+        // de couleur, de taille). Sans cette 2e passe, le stylet Apple Pencil
+        // qui tape sur un bouton couleur de la toolbar ne sélectionnait pas
+        // la couleur — il dessinait sur le bouton à la place (l'événement
+        // pointerdown atteignait le viewer en dessous).
         const findControlButtonAtPoint = (clientX, clientY) => {
-            const controlsContainer = document.querySelector('.text-box-controls');
-            if (!controlsContainer) return null;
-
-            // Vérifier chaque enfant interactif du conteneur de contrôles
-            const interactiveChildren = controlsContainer.querySelectorAll('button, [style*="pointer-events: auto"]');
             const PADDING = 8; // Marge supplémentaire pour faciliter le ciblage stylet
 
-            for (const child of interactiveChildren) {
-                const rect = child.getBoundingClientRect();
-                if (clientX >= rect.left - PADDING && clientX <= rect.right + PADDING &&
-                    clientY >= rect.top - PADDING && clientY <= rect.bottom + PADDING) {
-                    return child;
+            const tryContainer = (container) => {
+                if (!container) return null;
+                const interactiveChildren = container.querySelectorAll(
+                    'button, [style*="pointer-events: auto"], #color-picker'
+                );
+                for (const child of interactiveChildren) {
+                    const rect = child.getBoundingClientRect();
+                    // Skip si invisible (display: none, width/height 0)
+                    if (rect.width === 0 || rect.height === 0) continue;
+                    if (clientX >= rect.left - PADDING && clientX <= rect.right + PADDING &&
+                        clientY >= rect.top - PADDING && clientY <= rect.bottom + PADDING) {
+                        return child;
+                    }
                 }
-            }
+                return null;
+            };
+
+            // 1. Text box controls (priorité absolue, élément flottant)
+            const inTextBox = tryContainer(document.querySelector('.text-box-controls'));
+            if (inTextBox) return inTextBox;
+
+            // 2. Toolbar principale du viewer (boutons couleur, outils, taille).
+            //    On cherche dans le container du viewer (this peut ne pas
+            //    encore exister au tout début du setup, d'où le getElementById).
+            const viewerContainer = document.getElementById(this.containerId);
+            const toolbar = viewerContainer && viewerContainer.querySelector('.clean-pdf-toolbar, .pdf-toolbar, .toolbar');
+            const inToolbar = tryContainer(toolbar);
+            if (inToolbar) return inToolbar;
+
             return null;
         };
 
@@ -1672,6 +1721,33 @@ class CleanPDFViewer {
                 else resizeType = 'resize';
                 console.log('[PEN INTERCEPT] → Action: RESIZE (' + resizeType + ')');
                 this.startTextBoxDrag({ clientX, clientY, preventDefault: ()=>{}, stopPropagation: ()=>{} }, resizeType);
+                return true;
+            }
+            // Fallback : si on est sur un bouton de la toolbar viewer
+            // (btn-color / btn-tool / btn-size / color-picker / etc.), on
+            // dispatch un click natif pour que le handler 'click' fasse
+            // son boulot — sans laisser le stylet écrire dessus.
+            const isToolbarButton =
+                control.classList.contains('btn-color') ||
+                control.classList.contains('btn-tool') ||
+                control.classList.contains('btn-size') ||
+                control.id === 'color-picker' ||
+                control.id === 'btn-custom-color' ||
+                control.closest('.clean-pdf-toolbar, .pdf-toolbar, .toolbar');
+            if (isToolbarButton) {
+                console.log('[PEN INTERCEPT] → Action: TOOLBAR CLICK on', control.className || control.id);
+                try {
+                    // <input type="color"> nécessite un click natif pour ouvrir
+                    // le picker, et un dispatchEvent('click') ne suffit pas
+                    // toujours. On utilise control.click() qui simule mieux.
+                    control.click();
+                } catch (e) {
+                    // Fallback : MouseEvent synthétique
+                    control.dispatchEvent(new MouseEvent('click', {
+                        bubbles: true, cancelable: true,
+                        clientX, clientY
+                    }));
+                }
                 return true;
             }
             console.log('[PEN INTERCEPT] → Bouton non identifié, title:', title, 'cursor:', cursor);
@@ -2006,6 +2082,87 @@ class CleanPDFViewer {
                 console.log(`[Viewer] touchmove - touches: ${e.touches.length}, defaultPrevented: ${e.defaultPrevented}, scrollTop: ${this.elements.viewer.scrollTop}`);
             }
         }, { passive: true });
+
+        // ══════════════════════════════════════════════════════════════════
+        //  FILET DE SÉCURITÉ ANTI-FREEZE
+        // ══════════════════════════════════════════════════════════════════
+        // Symptôme observé en classe : après quelques annotations stylet, la
+        // page se fige (scroll bloqué, plus de réaction au doigt), et le seul
+        // moyen de débloquer est de tap une thumbnail dans la sidebar (ce qui
+        // change de page et reset l'état).
+        //
+        // Cause : le `pointerup` du stylet est manqué dans certains scénarios :
+        //   - L'utilisateur lève le stylet HORS du viewer (sortie par le bord)
+        //   - Conflit avec la couche PencilKit native iPad
+        //   - Multi-touch (stylet + doigt) qui annule l'événement
+        //   - WKWebView qui drop un event après plusieurs minutes d'activité
+        // Résultat : `this.isAnnotating` reste à true ET
+        // `this.elements.viewer.style.touchAction = 'none'` reste appliqué.
+        // → tout touchmove suivant déclenche preventDefault() (ligne ~1539)
+        // → scroll totalement gelé.
+        //
+        // Solution : on ajoute des handlers `pointerup`, `pointercancel` et
+        // `pointerleave` au niveau **window** (qui captent même si le stylet
+        // sort du viewer), et un watchdog qui force le reset si plus de 5 sec
+        // s'écoulent sans event de fin pendant un drag.
+        const resetAnnotationStateSafely = (reason) => {
+            if (!this.isAnnotating && !this.isDrawing) return;
+            console.warn('[Safety reset] Reset état annotation depuis window/watchdog. Raison:', reason);
+            this.isAnnotating = false;
+            this.isDrawing = false;
+            if (this.elements && this.elements.viewer) {
+                this.elements.viewer.style.touchAction = '';
+            }
+            // Finaliser proprement l'annotation en cours s'il y en a une
+            if (this.currentStroke && this.currentCanvas && this.currentPageId != null) {
+                try {
+                    this.endAnnotation({ pointerType: 'pen', preventDefault: () => {}, stopPropagation: () => {} },
+                                       this.currentCanvas, this.currentPageId);
+                } catch (e) { console.warn('[Safety reset] endAnnotation a throw:', e); }
+            }
+        };
+
+        // pointerup / pointercancel sur window (capture même hors viewer)
+        this._winOn('pointerup', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                // Délai mini pour laisser le pointerup natif du viewer faire son boulot
+                // (cas normal). Si le state est toujours dirty après ce délai, on reset.
+                setTimeout(() => resetAnnotationStateSafely('window pointerup'), 100);
+            }
+        });
+        this._winOn('pointercancel', (e) => {
+            if (e.pointerType === 'pen' || e.pointerType === 'mouse') {
+                resetAnnotationStateSafely('window pointercancel');
+            }
+        });
+
+        // Watchdog : si une annotation dure plus de 10s sans aucun pointermove,
+        // c'est qu'on a perdu le pointerup → force reset.
+        this._annotationStartedAt = 0;
+        this._lastPointerMoveAt = 0;
+        this._docOn('pointerdown', (e) => {
+            if ((e.pointerType === 'pen' || e.pointerType === 'mouse') && this.isAnnotating) {
+                this._annotationStartedAt = Date.now();
+                this._lastPointerMoveAt = Date.now();
+            }
+        }, { capture: true });
+        this._docOn('pointermove', (e) => {
+            if ((e.pointerType === 'pen' || e.pointerType === 'mouse') && this.isAnnotating) {
+                this._lastPointerMoveAt = Date.now();
+            }
+        }, { capture: true, passive: true });
+
+        // Vérifie toutes les 3 sec si on est en "annotation orpheline" (plus
+        // de mouvement depuis 10s mais state toujours dirty) → reset.
+        if (!this._safetyWatchdogInterval) {
+            this._safetyWatchdogInterval = setInterval(() => {
+                if (this.isAnnotating && this._lastPointerMoveAt > 0
+                    && (Date.now() - this._lastPointerMoveAt) > 10000) {
+                    resetAnnotationStateSafely('watchdog 10s sans pointermove');
+                }
+            }, 3000);
+        }
+        // ══════════════════════════════════════════════════════════════════
 
         // TEST CRITIQUE: Vérifier si le viewer PEUT scroller programmatiquement
         setTimeout(() => {
@@ -6823,11 +6980,56 @@ class CleanPDFViewer {
         // a jeté une exception sur une nouvelle annotation (ce qui clearRect le canvas
         // sans dessiner ensuite — symptôme exact rapporté par l'utilisateur).
         console.log('[Trace Diag] endAnnotation before redraw - canvas:', !!canvas, 'pageId:', pageId, 'stroke tool:', this.currentStroke && this.currentStroke.tool);
+        const strokeToRedraw = this.currentStroke;
         try {
             this.redrawAnnotations(canvas, pageId);
             console.log('[Trace Diag] endAnnotation after redraw OK');
         } catch (err) {
             console.error('[Trace Diag] endAnnotation redraw threw:', err && err.message, err && err.stack);
+        }
+
+        // Filet de sécurité : sur feuille blanche en particulier, on a observé
+        // que redrawAnnotations clearRect + redessine TOUS les strokes via la
+        // boucle this.annotations[pageId], mais le tout dernier stroke (celui
+        // qu'on vient de pusher) disparaît parfois silencieusement (canvas
+        // resize entre temps, mismatch pageId number/string dans la Map,
+        // drawAnnotation qui no-op sans throw, etc.). Pour garantir que
+        // l'utilisateur voit toujours son trait, on le re-dessine
+        // directement par-dessus. Idempotent : si redrawAnnotations l'a
+        // déjà bien dessiné, c'est juste la même chose une 2e fois (les
+        // pixels sont identiques, pas de doublon visuel).
+        if (canvas && typeof canvas.getContext === 'function'
+            && strokeToRedraw && strokeToRedraw.points
+            && strokeToRedraw.points.length > 1) {
+            try {
+                const safetyCtx = canvas.getContext('2d');
+                this.drawAnnotation(safetyCtx, strokeToRedraw);
+            } catch (safetyErr) {
+                // Dernier recours : path simple sans perfect-freehand
+                console.warn('[Safety redraw] drawAnnotation a throw, fallback path simple:', safetyErr && safetyErr.message);
+                try {
+                    const ctx = canvas.getContext('2d');
+                    ctx.save();
+                    ctx.strokeStyle = strokeToRedraw.color || '#000';
+                    ctx.lineWidth = strokeToRedraw.size || 2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.globalAlpha = strokeToRedraw.opacity != null ? strokeToRedraw.opacity : 1;
+                    ctx.beginPath();
+                    const pts = strokeToRedraw.points;
+                    const getXY = p => Array.isArray(p) ? { x: p[0], y: p[1] } : p;
+                    const first = getXY(pts[0]);
+                    ctx.moveTo(first.x, first.y);
+                    for (let i = 1; i < pts.length; i++) {
+                        const p = getXY(pts[i]);
+                        ctx.lineTo(p.x, p.y);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                } catch (lastResortErr) {
+                    console.error('[Safety redraw] Même le path simple a échoué:', lastResortErr);
+                }
+            }
         }
 
         this.currentStroke = null;
@@ -11855,6 +12057,12 @@ class CleanPDFViewer {
         if (this.walkerAnimationId) {
             cancelAnimationFrame(this.walkerAnimationId);
             this.walkerAnimationId = null;
+        }
+
+        // Arrêter le watchdog anti-freeze
+        if (this._safetyWatchdogInterval) {
+            clearInterval(this._safetyWatchdogInterval);
+            this._safetyWatchdogInterval = null;
         }
 
         // Fermer et nettoyer le modal de gestion de classe s'il existe
