@@ -8715,21 +8715,25 @@ async function handleClassDrop(e) {
 // Gérer les entrées du système de fichiers
 async function handleClassFileSystemEntries(entries) {
     showNotification('info', 'Analyse de la structure en cours...');
-    
+
     const fileStructure = {
         folders: new Set(),
-        files: []
+        files: [],
+        rejected: []  // alimenté par traverseClassFileSystem via validateClassFile
     };
-    
+
     for (const entry of entries) {
         await traverseClassFileSystem(entry, '', fileStructure);
     }
-    
+
+    // Résumé groupé des fichiers rejetés (système, type non supporté, taille)
+    showClassFileRejectionSummary(fileStructure.rejected);
+
     // Créer les dossiers
     if (fileStructure.folders.size > 0) {
         await createClassFolderStructure(Array.from(fileStructure.folders));
     }
-    
+
     // Uploader les fichiers
     if (fileStructure.files.length > 0) {
         await uploadClassFilesWithStructure(fileStructure.files);
@@ -8740,9 +8744,16 @@ async function handleClassFileSystemEntries(entries) {
 async function traverseClassFileSystem(entry, path, fileStructure) {
     if (entry.isFile) {
         const file = await new Promise((resolve) => entry.file(resolve));
-        
-        // Vérifier le type de fichier
-        if (validateClassFile(file)) {
+
+        // S'assurer que rejected existe (rétro-compat si appelé sans handler)
+        if (!fileStructure.rejected) fileStructure.rejected = [];
+
+        // Vérifier le type de fichier — mode silent, on accumule les rejets
+        // pour afficher un résumé groupé en fin de parcours.
+        if (validateClassFile(file, {
+            silent: true,
+            onReject: (info) => fileStructure.rejected.push(info),
+        })) {
             fileStructure.files.push({
                 file: file,
                 path: path,
@@ -8897,26 +8908,32 @@ function handleClassFolderSelect(e, classroomId = null) {
 function organizeFolderStructure(files) {
     const structure = {
         folders: new Set(),
-        files: []
+        files: [],
+        rejected: []  // {name, reason} — affichés en résumé par handleClassFolderUpload
     };
-    
+
     Array.from(files).forEach(file => {
-        // Valider le fichier
-        if (!validateClassFile(file)) {
+        // Valider le fichier — mode silent: pas de toast par fichier, on
+        // groupera dans un résumé pour éviter d'inonder l'utilisateur quand
+        // un dossier contient plein de .DS_Store ou de Word.
+        if (!validateClassFile(file, {
+            silent: true,
+            onReject: (info) => structure.rejected.push(info),
+        })) {
             return;
         }
-        
+
         // Extraire le chemin relatif
         const relativePath = file.webkitRelativePath || file.name;
         const pathParts = relativePath.split('/');
-        
+
         // Ajouter les dossiers intermédiaires
         let currentPath = '';
         for (let i = 0; i < pathParts.length - 1; i++) {
             currentPath += (i === 0 ? '' : '/') + pathParts[i];
             structure.folders.add(currentPath + '/');
         }
-        
+
         // Ajouter le fichier avec son chemin
         const folderPath = pathParts.slice(0, -1).join('/');
         structure.files.push({
@@ -8925,7 +8942,7 @@ function organizeFolderStructure(files) {
             relativePath: relativePath
         });
     });
-    
+
     return structure;
 }
 
@@ -8934,20 +8951,30 @@ async function handleClassFolderUpload(fileStructure, classroomId = null) {
     if (!classroomId) {
         classroomId = "{{ primary_classroom.id }}";
     }
-    
+
+    // Résumé groupé des fichiers rejetés avant l'upload — l'utilisateur
+    // voit immédiatement ce qui ne sera pas envoyé (Word, .DS_Store, etc.)
+    showClassFileRejectionSummary(fileStructure.rejected);
+
+    if (fileStructure.files.length === 0) {
+        // Tout a été rejeté : pas la peine d'aller plus loin, le résumé
+        // ci-dessus a déjà expliqué pourquoi.
+        return;
+    }
+
     showNotification('info', `Préparation de l'upload de ${fileStructure.files.length} fichier(s) dans ${fileStructure.folders.size} dossier(s)...`);
-    
+
     try {
         // Créer d'abord la structure de dossiers
         if (fileStructure.folders.size > 0) {
             await createClassFolderStructure(Array.from(fileStructure.folders), classroomId);
         }
-        
+
         // Puis uploader tous les fichiers
         if (fileStructure.files.length > 0) {
             await uploadClassFilesWithStructure(fileStructure.files, classroomId);
         }
-        
+
         showNotification('success', 'Dossier uploadé avec succès!');
     } catch (error) {
         console.error('Erreur lors de l\'upload du dossier:', error);
@@ -8971,21 +8998,73 @@ function handleClassFiles(files, classroomId = null) {
 }
 
 // Valider un fichier
-function validateClassFile(file) {
+// options.silent (bool): si true, n'affiche pas de toast d'erreur — utilise
+//   onReject à la place. Utilisé pour l'upload de dossiers où on veut
+//   grouper les rejets dans un seul résumé au lieu d'inonder de toasts.
+// options.onReject (fn): appelé avec {name, reason} pour chaque rejet.
+//   reason ∈ 'system' | 'unsupported_type' | 'oversized'.
+// Les fichiers système masqués (.DS_Store, Thumbs.db, ._*) sont rejetés
+// SANS toast même en mode non-silent — l'utilisateur ne les voit pas dans
+// le Finder, c'est juste du bruit.
+function validateClassFile(file, options) {
+    options = options || {};
+    const silent = options.silent === true;
+    const onReject = typeof options.onReject === 'function' ? options.onReject : null;
+    const baseName = (file.name || '').split('/').pop();
+
+    // Fichiers système masqués — ignorés silencieusement, jamais de toast
+    if (/^(\.DS_Store|Thumbs\.db|desktop\.ini|\.localized)$/i.test(baseName) ||
+        baseName.startsWith('._')) {
+        if (onReject) onReject({ name: file.name, reason: 'system' });
+        return false;
+    }
+
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
     const maxSize = 250 * 1024 * 1024; // 250 MB
-    
+
     if (!allowedTypes.includes(file.type)) {
-        showNotification('error', `Type de fichier non autorisé: ${file.name}`);
+        if (onReject) onReject({ name: file.name, reason: 'unsupported_type' });
+        if (!silent) showNotification('error', `Type de fichier non autorisé: ${file.name}`);
         return false;
     }
-    
+
     if (file.size > maxSize) {
-        showNotification('error', `Fichier trop volumineux: ${file.name} (max 200 MB)`);
+        if (onReject) onReject({ name: file.name, reason: 'oversized' });
+        if (!silent) showNotification('error', `Fichier trop volumineux: ${file.name} (max 250 MB)`);
         return false;
     }
-    
+
     return true;
+}
+
+// Affiche un résumé groupé des fichiers rejetés lors d'un upload de dossier.
+// Utilisé après organizeFolderStructure / traverseClassFileSystem pour éviter
+// un toast par fichier rejeté (typiquement plusieurs .DS_Store + des Word).
+function showClassFileRejectionSummary(rejected) {
+    if (!rejected || rejected.length === 0) return;
+    const systemCount = rejected.filter(r => r.reason === 'system').length;
+    const typeRejects = rejected.filter(r => r.reason === 'unsupported_type');
+    const sizeRejects = rejected.filter(r => r.reason === 'oversized');
+
+    if (systemCount > 0) {
+        console.log(`[class files] ${systemCount} fichier(s) système ignoré(s) (.DS_Store, Thumbs.db, ...)`);
+    }
+
+    const parts = [];
+    if (typeRejects.length) {
+        const examples = typeRejects.slice(0, 3).map(r => r.name).join(', ');
+        const more = typeRejects.length > 3 ? ` (+${typeRejects.length - 3} autres)` : '';
+        parts.push(`${typeRejects.length} fichier(s) non supporté(s) — seuls PDF/PNG/JPEG sont acceptés. Ignorés : ${examples}${more}`);
+    }
+    if (sizeRejects.length) {
+        const examples = sizeRejects.slice(0, 3).map(r => r.name).join(', ');
+        const more = sizeRejects.length > 3 ? ` (+${sizeRejects.length - 3} autres)` : '';
+        parts.push(`${sizeRejects.length} fichier(s) trop volumineux (>250 MB) : ${examples}${more}`);
+    }
+    if (parts.length) {
+        showNotification('error', parts.join(' — '));
+        console.warn('[class files] Fichiers rejetés:', { typeRejects, sizeRejects });
+    }
 }
 
 // Uploader des fichiers

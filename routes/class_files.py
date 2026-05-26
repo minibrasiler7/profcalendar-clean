@@ -472,7 +472,13 @@ def upload_class_file():
         
         file = request.files['file']
         classroom_id = request.form.get('classroom_id')
-        folder_path = request.form.get('folder_path', '').strip()
+        # Le JS d'upload de dossier envoie un folder_path avec slash final
+        # ("Test/", "Sciences/Chap1/"). On normalise à "Test", "Sciences/Chap1"
+        # pour aligner toutes les vues qui lisent ensuite (lesson_view notamment
+        # comparait "Test/" avec "Test" et ne trouvait jamais les fichiers).
+        # La normalisation est aussi appliquée à la lecture (class_files_listing)
+        # pour couvrir les données legacy déjà stockées avec slash.
+        folder_path = request.form.get('folder_path', '').strip().rstrip('/')
 
         if not classroom_id:
             return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400

@@ -86,6 +86,9 @@ def list_classroom_files(classroom_id: int,
                 filetype = filetype or 'unknown'
                 filesize = filesize if filesize is not None else 0
 
+        # Normaliser folder_path : sans slash final (cf. note legacy plus bas).
+        v2_folder_path = (f.folder_path or '').rstrip('/')
+
         entry = {
             'id': f.id,
             'source': 'v2',
@@ -93,7 +96,7 @@ def list_classroom_files(classroom_id: int,
             'original_filename': filename,
             'file_type': filetype or 'unknown',
             'file_size': filesize or 0,
-            'folder_path': f.folder_path or '',
+            'folder_path': v2_folder_path,
             'is_pinned': bool(f.is_pinned),
             'pin_order': f.pin_order or 0,
             'uploaded_at': f.copied_at.isoformat() if f.copied_at else None,
@@ -110,9 +113,19 @@ def list_classroom_files(classroom_id: int,
     for f in legacy_files:
         # Le folder_path est encodé dans `description` pour le legacy :
         #   "Copié dans le dossier: Sciences/Chap. 1"
+        #
+        # Normalisation du slash final : l'upload de dossier côté JS construit
+        # le path avec un slash final ("Test/"), mais les frontends qui lisent
+        # cette API (lesson_view, file_manager) comparent sans slash final
+        # ("Test"). Sans cette normalisation, lesson_view trouvait bien le
+        # fichier dans son filtre mais n'arrivait pas à l'afficher dans le
+        # dossier ouvert (relativePath devenait "" → fichier orphelin).
+        # On strip systématiquement les "/" en fin pour aligner toutes les
+        # vues sur la même convention sans-slash, indépendamment de ce qui
+        # a été stocké historiquement.
         folder_path = ''
         if f.description and 'Copié dans le dossier:' in f.description:
-            folder_path = f.description.split('Copié dans le dossier:')[1].strip()
+            folder_path = f.description.split('Copié dans le dossier:')[1].strip().rstrip('/')
 
         entry = {
             'id': f.id,
