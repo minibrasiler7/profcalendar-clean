@@ -167,6 +167,14 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ debug blueprint non trouvé")
 
+    # Blueprint diagnostic (réception des erreurs/freeze client → logs Render)
+    try:
+        from routes.diagnostic import diagnostic_bp
+        app.register_blueprint(diagnostic_bp)
+        print("✅ diagnostic blueprint ajouté (client-log)")
+    except ImportError:
+        print("❌ diagnostic blueprint non trouvé")
+
     # Blueprint send to students
     try:
         from routes.send_to_students import send_to_students_bp
@@ -258,6 +266,17 @@ def create_app(config_name='development'):
         print("✅ Commande check-users enregistrée")
     except ImportError as e:
         print(f"❌ Commande check-users non chargée : {e}")
+
+    # Commandes CLI pour préparer/restaurer un compte démo Premium expiré
+    # (utile pour Apple App Review qui veut tester le flux post-expiration).
+    # Usage : flask demo-expire-premium <email> [--days-ago N]
+    #        flask demo-grant-premium <email> [--days N]
+    try:
+        from commands.demo_premium import register_demo_premium_commands
+        register_demo_premium_commands(app)
+        print("✅ Commandes demo-(expire|grant)-premium enregistrées")
+    except ImportError as e:
+        print(f"❌ Commandes demo premium non chargées : {e}")
 
     # Initialisation Stripe
     stripe.api_key = app.config.get('STRIPE_SECRET_KEY')

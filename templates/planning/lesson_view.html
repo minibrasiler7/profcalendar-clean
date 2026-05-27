@@ -9,6 +9,10 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- Télémétrie client → /api/diagnostic/client-log (en premier pour
+     attraper les erreurs des scripts qui suivent, notamment PDF.js et
+     le lecteur unifié qui freeze parfois côté iPad). -->
+<script src="{{ url_for('static', filename='js/client-telemetry.js') }}?v=1"></script>
 <!-- PDF.js pour l'affichage des PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Font Awesome pour les icônes -->
