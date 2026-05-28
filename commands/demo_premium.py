@@ -32,9 +32,19 @@ from datetime import datetime, timedelta
               help="Combien de jours dans le passé placer la date d'expiration (défaut: 1).")
 @with_appcontext
 def demo_expire_premium_command(email, days_ago):
-    """Place un compte dans l'état "Premium expiré" pour tester la review Apple."""
+    """Place un compte dans l'état "Premium expiré" pour tester la review Apple.
+
+    Expire les TROIS sources possibles d'accès Premium :
+      1. subscription_tier='premium' + premium_until passé (Stripe/voucher)
+      2. AppleSubscription.status='expired' + expires_date passé (StoreKit)
+      3. (ne touche pas Subscription Stripe car testers Apple n'y ont pas accès)
+
+    Après ça, is_premium() doit renvoyer False — le paywall réapparaît
+    et Apple peut tester le rachat via Sandbox.
+    """
     from extensions import db
     from models.user import User
+    from models.apple_subscription import AppleSubscription
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -42,18 +52,39 @@ def demo_expire_premium_command(email, days_ago):
         raise SystemExit(1)
 
     expired_at = datetime.utcnow() - timedelta(days=days_ago)
+
+    # 1. Source Stripe/voucher
     user.subscription_tier = 'premium'
     user.premium_until = expired_at
+
+    # 2. Source Apple StoreKit — les testeurs Apple ont probablement déjà
+    # acheté Premium en Sandbox lors de leurs reviews précédentes, ce qui
+    # a créé un AppleSubscription actif. Sans cette étape, is_premium()
+    # continue à renvoyer True via cette source.
+    apple_subs = AppleSubscription.query.filter_by(user_id=user.id).all()
+    apple_expired_count = 0
+    for sub in apple_subs:
+        if sub.status in ('active', 'in_grace_period') or (sub.expires_date and sub.expires_date > datetime.utcnow()):
+            sub.status = 'expired'
+            sub.expires_date = expired_at
+            sub.auto_renew_status = False
+            apple_expired_count += 1
+
     db.session.commit()
 
     click.echo(f"✅ {email} :")
     click.echo(f"   subscription_tier = premium")
     click.echo(f"   premium_until     = {expired_at.isoformat()} (expiré il y a {days_ago} j)")
+    click.echo(f"   AppleSubscriptions expirées : {apple_expired_count} / {len(apple_subs)} total")
     click.echo(f"   is_premium()       = {user.is_premium()}  (False attendu)")
     click.echo("")
-    click.echo("À utiliser comme démo Apple App Review :")
-    click.echo("  L'utilisateur voit le paywall au login. Apple peut alors")
-    click.echo("  tester le rachat via StoreKit Sandbox.")
+    if user.is_premium():
+        click.echo("⚠️  is_premium() renvoie encore True — il reste une source d'accès")
+        click.echo("    non couverte. Vérifier manuellement (autre table Subscription Stripe ?)")
+    else:
+        click.echo("À utiliser comme démo Apple App Review :")
+        click.echo("  L'utilisateur voit le paywall au login. Apple peut alors")
+        click.echo("  tester le rachat via StoreKit Sandbox.")
 
 
 @click.command('demo-grant-premium')
