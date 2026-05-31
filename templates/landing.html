@@ -496,11 +496,18 @@
                 <h3>iPad & iPhone</h3>
                 <p>App native avec PencilKit</p>
             </div>
+            {# Apple Guideline 2.3.10 : une app iOS ne doit pas mentionner d'autres
+               plateformes/stores (Android). On masque cette carte uniquement quand
+               la page est affichée DANS l'app iOS native (détectée via le marqueur
+               User-Agent "ProfCalendarApp-iOS"). Les visiteurs web normaux la voient
+               toujours. #}
+            {% if not is_ios_native_app %}
             <div class="platform-card">
                 <i class="fab fa-android"></i>
                 <h3>Android</h3>
                 <p>Tablettes et smartphones</p>
             </div>
+            {% endif %}
             <div class="platform-card">
                 <i class="fas fa-chalkboard-teacher"></i>
                 <h3>Tableau interactif</h3>

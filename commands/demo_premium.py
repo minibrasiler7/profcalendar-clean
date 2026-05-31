@@ -34,13 +34,28 @@ from datetime import datetime, timedelta
 def demo_expire_premium_command(email, days_ago):
     """Place un compte dans l'état "Premium expiré" pour tester la review Apple.
 
-    Expire les TROIS sources possibles d'accès Premium :
-      1. subscription_tier='premium' + premium_until passé (Stripe/voucher)
-      2. AppleSubscription.status='expired' + expires_date passé (StoreKit)
-      3. (ne touche pas Subscription Stripe car testers Apple n'y ont pas accès)
+    IMPORTANT — pourquoi on SUPPRIME (et non "expire") les AppleSubscription :
 
-    Après ça, is_premium() doit renvoyer False — le paywall réapparaît
-    et Apple peut tester le rachat via Sandbox.
+    Lors d'une review précédente, marquer la sub StoreKit status='expired'
+    ne suffisait PAS : Apple Sandbox renouvelle automatiquement un abonnement
+    toutes les ~30 min et POSTe une notification DID_RENEW sur notre webhook
+    /api/iap/notifications. Ce webhook retrouve la sub par
+    original_transaction_id, la repasse en 'active' et remet
+    user.premium_until dans le futur → le compte redevient Premium quelques
+    minutes plus tard, et Apple revoit "déjà Premium actif" au lieu du paywall.
+
+    En SUPPRIMANT la ligne AppleSubscription, le webhook ne trouve plus la
+    sub (routes/iap.py : `if not sub: return OK`) et ne peut donc PAS la
+    ressusciter. C'est durable tant qu'aucune NOUVELLE transaction n'est
+    poussée par l'app — ce qui n'arrive que si le reviewer achète réellement
+    (cas désiré : le paywall a marché, le premium se débloque).
+
+    Sources d'accès Premium neutralisées :
+      1. subscription_tier='premium' + premium_until passé (Stripe/voucher)
+      2. table apple_subscriptions : lignes SUPPRIMÉES (StoreKit)
+      3. (Subscription Stripe non touchée — les testeurs Apple n'y ont pas accès)
+
+    Après ça, is_premium() renvoie False de façon durable.
     """
     from extensions import db
     from models.user import User
@@ -53,38 +68,42 @@ def demo_expire_premium_command(email, days_ago):
 
     expired_at = datetime.utcnow() - timedelta(days=days_ago)
 
-    # 1. Source Stripe/voucher
+    # 1. Source Stripe/voucher → expirée hier (sémantique "abonnement expiré")
     user.subscription_tier = 'premium'
     user.premium_until = expired_at
+    user.stripe_subscription_id = None  # évite la branche "Stripe en parallèle"
 
-    # 2. Source Apple StoreKit — les testeurs Apple ont probablement déjà
-    # acheté Premium en Sandbox lors de leurs reviews précédentes, ce qui
-    # a créé un AppleSubscription actif. Sans cette étape, is_premium()
-    # continue à renvoyer True via cette source.
+    # 2. Source Apple StoreKit → SUPPRESSION complète (cf. docstring).
+    # On loggue les original_transaction_id supprimés pour audit.
     apple_subs = AppleSubscription.query.filter_by(user_id=user.id).all()
-    apple_expired_count = 0
+    deleted_tx_ids = [s.original_transaction_id for s in apple_subs]
     for sub in apple_subs:
-        if sub.status in ('active', 'in_grace_period') or (sub.expires_date and sub.expires_date > datetime.utcnow()):
-            sub.status = 'expired'
-            sub.expires_date = expired_at
-            sub.auto_renew_status = False
-            apple_expired_count += 1
+        db.session.delete(sub)
 
     db.session.commit()
+
+    # Re-vérifier dans une session fraîche pour être sûr.
+    db.session.refresh(user)
+    still_premium = user.is_premium()
 
     click.echo(f"✅ {email} :")
     click.echo(f"   subscription_tier = premium")
     click.echo(f"   premium_until     = {expired_at.isoformat()} (expiré il y a {days_ago} j)")
-    click.echo(f"   AppleSubscriptions expirées : {apple_expired_count} / {len(apple_subs)} total")
-    click.echo(f"   is_premium()       = {user.is_premium()}  (False attendu)")
+    click.echo(f"   stripe_subscription_id = None")
+    click.echo(f"   AppleSubscriptions SUPPRIMÉES : {len(apple_subs)}")
+    if deleted_tx_ids:
+        click.echo(f"      original_transaction_ids : {deleted_tx_ids}")
+    click.echo(f"   is_premium()       = {still_premium}  (False attendu)")
     click.echo("")
-    if user.is_premium():
-        click.echo("⚠️  is_premium() renvoie encore True — il reste une source d'accès")
-        click.echo("    non couverte. Vérifier manuellement (autre table Subscription Stripe ?)")
+    if still_premium:
+        click.echo("⚠️  is_premium() renvoie ENCORE True — source non couverte.")
+        click.echo("    Vérifier manuellement (Subscription Stripe ? flag admin ?).")
     else:
         click.echo("À utiliser comme démo Apple App Review :")
-        click.echo("  L'utilisateur voit le paywall au login. Apple peut alors")
-        click.echo("  tester le rachat via StoreKit Sandbox.")
+        click.echo("  Le reviewer voit le paywall au login. L'achat Sandbox")
+        click.echo("  recrée alors une AppleSubscription et débloque le Premium.")
+        click.echo("  Le webhook DID_RENEW ne peut plus ressusciter l'ancien")
+        click.echo("  abonnement (ligne supprimée → webhook bail).")
 
 
 @click.command('demo-grant-premium')
