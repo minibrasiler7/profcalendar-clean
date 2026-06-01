@@ -146,6 +146,51 @@ class User(UserMixin, db.Model):
         self.setup_completed = True
         self.schedule_completed = True
 
+    def get_trial_info(self):
+        """État de l'essai / abonnement, pour les bannières UI.
+
+        Retourne un dict :
+          state ∈ 'paying' | 'unlimited' | 'trial_active' | 'trial_expired' | 'free'
+          days_remaining : int | None  (jours entiers restants si trial_active)
+
+        Logique :
+          - abonné payant (Stripe ou Apple actif)      → 'paying'
+          - premium illimité (voucher/admin)            → 'unlimited'
+          - premium daté encore valide                  → 'trial_active'
+          - premium daté expiré (a eu un essai)         → 'trial_expired'
+          - jamais eu de premium                        → 'free'
+        """
+        from datetime import datetime
+        import math
+        now = datetime.utcnow()
+
+        # Abonné payant → aucune bannière d'essai.
+        if self.stripe_subscription_id:
+            return {'state': 'paying', 'days_remaining': None}
+        try:
+            from models.apple_subscription import AppleSubscription
+            sub = AppleSubscription.query.filter_by(user_id=self.id).filter(
+                AppleSubscription.status.in_(['active', 'in_grace_period'])
+            ).order_by(AppleSubscription.expires_date.desc()).first()
+            if sub and sub.is_active():
+                return {'state': 'paying', 'days_remaining': None}
+        except Exception:
+            pass
+
+        # Premium sans date d'expiration = illimité (voucher/admin).
+        if self.subscription_tier == 'premium' and self.premium_until is None:
+            return {'state': 'unlimited', 'days_remaining': None}
+
+        # Premium daté (l'essai 30 j ou un ancien premium expiré).
+        if self.premium_until is not None:
+            if self.premium_until > now:
+                days = max(1, math.ceil(
+                    (self.premium_until - now).total_seconds() / 86400))
+                return {'state': 'trial_active', 'days_remaining': days}
+            return {'state': 'trial_expired', 'days_remaining': 0}
+
+        return {'state': 'free', 'days_remaining': None}
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 

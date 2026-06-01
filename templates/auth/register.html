@@ -9,6 +9,16 @@
             <i class="fas fa-user-plus auth-icon"></i>
             <h1 class="auth-title">Inscription</h1>
             <p class="auth-subtitle">Créez votre compte gratuitement</p>
+            {# Annonce de l'essai : on met en avant les 30 jours de Premium
+               offerts (toutes fonctionnalités, sans carte) — auparavant
+               accordés en silence, donc personne ne le savait. Pas de prix
+               affiché ici → OK aussi dans l'app iOS. #}
+            <div style="margin-top:0.75rem; display:inline-flex; align-items:center; gap:0.5rem;
+                        background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE;
+                        padding:0.6rem 1rem; border-radius:0.5rem; font-size:0.9rem; font-weight:500;">
+                <i class="fas fa-gift" style="color:#6366F1;"></i>
+                <span><strong>30 jours de Premium offerts</strong> — toutes les fonctionnalités débloquées, sans carte bancaire.</span>
+            </div>
         </div>
         
         <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">

@@ -242,7 +242,9 @@ def verify_email():
             session.pop('pending_user_type', None)
             session.pop('verification_email', None)
 
-            flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
+            flash('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de '
+                  'Premium offerts — toutes les fonctionnalités débloquées.',
+                  'success')
             # On entre DIRECTEMENT dans l'app : la config est déjà pré-remplie
             # (apply_smart_defaults à l'inscription) et l'essai Premium 30 j est
             # déjà actif. Le choix d'abonnement est proposé plus tard, une fois
