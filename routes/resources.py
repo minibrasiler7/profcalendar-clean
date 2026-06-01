@@ -41,14 +41,14 @@ def _enrich(cal):
     return enriched
 
 
-@resources_bp.route('/calendrier-scolaire')
+@resources_bp.route('/calendrier-scolaire', strict_slashes=False)
 def calendar_index():
     """Hub : liste des calendriers scolaires disponibles."""
     calendars = list_calendars()
     return render_template('resources/calendar_index.html', calendars=calendars)
 
 
-@resources_bp.route('/calendrier-scolaire/<slug>')
+@resources_bp.route('/calendrier-scolaire/<slug>', strict_slashes=False)
 def calendar_page(slug):
     """Page calendrier d'un canton / d'une année scolaire."""
     cal = get_calendar(slug)
