@@ -23,6 +23,9 @@ class User(UserMixin, db.Model):
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
     premium_until = db.Column(db.DateTime, nullable=True)  # Date d'expiration premium
+    # Suivi des relances d'essai par email : 0=aucune, 1=J-5 envoyée,
+    # 2=J-1 envoyée, 3=email d'expiration envoyé. Évite les doublons.
+    trial_reminder_stage = db.Column(db.Integer, default=0)
 
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée

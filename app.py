@@ -287,6 +287,29 @@ def create_app(config_name='development'):
     except ImportError as e:
         print(f"❌ Commande funnel-stats non chargée : {e}")
 
+    # Commande CLI d'envoi des relances d'essai Premium par email.
+    # Usage : flask send-trial-reminders  (aussi appelée toutes les 6h par
+    # le greenthread de render_production.py).
+    try:
+        from commands.trial_reminders_cmd import register_trial_reminders_command
+        register_trial_reminders_command(app)
+        print("✅ Commande send-trial-reminders enregistrée")
+    except ImportError as e:
+        print(f"❌ Commande send-trial-reminders non chargée : {e}")
+
+    # Démarrage de la boucle de relance d'essai au 1er request reçu. Robuste
+    # au point d'entrée : fonctionne aussi bien sous `python render_production.py`
+    # que sous `gunicorn app:app` (où le bloc __main__ de render_production ne
+    # s'exécute pas). La fonction est gardée → un seul démarrage par process,
+    # et elle ne se déclenche jamais pendant une commande CLI (pas de request).
+    @app.before_request
+    def _ensure_trial_reminder_loop():
+        try:
+            from services.trial_reminders import start_background_loop
+            start_background_loop(app)
+        except Exception:
+            pass
+
     # Initialisation Stripe
     stripe.api_key = app.config.get('STRIPE_SECRET_KEY')
 
@@ -319,6 +342,11 @@ def create_app(config_name='development'):
             # Colonne préférence de tri des élèves
             db.session.execute(db.text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS student_sort_pref VARCHAR(20) DEFAULT 'last_name'"
+            ))
+            # Suivi des relances d'essai par email (phase 2) : 0=aucune,
+            # 1=relance J-5 envoyée, 2=relance J-1 envoyée, 3=email d'expiration envoyé.
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminder_stage INTEGER DEFAULT 0"
             ))
             db.session.commit()
         except Exception:

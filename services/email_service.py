@@ -86,3 +86,41 @@ def send_verification_code(email, code, user_type='teacher'):
     except Exception as e:
         _log(f"[EMAIL] ÉCHEC - Erreur envoi à {email}: {type(e).__name__}: {e}")
         return False
+
+
+def send_email(to_email, subject, html_content):
+    """Envoi générique d'un email via Resend (transactionnel).
+
+    Réutilisé par les relances d'essai (et tout autre email applicatif).
+
+    Args:
+        to_email: adresse du destinataire
+        subject: sujet
+        html_content: corps HTML déjà construit
+
+    Returns:
+        True si l'envoi a réussi, False sinon.
+    """
+    api_key = os.environ.get('RESEND_API_KEY')
+    from_email = os.environ.get('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+
+    if not from_email or '@' not in from_email or '.' not in from_email.split('@')[-1]:
+        from_email = 'onboarding@resend.dev'
+
+    if not api_key:
+        _log("[EMAIL] ERREUR: RESEND_API_KEY non configurée - email non envoyé.")
+        return False
+
+    resend.api_key = api_key
+    try:
+        result = resend.Emails.send({
+            "from": from_email,
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+        })
+        _log(f"[EMAIL] SUCCÈS - '{subject}' → {to_email} - {result}")
+        return True
+    except Exception as e:
+        _log(f"[EMAIL] ÉCHEC - '{subject}' → {to_email}: {type(e).__name__}: {e}")
+        return False

@@ -19,6 +19,7 @@ os.environ['FLASK_ENV'] = 'production'
 # Créer l'application avec la configuration de production
 app = create_app('production')
 
+
 def init_db():
     """Initialise la base de données et applique les migrations"""
     with app.app_context():
@@ -141,13 +142,22 @@ def init_db():
 if __name__ == "__main__":
     # Initialiser la base de données au démarrage
     init_db()
-    
+
+    # Démarrer la boucle de relance d'essai (greenthread eventlet, gardé contre
+    # le double démarrage). Aussi déclenché par un before_request dans create_app
+    # au cas où l'entrée serait gunicorn app:app au lieu de ce fichier.
+    try:
+        from services.trial_reminders import start_background_loop
+        start_background_loop(app)
+    except Exception as e:
+        print(f"[trial_reminders] démarrage boucle ignoré: {e}", flush=True)
+
     # Récupérer le port depuis les variables d'environnement
     port = int(os.environ.get("PORT", 5000))
-    
+
     print(f"Demarrage ProfCalendar sur le port {port}")
     print(f"Mode: Production")
-    
+
     # Lancer l'application via SocketIO (nécessaire pour eventlet)
     socketio.run(app, host="0.0.0.0", port=port, debug=False)
 
