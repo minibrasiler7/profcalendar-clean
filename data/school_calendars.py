@@ -35,6 +35,25 @@ CALENDARS = {
              "note": "Fin de l'année scolaire"},
         ],
     },
+    "geneve-2026-2027": {
+        "canton": "Genève",
+        "canton_slug": "geneve",
+        "school_year": "2026-2027",
+        "official_url": "https://www.ge.ch/vacances-scolaires-jours-feries/vacances-scolaires-2026-2027",
+        "source_label": "République et canton de Genève (ge.ch)",
+        "updated": "2026-06",
+        # Source officielle ge.ch (vérifiée 06.2026, concordante avec 2 sources).
+        "periods": [
+            {"name": "Rentrée scolaire", "start": "2026-08-17", "end": None,
+             "note": "Reprise des cours"},
+            {"name": "Vacances d'automne", "start": "2026-10-19", "end": "2026-10-23"},
+            {"name": "Vacances de Noël et Nouvel An", "start": "2026-12-24", "end": "2027-01-08"},
+            {"name": "Vacances de février", "start": "2027-02-15", "end": "2027-02-19"},
+            {"name": "Vacances de Pâques", "start": "2027-03-26", "end": "2027-04-09"},
+            {"name": "Vacances d'été", "start": "2027-07-05", "end": None,
+             "note": "Fin de l'année scolaire (dès le 5 juillet 2027)"},
+        ],
+    },
 }
 
 
