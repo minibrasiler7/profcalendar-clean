@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Vérification Google Search Console (méthode balise HTML). Apparaît dès que
+       la variable d'env GOOGLE_SITE_VERIFICATION est définie. #}
+    {% if config.get('GOOGLE_SITE_VERIFICATION') %}
+    <meta name="google-site-verification" content="{{ config.GOOGLE_SITE_VERIFICATION }}">
+    {% endif %}
     <title>{% block title %}ProfCalendar - Planification simplifiée{% endblock %}</title>
 
     <!-- Google Analytics (GA4) — configurez GA_MEASUREMENT_ID dans les variables d'env Render -->

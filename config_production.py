@@ -50,6 +50,10 @@ class ProductionConfig:
 
     # Analytics & Monitoring
     GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID')  # ex: G-XXXXXXXXXX
+    # Vérification Google Search Console (méthode "balise HTML"). Coller ici
+    # le contenu du <meta name="google-site-verification" content="..."> fourni
+    # par Search Console, via la variable d'env GOOGLE_SITE_VERIFICATION.
+    GOOGLE_SITE_VERIFICATION = os.environ.get('GOOGLE_SITE_VERIFICATION', '')
 
     # HTTPS
     FORCE_HTTPS = os.environ.get('FORCE_HTTPS', 'False').lower() == 'true'

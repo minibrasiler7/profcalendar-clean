@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Vérification Google Search Console (la homepage est la page que Google
+       vérifie pour la propriété par préfixe d'URL). Apparaît dès que la
+       variable d'env GOOGLE_SITE_VERIFICATION est définie. #}
+    {% if config.get('GOOGLE_SITE_VERIFICATION') %}
+    <meta name="google-site-verification" content="{{ config.GOOGLE_SITE_VERIFICATION }}">
+    {% endif %}
     <title>ProfCalendar - La plateforme scolaire tout-en-un</title>
     <meta name="description" content="ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer.">
 
