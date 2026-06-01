@@ -215,6 +215,14 @@ def create_app(config_name='development'):
     except ImportError as e:
         print(f"❌ iap blueprint non chargé: {e}")
 
+    # Blueprint Ressources gratuites (pages SEO publiques : calendriers scolaires…)
+    try:
+        from routes.resources import resources_bp
+        app.register_blueprint(resources_bp)
+        print("✅ resources blueprint ajouté")
+    except ImportError as e:
+        print(f"❌ resources blueprint non chargé: {e}")
+
     # Context processor : expose `is_ios_native_app` dans tous les templates
     # afin de masquer les flux d'abonnement Stripe dans les apps iOS natives
     # (conformité guideline 3.1.1 de l'App Store).
@@ -986,7 +994,32 @@ def create_app(config_name='development'):
 
     @app.route('/sitemap.xml')
     def sitemap():
-        return app.send_static_file('sitemap.xml')
+        # Sitemap dynamique : pages publiques de base + ressources SEO
+        # (calendriers scolaires, ajoutés automatiquement depuis les données).
+        from flask import Response
+        base = 'https://profcalendar.org'
+        urls = [
+            (base + '/', 'weekly', '1.0'),
+            (base + '/auth/register', 'monthly', '0.9'),
+            (base + '/auth/login', 'monthly', '0.7'),
+            (base + '/subscription/pricing', 'monthly', '0.7'),
+            (base + '/ressources/calendrier-scolaire', 'monthly', '0.8'),
+        ]
+        try:
+            from data.school_calendars import list_calendars
+            for slug, _cal in list_calendars():
+                urls.append((base + '/ressources/calendrier-scolaire/' + slug,
+                             'monthly', '0.8'))
+        except Exception:
+            pass
+        lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        for loc, cf, pr in urls:
+            lines.append(f'  <url><loc>{loc}</loc>'
+                         f'<changefreq>{cf}</changefreq>'
+                         f'<priority>{pr}</priority></url>')
+        lines.append('</urlset>')
+        return Response('\n'.join(lines), mimetype='application/xml')
 
     # --- Pages légales ---
     @app.route('/privacy')

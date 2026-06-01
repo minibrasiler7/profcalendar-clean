@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Calendriers scolaires des cantons romands — vacances à imprimer | ProfCalendar{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="Calendriers scolaires des cantons romands : dates des vacances (automne, Noël, février, Pâques, été), gratuit et à imprimer pour les enseignants.">
+<link rel="canonical" href="https://profcalendar.org/ressources/calendrier-scolaire">
+<style>
+    .res-wrap { max-width: 820px; margin: 2rem auto 4rem; padding: 0 1.25rem; }
+    .res-wrap h1 { font-size: 1.9rem; color: #1F2937; margin-bottom: 0.35rem; }
+    .res-sub { color: #6B7280; margin-bottom: 1.75rem; }
+    .res-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+    .res-list a { display: flex; align-items: center; justify-content: space-between;
+                  background: #fff; border: 1px solid #E5E7EB; border-radius: 0.6rem;
+                  padding: 1rem 1.25rem; text-decoration: none; color: #1F2937; font-weight: 600; }
+    .res-list a:hover { border-color: #C7D2FE; background: #F8FAFF; }
+    .res-list .yr { color: #6B7280; font-weight: 400; font-size: 0.9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="res-wrap">
+    <h1>Calendriers scolaires des cantons romands</h1>
+    <p class="res-sub">Les dates officielles des vacances scolaires, gratuites et à imprimer.
+       Choisis ton canton :</p>
+
+    {% if calendars %}
+    <ul class="res-list">
+        {% for slug, cal in calendars %}
+        <li>
+            <a href="{{ url_for('resources.calendar_page', slug=slug) }}">
+                <span><i class="fas fa-calendar-alt" style="color:#6366F1; margin-right:0.5rem;"></i>
+                    Vacances scolaires {{ cal.canton }}</span>
+                <span class="yr">{{ cal.school_year }} &rsaquo;</span>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>Les calendriers arrivent bientôt.</p>
+    {% endif %}
+
+    <p style="margin-top:2.5rem; color:#6B7280; font-size:0.95rem;">
+        ProfCalendar aide les enseignants romands à planifier leurs cours en tenant compte
+        automatiquement des vacances et jours fériés.
+        <a href="{{ url_for('auth.register') }}" style="color:#6366F1; font-weight:600;">Créer un compte gratuit</a>.
+    </p>
+</div>
+{% endblock %}
