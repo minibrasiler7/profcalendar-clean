@@ -278,6 +278,15 @@ def create_app(config_name='development'):
     except ImportError as e:
         print(f"❌ Commandes demo premium non chargées : {e}")
 
+    # Commande CLI d'analyse de l'entonnoir d'activation/monétisation.
+    # Usage : flask funnel-stats [--show-users] [--include-test] [--days N]
+    try:
+        from commands.funnel_stats import register_funnel_stats_command
+        register_funnel_stats_command(app)
+        print("✅ Commande funnel-stats enregistrée")
+    except ImportError as e:
+        print(f"❌ Commande funnel-stats non chargée : {e}")
+
     # Initialisation Stripe
     stripe.api_key = app.config.get('STRIPE_SECRET_KEY')
 
