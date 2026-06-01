@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Créateur de barème pour tests — barème fédéral suisse (gratuit) | ProfCalendar{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="Outil gratuit pour créer le barème d'un test : entre le total de points, clique sur « barème fédéral » et obtiens un joli tableau points → note (1 à 6) à copier-coller directement sur ton test. Arrondi et seuil de suffisance réglables.">
+<link rel="canonical" href="https://profcalendar.org/ressources/bareme">
+<meta property="og:title" content="Créateur de barème pour tests — barème fédéral suisse">
+<meta property="og:description" content="Génère un tableau points → note à copier-coller sur ton test. Gratuit, barème fédéral en un clic.">
+<style>
+    .bar-wrap { max-width: 900px; margin: 2rem auto 4rem; padding: 0 1.25rem; }
+    .bar-wrap h1 { font-size: 1.9rem; color: #1F2937; margin-bottom: 0.35rem; }
+    .bar-sub { color: #6B7280; margin-bottom: 1.5rem; }
+    .bar-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 1.5rem; }
+    .bar-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; align-items: end; }
+    .bar-field label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
+    .bar-field input, .bar-field select { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid #D1D5DB;
+        border-radius: 0.45rem; font-size: 0.95rem; box-sizing: border-box; }
+    .bar-fed { margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .bar-btn { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; border: none;
+        font-weight: 600; padding: 0.6rem 1.1rem; border-radius: 0.5rem; font-size: 0.92rem; }
+    .bar-btn-fed { background: #6366F1; color: #fff; }
+    .bar-btn-ghost { background: #fff; color: #3730A3; border: 1px solid #C7D2FE; }
+    .bar-btn-copy { background: #059669; color: #fff; }
+    .bar-hint { font-size: 0.82rem; color: #9CA3AF; }
+    .bar-output { margin-top: 1.75rem; }
+    .bar-toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.9rem; }
+    .bar-seg { display: inline-flex; border: 1px solid #D1D5DB; border-radius: 0.45rem; overflow: hidden; }
+    .bar-seg button { border: none; background: #fff; padding: 0.45rem 0.85rem; cursor: pointer; font-size: 0.85rem; color: #374151; }
+    .bar-seg button.active { background: #6366F1; color: #fff; }
+    /* Table affichée */
+    table.bareme { border-collapse: collapse; }
+    table.bareme.vertical { width: auto; min-width: 260px; }
+    table.bareme th { background: #EEF2FF; color: #3730A3; padding: 0.5rem 1.1rem; font-size: 0.85rem; border: 1px solid #C7D2FE; }
+    table.bareme td { padding: 0.42rem 1.1rem; border: 1px solid #E5E7EB; text-align: center; font-variant-numeric: tabular-nums; }
+    td.suff { color: #047857; font-weight: 600; }
+    td.insuff { color: #B91C1C; }
+    .bar-h-scroll { overflow-x: auto; }
+    .bar-cta { margin-top: 2.5rem; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        border: 1px solid #C7D2FE; border-radius: 0.75rem; padding: 1.5rem 1.75rem; }
+    .bar-cta h2 { margin: 0 0 0.5rem; color: #312E81; font-size: 1.2rem; }
+    .bar-cta p { margin: 0 0 1rem; color: #4B5563; line-height: 1.5; }
+    .bar-cta a { display: inline-flex; align-items: center; gap: 0.5rem; background: #6366F1; color: #fff;
+        text-decoration: none; font-weight: 600; padding: 0.75rem 1.4rem; border-radius: 0.5rem; }
+    .bar-explain { margin-top: 2.5rem; color: #4B5563; line-height: 1.6; font-size: 0.95rem; }
+    .bar-explain h2 { font-size: 1.15rem; color: #1F2937; }
+    @media print { .navbar, .landing-footer, #trial-banner, .flash-container, .bar-controls,
+        .bar-fed, .bar-toolbar, .bar-cta, .bar-explain, .help-fab { display: none !important; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bar-wrap">
+    <nav aria-label="fil d'ariane" style="font-size:0.85rem; color:#9CA3AF; margin-bottom:1rem;">
+        <a href="{{ url_for('index') }}" style="color:#6366F1; text-decoration:none;">Accueil</a>
+        &rsaquo; Créateur de barème
+    </nav>
+
+    <h1>Créateur de barème pour tests</h1>
+    <p class="bar-sub">Entre le total de points de ton test, clique sur <strong>« Barème fédéral »</strong>,
+       et obtiens un tableau points → note prêt à <strong>copier-coller sur ton épreuve</strong>.</p>
+
+    <div class="bar-card">
+        <div class="bar-controls">
+            <div class="bar-field">
+                <label for="maxPoints">Total de points</label>
+                <input type="number" id="maxPoints" min="0.5" step="0.5" value="20">
+            </div>
+            <div class="bar-field">
+                <label for="pas">Pas des points</label>
+                <select id="pas">
+                    <option value="1">1 point</option>
+                    <option value="0.5" selected>0,5 point</option>
+                    <option value="0.25">0,25 point</option>
+                </select>
+            </div>
+            <div class="bar-field">
+                <label for="arrondi">Arrondi de la note</label>
+                <select id="arrondi">
+                    <option value="0.1" selected>au dixième (0,1)</option>
+                    <option value="0.5">au demi (0,5)</option>
+                    <option value="0.25">au quart (0,25)</option>
+                    <option value="0.01">au centième (0,01)</option>
+                </select>
+            </div>
+            <div class="bar-field">
+                <label for="seuil">Seuil de la note 4 (%)</label>
+                <input type="number" id="seuil" min="1" max="99" step="1" value="60">
+            </div>
+        </div>
+        <div class="bar-fed">
+            <button class="bar-btn bar-btn-fed" id="btnFed" type="button"><i class="fas fa-flag"></i> Barème fédéral</button>
+            <span class="bar-hint">Linéaire : note = 5 × (points / total) + 1 — la note 4 tombe à 60&nbsp;%.</span>
+        </div>
+    </div>
+
+    <div class="bar-output">
+        <div class="bar-toolbar">
+            <button class="bar-btn bar-btn-copy" id="btnCopy" type="button"><i class="fas fa-copy"></i> Copier le tableau</button>
+            <div class="bar-seg" role="group" aria-label="Orientation">
+                <button id="orientV" class="active" type="button">Vertical</button>
+                <button id="orientH" type="button">Horizontal</button>
+            </div>
+            <button class="bar-btn bar-btn-ghost" type="button" onclick="window.print()"><i class="fas fa-print"></i> Imprimer</button>
+            <span class="bar-hint" id="copyMsg"></span>
+        </div>
+        <div class="bar-h-scroll" id="tableHost"></div>
+    </div>
+
+    <div class="bar-cta">
+        <h2>Gagne du temps à chaque test</h2>
+        <p>ProfCalendar gère tes classes, tes notes et tes évaluations au même endroit — le barème, la
+           saisie des points et le calcul des moyennes, sans tableurs. <strong>30 jours de Premium offerts</strong>,
+           sans carte bancaire.</p>
+        <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte gratuit</a>
+    </div>
+
+    <div class="bar-explain">
+        <h2>Comment fonctionne le barème fédéral&nbsp;?</h2>
+        <p>Le barème fédéral (ou barème linéaire) est le plus utilisé en Suisse. La note est proportionnelle
+           aux points obtenus&nbsp;: <strong>note = 5 × (points obtenus ÷ total des points) + 1</strong>.
+           Ainsi 0&nbsp;point donne la note&nbsp;1, le maximum donne la note&nbsp;6, et la note&nbsp;4
+           (suffisante) est atteinte à 60&nbsp;% des points.</p>
+        <p>Tu peux ajuster le <strong>seuil de la note&nbsp;4</strong> si ton établissement fixe la suffisance
+           à un autre pourcentage (par ex. 50&nbsp;%) : le barème reste linéaire de part et d'autre de ce seuil.
+           Choisis aussi l'<strong>arrondi</strong> (au dixième, au quart, au demi) et le <strong>pas des points</strong>
+           si ton test comporte des demi-points.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    let orientation = 'V';
+
+    function rounding() { return parseFloat($('arrondi').value); }
+
+    function computeNote(p, max, seuilPct, r) {
+        if (!(max > 0)) return 1;
+        const sp = (seuilPct / 100) * max;
+        let n;
+        if (p >= sp) {
+            n = (max === sp) ? 6 : 4 + 2 * (p - sp) / (max - sp);
+        } else {
+            n = (sp === 0) ? 4 : 1 + 3 * (p / sp);
+        }
+        n = Math.max(1, Math.min(6, n));
+        const inv = 1 / r;
+        return Math.round(n * inv) / inv;
+    }
+
+    function fmtPoints(p) {
+        return parseFloat(p.toFixed(2)).toString().replace('.', ',');
+    }
+    function fmtNote(n, r) {
+        const dec = (r === 0.25 || r === 0.01) ? 2 : 1;
+        return n.toFixed(dec).replace('.', ',');
+    }
+
+    function pointsList(max, pas) {
+        const pts = [];
+        for (let p = max; p > -1e-9; p -= pas) {
+            const v = Math.round(p * 1e6) / 1e6;
+            pts.push(v < 0 ? 0 : v);
+        }
+        if (pts[pts.length - 1] > 1e-9) pts.push(0);
+        return pts;
+    }
+
+    function currentData() {
+        const max = parseFloat($('maxPoints').value);
+        const pas = parseFloat($('pas').value);
+        const seuil = parseFloat($('seuil').value);
+        const r = rounding();
+        if (!(max > 0) || !(pas > 0) || !(seuil >= 1)) return null;
+        // garde-fou : limiter le nombre de lignes
+        if (max / pas > 400) return { tooMany: true };
+        const pts = pointsList(max, pas);
+        return { max, pas, seuil, r, rows: pts.map(p => ({ p, n: computeNote(p, max, seuil, r) })) };
+    }
+
+    // Rendu de la table affichée (avec couleurs)
+    function renderDisplayTable(d) {
+        if (orientation === 'V') {
+            let h = '<table class="bareme vertical"><thead><tr><th>Points</th><th>Note</th></tr></thead><tbody>';
+            for (const row of d.rows) {
+                const cls = row.n >= 4 ? 'suff' : 'insuff';
+                h += `<tr><td>${fmtPoints(row.p)}</td><td class="${cls}">${fmtNote(row.n, d.r)}</td></tr>`;
+            }
+            return h + '</tbody></table>';
+        }
+        let h1 = '<tr><th>Points</th>', h2 = '<tr><th>Note</th>';
+        for (const row of d.rows) {
+            const cls = row.n >= 4 ? 'suff' : 'insuff';
+            h1 += `<td>${fmtPoints(row.p)}</td>`;
+            h2 += `<td class="${cls}">${fmtNote(row.n, d.r)}</td>`;
+        }
+        return `<table class="bareme horizontal"><tbody>${h1}</tr>${h2}</tr></tbody></table>`;
+    }
+
+    // HTML avec styles INLINE pour un copier-coller propre dans Word / Google Docs
+    function buildCopyHtml(d) {
+        const bd = 'border:1px solid #888;';
+        const th = `style="${bd}background:#e8eaf6;padding:4px 12px;font-family:Arial,sans-serif;"`;
+        const td = `style="${bd}padding:3px 12px;text-align:center;font-family:Arial,sans-serif;"`;
+        if (orientation === 'V') {
+            let h = `<table style="border-collapse:collapse;${bd}"><tr><th ${th}>Points</th><th ${th}>Note</th></tr>`;
+            for (const row of d.rows) h += `<tr><td ${td}>${fmtPoints(row.p)}</td><td ${td}>${fmtNote(row.n, d.r)}</td></tr>`;
+            return h + '</table>';
+        }
+        let r1 = `<tr><th ${th}>Points</th>`, r2 = `<tr><th ${th}>Note</th>`;
+        for (const row of d.rows) { r1 += `<td ${td}>${fmtPoints(row.p)}</td>`; r2 += `<td ${td}>${fmtNote(row.n, d.r)}</td>`; }
+        return `<table style="border-collapse:collapse;${bd}">${r1}</tr>${r2}</tr></table>`;
+    }
+
+    function buildTSV(d) {
+        if (orientation === 'V') {
+            let t = 'Points\tNote\n';
+            for (const row of d.rows) t += `${fmtPoints(row.p)}\t${fmtNote(row.n, d.r)}\n`;
+            return t;
+        }
+        const p = ['Points', ...d.rows.map(r => fmtPoints(r.p))].join('\t');
+        const n = ['Note', ...d.rows.map(r => fmtNote(r.n, d.r))].join('\t');
+        return p + '\n' + n + '\n';
+    }
+
+    function refresh() {
+        const d = currentData();
+        const host = $('tableHost');
+        if (!d) { host.innerHTML = '<p style="color:#9CA3AF;">Saisis un total de points valide.</p>'; return; }
+        if (d.tooMany) { host.innerHTML = '<p style="color:#B91C1C;">Trop de lignes : réduis le total de points ou augmente le pas.</p>'; return; }
+        host.innerHTML = renderDisplayTable(d);
+        host._data = d;
+    }
+
+    async function copyTable() {
+        const d = $('tableHost')._data;
+        if (!d) return;
+        const html = buildCopyHtml(d);
+        const tsv = buildTSV(d);
+        const msg = $('copyMsg');
+        try {
+            await navigator.clipboard.write([new ClipboardItem({
+                'text/html': new Blob([html], { type: 'text/html' }),
+                'text/plain': new Blob([tsv], { type: 'text/plain' })
+            })]);
+            msg.textContent = '✓ Copié — colle-le dans ton test (Ctrl+V).';
+        } catch (e) {
+            // Repli : sélectionner la table affichée et copier
+            try {
+                const tbl = $('tableHost').querySelector('table');
+                const range = document.createRange();
+                range.selectNode(tbl);
+                const sel = window.getSelection();
+                sel.removeAllRanges(); sel.addRange(range);
+                document.execCommand('copy');
+                sel.removeAllRanges();
+                msg.textContent = '✓ Copié — colle-le dans ton test (Ctrl+V).';
+            } catch (e2) {
+                msg.textContent = 'Copie impossible : sélectionne le tableau à la main.';
+            }
+        }
+        setTimeout(() => { msg.textContent = ''; }, 4000);
+    }
+
+    function setFederal() {
+        $('seuil').value = 60;
+        $('arrondi').value = '0.1';
+        refresh();
+    }
+
+    // Listeners
+    ['maxPoints', 'pas', 'arrondi', 'seuil'].forEach(id => {
+        $(id).addEventListener('input', refresh);
+        $(id).addEventListener('change', refresh);
+    });
+    $('btnFed').addEventListener('click', setFederal);
+    $('btnCopy').addEventListener('click', copyTable);
+    $('orientV').addEventListener('click', () => { orientation = 'V'; $('orientV').classList.add('active'); $('orientH').classList.remove('active'); refresh(); });
+    $('orientH').addEventListener('click', () => { orientation = 'H'; $('orientH').classList.add('active'); $('orientV').classList.remove('active'); refresh(); });
+
+    refresh();
+})();
+</script>
+{% endblock %}

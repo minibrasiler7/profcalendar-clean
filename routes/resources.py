@@ -58,5 +58,11 @@ def calendar_page(slug):
                            cal=_enrich(cal), slug=slug)
 
 
+@resources_bp.route('/bareme', strict_slashes=False)
+def bareme():
+    """Outil gratuit de création de barème pour tests (100% côté client)."""
+    return render_template('resources/bareme.html')
+
+
 def register_resources(app):
     app.register_blueprint(resources_bp)
