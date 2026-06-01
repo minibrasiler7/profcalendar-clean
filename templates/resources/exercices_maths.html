@@ -1,106 +1,84 @@
 {% extends "base.html" %}
 
-{% block title %}Exercices de mathématiques 9H, 10H, 11H — générateur gratuit avec correction (Cycle 3) | ProfCalendar{% endblock %}
+{% block title %}Exercices de mathématiques 9H, 10H, 11H — générateur gratuit avec correction (PER, Cycle 3) | ProfCalendar{% endblock %}
 
 {% block extra_head %}
-<meta name="description" content="Générateur gratuit d'exercices de maths pour le Cycle 3 (9H, 10H, 11H) du PER : priorités, fractions, puissances, pourcentages, calcul littéral, équations, Pythagore… Exercices illimités générés automatiquement avec correction immédiate et solutions. Idéal pour s'entraîner ou créer des fiches.">
+<meta name="description" content="Générateur gratuit d'exercices de maths du Cycle 3 (9H, 10H, 11H), classés selon les 4 thèmes du PER : Nombres et opérations, Fonctions et algèbre, Espace, Grandeurs et mesures. Exercices illimités avec correction immédiate, solutions et figures interactives. Conforme aux découpages romands.">
 <link rel="canonical" href="https://profcalendar.org/ressources/exercices-maths">
-<meta property="og:title" content="Exercices de maths 9H–11H — générateur gratuit avec correction">
-<meta property="og:description" content="Des exercices de mathématiques du Cycle 3 (PER) générés à l'infini, avec correction automatique et solutions. Gratuit.">
+<meta property="og:title" content="Exercices de maths 9H–11H — générateur gratuit (PER) avec correction">
+<meta property="og:description" content="Des exercices de mathématiques du Cycle 3 classés par thème PER (NO, FA, ES, GM), générés à l'infini avec correction automatique et exercices interactifs. Gratuit.">
 <meta property="og:type" content="website">
 <style>
-    .mx-wrap { max-width: 1040px; margin: 1.5rem auto 4rem; padding: 0 1.25rem; }
+    .mx-wrap { max-width: 1060px; margin: 1.5rem auto 4rem; padding: 0 1.25rem; }
     .mx-bc { font-size: 0.85rem; color: #9CA3AF; margin-bottom: 1rem; }
     .mx-bc a { color: #6366F1; text-decoration: none; }
     .mx-wrap h1 { font-size: 2rem; color: #111827; margin: 0 0 0.4rem; line-height: 1.15; }
-    .mx-sub { color: #6B7280; font-size: 1.02rem; max-width: 680px; margin-bottom: 1.5rem; }
+    .mx-sub { color: #6B7280; font-size: 1.02rem; max-width: 720px; margin-bottom: 1.5rem; }
 
-    /* Filtre année */
-    .mx-years { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .mx-years { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
     .mx-chip { border: 1px solid #D1D5DB; background: #fff; color: #374151; border-radius: 999px;
         padding: 0.45rem 1.1rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .12s; }
     .mx-chip:hover { border-color: #A5B4FC; }
     .mx-chip.active { background: #6366F1; color: #fff; border-color: #6366F1; }
 
-    /* Grille de thèmes */
-    .mx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 0.9rem; }
+    .mx-dom { margin-bottom: 1.6rem; }
+    .mx-dom-head { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.7rem; }
+    .mx-dom-code { font-size: 0.78rem; font-weight: 800; color: #fff; border-radius: 0.4rem; padding: 0.15rem 0.5rem; letter-spacing: .04em; }
+    .mx-dom-name { font-size: 1.05rem; font-weight: 700; color: #1F2937; }
+    .mx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 0.85rem; }
     .mx-card { text-align: left; background: #fff; border: 1.5px solid #E5E7EB; border-radius: 0.85rem;
-        padding: 1.05rem 1.1rem; cursor: pointer; transition: all .14s; display: flex; flex-direction: column; gap: 0.4rem; }
+        padding: 1rem 1.05rem; cursor: pointer; transition: all .14s; display: flex; flex-direction: column; gap: 0.4rem; }
     .mx-card:hover { border-color: #A5B4FC; box-shadow: 0 6px 18px rgba(99,102,241,.10); transform: translateY(-2px); }
     .mx-card.sel { border-color: #6366F1; background: #F5F3FF; box-shadow: 0 6px 18px rgba(99,102,241,.16); }
-    .mx-ico { width: 42px; height: 42px; border-radius: 0.6rem; display: flex; align-items: center;
-        justify-content: center; color: #fff; font-size: 1.05rem; }
-    .mx-card .nm { font-weight: 700; color: #1F2937; font-size: 1rem; }
-    .mx-card .ds { color: #6B7280; font-size: 0.84rem; line-height: 1.35; flex: 1; }
-    .mx-badges { display: flex; gap: 0.3rem; }
-    .mx-badge { font-size: 0.68rem; font-weight: 700; color: #4338CA; background: #E0E7FF;
-        border-radius: 999px; padding: 0.1rem 0.5rem; letter-spacing: .02em; }
+    .mx-ico { width: 40px; height: 40px; border-radius: 0.6rem; display: flex; align-items: center;
+        justify-content: center; color: #fff; font-size: 1rem; }
+    .mx-card .nm { font-weight: 700; color: #1F2937; font-size: 0.98rem; }
+    .mx-card .ds { color: #6B7280; font-size: 0.82rem; line-height: 1.35; flex: 1; }
+    .mx-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .mx-badge { font-size: 0.66rem; font-weight: 700; color: #4338CA; background: #E0E7FF; border-radius: 999px; padding: 0.1rem 0.45rem; }
+    .mx-tagi { font-size: 0.66rem; font-weight: 700; color: #9A3412; background: #FFEDD5; border-radius: 999px; padding: 0.1rem 0.45rem; }
 
-    /* Feuille d'exercices */
     .mx-ws { margin-top: 2rem; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.9rem; overflow: hidden; }
-    .mx-ws-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
-        padding: 1rem 1.25rem; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; }
-    .mx-ws-title { font-weight: 800; color: #111827; font-size: 1.12rem; margin-right: auto; display: flex; align-items: center; gap: .6rem; }
-    .mx-ws-title .mx-ico { width: 32px; height: 32px; font-size: .9rem; }
+    .mx-ws-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 1rem 1.25rem; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; }
+    .mx-ws-title { font-weight: 800; color: #111827; font-size: 1.1rem; margin-right: auto; display: flex; align-items: center; gap: .6rem; }
+    .mx-ws-title .mx-ico { width: 30px; height: 30px; font-size: .85rem; }
     .mx-ctl { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .mx-ctl label { font-size: 0.82rem; color: #374151; font-weight: 600; display: flex; align-items: center; gap: .4rem; }
     .mx-ctl select { padding: 0.4rem 0.55rem; border: 1px solid #D1D5DB; border-radius: 0.4rem; font-size: 0.9rem; }
-    .mx-btn { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; border: none;
-        font-weight: 700; padding: 0.5rem 0.95rem; border-radius: 0.5rem; font-size: 0.88rem; }
-    .mx-btn-p { background: #6366F1; color: #fff; }
-    .mx-btn-g { background: #059669; color: #fff; }
-    .mx-btn-o { background: #fff; color: #3730A3; border: 1px solid #C7D2FE; }
+    .mx-btn { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; border: none; font-weight: 700; padding: 0.5rem 0.95rem; border-radius: 0.5rem; font-size: 0.88rem; }
+    .mx-btn-p { background: #6366F1; color: #fff; } .mx-btn-g { background: #059669; color: #fff; } .mx-btn-o { background: #fff; color: #3730A3; border: 1px solid #C7D2FE; }
     .mx-score { font-size: 0.95rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 0.5rem; }
-    .mx-score.all-ok { color: #047857; background: #D1FAE5; }
-    .mx-score.half { color: #92400E; background: #FEF3C7; }
-    .mx-score.low { color: #B91C1C; background: #FEE2E2; }
+    .mx-score.all-ok { color: #047857; background: #D1FAE5; } .mx-score.half { color: #92400E; background: #FEF3C7; } .mx-score.low { color: #B91C1C; background: #FEE2E2; }
 
     .mx-list { padding: 0.5rem 0.75rem 1rem; }
-    .mx-ex { display: grid; grid-template-columns: 34px 1fr; gap: 0.5rem 0.85rem; align-items: start;
-        padding: 0.85rem 0.75rem; border-radius: 0.6rem; border-left: 3px solid transparent; }
+    .mx-ex { display: grid; grid-template-columns: 34px 1fr; gap: 0.4rem 0.85rem; align-items: start; padding: 0.9rem 0.75rem; border-radius: 0.6rem; border-left: 3px solid transparent; }
     .mx-ex + .mx-ex { border-top: 1px solid #F3F4F6; }
-    .mx-num { width: 30px; height: 30px; border-radius: 50%; background: #EEF2FF; color: #4338CA;
-        font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
-    .mx-q { font-size: 1.04rem; color: #1F2937; line-height: 1.5; }
-    .mx-q sup { font-size: 0.72em; }
-    .mx-fields { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 0.55rem; }
+    .mx-num { width: 30px; height: 30px; border-radius: 50%; background: #EEF2FF; color: #4338CA; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+    .mx-q { font-size: 1.04rem; color: #1F2937; line-height: 1.5; } .mx-q sup { font-size: 0.72em; }
+    .mx-fig { display: block; max-width: 300px; height: auto; margin: 0.5rem 0; }
+    .mx-grid-svg { display: block; width: 270px; max-width: 100%; height: auto; margin: 0.5rem 0; background: #fff; border: 1px solid #EEF0F3; border-radius: 0.5rem; }
+    .mx-grid-hit { cursor: crosshair; }
+    .mx-fields { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 0.5rem; }
     .mx-fld { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: #4B5563; }
-    .mx-input { width: 88px; padding: 0.42rem 0.5rem; border: 1.5px solid #D1D5DB; border-radius: 0.42rem;
-        font-size: 0.98rem; text-align: center; font-variant-numeric: tabular-nums; }
+    .mx-input { width: 86px; padding: 0.42rem 0.5rem; border: 1.5px solid #D1D5DB; border-radius: 0.42rem; font-size: 0.98rem; text-align: center; font-variant-numeric: tabular-nums; }
     .mx-input:focus { outline: none; border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
-    .mx-input.ok { border-color: #10B981; background: #ECFDF5; }
-    .mx-input.ko { border-color: #EF4444; background: #FEF2F2; }
-    .mx-ex.ex-ok { border-left-color: #10B981; background: #F6FEFB; }
-    .mx-ex.ex-ko { border-left-color: #EF4444; background: #FFFAFA; }
-    .mx-sol { grid-column: 2; margin-top: 0.5rem; font-size: 0.9rem; color: #4B5563;
-        background: #F9FAFB; border: 1px solid #EEF0F3; border-radius: 0.5rem; padding: 0.5rem 0.7rem; }
-    .mx-sol sup { font-size: 0.72em; }
-    .ok-tag { color: #047857; } .ko-tag { color: #B91C1C; }
+    .mx-input.ok { border-color: #10B981; background: #ECFDF5; } .mx-input.ko { border-color: #EF4444; background: #FEF2F2; }
+    .mx-ex.ex-ok { border-left-color: #10B981; background: #F6FEFB; } .mx-ex.ex-ko { border-left-color: #EF4444; background: #FFFAFA; }
+    .mx-hint { grid-column: 2; font-size: 0.82rem; color: #94A3B8; margin-top: 0.2rem; }
+    .mx-sol { grid-column: 2; margin-top: 0.5rem; font-size: 0.9rem; color: #4B5563; background: #F9FAFB; border: 1px solid #EEF0F3; border-radius: 0.5rem; padding: 0.5rem 0.7rem; }
+    .mx-sol sup { font-size: 0.72em; } .ok-tag { color: #047857; } .ko-tag { color: #B91C1C; }
 
-    .mx-empty { padding: 2.5rem 1rem; text-align: center; color: #9CA3AF; }
-
-    .mx-cta { margin-top: 2.5rem; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
-        border: 1px solid #C7D2FE; border-radius: 0.85rem; padding: 1.6rem 1.85rem; }
-    .mx-cta h2 { margin: 0 0 0.5rem; color: #312E81; font-size: 1.25rem; }
-    .mx-cta p { margin: 0 0 1rem; color: #4B5563; line-height: 1.55; }
-    .mx-cta a { display: inline-flex; align-items: center; gap: 0.5rem; background: #6366F1; color: #fff;
-        text-decoration: none; font-weight: 700; padding: 0.78rem 1.5rem; border-radius: 0.5rem; }
-
+    .mx-cta { margin-top: 2.5rem; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid #C7D2FE; border-radius: 0.85rem; padding: 1.6rem 1.85rem; }
+    .mx-cta h2 { margin: 0 0 0.5rem; color: #312E81; font-size: 1.25rem; } .mx-cta p { margin: 0 0 1rem; color: #4B5563; line-height: 1.55; }
+    .mx-cta a { display: inline-flex; align-items: center; gap: 0.5rem; background: #6366F1; color: #fff; text-decoration: none; font-weight: 700; padding: 0.78rem 1.5rem; border-radius: 0.5rem; }
     .mx-explain { margin-top: 2.75rem; color: #4B5563; line-height: 1.65; font-size: 0.96rem; }
-    .mx-explain h2 { font-size: 1.25rem; color: #111827; margin-top: 1.8rem; }
-    .mx-explain h3 { font-size: 1.02rem; color: #1F2937; margin: 1.2rem 0 0.3rem; }
+    .mx-explain h2 { font-size: 1.25rem; color: #111827; margin-top: 1.8rem; } .mx-explain h3 { font-size: 1.02rem; color: #1F2937; margin: 1.2rem 0 0.3rem; }
     .mx-explain ul { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; }
 
-    @media (max-width: 560px) {
-        .mx-wrap h1 { font-size: 1.6rem; }
-        .mx-ws-title { margin-right: 0; width: 100%; }
-    }
+    @media (max-width: 560px) { .mx-wrap h1 { font-size: 1.6rem; } .mx-ws-title { margin-right: 0; width: 100%; } }
     @media print {
-        .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab,
-        .mx-years, .mx-grid, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
-        .mx-ws { border: none; }
-        .mx-input { border-color: #9CA3AF; }
-        .mx-ex { break-inside: avoid; }
+        .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab, .mx-years, .mx-dom, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
+        .mx-ws { border: none; } .mx-input { border-color: #9CA3AF; } .mx-ex { break-inside: avoid; }
     }
 </style>
 {% endblock %}
@@ -108,13 +86,13 @@
 {% block content %}
 <div class="mx-wrap">
     <nav class="mx-bc" aria-label="fil d'ariane">
-        <a href="{{ url_for('index') }}">Accueil</a> &rsaquo; Exercices de mathématiques (Cycle 3)
+        <a href="{{ url_for('index') }}">Accueil</a> &rsaquo; Exercices de mathématiques (Cycle 3 — PER)
     </nav>
 
     <h1>Exercices de mathématiques — 9H, 10H&nbsp;&amp;&nbsp;11H</h1>
-    <p class="mx-sub">Choisis un thème du <strong>Cycle 3 (PER)</strong> : l'outil génère des exercices
-       <strong>à l'infini</strong>, différents à chaque fois, avec <strong>correction immédiate</strong> et solution.
-       Pour s'entraîner en ligne ou imprimer une fiche en un clic. 100&nbsp;% gratuit.</p>
+    <p class="mx-sub">Des exercices du <strong>Cycle 3 (PER)</strong> classés selon les <strong>4 thèmes officiels</strong> et
+       les découpages romands. L'outil les génère <strong>à l'infini</strong>, avec <strong>correction immédiate</strong>,
+       solution détaillée, figures et exercices <strong>interactifs</strong>. Gratuit, pour s'entraîner ou imprimer une fiche.</p>
 
     <div class="mx-years" id="yearChips">
         <button class="mx-chip active" data-y="0">Tous les degrés</button>
@@ -123,19 +101,14 @@
         <button class="mx-chip" data-y="11">11H</button>
     </div>
 
-    <div class="mx-grid" id="themeGrid"></div>
+    <div id="domains"></div>
 
     <section class="mx-ws" id="worksheet" hidden>
         <div class="mx-ws-head">
             <div class="mx-ws-title" id="wsTitle"></div>
             <div class="mx-ctl">
                 <label>Exercices
-                    <select id="count">
-                        <option value="5">5</option>
-                        <option value="10" selected>10</option>
-                        <option value="15">15</option>
-                        <option value="20">20</option>
-                    </select>
+                    <select id="count"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
                 </label>
                 <button class="mx-btn mx-btn-p" id="btnNew" type="button"><i class="fas fa-rotate"></i> Nouvelle série</button>
                 <button class="mx-btn mx-btn-g" id="btnCheck" type="button"><i class="fas fa-check"></i> Corriger</button>
@@ -154,41 +127,24 @@
     </div>
 
     <div class="mx-explain">
-        <h2>Des exercices alignés sur le Plan d'études romand (PER)</h2>
-        <p>Cet outil couvre les compétences techniques travaillées au <strong>Cycle 3 de Harmos</strong>
-           (9<sup>e</sup>, 10<sup>e</sup> et 11<sup>e</sup> année). Chaque thème génère des exercices
-           aléatoires : les élèves peuvent s'entraîner autant qu'ils veulent, et l'enseignant·e peut
-           imprimer une fiche différente à chaque fois (avant de corriger&nbsp;: une fiche vierge&nbsp;;
-           après avoir cliqué sur «&nbsp;Corriger&nbsp;»&nbsp;: le corrigé).</p>
-
-        <h3>Exercices de maths 9H</h3>
-        <ul>
-            <li>Priorités opératoires et calcul réfléchi</li>
-            <li>Nombres relatifs (additions, soustractions, produits)</li>
-            <li>Fractions : additionner, multiplier, diviser</li>
-            <li>Proportionnalité et règle de trois</li>
-            <li>Conversions d'unités (longueurs, masses, capacités)</li>
-        </ul>
-
-        <h3>Exercices de maths 10H</h3>
-        <ul>
-            <li>Puissances et pourcentages</li>
-            <li>Réduire une expression littérale (termes semblables)</li>
-            <li>Développer une expression (distributivité)</li>
-            <li>Équations du premier degré</li>
-            <li>Théorème de Pythagore</li>
-        </ul>
-
-        <h3>Exercices de maths 11H</h3>
-        <ul>
-            <li>Développement, y compris produits du type (x + a)(x + b)</li>
-            <li>Équations et calcul littéral plus complets</li>
-            <li>Pourcentages (hausses et baisses)</li>
-            <li>Pythagore appliqué</li>
-        </ul>
-
-        <p>Tous les exercices sont corrigés <strong>automatiquement et instantanément</strong>, avec la
-           démarche de résolution affichée. C'est gratuit, sans inscription et sans publicité.</p>
+        <h2>Des exercices alignés sur le PER et les découpages romands</h2>
+        <p>Cet outil couvre les compétences techniques du <strong>Cycle 3 de Harmos</strong> (9<sup>e</sup>, 10<sup>e</sup>, 11<sup>e</sup>),
+           classées selon les <strong>quatre thèmes du Plan d'études romand</strong>. Chaque thème génère des exercices
+           aléatoires&nbsp;: l'élève s'entraîne autant qu'il veut, l'enseignant·e imprime une fiche différente à chaque fois
+           (avant de corriger&nbsp;: une fiche vierge&nbsp;; après «&nbsp;Corriger&nbsp;»&nbsp;: le corrigé).</p>
+        <h3>NO — Nombres et opérations</h3>
+        <ul><li>Priorités, nombres relatifs, fractions, puissances et leurs lois, racines carrées</li>
+            <li>Divisibilité, PGCD / PPCM, écritures (fraction, décimal, pourcentage), notation scientifique, probabilités</li></ul>
+        <h3>FA — Fonctions et algèbre</h3>
+        <ul><li>Proportionnalité, pourcentages, calcul littéral (substitution, réduire, développer, identités remarquables, factoriser)</li>
+            <li>Équations du 1<sup>er</sup> degré, systèmes à deux inconnues, fonctions x ↦ ax + b et x ↦ ax²</li></ul>
+        <h3>ES — Espace</h3>
+        <ul><li>Angles (somme dans un triangle, angle inscrit), transformations (symétries, translation), coordonnées et repérage</li></ul>
+        <h3>GM — Grandeurs et mesures</h3>
+        <ul><li>Périmètres et aires (disque inclus), volumes (du cube à la pyramide), Pythagore, Thalès, trigonométrie</li>
+            <li>Conversions de longueurs, d'aires et de volumes, vitesse et masse volumique</li></ul>
+        <p>Tous les exercices sont corrigés <strong>automatiquement et instantanément</strong>, avec la démarche affichée.
+           C'est gratuit, sans inscription et sans publicité.</p>
     </div>
 </div>
 {% endblock %}
@@ -198,273 +154,228 @@
 (function () {
     const $ = id => document.getElementById(id);
 
-    // ---------- Métadonnées des thèmes ----------
-    const THEMES = [
-        { id: 'priorites', nm: 'Priorités opératoires', icon: 'fa-calculator', col: '#6366F1', years: [9, 10, 11], ds: 'Ordre des opérations et parenthèses' },
-        { id: 'relatifs', nm: 'Nombres relatifs', icon: 'fa-plus-minus', col: '#0EA5E9', years: [9], ds: 'Calculs avec des nombres négatifs' },
-        { id: 'fractions', nm: 'Fractions', icon: 'fa-divide', col: '#14B8A6', years: [9, 10], ds: 'Additions, produits et quotients' },
-        { id: 'puissances', nm: 'Puissances', icon: 'fa-superscript', col: '#8B5CF6', years: [10, 11], ds: 'Carrés, cubes et produits de puissances' },
-        { id: 'pourcentages', nm: 'Pourcentages', icon: 'fa-percent', col: '#F59E0B', years: [10, 11], ds: 'Pourcentage d’un nombre, hausses et baisses' },
-        { id: 'reduction', nm: 'Réduire une expression', icon: 'fa-compress', col: '#EC4899', years: [9, 10], ds: 'Regrouper les termes semblables' },
-        { id: 'developpement', nm: 'Développer', icon: 'fa-expand', col: '#EF4444', years: [10, 11], ds: 'Distributivité et (x + a)(x + b)' },
-        { id: 'equation', nm: 'Équations du 1er degré', icon: 'fa-equals', col: '#10B981', years: [10, 11], ds: 'Résoudre ax + b = c' },
-        { id: 'proportion', nm: 'Proportionnalité', icon: 'fa-scale-balanced', col: '#F97316', years: [9, 10], ds: 'Règle de trois, prix unitaire' },
-        { id: 'pythagore', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', col: '#3B82F6', years: [10, 11], ds: 'Hypoténuse et cathètes' },
-        { id: 'conversions', nm: 'Conversions d’unités', icon: 'fa-ruler', col: '#64748B', years: [9], ds: 'Longueurs, masses, capacités' },
-    ];
-
-    // ---------- Helpers de génération ----------
+    // ====== Helpers ======
     const ri = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
     const pick = arr => arr[Math.floor(Math.random() * arr.length)];
     const nz = v => v === 0 ? 1 : v;
     function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { const t = a % b; a = b; b = t; } return a || 1; }
+    function lcm(a, b) { return Math.abs(a * b) / gcd(a, b); }
     function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
     const M = '−';
     const pm2 = () => pick([-7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7]);
     function coefX(c) { const s = c < 0 ? M : ''; const a = Math.abs(c); return s + (a === 1 ? 'x' : a + 'x'); }
+    function coefVar(c, v) { const s = c < 0 ? M : ''; const a = Math.abs(c); return s + (a === 1 ? v : a + v); }
     function fmtLin(A, B) { if (A === 0) return '' + B; let s = coefX(A); if (B > 0) s += ' + ' + B; else if (B < 0) s += ' ' + M + ' ' + Math.abs(B); return s; }
-    function fmtQuad(B, C) {
-        let s = 'x²';
-        if (B > 0) s += ' + ' + (B === 1 ? 'x' : B + 'x'); else if (B < 0) s += ' ' + M + ' ' + (Math.abs(B) === 1 ? 'x' : Math.abs(B) + 'x');
-        if (C > 0) s += ' + ' + C; else if (C < 0) s += ' ' + M + ' ' + Math.abs(C);
-        return s;
-    }
+    function fmtQuad(B, C) { let s = 'x²'; if (B > 0) s += ' + ' + (B === 1 ? 'x' : B + 'x'); else if (B < 0) s += ' ' + M + ' ' + (Math.abs(B) === 1 ? 'x' : Math.abs(B) + 'x'); if (C > 0) s += ' + ' + C; else if (C < 0) s += ' ' + M + ' ' + Math.abs(C); return s; }
     function par(n) { return n < 0 ? '(' + M + Math.abs(n) + ')' : '' + n; }
-    function fmtMonoSum(monos) {
-        let s = '';
-        monos.forEach((m, i) => {
-            if (i === 0) { s += m.x ? coefX(m.c) : (m.c < 0 ? M + Math.abs(m.c) : '' + m.c); }
-            else { const sign = m.c < 0 ? ' ' + M + ' ' : ' + '; const a = Math.abs(m.c); s += sign + (m.x ? (a === 1 ? 'x' : a + 'x') : '' + a); }
-        });
-        return s;
+    function fmtMonoSum(monos) { let s = ''; monos.forEach((m, i) => { if (i === 0) { s += m.x ? coefX(m.c) : (m.c < 0 ? M + Math.abs(m.c) : '' + m.c); } else { const sign = m.c < 0 ? ' ' + M + ' ' : ' + '; const a = Math.abs(m.c); s += sign + (m.x ? (a === 1 ? 'x' : a + 'x') : '' + a); } }); return s; }
+
+    // ====== SVG ======
+    function gridSVG(points, interactive) {
+        const R = 5, s = 24, pad = 16, W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s;
+        let g = '<svg class="mx-grid-svg' + (interactive ? ' mx-grid-hit' : '') + '" viewBox="0 0 ' + W + ' ' + W + '" data-s="' + s + '" data-cx="' + cx + '" data-cy="' + cy + '" data-r="' + R + '">';
+        for (let i = -R; i <= R; i++) { const xp = cx + i * s, yp = cy - i * s; const c = i === 0 ? '#475569' : '#E2E8F0', wdt = i === 0 ? 1.4 : 1; g += '<line x1="' + xp + '" y1="' + pad + '" x2="' + xp + '" y2="' + (W - pad) + '" stroke="' + c + '" stroke-width="' + wdt + '"/>'; g += '<line x1="' + pad + '" y1="' + yp + '" x2="' + (W - pad) + '" y2="' + yp + '" stroke="' + c + '" stroke-width="' + wdt + '"/>'; }
+        for (let i = -R; i <= R; i += 1) { if (i !== 0) { g += '<text x="' + (cx + i * s) + '" y="' + (cy + 11) + '" font-size="8" fill="#94A3B8" text-anchor="middle">' + i + '</text>'; g += '<text x="' + (cx - 8) + '" y="' + (cy - i * s + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + i + '</text>'; } }
+        (points || []).forEach(p => { const xp = cx + p[0] * s, yp = cy - p[1] * s; g += '<circle cx="' + xp + '" cy="' + yp + '" r="4.5" fill="#6366F1"/>'; if (p[2]) g += '<text x="' + (xp + 6) + '" y="' + (yp - 6) + '" font-size="11" font-weight="700" fill="#4338CA">' + p[2] + '</text>'; });
+        g += '<g class="mx-mark"></g></svg>';
+        return g;
+    }
+    function rtTriangleSVG(low, left, hyp) {
+        let s = '<svg class="mx-fig" viewBox="0 0 214 132">';
+        s += '<polygon points="34,112 184,112 34,22" fill="#EEF2FF" stroke="#6366F1" stroke-width="2"/>';
+        s += '<rect x="34" y="100" width="12" height="12" fill="none" stroke="#6366F1" stroke-width="1.2"/>';
+        s += '<text x="109" y="127" font-size="12" text-anchor="middle" fill="#334155">' + low + '</text>';
+        s += '<text x="18" y="68" font-size="12" text-anchor="middle" fill="#334155" transform="rotate(-90 18 68)">' + left + '</text>';
+        s += '<text x="116" y="58" font-size="12" text-anchor="middle" fill="#334155" transform="rotate(-31 116 58)">' + hyp + '</text>';
+        return s + '</svg>';
+    }
+    function barFracSVG(n, k) { const W = 280, H = 46, pad = 8, w = (W - 2 * pad) / n; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">'; for (let i = 0; i < n; i++) { s += '<rect x="' + (pad + i * w) + '" y="8" width="' + w + '" height="30" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#64748B" stroke-width="1"/>'; } return s + '</svg>'; }
+    function chartSVG(labels, vals, hi) {
+        const W = 264, base = 112, padL = 26, bw = 38, max = Math.max.apply(null, vals);
+        const gap = (W - padL - 10 - labels.length * bw) / (labels.length - 1);
+        let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' 134">';
+        for (let v = 0; v <= max; v++) { const y = base - (v / max) * 84; s += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - 8) + '" y2="' + y + '" stroke="#EEF0F3"/>'; s += '<text x="' + (padL - 4) + '" y="' + (y + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + v + '</text>'; }
+        s += '<line x1="' + padL + '" y1="14" x2="' + padL + '" y2="' + base + '" stroke="#475569"/><line x1="' + padL + '" y1="' + base + '" x2="' + (W - 8) + '" y2="' + base + '" stroke="#475569"/>';
+        labels.forEach((lb, i) => { const h = (vals[i] / max) * 84, x = padL + 8 + i * (bw + gap); s += '<rect x="' + x + '" y="' + (base - h) + '" width="' + bw + '" height="' + h + '" rx="2" fill="' + (i === hi ? '#F59E0B' : '#6366F1') + '"/>'; s += '<text x="' + (x + bw / 2) + '" y="' + (base + 12) + '" font-size="10" text-anchor="middle" fill="#334155">' + lb + '</text>'; });
+        return s + '</svg>';
     }
 
-    // ---------- Générateurs (validés via Node : 0 erreur / 500 tirages chacun) ----------
-    function genPriorites() {
-        const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(1, 8);
-        const forms = [
-            { q: a + ' + ' + b + ' × ' + c, v: a + b * c },
-            { q: a + ' × ' + b + ' ' + M + ' ' + c, v: a * b - c },
-            { q: '(' + a + ' + ' + b + ') × ' + c, v: (a + b) * c },
-            { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, v: a + b * c - d },
-            { q: a + ' × ' + b + ' + ' + c + ' × ' + d, v: a * b + c * d },
-        ];
-        const f = pick(forms);
-        return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v };
-    }
-    function genRelatifs() {
-        const a = nz(ri(-12, 12)), b = nz(ri(-12, 12)), op = pick(['+', M, '×']);
-        let v; if (op === '+') v = a + b; else if (op === M) v = a - b; else v = a * b;
-        return { q: 'Calcule : ' + par(a) + ' ' + op + ' ' + par(b), fields: [{ label: '=', e: v }], sol: '= ' + v };
-    }
-    function genFractions() {
-        let n1 = ri(1, 9), d1 = ri(2, 9), n2 = ri(1, 9), d2 = ri(2, 9);
-        while (n1 === d1) n1 = ri(1, 9); while (n2 === d2) n2 = ri(1, 9);
-        const op = pick(['+', M, '×', '÷']);
-        let num, den;
-        if (op === '+') { num = n1 * d2 + n2 * d1; den = d1 * d2; }
-        else if (op === M) { num = n1 * d2 - n2 * d1; den = d1 * d2; }
-        else if (op === '×') { num = n1 * n2; den = d1 * d2; }
-        else { num = n1 * d2; den = d1 * n2; }
-        const g = gcd(num, den);
-        return {
-            q: 'Calcule (donne une fraction) : ' + n1 + '/' + d1 + ' ' + op + ' ' + n2 + '/' + d2,
-            fields: [{ label: 'résultat', e: num / den, frac: true }], sol: '= ' + (num / g) + '/' + (den / g)
-        };
-    }
-    function genPuissances() {
-        const forms = [
-            () => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + a + '<sup>' + n + '</sup>', v: Math.pow(a, n), s: a + '<sup>' + n + '</sup> = ' + Math.pow(a, n) }; },
-            () => { const a = ri(2, 5), m = ri(2, 4), n = ri(2, 3); return { q: 'Calcule (un seul nombre) : ' + a + '<sup>' + m + '</sup> × ' + a + '<sup>' + n + '</sup>', v: Math.pow(a, m + n), s: '= ' + a + '<sup>' + (m + n) + '</sup> = ' + Math.pow(a, m + n) }; },
-            () => { const a = ri(2, 9); return { q: 'Calcule : ' + a + '<sup>2</sup>', v: a * a, s: '= ' + a * a }; },
-        ];
-        const f = pick(forms)();
-        return { q: f.q, fields: [{ label: '=', e: f.v }], sol: f.s };
-    }
-    function genPourcentages() {
-        const forms = [
-            () => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + '% de ' + n, v: p / 100 * n }; },
-            () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + '%', v: n * (1 + a / 100) }; },
-            () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + '%', v: n * (1 - a / 100) }; },
-        ];
-        const f = pick(forms)();
-        return { q: f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v };
-    }
-    function genReduction() {
-        const monos = [{ c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }, { c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }];
-        shuffle(monos);
-        const A = monos.filter(m => m.x).reduce((s, m) => s + m.c, 0);
-        const B = monos.filter(m => !m.x).reduce((s, m) => s + m.c, 0);
-        return {
-            q: 'Réduis : ' + fmtMonoSum(monos),
-            fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }],
-            sol: '= ' + fmtLin(A, B)
-        };
-    }
-    function genDeveloppement() {
-        if (Math.random() < 0.5) {
-            const k = pm2(), a = pm2(), b = nz(ri(-9, 9)), A = k * a, B = k * b;
-            return {
-                q: 'Développe : ' + par(k) + '(' + fmtMonoSum([{ c: a, x: true }, { c: b, x: false }]) + ')',
-                fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }],
-                sol: '= ' + fmtLin(A, B)
-            };
-        }
-        const a = nz(ri(-7, 7)), b = nz(ri(-7, 7)), B = a + b, C = a * b;
-        return {
-            q: 'Développe : (' + fmtMonoSum([{ c: 1, x: true }, { c: a, x: false }]) + ')(' + fmtMonoSum([{ c: 1, x: true }, { c: b, x: false }]) + ')',
-            fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: B }, { label: 'terme constant', e: C }],
-            sol: '= ' + fmtQuad(B, C)
-        };
-    }
-    function genEquation() {
-        const a = nz(ri(-6, 6)), x = ri(-8, 8), b = nz(ri(-9, 9)), c = a * x + b;
-        return {
-            q: 'Résous : ' + coefX(a) + ' ' + (b < 0 ? M + ' ' + Math.abs(b) : '+ ' + b) + ' = ' + c,
-            fields: [{ label: 'x =', e: x }],
-            sol: coefX(a) + ' = ' + c + ' ' + (b < 0 ? '+ ' + Math.abs(b) : M + ' ' + b) + ' = ' + (c - b) + ' ; x = ' + (c - b) + ' ÷ ' + par(a) + ' = ' + x
-        };
-    }
-    function genProportion() {
-        const k = ri(2, 9), a = ri(2, 9), c = a * k; let d = ri(2, 9); while (d === a) d = ri(2, 9);
-        return {
-            q: 'Si ' + a + ' objets coûtent ' + c + ' fr., combien coûtent ' + d + ' objets (même prix unitaire) ?',
-            fields: [{ label: 'prix (fr.)', e: d * k }],
-            sol: 'Prix unitaire = ' + c + ' ÷ ' + a + ' = ' + k + ' fr. ; ' + d + ' × ' + k + ' = ' + (d * k) + ' fr.'
-        };
-    }
-    function genPythagore() {
-        const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [20, 21, 29], [9, 40, 41], [12, 16, 20]];
-        const t = pick(triples);
-        if (Math.random() < 0.6) return { q: 'Triangle rectangle : les cathètes mesurent ' + t[0] + ' cm et ' + t[1] + ' cm. Calcule l’hypoténuse (cm).', fields: [{ label: 'hypoténuse', e: t[2] }], sol: 'h = √(' + t[0] + '² + ' + t[1] + '²) = √(' + (t[0] * t[0] + t[1] * t[1]) + ') = ' + t[2] + ' cm' };
-        return { q: 'Triangle rectangle : l’hypoténuse mesure ' + t[2] + ' cm et une cathète ' + t[0] + ' cm. Calcule l’autre cathète (cm).', fields: [{ label: 'cathète', e: t[1] }], sol: 'c = √(' + t[2] + '² ' + M + ' ' + t[0] + '²) = √(' + (t[2] * t[2] - t[0] * t[0]) + ') = ' + t[1] + ' cm' };
-    }
-    function genConversions() {
-        const units = [['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'mm', 1000], ['kg', 'g', 1000], ['L', 'cL', 100]];
-        const u = pick(units);
-        if (Math.random() < 0.5) { const v = ri(1, 50) / (Math.random() < 0.4 ? 2 : 1); return { q: 'Convertis : ' + v + ' ' + u[0] + ' = ? ' + u[1], fields: [{ label: u[1], e: v * u[2] }], sol: v + ' × ' + u[2] + ' = ' + (v * u[2]) + ' ' + u[1] }; }
-        const v = ri(1, 50) * u[2]; return { q: 'Convertis : ' + v + ' ' + u[1] + ' = ? ' + u[0], fields: [{ label: u[0], e: v / u[2] }], sol: v + ' ÷ ' + u[2] + ' = ' + (v / u[2]) + ' ' + u[0] };
-    }
+    // ====== Générateurs (validés Node : 0 erreur / 18'600 tirages + vérifs indépendantes) ======
+    function genPriorites() { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(1, 8); const forms = [{ q: a + ' + ' + b + ' × ' + c, v: a + b * c }, { q: a + ' × ' + b + ' ' + M + ' ' + c, v: a * b - c }, { q: '(' + a + ' + ' + b + ') × ' + c, v: (a + b) * c }, { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, v: a + b * c - d }, { q: a + ' × ' + b + ' + ' + c + ' × ' + d, v: a * b + c * d }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v }; }
+    function genRelatifs() { const a = nz(ri(-12, 12)), b = nz(ri(-12, 12)), op = pick(['+', M, '×']); let v; if (op === '+') v = a + b; else if (op === M) v = a - b; else v = a * b; return { q: 'Calcule : ' + par(a) + ' ' + op + ' ' + par(b), fields: [{ label: '=', e: v }], sol: '= ' + v }; }
+    function genFractions() { let n1 = ri(1, 9), d1 = ri(2, 9), n2 = ri(1, 9), d2 = ri(2, 9); while (n1 === d1) n1 = ri(1, 9); while (n2 === d2) n2 = ri(1, 9); const op = pick(['+', M, '×', '÷']); let num, den; if (op === '+') { num = n1 * d2 + n2 * d1; den = d1 * d2; } else if (op === M) { num = n1 * d2 - n2 * d1; den = d1 * d2; } else if (op === '×') { num = n1 * n2; den = d1 * d2; } else { num = n1 * d2; den = d1 * n2; } const g = gcd(num, den); return { q: 'Calcule (donne une fraction) : ' + n1 + '/' + d1 + ' ' + op + ' ' + n2 + '/' + d2, fields: [{ label: 'résultat', e: num / den, frac: true }], sol: '= ' + (num / g) + '/' + (den / g) }; }
+    function genPuissances() { const T = [() => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + a + '<sup>' + n + '</sup>', e: Math.pow(a, n), lab: '=', sol: a + '<sup>' + n + '</sup> = ' + Math.pow(a, n) }; }, () => { const a = ri(2, 9); return { q: 'Calcule : ' + a + '<sup>2</sup>', e: a * a, lab: '=', sol: '= ' + a * a }; }, () => { const a = ri(2, 6), m = ri(2, 4), n = ri(2, 3); return { q: 'Une seule puissance : ' + a + '<sup>' + m + '</sup> · ' + a + '<sup>' + n + '</sup> (donne l’exposant)', e: m + n, lab: 'exposant', sol: 'aᵐ·aⁿ = aᵐ⁺ⁿ → ' + (m + n) }; }, () => { const a = ri(2, 6), m = ri(4, 7), n = ri(2, 3); return { q: 'Une seule puissance : ' + a + '<sup>' + m + '</sup> : ' + a + '<sup>' + n + '</sup> (donne l’exposant)', e: m - n, lab: 'exposant', sol: 'aᵐ:aⁿ = aᵐ⁻ⁿ → ' + (m - n) }; }, () => { const a = ri(2, 5), m = ri(2, 3), n = ri(2, 3); return { q: 'Une seule puissance : (' + a + '<sup>' + m + '</sup>)<sup>' + n + '</sup> (donne l’exposant)', e: m * n, lab: 'exposant', sol: '(aᵐ)ⁿ = aᵐⁿ → ' + (m * n) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    function genRacines() { const T = [() => { const k = ri(2, 20); return { q: 'Calcule : √' + (k * k), e: k, sol: '√' + (k * k) + ' = ' + k }; }, () => { const k = ri(2, 12); return { q: 'Calcule : √' + (k * k) + ' + 1', e: k + 1, sol: '√' + (k * k) + ' + 1 = ' + k + ' + 1 = ' + (k + 1) }; }, () => { const k = ri(2, 9); return { q: 'Calcule : (√' + (k * k) + ')²', e: k * k, sol: '(√' + (k * k) + ')² = ' + (k * k) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: t.sol }; }
+    function genDiviseurs() { const a = ri(4, 60); let b = ri(4, 60); while (b === a) b = ri(4, 60); if (Math.random() < 0.5) return { q: 'Calcule le PGCD de ' + a + ' et ' + b + '.', fields: [{ label: 'PGCD', e: gcd(a, b) }], sol: 'PGCD(' + a + ' ; ' + b + ') = ' + gcd(a, b) }; return { q: 'Calcule le PPCM de ' + a + ' et ' + b + '.', fields: [{ label: 'PPCM', e: lcm(a, b) }], sol: 'PPCM(' + a + ' ; ' + b + ') = ' + lcm(a, b) }; }
+    function genEcritures() { const T = [() => { const d = pick([2, 4, 5, 10, 20, 25, 50]), n = ri(1, d - 1); return { q: 'Écris ' + n + '/' + d + ' en pourcentage.', e: n / d * 100, lab: '%', sol: n + '/' + d + ' = ' + (n / d * 100) + ' %' }; }, () => { const p = pick([10, 20, 25, 40, 50, 60, 75, 80]), g = gcd(p, 100); return { q: 'Écris ' + p + ' % en fraction simplifiée.', e: p / 100, frac: true, lab: 'fraction', sol: p + ' % = ' + (p / g) + '/' + (100 / g) }; }, () => { const d = pick([2, 4, 5, 8, 10, 20, 25]), n = ri(1, d - 1); return { q: 'Écris ' + n + '/' + d + ' en nombre décimal.', e: n / d, lab: '=', sol: n + '/' + d + ' = ' + (n / d) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e, frac: t.frac }], sol: t.sol }; }
+    function genNotationSci() { const a = ri(10, 99) / 10, n = ri(2, 6), N = Math.round(a * Math.pow(10, n)); return { q: 'Écris ' + N + ' en notation scientifique a · 10ⁿ (avec 1 ≤ a < 10).', fields: [{ label: 'a', e: a }, { label: 'n', e: n }], sol: N + ' = ' + a + ' · 10<sup>' + n + '</sup>' }; }
+    function genProbabilites() { const r = ri(2, 8), b = ri(2, 8), v = ri(0, 5), tot = r + b + v; const choix = [['rouge', r], ['bleue', b]]; if (v) choix.push(['verte', v]); const c = pick(choix), g = gcd(c[1], tot); return { q: 'Un sac contient ' + r + ' billes rouges, ' + b + ' bleues' + (v ? ' et ' + v + ' vertes' : '') + '. On tire une bille au hasard. Probabilité d’obtenir une ' + c[0] + ' ? (fraction)', fields: [{ label: 'P', e: c[1] / tot, frac: true }], sol: 'P = ' + c[1] + '/' + tot + (g > 1 ? ' = ' + (c[1] / g) + '/' + (tot / g) : '') }; }
+    function genFractionVis() { const n = ri(3, 8), k = ri(1, n - 1), g = gcd(k, n); return { q: 'Quelle fraction de la figure est coloriée ?', svg: barFracSVG(n, k), fields: [{ label: 'fraction', e: k / n, frac: true }], sol: k + '/' + n + (g > 1 ? ' = ' + (k / g) + '/' + (n / g) : '') }; }
 
-    const GENS = {
-        priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances,
-        pourcentages: genPourcentages, reduction: genReduction, developpement: genDeveloppement,
-        equation: genEquation, proportion: genProportion, pythagore: genPythagore, conversions: genConversions
-    };
+    function genProportion() { const k = ri(2, 9), a = ri(2, 9), c = a * k; let d = ri(2, 9); while (d === a) d = ri(2, 9); return { q: 'Si ' + a + ' objets coûtent ' + c + ' fr., combien coûtent ' + d + ' objets (même prix unitaire) ?', fields: [{ label: 'prix (fr.)', e: d * k }], sol: 'Prix unitaire = ' + c + ' ÷ ' + a + ' = ' + k + ' fr. ; ' + d + ' × ' + k + ' = ' + (d * k) + ' fr.' }; }
+    function genPourcentages() { const T = [() => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + ' % de ' + n, e: p / 100 * n }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + ' %', e: n * (1 + a / 100) }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + ' %', e: n * (1 - a / 100) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: '= ' + t.e }; }
+    function genSubstitution() { const x = ri(-6, 8), b = ri(2, 9), h = ri(2, 9), a = ri(2, 6), cc = ri(2, 6); const T = [() => ({ ex: '4x + 5', sub: 'x = ' + x, v: 4 * x + 5 }), () => ({ ex: '3x ' + M + ' 7', sub: 'x = ' + x, v: 3 * x - 7 }), () => ({ ex: 'x²', sub: 'x = ' + x, v: x * x }), () => ({ ex: 'x³', sub: 'x = ' + x, v: x * x * x }), () => ({ ex: '2x² ' + M + ' 1', sub: 'x = ' + x, v: 2 * x * x - 1 }), () => ({ ex: 'a² + b²', sub: 'a = ' + a + ', b = ' + cc, v: a * a + cc * cc }), () => ({ ex: 'abc', sub: 'a = ' + a + ', b = ' + b + ', c = ' + cc, v: a * b * cc })]; const t = pick(T)(); return { q: 'Calcule ' + t.ex + ' pour ' + t.sub + '.', fields: [{ label: '=', e: t.v }], sol: '= ' + t.v }; }
+    function genReduction() { const monos = [{ c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }, { c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }]; shuffle(monos); const A = monos.filter(m => m.x).reduce((s, m) => s + m.c, 0), B = monos.filter(m => !m.x).reduce((s, m) => s + m.c, 0); return { q: 'Réduis : ' + fmtMonoSum(monos), fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }], sol: '= ' + fmtLin(A, B) }; }
+    function genDeveloppement() { if (Math.random() < 0.5) { const k = pm2(), a = pm2(), b = nz(ri(-9, 9)), A = k * a, B = k * b; return { q: 'Développe : ' + par(k) + '(' + fmtMonoSum([{ c: a, x: true }, { c: b, x: false }]) + ')', fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }], sol: '= ' + fmtLin(A, B) }; } const a = nz(ri(-7, 7)), b = nz(ri(-7, 7)), B = a + b, C = a * b; return { q: 'Développe : (' + fmtMonoSum([{ c: 1, x: true }, { c: a, x: false }]) + ')(' + fmtMonoSum([{ c: 1, x: true }, { c: b, x: false }]) + ')', fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: B }, { label: 'terme constant', e: C }], sol: '= ' + fmtQuad(B, C) }; }
+    function genIdentites() { const a = ri(2, 9); const T = [() => ({ q: '(x + ' + a + ')²', B: 2 * a, C: a * a }), () => ({ q: '(x ' + M + ' ' + a + ')²', B: -2 * a, C: a * a }), () => ({ q: '(x + ' + a + ')(x ' + M + ' ' + a + ')', B: 0, C: -a * a })]; const f = pick(T)(); return { q: 'Développe (identité remarquable) : ' + f.q, fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: f.B }, { label: 'constante', e: f.C }], sol: '= ' + fmtQuad(f.B, f.C) }; }
+    function genFactorisation() { const g = ri(2, 8); let a = nz(ri(-6, 6)), b = nz(ri(-9, 9)); while (gcd(a, b) !== 1) { a = nz(ri(-6, 6)); b = nz(ri(-9, 9)); } const A = g * a, B = g * b; return { q: 'Factorise (facteur commun maximal) : ' + fmtLin(A, B), fields: [{ label: 'facteur commun', e: g }, { label: 'coef. de x', e: a }, { label: 'constante', e: b }], sol: '= ' + g + '(' + fmtLin(a, b) + ')' }; }
+    function genEquation() { const a = nz(ri(-6, 6)), x = ri(-8, 8), b = nz(ri(-9, 9)), c = a * x + b; return { q: 'Résous : ' + coefX(a) + ' ' + (b < 0 ? M + ' ' + Math.abs(b) : '+ ' + b) + ' = ' + c, fields: [{ label: 'x =', e: x }], sol: coefX(a) + ' = ' + (c - b) + ' ; x = ' + (c - b) + ' ÷ ' + par(a) + ' = ' + x }; }
+    function genSystemes() { const x = nz(ri(-5, 5)), y = nz(ri(-5, 5)); let a1 = nz(ri(-4, 4)), b1 = nz(ri(-4, 4)), a2 = nz(ri(-4, 4)), b2 = nz(ri(-4, 4)); while (a1 * b2 - a2 * b1 === 0) { a2 = nz(ri(-4, 4)); b2 = nz(ri(-4, 4)); } const c1 = a1 * x + b1 * y, c2 = a2 * x + b2 * y; const eq = (a, b, c) => coefVar(a, 'x') + (b < 0 ? ' ' + M + ' ' + coefVar(Math.abs(b), 'y') : ' + ' + coefVar(b, 'y')) + ' = ' + c; return { q: 'Résous le système :  ' + eq(a1, b1, c1) + '   et   ' + eq(a2, b2, c2), fields: [{ label: 'x =', e: x }, { label: 'y =', e: y }], sol: 'x = ' + x + ' ; y = ' + y }; }
+    function genFonctionImage() { const k = nz(ri(-5, 5)); if (Math.random() < 0.6) { const a = nz(ri(-4, 5)), b = ri(-6, 6); return { q: 'Soit f(x) = ' + fmtLin(a, b) + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ')', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b) }; } const a = nz(ri(-3, 3)); return { q: 'Soit f(x) = ' + coefVar(a, 'x²') + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ')', e: a * k * k }], sol: 'f(' + k + ') = ' + a + '·(' + k + ')² = ' + (a * k * k) }; }
+    function genFonctionAffine() { const a = nz(ri(-4, 4)), b = ri(-6, 6); let x1 = ri(-5, 5), x2 = ri(-5, 5); while (x2 === x1) x2 = ri(-5, 5); const y1 = a * x1 + b, y2 = a * x2 + b; return { q: 'La fonction affine f(x) = ax + b passe par (' + x1 + ' ; ' + y1 + ') et (' + x2 + ' ; ' + y2 + '). Trouve a et b.', fields: [{ label: 'a', e: a }, { label: 'b', e: b }], sol: 'pente a = ' + a + ' ; ordonnée à l’origine b = ' + b }; }
 
-    // ---------- État + UI ----------
+    function genAngles() { const T = [() => { const a = ri(30, 100), b = ri(20, 150 - a); return { q: 'Dans un triangle, deux angles mesurent ' + a + '° et ' + b + '°. Mesure du troisième angle ?', e: 180 - a - b, sol: '180° − ' + a + '° − ' + b + '° = ' + (180 - a - b) + '°' }; }, () => { const a = ri(20, 150); return { q: 'Angle supplémentaire d’un angle de ' + a + '° ?', e: 180 - a, sol: '180° − ' + a + '° = ' + (180 - a) + '°' }; }, () => { const a = ri(10, 80); return { q: 'Angle complémentaire d’un angle de ' + a + '° ?', e: 90 - a, sol: '90° − ' + a + '° = ' + (90 - a) + '°' }; }, () => { const c = ri(20, 88) * 2; return { q: 'Un angle au centre mesure ' + c + '°. Mesure de l’angle inscrit interceptant le même arc ?', e: c / 2, sol: c + '° ÷ 2 = ' + (c / 2) + '°' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: 'angle (°)', e: t.e }], sol: t.sol }; }
+    function genTransformations() { const x = nz(ri(-6, 6)), y = nz(ri(-6, 6)); const T = [() => ({ nom: 'la symétrie d’axe Ox (axe horizontal)', xi: x, yi: -y }), () => ({ nom: 'la symétrie d’axe Oy (axe vertical)', xi: -x, yi: y }), () => ({ nom: 'la symétrie centrale de centre O', xi: -x, yi: -y }), () => { const u = ri(-5, 5), v = ri(-5, 5); return { nom: 'la translation de vecteur (' + u + ' ; ' + v + ')', xi: x + u, yi: y + v }; }]; const t = pick(T)(); return { q: 'Image du point A(' + x + ' ; ' + y + ') par ' + t.nom + ' ?', fields: [{ label: 'x′', e: t.xi }, { label: 'y′', e: t.yi }], sol: 'A′ = (' + t.xi + ' ; ' + t.yi + ')' }; }
+    function genCoordonnees() { const x = ri(-5, 5), y = ri(-5, 5); return { q: 'Lis les coordonnées du point A dans le repère.', svg: gridSVG([[x, y, 'A']]), fields: [{ label: 'x', e: x }, { label: 'y', e: y }], sol: 'A(' + x + ' ; ' + y + ')' }; }
+    function genPlacerPoint() { const x = ri(-5, 5), y = ri(-5, 5); return { q: 'Place le point A(' + x + ' ; ' + y + ') dans le repère (clique sur le quadrillage).', interactive: 'point', target: { x: x, y: y }, svg: gridSVG([], true), sol: 'A(' + x + ' ; ' + y + ')' }; }
+
+    function genAires() { const T = [() => { const L = ri(3, 15), l = ri(2, 12); return { q: 'Aire d’un rectangle de ' + L + ' cm sur ' + l + ' cm ?', e: L * l, lab: 'aire (cm²)', sol: L + ' × ' + l + ' = ' + (L * l) + ' cm²' }; }, () => { const b = ri(2, 14), h = pick([2, 4, 6, 8, 10, 12]); return { q: 'Aire d’un triangle de base ' + b + ' cm et hauteur ' + h + ' cm ?', e: b * h / 2, lab: 'aire (cm²)', sol: '(' + b + ' × ' + h + ') ÷ 2 = ' + (b * h / 2) + ' cm²' }; }, () => { const b = ri(3, 12), h = ri(2, 10); return { q: 'Aire d’un parallélogramme de base ' + b + ' cm et hauteur ' + h + ' cm ?', e: b * h, lab: 'aire (cm²)', sol: b + ' × ' + h + ' = ' + (b * h) + ' cm²' }; }, () => { const D = pick([4, 6, 8, 10, 12]), d = pick([2, 4, 6, 8]); return { q: 'Aire d’un losange de diagonales ' + D + ' cm et ' + d + ' cm ?', e: D * d / 2, lab: 'aire (cm²)', sol: '(' + D + ' × ' + d + ') ÷ 2 = ' + (D * d / 2) + ' cm²' }; }, () => { const r = ri(2, 12); return { q: 'Aire d’un disque de rayon ' + r + ' cm ? (donne le coefficient de π)', e: r * r, lab: '× π cm²', sol: 'π·r² = ' + (r * r) + 'π cm²' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    function genVolumes() { const T = [() => { const a = ri(2, 8); return { q: 'Volume d’un cube d’arête ' + a + ' cm ?', e: a * a * a, lab: 'V (cm³)', sol: a + '³ = ' + (a * a * a) + ' cm³' }; }, () => { const L = ri(2, 9), l = ri(2, 8), h = ri(2, 8); return { q: 'Volume d’un pavé droit ' + L + ' × ' + l + ' × ' + h + ' cm ?', e: L * l * h, lab: 'V (cm³)', sol: L + ' × ' + l + ' × ' + h + ' = ' + (L * l * h) + ' cm³' }; }, () => { const A = ri(6, 30), h = ri(2, 9); return { q: 'Volume d’un prisme droit, aire de base ' + A + ' cm², hauteur ' + h + ' cm ?', e: A * h, lab: 'V (cm³)', sol: A + ' × ' + h + ' = ' + (A * h) + ' cm³' }; }, () => { const r = ri(2, 8), h = ri(2, 9); return { q: 'Volume d’un cylindre de rayon ' + r + ' cm et hauteur ' + h + ' cm ? (coefficient de π)', e: r * r * h, lab: '× π cm³', sol: 'π·r²·h = ' + (r * r * h) + 'π cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    function genPythagore() { const tr = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [20, 21, 29], [9, 40, 41], [12, 16, 20]]; const t = pick(tr); if (Math.random() < 0.6) return { q: 'Triangle rectangle : cathètes ' + t[0] + ' cm et ' + t[1] + ' cm. Calcule l’hypoténuse.', svg: rtTriangleSVG(t[0] + ' cm', t[1] + ' cm', '?'), fields: [{ label: 'hypoténuse (cm)', e: t[2] }], sol: 'h = √(' + t[0] + '² + ' + t[1] + '²) = √' + (t[0] * t[0] + t[1] * t[1]) + ' = ' + t[2] + ' cm' }; return { q: 'Triangle rectangle : hypoténuse ' + t[2] + ' cm, une cathète ' + t[0] + ' cm. Calcule l’autre cathète.', svg: rtTriangleSVG(t[0] + ' cm', '?', t[2] + ' cm'), fields: [{ label: 'cathète (cm)', e: t[1] }], sol: 'c = √(' + t[2] + '² ' + M + ' ' + t[0] + '²) = √' + (t[2] * t[2] - t[0] * t[0]) + ' = ' + t[1] + ' cm' }; }
+    function genThales() { const k = pick([2, 3, 4, 5]), AM = ri(2, 6), AB = AM * k, AN = ri(2, 6), AC = AN * k; return { q: 'Configuration de Thalès (droites parallèles) : AM = ' + AM + ', AB = ' + AB + ', AN = ' + AN + '. Calcule AC.', fields: [{ label: 'AC', e: AC }], sol: 'AC = AN × (AB ÷ AM) = ' + AN + ' × ' + k + ' = ' + AC }; }
+    function genTrigo() { const ang = pick([30, 45, 60]), hyp = ri(6, 20), rad = ang * Math.PI / 180; if (Math.random() < 0.5) { const opp = Math.round(hyp * Math.sin(rad) * 10) / 10; return { q: 'Triangle rectangle : hypoténuse ' + hyp + ' cm, angle ' + ang + '°. Côté opposé à l’angle (au dixième) ?', fields: [{ label: 'opposé (cm)', e: opp, tol: 0.15 }], sol: 'opposé = ' + hyp + '·sin(' + ang + '°) ≈ ' + opp + ' cm' }; } const adj = Math.round(hyp * Math.cos(rad) * 10) / 10; return { q: 'Triangle rectangle : hypoténuse ' + hyp + ' cm, angle ' + ang + '°. Côté adjacent à l’angle (au dixième) ?', fields: [{ label: 'adjacent (cm)', e: adj, tol: 0.15 }], sol: 'adjacent = ' + hyp + '·cos(' + ang + '°) ≈ ' + adj + ' cm' }; }
+    function genConversions() { const units = [['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'mm', 1000], ['kg', 'g', 1000], ['L', 'cL', 100]]; const u = pick(units); if (Math.random() < 0.5) { const v = ri(1, 50) / (Math.random() < 0.4 ? 2 : 1); return { q: 'Convertis : ' + v + ' ' + u[0] + ' = ? ' + u[1], fields: [{ label: u[1], e: v * u[2] }], sol: v + ' × ' + u[2] + ' = ' + (v * u[2]) + ' ' + u[1] }; } const v = ri(1, 50) * u[2]; return { q: 'Convertis : ' + v + ' ' + u[1] + ' = ? ' + u[0], fields: [{ label: u[0], e: v / u[2] }], sol: v + ' ÷ ' + u[2] + ' = ' + (v / u[2]) + ' ' + u[0] }; }
+    function genConversionsAV() { const T = [() => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m² = ? dm²', e: v * 100, lab: 'dm²', sol: v + ' × 100 = ' + (v * 100) + ' dm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' cm² = ? mm²', e: v * 100, lab: 'mm²', sol: v + ' × 100 = ' + (v * 100) + ' mm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' dm³ = ? L (1 dm³ = 1 L)', e: v, lab: 'L', sol: v + ' dm³ = ' + v + ' L' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m³ = ? L', e: v * 1000, lab: 'L', sol: v + ' × 1000 = ' + (v * 1000) + ' L' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    function genGrandeurs() { const T = [() => { const v = ri(20, 120), t = ri(2, 6); return { q: 'Une voiture roule à ' + v + ' km/h pendant ' + t + ' h. Distance parcourue ?', e: v * t, lab: 'distance (km)', sol: v + ' × ' + t + ' = ' + (v * t) + ' km' }; }, () => { const d = ri(2, 12) * 10, t = ri(2, 5); return { q: 'On parcourt ' + d + ' km en ' + t + ' h. Vitesse moyenne ?', e: d / t, lab: 'vitesse (km/h)', sol: d + ' ÷ ' + t + ' = ' + (d / t) + ' km/h' }; }, () => { const rho = ri(2, 20), V = ri(2, 10); return { q: 'Un objet de masse ' + (rho * V) + ' g occupe ' + V + ' cm³. Masse volumique ?', e: rho, lab: 'ρ (g/cm³)', sol: (rho * V) + ' ÷ ' + V + ' = ' + rho + ' g/cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    function genDiagramme() { const labels = ['A', 'B', 'C', 'D'], vals = labels.map(() => ri(2, 10)); if (Math.random() < 0.5) { const i = ri(0, 3); return { q: 'D’après le diagramme, quelle est la valeur de la barre ' + labels[i] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: labels[i], e: vals[i] }], sol: labels[i] + ' = ' + vals[i] }; } const tot = vals.reduce((s, v) => s + v, 0); return { q: 'D’après le diagramme, quelle est la somme des quatre valeurs ?', svg: chartSVG(labels, vals, -1), fields: [{ label: 'total', e: tot }], sol: vals.join(' + ') + ' = ' + tot }; }
+
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, diagramme: genDiagramme, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
+
+    // ====== Domaines + thèmes ======
+    const DOMAINS = [
+        { code: 'NO', name: 'Nombres et opérations', col: '#4F46E5' },
+        { code: 'FA', name: 'Fonctions et algèbre', col: '#DB2777' },
+        { code: 'ES', name: 'Espace', col: '#2563EB' },
+        { code: 'GM', name: 'Grandeurs et mesures', col: '#059669' },
+    ];
+    const THEMES = [
+        { id: 'priorites', dom: 'NO', nm: 'Priorités opératoires', icon: 'fa-calculator', years: [9, 10, 11], ds: 'Ordre des opérations et parenthèses' },
+        { id: 'relatifs', dom: 'NO', nm: 'Nombres relatifs', icon: 'fa-plus-minus', years: [9, 10, 11], ds: 'Calculs avec des nombres négatifs' },
+        { id: 'fractions', dom: 'NO', nm: 'Fractions', icon: 'fa-divide', years: [9, 10, 11], ds: 'Additions, produits et quotients' },
+        { id: 'fraction_vis', dom: 'NO', nm: 'Fractions (visuel)', icon: 'fa-chart-pie', years: [9, 10], ds: 'Lire une fraction sur une figure', vis: 1 },
+        { id: 'puissances', dom: 'NO', nm: 'Puissances', icon: 'fa-superscript', years: [10, 11], ds: 'Carrés, cubes et lois des puissances' },
+        { id: 'racines', dom: 'NO', nm: 'Racines carrées', icon: 'fa-square-root-variable', years: [10, 11], ds: 'Racines de carrés parfaits' },
+        { id: 'diviseurs', dom: 'NO', nm: 'PGCD et PPCM', icon: 'fa-list-ol', years: [9, 10, 11], ds: 'Diviseurs et multiples communs' },
+        { id: 'ecritures', dom: 'NO', nm: 'Fraction · décimal · %', icon: 'fa-right-left', years: [9, 10, 11], ds: 'Passer d’une écriture à l’autre' },
+        { id: 'notation_sci', dom: 'NO', nm: 'Notation scientifique', icon: 'fa-flask', years: [10, 11], ds: 'Écrire a · 10ⁿ' },
+        { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', years: [11], ds: 'Situations aléatoires simples' },
+        { id: 'proportion', dom: 'FA', nm: 'Proportionnalité', icon: 'fa-scale-balanced', years: [9, 10, 11], ds: 'Règle de trois, prix unitaire' },
+        { id: 'pourcentages', dom: 'FA', nm: 'Pourcentages', icon: 'fa-percent', years: [10, 11], ds: 'Hausses et baisses' },
+        { id: 'substitution', dom: 'FA', nm: 'Valeur numérique', icon: 'fa-pen-nib', years: [9, 10, 11], ds: 'Substituer des nombres aux lettres' },
+        { id: 'reduction', dom: 'FA', nm: 'Réduire une expression', icon: 'fa-compress', years: [10, 11], ds: 'Regrouper les termes semblables' },
+        { id: 'developpement', dom: 'FA', nm: 'Développer', icon: 'fa-expand', years: [10, 11], ds: 'Distributivité et (x + a)(x + b)' },
+        { id: 'identites', dom: 'FA', nm: 'Identités remarquables', icon: 'fa-star', years: [11], ds: '(a ± b)², (a + b)(a − b)' },
+        { id: 'factorisation', dom: 'FA', nm: 'Factoriser', icon: 'fa-object-group', years: [11], ds: 'Mettre en évidence le facteur commun' },
+        { id: 'equation', dom: 'FA', nm: 'Équations du 1er degré', icon: 'fa-equals', years: [10, 11], ds: 'Résoudre ax + b = c' },
+        { id: 'systemes', dom: 'FA', nm: 'Systèmes d’équations', icon: 'fa-layer-group', years: [11], ds: 'Deux équations, deux inconnues' },
+        { id: 'fonction_image', dom: 'FA', nm: 'Image par une fonction', icon: 'fa-bezier-curve', years: [10, 11], ds: 'Calculer f(x)' },
+        { id: 'fonction_affine', dom: 'FA', nm: 'Fonction affine', icon: 'fa-chart-line', years: [11], ds: 'Trouver a et b' },
+        { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', years: [9, 10, 11], ds: 'Lire un diagramme en barres', vis: 1 },
+        { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', years: [9, 10, 11], ds: 'Triangle, supplément, angle inscrit' },
+        { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', years: [9, 10, 11], ds: 'Symétries et translation' },
+        { id: 'coordonnees', dom: 'ES', nm: 'Lire des coordonnées', icon: 'fa-location-dot', years: [9, 10, 11], ds: 'Repérer un point', vis: 1 },
+        { id: 'placer_point', dom: 'ES', nm: 'Placer un point', icon: 'fa-crosshairs', years: [9, 10, 11], ds: 'Clique dans le repère', inter: 1 },
+        { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', years: [9, 10], ds: 'Polygones et disque' },
+        { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', years: [9, 10, 11], ds: 'Du cube au cylindre' },
+        { id: 'pythagore', dom: 'GM', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', years: [10, 11], ds: 'Hypoténuse et cathètes', vis: 1 },
+        { id: 'thales', dom: 'GM', nm: 'Théorème de Thalès', icon: 'fa-grip-lines', years: [11], ds: 'Segments proportionnels' },
+        { id: 'trigo', dom: 'GM', nm: 'Trigonométrie', icon: 'fa-ruler-combined', years: [10, 11], ds: 'Sinus, cosinus, tangente' },
+        { id: 'conversions', dom: 'GM', nm: 'Conversions (longueurs)', icon: 'fa-ruler', years: [9, 10], ds: 'km, m, cm, kg, L…' },
+        { id: 'conversions_av', dom: 'GM', nm: 'Conversions (aires/volumes)', icon: 'fa-ruler-horizontal', years: [10, 11], ds: 'm², dm³, litres…' },
+        { id: 'grandeurs', dom: 'GM', nm: 'Vitesse, masse volumique', icon: 'fa-gauge-high', years: [11], ds: 'Grandeurs composées' },
+    ];
+    const domColor = code => (DOMAINS.find(d => d.code === code) || {}).col || '#6366F1';
+
+    // ====== État + UI ======
     let curYear = 0, selTheme = null, series = [];
+    const themeById = id => THEMES.find(t => t.id === id);
 
-    function themeById(id) { return THEMES.find(t => t.id === id); }
-
-    function renderGrid() {
-        const host = $('themeGrid');
-        const list = THEMES.filter(t => !curYear || t.years.includes(curYear));
-        host.innerHTML = list.map(t =>
-            '<button class="mx-card' + (selTheme === t.id ? ' sel' : '') + '" data-id="' + t.id + '" type="button">' +
-            '<span class="mx-ico" style="background:' + t.col + '"><i class="fas ' + t.icon + '"></i></span>' +
-            '<span class="nm">' + t.nm + '</span>' +
-            '<span class="ds">' + t.ds + '</span>' +
-            '<span class="mx-badges">' + t.years.map(y => '<span class="mx-badge">' + y + 'H</span>').join('') + '</span>' +
-            '</button>'
-        ).join('');
-        host.querySelectorAll('.mx-card').forEach(c => c.addEventListener('click', () => selectTheme(c.dataset.id)));
+    function renderDomains() {
+        let html = '';
+        DOMAINS.forEach(dom => {
+            const list = THEMES.filter(t => t.dom === dom.code && (!curYear || t.years.includes(curYear)));
+            if (!list.length) return;
+            html += '<div class="mx-dom"><div class="mx-dom-head"><span class="mx-dom-code" style="background:' + dom.col + '">' + dom.code + '</span><span class="mx-dom-name">' + dom.name + '</span></div><div class="mx-grid">';
+            html += list.map(t => '<button class="mx-card' + (selTheme === t.id ? ' sel' : '') + '" data-id="' + t.id + '" type="button">' +
+                '<span class="mx-ico" style="background:' + dom.col + '"><i class="fas ' + t.icon + '"></i></span>' +
+                '<span class="nm">' + t.nm + '</span><span class="ds">' + t.ds + '</span>' +
+                '<span class="mx-badges">' + t.years.map(y => '<span class="mx-badge">' + y + 'H</span>').join('') + (t.inter ? '<span class="mx-tagi">interactif</span>' : (t.vis ? '<span class="mx-tagi">visuel</span>' : '')) + '</span>' +
+                '</button>').join('');
+            html += '</div></div>';
+        });
+        $('domains').innerHTML = html;
+        $('domains').querySelectorAll('.mx-card').forEach(c => c.addEventListener('click', () => selectTheme(c.dataset.id)));
     }
 
-    function makeSeries(id, n) {
-        const gen = GENS[id], arr = [], seen = new Set();
-        let guard = 0;
-        while (arr.length < n && guard < n * 40) {
-            guard++;
-            const ex = gen();
-            if (seen.has(ex.q)) continue;
-            seen.add(ex.q); arr.push(ex);
-        }
-        return arr;
-    }
+    function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 40) { guard++; const ex = gen(); if (seen.has(ex.q)) continue; seen.add(ex.q); arr.push(ex); } return arr; }
 
     function renderSeries() {
         $('exList').innerHTML = series.map((ex, i) => {
-            const inputs = ex.fields.map((f, j) =>
-                '<span class="mx-fld">' + f.label +
-                ' <input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" data-i="' + i + '" data-j="' + j + '"></span>'
-            ).join('');
-            return '<div class="mx-ex" id="ex-' + i + '">' +
-                '<span class="mx-num">' + (i + 1) + '</span>' +
-                '<span class="mx-q">' + ex.q + '</span>' +
-                '<div class="mx-fields">' + inputs + '</div>' +
-                '<div class="mx-sol" id="sol-' + i + '" hidden></div>' +
-                '</div>';
+            const fig = ex.svg ? ex.svg : '';
+            let body;
+            if (ex.interactive === 'point') {
+                body = '<div class="mx-hint">Clique dans le repère pour placer le point.</div>';
+            } else {
+                body = '<div class="mx-fields">' + ex.fields.map((f, j) => '<span class="mx-fld">' + f.label + ' <input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" data-i="' + i + '" data-j="' + j + '"></span>').join('') + '</div>';
+            }
+            return '<div class="mx-ex" id="ex-' + i + '"><span class="mx-num">' + (i + 1) + '</span>' +
+                '<span class="mx-q">' + ex.q + '</span>' + (fig ? '<div style="grid-column:2">' + fig + '</div>' : '') +
+                body + '<div class="mx-sol" id="sol-' + i + '" hidden></div></div>';
         }).join('');
-        $('exList').querySelectorAll('.mx-input').forEach(inp => {
-            inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } });
+        // inputs : Entrée = corriger
+        $('exList').querySelectorAll('.mx-input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } }));
+        // grilles interactives : clic = placer le point
+        series.forEach((ex, i) => {
+            if (ex.interactive !== 'point') return;
+            const svg = $('ex-' + i).querySelector('.mx-grid-hit'); if (!svg) return;
+            svg.addEventListener('click', e => {
+                const rect = svg.getBoundingClientRect(), vbW = parseFloat(svg.getAttribute('viewBox').split(' ')[2]), sc = vbW / rect.width;
+                const lx = (e.clientX - rect.left) * sc, ly = (e.clientY - rect.top) * sc;
+                const s = +svg.dataset.s, cx = +svg.dataset.cx, cy = +svg.dataset.cy, R = +svg.dataset.r;
+                let mx = Math.max(-R, Math.min(R, Math.round((lx - cx) / s))), my = Math.max(-R, Math.min(R, Math.round((cy - ly) / s)));
+                ex._placed = { x: mx, y: my };
+                svg.querySelector('.mx-mark').innerHTML = '<circle cx="' + (cx + mx * s) + '" cy="' + (cy - my * s) + '" r="5" fill="#EF4444"/><text x="' + (cx + mx * s + 7) + '" y="' + (cy - my * s - 7) + '" font-size="11" font-weight="700" fill="#B91C1C">(' + mx + ' ; ' + my + ')</text>';
+            });
         });
     }
 
-    function newSeries() {
-        if (!selTheme) return;
-        series = makeSeries(selTheme, parseInt($('count').value, 10));
-        renderSeries();
-        const sc = $('score'); sc.textContent = ''; sc.className = 'mx-score';
-    }
+    function newSeries() { if (!selTheme) return; series = makeSeries(selTheme, parseInt($('count').value, 10)); renderSeries(); const sc = $('score'); sc.textContent = ''; sc.className = 'mx-score'; }
 
-    function selectTheme(id) {
-        selTheme = id;
-        renderGrid();
-        const t = themeById(id);
-        $('wsTitle').innerHTML = '<span class="mx-ico" style="background:' + t.col + '"><i class="fas ' + t.icon + '"></i></span>' + t.nm;
-        $('worksheet').hidden = false;
-        newSeries();
-        $('worksheet').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    function selectTheme(id) { selTheme = id; renderDomains(); const t = themeById(id); $('wsTitle').innerHTML = '<span class="mx-ico" style="background:' + domColor(t.dom) + '"><i class="fas ' + t.icon + '"></i></span>' + t.nm; $('worksheet').hidden = false; newSeries(); $('worksheet').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
-    function parseNum(str) {
-        if (str == null) return NaN;
-        str = String(str).trim().replace(/\s/g, '').replace(',', '.').replace(/−/g, '-');
-        if (str === '') return NaN;
-        if (str.indexOf('/') !== -1) { const p = str.split('/'); return parseFloat(p[0]) / parseFloat(p[1]); }
-        return parseFloat(str);
-    }
-    function checkField(f, val) {
-        const g = parseNum(val);
-        if (isNaN(g) || !isFinite(g)) return false;
-        return Math.abs(g - f.e) <= 0.01 + 1e-9;
-    }
+    function parseNum(str) { if (str == null) return NaN; str = String(str).trim().replace(/\s/g, '').replace(',', '.').replace(/−/g, '-'); if (str === '') return NaN; if (str.indexOf('/') !== -1) { const p = str.split('/'); return parseFloat(p[0]) / parseFloat(p[1]); } return parseFloat(str); }
+    function checkField(f, val) { const g = parseNum(val); if (isNaN(g) || !isFinite(g)) return false; return Math.abs(g - f.e) <= (f.tol || 0.01) + 1e-9; }
 
     function correct() {
         if (!series.length) return;
         let good = 0;
         series.forEach((ex, i) => {
             let allOk = true;
-            ex.fields.forEach((f, j) => {
-                const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]');
-                const ok = checkField(f, inp.value);
-                inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko');
-                if (!ok) allOk = false;
-            });
+            if (ex.interactive === 'point') {
+                allOk = !!ex._placed && ex._placed.x === ex.target.x && ex._placed.y === ex.target.y;
+            } else {
+                ex.fields.forEach((f, j) => {
+                    const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]');
+                    const ok = checkField(f, inp.value);
+                    inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko');
+                    if (!ok) allOk = false;
+                });
+            }
             const el = $('ex-' + i); el.classList.remove('ex-ok', 'ex-ko'); el.classList.add(allOk ? 'ex-ok' : 'ex-ko');
-            const sol = $('sol-' + i); sol.hidden = false;
-            sol.innerHTML = (allOk ? '<b class="ok-tag">✓ Juste.</b> ' : '<b class="ko-tag">✗ À revoir.</b> ') + 'Solution : ' + ex.sol;
+            const sol = $('sol-' + i); sol.hidden = false; sol.innerHTML = (allOk ? '<b class="ok-tag">✓ Juste.</b> ' : '<b class="ko-tag">✗ À revoir.</b> ') + 'Solution : ' + ex.sol;
             if (allOk) good++;
         });
-        const n = series.length, sc = $('score');
-        sc.textContent = 'Score : ' + good + ' / ' + n;
+        const n = series.length, sc = $('score'); sc.textContent = 'Score : ' + good + ' / ' + n;
         sc.className = 'mx-score ' + (good === n ? 'all-ok' : (good * 2 >= n ? 'half' : 'low'));
     }
 
-    // Filtres année
-    $('yearChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => {
-        curYear = parseInt(ch.dataset.y, 10);
-        $('yearChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active'));
-        ch.classList.add('active');
-        renderGrid();
-    }));
+    $('yearChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => { curYear = parseInt(ch.dataset.y, 10); $('yearChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active')); ch.classList.add('active'); renderDomains(); }));
     $('btnNew').addEventListener('click', newSeries);
     $('btnCheck').addEventListener('click', correct);
     $('btnPrint').addEventListener('click', () => window.print());
     $('count').addEventListener('change', newSeries);
 
-    renderGrid();
+    renderDomains();
 })();
 </script>
 {% endblock %}
