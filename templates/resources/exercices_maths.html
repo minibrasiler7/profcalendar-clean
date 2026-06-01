@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Exercices de mathématiques 9H, 10H, 11H — générateur gratuit avec correction (Cycle 3) | ProfCalendar{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="Générateur gratuit d'exercices de maths pour le Cycle 3 (9H, 10H, 11H) du PER : priorités, fractions, puissances, pourcentages, calcul littéral, équations, Pythagore… Exercices illimités générés automatiquement avec correction immédiate et solutions. Idéal pour s'entraîner ou créer des fiches.">
+<link rel="canonical" href="https://profcalendar.org/ressources/exercices-maths">
+<meta property="og:title" content="Exercices de maths 9H–11H — générateur gratuit avec correction">
+<meta property="og:description" content="Des exercices de mathématiques du Cycle 3 (PER) générés à l'infini, avec correction automatique et solutions. Gratuit.">
+<meta property="og:type" content="website">
+<style>
+    .mx-wrap { max-width: 1040px; margin: 1.5rem auto 4rem; padding: 0 1.25rem; }
+    .mx-bc { font-size: 0.85rem; color: #9CA3AF; margin-bottom: 1rem; }
+    .mx-bc a { color: #6366F1; text-decoration: none; }
+    .mx-wrap h1 { font-size: 2rem; color: #111827; margin: 0 0 0.4rem; line-height: 1.15; }
+    .mx-sub { color: #6B7280; font-size: 1.02rem; max-width: 680px; margin-bottom: 1.5rem; }
+
+    /* Filtre année */
+    .mx-years { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .mx-chip { border: 1px solid #D1D5DB; background: #fff; color: #374151; border-radius: 999px;
+        padding: 0.45rem 1.1rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all .12s; }
+    .mx-chip:hover { border-color: #A5B4FC; }
+    .mx-chip.active { background: #6366F1; color: #fff; border-color: #6366F1; }
+
+    /* Grille de thèmes */
+    .mx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 0.9rem; }
+    .mx-card { text-align: left; background: #fff; border: 1.5px solid #E5E7EB; border-radius: 0.85rem;
+        padding: 1.05rem 1.1rem; cursor: pointer; transition: all .14s; display: flex; flex-direction: column; gap: 0.4rem; }
+    .mx-card:hover { border-color: #A5B4FC; box-shadow: 0 6px 18px rgba(99,102,241,.10); transform: translateY(-2px); }
+    .mx-card.sel { border-color: #6366F1; background: #F5F3FF; box-shadow: 0 6px 18px rgba(99,102,241,.16); }
+    .mx-ico { width: 42px; height: 42px; border-radius: 0.6rem; display: flex; align-items: center;
+        justify-content: center; color: #fff; font-size: 1.05rem; }
+    .mx-card .nm { font-weight: 700; color: #1F2937; font-size: 1rem; }
+    .mx-card .ds { color: #6B7280; font-size: 0.84rem; line-height: 1.35; flex: 1; }
+    .mx-badges { display: flex; gap: 0.3rem; }
+    .mx-badge { font-size: 0.68rem; font-weight: 700; color: #4338CA; background: #E0E7FF;
+        border-radius: 999px; padding: 0.1rem 0.5rem; letter-spacing: .02em; }
+
+    /* Feuille d'exercices */
+    .mx-ws { margin-top: 2rem; background: #fff; border: 1px solid #E5E7EB; border-radius: 0.9rem; overflow: hidden; }
+    .mx-ws-head { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+        padding: 1rem 1.25rem; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; }
+    .mx-ws-title { font-weight: 800; color: #111827; font-size: 1.12rem; margin-right: auto; display: flex; align-items: center; gap: .6rem; }
+    .mx-ws-title .mx-ico { width: 32px; height: 32px; font-size: .9rem; }
+    .mx-ctl { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .mx-ctl label { font-size: 0.82rem; color: #374151; font-weight: 600; display: flex; align-items: center; gap: .4rem; }
+    .mx-ctl select { padding: 0.4rem 0.55rem; border: 1px solid #D1D5DB; border-radius: 0.4rem; font-size: 0.9rem; }
+    .mx-btn { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; border: none;
+        font-weight: 700; padding: 0.5rem 0.95rem; border-radius: 0.5rem; font-size: 0.88rem; }
+    .mx-btn-p { background: #6366F1; color: #fff; }
+    .mx-btn-g { background: #059669; color: #fff; }
+    .mx-btn-o { background: #fff; color: #3730A3; border: 1px solid #C7D2FE; }
+    .mx-score { font-size: 0.95rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 0.5rem; }
+    .mx-score.all-ok { color: #047857; background: #D1FAE5; }
+    .mx-score.half { color: #92400E; background: #FEF3C7; }
+    .mx-score.low { color: #B91C1C; background: #FEE2E2; }
+
+    .mx-list { padding: 0.5rem 0.75rem 1rem; }
+    .mx-ex { display: grid; grid-template-columns: 34px 1fr; gap: 0.5rem 0.85rem; align-items: start;
+        padding: 0.85rem 0.75rem; border-radius: 0.6rem; border-left: 3px solid transparent; }
+    .mx-ex + .mx-ex { border-top: 1px solid #F3F4F6; }
+    .mx-num { width: 30px; height: 30px; border-radius: 50%; background: #EEF2FF; color: #4338CA;
+        font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+    .mx-q { font-size: 1.04rem; color: #1F2937; line-height: 1.5; }
+    .mx-q sup { font-size: 0.72em; }
+    .mx-fields { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 0.55rem; }
+    .mx-fld { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: #4B5563; }
+    .mx-input { width: 88px; padding: 0.42rem 0.5rem; border: 1.5px solid #D1D5DB; border-radius: 0.42rem;
+        font-size: 0.98rem; text-align: center; font-variant-numeric: tabular-nums; }
+    .mx-input:focus { outline: none; border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .mx-input.ok { border-color: #10B981; background: #ECFDF5; }
+    .mx-input.ko { border-color: #EF4444; background: #FEF2F2; }
+    .mx-ex.ex-ok { border-left-color: #10B981; background: #F6FEFB; }
+    .mx-ex.ex-ko { border-left-color: #EF4444; background: #FFFAFA; }
+    .mx-sol { grid-column: 2; margin-top: 0.5rem; font-size: 0.9rem; color: #4B5563;
+        background: #F9FAFB; border: 1px solid #EEF0F3; border-radius: 0.5rem; padding: 0.5rem 0.7rem; }
+    .mx-sol sup { font-size: 0.72em; }
+    .ok-tag { color: #047857; } .ko-tag { color: #B91C1C; }
+
+    .mx-empty { padding: 2.5rem 1rem; text-align: center; color: #9CA3AF; }
+
+    .mx-cta { margin-top: 2.5rem; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        border: 1px solid #C7D2FE; border-radius: 0.85rem; padding: 1.6rem 1.85rem; }
+    .mx-cta h2 { margin: 0 0 0.5rem; color: #312E81; font-size: 1.25rem; }
+    .mx-cta p { margin: 0 0 1rem; color: #4B5563; line-height: 1.55; }
+    .mx-cta a { display: inline-flex; align-items: center; gap: 0.5rem; background: #6366F1; color: #fff;
+        text-decoration: none; font-weight: 700; padding: 0.78rem 1.5rem; border-radius: 0.5rem; }
+
+    .mx-explain { margin-top: 2.75rem; color: #4B5563; line-height: 1.65; font-size: 0.96rem; }
+    .mx-explain h2 { font-size: 1.25rem; color: #111827; margin-top: 1.8rem; }
+    .mx-explain h3 { font-size: 1.02rem; color: #1F2937; margin: 1.2rem 0 0.3rem; }
+    .mx-explain ul { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; }
+
+    @media (max-width: 560px) {
+        .mx-wrap h1 { font-size: 1.6rem; }
+        .mx-ws-title { margin-right: 0; width: 100%; }
+    }
+    @media print {
+        .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab,
+        .mx-years, .mx-grid, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
+        .mx-ws { border: none; }
+        .mx-input { border-color: #9CA3AF; }
+        .mx-ex { break-inside: avoid; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mx-wrap">
+    <nav class="mx-bc" aria-label="fil d'ariane">
+        <a href="{{ url_for('index') }}">Accueil</a> &rsaquo; Exercices de mathématiques (Cycle 3)
+    </nav>
+
+    <h1>Exercices de mathématiques — 9H, 10H&nbsp;&amp;&nbsp;11H</h1>
+    <p class="mx-sub">Choisis un thème du <strong>Cycle 3 (PER)</strong> : l'outil génère des exercices
+       <strong>à l'infini</strong>, différents à chaque fois, avec <strong>correction immédiate</strong> et solution.
+       Pour s'entraîner en ligne ou imprimer une fiche en un clic. 100&nbsp;% gratuit.</p>
+
+    <div class="mx-years" id="yearChips">
+        <button class="mx-chip active" data-y="0">Tous les degrés</button>
+        <button class="mx-chip" data-y="9">9H</button>
+        <button class="mx-chip" data-y="10">10H</button>
+        <button class="mx-chip" data-y="11">11H</button>
+    </div>
+
+    <div class="mx-grid" id="themeGrid"></div>
+
+    <section class="mx-ws" id="worksheet" hidden>
+        <div class="mx-ws-head">
+            <div class="mx-ws-title" id="wsTitle"></div>
+            <div class="mx-ctl">
+                <label>Exercices
+                    <select id="count">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                    </select>
+                </label>
+                <button class="mx-btn mx-btn-p" id="btnNew" type="button"><i class="fas fa-rotate"></i> Nouvelle série</button>
+                <button class="mx-btn mx-btn-g" id="btnCheck" type="button"><i class="fas fa-check"></i> Corriger</button>
+                <button class="mx-btn mx-btn-o" id="btnPrint" type="button"><i class="fas fa-print"></i> Imprimer</button>
+                <span class="mx-score" id="score"></span>
+            </div>
+        </div>
+        <div class="mx-list" id="exList"></div>
+    </section>
+
+    <div class="mx-cta">
+        <h2>Tu prépares ces exercices pour ta classe&nbsp;?</h2>
+        <p>ProfCalendar réunit ton planning, tes classes, tes évaluations et tes notes au même endroit —
+           pensé pour les enseignant·e·s romand·e·s. <strong>30 jours de Premium offerts</strong>, sans carte bancaire.</p>
+        <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte gratuit</a>
+    </div>
+
+    <div class="mx-explain">
+        <h2>Des exercices alignés sur le Plan d'études romand (PER)</h2>
+        <p>Cet outil couvre les compétences techniques travaillées au <strong>Cycle 3 de Harmos</strong>
+           (9<sup>e</sup>, 10<sup>e</sup> et 11<sup>e</sup> année). Chaque thème génère des exercices
+           aléatoires : les élèves peuvent s'entraîner autant qu'ils veulent, et l'enseignant·e peut
+           imprimer une fiche différente à chaque fois (avant de corriger&nbsp;: une fiche vierge&nbsp;;
+           après avoir cliqué sur «&nbsp;Corriger&nbsp;»&nbsp;: le corrigé).</p>
+
+        <h3>Exercices de maths 9H</h3>
+        <ul>
+            <li>Priorités opératoires et calcul réfléchi</li>
+            <li>Nombres relatifs (additions, soustractions, produits)</li>
+            <li>Fractions : additionner, multiplier, diviser</li>
+            <li>Proportionnalité et règle de trois</li>
+            <li>Conversions d'unités (longueurs, masses, capacités)</li>
+        </ul>
+
+        <h3>Exercices de maths 10H</h3>
+        <ul>
+            <li>Puissances et pourcentages</li>
+            <li>Réduire une expression littérale (termes semblables)</li>
+            <li>Développer une expression (distributivité)</li>
+            <li>Équations du premier degré</li>
+            <li>Théorème de Pythagore</li>
+        </ul>
+
+        <h3>Exercices de maths 11H</h3>
+        <ul>
+            <li>Développement, y compris produits du type (x + a)(x + b)</li>
+            <li>Équations et calcul littéral plus complets</li>
+            <li>Pourcentages (hausses et baisses)</li>
+            <li>Pythagore appliqué</li>
+        </ul>
+
+        <p>Tous les exercices sont corrigés <strong>automatiquement et instantanément</strong>, avec la
+           démarche de résolution affichée. C'est gratuit, sans inscription et sans publicité.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+
+    // ---------- Métadonnées des thèmes ----------
+    const THEMES = [
+        { id: 'priorites', nm: 'Priorités opératoires', icon: 'fa-calculator', col: '#6366F1', years: [9, 10, 11], ds: 'Ordre des opérations et parenthèses' },
+        { id: 'relatifs', nm: 'Nombres relatifs', icon: 'fa-plus-minus', col: '#0EA5E9', years: [9], ds: 'Calculs avec des nombres négatifs' },
+        { id: 'fractions', nm: 'Fractions', icon: 'fa-divide', col: '#14B8A6', years: [9, 10], ds: 'Additions, produits et quotients' },
+        { id: 'puissances', nm: 'Puissances', icon: 'fa-superscript', col: '#8B5CF6', years: [10, 11], ds: 'Carrés, cubes et produits de puissances' },
+        { id: 'pourcentages', nm: 'Pourcentages', icon: 'fa-percent', col: '#F59E0B', years: [10, 11], ds: 'Pourcentage d’un nombre, hausses et baisses' },
+        { id: 'reduction', nm: 'Réduire une expression', icon: 'fa-compress', col: '#EC4899', years: [9, 10], ds: 'Regrouper les termes semblables' },
+        { id: 'developpement', nm: 'Développer', icon: 'fa-expand', col: '#EF4444', years: [10, 11], ds: 'Distributivité et (x + a)(x + b)' },
+        { id: 'equation', nm: 'Équations du 1er degré', icon: 'fa-equals', col: '#10B981', years: [10, 11], ds: 'Résoudre ax + b = c' },
+        { id: 'proportion', nm: 'Proportionnalité', icon: 'fa-scale-balanced', col: '#F97316', years: [9, 10], ds: 'Règle de trois, prix unitaire' },
+        { id: 'pythagore', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', col: '#3B82F6', years: [10, 11], ds: 'Hypoténuse et cathètes' },
+        { id: 'conversions', nm: 'Conversions d’unités', icon: 'fa-ruler', col: '#64748B', years: [9], ds: 'Longueurs, masses, capacités' },
+    ];
+
+    // ---------- Helpers de génération ----------
+    const ri = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const nz = v => v === 0 ? 1 : v;
+    function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { const t = a % b; a = b; b = t; } return a || 1; }
+    function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = ri(0, i); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    const M = '−';
+    const pm2 = () => pick([-7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7]);
+    function coefX(c) { const s = c < 0 ? M : ''; const a = Math.abs(c); return s + (a === 1 ? 'x' : a + 'x'); }
+    function fmtLin(A, B) { if (A === 0) return '' + B; let s = coefX(A); if (B > 0) s += ' + ' + B; else if (B < 0) s += ' ' + M + ' ' + Math.abs(B); return s; }
+    function fmtQuad(B, C) {
+        let s = 'x²';
+        if (B > 0) s += ' + ' + (B === 1 ? 'x' : B + 'x'); else if (B < 0) s += ' ' + M + ' ' + (Math.abs(B) === 1 ? 'x' : Math.abs(B) + 'x');
+        if (C > 0) s += ' + ' + C; else if (C < 0) s += ' ' + M + ' ' + Math.abs(C);
+        return s;
+    }
+    function par(n) { return n < 0 ? '(' + M + Math.abs(n) + ')' : '' + n; }
+    function fmtMonoSum(monos) {
+        let s = '';
+        monos.forEach((m, i) => {
+            if (i === 0) { s += m.x ? coefX(m.c) : (m.c < 0 ? M + Math.abs(m.c) : '' + m.c); }
+            else { const sign = m.c < 0 ? ' ' + M + ' ' : ' + '; const a = Math.abs(m.c); s += sign + (m.x ? (a === 1 ? 'x' : a + 'x') : '' + a); }
+        });
+        return s;
+    }
+
+    // ---------- Générateurs (validés via Node : 0 erreur / 500 tirages chacun) ----------
+    function genPriorites() {
+        const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(1, 8);
+        const forms = [
+            { q: a + ' + ' + b + ' × ' + c, v: a + b * c },
+            { q: a + ' × ' + b + ' ' + M + ' ' + c, v: a * b - c },
+            { q: '(' + a + ' + ' + b + ') × ' + c, v: (a + b) * c },
+            { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, v: a + b * c - d },
+            { q: a + ' × ' + b + ' + ' + c + ' × ' + d, v: a * b + c * d },
+        ];
+        const f = pick(forms);
+        return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v };
+    }
+    function genRelatifs() {
+        const a = nz(ri(-12, 12)), b = nz(ri(-12, 12)), op = pick(['+', M, '×']);
+        let v; if (op === '+') v = a + b; else if (op === M) v = a - b; else v = a * b;
+        return { q: 'Calcule : ' + par(a) + ' ' + op + ' ' + par(b), fields: [{ label: '=', e: v }], sol: '= ' + v };
+    }
+    function genFractions() {
+        let n1 = ri(1, 9), d1 = ri(2, 9), n2 = ri(1, 9), d2 = ri(2, 9);
+        while (n1 === d1) n1 = ri(1, 9); while (n2 === d2) n2 = ri(1, 9);
+        const op = pick(['+', M, '×', '÷']);
+        let num, den;
+        if (op === '+') { num = n1 * d2 + n2 * d1; den = d1 * d2; }
+        else if (op === M) { num = n1 * d2 - n2 * d1; den = d1 * d2; }
+        else if (op === '×') { num = n1 * n2; den = d1 * d2; }
+        else { num = n1 * d2; den = d1 * n2; }
+        const g = gcd(num, den);
+        return {
+            q: 'Calcule (donne une fraction) : ' + n1 + '/' + d1 + ' ' + op + ' ' + n2 + '/' + d2,
+            fields: [{ label: 'résultat', e: num / den, frac: true }], sol: '= ' + (num / g) + '/' + (den / g)
+        };
+    }
+    function genPuissances() {
+        const forms = [
+            () => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + a + '<sup>' + n + '</sup>', v: Math.pow(a, n), s: a + '<sup>' + n + '</sup> = ' + Math.pow(a, n) }; },
+            () => { const a = ri(2, 5), m = ri(2, 4), n = ri(2, 3); return { q: 'Calcule (un seul nombre) : ' + a + '<sup>' + m + '</sup> × ' + a + '<sup>' + n + '</sup>', v: Math.pow(a, m + n), s: '= ' + a + '<sup>' + (m + n) + '</sup> = ' + Math.pow(a, m + n) }; },
+            () => { const a = ri(2, 9); return { q: 'Calcule : ' + a + '<sup>2</sup>', v: a * a, s: '= ' + a * a }; },
+        ];
+        const f = pick(forms)();
+        return { q: f.q, fields: [{ label: '=', e: f.v }], sol: f.s };
+    }
+    function genPourcentages() {
+        const forms = [
+            () => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + '% de ' + n, v: p / 100 * n }; },
+            () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + '%', v: n * (1 + a / 100) }; },
+            () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + '%', v: n * (1 - a / 100) }; },
+        ];
+        const f = pick(forms)();
+        return { q: f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v };
+    }
+    function genReduction() {
+        const monos = [{ c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }, { c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }];
+        shuffle(monos);
+        const A = monos.filter(m => m.x).reduce((s, m) => s + m.c, 0);
+        const B = monos.filter(m => !m.x).reduce((s, m) => s + m.c, 0);
+        return {
+            q: 'Réduis : ' + fmtMonoSum(monos),
+            fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }],
+            sol: '= ' + fmtLin(A, B)
+        };
+    }
+    function genDeveloppement() {
+        if (Math.random() < 0.5) {
+            const k = pm2(), a = pm2(), b = nz(ri(-9, 9)), A = k * a, B = k * b;
+            return {
+                q: 'Développe : ' + par(k) + '(' + fmtMonoSum([{ c: a, x: true }, { c: b, x: false }]) + ')',
+                fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }],
+                sol: '= ' + fmtLin(A, B)
+            };
+        }
+        const a = nz(ri(-7, 7)), b = nz(ri(-7, 7)), B = a + b, C = a * b;
+        return {
+            q: 'Développe : (' + fmtMonoSum([{ c: 1, x: true }, { c: a, x: false }]) + ')(' + fmtMonoSum([{ c: 1, x: true }, { c: b, x: false }]) + ')',
+            fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: B }, { label: 'terme constant', e: C }],
+            sol: '= ' + fmtQuad(B, C)
+        };
+    }
+    function genEquation() {
+        const a = nz(ri(-6, 6)), x = ri(-8, 8), b = nz(ri(-9, 9)), c = a * x + b;
+        return {
+            q: 'Résous : ' + coefX(a) + ' ' + (b < 0 ? M + ' ' + Math.abs(b) : '+ ' + b) + ' = ' + c,
+            fields: [{ label: 'x =', e: x }],
+            sol: coefX(a) + ' = ' + c + ' ' + (b < 0 ? '+ ' + Math.abs(b) : M + ' ' + b) + ' = ' + (c - b) + ' ; x = ' + (c - b) + ' ÷ ' + par(a) + ' = ' + x
+        };
+    }
+    function genProportion() {
+        const k = ri(2, 9), a = ri(2, 9), c = a * k; let d = ri(2, 9); while (d === a) d = ri(2, 9);
+        return {
+            q: 'Si ' + a + ' objets coûtent ' + c + ' fr., combien coûtent ' + d + ' objets (même prix unitaire) ?',
+            fields: [{ label: 'prix (fr.)', e: d * k }],
+            sol: 'Prix unitaire = ' + c + ' ÷ ' + a + ' = ' + k + ' fr. ; ' + d + ' × ' + k + ' = ' + (d * k) + ' fr.'
+        };
+    }
+    function genPythagore() {
+        const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [20, 21, 29], [9, 40, 41], [12, 16, 20]];
+        const t = pick(triples);
+        if (Math.random() < 0.6) return { q: 'Triangle rectangle : les cathètes mesurent ' + t[0] + ' cm et ' + t[1] + ' cm. Calcule l’hypoténuse (cm).', fields: [{ label: 'hypoténuse', e: t[2] }], sol: 'h = √(' + t[0] + '² + ' + t[1] + '²) = √(' + (t[0] * t[0] + t[1] * t[1]) + ') = ' + t[2] + ' cm' };
+        return { q: 'Triangle rectangle : l’hypoténuse mesure ' + t[2] + ' cm et une cathète ' + t[0] + ' cm. Calcule l’autre cathète (cm).', fields: [{ label: 'cathète', e: t[1] }], sol: 'c = √(' + t[2] + '² ' + M + ' ' + t[0] + '²) = √(' + (t[2] * t[2] - t[0] * t[0]) + ') = ' + t[1] + ' cm' };
+    }
+    function genConversions() {
+        const units = [['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'mm', 1000], ['kg', 'g', 1000], ['L', 'cL', 100]];
+        const u = pick(units);
+        if (Math.random() < 0.5) { const v = ri(1, 50) / (Math.random() < 0.4 ? 2 : 1); return { q: 'Convertis : ' + v + ' ' + u[0] + ' = ? ' + u[1], fields: [{ label: u[1], e: v * u[2] }], sol: v + ' × ' + u[2] + ' = ' + (v * u[2]) + ' ' + u[1] }; }
+        const v = ri(1, 50) * u[2]; return { q: 'Convertis : ' + v + ' ' + u[1] + ' = ? ' + u[0], fields: [{ label: u[0], e: v / u[2] }], sol: v + ' ÷ ' + u[2] + ' = ' + (v / u[2]) + ' ' + u[0] };
+    }
+
+    const GENS = {
+        priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances,
+        pourcentages: genPourcentages, reduction: genReduction, developpement: genDeveloppement,
+        equation: genEquation, proportion: genProportion, pythagore: genPythagore, conversions: genConversions
+    };
+
+    // ---------- État + UI ----------
+    let curYear = 0, selTheme = null, series = [];
+
+    function themeById(id) { return THEMES.find(t => t.id === id); }
+
+    function renderGrid() {
+        const host = $('themeGrid');
+        const list = THEMES.filter(t => !curYear || t.years.includes(curYear));
+        host.innerHTML = list.map(t =>
+            '<button class="mx-card' + (selTheme === t.id ? ' sel' : '') + '" data-id="' + t.id + '" type="button">' +
+            '<span class="mx-ico" style="background:' + t.col + '"><i class="fas ' + t.icon + '"></i></span>' +
+            '<span class="nm">' + t.nm + '</span>' +
+            '<span class="ds">' + t.ds + '</span>' +
+            '<span class="mx-badges">' + t.years.map(y => '<span class="mx-badge">' + y + 'H</span>').join('') + '</span>' +
+            '</button>'
+        ).join('');
+        host.querySelectorAll('.mx-card').forEach(c => c.addEventListener('click', () => selectTheme(c.dataset.id)));
+    }
+
+    function makeSeries(id, n) {
+        const gen = GENS[id], arr = [], seen = new Set();
+        let guard = 0;
+        while (arr.length < n && guard < n * 40) {
+            guard++;
+            const ex = gen();
+            if (seen.has(ex.q)) continue;
+            seen.add(ex.q); arr.push(ex);
+        }
+        return arr;
+    }
+
+    function renderSeries() {
+        $('exList').innerHTML = series.map((ex, i) => {
+            const inputs = ex.fields.map((f, j) =>
+                '<span class="mx-fld">' + f.label +
+                ' <input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" data-i="' + i + '" data-j="' + j + '"></span>'
+            ).join('');
+            return '<div class="mx-ex" id="ex-' + i + '">' +
+                '<span class="mx-num">' + (i + 1) + '</span>' +
+                '<span class="mx-q">' + ex.q + '</span>' +
+                '<div class="mx-fields">' + inputs + '</div>' +
+                '<div class="mx-sol" id="sol-' + i + '" hidden></div>' +
+                '</div>';
+        }).join('');
+        $('exList').querySelectorAll('.mx-input').forEach(inp => {
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } });
+        });
+    }
+
+    function newSeries() {
+        if (!selTheme) return;
+        series = makeSeries(selTheme, parseInt($('count').value, 10));
+        renderSeries();
+        const sc = $('score'); sc.textContent = ''; sc.className = 'mx-score';
+    }
+
+    function selectTheme(id) {
+        selTheme = id;
+        renderGrid();
+        const t = themeById(id);
+        $('wsTitle').innerHTML = '<span class="mx-ico" style="background:' + t.col + '"><i class="fas ' + t.icon + '"></i></span>' + t.nm;
+        $('worksheet').hidden = false;
+        newSeries();
+        $('worksheet').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function parseNum(str) {
+        if (str == null) return NaN;
+        str = String(str).trim().replace(/\s/g, '').replace(',', '.').replace(/−/g, '-');
+        if (str === '') return NaN;
+        if (str.indexOf('/') !== -1) { const p = str.split('/'); return parseFloat(p[0]) / parseFloat(p[1]); }
+        return parseFloat(str);
+    }
+    function checkField(f, val) {
+        const g = parseNum(val);
+        if (isNaN(g) || !isFinite(g)) return false;
+        return Math.abs(g - f.e) <= 0.01 + 1e-9;
+    }
+
+    function correct() {
+        if (!series.length) return;
+        let good = 0;
+        series.forEach((ex, i) => {
+            let allOk = true;
+            ex.fields.forEach((f, j) => {
+                const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]');
+                const ok = checkField(f, inp.value);
+                inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko');
+                if (!ok) allOk = false;
+            });
+            const el = $('ex-' + i); el.classList.remove('ex-ok', 'ex-ko'); el.classList.add(allOk ? 'ex-ok' : 'ex-ko');
+            const sol = $('sol-' + i); sol.hidden = false;
+            sol.innerHTML = (allOk ? '<b class="ok-tag">✓ Juste.</b> ' : '<b class="ko-tag">✗ À revoir.</b> ') + 'Solution : ' + ex.sol;
+            if (allOk) good++;
+        });
+        const n = series.length, sc = $('score');
+        sc.textContent = 'Score : ' + good + ' / ' + n;
+        sc.className = 'mx-score ' + (good === n ? 'all-ok' : (good * 2 >= n ? 'half' : 'low'));
+    }
+
+    // Filtres année
+    $('yearChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => {
+        curYear = parseInt(ch.dataset.y, 10);
+        $('yearChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active'));
+        ch.classList.add('active');
+        renderGrid();
+    }));
+    $('btnNew').addEventListener('click', newSeries);
+    $('btnCheck').addEventListener('click', correct);
+    $('btnPrint').addEventListener('click', () => window.print());
+    $('count').addEventListener('change', newSeries);
+
+    renderGrid();
+})();
+</script>
+{% endblock %}

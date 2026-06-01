@@ -1005,6 +1005,7 @@ def create_app(config_name='development'):
             (base + '/subscription/pricing', 'monthly', '0.7'),
             (base + '/ressources/calendrier-scolaire', 'monthly', '0.8'),
             (base + '/ressources/bareme', 'monthly', '0.8'),
+            (base + '/ressources/exercices-maths', 'monthly', '0.8'),
         ]
         try:
             from data.school_calendars import list_calendars

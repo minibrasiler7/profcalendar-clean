@@ -64,5 +64,11 @@ def bareme():
     return render_template('resources/bareme.html')
 
 
+@resources_bp.route('/exercices-maths', strict_slashes=False)
+def exercices_maths():
+    """Générateur gratuit d'exercices de maths Cycle 3 (9H-11H) avec correction."""
+    return render_template('resources/exercices_maths.html')
+
+
 def register_resources(app):
     app.register_blueprint(resources_bp)
