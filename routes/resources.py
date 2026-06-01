@@ -20,11 +20,12 @@ _MOIS = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
 
 
 def _fr_date(iso):
-    """'2026-08-17' → 'lundi 17 août 2026'."""
+    """'2026-08-17' → 'lundi 17 août 2026' (et '1er' pour le 1er du mois)."""
     if not iso:
         return None
     d = datetime.strptime(iso, '%Y-%m-%d')
-    return f"{_JOURS[d.weekday()]} {d.day} {_MOIS[d.month]} {d.year}"
+    jour = '1er' if d.day == 1 else str(d.day)
+    return f"{_JOURS[d.weekday()]} {jour} {_MOIS[d.month]} {d.year}"
 
 
 def _enrich(cal):

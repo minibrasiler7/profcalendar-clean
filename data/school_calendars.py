@@ -54,6 +54,46 @@ CALENDARS = {
              "note": "Fin de l'année scolaire (dès le 5 juillet 2027)"},
         ],
     },
+    "fribourg-2026-2027": {
+        "canton": "Fribourg",
+        "canton_slug": "fribourg",
+        "school_year": "2026-2027",
+        "official_url": "https://www.fr.ch/dfac/vacances-scolaires",
+        "source_label": "État de Fribourg (fr.ch)",
+        "updated": "2026-06",
+        # Calendrier francophone (majoritaire). Vérifié 06.2026 sur 2 sources
+        # concordantes (fr.ch + calendriergratuit.ch). La région de Morat/Kerzers
+        # (germanophone) a un calendrier distinct.
+        "periods": [
+            {"name": "Rentrée scolaire", "start": "2026-08-27", "end": None,
+             "note": "Reprise des cours (calendrier francophone)"},
+            {"name": "Vacances d'automne", "start": "2026-10-12", "end": "2026-10-23"},
+            {"name": "Vacances de Noël", "start": "2026-12-21", "end": "2027-01-01"},
+            {"name": "Relâches de carnaval", "start": "2027-02-08", "end": "2027-02-12"},
+            {"name": "Vacances de Pâques", "start": "2027-03-26", "end": "2027-04-09"},
+            {"name": "Vacances d'été", "start": "2027-07-10", "end": "2027-08-15",
+             "note": "Dernier jour de classe : vendredi 9 juillet 2027"},
+        ],
+    },
+    "neuchatel-2026-2027": {
+        "canton": "Neuchâtel",
+        "canton_slug": "neuchatel",
+        "school_year": "2026-2027",
+        "official_url": "https://www.ne.ch/themes/scolarite-et-formation/calendrier-et-vacances-scolaires",
+        "source_label": "République et canton de Neuchâtel (ne.ch)",
+        "updated": "2026-06",
+        # Vérifié 06.2026 sur 2 sources concordantes (ne.ch + calendriergratuit.ch).
+        "periods": [
+            {"name": "Rentrée scolaire", "start": "2026-08-17", "end": None,
+             "note": "Reprise des cours"},
+            {"name": "Vacances d'automne", "start": "2026-10-05", "end": "2026-10-16"},
+            {"name": "Vacances de Noël", "start": "2026-12-21", "end": "2027-01-01"},
+            {"name": "Relâches d'hiver", "start": "2027-03-01", "end": "2027-03-05"},
+            {"name": "Vacances de printemps", "start": "2027-03-26", "end": "2027-04-09"},
+            {"name": "Vacances d'été", "start": "2027-07-05", "end": "2027-08-13",
+             "note": "Fin de l'année scolaire"},
+        ],
+    },
 }
 
 
