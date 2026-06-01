@@ -219,9 +219,33 @@
         </div>
     </div>
 
+    {# --- Onboarding : appel à l'action affiché tant que le prof n'a pas créé
+       de classe. C'est le SEUL geste d'activation demandé : tout le reste
+       (horaire, année scolaire…) est déjà pré-rempli par apply_smart_defaults.
+       Avant, ce geste était un mur de 6 écrans qui faisait fuir 100% des
+       inscrits ; ici c'est une invitation, pas une obligation. --#}
+    {% if classrooms_count == 0 %}
+    <div class="onboarding-cta" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.75rem 2rem; margin-bottom: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem;">
+        <div style="flex: 1; min-width: 260px;">
+            <h2 style="margin: 0 0 0.4rem 0; font-size: 1.25rem; color: #312E81;">
+                <i class="fas fa-rocket" style="color: var(--primary-color, #6366F1);"></i>
+                Prêt à commencer ?
+            </h2>
+            <p style="margin: 0; color: #4B5563; line-height: 1.5;">
+                Ton espace est déjà configuré (horaire, année scolaire…).
+                Il ne reste qu'une chose à faire&nbsp;: <strong>créer ta première classe</strong>.
+                Ça prend 30&nbsp;secondes, et tu pourras tout ajuster ensuite.
+            </p>
+        </div>
+        <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1"
+           style="background: var(--primary-color, #6366F1); color: #fff; padding: 0.85rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; box-shadow: 0 4px 6px rgba(99,102,241,0.25);">
+            <i class="fas fa-plus"></i> Créer ma première classe
+        </a>
+    </div>
+    {% endif %}
+
 
     <!-- Actions rapides -->
-   <!-- Remplacez la section "Actions rapides" dans templates/planning/dashboard.html par cette version mise à jour -->
 
 <!-- Actions rapides -->
 <div class="quick-actions">

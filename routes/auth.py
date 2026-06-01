@@ -119,13 +119,18 @@ def login():
             login_user(user, remember=True)
             next_page = request.args.get('next')
             if not next_page or urlparse(next_page).netloc != '':
-                # Déterminer où rediriger en fonction de l'état de configuration
-                if not user.school_year_start or not user.day_start_time:
-                    next_page = url_for('setup.initial_setup')
-                elif user.classrooms.count() == 0:
-                    next_page = url_for('setup.manage_classrooms')
-                elif not user.setup_completed:
-                    next_page = url_for('setup.manage_holidays')
+                # Déterminer où rediriger en fonction de l'état de configuration.
+                # Les nouveaux comptes ont setup_completed/schedule_completed=True
+                # (apply_smart_defaults) → ils vont droit au tableau de bord.
+                # On ne garde le guidage pas-à-pas que pour d'éventuels comptes
+                # "legacy" restés en cours de configuration. On ne force PLUS la
+                # création d'une classe avant d'entrer (c'était un mur) : le
+                # dashboard affiche un appel à l'action pour créer la 1re classe.
+                if not user.setup_completed:
+                    if not user.school_year_start or not user.day_start_time:
+                        next_page = url_for('setup.initial_setup')
+                    else:
+                        next_page = url_for('setup.manage_classrooms')
                 elif not user.schedule_completed:
                     next_page = url_for('schedule.weekly_schedule')
                 else:
@@ -156,6 +161,12 @@ def register():
             email=form.email.data
         )
         user.set_password(form.password.data)
+        # Onboarding sans friction : on pré-remplit la config avec des défauts
+        # romands (horaire 8h-16h, périodes 45 min, année scolaire en cours…)
+        # et on marque le setup comme fait. Le prof arrive DIRECTEMENT dans
+        # l'app au lieu de buter sur l'assistant de configuration qui faisait
+        # fuir 100% des inscrits. Tout reste éditable ensuite dans les réglages.
+        user.apply_smart_defaults()
         db.session.add(user)
         db.session.commit()
 
@@ -232,10 +243,12 @@ def verify_email():
             session.pop('verification_email', None)
 
             flash('Email vérifié avec succès ! Bienvenue sur ProfCalendar.', 'success')
-            # Après vérification, on propose le choix d'abonnement
-            # (compte gratuit avec essai 30j déjà actif, ou Premium payant).
-            # Sur iPad app native, choose_plan saute lui-même vers le setup.
-            return redirect(url_for('subscription.choose_plan'))
+            # On entre DIRECTEMENT dans l'app : la config est déjà pré-remplie
+            # (apply_smart_defaults à l'inscription) et l'essai Premium 30 j est
+            # déjà actif. Le choix d'abonnement est proposé plus tard, une fois
+            # le prof actif — avant, l'écran de plan ici faisait fuir tout le
+            # monde alors qu'ils avaient déjà 30 j gratuits.
+            return redirect(url_for('planning.dashboard'))
         else:
             flash('Code invalide ou expiré.', 'error')
 

@@ -103,6 +103,49 @@ class User(UserMixin, db.Model):
         self.stripe_subscription_id = None
         db.session.commit()
 
+    def apply_smart_defaults(self):
+        """Pré-remplit la configuration avec des valeurs par défaut (marché
+        romand) pour qu'un nouveau prof atterrisse dans une app FONCTIONNELLE
+        sans devoir remplir l'assistant de configuration.
+
+        Contexte : on perdait 100% des inscrits sur l'écran de setup (6 écrans,
+        11+ champs). En appliquant des défauts sensés + en marquant la config
+        comme complétée, le prof arrive directement dans l'app et n'ajuste que
+        s'il le souhaite (tout reste éditable dans les réglages).
+
+        IDEMPOTENT : ne touche jamais un champ déjà renseigné (donc sans effet
+        sur un compte existant déjà configuré).
+
+        NE COMMITTE PAS — laisse l'appelant gérer la transaction.
+        """
+        from datetime import time, date, datetime
+
+        if self.day_start_time is None:
+            self.day_start_time = time(8, 0)
+        if self.day_end_time is None:
+            self.day_end_time = time(16, 0)
+        if self.period_duration is None:
+            self.period_duration = 45  # période standard en Suisse romande
+        if self.break_duration is None:
+            self.break_duration = 15
+
+        # Année scolaire : ~fin août → début juillet. On calcule selon la date
+        # du jour pour tomber sur l'année scolaire en cours.
+        if self.school_year_start is None or self.school_year_end is None:
+            today = datetime.utcnow().date()
+            if today.month >= 8:  # déjà dans la nouvelle année scolaire
+                self.school_year_start = date(today.year, 8, 25)
+                self.school_year_end = date(today.year + 1, 7, 5)
+            else:
+                self.school_year_start = date(today.year - 1, 8, 25)
+                self.school_year_end = date(today.year, 7, 5)
+
+        # On marque la config de base ET l'horaire comme "faits" : le prof
+        # accède au tableau de bord tout de suite. L'horaire hebdo reste vide
+        # (il l'enrichira quand il en aura besoin) mais l'app est utilisable.
+        self.setup_completed = True
+        self.schedule_completed = True
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
