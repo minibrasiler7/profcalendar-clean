@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_required, current_user
 from extensions import db
 from models.user import User, Holiday, Break
@@ -860,8 +860,13 @@ def send_invitation():
 @login_required
 def manage_classrooms():
     """Route pour gérer les classes après la configuration initiale"""
-    # Détecter si on vient du dashboard
-    from_dashboard = request.args.get('from_dashboard', '0') == '1'
+    # Détecter si on vient du dashboard. On mémorise ce mode en SESSION car
+    # les formulaires postent vers /setup/classrooms (sans query string) et
+    # les redirections POST perdraient sinon le paramètre → le prof basculerait
+    # dans le mode "wizard" au lieu de rester dans le parcours dashboard.
+    if request.args.get('from_dashboard', '0') == '1':
+        session['setup_from_dashboard'] = True
+    from_dashboard = bool(session.get('setup_from_dashboard'))
     
     # Utiliser un formulaire simple pour l'ajout de classes individuelles
     form = ClassroomForm()

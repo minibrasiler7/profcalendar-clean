@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_required, current_user
 from extensions import db
 from models.planning import Planning
@@ -659,6 +659,10 @@ def get_current_or_next_lesson(user):
 @planning_bp.route('/')
 @teacher_required
 def dashboard():
+    # Le prof est de retour au tableau de bord : on sort du mode "setup depuis
+    # le dashboard" (le drapeau est posé en session par setup.manage_classrooms).
+    session.pop('setup_from_dashboard', None)
+
     # Vérifier que la configuration de base est complète
     if not current_user.setup_completed:
         if not current_user.school_year_start:
@@ -1096,6 +1100,16 @@ def calendar_view():
     # haut dans la fonction (avant generate_annual_calendar). Le bloc
     # dupliqué qui se trouvait ici a été supprimé.
 
+    # Le prof utilise-t-il encore les réglages par défaut (apply_smart_defaults) ?
+    # Tant qu'il n'a pas créé d'horaire hebdo / de pauses / de vacances, le
+    # calendrier tourne sur des valeurs par défaut. On l'invite alors à
+    # personnaliser ses données (horaire, pauses, vacances).
+    needs_personalization = (
+        current_user.schedules.count() == 0
+        or current_user.holidays.count() == 0
+        or current_user.breaks.count() == 0
+    )
+
     return render_template('planning/calendar_view.html',
                          week_dates=week_dates,
                          current_week=current_week,
@@ -1111,6 +1125,7 @@ def calendar_view():
                          selected_classroom_id=selected_classroom_id,
                          days=['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
                          today=date_type.today(),
+                         needs_personalization=needs_personalization,
                          merged_info=merged_info,  # Passer les infos de fusion par jour
                          memos_by_date_period=memos_by_date_period)  # Ajouter les mémos par date et période
 

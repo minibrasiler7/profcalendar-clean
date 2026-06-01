@@ -1761,6 +1761,59 @@ if (typeof pdfjsLib !== 'undefined') {
 </script>
 
 <div class="calendar-container">
+
+    {# Invitation à personnaliser : tant que le prof n'a pas saisi son horaire
+       hebdo / ses pauses / ses vacances, le calendrier tourne sur les valeurs
+       par défaut (apply_smart_defaults). On l'invite à les renseigner.
+       Dismissible pour la session. #}
+    {% if needs_personalization %}
+    <div id="perso-banner"
+         style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; justify-content:space-between;
+                background:#EEF2FF; border:1px solid #C7D2FE; border-radius:0.75rem;
+                padding:0.85rem 1.25rem; margin-bottom:1rem;">
+        <div style="display:flex; align-items:center; gap:0.6rem; min-width:240px; flex:1;">
+            <i class="fas fa-sliders-h" style="color:#6366F1;"></i>
+            <span style="color:#3730A3; font-size:0.92rem; line-height:1.4;">
+                Ton calendrier utilise des <strong>réglages par défaut</strong>.
+                Personnalise tes données pour qu'il colle à ton établissement&nbsp;:
+            </span>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+            <a href="{{ url_for('schedule.weekly_schedule') }}"
+               style="background:#6366F1; color:#fff; text-decoration:none; font-weight:600;
+                      padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
+                <i class="fas fa-calendar-week"></i> Mon horaire
+            </a>
+            <a href="{{ url_for('setup.manage_breaks') }}"
+               style="background:#fff; color:#3730A3; border:1px solid #C7D2FE; text-decoration:none; font-weight:600;
+                      padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
+                <i class="fas fa-coffee"></i> Mes pauses
+            </a>
+            <a href="{{ url_for('setup.manage_holidays') }}"
+               style="background:#fff; color:#3730A3; border:1px solid #C7D2FE; text-decoration:none; font-weight:600;
+                      padding:0.45rem 0.9rem; border-radius:0.4rem; font-size:0.85rem; white-space:nowrap;">
+                <i class="fas fa-umbrella-beach"></i> Mes vacances
+            </a>
+            <button type="button" aria-label="Fermer" onclick="dismissPersoBanner()"
+                    style="background:transparent; border:none; cursor:pointer; color:#6366F1; opacity:0.6; font-size:1rem;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            try {
+                var b = document.getElementById('perso-banner');
+                if (b && sessionStorage.getItem('persoBannerDismissed') === '1') { b.style.display = 'none'; }
+                window.dismissPersoBanner = function () {
+                    try { sessionStorage.setItem('persoBannerDismissed', '1'); } catch (e) {}
+                    if (b) { b.style.display = 'none'; }
+                };
+            } catch (e) {}
+        })();
+    </script>
+    {% endif %}
+
     <!-- En-tête avec navigation -->
     <div class="calendar-header">
         <div class="calendar-nav">

@@ -297,6 +297,10 @@
 {% endblock %}
 
 {% block content %}
+{# Repli sur la session : le mode "depuis le dashboard" est mémorisé en session
+   par la route, donc il survit aux redirections POST même quand le render ne
+   passe pas explicitement from_dashboard. #}
+{% set from_dashboard = from_dashboard or session.get('setup_from_dashboard') %}
 <div class="setup-container">
     <!-- Barre de progression (masquée si on vient du dashboard) -->
     {% if not from_dashboard %}
