@@ -203,6 +203,17 @@
     function fr(n, d) { return '<span class="mx-frac"><span class="mx-fn">' + n + '</span><span class="mx-fd">' + d + '</span></span>'; }
     function sq(r) { return '<span class="mx-sqrt">√<span class="mx-rad">' + r + '</span></span>'; }
     function pw(b, e) { return b + '<sup>' + e + '</sup>'; }
+    function safeEval(expr) {
+        const s = String(expr).replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+        const toks = s.match(/\d+|[+\-*/()]/g); if (!toks) return NaN;
+        const out = [], ops = [], prec = { '+': 1, '-': 1, '*': 2, '/': 2 };
+        const apply = () => { const op = ops.pop(); const b = out.pop(), a = out.pop(); out.push(op === '+' ? a + b : op === '-' ? a - b : op === '*' ? a * b : a / b); };
+        for (const t of toks) { if (/^\d+$/.test(t)) out.push(parseInt(t, 10)); else if (t === '(') ops.push(t); else if (t === ')') { while (ops.length && ops[ops.length - 1] !== '(') apply(); ops.pop(); } else { while (ops.length && ops[ops.length - 1] !== '(' && prec[ops[ops.length - 1]] >= prec[t]) apply(); ops.push(t); } }
+        while (ops.length) apply();
+        return out.length === 1 ? out[0] : NaN;
+    }
+    function isPerfectPower(V) { if (V < 4) return false; for (let b = 2; b <= Math.log2(V) + 1; b++) { const a = Math.round(Math.pow(V, 1 / b)); for (const aa of [a - 1, a, a + 1]) if (aa >= 2 && Math.pow(aa, b) === V) return true; } return false; }
+    function parsePowNumVal(s) { s = String(s).replace(/\s/g, '').replace(/−/g, '-'); if (s.indexOf('^') !== -1) { const p = s.split('^'); return Math.pow(parseFloat(p[0]), parseFloat(p[1])); } return parseFloat(s); }
 
     // ====== SVG ======
     function gridSVG(points, interactive) {
@@ -226,6 +237,13 @@
     function barFracSVG(n, k) { const W = 280, H = 50, pad = 8, w = (W - 2 * pad) / n; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">'; for (let i = 0; i < n; i++) { s += '<rect x="' + (pad + i * w) + '" y="9" width="' + w + '" height="32" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
     function pieSVG(n, k) { const cx = 47, cy = 47, r = 41; let s = '<svg class="mx-fig" viewBox="0 0 94 94">'; for (let i = 0; i < n; i++) { const a0 = (i / n) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2; const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1); const la = (a1 - a0) > Math.PI ? 1 : 0; s += '<path d="M' + cx + ' ' + cy + ' L' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Z" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
     function gridFracSVG(r, c, k) { const cw = 30, W = c * cw, H = r * cw; let s = '<svg class="mx-fig" viewBox="0 0 ' + (W + 2) + ' ' + (H + 2) + '">'; let idx = 0; for (let row = 0; row < r; row++) for (let col = 0; col < c; col++) { s += '<rect x="' + (col * cw + 1) + '" y="' + (row * cw + 1) + '" width="' + cw + '" height="' + cw + '" fill="' + (idx < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; idx++; } return s + '</svg>'; }
+    function barSetSVG(n, set) { const W = 280, H = 50, pad = 8, w = (W - 2 * pad) / n; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">'; for (let i = 0; i < n; i++) s += '<rect x="' + (pad + i * w) + '" y="9" width="' + w + '" height="32" fill="' + (set.indexOf(i) !== -1 ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; return s + '</svg>'; }
+    function pieSetSVG(n, set) { const cx = 47, cy = 47, r = 41; let s = '<svg class="mx-fig" viewBox="0 0 94 94">'; for (let i = 0; i < n; i++) { const a0 = (i / n) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2; const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1); const la = (a1 - a0) > Math.PI ? 1 : 0; s += '<path d="M' + cx + ' ' + cy + ' L' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Z" fill="' + (set.indexOf(i) !== -1 ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
+    function gridSetSVG(r, c, set) { const cw = 30, W = c * cw, H = r * cw; let s = '<svg class="mx-fig" viewBox="0 0 ' + (W + 2) + ' ' + (H + 2) + '">'; let idx = 0; for (let row = 0; row < r; row++) for (let col = 0; col < c; col++) { s += '<rect x="' + (col * cw + 1) + '" y="' + (row * cw + 1) + '" width="' + cw + '" height="' + cw + '" fill="' + (set.indexOf(idx) !== -1 ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; idx++; } return s + '</svg>'; }
+    function multiShapeSVG(shape, n, fills) {
+        const cnt = fills.length;
+        if (shape === 'pie') { const r = 30, cell = 70, W = cnt * cell; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' 70">'; for (let g = 0; g < cnt; g++) { const cx = g * cell + 35, cy = 35; for (let i = 0; i < n; i++) { const a0 = (i / n) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2; const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1); const la = (a1 - a0) > Math.PI ? 1 : 0; s += '<path d="M' + cx + ' ' + cy + ' L' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Z" fill="' + (i < fills[g] ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } } return s + '</svg>'; }
+        const bw = 116, gap = 16, cellH = 40, W = cnt * bw + (cnt - 1) * gap + 4; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + (cellH + 8) + '">'; for (let g = 0; g < cnt; g++) { const x0 = g * (bw + gap) + 2, w = bw / n; for (let i = 0; i < n; i++) s += '<rect x="' + (x0 + i * w) + '" y="4" width="' + w + '" height="' + cellH + '" fill="' + (i < fills[g] ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
     function chartSVG(labels, vals, hi) {
         const W = 264, base = 112, padL = 26, bw = 38, max = Math.max.apply(null, vals);
         const gap = (W - padL - 10 - labels.length * bw) / (labels.length - 1);
@@ -241,10 +259,19 @@
         const L = lvl(diff);
         if (L === 0) { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9); const forms = [{ q: a + ' + ' + b + ' × ' + c, m: a + '+' + b + '*' + c, v: a + b * c }, { q: a + ' × ' + b + ' ' + M + ' ' + c, m: a + '*' + b + '-' + c, v: a * b - c }, { q: a + ' × ' + b + ' + ' + c, m: a + '*' + b + '+' + c, v: a * b + c }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v, _m: f.m, _v: f.v }; }
         if (L === 1) { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(2, 8); const forms = [{ q: '(' + a + ' + ' + b + ') × ' + c + ' ' + M + ' ' + d, m: '(' + a + '+' + b + ')*' + c + '-' + d, v: (a + b) * c - d }, { q: a + ' × ' + b + ' + ' + c + ' × ' + d, m: a + '*' + b + '+' + c + '*' + d, v: a * b + c * d }, { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, m: a + '+' + b + '*' + c + '-' + d, v: a + b * c - d }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v, _m: f.m, _v: f.v }; }
-        const D = ri(2, 6), Q = ri(2, 6), N = D * Q; const a = ri(1, N - 1), b = N - a, dd = ri(1, 5), c = D + dd;
-        let numExpr = a + ' + ' + b, numM = a + '+' + b;
-        if (N >= 6 && Math.random() < 0.4) { let fa = 0; for (let i = 2; i <= Math.min(9, N); i++) if (N % i === 0 && N / i <= 9) { fa = i; break; } if (fa) { numExpr = fa + ' × ' + (N / fa); numM = fa + '*' + (N / fa); } }
-        return { q: 'Calcule : ' + fr(numExpr, c + ' ' + M + ' ' + dd), fields: [{ label: '=', e: Q }], sol: 'numérateur = ' + N + ' , dénominateur = ' + D + ' ; ' + N + ' ÷ ' + D + ' = ' + Q, _m: '(' + numM + ')/(' + c + '-' + dd + ')', _v: Q };
+        for (let tries = 0; tries < 400; tries++) {
+            const K = 7, nums = [], ops = []; let mul = 0;
+            for (let i = 0; i < K; i++) nums.push(ri(2, 9));
+            for (let i = 0; i < K - 1; i++) { let o = pick(['+', M, '×']); if (o === '×') { if (mul >= 3) o = pick(['+', M]); else mul++; } ops.push(o); }
+            let pa = -1, pb = -1;
+            if (Math.random() < 0.7) { pa = ri(0, K - 3); pb = ri(pa + 1, Math.min(pa + 2, K - 1)); }
+            let d = '', m = '';
+            for (let i = 0; i < K; i++) { if (i === pa) { d += '('; m += '('; } d += nums[i]; m += nums[i]; if (i === pb) { d += ')'; m += ')'; } if (i < ops.length) { d += ' ' + ops[i] + ' '; m += (ops[i] === '×' ? '*' : ops[i] === M ? '-' : '+'); } }
+            const v = safeEval(d);
+            if (!Number.isInteger(v) || v < 0 || v > 250) continue;
+            return { q: 'Calcule : ' + d, fields: [{ label: '=', e: v }], sol: '= ' + v, _m: m, _v: v };
+        }
+        return { q: 'Calcule : 2 × 3 + 4 × 5 ' + M + ' 6 + 1 × 2', fields: [{ label: '=', e: 22 }], sol: '= 22', _m: '2*3+4*5-6+1*2', _v: 22 };
     }
     function genRelatifs(diff) {
         const L = lvl(diff);
@@ -263,18 +290,35 @@
         const r = fRed(res); return { q: 'Calcule : ' + fr(f1[0], f1[1]) + ' ' + o1 + ' ' + fr(f2[0], f2[1]) + ' ' + o2 + ' ' + fr(f3[0], f3[1]), fields: [{ frac: true, instr: 1, e: fVal(res) }], sol: '= ' + fr(r[0], r[1]), _v: fVal(res), _vf: vf };
     }
     function genFractionVis(diff) {
-        const L = lvl(diff); const shape = pick(L === 0 ? ['bar', 'pie'] : L === 1 ? ['pie', 'grid', 'bar'] : ['grid', 'pie']);
-        let n, k, svg;
-        if (shape === 'grid') { const r = ri(2, 4), c = ri(2, 5); n = r * c; k = ri(1, n - 1); svg = gridFracSVG(r, c, k); }
-        else { n = L === 0 ? ri(2, 5) : ri(4, 8); k = ri(1, n - 1); svg = shape === 'pie' ? pieSVG(n, k) : barFracSVG(n, k); }
-        const g = gcd(k, n); return { q: 'Quelle fraction de la figure est coloriée ?', svg: svg, fields: [{ frac: true, instr: 1, e: k / n }], sol: '= ' + fr(k, n) + (g > 1 ? ' = ' + fr(k / g, n / g) : ''), _kn: [k, n] };
+        const L = lvl(diff);
+        if (L === 0) { const shape = pick(['bar', 'pie']); const n = ri(2, 5), k = ri(1, n - 1); const set = []; for (let i = 0; i < k; i++) set.push(i); const svg = shape === 'pie' ? pieSetSVG(n, set) : barSetSVG(n, set); const g = gcd(k, n); return { q: 'Quelle fraction de la figure est coloriée ?', svg: svg, fields: [{ frac: true, instr: 1, e: k / n }], sol: '= ' + fr(k, n) + (g > 1 ? ' = ' + fr(k / g, n / g) : '') }; }
+        if (Math.random() < 0.5) {
+            const shapes = L === 1 ? 2 : ri(2, 3); const shape = pick(['bar', 'pie']); const n = L === 1 ? ri(3, 5) : ri(4, 8);
+            const fills = []; for (let i = 0; i < shapes - 1; i++) fills.push(n); fills.push(ri(1, n - 1));
+            const total = fills.reduce((s, x) => s + x, 0), g = gcd(total, n);
+            return { q: 'Quelle fraction de l’ensemble des figures est coloriée ? (une figure = une unité)', svg: multiShapeSVG(shape, n, fills), fields: [{ frac: true, instr: 1, e: total / n }], sol: '= ' + fr(total, n) + (g > 1 ? ' = ' + fr(total / g, n / g) : '') };
+        }
+        const r = L === 1 ? ri(2, 3) : ri(3, 4), c = L === 1 ? ri(3, 5) : ri(4, 5), n = r * c, k = ri(2, n - 2);
+        const idx = []; for (let i = 0; i < n; i++) idx.push(i); for (let i = idx.length - 1; i > 0; i--) { const j = ri(0, i); const t = idx[i]; idx[i] = idx[j]; idx[j] = t; } const set = idx.slice(0, k).sort((a, b) => a - b);
+        const g = gcd(k, n);
+        return { q: 'Quelle fraction de la figure est coloriée ?', svg: gridSetSVG(r, c, set), fields: [{ frac: true, instr: 1, e: k / n }], sol: '= ' + fr(k, n) + (g > 1 ? ' = ' + fr(k / g, n / g) : '') };
     }
     function genPuissances(diff) {
         const L = lvl(diff);
         if (L === 0) { const forms = [() => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + pw(a, n), e: Math.pow(a, n), sol: pw(a, n) + ' = ' + Math.pow(a, n) }; }, () => { const a = ri(2, 12); return { q: 'Calcule : ' + pw(a, 2), e: a * a, sol: '= ' + a * a }; }, () => { const a = ri(2, 6); return { q: 'Calcule : ' + pw(a, 3), e: a * a * a, sol: '= ' + a * a * a }; }]; const f = pick(forms)(); return { q: f.q, fields: [{ label: '=', e: f.e }], sol: f.sol, _v: f.e }; }
-        if (L === 1) { const a = ri(2, 6); const forms = [() => { const m = ri(2, 5), n = ri(2, 4); return { q: 'Écris sous la forme d’une seule puissance : ' + pw(a, m) + ' · ' + pw(a, n), base: a, exp: m + n, ev: Math.pow(a, m) * Math.pow(a, n), sol: '= ' + pw(a, m + n) }; }, () => { const m = ri(4, 7), n = ri(2, 3); return { q: 'Écris sous la forme d’une seule puissance : ' + fr(pw(a, m), pw(a, n)), base: a, exp: m - n, ev: Math.pow(a, m) / Math.pow(a, n), sol: '= ' + pw(a, m - n) }; }, () => { const m = ri(2, 3), n = ri(2, 3); return { q: 'Écris sous la forme d’une seule puissance : (' + pw(a, m) + ')' + sup(n), base: a, exp: m * n, ev: Math.pow(Math.pow(a, m), n), sol: '= ' + pw(a, m * n) }; }]; const f = pick(forms)(); return { q: f.q, fields: [{ type: 'pow', base: f.base, exp: f.exp, instr: 'pow' }], sol: f.sol, _pow: [f.base, f.exp], _check: Math.abs(f.ev - Math.pow(f.base, f.exp)) < 1e-6 }; }
-        if (Math.random() < 0.7) { const a = ri(2, 5), m = ri(3, 6), n = ri(2, 3), p = ri(1, 2); const exp = m + n - p; return { q: 'Écris sous la forme d’une seule puissance : ' + fr(pw(a, m) + ' · ' + pw(a, n), pw(a, p)), fields: [{ type: 'pow', base: a, exp: exp, instr: 'pow' }], sol: '= ' + fr(pw(a, m + n), pw(a, p)) + ' = ' + pw(a, exp), _pow: [a, exp], _check: Math.abs(Math.pow(a, m) * Math.pow(a, n) / Math.pow(a, p) - Math.pow(a, exp)) < 1e-6 }; }
-        const a = ri(2, 4), b = ri(2, 4), m = ri(2, 3), n = ri(2, 3); const v = Math.pow(a, m) * Math.pow(b, n); return { q: 'Calcule (bases différentes, donne le résultat) : ' + pw(a, m) + ' · ' + pw(b, n), fields: [{ label: '=', e: v }], sol: '= ' + Math.pow(a, m) + ' · ' + Math.pow(b, n) + ' = ' + v, _v: v };
+        const consigne = 'Simplifie et écris sous la forme aᵇ si possible, sinon effectue le calcul : ';
+        const forms = [];
+        forms.push(() => { const a = ri(2, 6), m = ri(2, 5), n = ri(2, 4); return { q: pw(a, m) + ' · ' + pw(a, n), pm: 'Math.pow(' + a + ',' + m + ')*Math.pow(' + a + ',' + n + ')', val: Math.pow(a, m + n), ans: pw(a, m + n), sol: '= ' + pw(a, m + n) }; });
+        forms.push(() => { const a = ri(2, 6), n = ri(2, 4), m = n + ri(2, 4); return { q: fr(pw(a, m), pw(a, n)), pm: 'Math.pow(' + a + ',' + m + ')/Math.pow(' + a + ',' + n + ')', val: Math.pow(a, m - n), ans: pw(a, m - n), sol: '= ' + pw(a, m - n) }; });
+        forms.push(() => { const a = ri(2, 5), m = ri(2, 3), n = ri(2, 3); return { q: '(' + pw(a, m) + ')' + sup(n), pm: 'Math.pow(Math.pow(' + a + ',' + m + '),' + n + ')', val: Math.pow(a, m * n), ans: pw(a, m * n), sol: '= ' + pw(a, m * n) }; });
+        forms.push(() => { let a = ri(2, 5), b = ri(2, 5); while (b === a) b = ri(2, 5); const p = ri(2, 3); return { q: pw(a, p) + ' · ' + pw(b, p), pm: 'Math.pow(' + a + ',' + p + ')*Math.pow(' + b + ',' + p + ')', val: Math.pow(a * b, p), ans: pw(a * b, p), sol: '= (' + a + ' · ' + b + ')' + sup(p) + ' = ' + pw(a * b, p) }; });
+        forms.push(() => { const p = ri(2, 3), b = ri(2, 4), q = ri(2, 4), a = b * q; return { q: fr(pw(a, p), pw(b, p)), pm: 'Math.pow(' + a + ',' + p + ')/Math.pow(' + b + ',' + p + ')', val: Math.pow(q, p), ans: pw(q, p), sol: '= ' + pw(q, p) }; });
+        if (L === 2) {
+            forms.push(() => { const a = pick([2, 3]), k = 2, m = ri(2, 4), j = ri(2, 3); const c = Math.pow(a, k); return { q: pw(a, m) + ' · ' + pw(c, j), pm: 'Math.pow(' + a + ',' + m + ')*Math.pow(' + c + ',' + j + ')', val: Math.pow(a, m) * Math.pow(c, j), ans: pw(a, m + k * j), sol: '= ' + pw(a, m) + ' · ' + pw(a, k * j) + ' = ' + pw(a, m + k * j) }; });
+            forms.push(() => { let a, b, m, n, val; do { const pr = pick([[2, 3], [2, 5], [3, 5], [2, 7]]); a = pr[0]; b = pr[1]; const mn = pick([[2, 3], [3, 2]]); m = mn[0]; n = mn[1]; val = Math.pow(a, m) * Math.pow(b, n); } while (isPerfectPower(val)); return { q: pw(a, m) + ' · ' + pw(b, n), pm: 'Math.pow(' + a + ',' + m + ')*Math.pow(' + b + ',' + n + ')', val: val, ans: '' + val, sol: '= ' + Math.pow(a, m) + ' · ' + Math.pow(b, n) + ' = ' + val }; });
+        }
+        const f = pick(forms)();
+        return { q: consigne + f.q, fields: [{ type: 'pownum', val: f.val, instr: 'pownum' }], sol: f.sol, _pm: f.pm, _ans: f.ans };
     }
     function genRacines(diff) {
         const L = lvl(diff);
@@ -309,11 +353,21 @@
         return { q: 'Calcule, puis écris en notation scientifique : ' + a1 + ' · 10' + sup(p1) + ' ' + op + ' ' + a2 + ' · 10' + sup(p2), fields: [{ label: 'a', e: a, tol: 0.01 }, { label: 'n', e: n }], sol: '= ' + trimNum(a) + ' · 10' + sup(n), _sci: [N, a, n] };
     }
     function genProbabilites(diff) {
-        const L = lvl(diff); const ctx = pick(['de', 'billes', 'roue', 'carte']); let q, fav, tot;
-        if (ctx === 'de') { tot = 6; if (L === 0) { const k = ri(1, 6); fav = 1; q = 'On lance un dé à six faces. Probabilité d’obtenir un ' + k + ' ?'; } else if (L === 1) { const o = pick([['un nombre pair', 3], ['un nombre impair', 3], ['un nombre supérieur à 4', 2], ['un multiple de 3', 2]]); fav = o[1]; q = 'On lance un dé. Probabilité d’obtenir ' + o[0] + ' ?'; } else { const o = pick([['un nombre différent de 6', 5], ['un nombre au moins égal à 3', 4], ['un nombre pair ou égal à 5', 4]]); fav = o[1]; q = 'On lance un dé. Probabilité d’obtenir ' + o[0] + ' ?'; } }
-        else if (ctx === 'billes') { const r = ri(2, 7), b = ri(2, 7), v = ri(0, 5); tot = r + b + v; const desc = r + ' rouges, ' + b + ' bleues' + (v ? ' et ' + v + ' vertes' : ''); if (L === 0) { const c = pick([['rouge', r], ['bleue', b]].concat(v ? [['verte', v]] : [])); fav = c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille ' + c[0] + ' ?'; } else if (L === 1) { const c = pick([['rouge', r], ['bleue', b]]); fav = tot - c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille qui n’est pas ' + c[0] + ' ?'; } else { fav = r + b; q = 'Un sac contient ' + desc + '. Probabilité de tirer une rouge ou une bleue ?'; } }
-        else if (ctx === 'roue') { const nn = pick([6, 8, 10, 12]); tot = nn; if (L === 0) { fav = 1; q = 'Une roue a ' + nn + ' secteurs égaux numérotés. Probabilité de tomber sur le 1 ?'; } else if (L === 1) { const k = ri(2, Math.floor(nn / 2)); fav = k; q = 'Une roue de ' + nn + ' secteurs égaux a ' + k + ' secteurs rouges. Probabilité du rouge ?'; } else { const k = ri(2, Math.floor(nn / 2)); fav = nn - k; q = 'Une roue de ' + nn + ' secteurs égaux a ' + k + ' secteurs rouges. Probabilité de NE PAS avoir rouge ?'; } }
-        else { const nn = pick([10, 12, 20]); tot = nn; if (L === 0) { const k = ri(1, nn); fav = 1; q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité de tirer le ' + k + ' ?'; } else if (L === 1) { fav = Math.floor(nn / 2); q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité d’un nombre pair ?'; } else { const m = pick([3, 4, 5]); fav = Math.floor(nn / m); q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité d’un multiple de ' + m + ' ?'; } }
+        const L = lvl(diff); let q, fav, tot;
+        if (L < 2) {
+            const ctx = pick(['de', 'billes', 'roue', 'carte']);
+            if (ctx === 'de') { tot = 6; if (L === 0) { const k = ri(1, 6); fav = 1; q = 'On lance un dé à six faces. Probabilité d’obtenir un ' + k + ' ?'; } else { const o = pick([['un nombre pair', 3], ['un nombre supérieur à 4', 2], ['un multiple de 3', 2]]); fav = o[1]; q = 'On lance un dé. Probabilité d’obtenir ' + o[0] + ' ?'; } }
+            else if (ctx === 'billes') { const r = ri(2, 7), b = ri(2, 7), v = ri(0, 5); tot = r + b + v; const desc = r + ' rouges, ' + b + ' bleues' + (v ? ' et ' + v + ' vertes' : ''); if (L === 0) { const c = pick([['rouge', r], ['bleue', b]].concat(v ? [['verte', v]] : [])); fav = c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille ' + c[0] + ' ?'; } else { const c = pick([['rouge', r], ['bleue', b]]); fav = tot - c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille qui n’est pas ' + c[0] + ' ?'; } }
+            else if (ctx === 'roue') { const nn = pick([6, 8, 10, 12]); tot = nn; if (L === 0) { fav = 1; q = 'Une roue a ' + nn + ' secteurs égaux numérotés. Probabilité de tomber sur le 1 ?'; } else { const k = ri(2, Math.floor(nn / 2)); fav = k; q = 'Une roue de ' + nn + ' secteurs égaux a ' + k + ' secteurs rouges. Probabilité du rouge ?'; } }
+            else { const nn = pick([10, 12, 20]); tot = nn; if (L === 0) { const k = ri(1, nn); fav = 1; q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité de tirer le ' + k + ' ?'; } else { fav = Math.floor(nn / 2); q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité d’un nombre pair ?'; } }
+        } else {
+            const kind = pick(['somme', 'aumoins6', 'deuxpairs', 'deuxrouges', 'unede']);
+            if (kind === 'somme') { const S = ri(3, 11); let c = 0; for (let i = 1; i <= 6; i++) for (let j = 1; j <= 6; j++) if (i + j === S) c++; fav = c; tot = 36; q = 'On lance deux dés. Probabilité que la somme des deux nombres soit égale à ' + S + ' ?'; }
+            else if (kind === 'aumoins6') { fav = 11; tot = 36; q = 'On lance deux dés. Probabilité d’obtenir au moins un 6 ?'; }
+            else if (kind === 'deuxpairs') { fav = 9; tot = 36; q = 'On lance deux dés. Probabilité que les deux nombres soient pairs ?'; }
+            else if (kind === 'deuxrouges') { const r = ri(3, 6), b = ri(2, 5); fav = r * (r - 1); tot = (r + b) * (r + b - 1); q = 'Un sac contient ' + r + ' billes rouges et ' + b + ' bleues. On tire 2 billes sans remise. Probabilité d’obtenir 2 rouges ?'; }
+            else { const r = ri(3, 6), b = ri(2, 5); fav = 2 * r * b; tot = (r + b) * (r + b - 1); q = 'Un sac contient ' + r + ' billes rouges et ' + b + ' bleues. On tire 2 billes sans remise. Probabilité d’obtenir une rouge et une bleue ?'; }
+        }
         const g = gcd(fav, tot); return { q: q + ' (réponse en fraction)', fields: [{ frac: true, instr: 1, e: fav / tot }], sol: 'P = ' + fr(fav, tot) + (g > 1 ? ' = ' + fr(fav / g, tot / g) : ''), _prob: [fav, tot] };
     }
 
@@ -415,18 +469,18 @@
     function exSig(ex) { if (ex.interactive) return ex.q + JSON.stringify(ex.target); return ex.q + '#' + (ex.svg || '') + '#' + ex.fields.map(f => f.type ? (f.base + '/' + f.exp + '/' + f.coef + '/' + f.rad) : f.e).join(','); }
     function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 60) { guard++; const ex = gen(curDiff); const k = exSig(ex); if (seen.has(k)) continue; seen.add(k); arr.push(ex); } return arr; }
 
-    function fieldType(f) { return f.type === 'pow' ? 'pow' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
+    function fieldType(f) { return f.type === 'pownum' ? 'pownum' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
     function fieldHTML(f, i, j) {
         const t = fieldType(f); const before = f.label ? f.label + ' ' : ''; const after = f.suffix ? ' ' + f.suffix : '';
-        const ph = t === 'pow' ? 'ex. 3^7' : t === 'root' ? 'ex. 4r3' : t === 'frac' ? 'ex. 3/4' : '';
-        let hint = ''; if (t === 'pow') hint = '<span class="mx-fhint">base<b>^</b>exposant</span>'; else if (t === 'root') hint = '<span class="mx-fhint">utilise <b>r</b> (ex. 4r3)</span>'; else if (t === 'frac') hint = '<span class="mx-fhint">avec <b>/</b></span>';
+        const ph = t === 'pownum' ? 'ex. 3^5 ou nombre' : t === 'root' ? 'ex. 4r3' : t === 'frac' ? 'ex. 3/4' : '';
+        let hint = ''; if (t === 'pownum') hint = '<span class="mx-fhint">a<b>^</b>b (ex. 3^5) ou un nombre</span>'; else if (t === 'root') hint = '<span class="mx-fhint">utilise <b>r</b> (ex. 4r3)</span>'; else if (t === 'frac') hint = '<span class="mx-fhint">avec <b>/</b></span>';
         const prev = t !== 'num' ? '<span class="mx-prev" id="prev-' + i + '-' + j + '"></span>' : '';
         return '<span class="mx-fld">' + before + '<input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="' + ph + '" data-i="' + i + '" data-j="' + j + '" data-t="' + t + '">' + after + prev + hint + '</span>';
     }
     function updatePreview(inp) {
         const prev = $('prev-' + inp.dataset.i + '-' + inp.dataset.j); if (!prev) return;
         const v = inp.value.trim(), t = inp.dataset.t; if (!v) { prev.innerHTML = ''; return; }
-        if (t === 'pow') { const p = v.replace(/\s/g, '').replace(/−/g, '-').split('^'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + pw(p[0], p[1]) : ''; }
+        if (t === 'pownum') { const s = v.replace(/\s/g, '').replace(/−/g, '-'); if (s.indexOf('^') !== -1) { const p = s.split('^'); prev.innerHTML = p[1] !== '' ? '→ ' + pw(p[0], p[1]) : ''; } else prev.innerHTML = '→ ' + s; }
         else if (t === 'root') { const p = v.toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-').split('r'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + (p[0] || '') + sq(p[1]) : ''; }
         else { const p = v.replace(/\s/g, '').split('/'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + fr(p[0], p[1]) : ''; }
     }
@@ -468,7 +522,7 @@
     function parsePow(s) { s = String(s).replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('^'); return { base: parseFloat(p[0]), exp: parseFloat(p[1]) }; }
     function parseRoot(s) { s = String(s).toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('r'); return { coef: p[0] === '' ? 1 : parseFloat(p[0]), rad: parseFloat(p[1]) }; }
     function checkField(f, val) {
-        if (f.type === 'pow') { const p = parsePow(val); return p.base === f.base && p.exp === f.exp; }
+        if (f.type === 'pownum') { const v = parsePowNumVal(val); return isFinite(v) && Math.abs(v - f.val) < 0.5; }
         if (f.type === 'root') { const p = parseRoot(val); return p.coef === f.coef && p.rad === f.rad; }
         const g = parseNum(val); if (isNaN(g) || !isFinite(g)) return false; return Math.abs(g - f.e) <= (f.tol || 0.01) + 1e-9;
     }
