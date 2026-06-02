@@ -75,6 +75,18 @@
     .mx-explain h2 { font-size: 1.25rem; color: #111827; margin-top: 1.8rem; } .mx-explain h3 { font-size: 1.02rem; color: #1F2937; margin: 1.2rem 0 0.3rem; }
     .mx-explain ul { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; }
 
+    .mx-diff { display: inline-flex; border: 1px solid #D1D5DB; border-radius: 0.45rem; overflow: hidden; }
+    .mx-diff button { border: none; background: #fff; padding: 0.4rem 0.7rem; font-size: 0.82rem; font-weight: 700; color: #374151; cursor: pointer; }
+    .mx-diff button + button { border-left: 1px solid #E5E7EB; }
+    .mx-diff button.active { background: #6366F1; color: #fff; }
+    .mx-frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; margin: 0 .12em; line-height: 1.05; }
+    .mx-frac .mx-fn { border-bottom: 1.5px solid currentColor; padding: 0 .3em 1px; }
+    .mx-frac .mx-fd { padding: 1px .3em 0; }
+    .mx-sqrt { white-space: nowrap; }
+    .mx-sqrt .mx-rad { border-top: 1.5px solid currentColor; padding: 0 .25em 0 .12em; margin-left: 1px; }
+    .mx-prev { color: #4338CA; font-size: 0.95rem; margin-left: .15rem; }
+    .mx-fhint { color: #9CA3AF; font-size: 0.74rem; margin-left: .2rem; }
+    .mx-fhint b { color: #6B7280; }
     @media (max-width: 560px) { .mx-wrap h1 { font-size: 1.6rem; } .mx-ws-title { margin-right: 0; width: 100%; } }
     @media print {
         .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab, .mx-years, .mx-dom, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
@@ -107,6 +119,11 @@
         <div class="mx-ws-head">
             <div class="mx-ws-title" id="wsTitle"></div>
             <div class="mx-ctl">
+                <div class="mx-diff" id="diffSeg" role="group" aria-label="Difficulté">
+                    <button data-d="facile" type="button">Facile</button>
+                    <button data-d="moyen" class="active" type="button">Moyen</button>
+                    <button data-d="difficile" type="button">Difficile</button>
+                </div>
                 <label>Exercices
                     <select id="count"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
                 </label>
@@ -170,6 +187,23 @@
     function par(n) { return n < 0 ? '(' + M + Math.abs(n) + ')' : '' + n; }
     function fmtMonoSum(monos) { let s = ''; monos.forEach((m, i) => { if (i === 0) { s += m.x ? coefX(m.c) : (m.c < 0 ? M + Math.abs(m.c) : '' + m.c); } else { const sign = m.c < 0 ? ' ' + M + ' ' : ' + '; const a = Math.abs(m.c); s += sign + (m.x ? (a === 1 ? 'x' : a + 'x') : '' + a); } }); return s; }
 
+    // ====== Helpers NO (niveaux, fractions exactes, rendus LaTeX) ======
+    function lvl(d) { return d === 'facile' ? 0 : d === 'difficile' ? 2 : 1; }
+    function squarefree(d) { for (let i = 2; i * i <= d; i++) if (d % (i * i) === 0) return false; return true; }
+    function fRed(p) { const g = gcd(p[0], p[1]) || 1; let n = p[0] / g, d = p[1] / g; if (d < 0) { n = -n; d = -d; } return [n, d]; }
+    const fAdd = (p, q) => [p[0] * q[1] + q[0] * p[1], p[1] * q[1]];
+    const fSub = (p, q) => [p[0] * q[1] - q[0] * p[1], p[1] * q[1]];
+    const fMul = (p, q) => [p[0] * q[0], p[1] * q[1]];
+    const fDiv = (p, q) => [p[0] * q[1], p[1] * q[0]];
+    const fVal = p => p[0] / p[1];
+    function trimNum(x) { return parseFloat(x.toFixed(10)).toString().replace('.', ','); }
+    function sup(n) { return '<sup>' + n + '</sup>'; }
+    function norm(N) { const sgn = N < 0 ? -1 : 1; let x = Math.abs(N); let n = Math.floor(Math.log10(x) + 1e-12); let a = x / Math.pow(10, n); a = Math.round(a * 1e6) / 1e6; if (a >= 10) { a /= 10; n++; } if (a < 1) { a *= 10; n--; } return [sgn * a, n]; }
+    // rendus type LaTeX
+    function fr(n, d) { return '<span class="mx-frac"><span class="mx-fn">' + n + '</span><span class="mx-fd">' + d + '</span></span>'; }
+    function sq(r) { return '<span class="mx-sqrt">√<span class="mx-rad">' + r + '</span></span>'; }
+    function pw(b, e) { return b + '<sup>' + e + '</sup>'; }
+
     // ====== SVG ======
     function gridSVG(points, interactive) {
         const R = 5, s = 24, pad = 16, W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s;
@@ -189,7 +223,9 @@
         s += '<text x="116" y="58" font-size="12" text-anchor="middle" fill="#334155" transform="rotate(-31 116 58)">' + hyp + '</text>';
         return s + '</svg>';
     }
-    function barFracSVG(n, k) { const W = 280, H = 46, pad = 8, w = (W - 2 * pad) / n; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">'; for (let i = 0; i < n; i++) { s += '<rect x="' + (pad + i * w) + '" y="8" width="' + w + '" height="30" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#64748B" stroke-width="1"/>'; } return s + '</svg>'; }
+    function barFracSVG(n, k) { const W = 280, H = 50, pad = 8, w = (W - 2 * pad) / n; let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">'; for (let i = 0; i < n; i++) { s += '<rect x="' + (pad + i * w) + '" y="9" width="' + w + '" height="32" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
+    function pieSVG(n, k) { const cx = 47, cy = 47, r = 41; let s = '<svg class="mx-fig" viewBox="0 0 94 94">'; for (let i = 0; i < n; i++) { const a0 = (i / n) * 2 * Math.PI - Math.PI / 2, a1 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2; const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1); const la = (a1 - a0) > Math.PI ? 1 : 0; s += '<path d="M' + cx + ' ' + cy + ' L' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Z" fill="' + (i < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; } return s + '</svg>'; }
+    function gridFracSVG(r, c, k) { const cw = 30, W = c * cw, H = r * cw; let s = '<svg class="mx-fig" viewBox="0 0 ' + (W + 2) + ' ' + (H + 2) + '">'; let idx = 0; for (let row = 0; row < r; row++) for (let col = 0; col < c; col++) { s += '<rect x="' + (col * cw + 1) + '" y="' + (row * cw + 1) + '" width="' + cw + '" height="' + cw + '" fill="' + (idx < k ? '#6366F1' : '#FFFFFF') + '" stroke="#334155" stroke-width="2"/>'; idx++; } return s + '</svg>'; }
     function chartSVG(labels, vals, hi) {
         const W = 264, base = 112, padL = 26, bw = 38, max = Math.max.apply(null, vals);
         const gap = (W - padL - 10 - labels.length * bw) / (labels.length - 1);
@@ -201,16 +237,85 @@
     }
 
     // ====== Générateurs (validés Node : 0 erreur / 18'600 tirages + vérifs indépendantes) ======
-    function genPriorites() { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(1, 8); const forms = [{ q: a + ' + ' + b + ' × ' + c, v: a + b * c }, { q: a + ' × ' + b + ' ' + M + ' ' + c, v: a * b - c }, { q: '(' + a + ' + ' + b + ') × ' + c, v: (a + b) * c }, { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, v: a + b * c - d }, { q: a + ' × ' + b + ' + ' + c + ' × ' + d, v: a * b + c * d }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v }; }
-    function genRelatifs() { const a = nz(ri(-12, 12)), b = nz(ri(-12, 12)), op = pick(['+', M, '×']); let v; if (op === '+') v = a + b; else if (op === M) v = a - b; else v = a * b; return { q: 'Calcule : ' + par(a) + ' ' + op + ' ' + par(b), fields: [{ label: '=', e: v }], sol: '= ' + v }; }
-    function genFractions() { let n1 = ri(1, 9), d1 = ri(2, 9), n2 = ri(1, 9), d2 = ri(2, 9); while (n1 === d1) n1 = ri(1, 9); while (n2 === d2) n2 = ri(1, 9); const op = pick(['+', M, '×', '÷']); let num, den; if (op === '+') { num = n1 * d2 + n2 * d1; den = d1 * d2; } else if (op === M) { num = n1 * d2 - n2 * d1; den = d1 * d2; } else if (op === '×') { num = n1 * n2; den = d1 * d2; } else { num = n1 * d2; den = d1 * n2; } const g = gcd(num, den); return { q: 'Calcule (donne une fraction) : ' + n1 + '/' + d1 + ' ' + op + ' ' + n2 + '/' + d2, fields: [{ label: 'résultat', e: num / den, frac: true }], sol: '= ' + (num / g) + '/' + (den / g) }; }
-    function genPuissances() { const T = [() => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + a + '<sup>' + n + '</sup>', e: Math.pow(a, n), lab: '=', sol: a + '<sup>' + n + '</sup> = ' + Math.pow(a, n) }; }, () => { const a = ri(2, 9); return { q: 'Calcule : ' + a + '<sup>2</sup>', e: a * a, lab: '=', sol: '= ' + a * a }; }, () => { const a = ri(2, 6), m = ri(2, 4), n = ri(2, 3); return { q: 'Une seule puissance : ' + a + '<sup>' + m + '</sup> · ' + a + '<sup>' + n + '</sup> (donne l’exposant)', e: m + n, lab: 'exposant', sol: 'aᵐ·aⁿ = aᵐ⁺ⁿ → ' + (m + n) }; }, () => { const a = ri(2, 6), m = ri(4, 7), n = ri(2, 3); return { q: 'Une seule puissance : ' + a + '<sup>' + m + '</sup> : ' + a + '<sup>' + n + '</sup> (donne l’exposant)', e: m - n, lab: 'exposant', sol: 'aᵐ:aⁿ = aᵐ⁻ⁿ → ' + (m - n) }; }, () => { const a = ri(2, 5), m = ri(2, 3), n = ri(2, 3); return { q: 'Une seule puissance : (' + a + '<sup>' + m + '</sup>)<sup>' + n + '</sup> (donne l’exposant)', e: m * n, lab: 'exposant', sol: '(aᵐ)ⁿ = aᵐⁿ → ' + (m * n) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
-    function genRacines() { const T = [() => { const k = ri(2, 20); return { q: 'Calcule : √' + (k * k), e: k, sol: '√' + (k * k) + ' = ' + k }; }, () => { const k = ri(2, 12); return { q: 'Calcule : √' + (k * k) + ' + 1', e: k + 1, sol: '√' + (k * k) + ' + 1 = ' + k + ' + 1 = ' + (k + 1) }; }, () => { const k = ri(2, 9); return { q: 'Calcule : (√' + (k * k) + ')²', e: k * k, sol: '(√' + (k * k) + ')² = ' + (k * k) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: t.sol }; }
-    function genDiviseurs() { const a = ri(4, 60); let b = ri(4, 60); while (b === a) b = ri(4, 60); if (Math.random() < 0.5) return { q: 'Calcule le PGCD de ' + a + ' et ' + b + '.', fields: [{ label: 'PGCD', e: gcd(a, b) }], sol: 'PGCD(' + a + ' ; ' + b + ') = ' + gcd(a, b) }; return { q: 'Calcule le PPCM de ' + a + ' et ' + b + '.', fields: [{ label: 'PPCM', e: lcm(a, b) }], sol: 'PPCM(' + a + ' ; ' + b + ') = ' + lcm(a, b) }; }
-    function genEcritures() { const T = [() => { const d = pick([2, 4, 5, 10, 20, 25, 50]), n = ri(1, d - 1); return { q: 'Écris ' + n + '/' + d + ' en pourcentage.', e: n / d * 100, lab: '%', sol: n + '/' + d + ' = ' + (n / d * 100) + ' %' }; }, () => { const p = pick([10, 20, 25, 40, 50, 60, 75, 80]), g = gcd(p, 100); return { q: 'Écris ' + p + ' % en fraction simplifiée.', e: p / 100, frac: true, lab: 'fraction', sol: p + ' % = ' + (p / g) + '/' + (100 / g) }; }, () => { const d = pick([2, 4, 5, 8, 10, 20, 25]), n = ri(1, d - 1); return { q: 'Écris ' + n + '/' + d + ' en nombre décimal.', e: n / d, lab: '=', sol: n + '/' + d + ' = ' + (n / d) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e, frac: t.frac }], sol: t.sol }; }
-    function genNotationSci() { const a = ri(10, 99) / 10, n = ri(2, 6), N = Math.round(a * Math.pow(10, n)); return { q: 'Écris ' + N + ' en notation scientifique a · 10ⁿ (avec 1 ≤ a < 10).', fields: [{ label: 'a', e: a }, { label: 'n', e: n }], sol: N + ' = ' + a + ' · 10<sup>' + n + '</sup>' }; }
-    function genProbabilites() { const r = ri(2, 8), b = ri(2, 8), v = ri(0, 5), tot = r + b + v; const choix = [['rouge', r], ['bleue', b]]; if (v) choix.push(['verte', v]); const c = pick(choix), g = gcd(c[1], tot); return { q: 'Un sac contient ' + r + ' billes rouges, ' + b + ' bleues' + (v ? ' et ' + v + ' vertes' : '') + '. On tire une bille au hasard. Probabilité d’obtenir une ' + c[0] + ' ? (fraction)', fields: [{ label: 'P', e: c[1] / tot, frac: true }], sol: 'P = ' + c[1] + '/' + tot + (g > 1 ? ' = ' + (c[1] / g) + '/' + (tot / g) : '') }; }
-    function genFractionVis() { const n = ri(3, 8), k = ri(1, n - 1), g = gcd(k, n); return { q: 'Quelle fraction de la figure est coloriée ?', svg: barFracSVG(n, k), fields: [{ label: 'fraction', e: k / n, frac: true }], sol: k + '/' + n + (g > 1 ? ' = ' + (k / g) + '/' + (n / g) : '') }; }
+    function genPriorites(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9); const forms = [{ q: a + ' + ' + b + ' × ' + c, m: a + '+' + b + '*' + c, v: a + b * c }, { q: a + ' × ' + b + ' ' + M + ' ' + c, m: a + '*' + b + '-' + c, v: a * b - c }, { q: a + ' × ' + b + ' + ' + c, m: a + '*' + b + '+' + c, v: a * b + c }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: f.q + ' = ' + f.v, _m: f.m, _v: f.v }; }
+        if (L === 1) { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 9), d = ri(2, 8); const forms = [{ q: '(' + a + ' + ' + b + ') × ' + c + ' ' + M + ' ' + d, m: '(' + a + '+' + b + ')*' + c + '-' + d, v: (a + b) * c - d }, { q: a + ' × ' + b + ' + ' + c + ' × ' + d, m: a + '*' + b + '+' + c + '*' + d, v: a * b + c * d }, { q: a + ' + ' + b + ' × ' + c + ' ' + M + ' ' + d, m: a + '+' + b + '*' + c + '-' + d, v: a + b * c - d }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v, _m: f.m, _v: f.v }; }
+        const D = ri(2, 6), Q = ri(2, 6), N = D * Q; const a = ri(1, N - 1), b = N - a, dd = ri(1, 5), c = D + dd;
+        let numExpr = a + ' + ' + b, numM = a + '+' + b;
+        if (N >= 6 && Math.random() < 0.4) { let fa = 0; for (let i = 2; i <= Math.min(9, N); i++) if (N % i === 0 && N / i <= 9) { fa = i; break; } if (fa) { numExpr = fa + ' × ' + (N / fa); numM = fa + '*' + (N / fa); } }
+        return { q: 'Calcule : ' + fr(numExpr, c + ' ' + M + ' ' + dd), fields: [{ label: '=', e: Q }], sol: 'numérateur = ' + N + ' , dénominateur = ' + D + ' ; ' + N + ' ÷ ' + D + ' = ' + Q, _m: '(' + numM + ')/(' + c + '-' + dd + ')', _v: Q };
+    }
+    function genRelatifs(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = nz(ri(-12, 12)), b = nz(ri(-12, 12)), op = pick(['+', M, '×']); let v, m; if (op === '+') { v = a + b; m = '(' + a + ')+(' + b + ')'; } else if (op === M) { v = a - b; m = '(' + a + ')-(' + b + ')'; } else { v = a * b; m = '(' + a + ')*(' + b + ')'; } return { q: 'Calcule : (' + a + ') ' + op + ' (' + b + ')', fields: [{ label: '=', e: v }], sol: '= ' + v, _m: m, _v: v }; }
+        if (L === 1) { const a = nz(ri(-9, 9)), b = nz(ri(-6, 6)), c = nz(ri(-6, 6)); const forms = [{ q: '(' + a + ') + (' + b + ') × (' + c + ')', m: '(' + a + ')+(' + b + ')*(' + c + ')', v: a + b * c }, { q: '(' + a + ') ' + M + ' (' + b + ') × (' + c + ')', m: '(' + a + ')-(' + b + ')*(' + c + ')', v: a - b * c }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v, _m: f.m, _v: f.v }; }
+        const a = nz(ri(-8, 8)), b = nz(ri(-8, 8)), c = nz(ri(-6, 6)), d = nz(ri(-6, 6)); const forms = [{ q: '(' + a + ' ' + M + ' ' + par(b) + ') × (' + c + ')', m: '(' + a + '-(' + b + '))*(' + c + ')', v: (a - b) * c }, { q: '(' + a + ') × (' + b + ') + (' + c + ') × (' + d + ')', m: '(' + a + ')*(' + b + ')+(' + c + ')*(' + d + ')', v: a * b + c * d }]; const f = pick(forms); return { q: 'Calcule : ' + f.q, fields: [{ label: '=', e: f.v }], sol: '= ' + f.v, _m: f.m, _v: f.v };
+    }
+    function genFractions(diff) {
+        const L = lvl(diff);
+        const mk = () => { let n = ri(1, 9), d = ri(2, 9); while (n === d) n = ri(1, 9); return [n, d]; };
+        const ap = (a, op, b) => op === '+' ? fAdd(a, b) : op === M ? fSub(a, b) : op === '×' ? fMul(a, b) : fDiv(a, b);
+        const fl = (a, op, b) => op === '+' ? a + b : op === M ? a - b : op === '×' ? a * b : a / b;
+        if (L < 2) { const ops = L === 0 ? ['+', M, '×'] : ['+', M, '×', '÷']; const op = pick(ops); const f1 = mk(), f2 = mk(); const res = ap(f1, op, f2), r = fRed(res); return { q: 'Calcule : ' + fr(f1[0], f1[1]) + ' ' + op + ' ' + fr(f2[0], f2[1]), fields: [{ frac: true, instr: 1, e: fVal(res) }], sol: '= ' + fr(r[0], r[1]), _v: fVal(res), _vf: fl(fVal(f1), op, fVal(f2)) }; }
+        const f1 = mk(), f2 = mk(), f3 = mk(), o1 = pick(['+', M, '×', '÷']), o2 = pick(['+', M, '×', '÷']); const tier = op => (op === '×' || op === '÷') ? 2 : 1; let res, vf;
+        if (tier(o2) > tier(o1)) { res = ap(f1, o1, ap(f2, o2, f3)); vf = fl(fVal(f1), o1, fl(fVal(f2), o2, fVal(f3))); } else { res = ap(ap(f1, o1, f2), o2, f3); vf = fl(fl(fVal(f1), o1, fVal(f2)), o2, fVal(f3)); }
+        const r = fRed(res); return { q: 'Calcule : ' + fr(f1[0], f1[1]) + ' ' + o1 + ' ' + fr(f2[0], f2[1]) + ' ' + o2 + ' ' + fr(f3[0], f3[1]), fields: [{ frac: true, instr: 1, e: fVal(res) }], sol: '= ' + fr(r[0], r[1]), _v: fVal(res), _vf: vf };
+    }
+    function genFractionVis(diff) {
+        const L = lvl(diff); const shape = pick(L === 0 ? ['bar', 'pie'] : L === 1 ? ['pie', 'grid', 'bar'] : ['grid', 'pie']);
+        let n, k, svg;
+        if (shape === 'grid') { const r = ri(2, 4), c = ri(2, 5); n = r * c; k = ri(1, n - 1); svg = gridFracSVG(r, c, k); }
+        else { n = L === 0 ? ri(2, 5) : ri(4, 8); k = ri(1, n - 1); svg = shape === 'pie' ? pieSVG(n, k) : barFracSVG(n, k); }
+        const g = gcd(k, n); return { q: 'Quelle fraction de la figure est coloriée ?', svg: svg, fields: [{ frac: true, instr: 1, e: k / n }], sol: '= ' + fr(k, n) + (g > 1 ? ' = ' + fr(k / g, n / g) : ''), _kn: [k, n] };
+    }
+    function genPuissances(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const forms = [() => { const a = ri(2, 7), n = ri(2, 4); return { q: 'Calcule : ' + pw(a, n), e: Math.pow(a, n), sol: pw(a, n) + ' = ' + Math.pow(a, n) }; }, () => { const a = ri(2, 12); return { q: 'Calcule : ' + pw(a, 2), e: a * a, sol: '= ' + a * a }; }, () => { const a = ri(2, 6); return { q: 'Calcule : ' + pw(a, 3), e: a * a * a, sol: '= ' + a * a * a }; }]; const f = pick(forms)(); return { q: f.q, fields: [{ label: '=', e: f.e }], sol: f.sol, _v: f.e }; }
+        if (L === 1) { const a = ri(2, 6); const forms = [() => { const m = ri(2, 5), n = ri(2, 4); return { q: 'Écris sous la forme d’une seule puissance : ' + pw(a, m) + ' · ' + pw(a, n), base: a, exp: m + n, ev: Math.pow(a, m) * Math.pow(a, n), sol: '= ' + pw(a, m + n) }; }, () => { const m = ri(4, 7), n = ri(2, 3); return { q: 'Écris sous la forme d’une seule puissance : ' + fr(pw(a, m), pw(a, n)), base: a, exp: m - n, ev: Math.pow(a, m) / Math.pow(a, n), sol: '= ' + pw(a, m - n) }; }, () => { const m = ri(2, 3), n = ri(2, 3); return { q: 'Écris sous la forme d’une seule puissance : (' + pw(a, m) + ')' + sup(n), base: a, exp: m * n, ev: Math.pow(Math.pow(a, m), n), sol: '= ' + pw(a, m * n) }; }]; const f = pick(forms)(); return { q: f.q, fields: [{ type: 'pow', base: f.base, exp: f.exp, instr: 'pow' }], sol: f.sol, _pow: [f.base, f.exp], _check: Math.abs(f.ev - Math.pow(f.base, f.exp)) < 1e-6 }; }
+        if (Math.random() < 0.7) { const a = ri(2, 5), m = ri(3, 6), n = ri(2, 3), p = ri(1, 2); const exp = m + n - p; return { q: 'Écris sous la forme d’une seule puissance : ' + fr(pw(a, m) + ' · ' + pw(a, n), pw(a, p)), fields: [{ type: 'pow', base: a, exp: exp, instr: 'pow' }], sol: '= ' + fr(pw(a, m + n), pw(a, p)) + ' = ' + pw(a, exp), _pow: [a, exp], _check: Math.abs(Math.pow(a, m) * Math.pow(a, n) / Math.pow(a, p) - Math.pow(a, exp)) < 1e-6 }; }
+        const a = ri(2, 4), b = ri(2, 4), m = ri(2, 3), n = ri(2, 3); const v = Math.pow(a, m) * Math.pow(b, n); return { q: 'Calcule (bases différentes, donne le résultat) : ' + pw(a, m) + ' · ' + pw(b, n), fields: [{ label: '=', e: v }], sol: '= ' + Math.pow(a, m) + ' · ' + Math.pow(b, n) + ' = ' + v, _v: v };
+    }
+    function genRacines(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const forms = [() => { const k = ri(2, 15); return { q: 'Calcule : ' + sq(k * k), e: k, sol: sq(k * k) + ' = ' + k, N: k * k }; }, () => { const tr = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [7, 24, 25]]); const N = tr[0] * tr[0] + tr[1] * tr[1]; return { q: 'Calcule : ' + sq(tr[0] * tr[0] + ' + ' + tr[1] * tr[1]), e: tr[2], sol: sq(N) + ' = ' + tr[2], N: N }; }, () => { const a = ri(2, 6), b = ri(2, 6); const N = a * a * b * b; return { q: 'Calcule : ' + sq(a * a + ' × ' + b * b), e: a * b, sol: sq(N) + ' = ' + (a * b), N: N }; }]; const f = pick(forms)(); return { q: f.q, fields: [{ label: '=', e: f.e }], sol: f.sol, _root0: [f.e, f.N] }; }
+        let c, d; if (L === 1) { c = ri(2, 6); d = pick([2, 3, 5, 6, 7]); } else { c = ri(3, 9); d = pick([2, 3, 5, 6, 7, 10, 11, 13, 14, 15]); } const N = c * c * d;
+        return { q: 'Simplifie la racine : ' + sq(N), fields: [{ type: 'root', coef: c, rad: d, instr: 'root' }], sol: sq(N) + ' = ' + sq(c * c + ' × ' + d) + ' = ' + c + sq(d), _root: [c, d, N] };
+    }
+    function genDiviseurs(diff) {
+        const L = lvl(diff); const isP = Math.random() < 0.5;
+        if (L < 2) {
+            if (isP) { const g = ri(2, L === 0 ? 8 : 12); let m = ri(2, 10), n = ri(2, 10); while (gcd(m, n) !== 1 || m === n) { m = ri(2, 10); n = ri(2, 10); } const a = g * m, b = g * n; return { q: 'Calcule le PGDC de ' + a + ' et ' + b + '.', fields: [{ label: 'PGDC', e: gcd(a, b) }], sol: 'PGDC(' + a + ' ; ' + b + ') = ' + gcd(a, b), _div: ['pgdc', [a, b], gcd(a, b)] }; }
+            const rng = L === 0 ? [3, 12] : [4, 24]; let a = ri(rng[0], rng[1]), b = ri(rng[0], rng[1]); while (b === a) b = ri(rng[0], rng[1]); return { q: 'Calcule le PPMC de ' + a + ' et ' + b + '.', fields: [{ label: 'PPMC', e: lcm(a, b) }], sol: 'PPMC(' + a + ' ; ' + b + ') = ' + lcm(a, b), _div: ['ppmc', [a, b], lcm(a, b)] };
+        }
+        if (isP) { const g = ri(2, 9), m = ri(2, 7), n = ri(2, 7), p = ri(2, 7); const a = g * m, b = g * n, c = g * p, gg = gcd(gcd(a, b), c); return { q: 'Calcule le PGDC de ' + a + ', ' + b + ' et ' + c + '.', fields: [{ label: 'PGDC', e: gg }], sol: 'PGDC = ' + gg, _div: ['pgdc', [a, b, c], gg] }; }
+        const a = ri(4, 18), b = ri(4, 18), c = ri(4, 18); const l = lcm(lcm(a, b), c); return { q: 'Calcule le PPMC de ' + a + ', ' + b + ' et ' + c + '.', fields: [{ label: 'PPMC', e: l }], sol: 'PPMC = ' + l, _div: ['ppmc', [a, b, c], l] };
+    }
+    function genEcritures(diff) {
+        const L = lvl(diff);
+        if (L === 0) { if (Math.random() < 0.5) { const d = pick([2, 4, 5, 10, 20, 25, 50]), n = ri(1, d - 1); return { q: 'Écris ' + fr(n, d) + ' en pourcentage.', fields: [{ suffix: '%', e: n / d * 100 }], sol: fr(n, d) + ' = ' + (n / d * 100) + ' %', _v: n / d * 100 }; } const d = pick([2, 4, 5, 8, 10, 20, 25]), n = ri(1, d - 1); return { q: 'Écris ' + fr(n, d) + ' en nombre décimal.', fields: [{ label: '=', e: n / d }], sol: fr(n, d) + ' = ' + trimNum(n / d), _v: n / d }; }
+        if (L === 1) { if (Math.random() < 0.5) { const p = pick([10, 20, 25, 40, 50, 60, 75, 80]), g = gcd(p, 100); return { q: 'Écris ' + p + ' % en fraction simplifiée.', fields: [{ frac: true, instr: 1, e: p / 100 }], sol: p + ' % = ' + fr(p / g, 100 / g), _v: p / 100 }; } const dec = pick([0.2, 0.25, 0.5, 0.75, 0.4, 0.6, 0.8, 0.05]); const rr = fRed([Math.round(dec * 100), 100]); return { q: 'Écris ' + trimNum(dec) + ' en fraction simplifiée.', fields: [{ frac: true, instr: 1, e: dec }], sol: trimNum(dec) + ' = ' + fr(rr[0], rr[1]), _v: dec }; }
+        if (Math.random() < 0.5) { const d = pick([8, 16, 40, 200]), n = ri(1, d - 1); const val = Math.round(n / d * 1000) / 10; return { q: 'Écris ' + fr(n, d) + ' en pourcentage (arrondis au dixième).', fields: [{ suffix: '%', e: val, tol: 0.06 }], sol: fr(n, d) + ' ≈ ' + trimNum(val) + ' %', _v: val }; }
+        const whole = ri(1, 3), f = pick([0.25, 0.5, 0.75, 0.2]); const dec = whole + f; return { q: 'Écris ' + trimNum(dec) + ' en pourcentage.', fields: [{ suffix: '%', e: dec * 100 }], sol: trimNum(dec) + ' = ' + (dec * 100) + ' %', _v: dec * 100 };
+    }
+    function genNotationSci(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = ri(10, 99) / 10, n = pick([-4, -3, -2, 2, 3, 4, 5, 6]); const N = a * Math.pow(10, n); const disp = trimNum(parseFloat(N.toPrecision(12))); return { q: 'Écris ' + disp + ' en notation scientifique (a · 10ⁿ, 1 ≤ a < 10).', fields: [{ label: 'a', e: a, tol: 0.005 }, { label: 'n', e: n }], sol: disp + ' = ' + trimNum(a) + ' · 10' + sup(n), _sci: [N, a, n] }; }
+        let a1 = ri(2, 9), a2 = ri(2, 9), p1 = ri(2, 5), p2, op;
+        if (L === 1) { op = pick(['×', '÷', '+', M]); if (op === '+' || op === M) { p2 = p1; } else { p2 = ri(2, 5); } if (op === '÷') { a1 = a2 * ri(2, 4); } if (op === M && a1 <= a2) { a1 = a2 + ri(1, 4); } } else { op = pick(['+', M]); p2 = p1 + pick([-1, 1]); }
+        const N1 = a1 * Math.pow(10, p1), N2 = a2 * Math.pow(10, p2); let N; if (op === '×') N = N1 * N2; else if (op === '÷') N = N1 / N2; else if (op === '+') N = N1 + N2; else N = N1 - N2;
+        if (!(N > 0)) return genNotationSci(diff);
+        const nm = norm(N), a = Math.round(nm[0] * 1e6) / 1e6, n = nm[1];
+        return { q: 'Calcule, puis écris en notation scientifique : ' + a1 + ' · 10' + sup(p1) + ' ' + op + ' ' + a2 + ' · 10' + sup(p2), fields: [{ label: 'a', e: a, tol: 0.01 }, { label: 'n', e: n }], sol: '= ' + trimNum(a) + ' · 10' + sup(n), _sci: [N, a, n] };
+    }
+    function genProbabilites(diff) {
+        const L = lvl(diff); const ctx = pick(['de', 'billes', 'roue', 'carte']); let q, fav, tot;
+        if (ctx === 'de') { tot = 6; if (L === 0) { const k = ri(1, 6); fav = 1; q = 'On lance un dé à six faces. Probabilité d’obtenir un ' + k + ' ?'; } else if (L === 1) { const o = pick([['un nombre pair', 3], ['un nombre impair', 3], ['un nombre supérieur à 4', 2], ['un multiple de 3', 2]]); fav = o[1]; q = 'On lance un dé. Probabilité d’obtenir ' + o[0] + ' ?'; } else { const o = pick([['un nombre différent de 6', 5], ['un nombre au moins égal à 3', 4], ['un nombre pair ou égal à 5', 4]]); fav = o[1]; q = 'On lance un dé. Probabilité d’obtenir ' + o[0] + ' ?'; } }
+        else if (ctx === 'billes') { const r = ri(2, 7), b = ri(2, 7), v = ri(0, 5); tot = r + b + v; const desc = r + ' rouges, ' + b + ' bleues' + (v ? ' et ' + v + ' vertes' : ''); if (L === 0) { const c = pick([['rouge', r], ['bleue', b]].concat(v ? [['verte', v]] : [])); fav = c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille ' + c[0] + ' ?'; } else if (L === 1) { const c = pick([['rouge', r], ['bleue', b]]); fav = tot - c[1]; q = 'Un sac contient ' + desc + '. Probabilité de tirer une bille qui n’est pas ' + c[0] + ' ?'; } else { fav = r + b; q = 'Un sac contient ' + desc + '. Probabilité de tirer une rouge ou une bleue ?'; } }
+        else if (ctx === 'roue') { const nn = pick([6, 8, 10, 12]); tot = nn; if (L === 0) { fav = 1; q = 'Une roue a ' + nn + ' secteurs égaux numérotés. Probabilité de tomber sur le 1 ?'; } else if (L === 1) { const k = ri(2, Math.floor(nn / 2)); fav = k; q = 'Une roue de ' + nn + ' secteurs égaux a ' + k + ' secteurs rouges. Probabilité du rouge ?'; } else { const k = ri(2, Math.floor(nn / 2)); fav = nn - k; q = 'Une roue de ' + nn + ' secteurs égaux a ' + k + ' secteurs rouges. Probabilité de NE PAS avoir rouge ?'; } }
+        else { const nn = pick([10, 12, 20]); tot = nn; if (L === 0) { const k = ri(1, nn); fav = 1; q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité de tirer le ' + k + ' ?'; } else if (L === 1) { fav = Math.floor(nn / 2); q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité d’un nombre pair ?'; } else { const m = pick([3, 4, 5]); fav = Math.floor(nn / m); q = 'On tire une carte numérotée de 1 à ' + nn + '. Probabilité d’un multiple de ' + m + ' ?'; } }
+        const g = gcd(fav, tot); return { q: q + ' (réponse en fraction)', fields: [{ frac: true, instr: 1, e: fav / tot }], sol: 'P = ' + fr(fav, tot) + (g > 1 ? ' = ' + fr(fav / g, tot / g) : ''), _prob: [fav, tot] };
+    }
 
     function genProportion() { const k = ri(2, 9), a = ri(2, 9), c = a * k; let d = ri(2, 9); while (d === a) d = ri(2, 9); return { q: 'Si ' + a + ' objets coûtent ' + c + ' fr., combien coûtent ' + d + ' objets (même prix unitaire) ?', fields: [{ label: 'prix (fr.)', e: d * k }], sol: 'Prix unitaire = ' + c + ' ÷ ' + a + ' = ' + k + ' fr. ; ' + d + ' × ' + k + ' = ' + (d * k) + ' fr.' }; }
     function genPourcentages() { const T = [() => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + ' % de ' + n, e: p / 100 * n }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + ' %', e: n * (1 + a / 100) }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + ' %', e: n * (1 - a / 100) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: '= ' + t.e }; }
@@ -243,7 +348,7 @@
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
-        { code: 'NO', name: 'Nombres et opérations', col: '#4F46E5' },
+        { code: 'NO', name: 'Nombres et opérations', col: '#DC2626' },
         { code: 'FA', name: 'Fonctions et algèbre', col: '#DB2777' },
         { code: 'ES', name: 'Espace', col: '#2563EB' },
         { code: 'GM', name: 'Grandeurs et mesures', col: '#059669' },
@@ -255,10 +360,10 @@
         { id: 'fraction_vis', dom: 'NO', nm: 'Fractions (visuel)', icon: 'fa-chart-pie', years: [9, 10], ds: 'Lire une fraction sur une figure', vis: 1 },
         { id: 'puissances', dom: 'NO', nm: 'Puissances', icon: 'fa-superscript', years: [10, 11], ds: 'Carrés, cubes et lois des puissances' },
         { id: 'racines', dom: 'NO', nm: 'Racines carrées', icon: 'fa-square-root-variable', years: [10, 11], ds: 'Racines de carrés parfaits' },
-        { id: 'diviseurs', dom: 'NO', nm: 'PGCD et PPCM', icon: 'fa-list-ol', years: [9, 10, 11], ds: 'Diviseurs et multiples communs' },
+        { id: 'diviseurs', dom: 'NO', nm: 'PGDC et PPMC', icon: 'fa-list-ol', years: [9, 10, 11], ds: 'Diviseurs et multiples communs' },
         { id: 'ecritures', dom: 'NO', nm: 'Fraction · décimal · %', icon: 'fa-right-left', years: [9, 10, 11], ds: 'Passer d’une écriture à l’autre' },
         { id: 'notation_sci', dom: 'NO', nm: 'Notation scientifique', icon: 'fa-flask', years: [10, 11], ds: 'Écrire a · 10ⁿ' },
-        { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', years: [11], ds: 'Situations aléatoires simples' },
+        { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', years: [11], ds: 'Dés, billes, roue, cartes' },
         { id: 'proportion', dom: 'FA', nm: 'Proportionnalité', icon: 'fa-scale-balanced', years: [9, 10, 11], ds: 'Règle de trois, prix unitaire' },
         { id: 'pourcentages', dom: 'FA', nm: 'Pourcentages', icon: 'fa-percent', years: [10, 11], ds: 'Hausses et baisses' },
         { id: 'substitution', dom: 'FA', nm: 'Valeur numérique', icon: 'fa-pen-nib', years: [9, 10, 11], ds: 'Substituer des nombres aux lettres' },
@@ -287,7 +392,7 @@
     const domColor = code => (DOMAINS.find(d => d.code === code) || {}).col || '#6366F1';
 
     // ====== État + UI ======
-    let curYear = 0, selTheme = null, series = [];
+    let curYear = 0, selTheme = null, series = [], curDiff = 'moyen';
     const themeById = id => THEMES.find(t => t.id === id);
 
     function renderDomains() {
@@ -295,10 +400,10 @@
         DOMAINS.forEach(dom => {
             const list = THEMES.filter(t => t.dom === dom.code && (!curYear || t.years.includes(curYear)));
             if (!list.length) return;
-            html += '<div class="mx-dom"><div class="mx-dom-head"><span class="mx-dom-code" style="background:' + dom.col + '">' + dom.code + '</span><span class="mx-dom-name">' + dom.name + '</span></div><div class="mx-grid">';
+            html += '<div class="mx-dom"><div class="mx-dom-head"><span class="mx-dom-code" style="background:' + dom.col + '">' + dom.code + '</span><span class="mx-dom-name" style="color:' + dom.col + '">' + dom.name + '</span></div><div class="mx-grid">';
             html += list.map(t => '<button class="mx-card' + (selTheme === t.id ? ' sel' : '') + '" data-id="' + t.id + '" type="button">' +
                 '<span class="mx-ico" style="background:' + dom.col + '"><i class="fas ' + t.icon + '"></i></span>' +
-                '<span class="nm">' + t.nm + '</span><span class="ds">' + t.ds + '</span>' +
+                '<span class="nm" style="color:' + dom.col + '">' + t.nm + '</span><span class="ds">' + t.ds + '</span>' +
                 '<span class="mx-badges">' + t.years.map(y => '<span class="mx-badge">' + y + 'H</span>').join('') + (t.inter ? '<span class="mx-tagi">interactif</span>' : (t.vis ? '<span class="mx-tagi">visuel</span>' : '')) + '</span>' +
                 '</button>').join('');
             html += '</div></div>';
@@ -307,8 +412,24 @@
         $('domains').querySelectorAll('.mx-card').forEach(c => c.addEventListener('click', () => selectTheme(c.dataset.id)));
     }
 
-    function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 40) { guard++; const ex = gen(); if (seen.has(ex.q)) continue; seen.add(ex.q); arr.push(ex); } return arr; }
+    function exSig(ex) { if (ex.interactive) return ex.q + JSON.stringify(ex.target); return ex.q + '#' + (ex.svg || '') + '#' + ex.fields.map(f => f.type ? (f.base + '/' + f.exp + '/' + f.coef + '/' + f.rad) : f.e).join(','); }
+    function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 60) { guard++; const ex = gen(curDiff); const k = exSig(ex); if (seen.has(k)) continue; seen.add(k); arr.push(ex); } return arr; }
 
+    function fieldType(f) { return f.type === 'pow' ? 'pow' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
+    function fieldHTML(f, i, j) {
+        const t = fieldType(f); const before = f.label ? f.label + ' ' : ''; const after = f.suffix ? ' ' + f.suffix : '';
+        const ph = t === 'pow' ? 'ex. 3^7' : t === 'root' ? 'ex. 4r3' : t === 'frac' ? 'ex. 3/4' : '';
+        let hint = ''; if (t === 'pow') hint = '<span class="mx-fhint">base<b>^</b>exposant</span>'; else if (t === 'root') hint = '<span class="mx-fhint">utilise <b>r</b> (ex. 4r3)</span>'; else if (t === 'frac') hint = '<span class="mx-fhint">avec <b>/</b></span>';
+        const prev = t !== 'num' ? '<span class="mx-prev" id="prev-' + i + '-' + j + '"></span>' : '';
+        return '<span class="mx-fld">' + before + '<input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="' + ph + '" data-i="' + i + '" data-j="' + j + '" data-t="' + t + '">' + after + prev + hint + '</span>';
+    }
+    function updatePreview(inp) {
+        const prev = $('prev-' + inp.dataset.i + '-' + inp.dataset.j); if (!prev) return;
+        const v = inp.value.trim(), t = inp.dataset.t; if (!v) { prev.innerHTML = ''; return; }
+        if (t === 'pow') { const p = v.replace(/\s/g, '').replace(/−/g, '-').split('^'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + pw(p[0], p[1]) : ''; }
+        else if (t === 'root') { const p = v.toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-').split('r'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + (p[0] || '') + sq(p[1]) : ''; }
+        else { const p = v.replace(/\s/g, '').split('/'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + fr(p[0], p[1]) : ''; }
+    }
     function renderSeries() {
         $('exList').innerHTML = series.map((ex, i) => {
             const fig = ex.svg ? ex.svg : '';
@@ -316,14 +437,14 @@
             if (ex.interactive === 'point') {
                 body = '<div class="mx-hint">Clique dans le repère pour placer le point.</div>';
             } else {
-                body = '<div class="mx-fields">' + ex.fields.map((f, j) => '<span class="mx-fld">' + f.label + ' <input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" data-i="' + i + '" data-j="' + j + '"></span>').join('') + '</div>';
+                body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
             return '<div class="mx-ex" id="ex-' + i + '"><span class="mx-num">' + (i + 1) + '</span>' +
                 '<span class="mx-q">' + ex.q + '</span>' + (fig ? '<div style="grid-column:2">' + fig + '</div>' : '') +
                 body + '<div class="mx-sol" id="sol-' + i + '" hidden></div></div>';
         }).join('');
-        // inputs : Entrée = corriger
-        $('exList').querySelectorAll('.mx-input').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } }));
+        // inputs : Entrée = corriger ; aperçu live pour pow/root/frac
+        $('exList').querySelectorAll('.mx-input').forEach(inp => { inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } }); if (inp.dataset.t !== 'num') inp.addEventListener('input', () => updatePreview(inp)); });
         // grilles interactives : clic = placer le point
         series.forEach((ex, i) => {
             if (ex.interactive !== 'point') return;
@@ -344,7 +465,13 @@
     function selectTheme(id) { selTheme = id; renderDomains(); const t = themeById(id); $('wsTitle').innerHTML = '<span class="mx-ico" style="background:' + domColor(t.dom) + '"><i class="fas ' + t.icon + '"></i></span>' + t.nm; $('worksheet').hidden = false; newSeries(); $('worksheet').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
     function parseNum(str) { if (str == null) return NaN; str = String(str).trim().replace(/\s/g, '').replace(',', '.').replace(/−/g, '-'); if (str === '') return NaN; if (str.indexOf('/') !== -1) { const p = str.split('/'); return parseFloat(p[0]) / parseFloat(p[1]); } return parseFloat(str); }
-    function checkField(f, val) { const g = parseNum(val); if (isNaN(g) || !isFinite(g)) return false; return Math.abs(g - f.e) <= (f.tol || 0.01) + 1e-9; }
+    function parsePow(s) { s = String(s).replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('^'); return { base: parseFloat(p[0]), exp: parseFloat(p[1]) }; }
+    function parseRoot(s) { s = String(s).toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('r'); return { coef: p[0] === '' ? 1 : parseFloat(p[0]), rad: parseFloat(p[1]) }; }
+    function checkField(f, val) {
+        if (f.type === 'pow') { const p = parsePow(val); return p.base === f.base && p.exp === f.exp; }
+        if (f.type === 'root') { const p = parseRoot(val); return p.coef === f.coef && p.rad === f.rad; }
+        const g = parseNum(val); if (isNaN(g) || !isFinite(g)) return false; return Math.abs(g - f.e) <= (f.tol || 0.01) + 1e-9;
+    }
 
     function correct() {
         if (!series.length) return;
@@ -370,6 +497,7 @@
     }
 
     $('yearChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => { curYear = parseInt(ch.dataset.y, 10); $('yearChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active')); ch.classList.add('active'); renderDomains(); }));
+    $('diffSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { curDiff = b.dataset.d; $('diffSeg').querySelectorAll('button').forEach(x => x.classList.remove('active')); b.classList.add('active'); newSeries(); }));
     $('btnNew').addEventListener('click', newSeries);
     $('btnCheck').addEventListener('click', correct);
     $('btnPrint').addEventListener('click', () => window.print());
