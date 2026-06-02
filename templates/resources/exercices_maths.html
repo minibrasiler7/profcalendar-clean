@@ -87,6 +87,13 @@
     .mx-prev { color: #4338CA; font-size: 0.95rem; margin-left: .15rem; }
     .mx-fhint { color: #9CA3AF; font-size: 0.74rem; margin-left: .2rem; }
     .mx-fhint b { color: #6B7280; }
+    .mx-fld-wide { width: 100%; flex-wrap: wrap; }
+    .mx-input-wide { width: 300px; max-width: 100%; text-align: left; font-family: 'Courier New', monospace; }
+    .mx-sys { display: flex; align-items: stretch; gap: 0.45rem; margin: 0.4rem 0; font-size: 1.05rem; color: #1F2937; }
+    .mx-brace { font-size: 2.5rem; color: #EA580C; line-height: 1; font-weight: 300; }
+    .mx-sys-eqs { display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; }
+    .mx-sys-eqs > div { display: flex; align-items: center; gap: 0.6rem; }
+    .mx-sys-n { color: #9CA3AF; font-size: 0.85rem; }
     @media (max-width: 560px) { .mx-wrap h1 { font-size: 1.6rem; } .mx-ws-title { margin-right: 0; width: 100%; } }
     @media print {
         .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab, .mx-years, .mx-dom, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
@@ -215,6 +222,46 @@
     function isPerfectPower(V) { if (V < 4) return false; for (let b = 2; b <= Math.log2(V) + 1; b++) { const a = Math.round(Math.pow(V, 1 / b)); for (const aa of [a - 1, a, a + 1]) if (aa >= 2 && Math.pow(aa, b) === V) return true; } return false; }
     function parsePowNumVal(s) { s = String(s).replace(/\s/g, '').replace(/−/g, '-'); if (s.indexOf('^') !== -1) { const p = s.split('^'); return Math.pow(parseFloat(p[0]), parseFloat(p[1])); } return parseFloat(s); }
 
+    // ====== Polynômes (FA) : évaluateur + égalité par évaluation multi-points ======
+    const pm = () => pick([-5, -4, -3, -2, 2, 3, 4, 5]);
+    function evalPoly(str, xv) {
+        let t = String(str).replace(/\s+/g, '').replace(/−/g, '-').replace(/²/g, '^2').replace(/³/g, '^3');
+        t = t.replace(/(\d)x/g, '$1*x').replace(/(\d)\(/g, '$1*(').replace(/\)\(/g, ')*(').replace(/\)x/g, ')*x').replace(/x\(/g, 'x*(').replace(/\)(\d)/g, ')*$1');
+        const toks = t.match(/\d+\.?\d*|x|[+\-*/^()]/g); if (!toks) return NaN;
+        const out = [], ops = [], prec = { '+': 1, '-': 1, '*': 2, '/': 2, 'u': 3, '^': 4 }, right = { '^': 1, 'u': 1 };
+        const pop = () => { const op = ops.pop(); if (op === 'u') { out.push(-out.pop()); } else { const b = out.pop(), a = out.pop(); out.push(op === '+' ? a + b : op === '-' ? a - b : op === '*' ? a * b : op === '/' ? a / b : Math.pow(a, b)); } };
+        let prev = null;
+        for (let tk of toks) {
+            if (/^\d/.test(tk)) { out.push(parseFloat(tk)); prev = 'n'; }
+            else if (tk === 'x') { out.push(xv); prev = 'n'; }
+            else if (tk === '(') { ops.push(tk); prev = '('; }
+            else if (tk === ')') { while (ops.length && ops[ops.length - 1] !== '(') pop(); ops.pop(); prev = 'n'; }
+            else { if (tk === '-' && (prev === null || prev === 'o' || prev === '(')) tk = 'u'; while (ops.length && ops[ops.length - 1] !== '(' && (right[tk] ? prec[ops[ops.length - 1]] > prec[tk] : prec[ops[ops.length - 1]] >= prec[tk])) pop(); ops.push(tk); prev = 'o'; }
+        }
+        while (ops.length) pop();
+        return out.length === 1 ? out[0] : NaN;
+    }
+    function polyEval(p, x) { let s = 0; for (const d in p) s += p[d] * Math.pow(x, +d); return s; }
+    function polyEq(studentStr, p) { for (const x of [-3, -2, -1, 0, 1, 2, 3, 4, 5]) { const sv = evalPoly(studentStr, x); if (!isFinite(sv) || Math.abs(sv - polyEval(p, x)) > 1e-6) return false; } return true; }
+    function polyClean(p) { const q = {}; for (const d in p) if (Math.abs(p[d]) > 1e-9) q[d] = p[d]; return q; }
+    function polyAdd(a, b, sub) { const r = {}; for (const d in a) r[d] = (r[d] || 0) + a[d]; for (const d in b) r[d] = (r[d] || 0) + (sub ? -b[d] : b[d]); return polyClean(r); }
+    function polyMul(a, b) { const r = {}; for (const i in a) for (const j in b) { const d = +i + +j; r[d] = (r[d] || 0) + a[i] * b[j]; } return polyClean(r); }
+    function fmtPoly(p, useSup) {
+        const ds = Object.keys(p).map(Number).filter(d => p[d] !== 0).sort((a, b) => b - a);
+        if (!ds.length) return '0';
+        let s = '';
+        ds.forEach((d, i) => { const c = p[d], ac = Math.abs(c); const xp = d === 0 ? '' : 'x' + (d >= 2 ? (useSup ? '<sup>' + d + '</sup>' : '^' + d) : ''); const term = (ac === 1 && d !== 0 ? '' : '' + ac) + xp; if (i === 0) s += (c < 0 ? (useSup ? M : '-') : '') + term; else s += (c < 0 ? (useSup ? ' ' + M + ' ' : '-') : (useSup ? ' + ' : '+')) + term; });
+        return s;
+    }
+    const fmtP = p => fmtPoly(p, true);
+    const inP = p => fmtPoly(p, false);
+    function fmtFlat(terms) { let s = ''; terms.forEach((t, i) => { const c = t.c, ac = Math.abs(c); const xp = t.d === 0 ? '' : 'x' + (t.d >= 2 ? '<sup>' + t.d + '</sup>' : ''); const mono = (ac === 1 && t.d !== 0 ? '' : '' + ac) + xp; if (i === 0) s += (c < 0 ? M : '') + mono; else s += (c < 0 ? ' ' + M + ' ' : ' + ') + mono; }); return s; }
+    function cf(a) { return a === 1 ? 'x' : a === -1 ? M + 'x' : a + 'x'; }
+    function sgn(b) { return b < 0 ? M + ' ' + Math.abs(b) : '+ ' + b; }
+    function cvy(b) { return b === 1 ? 'y' : b + 'y'; }
+    function ex(q, poly, def) { return { q: q, fields: [{ type: 'expr', poly: poly }], sol: '= ' + fmtP(poly), _def: def, _poly: poly, _ansIn: inP(poly) }; }
+    function exF(q, poly, def, ansIn) { return { q: q, fields: [{ type: 'expr', poly: poly, paren: true }], sol: '= ' + ansIn, _def: def, _poly: poly, _ansIn: ansIn, _factor: true }; }
+
     // ====== SVG ======
     function gridSVG(points, interactive) {
         const R = 5, s = 24, pad = 16, W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s;
@@ -252,6 +299,17 @@
         s += '<line x1="' + padL + '" y1="14" x2="' + padL + '" y2="' + base + '" stroke="#475569"/><line x1="' + padL + '" y1="' + base + '" x2="' + (W - 8) + '" y2="' + base + '" stroke="#475569"/>';
         labels.forEach((lb, i) => { const h = (vals[i] / max) * 84, x = padL + 8 + i * (bw + gap); s += '<rect x="' + x + '" y="' + (base - h) + '" width="' + bw + '" height="' + h + '" rx="2" fill="' + (i === hi ? '#F59E0B' : '#6366F1') + '"/>'; s += '<text x="' + (x + bw / 2) + '" y="' + (base + 12) + '" font-size="10" text-anchor="middle" fill="#334155">' + lb + '</text>'; });
         return s + '</svg>';
+    }
+
+    function lineSVG(a, b, markK) {
+        const R = 5, s = 24, pad = 16, W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s;
+        let g = '<svg class="mx-grid-svg" viewBox="0 0 ' + W + ' ' + W + '">';
+        for (let i = -R; i <= R; i++) { const xp = cx + i * s, yp = cy - i * s, c = i === 0 ? '#475569' : '#E2E8F0', w = i === 0 ? 1.4 : 1; g += '<line x1="' + xp + '" y1="' + pad + '" x2="' + xp + '" y2="' + (W - pad) + '" stroke="' + c + '" stroke-width="' + w + '"/><line x1="' + pad + '" y1="' + yp + '" x2="' + (W - pad) + '" y2="' + yp + '" stroke="' + c + '" stroke-width="' + w + '"/>'; }
+        for (let i = -R; i <= R; i++) if (i !== 0) { g += '<text x="' + (cx + i * s) + '" y="' + (cy + 11) + '" font-size="8" fill="#94A3B8" text-anchor="middle">' + i + '</text><text x="' + (cx - 8) + '" y="' + (cy - i * s + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + i + '</text>'; }
+        const px = mx => cx + mx * s, py = my => cy - my * s;
+        g += '<line x1="' + px(-R) + '" y1="' + py(a * -R + b) + '" x2="' + px(R) + '" y2="' + py(a * R + b) + '" stroke="#DC2626" stroke-width="2.5"/>';
+        if (markK !== null && markK !== undefined) { const fk = a * markK + b; g += '<line x1="' + px(markK) + '" y1="' + py(0) + '" x2="' + px(markK) + '" y2="' + py(fk) + '" stroke="#6366F1" stroke-width="1.2" stroke-dasharray="4 3"/><line x1="' + px(0) + '" y1="' + py(fk) + '" x2="' + px(markK) + '" y2="' + py(fk) + '" stroke="#6366F1" stroke-width="1.2" stroke-dasharray="4 3"/><circle cx="' + px(markK) + '" cy="' + py(fk) + '" r="4" fill="#6366F1"/><text x="' + (px(markK) + 5) + '" y="' + (py(0) - 4) + '" font-size="10" font-weight="700" fill="#4338CA">' + markK + '</text>'; }
+        return g + '</svg>';
     }
 
     // ====== Générateurs (validés Node : 0 erreur / 18'600 tirages + vérifs indépendantes) ======
@@ -371,17 +429,91 @@
         const g = gcd(fav, tot); return { q: q + ' (réponse en fraction)', fields: [{ frac: true, instr: 1, e: fav / tot }], sol: 'P = ' + fr(fav, tot) + (g > 1 ? ' = ' + fr(fav / g, tot / g) : ''), _prob: [fav, tot] };
     }
 
-    function genProportion() { const k = ri(2, 9), a = ri(2, 9), c = a * k; let d = ri(2, 9); while (d === a) d = ri(2, 9); return { q: 'Si ' + a + ' objets coûtent ' + c + ' fr., combien coûtent ' + d + ' objets (même prix unitaire) ?', fields: [{ label: 'prix (fr.)', e: d * k }], sol: 'Prix unitaire = ' + c + ' ÷ ' + a + ' = ' + k + ' fr. ; ' + d + ' × ' + k + ' = ' + (d * k) + ' fr.' }; }
-    function genPourcentages() { const T = [() => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + ' % de ' + n, e: p / 100 * n }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + ' %', e: n * (1 + a / 100) }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + ' %', e: n * (1 - a / 100) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: '= ' + t.e }; }
-    function genSubstitution() { const x = ri(-6, 8), b = ri(2, 9), h = ri(2, 9), a = ri(2, 6), cc = ri(2, 6); const T = [() => ({ ex: '4x + 5', sub: 'x = ' + x, v: 4 * x + 5 }), () => ({ ex: '3x ' + M + ' 7', sub: 'x = ' + x, v: 3 * x - 7 }), () => ({ ex: 'x²', sub: 'x = ' + x, v: x * x }), () => ({ ex: 'x³', sub: 'x = ' + x, v: x * x * x }), () => ({ ex: '2x² ' + M + ' 1', sub: 'x = ' + x, v: 2 * x * x - 1 }), () => ({ ex: 'a² + b²', sub: 'a = ' + a + ', b = ' + cc, v: a * a + cc * cc }), () => ({ ex: 'abc', sub: 'a = ' + a + ', b = ' + b + ', c = ' + cc, v: a * b * cc })]; const t = pick(T)(); return { q: 'Calcule ' + t.ex + ' pour ' + t.sub + '.', fields: [{ label: '=', e: t.v }], sol: '= ' + t.v }; }
-    function genReduction() { const monos = [{ c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }, { c: pm2(), x: true }, { c: nz(ri(-9, 9)), x: false }]; shuffle(monos); const A = monos.filter(m => m.x).reduce((s, m) => s + m.c, 0), B = monos.filter(m => !m.x).reduce((s, m) => s + m.c, 0); return { q: 'Réduis : ' + fmtMonoSum(monos), fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }], sol: '= ' + fmtLin(A, B) }; }
-    function genDeveloppement() { if (Math.random() < 0.5) { const k = pm2(), a = pm2(), b = nz(ri(-9, 9)), A = k * a, B = k * b; return { q: 'Développe : ' + par(k) + '(' + fmtMonoSum([{ c: a, x: true }, { c: b, x: false }]) + ')', fields: [{ label: 'coefficient de x', e: A }, { label: 'terme constant', e: B }], sol: '= ' + fmtLin(A, B) }; } const a = nz(ri(-7, 7)), b = nz(ri(-7, 7)), B = a + b, C = a * b; return { q: 'Développe : (' + fmtMonoSum([{ c: 1, x: true }, { c: a, x: false }]) + ')(' + fmtMonoSum([{ c: 1, x: true }, { c: b, x: false }]) + ')', fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: B }, { label: 'terme constant', e: C }], sol: '= ' + fmtQuad(B, C) }; }
-    function genIdentites() { const a = ri(2, 9); const T = [() => ({ q: '(x + ' + a + ')²', B: 2 * a, C: a * a }), () => ({ q: '(x ' + M + ' ' + a + ')²', B: -2 * a, C: a * a }), () => ({ q: '(x + ' + a + ')(x ' + M + ' ' + a + ')', B: 0, C: -a * a })]; const f = pick(T)(); return { q: 'Développe (identité remarquable) : ' + f.q, fields: [{ label: 'coef. de x²', e: 1 }, { label: 'coef. de x', e: f.B }, { label: 'constante', e: f.C }], sol: '= ' + fmtQuad(f.B, f.C) }; }
-    function genFactorisation() { const g = ri(2, 8); let a = nz(ri(-6, 6)), b = nz(ri(-9, 9)); while (gcd(a, b) !== 1) { a = nz(ri(-6, 6)); b = nz(ri(-9, 9)); } const A = g * a, B = g * b; return { q: 'Factorise (facteur commun maximal) : ' + fmtLin(A, B), fields: [{ label: 'facteur commun', e: g }, { label: 'coef. de x', e: a }, { label: 'constante', e: b }], sol: '= ' + g + '(' + fmtLin(a, b) + ')' }; }
-    function genEquation() { const a = nz(ri(-6, 6)), x = ri(-8, 8), b = nz(ri(-9, 9)), c = a * x + b; return { q: 'Résous : ' + coefX(a) + ' ' + (b < 0 ? M + ' ' + Math.abs(b) : '+ ' + b) + ' = ' + c, fields: [{ label: 'x =', e: x }], sol: coefX(a) + ' = ' + (c - b) + ' ; x = ' + (c - b) + ' ÷ ' + par(a) + ' = ' + x }; }
-    function genSystemes() { const x = nz(ri(-5, 5)), y = nz(ri(-5, 5)); let a1 = nz(ri(-4, 4)), b1 = nz(ri(-4, 4)), a2 = nz(ri(-4, 4)), b2 = nz(ri(-4, 4)); while (a1 * b2 - a2 * b1 === 0) { a2 = nz(ri(-4, 4)); b2 = nz(ri(-4, 4)); } const c1 = a1 * x + b1 * y, c2 = a2 * x + b2 * y; const eq = (a, b, c) => coefVar(a, 'x') + (b < 0 ? ' ' + M + ' ' + coefVar(Math.abs(b), 'y') : ' + ' + coefVar(b, 'y')) + ' = ' + c; return { q: 'Résous le système :  ' + eq(a1, b1, c1) + '   et   ' + eq(a2, b2, c2), fields: [{ label: 'x =', e: x }, { label: 'y =', e: y }], sol: 'x = ' + x + ' ; y = ' + y }; }
-    function genFonctionImage() { const k = nz(ri(-5, 5)); if (Math.random() < 0.6) { const a = nz(ri(-4, 5)), b = ri(-6, 6); return { q: 'Soit f(x) = ' + fmtLin(a, b) + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ')', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b) }; } const a = nz(ri(-3, 3)); return { q: 'Soit f(x) = ' + coefVar(a, 'x²') + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ')', e: a * k * k }], sol: 'f(' + k + ') = ' + a + '·(' + k + ')² = ' + (a * k * k) }; }
-    function genFonctionAffine() { const a = nz(ri(-4, 4)), b = ri(-6, 6); let x1 = ri(-5, 5), x2 = ri(-5, 5); while (x2 === x1) x2 = ri(-5, 5); const y1 = a * x1 + b, y2 = a * x2 + b; return { q: 'La fonction affine f(x) = ax + b passe par (' + x1 + ' ; ' + y1 + ') et (' + x2 + ' ; ' + y2 + '). Trouve a et b.', fields: [{ label: 'a', e: a }, { label: 'b', e: b }], sol: 'pente a = ' + a + ' ; ordonnée à l’origine b = ' + b }; }
+    function genProportion(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            const ctx = pick([
+                () => { const u = ri(2, 9), a = ri(2, 6), b = ri(3, 8); return { q: a + ' cahiers coûtent ' + (a * u) + ' fr. Combien coûtent ' + b + ' cahiers ?', e: b * u, lab: 'prix (fr.)', u: u, un: 'fr.' }; },
+                () => { const u = ri(2, 9), a = ri(2, 6), b = ri(3, 9); return { q: 'Avec ' + a + ' L d’essence on parcourt ' + (a * u) + ' km. Quelle distance avec ' + b + ' L ?', e: b * u, lab: 'distance (km)', u: u, un: 'km' }; },
+                () => { const u = ri(2, 8), a = ri(2, 5), b = ri(3, 8); return { q: 'Une recette pour ' + a + ' personnes demande ' + (a * u) + ' dl de lait. Combien pour ' + b + ' personnes ?', e: b * u, lab: 'lait (dl)', u: u, un: 'dl' }; },
+            ]); const c = ctx(); return { q: c.q, fields: [{ label: c.lab, e: c.e }], sol: 'Coefficient (par unité) = ' + c.u + ' ' + c.un + ' → ' + c.e + ' ' + c.un, _v: c.e };
+        }
+        if (L === 1) { const ratio = pick([1.5, 2.5, 0.5, 1.25, 3.5]); const a = ri(2, 8); const A = Math.round(a * ratio * 2) / 2; const b = ri(2, 9); return { q: a + ' kg de fruits coûtent ' + A + ' fr. Combien coûtent ' + b + ' kg (même prix au kilo) ?', fields: [{ label: 'prix (fr.)', e: Math.round(b * ratio * 100) / 100, tol: 0.02 }], sol: 'Prix au kilo = ' + A + ' ÷ ' + a + ' = ' + ratio + ' fr. ; ' + b + ' × ' + ratio + ' = ' + (Math.round(b * ratio * 100) / 100) + ' fr.', _v: b * ratio }; }
+        const u1 = ri(2, 6), a1 = ri(2, 5), u2 = ri(2, 6), a2 = ri(2, 5), c1 = ri(2, 6), c2 = ri(2, 6);
+        return { q: a1 + ' stylos coûtent ' + (a1 * u1) + ' fr. et ' + a2 + ' cahiers coûtent ' + (a2 * u2) + ' fr. Combien coûtent ' + c1 + ' stylos et ' + c2 + ' cahiers ?', fields: [{ label: 'prix (fr.)', e: c1 * u1 + c2 * u2 }], sol: 'Stylo : ' + u1 + ' fr. ; cahier : ' + u2 + ' fr. ; ' + c1 + '×' + u1 + ' + ' + c2 + '×' + u2 + ' = ' + (c1 * u1 + c2 * u2) + ' fr.', _v: c1 * u1 + c2 * u2 };
+    }
+    function genPourcentages(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const T = [() => { const p = pick([5, 10, 15, 20, 25, 50, 75]), n = ri(2, 20) * 10; return { q: 'Calcule : ' + p + ' % de ' + n, e: p / 100 * n }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Augmente ' + n + ' de ' + a + ' %', e: n * (1 + a / 100) }; }, () => { const n = ri(4, 40) * 5, a = pick([10, 20, 25, 50]); return { q: 'Diminue ' + n + ' de ' + a + ' %', e: n * (1 - a / 100) }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '=', e: t.e }], sol: '= ' + t.e, _v: t.e }; }
+        if (L === 1) { const n = ri(4, 20) * 50, p = pick([10, 20, 25, 50]), q2 = pick([10, 20, 25, 50]); const T = [() => { const v = n * (1 + p / 100) * (1 - q2 / 100); return { q: 'Un article coûte ' + n + ' fr. Son prix augmente de ' + p + ' %, puis baisse de ' + q2 + ' %. Prix final ?', v: v, sol: n + ' ×' + (1 + p / 100) + ' ×' + (1 - q2 / 100) + ' = ' + v + ' fr.' }; }, () => { const v = n * (1 - p / 100) * (1 - q2 / 100); return { q: 'Un manteau à ' + n + ' fr. est soldé de ' + p + ' %, puis encore de ' + q2 + ' %. Prix final ?', v: v, sol: '= ' + v + ' fr.' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: '= (fr.)', e: t.v, tol: 0.01 }], sol: t.sol, _v: t.v }; }
+        const n = ri(8, 20) * 100, p = pick([10, 25, 50]), q2 = pick([10, 20]), rr = pick([10, 20, 50]); const v = n * (1 + p / 100) * (1 - q2 / 100) * (1 + rr / 100);
+        return { q: 'Un capital de ' + n + ' fr. augmente de ' + p + ' %, puis baisse de ' + q2 + ' %, puis augmente de ' + rr + ' %. Valeur finale ?', fields: [{ label: '= (fr.)', e: v, tol: 0.01 }], sol: n + ' ×' + (1 + p / 100) + ' ×' + (1 - q2 / 100) + ' ×' + (1 + rr / 100) + ' = ' + v + ' fr.', _v: v };
+    }
+    function genSubstitution(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const x = ri(-6, 8), a = ri(2, 6), b = ri(2, 6); const T = [() => ({ ex: '4x + 5', sub: 'x = ' + x, v: 4 * x + 5 }), () => ({ ex: '3x ' + M + ' 7', sub: 'x = ' + x, v: 3 * x - 7 }), () => ({ ex: 'x²', sub: 'x = ' + x, v: x * x }), () => ({ ex: 'a + b', sub: 'a = ' + a + ', b = ' + b, v: a + b })]; const t = pick(T)(); return { q: 'Calcule ' + t.ex + ' pour ' + t.sub + '.', fields: [{ label: '=', e: t.v }], sol: '= ' + t.v, _v: t.v }; }
+        if (L === 1) { const x = ri(-5, 6), a = ri(-4, 6), b = ri(-4, 6); const T = [() => ({ ex: '2x² ' + M + ' 3x + 1', v: 2 * x * x - 3 * x + 1, sub: 'x = ' + x }), () => ({ ex: 'a² + b²', v: a * a + b * b, sub: 'a = ' + a + ', b = ' + b }), () => ({ ex: 'x³ ' + M + ' 2x', v: x * x * x - 2 * x, sub: 'x = ' + x })]; const t = pick(T)(); return { q: 'Évalue ' + t.ex + ' pour ' + t.sub + '.', fields: [{ label: '=', e: t.v }], sol: '= ' + t.v, _v: t.v }; }
+        const a = ri(-4, 5), b = ri(-4, 5), c = ri(2, 5); const T = [() => ({ ex: '2(a ' + M + ' b)² + 3c', v: 2 * (a - b) * (a - b) + 3 * c, sub: 'a = ' + a + ', b = ' + b + ', c = ' + c }), () => ({ ex: 'a²b ' + M + ' ab²', v: a * a * b - a * b * b, sub: 'a = ' + a + ', b = ' + b })]; const t = pick(T)(); return { q: 'Évalue ' + t.ex + ' pour ' + t.sub + '.', fields: [{ label: '=', e: t.v }], sol: '= ' + t.v, _v: t.v };
+    }
+    function genReduction(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const terms = [{ c: pm(), d: 1 }, { c: nz(ri(-9, 9)), d: 0 }, { c: pm(), d: 1 }, { c: nz(ri(-9, 9)), d: 0 }]; shuffle(terms); const p = polyClean(terms.reduce((a, t) => polyAdd(a, { [t.d]: t.c }), {})); return ex('Réduis : ' + fmtFlat(terms), p, x => terms.reduce((s, t) => s + t.c * Math.pow(x, t.d), 0)); }
+        if (L === 1) { const p1 = { 2: pm(), 1: pm(), 0: nz(ri(-6, 6)) }, p2 = { 2: pm(), 1: pm(), 0: nz(ri(-6, 6)) }; const p = polyAdd(p1, p2); return ex('Réduis : (' + fmtP(p1) + ') + (' + fmtP(p2) + ')', p, x => polyEval(p1, x) + polyEval(p2, x)); }
+        const p1 = { 2: pm(), 1: pm(), 0: nz(ri(-6, 6)) }, p2 = { 2: pm(), 1: pm(), 0: nz(ri(-6, 6)) }; const p = polyAdd(p1, p2, true); return ex('Réduis : (' + fmtP(p1) + ') ' + M + ' (' + fmtP(p2) + ')', p, x => polyEval(p1, x) - polyEval(p2, x));
+    }
+    function genDeveloppement(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const k = pm(), a = pm(), b = ri(-9, 9); const p = polyMul({ 0: k }, { 1: a, 0: b }); return ex('Développe : ' + (k < 0 ? '(' + M + Math.abs(k) + ')' : k) + '(' + fmtP({ 1: a, 0: b }) + ')', p, x => k * (a * x + b)); }
+        if (L === 1) { const a = ri(-7, 7), b = ri(-7, 7); const p = polyMul({ 1: 1, 0: a }, { 1: 1, 0: b }); return ex('Développe : (' + fmtP({ 1: 1, 0: a }) + ')(' + fmtP({ 1: 1, 0: b }) + ')', p, x => (x + a) * (x + b)); }
+        if (Math.random() < 0.4) { const a = pm(), b = pm(), c = ri(-5, 5); const p = polyMul({ 1: 1, 0: a }, { 2: 1, 1: b, 0: c }); return ex('Développe : (' + fmtP({ 1: 1, 0: a }) + ')(' + fmtP({ 2: 1, 1: b, 0: c }) + ')', p, x => (x + a) * (x * x + b * x + c)); }
+        const a = pm(), b = ri(-7, 7), c = pm(), d = ri(-7, 7); const p = polyMul({ 1: a, 0: b }, { 1: c, 0: d }); return ex('Développe : (' + fmtP({ 1: a, 0: b }) + ')(' + fmtP({ 1: c, 0: d }) + ')', p, x => (a * x + b) * (c * x + d));
+    }
+    function genIdentites(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = ri(2, 9); const T = [() => ({ s: '(x + ' + a + ')²', p: polyMul({ 1: 1, 0: a }, { 1: 1, 0: a }), f: x => (x + a) * (x + a) }), () => ({ s: '(x ' + M + ' ' + a + ')²', p: polyMul({ 1: 1, 0: -a }, { 1: 1, 0: -a }), f: x => (x - a) * (x - a) }), () => ({ s: '(x + ' + a + ')(x ' + M + ' ' + a + ')', p: polyMul({ 1: 1, 0: a }, { 1: 1, 0: -a }), f: x => (x + a) * (x - a) })]; const t = pick(T)(); return ex('Développe (identité remarquable) : ' + t.s, t.p, t.f); }
+        if (L === 1) { const a = pm(), b = ri(2, 9); const T = [() => ({ s: '(' + fmtP({ 1: a, 0: b }) + ')²', p: polyMul({ 1: a, 0: b }, { 1: a, 0: b }), f: x => (a * x + b) * (a * x + b) }), () => ({ s: '(' + fmtP({ 1: a, 0: b }) + ')(' + fmtP({ 1: a, 0: -b }) + ')', p: polyMul({ 1: a, 0: b }, { 1: a, 0: -b }), f: x => (a * x + b) * (a * x - b) })]; const t = pick(T)(); return ex('Développe (identité remarquable) : ' + t.s, t.p, t.f); }
+        const a = pm(), b = ri(2, 7), c = pm(), d = ri(2, 7); const p1 = polyMul({ 1: a, 0: b }, { 1: a, 0: b }), p2 = polyMul({ 1: c, 0: d }, { 1: c, 0: d }); const p = polyAdd(p1, p2, true); return ex('Développe et réduis : (' + fmtP({ 1: a, 0: b }) + ')² ' + M + ' (' + fmtP({ 1: c, 0: d }) + ')²', p, x => (a * x + b) * (a * x + b) - (c * x + d) * (c * x + d));
+    }
+    function genFactorisation(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const g = ri(2, 8); let a = nz(ri(-6, 6)), b = nz(ri(-9, 9)); while (gcd(a, b) !== 1) { a = nz(ri(-6, 6)); b = nz(ri(-9, 9)); } const p = { 1: g * a, 0: g * b }; return exF('Factorise (mets en évidence) : ' + fmtP(p), p, x => g * a * x + g * b, g + '(' + inP({ 1: a, 0: b }) + ')'); }
+        if (L === 1) { const a = ri(2, 6), b = nz(ri(-6, 6)); const p = { 2: a, 1: a * b }; return exF('Factorise : ' + fmtP(p), p, x => a * x * x + a * b * x, a + 'x(' + inP({ 1: 1, 0: b }) + ')'); }
+        if (Math.random() < 0.5) { const a = ri(2, 9); const p = { 2: 1, 0: -a * a }; return exF('Factorise : ' + fmtP(p), p, x => x * x - a * a, '(x-' + a + ')(x+' + a + ')'); }
+        const r = nz(ri(-7, 7)), s = nz(ri(-7, 7)); const p = polyMul({ 1: 1, 0: -r }, { 1: 1, 0: -s }); return exF('Factorise : ' + fmtP(p), p, x => (x - r) * (x - s), '(x' + (r < 0 ? '+' + (-r) : '-' + r) + ')(x' + (s < 0 ? '+' + (-s) : '-' + s) + ')');
+    }
+    function genEquation(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = nz(ri(-6, 6)), x = ri(-8, 8), b = nz(ri(-9, 9)), c = a * x + b; return { q: 'Résous : ' + cf(a) + ' ' + sgn(b) + ' = ' + c, fields: [{ label: 'x =', e: x }], sol: 'x = ' + x, _v: x, _eq: [a, b, c, x] }; }
+        if (L === 1) { const a = nz(ri(-5, 5)), d = nz(ri(-5, 5)); let c2 = a; while (c2 === a) c2 = nz(ri(-5, 5)); const x = ri(-6, 6); const b = ri(-8, 8); const e = (a - c2) * x + b - d; return { q: 'Résous : ' + cf(a) + ' ' + sgn(b) + ' = ' + cf(c2) + ' ' + sgn(d + e), fields: [{ label: 'x =', e: x }], sol: 'x = ' + x, _v: x, _bothsides: [a, b, c2, d + e, x] }; }
+        if (Math.random() < 0.5) { const a = nz(ri(2, 5)), b = ri(-5, 5); let c = nz(ri(2, 5)); while (c === a) c = nz(ri(2, 5)); const x = ri(-6, 6); const rhs = a * (x + b) - c * (x - 2); return { q: 'Résous : ' + a + '(x ' + sgn(b) + ') ' + M + ' ' + c + '(x ' + M + ' 2) = ' + rhs, fields: [{ label: 'x =', e: x }], sol: 'x = ' + x, _v: x, _paren: [a, b, c, 2, rhs, x] }; }
+        const k = pick([2, 3, 4, 5]), x = k * ri(-4, 4), b = ri(-6, 6), c = x / k + b; return { q: 'Résous : ' + fr('x', k) + ' ' + sgn(b) + ' = ' + c, fields: [{ label: 'x =', e: x }], sol: 'x = ' + x, _v: x, _frac: [k, b, c, x] };
+    }
+    function genSystemes(diff) {
+        const L = lvl(diff); const x = nz(ri(-5, 5)), y = nz(ri(-5, 5));
+        let a1, b1, a2, b2;
+        if (L === 0) { a1 = nz(ri(-3, 3)); b1 = nz(ri(-3, 3)); a2 = nz(ri(-3, 3)); b2 = nz(ri(-3, 3)); } else if (L === 1) { a1 = nz(ri(-5, 5)); b1 = nz(ri(-5, 5)); a2 = nz(ri(-5, 5)); b2 = nz(ri(-5, 5)); } else { a1 = nz(ri(-6, 6)); b1 = nz(ri(-6, 6)); a2 = nz(ri(-6, 6)); b2 = nz(ri(-6, 6)); }
+        while (a1 * b2 - a2 * b1 === 0) { a2 = nz(ri(-6, 6)); b2 = nz(ri(-6, 6)); }
+        const c1 = a1 * x + b1 * y, c2 = a2 * x + b2 * y;
+        const eqs = (a, b, c) => cf(a) + ' ' + (b < 0 ? M + ' ' + cvy(Math.abs(b)) : '+ ' + cvy(b)) + ' = ' + c;
+        return { q: 'Résous le système :', sys: [eqs(a1, b1, c1), eqs(a2, b2, c2)], fields: [{ label: 'x =', e: x }, { label: 'y =', e: y }], sol: 'x = ' + x + ' ; y = ' + y, _sys: [[a1, b1, c1], [a2, b2, c2], x, y] };
+    }
+    function genFonctionImage(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = nz(ri(-4, 5)), b = ri(-6, 6), k = nz(ri(-5, 5)); return { q: 'Soit f(x) = ' + fmtP({ 1: a, 0: b }) + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ') =', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b), _v: a * k + b }; }
+        if (L === 1) { const a = nz(ri(-3, 3)), b = nz(ri(-4, 4)), c = ri(-5, 5), k = nz(ri(-4, 4)); return { q: 'Soit f(x) = ' + fmtP({ 2: a, 1: b, 0: c }) + '. Calcule f(' + k + ').', fields: [{ label: 'f(' + k + ') =', e: a * k * k + b * k + c }], sol: 'f(' + k + ') = ' + (a * k * k + b * k + c), _v: a * k * k + b * k + c }; }
+        const a = nz(ri(-5, 5)), x0 = ri(-7, 7), b = ri(-6, 6), y = a * x0 + b; return { q: 'Soit f(x) = ' + fmtP({ 1: a, 0: b }) + '. Trouve l’antécédent de ' + y + ' (le x tel que f(x) = ' + y + ').', fields: [{ label: 'x =', e: x0 }], sol: 'x = ' + x0, _v: x0, _pre: [a, b, y, x0] };
+    }
+    function genFonctionAffine(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const a = nz(ri(-4, 4)), b = ri(-6, 6); return { q: 'Une droite a une pente de ' + a + ' et coupe l’axe des y en ' + b + '. Donne f(x) = ax + b : trouve a et b.', fields: [{ label: 'a =', e: a }, { label: 'b =', e: b }], sol: 'a = ' + a + ' ; b = ' + b, _v: [a, b] }; }
+        if (L === 1) { const a = nz(ri(-4, 4)), b = ri(-6, 6); let x1 = ri(-5, 5), x2 = ri(-5, 5); while (x2 === x1) x2 = ri(-5, 5); return { q: 'La fonction affine f passe par (' + x1 + ' ; ' + (a * x1 + b) + ') et (' + x2 + ' ; ' + (a * x2 + b) + '). Trouve a et b.', fields: [{ label: 'a =', e: a }, { label: 'b =', e: b }], sol: 'a = ' + a + ' ; b = ' + b, _v: [a, b] }; }
+        const a = nz(ri(-4, 4)), b = nz(ri(-6, 6)); const xint = -b / a; return { q: 'La droite f(x) = ' + fmtP({ 1: a, 0: b }) + ' coupe l’axe des x en quel point ? (donne x tel que f(x) = 0)', fields: [{ label: 'x =', e: xint, tol: 0.02, frac: true }], sol: 'x = ' + M + b + ' ÷ ' + a + ' = ' + (Math.round(xint * 100) / 100), _v: xint };
+    }
+    function genGraphFn(diff) {
+        const L = lvl(diff); const a = nz(ri(-3, 3)), b = ri(-4, 4);
+        if (L < 2) { let k = ri(-4, 4); while (Math.abs(a * k + b) > 6) k = ri(-3, 3); return { q: 'Lis la valeur de f(' + k + ') sur le graphique de la fonction affine f.', svg: lineSVG(a, b, k), fields: [{ label: 'f(' + k + ') =', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b), _v: a * k + b }; }
+        return { q: 'D’après le graphique, quelle est la pente a de la droite ?', svg: lineSVG(a, b, null), fields: [{ label: 'a =', e: a }], sol: 'pente a = ' + a, _v: a };
+    }
 
     function genAngles() { const T = [() => { const a = ri(30, 100), b = ri(20, 150 - a); return { q: 'Dans un triangle, deux angles mesurent ' + a + '° et ' + b + '°. Mesure du troisième angle ?', e: 180 - a - b, sol: '180° − ' + a + '° − ' + b + '° = ' + (180 - a - b) + '°' }; }, () => { const a = ri(20, 150); return { q: 'Angle supplémentaire d’un angle de ' + a + '° ?', e: 180 - a, sol: '180° − ' + a + '° = ' + (180 - a) + '°' }; }, () => { const a = ri(10, 80); return { q: 'Angle complémentaire d’un angle de ' + a + '° ?', e: 90 - a, sol: '90° − ' + a + '° = ' + (90 - a) + '°' }; }, () => { const c = ri(20, 88) * 2; return { q: 'Un angle au centre mesure ' + c + '°. Mesure de l’angle inscrit interceptant le même arc ?', e: c / 2, sol: c + '° ÷ 2 = ' + (c / 2) + '°' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: 'angle (°)', e: t.e }], sol: t.sol }; }
     function genTransformations() { const x = nz(ri(-6, 6)), y = nz(ri(-6, 6)); const T = [() => ({ nom: 'la symétrie d’axe Ox (axe horizontal)', xi: x, yi: -y }), () => ({ nom: 'la symétrie d’axe Oy (axe vertical)', xi: -x, yi: y }), () => ({ nom: 'la symétrie centrale de centre O', xi: -x, yi: -y }), () => { const u = ri(-5, 5), v = ri(-5, 5); return { nom: 'la translation de vecteur (' + u + ' ; ' + v + ')', xi: x + u, yi: y + v }; }]; const t = pick(T)(); return { q: 'Image du point A(' + x + ' ; ' + y + ') par ' + t.nom + ' ?', fields: [{ label: 'x′', e: t.xi }, { label: 'y′', e: t.yi }], sol: 'A′ = (' + t.xi + ' ; ' + t.yi + ')' }; }
@@ -396,14 +528,19 @@
     function genConversions() { const units = [['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'mm', 1000], ['kg', 'g', 1000], ['L', 'cL', 100]]; const u = pick(units); if (Math.random() < 0.5) { const v = ri(1, 50) / (Math.random() < 0.4 ? 2 : 1); return { q: 'Convertis : ' + v + ' ' + u[0] + ' = ? ' + u[1], fields: [{ label: u[1], e: v * u[2] }], sol: v + ' × ' + u[2] + ' = ' + (v * u[2]) + ' ' + u[1] }; } const v = ri(1, 50) * u[2]; return { q: 'Convertis : ' + v + ' ' + u[1] + ' = ? ' + u[0], fields: [{ label: u[0], e: v / u[2] }], sol: v + ' ÷ ' + u[2] + ' = ' + (v / u[2]) + ' ' + u[0] }; }
     function genConversionsAV() { const T = [() => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m² = ? dm²', e: v * 100, lab: 'dm²', sol: v + ' × 100 = ' + (v * 100) + ' dm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' cm² = ? mm²', e: v * 100, lab: 'mm²', sol: v + ' × 100 = ' + (v * 100) + ' mm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' dm³ = ? L (1 dm³ = 1 L)', e: v, lab: 'L', sol: v + ' dm³ = ' + v + ' L' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m³ = ? L', e: v * 1000, lab: 'L', sol: v + ' × 1000 = ' + (v * 1000) + ' L' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
     function genGrandeurs() { const T = [() => { const v = ri(20, 120), t = ri(2, 6); return { q: 'Une voiture roule à ' + v + ' km/h pendant ' + t + ' h. Distance parcourue ?', e: v * t, lab: 'distance (km)', sol: v + ' × ' + t + ' = ' + (v * t) + ' km' }; }, () => { const d = ri(2, 12) * 10, t = ri(2, 5); return { q: 'On parcourt ' + d + ' km en ' + t + ' h. Vitesse moyenne ?', e: d / t, lab: 'vitesse (km/h)', sol: d + ' ÷ ' + t + ' = ' + (d / t) + ' km/h' }; }, () => { const rho = ri(2, 20), V = ri(2, 10); return { q: 'Un objet de masse ' + (rho * V) + ' g occupe ' + V + ' cm³. Masse volumique ?', e: rho, lab: 'ρ (g/cm³)', sol: (rho * V) + ' ÷ ' + V + ' = ' + rho + ' g/cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
-    function genDiagramme() { const labels = ['A', 'B', 'C', 'D'], vals = labels.map(() => ri(2, 10)); if (Math.random() < 0.5) { const i = ri(0, 3); return { q: 'D’après le diagramme, quelle est la valeur de la barre ' + labels[i] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: labels[i], e: vals[i] }], sol: labels[i] + ' = ' + vals[i] }; } const tot = vals.reduce((s, v) => s + v, 0); return { q: 'D’après le diagramme, quelle est la somme des quatre valeurs ?', svg: chartSVG(labels, vals, -1), fields: [{ label: 'total', e: tot }], sol: vals.join(' + ') + ' = ' + tot }; }
+    function genDiagramme(diff) {
+        const L = lvl(diff); const labels = ['A', 'B', 'C', 'D'], vals = labels.map(() => ri(2, 10));
+        if (L === 0) { const i = ri(0, 3); return { q: 'D’après le diagramme, quelle est la valeur de la barre ' + labels[i] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: labels[i] + ' =', e: vals[i] }], sol: labels[i] + ' = ' + vals[i], _v: vals[i] }; }
+        if (L === 1) { const i = ri(0, 3), j = (i + 1) % 4; return { q: 'D’après le diagramme, de combien la barre ' + labels[i] + ' dépasse-t-elle la barre ' + labels[j] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: '=', e: vals[i] - vals[j] }], sol: vals[i] + ' − ' + vals[j] + ' = ' + (vals[i] - vals[j]), _v: vals[i] - vals[j] }; }
+        const tot = vals.reduce((s, v) => s + v, 0); return { q: 'D’après le diagramme, quelle est la moyenne des quatre valeurs ?', svg: chartSVG(labels, vals, -1), fields: [{ label: 'moyenne', e: tot / 4, tol: 0.02 }], sol: '(' + vals.join(' + ') + ') ÷ 4 = ' + (tot / 4), _v: tot / 4 };
+    }
 
-    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, diagramme: genDiagramme, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
         { code: 'NO', name: 'Nombres et opérations', col: '#DC2626' },
-        { code: 'FA', name: 'Fonctions et algèbre', col: '#DB2777' },
+        { code: 'FA', name: 'Fonctions et algèbre', col: '#EA580C' },
         { code: 'ES', name: 'Espace', col: '#2563EB' },
         { code: 'GM', name: 'Grandeurs et mesures', col: '#059669' },
     ];
@@ -420,15 +557,16 @@
         { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', years: [11], ds: 'Dés, billes, roue, cartes' },
         { id: 'proportion', dom: 'FA', nm: 'Proportionnalité', icon: 'fa-scale-balanced', years: [9, 10, 11], ds: 'Règle de trois, prix unitaire' },
         { id: 'pourcentages', dom: 'FA', nm: 'Pourcentages', icon: 'fa-percent', years: [10, 11], ds: 'Hausses et baisses' },
-        { id: 'substitution', dom: 'FA', nm: 'Valeur numérique', icon: 'fa-pen-nib', years: [9, 10, 11], ds: 'Substituer des nombres aux lettres' },
+        { id: 'substitution', dom: 'FA', nm: 'Évaluer une expression littérale', icon: 'fa-pen-nib', years: [9, 10, 11], ds: 'Substituer des nombres aux lettres' },
         { id: 'reduction', dom: 'FA', nm: 'Réduire une expression', icon: 'fa-compress', years: [10, 11], ds: 'Regrouper les termes semblables' },
-        { id: 'developpement', dom: 'FA', nm: 'Développer', icon: 'fa-expand', years: [10, 11], ds: 'Distributivité et (x + a)(x + b)' },
+        { id: 'developpement', dom: 'FA', nm: 'Distributivité', icon: 'fa-expand', years: [10, 11], ds: 'Développer un produit' },
         { id: 'identites', dom: 'FA', nm: 'Identités remarquables', icon: 'fa-star', years: [11], ds: '(a ± b)², (a + b)(a − b)' },
         { id: 'factorisation', dom: 'FA', nm: 'Factoriser', icon: 'fa-object-group', years: [11], ds: 'Mettre en évidence le facteur commun' },
         { id: 'equation', dom: 'FA', nm: 'Équations du 1er degré', icon: 'fa-equals', years: [10, 11], ds: 'Résoudre ax + b = c' },
         { id: 'systemes', dom: 'FA', nm: 'Systèmes d’équations', icon: 'fa-layer-group', years: [11], ds: 'Deux équations, deux inconnues' },
         { id: 'fonction_image', dom: 'FA', nm: 'Image par une fonction', icon: 'fa-bezier-curve', years: [10, 11], ds: 'Calculer f(x)' },
         { id: 'fonction_affine', dom: 'FA', nm: 'Fonction affine', icon: 'fa-chart-line', years: [11], ds: 'Trouver a et b' },
+        { id: 'graph_fn', dom: 'FA', nm: 'Lecture de graphique', icon: 'fa-chart-area', years: [10, 11], ds: 'Lire f(x) ou la pente sur une droite', vis: 1 },
         { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', years: [9, 10, 11], ds: 'Lire un diagramme en barres', vis: 1 },
         { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', years: [9, 10, 11], ds: 'Triangle, supplément, angle inscrit' },
         { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', years: [9, 10, 11], ds: 'Symétries et translation' },
@@ -469,24 +607,26 @@
     function exSig(ex) { if (ex.interactive) return ex.q + JSON.stringify(ex.target); return ex.q + '#' + (ex.svg || '') + '#' + ex.fields.map(f => f.type ? (f.base + '/' + f.exp + '/' + f.coef + '/' + f.rad) : f.e).join(','); }
     function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 60) { guard++; const ex = gen(curDiff); const k = exSig(ex); if (seen.has(k)) continue; seen.add(k); arr.push(ex); } return arr; }
 
-    function fieldType(f) { return f.type === 'pownum' ? 'pownum' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
+    function fieldType(f) { return f.type === 'expr' ? 'expr' : f.type === 'pownum' ? 'pownum' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
     function fieldHTML(f, i, j) {
         const t = fieldType(f); const before = f.label ? f.label + ' ' : ''; const after = f.suffix ? ' ' + f.suffix : '';
-        const ph = t === 'pownum' ? 'ex. 3^5 ou nombre' : t === 'root' ? 'ex. 4r3' : t === 'frac' ? 'ex. 3/4' : '';
-        let hint = ''; if (t === 'pownum') hint = '<span class="mx-fhint">a<b>^</b>b (ex. 3^5) ou un nombre</span>'; else if (t === 'root') hint = '<span class="mx-fhint">utilise <b>r</b> (ex. 4r3)</span>'; else if (t === 'frac') hint = '<span class="mx-fhint">avec <b>/</b></span>';
+        const ph = t === 'expr' ? 'ex. 2x^2 - 3x + 5' : t === 'pownum' ? 'ex. 3^5 ou nombre' : t === 'root' ? 'ex. 4r3' : t === 'frac' ? 'ex. 3/4' : '';
+        let hint = ''; if (t === 'expr') hint = '<span class="mx-fhint">écris l’expression (<b>^</b> pour les puissances)</span>'; else if (t === 'pownum') hint = '<span class="mx-fhint">a<b>^</b>b (ex. 3^5) ou un nombre</span>'; else if (t === 'root') hint = '<span class="mx-fhint">utilise <b>r</b> (ex. 4r3)</span>'; else if (t === 'frac') hint = '<span class="mx-fhint">avec <b>/</b></span>';
         const prev = t !== 'num' ? '<span class="mx-prev" id="prev-' + i + '-' + j + '"></span>' : '';
-        return '<span class="mx-fld">' + before + '<input class="mx-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="' + ph + '" data-i="' + i + '" data-j="' + j + '" data-t="' + t + '">' + after + prev + hint + '</span>';
+        return '<span class="mx-fld' + (t === 'expr' ? ' mx-fld-wide' : '') + '">' + before + '<input class="mx-input' + (t === 'expr' ? ' mx-input-wide' : '') + '" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="' + ph + '" data-i="' + i + '" data-j="' + j + '" data-t="' + t + '">' + after + prev + hint + '</span>';
     }
     function updatePreview(inp) {
         const prev = $('prev-' + inp.dataset.i + '-' + inp.dataset.j); if (!prev) return;
         const v = inp.value.trim(), t = inp.dataset.t; if (!v) { prev.innerHTML = ''; return; }
-        if (t === 'pownum') { const s = v.replace(/\s/g, '').replace(/−/g, '-'); if (s.indexOf('^') !== -1) { const p = s.split('^'); prev.innerHTML = p[1] !== '' ? '→ ' + pw(p[0], p[1]) : ''; } else prev.innerHTML = '→ ' + s; }
+        if (t === 'expr') { prev.innerHTML = '→ ' + v.replace(/\^(\d+)/g, '<sup>$1</sup>').replace(/\*/g, '·').replace(/-/g, ' − ').replace(/\s+/g, ' '); }
+        else if (t === 'pownum') { const s = v.replace(/\s/g, '').replace(/−/g, '-'); if (s.indexOf('^') !== -1) { const p = s.split('^'); prev.innerHTML = p[1] !== '' ? '→ ' + pw(p[0], p[1]) : ''; } else prev.innerHTML = '→ ' + s; }
         else if (t === 'root') { const p = v.toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-').split('r'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + (p[0] || '') + sq(p[1]) : ''; }
         else { const p = v.replace(/\s/g, '').split('/'); prev.innerHTML = (p.length === 2 && p[1] !== '') ? '→ ' + fr(p[0], p[1]) : ''; }
     }
     function renderSeries() {
         $('exList').innerHTML = series.map((ex, i) => {
             const fig = ex.svg ? ex.svg : '';
+            const sys = ex.sys ? '<div class="mx-sys" style="grid-column:2"><span class="mx-brace">{</span><div class="mx-sys-eqs"><div>' + ex.sys[0] + ' <span class="mx-sys-n">(1)</span></div><div>' + ex.sys[1] + ' <span class="mx-sys-n">(2)</span></div></div></div>' : '';
             let body;
             if (ex.interactive === 'point') {
                 body = '<div class="mx-hint">Clique dans le repère pour placer le point.</div>';
@@ -494,7 +634,7 @@
                 body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
             return '<div class="mx-ex" id="ex-' + i + '"><span class="mx-num">' + (i + 1) + '</span>' +
-                '<span class="mx-q">' + ex.q + '</span>' + (fig ? '<div style="grid-column:2">' + fig + '</div>' : '') +
+                '<span class="mx-q">' + ex.q + '</span>' + sys + (fig ? '<div style="grid-column:2">' + fig + '</div>' : '') +
                 body + '<div class="mx-sol" id="sol-' + i + '" hidden></div></div>';
         }).join('');
         // inputs : Entrée = corriger ; aperçu live pour pow/root/frac
@@ -522,6 +662,7 @@
     function parsePow(s) { s = String(s).replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('^'); return { base: parseFloat(p[0]), exp: parseFloat(p[1]) }; }
     function parseRoot(s) { s = String(s).toLowerCase().replace(/√/g, 'r').replace(/\s/g, '').replace(/−/g, '-'); const p = s.split('r'); return { coef: p[0] === '' ? 1 : parseFloat(p[0]), rad: parseFloat(p[1]) }; }
     function checkField(f, val) {
+        if (f.type === 'expr') { if (!val || !val.trim()) return false; if (f.paren && val.indexOf('(') === -1) return false; return polyEq(val, f.poly); }
         if (f.type === 'pownum') { const v = parsePowNumVal(val); return isFinite(v) && Math.abs(v - f.val) < 0.5; }
         if (f.type === 'root') { const p = parseRoot(val); return p.coef === f.coef && p.rad === f.rad; }
         const g = parseNum(val); if (isNaN(g) || !isFinite(g)) return false; return Math.abs(g - f.e) <= (f.tol || 0.01) + 1e-9;
