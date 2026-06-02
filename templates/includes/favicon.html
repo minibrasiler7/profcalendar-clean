@@ -1,6 +1,8 @@
 {# Favicon ProfCalendar — repris du logo de l'app iPad « Enseignant ».
    Généré par scripts/generate_favicon.py (fichiers dans static/img/favicon/).
    À inclure dans le <head> de chaque template autonome. #}
+<link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/favicon/android-chrome-192x192.png') }}">
+<link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='img/favicon/favicon-48x48.png') }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon/favicon-32x32.png') }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='img/favicon/favicon-16x16.png') }}">
 <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon/favicon.ico') }}">
