@@ -94,6 +94,10 @@
     .mx-sys-eqs { display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; }
     .mx-sys-eqs > div { display: flex; align-items: center; gap: 0.6rem; }
     .mx-sys-n { color: #9CA3AF; font-size: 0.85rem; }
+    .mx-sliders { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.5rem; max-width: 330px; }
+    .mx-sliders label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; color: #374151; font-weight: 600; }
+    .mx-sliders label b { min-width: 1.7rem; color: #EA580C; text-align: right; }
+    .mx-range { flex: 1; accent-color: #EA580C; cursor: pointer; }
     @media (max-width: 560px) { .mx-wrap h1 { font-size: 1.6rem; } .mx-ws-title { margin-right: 0; width: 100%; } }
     @media print {
         .navbar, .landing-footer, #trial-banner, .flash-container, .help-fab, .mx-years, .mx-dom, .mx-bc, .mx-cta, .mx-explain, .mx-ctl { display: none !important; }
@@ -312,6 +316,20 @@
         return g + '</svg>';
     }
 
+    function gridFrame(R, s, pad, extraAttr) { const W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s; let g = '<svg class="mx-grid-svg" viewBox="0 0 ' + W + ' ' + W + '"' + (extraAttr ? ' data-s="' + s + '" data-cx="' + cx + '" data-cy="' + cy + '" data-r="' + R + '"' : '') + '>'; for (let i = -R; i <= R; i++) { const xp = cx + i * s, yp = cy - i * s, c = i === 0 ? '#475569' : '#E2E8F0', w = i === 0 ? 1.4 : 1; g += '<line x1="' + xp + '" y1="' + pad + '" x2="' + xp + '" y2="' + (W - pad) + '" stroke="' + c + '" stroke-width="' + w + '"/><line x1="' + pad + '" y1="' + yp + '" x2="' + (W - pad) + '" y2="' + yp + '" stroke="' + c + '" stroke-width="' + w + '"/>'; } for (let i = -R; i <= R; i++) if (i !== 0) g += '<text x="' + (cx + i * s) + '" y="' + (cy + 11) + '" font-size="8" fill="#94A3B8" text-anchor="middle">' + i + '</text><text x="' + (cx - 8) + '" y="' + (cy - i * s + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + i + '</text>'; return { g: g, cx: cx, cy: cy, s: s, R: R }; }
+    function graphSVG(lines, marks) {
+        const f = gridFrame(5, 24, 16, false); const px = x => f.cx + x * f.s, py = y => f.cy - y * f.s; let g = f.g;
+        (marks || []).forEach(m => { const X = px(m.x), Y = py(m.y); if (m.vg) g += '<line x1="' + X + '" y1="' + py(0) + '" x2="' + X + '" y2="' + Y + '" stroke="#6366F1" stroke-width="1.1" stroke-dasharray="4 3"/>'; if (m.hg) g += '<line x1="' + px(0) + '" y1="' + Y + '" x2="' + X + '" y2="' + Y + '" stroke="#6366F1" stroke-width="1.1" stroke-dasharray="4 3"/>'; g += '<circle cx="' + X + '" cy="' + Y + '" r="4" fill="#6366F1"/>'; });
+        (lines || []).forEach((L, i) => { const c = i === 0 ? '#DC2626' : '#2563EB'; g += '<line x1="' + px(-f.R) + '" y1="' + py(L[0] * -f.R + L[1]) + '" x2="' + px(f.R) + '" y2="' + py(L[0] * f.R + L[1]) + '" stroke="' + c + '" stroke-width="2.5"/>'; });
+        return g + '</svg>';
+    }
+    function sliderGridSVG(pts) { const f = gridFrame(5, 24, 16, true); let g = f.g + '<g class="mx-line"></g>'; pts.forEach((p, i) => { const X = f.cx + p[0] * f.s, Y = f.cy - p[1] * f.s; g += '<circle cx="' + X + '" cy="' + Y + '" r="4.5" fill="#DC2626"/><text x="' + (X + 6) + '" y="' + (Y - 6) + '" font-size="11" font-weight="700" fill="#B91C1C">' + (i === 0 ? 'A' : 'B') + '</text>'; }); return g + '</svg>'; }
+    function lineChartSVG(labels, vals, hi) { const W = 280, base = 120, padL = 28, top = 14, max = Math.max(12, Math.max.apply(null, vals)), n = labels.length, dx = (W - padL - 12) / (n - 1); const X = i => padL + i * dx, Y = v => base - (v / max) * (base - top); let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' 140">'; for (let v = 0; v <= max; v += 2) { const y = Y(v); s += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - 6) + '" y2="' + y + '" stroke="#EEF0F3"/><text x="' + (padL - 4) + '" y="' + (y + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + v + '</text>'; } s += '<line x1="' + padL + '" y1="' + top + '" x2="' + padL + '" y2="' + base + '" stroke="#475569"/><line x1="' + padL + '" y1="' + base + '" x2="' + (W - 6) + '" y2="' + base + '" stroke="#475569"/>'; s += '<polyline points="' + labels.map((l, i) => X(i) + ',' + Y(vals[i])).join(' ') + '" fill="none" stroke="#EA580C" stroke-width="2.5"/>'; labels.forEach((l, i) => { s += '<circle cx="' + X(i) + '" cy="' + Y(vals[i]) + '" r="' + (i === hi ? 4.5 : 3) + '" fill="' + (i === hi ? '#DC2626' : '#EA580C') + '"/><text x="' + X(i) + '" y="' + (base + 12) + '" font-size="9" text-anchor="middle" fill="#334155">' + l + '</text>'; }); return s + '</svg>'; }
+    function pieChartSVG(labels, vals, hi) { const cx = 60, cy = 62, r = 50, tot = vals.reduce((a, b) => a + b, 0), cols = ['#6366F1', '#EA580C', '#10B981', '#F59E0B']; let ang = -Math.PI / 2, s = '<svg class="mx-fig" viewBox="0 0 270 128">'; vals.forEach((v, i) => { const a2 = ang + (v / tot) * 2 * Math.PI, x1 = cx + r * Math.cos(ang), y1 = cy + r * Math.sin(ang), x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2), la = (a2 - ang) > Math.PI ? 1 : 0; s += '<path d="M' + cx + ' ' + cy + ' L' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + la + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + ' Z" fill="' + cols[i] + '" stroke="#fff" stroke-width="' + (i === hi ? 3 : 1.5) + '" opacity="' + (hi >= 0 && i !== hi ? 0.5 : 1) + '"/>'; ang = a2; }); labels.forEach((l, i) => { const ly = 20 + i * 24; s += '<rect x="140" y="' + (ly - 9) + '" width="12" height="12" rx="2" fill="' + cols[i] + '"/><text x="158" y="' + (ly + 1) + '" font-size="11" fill="#334155">' + l + ' : ' + vals[i] + '</text>'; }); return s + '</svg>'; }
+    function pictoSVG(labels, counts, unit) { const rowH = 26; let s = '<svg class="mx-fig" viewBox="0 0 280 ' + (labels.length * rowH + 24) + '">'; labels.forEach((l, i) => { const y = i * rowH + 18; s += '<text x="4" y="' + (y + 4) + '" font-size="12" fill="#334155">' + l + '</text>'; for (let k = 0; k < counts[i]; k++) s += '<circle cx="' + (44 + k * 22) + '" cy="' + y + '" r="8" fill="#EA580C"/>'; }); s += '<text x="4" y="' + (labels.length * rowH + 14) + '" font-size="10" fill="#6B7280">● = ' + unit + '</text>'; return s + '</svg>'; }
+    function chartRender(c) { return c.t === 'bar' ? chartSVG(c.labels, c.vals, c.hi) : c.t === 'line' ? lineChartSVG(c.labels, c.vals, c.hi) : c.t === 'pie' ? pieChartSVG(c.labels, c.vals, c.hi) : pictoSVG(c.labels, c.counts, c.unit); }
+    function fmtLineT(a, b) { let s = a === 1 ? 'x' : a === -1 ? M + 'x' : a + 'x'; if (b > 0) s += ' + ' + b; else if (b < 0) s += ' ' + M + ' ' + (-b); return s; }
+
     // ====== Générateurs (validés Node : 0 erreur / 18'600 tirages + vérifs indépendantes) ======
     function genPriorites(diff) {
         const L = lvl(diff);
@@ -510,9 +528,14 @@
         const a = nz(ri(-4, 4)), b = nz(ri(-6, 6)); const xint = -b / a; return { q: 'La droite f(x) = ' + fmtP({ 1: a, 0: b }) + ' coupe l’axe des x en quel point ? (donne x tel que f(x) = 0)', fields: [{ label: 'x =', e: xint, tol: 0.02, frac: true }], sol: 'x = ' + M + b + ' ÷ ' + a + ' = ' + (Math.round(xint * 100) / 100), _v: xint };
     }
     function genGraphFn(diff) {
-        const L = lvl(diff); const a = nz(ri(-3, 3)), b = ri(-4, 4);
-        if (L < 2) { let k = ri(-4, 4); while (Math.abs(a * k + b) > 6) k = ri(-3, 3); return { q: 'Lis la valeur de f(' + k + ') sur le graphique de la fonction affine f.', svg: lineSVG(a, b, k), fields: [{ label: 'f(' + k + ') =', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b), _v: a * k + b }; }
-        return { q: 'D’après le graphique, quelle est la pente a de la droite ?', svg: lineSVG(a, b, null), fields: [{ label: 'a =', e: a }], sol: 'pente a = ' + a, _v: a };
+        const L = lvl(diff);
+        const ty = pick(L === 0 ? ['fk', 'yint', 'fk'] : L === 1 ? ['xint', 'solveY', 'slope', 'fk'] : ['inter', 'solveY', 'xint', 'inter']);
+        if (ty === 'fk') { const a = nz(ri(-3, 3)); let b = ri(-4, 4), k = ri(-4, 4); while (Math.abs(a * k + b) > 5) { b = ri(-4, 4); k = ri(-3, 3); } return { q: 'Lis la valeur de f(' + k + ') sur le graphique.', svg: graphSVG([[a, b]], [{ x: k, y: a * k + b, vg: 1, hg: 1 }]), fields: [{ label: 'f(' + k + ') =', e: a * k + b }], sol: 'f(' + k + ') = ' + (a * k + b) }; }
+        if (ty === 'yint') { const a = nz(ri(-3, 3)), b = ri(-5, 5); return { q: 'Quelle est l’ordonnée à l’origine de la droite (valeur de y quand x = 0) ?', svg: graphSVG([[a, b]], [{ x: 0, y: b, hg: 1 }]), fields: [{ label: 'b =', e: b }], sol: 'ordonnée à l’origine = ' + b }; }
+        if (ty === 'slope') { const a = nz(ri(-3, 3)), b = ri(-4, 4); return { q: 'Quelle est la pente (le coefficient directeur) de la droite ?', svg: graphSVG([[a, b]], []), fields: [{ label: 'a =', e: a }], sol: 'pente a = ' + a }; }
+        if (ty === 'xint') { const a = nz(ri(-3, 3)); let x0 = nz(ri(-4, 4)), b = -a * x0; while (Math.abs(b) > 5) { x0 = nz(ri(-3, 3)); b = -a * x0; } return { q: 'En quel point la droite croise-t-elle l’axe des x ? (donne x tel que f(x) = 0)', svg: graphSVG([[a, b]], [{ x: x0, y: 0, vg: 1 }]), fields: [{ label: 'x =', e: x0 }], sol: 'x = ' + x0 }; }
+        if (ty === 'solveY') { const a = nz(ri(-3, 3)); let x0 = ri(-4, 4), b = ri(-4, 4), Y = a * x0 + b; while (Math.abs(Y) > 5) { x0 = ri(-3, 3); b = ri(-4, 4); Y = a * x0 + b; } return { q: 'Pour quelle valeur de x a-t-on f(x) = ' + Y + ' ?', svg: graphSVG([[a, b]], [{ x: x0, y: Y, vg: 1, hg: 1 }]), fields: [{ label: 'x =', e: x0 }], sol: 'x = ' + x0 }; }
+        let a1 = nz(ri(-3, 3)), a2 = nz(ri(-3, 3)); while (a2 === a1) a2 = nz(ri(-3, 3)); const x0 = ri(-4, 4), y0 = ri(-4, 4), b1 = y0 - a1 * x0, b2 = y0 - a2 * x0; return { q: 'En quel point se croisent les deux droites ? Donne x puis y.', svg: graphSVG([[a1, b1], [a2, b2]], [{ x: x0, y: y0, vg: 1, hg: 1 }]), fields: [{ label: 'x =', e: x0 }, { label: 'y =', e: y0 }], sol: '(' + x0 + ' ; ' + y0 + ')' };
     }
 
     function genAngles() { const T = [() => { const a = ri(30, 100), b = ri(20, 150 - a); return { q: 'Dans un triangle, deux angles mesurent ' + a + '° et ' + b + '°. Mesure du troisième angle ?', e: 180 - a - b, sol: '180° − ' + a + '° − ' + b + '° = ' + (180 - a - b) + '°' }; }, () => { const a = ri(20, 150); return { q: 'Angle supplémentaire d’un angle de ' + a + '° ?', e: 180 - a, sol: '180° − ' + a + '° = ' + (180 - a) + '°' }; }, () => { const a = ri(10, 80); return { q: 'Angle complémentaire d’un angle de ' + a + '° ?', e: 90 - a, sol: '90° − ' + a + '° = ' + (90 - a) + '°' }; }, () => { const c = ri(20, 88) * 2; return { q: 'Un angle au centre mesure ' + c + '°. Mesure de l’angle inscrit interceptant le même arc ?', e: c / 2, sol: c + '° ÷ 2 = ' + (c / 2) + '°' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: 'angle (°)', e: t.e }], sol: t.sol }; }
@@ -529,13 +552,26 @@
     function genConversionsAV() { const T = [() => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m² = ? dm²', e: v * 100, lab: 'dm²', sol: v + ' × 100 = ' + (v * 100) + ' dm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' cm² = ? mm²', e: v * 100, lab: 'mm²', sol: v + ' × 100 = ' + (v * 100) + ' mm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' dm³ = ? L (1 dm³ = 1 L)', e: v, lab: 'L', sol: v + ' dm³ = ' + v + ' L' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m³ = ? L', e: v * 1000, lab: 'L', sol: v + ' × 1000 = ' + (v * 1000) + ' L' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
     function genGrandeurs() { const T = [() => { const v = ri(20, 120), t = ri(2, 6); return { q: 'Une voiture roule à ' + v + ' km/h pendant ' + t + ' h. Distance parcourue ?', e: v * t, lab: 'distance (km)', sol: v + ' × ' + t + ' = ' + (v * t) + ' km' }; }, () => { const d = ri(2, 12) * 10, t = ri(2, 5); return { q: 'On parcourt ' + d + ' km en ' + t + ' h. Vitesse moyenne ?', e: d / t, lab: 'vitesse (km/h)', sol: d + ' ÷ ' + t + ' = ' + (d / t) + ' km/h' }; }, () => { const rho = ri(2, 20), V = ri(2, 10); return { q: 'Un objet de masse ' + (rho * V) + ' g occupe ' + V + ' cm³. Masse volumique ?', e: rho, lab: 'ρ (g/cm³)', sol: (rho * V) + ' ÷ ' + V + ' = ' + rho + ' g/cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
     function genDiagramme(diff) {
-        const L = lvl(diff); const labels = ['A', 'B', 'C', 'D'], vals = labels.map(() => ri(2, 10));
-        if (L === 0) { const i = ri(0, 3); return { q: 'D’après le diagramme, quelle est la valeur de la barre ' + labels[i] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: labels[i] + ' =', e: vals[i] }], sol: labels[i] + ' = ' + vals[i], _v: vals[i] }; }
-        if (L === 1) { const i = ri(0, 3), j = (i + 1) % 4; return { q: 'D’après le diagramme, de combien la barre ' + labels[i] + ' dépasse-t-elle la barre ' + labels[j] + ' ?', svg: chartSVG(labels, vals, i), fields: [{ label: '=', e: vals[i] - vals[j] }], sol: vals[i] + ' − ' + vals[j] + ' = ' + (vals[i] - vals[j]), _v: vals[i] - vals[j] }; }
-        const tot = vals.reduce((s, v) => s + v, 0); return { q: 'D’après le diagramme, quelle est la moyenne des quatre valeurs ?', svg: chartSVG(labels, vals, -1), fields: [{ label: 'moyenne', e: tot / 4, tol: 0.02 }], sol: '(' + vals.join(' + ') + ') ÷ 4 = ' + (tot / 4), _v: tot / 4 };
+        const L = lvl(diff);
+        const type = pick(L === 0 ? ['bar', 'line', 'picto'] : L === 1 ? ['bar', 'line', 'pie'] : ['pie', 'line', 'bar']);
+        if (type === 'bar') { const labels = ['A', 'B', 'C', 'D'], vals = labels.map(() => ri(2, 12)); if (L === 0) { const i = ri(0, 3); return { q: 'Quelle est la valeur de la barre ' + labels[i] + ' ?', svg: chartRender({ t: 'bar', labels, vals, hi: i }), fields: [{ label: labels[i] + ' =', e: vals[i] }], sol: labels[i] + ' = ' + vals[i] }; } if (L === 1) { const i = ri(0, 3), j = (i + 1) % 4; return { q: 'Quelle est la différence entre les barres ' + labels[i] + ' et ' + labels[j] + ' ?', svg: chartRender({ t: 'bar', labels, vals, hi: i }), fields: [{ label: '=', e: Math.abs(vals[i] - vals[j]) }], sol: '= ' + Math.abs(vals[i] - vals[j]) }; } const tot = vals.reduce((s, v) => s + v, 0); return { q: 'Quelle est la moyenne des quatre valeurs ?', svg: chartRender({ t: 'bar', labels, vals, hi: -1 }), fields: [{ label: 'moyenne', e: tot / 4, tol: 0.02 }], sol: '= ' + (tot / 4) }; }
+        if (type === 'line') { const labels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven'], vals = labels.map(() => ri(0, 12)); if (L === 0) { const i = ri(0, 4); return { q: 'D’après la courbe, quelle est la valeur de ' + labels[i] + ' ?', svg: chartRender({ t: 'line', labels, vals, hi: i }), fields: [{ label: labels[i] + ' =', e: vals[i] }], sol: '= ' + vals[i] }; } if (L === 1) { const i = ri(0, 3), j = i + 1; return { q: 'Quelle est la différence de valeur entre ' + labels[i] + ' et ' + labels[j] + ' ?', svg: chartRender({ t: 'line', labels, vals, hi: -1 }), fields: [{ label: '=', e: Math.abs(vals[j] - vals[i]) }], sol: '= ' + Math.abs(vals[j] - vals[i]) }; } const mx = Math.max.apply(null, vals); return { q: 'Quelle est la valeur maximale atteinte sur la semaine ?', svg: chartRender({ t: 'line', labels, vals, hi: vals.indexOf(mx) }), fields: [{ label: 'max =', e: mx }], sol: '= ' + mx }; }
+        if (type === 'picto') { const unit = pick([2, 5, 10]), labels = ['Lu', 'Ma', 'Me', 'Je'], counts = labels.map(() => ri(1, 5)), vals = counts.map(c => c * unit); if (L === 0) { const i = ri(0, 3); return { q: 'Sur le pictogramme, chaque symbole représente ' + unit + '. Quelle est la valeur de ' + labels[i] + ' ?', svg: chartRender({ t: 'picto', labels, counts, unit }), fields: [{ label: labels[i] + ' =', e: vals[i] }], sol: '= ' + vals[i] }; } const i = ri(0, 3), j = (i + 1) % 4; return { q: 'Chaque symbole représente ' + unit + '. Quelle est la différence entre ' + labels[i] + ' et ' + labels[j] + ' ?', svg: chartRender({ t: 'picto', labels, counts, unit }), fields: [{ label: '=', e: Math.abs(vals[i] - vals[j]) }], sol: '= ' + Math.abs(vals[i] - vals[j]) }; }
+        const labels = ['Bleu', 'Rouge', 'Vert', 'Jaune'], vals = labels.map(() => ri(2, 8)), tot = vals.reduce((s, v) => s + v, 0);
+        if (L === 1) { const i = ri(0, 3), j = (i + 1) % 4; return { q: 'D’après le camembert, quelle est la différence entre « ' + labels[i] + ' » et « ' + labels[j] + ' » ?', svg: chartRender({ t: 'pie', labels, vals, hi: i }), fields: [{ label: '=', e: Math.abs(vals[i] - vals[j]) }], sol: '= ' + Math.abs(vals[i] - vals[j]) }; }
+        if (L === 2) { const i = ri(0, 3), g = gcd(vals[i], tot); return { q: 'Quelle fraction du total représente « ' + labels[i] + ' » ?', svg: chartRender({ t: 'pie', labels, vals, hi: i }), fields: [{ frac: true, instr: 1, e: vals[i] / tot }], sol: '= ' + fr(vals[i] / g, tot / g) }; }
+        return { q: 'Quel est le total représenté par le camembert ?', svg: chartRender({ t: 'pie', labels, vals, hi: -1 }), fields: [{ label: 'total =', e: tot }], sol: '= ' + tot };
+    }
+    function genTracerDroite(diff) {
+        const L = lvl(diff); const a = nz(ri(L === 0 ? -2 : -3, L === 0 ? 2 : 3)); let b = ri(-4, 4), c = 0; for (let x = -5; x <= 5; x++) if (Math.abs(a * x + b) <= 5) c++; while (c < 2) { b = ri(-3, 3); c = 0; for (let x = -5; x <= 5; x++) if (Math.abs(a * x + b) <= 5) c++; }
+        return { q: 'Trace la droite f(x) = ' + fmtLineT(a, b) + ' (clique deux points du quadrillage situés sur la droite).', interactive: 'line', target: { a: a, b: b }, svg: gridSVG([], true), sol: 'f(x) = ' + fmtLineT(a, b), _ok: (p1, p2) => !!p1 && !!p2 && (p1.x !== p2.x || p1.y !== p2.y) && a * p1.x + b === p1.y && a * p2.x + b === p2.y };
+    }
+    function genCurseurs(diff) {
+        const L = lvl(diff); const a = nz(ri(L === 0 ? -2 : -3, L === 0 ? 2 : 3)); let b = ri(-3, 3), x1 = ri(-4, 4), x2 = ri(-4, 4), guard = 0; while ((x1 === x2 || Math.abs(a * x1 + b) > 5 || Math.abs(a * x2 + b) > 5) && guard < 100) { x1 = ri(-4, 4); x2 = ri(-4, 4); guard++; } const A = [x1, a * x1 + b], B = [x2, a * x2 + b];
+        return { q: 'Règle les curseurs a et b pour que la droite y = ax + b passe par A(' + A[0] + ' ; ' + A[1] + ') et B(' + B[0] + ' ; ' + B[1] + ').', interactive: 'slider', target: { a: a, b: b }, pts: [A, B], svg: sliderGridSVG([A, B]), sol: 'a = ' + a + ' , b = ' + b };
     }
 
-    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
@@ -566,7 +602,9 @@
         { id: 'systemes', dom: 'FA', nm: 'Systèmes d’équations', icon: 'fa-layer-group', years: [11], ds: 'Deux équations, deux inconnues' },
         { id: 'fonction_image', dom: 'FA', nm: 'Image par une fonction', icon: 'fa-bezier-curve', years: [10, 11], ds: 'Calculer f(x)' },
         { id: 'fonction_affine', dom: 'FA', nm: 'Fonction affine', icon: 'fa-chart-line', years: [11], ds: 'Trouver a et b' },
-        { id: 'graph_fn', dom: 'FA', nm: 'Lecture de graphique', icon: 'fa-chart-area', years: [10, 11], ds: 'Lire f(x) ou la pente sur une droite', vis: 1 },
+        { id: 'graph_fn', dom: 'FA', nm: 'Lecture de graphique', icon: 'fa-chart-area', years: [10, 11], ds: 'Lire f(x), la pente, une intersection…', vis: 1 },
+        { id: 'tracer_droite', dom: 'FA', nm: 'Tracer une droite', icon: 'fa-pencil', years: [10, 11], ds: 'Place la droite y = ax + b (clic)', inter: 1 },
+        { id: 'curseurs', dom: 'FA', nm: 'Curseurs : trouve la droite', icon: 'fa-sliders', years: [10, 11], ds: 'Règle a et b pour passer par 2 points', inter: 1 },
         { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', years: [9, 10, 11], ds: 'Lire un diagramme en barres', vis: 1 },
         { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', years: [9, 10, 11], ds: 'Triangle, supplément, angle inscrit' },
         { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', years: [9, 10, 11], ds: 'Symétries et translation' },
@@ -630,6 +668,10 @@
             let body;
             if (ex.interactive === 'point') {
                 body = '<div class="mx-hint">Clique dans le repère pour placer le point.</div>';
+            } else if (ex.interactive === 'line') {
+                body = '<div class="mx-hint">Clique deux points du quadrillage situés sur la droite.</div>';
+            } else if (ex.interactive === 'slider') {
+                body = '<div class="mx-sliders" style="grid-column:2"><label>a = <b id="av-' + i + '">0</b><input type="range" class="mx-range" data-ix="' + i + '" data-p="a" min="-5" max="5" step="1" value="0"></label><label>b = <b id="bv-' + i + '">0</b><input type="range" class="mx-range" data-ix="' + i + '" data-p="b" min="-6" max="6" step="1" value="0"></label></div>';
             } else {
                 body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
@@ -639,18 +681,22 @@
         }).join('');
         // inputs : Entrée = corriger ; aperçu live pour pow/root/frac
         $('exList').querySelectorAll('.mx-input').forEach(inp => { inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); correct(); } }); if (inp.dataset.t !== 'num') inp.addEventListener('input', () => updatePreview(inp)); });
-        // grilles interactives : clic = placer le point
+        // interactions : placer un point / tracer une droite / curseurs
+        const cellFromClick = (svg, e) => { const rect = svg.getBoundingClientRect(), vbW = parseFloat(svg.getAttribute('viewBox').split(' ')[2]), sc = vbW / rect.width; const s = +svg.dataset.s, cx = +svg.dataset.cx, cy = +svg.dataset.cy, R = +svg.dataset.r; const mx = Math.max(-R, Math.min(R, Math.round(((e.clientX - rect.left) * sc - cx) / s))), my = Math.max(-R, Math.min(R, Math.round((cy - (e.clientY - rect.top) * sc) / s))); return { mx, my, s, cx, cy, R }; };
         series.forEach((ex, i) => {
-            if (ex.interactive !== 'point') return;
-            const svg = $('ex-' + i).querySelector('.mx-grid-hit'); if (!svg) return;
-            svg.addEventListener('click', e => {
-                const rect = svg.getBoundingClientRect(), vbW = parseFloat(svg.getAttribute('viewBox').split(' ')[2]), sc = vbW / rect.width;
-                const lx = (e.clientX - rect.left) * sc, ly = (e.clientY - rect.top) * sc;
-                const s = +svg.dataset.s, cx = +svg.dataset.cx, cy = +svg.dataset.cy, R = +svg.dataset.r;
-                let mx = Math.max(-R, Math.min(R, Math.round((lx - cx) / s))), my = Math.max(-R, Math.min(R, Math.round((cy - ly) / s)));
-                ex._placed = { x: mx, y: my };
-                svg.querySelector('.mx-mark').innerHTML = '<circle cx="' + (cx + mx * s) + '" cy="' + (cy - my * s) + '" r="5" fill="#EF4444"/><text x="' + (cx + mx * s + 7) + '" y="' + (cy - my * s - 7) + '" font-size="11" font-weight="700" fill="#B91C1C">(' + mx + ' ; ' + my + ')</text>';
-            });
+            const el = $('ex-' + i);
+            if (ex.interactive === 'point') {
+                const svg = el.querySelector('.mx-grid-hit'); if (!svg) return;
+                svg.addEventListener('click', e => { const c = cellFromClick(svg, e); ex._placed = { x: c.mx, y: c.my }; svg.querySelector('.mx-mark').innerHTML = '<circle cx="' + (c.cx + c.mx * c.s) + '" cy="' + (c.cy - c.my * c.s) + '" r="5" fill="#EF4444"/><text x="' + (c.cx + c.mx * c.s + 7) + '" y="' + (c.cy - c.my * c.s - 7) + '" font-size="11" font-weight="700" fill="#B91C1C">(' + c.mx + ' ; ' + c.my + ')</text>'; });
+            } else if (ex.interactive === 'line') {
+                const svg = el.querySelector('.mx-grid-hit'); if (!svg) return;
+                svg.addEventListener('click', e => { const c = cellFromClick(svg, e); if (!ex._p1 || ex._p2) { ex._p1 = { x: c.mx, y: c.my }; ex._p2 = null; } else { ex._p2 = { x: c.mx, y: c.my }; } const px = x => c.cx + x * c.s, py = y => c.cy - y * c.s; let h = ''; if (ex._p1) h += '<circle cx="' + px(ex._p1.x) + '" cy="' + py(ex._p1.y) + '" r="5" fill="#DC2626"/>'; if (ex._p2) h += '<circle cx="' + px(ex._p2.x) + '" cy="' + py(ex._p2.y) + '" r="5" fill="#DC2626"/>'; if (ex._p1 && ex._p2) { const p1 = ex._p1, p2 = ex._p2; if (p1.x === p2.x) h += '<line x1="' + px(p1.x) + '" y1="' + py(-c.R) + '" x2="' + px(p1.x) + '" y2="' + py(c.R) + '" stroke="#DC2626" stroke-width="2.5"/>'; else { const m = (p2.y - p1.y) / (p2.x - p1.x); h += '<line x1="' + px(-c.R) + '" y1="' + py(p1.y + m * (-c.R - p1.x)) + '" x2="' + px(c.R) + '" y2="' + py(p1.y + m * (c.R - p1.x)) + '" stroke="#DC2626" stroke-width="2.5"/>'; } } svg.querySelector('.mx-mark').innerHTML = h; });
+            } else if (ex.interactive === 'slider') {
+                const svg = el.querySelector('.mx-grid-svg'); if (!svg) return; ex._a = 0; ex._b = 0;
+                const draw = () => { const s = +svg.dataset.s, cx = +svg.dataset.cx, cy = +svg.dataset.cy, R = +svg.dataset.r, px = x => cx + x * s, py = y => cy - y * s; svg.querySelector('.mx-line').innerHTML = '<line x1="' + px(-R) + '" y1="' + py(ex._a * -R + ex._b) + '" x2="' + px(R) + '" y2="' + py(ex._a * R + ex._b) + '" stroke="#EA580C" stroke-width="2.5"/>'; };
+                draw();
+                el.querySelectorAll('.mx-range').forEach(rg => rg.addEventListener('input', () => { if (rg.dataset.p === 'a') { ex._a = +rg.value; $('av-' + i).textContent = ex._a; } else { ex._b = +rg.value; $('bv-' + i).textContent = ex._b; } draw(); }));
+            }
         });
     }
 
@@ -675,6 +721,10 @@
             let allOk = true;
             if (ex.interactive === 'point') {
                 allOk = !!ex._placed && ex._placed.x === ex.target.x && ex._placed.y === ex.target.y;
+            } else if (ex.interactive === 'line') {
+                allOk = ex._ok ? ex._ok(ex._p1, ex._p2) : false;
+            } else if (ex.interactive === 'slider') {
+                allOk = ex._a === ex.target.a && ex._b === ex.target.b;
             } else {
                 ex.fields.forEach((f, j) => {
                     const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]');
