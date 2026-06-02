@@ -1327,8 +1327,8 @@ input, textarea, select {
                     <i class="fas fa-clipboard-list"></i> Planification du cours
                 </h2>
                 <div style="display:flex;gap:0.5rem;">
-                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un fichier ou exercice" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
-                        <i class="fas fa-file-upload"></i> Ajout de fichiers
+                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un exercice interactif" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                        <i class="fas fa-gamepad"></i> + exercice interactif
                     </button>
                     <button class="edit-planning-btn" onclick="togglePlanningEdit()">
                         <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
@@ -1746,15 +1746,13 @@ input, textarea, select {
                     <i class="fas fa-folder-open"></i> Ressources du cours
                 </h2>
                 <div class="resource-controls">
-                    <button class="resource-btn" onclick="refreshResources()" title="Actualiser">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
                     <button class="add-resource-btn" onclick="showBlankSheetsMenu()" title="Créer ou ouvrir des feuilles blanches" style="margin-right: 0.5rem;">
                         <i class="fas fa-file-medical"></i> Feuilles blanches
                     </button>
-                    <a href="{{ url_for('file_manager.index') }}" class="add-resource-btn" target="_blank">
-                        <i class="fas fa-plus"></i> Gestionnaire
-                    </a>
+                    <button type="button" id="uploadClassFileBtn" class="add-resource-btn" onclick="triggerClassFileUpload()" title="Ajouter un fichier depuis votre ordinateur">
+                        <i class="fas fa-plus"></i> Fichier
+                    </button>
+                    <input type="file" id="classFileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style="display:none;" onchange="uploadClassFileFromComputer(this)">
                 </div>
             </div>
 
@@ -3059,6 +3057,61 @@ async function togglePinResource(fileId) {
 // Fonction pour actualiser les ressources
 function refreshResources() {
     loadClassResources();
+}
+
+// Ouvre le sélecteur de fichier de l'ordinateur (bouton "+ Fichier")
+function triggerClassFileUpload() {
+    const input = document.getElementById('classFileUploadInput');
+    if (input) input.click();
+}
+
+// Uploade le fichier choisi dans le dossier actuellement ouvert de la classe
+async function uploadClassFileFromComputer(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (!classroomId || classroomId === 'null') {
+        alert('Aucune classe sélectionnée.');
+        input.value = '';
+        return;
+    }
+
+    const uploadBtn = document.getElementById('uploadClassFileBtn');
+    const originalBtnHtml = uploadBtn ? uploadBtn.innerHTML : null;
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('classroom_id', classroomId);
+        // Enregistrer dans le dossier actuellement ouvert (vide = racine)
+        formData.append('folder_path', currentFolderPath || '');
+
+        const response = await fetch('/api/class-files/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            // Recharger les ressources en conservant le dossier ouvert
+            await loadClassResources();
+        } else {
+            alert(result.message || "Erreur lors de l'envoi du fichier.");
+        }
+    } catch (error) {
+        console.error('Erreur upload fichier de classe:', error);
+        alert("Erreur lors de l'envoi du fichier : " + error.message);
+    } finally {
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            if (originalBtnHtml !== null) uploadBtn.innerHTML = originalBtnHtml;
+        }
+        input.value = '';
+    }
 }
 
 // Fonctions utilitaires
@@ -9881,7 +9934,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Onglets -->
         <div style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;">
-            <button id="tab-files-btn" onclick="switchResourceTab('files')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid #10b981;color:#10b981;transition:all 0.2s;">
+            <button id="tab-files-btn" onclick="switchResourceTab('files')" style="display:none;padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid #10b981;color:#10b981;transition:all 0.2s;">
                 <i class="fas fa-folder-open"></i> Fichiers de classe
             </button>
             <button id="tab-exercises-btn" onclick="switchResourceTab('exercises')" style="padding:0.75rem 1rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;color:#9ca3af;transition:all 0.2s;">
@@ -10055,11 +10108,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 function showAddResourceModal() {
     document.getElementById('add-resource-modal').style.display = 'flex';
-    // Initialiser sur l'onglet des fichiers
-    switchResourceTab('files');
-    {% if lesson_classroom %}
-    loadClassFilesTree({{ lesson_classroom.id }});
-    {% endif %}
+    // Ouvrir directement sur l'onglet des exercices interactifs
+    switchResourceTab('exercises');
 }
 
 async function initializeExercisesTab() {
