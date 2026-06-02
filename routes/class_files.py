@@ -4,6 +4,7 @@ from extensions import db
 from models.student import LegacyClassFile as ClassFile  # Utiliser le modèle legacy qui contient les vrais fichiers
 from models.file_manager import UserFile, FileFolder
 from models.classroom import Classroom
+from services.document_conversion import convert_if_needed, ConversionError
 from datetime import datetime
 import os
 import uuid
@@ -514,6 +515,18 @@ def upload_class_file():
         # Lire le contenu du fichier pour stockage BLOB
         file_content = file.read()
         file_size = len(file_content)
+
+        # === Conversion automatique Word/Pages -> PDF (CloudConvert) ===
+        upload_filename = file.filename
+        try:
+            converted = convert_if_needed(file_content, upload_filename)
+        except ConversionError as conv_err:
+            return jsonify({'success': False, 'message': str(conv_err)}), 400
+        if converted:
+            file_content, upload_filename = converted
+            file_ext = 'pdf'
+            unique_filename = f"{uuid.uuid4()}.pdf"
+            file_size = len(file_content)
         
         # Vérifier la taille du fichier
         if file_size > MAX_FILE_SIZE:
@@ -543,7 +556,7 @@ def upload_class_file():
         class_file = ClassFile(
             classroom_id=classroom_id,
             filename=unique_filename,
-            original_filename=secure_filename(file.filename),
+            original_filename=secure_filename(upload_filename),
             file_type=file_ext,
             file_size=file_size,
             description=description,

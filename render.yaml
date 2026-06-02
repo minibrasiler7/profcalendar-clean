@@ -11,3 +11,7 @@ services:
         value: production
       - key: UPLOAD_FOLDER
         value: /tmp/uploads
+      # Conversion Word/Pages -> PDF. Secret à renseigner dans le dashboard Render
+      # (Environment), jamais en clair ici.
+      - key: CLOUDCONVERT_API_KEY
+        sync: false

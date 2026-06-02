@@ -11,6 +11,7 @@ from datetime import datetime
 from PIL import Image
 from models.file_manager import FileFolder, UserFile
 from models.class_file import ClassFile
+from services.document_conversion import convert_if_needed, is_convertible_filename, ConversionError
 import io
 
 # Importer les modèles après leur création
@@ -1260,7 +1261,7 @@ def upload_with_structure():
         current_app.logger.info(f'[UPLOAD-DEBUG] Empty filename')
         return jsonify({'success': False, 'message': 'Aucun fichier sélectionné'}), 400
 
-    if not allowed_file(file.filename):
+    if not (allowed_file(file.filename) or is_convertible_filename(file.filename)):
         current_app.logger.info(f'[UPLOAD-DEBUG] File not allowed: "{file.filename}"')
         return jsonify({'success': False, 'message': 'Type de fichier non autorisé'}), 400
 
@@ -1334,6 +1335,19 @@ def upload_with_structure():
         # Lire le contenu du fichier en mémoire
         file_data = file.read()
         file.seek(0)
+        mime_type = file.content_type
+
+        # === Conversion automatique Word/Pages -> PDF (CloudConvert) ===
+        try:
+            converted = convert_if_needed(file_data, original_filename)
+        except ConversionError as conv_err:
+            return jsonify({'success': False, 'message': str(conv_err)}), 400
+        if converted:
+            file_data, original_filename = converted
+            file_ext = 'pdf'
+            unique_filename = f"{uuid.uuid4()}.pdf"
+            file_size = len(file_data)
+            mime_type = 'application/pdf'
 
         r2_key = None
         file_path = None
@@ -1341,7 +1355,7 @@ def upload_with_structure():
         # === Stockage R2 (prioritaire si activé) ===
         if is_r2_enabled():
             r2_key = upload_file_to_r2(
-                file_data, current_user.id, unique_filename, mime_type=file.content_type
+                file_data, current_user.id, unique_filename, mime_type=mime_type
             )
             if not r2_key:
                 current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
@@ -1354,7 +1368,7 @@ def upload_with_structure():
             original_filename=original_filename,
             file_type=file_ext,
             file_size=file_size,
-            mime_type=file.content_type,
+            mime_type=mime_type,
             r2_key=r2_key
         )
 
@@ -1476,7 +1490,7 @@ def upload_file():
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Aucun fichier sélectionné'}), 400
 
-    if not allowed_file(file.filename):
+    if not (allowed_file(file.filename) or is_convertible_filename(file.filename)):
         return jsonify({'success': False, 'message': 'Type de fichier non autorisé'}), 400
 
     # Vérifier la taille
@@ -1510,6 +1524,19 @@ def upload_file():
         # Lire le contenu du fichier en mémoire
         file_data = file.read()
         file.seek(0)
+        mime_type = file.content_type
+
+        # === Conversion automatique Word/Pages -> PDF (CloudConvert) ===
+        try:
+            converted = convert_if_needed(file_data, original_filename)
+        except ConversionError as conv_err:
+            return jsonify({'success': False, 'message': str(conv_err)}), 400
+        if converted:
+            file_data, original_filename = converted
+            file_ext = 'pdf'
+            unique_filename = f"{uuid.uuid4()}.pdf"
+            file_size = len(file_data)
+            mime_type = 'application/pdf'
 
         r2_key = None
         r2_thumbnail_key = None
@@ -1518,7 +1545,7 @@ def upload_file():
         # === Stockage R2 (prioritaire si activé) ===
         if is_r2_enabled():
             r2_key = upload_file_to_r2(
-                file_data, current_user.id, unique_filename, mime_type=file.content_type
+                file_data, current_user.id, unique_filename, mime_type=mime_type
             )
             if not r2_key:
                 current_app.logger.warning(f"Upload R2 échoué pour {unique_filename}, fallback disque local")
@@ -1531,7 +1558,7 @@ def upload_file():
             original_filename=original_filename,
             file_type=file_ext,
             file_size=file_size,
-            mime_type=file.content_type,
+            mime_type=mime_type,
             r2_key=r2_key
         )
 

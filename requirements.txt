@@ -22,3 +22,4 @@ flask-socketio==5.3.4
 eventlet==0.40.4
 simple-websocket==1.1.0
 sentry-sdk[flask]
+requests==2.32.3

@@ -1417,7 +1417,8 @@ function handleFiles(files) {
 // Valider un fichier
 function validateFile(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+    // doc/docx/pages : convertis automatiquement en PDF côté serveur (CloudConvert)
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'pages'];
     const maxSize = 250 * 1024 * 1024; // 250 MB
 
     // Check MIME type first, but fall back to extension check

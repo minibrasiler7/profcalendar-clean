@@ -3651,7 +3651,7 @@
                                     <i class="fas fa-folder-upload"></i> Dossier
                                 </button>
                             </div>
-                            <input type="file" id="classFileInput-{{ subject_data.classroom.id }}" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;" onchange="handleClassFileSelect(event, '{{ subject_data.classroom.id }}')">
+                            <input type="file" id="classFileInput-{{ subject_data.classroom.id }}" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" style="display: none;" onchange="handleClassFileSelect(event, '{{ subject_data.classroom.id }}')">
                             <input type="file" id="classFolderInput-{{ subject_data.classroom.id }}" webkitdirectory directory multiple style="display: none;" onchange="handleClassFolderSelect(event, '{{ subject_data.classroom.id }}')">
                         </div>
                     </div>
@@ -3706,7 +3706,7 @@
                                     <i class="fas fa-folder-upload"></i> Dossier
                                 </button>
                             </div>
-                            <input type="file" id="classFileInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display: none;" onchange="handleClassFileSelect(event)">
+                            <input type="file" id="classFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" style="display: none;" onchange="handleClassFileSelect(event)">
                             <input type="file" id="classFolderInput" webkitdirectory directory multiple style="display: none;" onchange="handleClassFolderSelect(event)">
                         </div>
                     </div>
@@ -9020,9 +9020,14 @@ function validateClassFile(file, options) {
     }
 
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    // doc/docx/pages : convertis automatiquement en PDF côté serveur (CloudConvert).
+    // On valide aussi par extension car le navigateur renvoie souvent un type
+    // MIME vide pour les fichiers .pages.
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'pages'];
+    const ext = baseName.includes('.') ? baseName.split('.').pop().toLowerCase() : '';
     const maxSize = 250 * 1024 * 1024; // 250 MB
 
-    if (!allowedTypes.includes(file.type)) {
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext)) {
         if (onReject) onReject({ name: file.name, reason: 'unsupported_type' });
         if (!silent) showNotification('error', `Type de fichier non autorisé: ${file.name}`);
         return false;
@@ -9054,7 +9059,7 @@ function showClassFileRejectionSummary(rejected) {
     if (typeRejects.length) {
         const examples = typeRejects.slice(0, 3).map(r => r.name).join(', ');
         const more = typeRejects.length > 3 ? ` (+${typeRejects.length - 3} autres)` : '';
-        parts.push(`${typeRejects.length} fichier(s) non supporté(s) — seuls PDF/PNG/JPEG sont acceptés. Ignorés : ${examples}${more}`);
+        parts.push(`${typeRejects.length} fichier(s) non supporté(s) — seuls PDF, images, Word et Pages sont acceptés. Ignorés : ${examples}${more}`);
     }
     if (sizeRejects.length) {
         const examples = sizeRejects.slice(0, 3).map(r => r.name).join(', ');
