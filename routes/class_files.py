@@ -765,10 +765,16 @@ def create_class_folder():
         name = data.get('name', '').strip()
         classroom_id = data.get('classroom_id')
         parent_id = data.get('parent_id')  # Non utilisé pour le moment
-        
+
         if not name or not classroom_id:
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
-        
+
+        # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
+        try:
+            classroom_id = int(classroom_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=classroom_id,
@@ -800,10 +806,16 @@ def delete_class_folder_by_path():
         data = request.get_json()
         classroom_id = data.get('classroom_id')
         folder_path = data.get('folder_path', '').strip()
-        
+
         if not classroom_id or not folder_path:
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
-        
+
+        # Cast en int : Postgres strict refuse INTEGER = VARCHAR.
+        try:
+            classroom_id = int(classroom_id)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+
         # Vérifier que la classe appartient à l'utilisateur
         classroom = Classroom.query.filter_by(
             id=classroom_id,

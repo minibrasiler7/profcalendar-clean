@@ -92,6 +92,19 @@ def _find_task(job, name):
     return None
 
 
+def _api_message(resp):
+    """Extrait un message lisible de la réponse d'erreur CloudConvert."""
+    try:
+        data = resp.json()
+        msg = data.get("message") or data.get("error")
+        if msg:
+            return str(msg)
+    except Exception:
+        pass
+    text = (resp.text or "").strip()
+    return text[:200] if text else "(pas de détail fourni)"
+
+
 def _cloudconvert_to_pdf(file_bytes, filename, overall_timeout=100, poll_interval=2):
     """Convertit ``file_bytes`` en PDF via CloudConvert. Renvoie les octets du PDF."""
     api_key = os.environ.get("CLOUDCONVERT_API_KEY")
@@ -115,10 +128,18 @@ def _cloudconvert_to_pdf(file_bytes, filename, overall_timeout=100, poll_interva
     except requests.RequestException as exc:
         raise ConversionError(f"CloudConvert injoignable : {exc}")
     if resp.status_code == 401:
-        raise ConversionError("Clé API CloudConvert invalide.")
+        raise ConversionError(
+            f"Clé API CloudConvert invalide ou absente (HTTP 401 : {_api_message(resp)})."
+        )
+    if resp.status_code == 403:
+        raise ConversionError(
+            "Clé API CloudConvert sans les droits nécessaires : régénère une clé "
+            "avec les scopes « task.read » ET « task.write » "
+            f"(HTTP 403 : {_api_message(resp)})."
+        )
     if resp.status_code not in (200, 201):
         raise ConversionError(
-            f"Création du job de conversion échouée (HTTP {resp.status_code})."
+            f"Création du job de conversion échouée (HTTP {resp.status_code} : {_api_message(resp)})."
         )
 
     job = (resp.json() or {}).get("data", {})
