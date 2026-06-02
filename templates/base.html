@@ -10,6 +10,8 @@
     {% endif %}
     <title>{% block title %}ProfCalendar - Planification simplifiée{% endblock %}</title>
 
+    {% include 'includes/favicon.html' %}
+
     <!-- Google Analytics (GA4) — configurez GA_MEASUREMENT_ID dans les variables d'env Render -->
     {% if config.get('GA_MEASUREMENT_ID') %}
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.GA_MEASUREMENT_ID }}"></script>

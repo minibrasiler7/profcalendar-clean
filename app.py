@@ -987,6 +987,13 @@ def create_app(config_name='development'):
                 return redirect(url_for('planning.dashboard'))
         return render_template('landing.html')
 
+    # --- Favicon ---
+    # Fallback à la racine : les navigateurs demandent /favicon.ico d'office,
+    # ce qui couvre aussi les pages autonomes qui n'incluent pas le partial.
+    @app.route('/favicon.ico')
+    def favicon():
+        return app.send_static_file('img/favicon/favicon.ico')
+
     # --- SEO ---
     @app.route('/robots.txt')
     def robots():
