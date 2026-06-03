@@ -9169,6 +9169,24 @@ class CleanPDFViewer {
                             }
                         }
                     }
+                    // [DIAG TEMPORAIRE] Capture la chaîne de coordonnées pour
+                    // diagnostiquer le trait dédoublé/translaté (retiré ensuite).
+                    try {
+                        const _pts = annotation.points || [];
+                        const _r = (typeof viewer.getVisiblePageRect === 'function') ? viewer.getVisiblePageRect() : null;
+                        const _disp = canvas ? canvas.getBoundingClientRect() : null;
+                        console.log('[PencilKit][diag] STROKE',
+                            '| keepsNativeInk=', !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk),
+                            '| pageId=', pageId,
+                            '| pts=', _pts.length,
+                            '| first=', _pts[0] ? (Math.round(_pts[0].x) + ',' + Math.round(_pts[0].y)) : null,
+                            '| last=', _pts.length ? (Math.round(_pts[_pts.length - 1].x) + ',' + Math.round(_pts[_pts.length - 1].y)) : null,
+                            '| canvasInternal=', canvas ? (canvas.width + 'x' + canvas.height) : null,
+                            '| canvasDisplay=', _disp ? (Math.round(_disp.width) + 'x' + Math.round(_disp.height)) : null,
+                            '| pageRectSent=', _r ? (Math.round(_r.width) + 'x' + Math.round(_r.height) + ' @' + Math.round(_r.x) + ',' + Math.round(_r.y)) : null,
+                            '| scale=', viewer.currentScale);
+                    } catch (e) { console.warn('[PencilKit][diag] log error', e); }
+
                     // Si le build natif garde l'encre PencilKit affichée pendant
                     // la session (keepsNativeInk), NE PAS redessiner en JS ici :
                     // sinon le trait s'afficherait en double (encre native + rendu
