@@ -496,14 +496,15 @@ class CleanPDFViewer {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 12px 16px;
+                padding: 8px 12px;
                 background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
                 border-bottom: 1px solid #e0e0e0;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                gap: 16px;
+                gap: 10px;
                 z-index: 999999;
+                flex-wrap: nowrap;
                 /* Force un nouveau contexte de rendu pour ignorer le zoom natif */
                 transform: translateZ(0);
                 -webkit-transform: translateZ(0);
@@ -515,25 +516,15 @@ class CleanPDFViewer {
             .toolbar-right {
                 display: flex;
                 align-items: center;
-                gap: 4px;
+                gap: 3px;
+                min-width: 0; /* autorise la compression -> pas de scroll horizontal */
             }
-
-            @media (min-height: 850px) {
-                .toolbar-left, .toolbar-center, .toolbar-right {
-                    gap: 6px;
-                }
-            }
-
-            @media (min-height: 1100px) {
-                .toolbar-left, .toolbar-center, .toolbar-right {
-                    gap: 8px;
-                }
-            }
+            .toolbar-left { flex-wrap: nowrap; }
 
             .btn-tool,
             .btn-action {
-                width: 32px;
-                height: 32px;
+                width: 30px;
+                height: 30px;
                 border: none;
                 background: transparent;
                 border-radius: 6px;
@@ -544,39 +535,31 @@ class CleanPDFViewer {
                 transition: all 0.2s;
                 color: #333;
                 font-size: 14px;
+                flex: 0 0 auto;
             }
 
-            /* Media queries pour adapter la taille selon la hauteur */
-            @media (min-height: 750px) {
-                .btn-tool, .btn-action {
-                    width: 36px;
-                    height: 36px;
-                    font-size: 15px;
-                }
+            /* La barre regroupe ~30 controles sur UNE seule ligne pleine largeur.
+               On adapte leur taille a la LARGEUR de l'ecran (et non a la hauteur,
+               qui agrandissait les boutons en portrait et provoquait le scroll) :
+               plus l'ecran est etroit (iPad portrait, split view), plus les
+               outils sont compacts, pour que tout tienne sans scroller. */
+            @media (max-width: 1100px) {
+                .pdf-toolbar { padding: 7px 8px; gap: 6px; }
+                .toolbar-left, .toolbar-center, .toolbar-right { gap: 2px; }
+                .color-selector, .size-selector { gap: 3px; }
+                .btn-tool, .btn-action { width: 27px; height: 27px; font-size: 13px; }
+                .btn-color, .btn-color-custom, .custom-color-wrapper, #color-picker { width: 26px; height: 26px; }
+                .btn-size { width: 30px; height: 27px; }
+                .separator { margin: 0 2px; }
             }
-
-            @media (min-height: 850px) {
-                .btn-tool, .btn-action {
-                    width: 38px;
-                    height: 38px;
-                    font-size: 16px;
-                }
-            }
-
-            @media (min-height: 950px) {
-                .btn-tool, .btn-action {
-                    width: 40px;
-                    height: 40px;
-                    font-size: 17px;
-                }
-            }
-
-            @media (min-height: 1100px) {
-                .btn-tool, .btn-action {
-                    width: 42px;
-                    height: 42px;
-                    font-size: 18px;
-                }
+            @media (max-width: 880px) {
+                .pdf-toolbar { padding: 6px; gap: 4px; }
+                .toolbar-left, .toolbar-center, .toolbar-right { gap: 1px; }
+                .color-selector, .size-selector { gap: 2px; }
+                .btn-tool, .btn-action { width: 23px; height: 23px; font-size: 11px; border-radius: 5px; }
+                .btn-color, .btn-color-custom, .custom-color-wrapper, #color-picker { width: 21px; height: 21px; border-width: 1px; }
+                .btn-size { width: 26px; height: 23px; padding: 3px; }
+                .separator { margin: 0 1px; height: 18px; }
             }
 
             .btn-tool:hover,
