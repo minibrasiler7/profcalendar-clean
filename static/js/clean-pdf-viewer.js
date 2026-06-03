@@ -11952,6 +11952,29 @@ class CleanPDFViewer {
         this.stopAutoSave();
         this.cleanupBeforeUnload();
 
+        // CRITIQUE : couper aussi les listeners document/window (Apple Pencil,
+        // pointermove/touchmove, etc.) et le watchdog. close() est le chemin de
+        // fermeture normal (bouton ✕) ; sans cet abort, ces listeners restaient
+        // accrochés au document. Comme onClose remet cleanPDFViewer à null, le
+        // PDF suivant crée une NOUVELLE instance qui ajoute un nouveau jeu de
+        // listeners : ils s'empilaient à chaque ouverture/fermeture et finissaient
+        // par geler la WebView iPad (cf. même nettoyage dans destroy()).
+        if (this._listenerAbortController) {
+            try {
+                this._listenerAbortController.abort();
+            } catch (e) {
+                console.warn('[Close] Erreur abort listeners:', e);
+            }
+        }
+        if (this._safetyWatchdogInterval) {
+            clearInterval(this._safetyWatchdogInterval);
+            this._safetyWatchdogInterval = null;
+        }
+        if (this.walkerAnimationId) {
+            cancelAnimationFrame(this.walkerAnimationId);
+            this.walkerAnimationId = null;
+        }
+
         // Retirer la classe du body pour restaurer le scroll global
         document.body.classList.remove('pdf-viewer-active');
 
