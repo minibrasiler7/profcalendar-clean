@@ -158,6 +158,17 @@ class CleanPDFViewer {
         this.pencilKitActive = false;
         this.isPencilKitAvailable = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit);
 
+        // App iPad (PencilKit natif) : trait FIDÈLE au tracé, "tel quel".
+        // On désactive le re-lissage/reformage perfect-freehand appliqué après le
+        // lever du stylet (contrairement au web). Couvre les deux chemins de dessin
+        // (PencilKit natif via convertPencilKitStroke ET pointer web), car les deux
+        // retombent sur ces valeurs par défaut du stylo.
+        if (this.isPencilKitAvailable) {
+            this.penSmoothing = 0.01; // ~0 : pas de reformage (0 serait écrasé à 0.5 par le `|| 0.5` du renderer)
+            this.penStreamline = 0;   // garder les points bruts de l'Apple Pencil
+            this.penThinning = 0.5;   // conserver la variation d'épaisseur selon la pression
+        }
+
         // État du dessin
         this.isDrawing = false;
         this.currentStroke = null;
