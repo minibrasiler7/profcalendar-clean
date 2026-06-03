@@ -9186,10 +9186,20 @@ class CleanPDFViewer {
                             }
                         }
                     }
-                    if (canvas) {
-                        viewer.redrawAnnotations(canvas, pageId);
-                    } else {
-                        console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
+                    // Si le build natif garde l'encre PencilKit affichée pendant
+                    // la session (keepsNativeInk), NE PAS redessiner en JS ici :
+                    // sinon le trait s'afficherait en double (encre native + rendu
+                    // perfect-freehand) et serait "reprocessé". Le trait reste tel
+                    // quel ; il est quand même sauvegardé (isDirty + saveAnnotations
+                    // plus bas) et re-rendu en JS au flush (changement de page /
+                    // d'outil) et au rechargement du document.
+                    const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+                    if (!keepsNativeInk) {
+                        if (canvas) {
+                            viewer.redrawAnnotations(canvas, pageId);
+                        } else {
+                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
+                        }
                     }
 
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,
@@ -9270,17 +9280,28 @@ class CleanPDFViewer {
     // Envoyer les coordonnees de la zone PDF visible a Swift
     notifyPencilKitPageRect() {
         if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
-        
+
         const pageContainer = document.querySelector('.pdf-page-container.active, .pdf-page-container');
         if (!pageContainer) return;
-        
+
+        // keepsNativeInk : quand on QUITTE une page, matérialiser ses traits de
+        // session sur le canvas JS (l'overlay natif va être effacé/repositionné
+        // côté Swift), sinon ils "disparaîtraient" jusqu'au rechargement.
+        const newInkPageId = this.getCurrentPageId();
+        const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+        if (keepsNativeInk && this._lastInkPageId != null && this._lastInkPageId !== newInkPageId) {
+            const prevCanvas = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
+            if (prevCanvas) this.redrawAnnotations(prevCanvas, this._lastInkPageId);
+        }
+        this._lastInkPageId = newInkPageId;
+
         const rect = pageContainer.getBoundingClientRect();
         window.webkit.messageHandlers.pencilKit.postMessage({
             action: 'updatePageRect',
             config: {
                 pageRect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
                 scale: this.currentScale,
-                pageId: this.getCurrentPageId()
+                pageId: newInkPageId
             }
         });
     }
@@ -9290,6 +9311,9 @@ class CleanPDFViewer {
         if (!this.isPencilKitAvailable) return;
         
         this.pencilKitActive = true;
+        // Mémoriser la page d'encre native courante (sert au flush lors d'un
+        // changement de page / d'outil / fermeture).
+        this._lastInkPageId = this.getCurrentPageId();
         window.webkit.messageHandlers.pencilKit.postMessage({
             action: 'activate',
             config: {
@@ -9308,7 +9332,17 @@ class CleanPDFViewer {
     // Desactiver PencilKit
     deactivatePencilKit() {
         if (!this.isPencilKitAvailable) return;
-        
+
+        // Avant de désactiver (changement d'outil, gomme, fermeture) : si on
+        // gardait l'encre native, matérialiser les traits de la page courante
+        // sur le canvas JS pour qu'ils restent visibles après l'effacement du
+        // canvas natif côté Swift.
+        const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+        if (keepsNativeInk && this._lastInkPageId != null) {
+            const c = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
+            if (c) this.redrawAnnotations(c, this._lastInkPageId);
+        }
+
         this.pencilKitActive = false;
         window.webkit.messageHandlers.pencilKit.postMessage({
             action: 'deactivate'

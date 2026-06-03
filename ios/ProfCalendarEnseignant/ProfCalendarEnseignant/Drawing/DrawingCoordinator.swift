@@ -37,6 +37,12 @@ class DrawingCoordinator: NSObject {
     var currentScale: Double = 1.0
     var currentPageId: String = "page-1"
 
+    // Nombre de traits deja envoyes au web depuis le dernier effacement du
+    // canvas. On n'efface plus le canvas apres chaque trait (l'encre native
+    // reste affichee pendant la session) : on envoie donc seulement les
+    // NOUVEAUX traits au-dela de ce compteur.
+    private var sentStrokeCount = 0
+
     // References UI
     weak var webView: WKWebView?
     weak var canvasView: PKCanvasView?
@@ -73,6 +79,11 @@ class DrawingCoordinator: NSObject {
         self.currentOpacity = opacity
         self.pageRect = pageRect
         self.currentScale = scale
+        // Changement de page : repartir d'un canvas natif vierge (les traits de
+        // la page precedente ont deja ete materialises cote JS via le flush).
+        if pageId != self.currentPageId {
+            clearCanvas()
+        }
         self.currentPageId = pageId
         self.isPencilKitActive = true
 
@@ -84,8 +95,17 @@ class DrawingCoordinator: NSObject {
 
     func deactivatePencilKit() {
         isPencilKitActive = false
-        canvasView?.drawing = PKDrawing() // Effacer le canvas
+        clearCanvas() // Effacer le canvas natif + reinitialiser le compteur
         print("[DrawingCoordinator] PencilKit deactivated")
+    }
+
+    /// Efface l'encre native et reinitialise le compteur de traits envoyes.
+    /// Appele a la desactivation et au changement de page (pour eviter que
+    /// l'encre d'une page "bave" sur une autre). Le JS materialise les traits
+    /// sur son canvas (flush) AVANT cet effacement.
+    func clearCanvas() {
+        canvasView?.drawing = PKDrawing()
+        sentStrokeCount = 0
     }
 
     func updateTool(tool: String, color: String, size: Double, opacity: Double) {
@@ -96,7 +116,13 @@ class DrawingCoordinator: NSObject {
         canvasView?.tool = currentPKTool
     }
 
-    func updatePageRect(_ rect: CGRect) {
+    func updatePageRect(_ rect: CGRect, pageId: String? = nil) {
+        // Changement de page pendant que PencilKit est actif : effacer l'encre
+        // native (le JS a deja materialise les traits de la page quittee).
+        if let pageId = pageId, pageId != self.currentPageId {
+            clearCanvas()
+            self.currentPageId = pageId
+        }
         self.pageRect = rect
     }
 
@@ -126,28 +152,34 @@ class DrawingCoordinator: NSObject {
 
 extension DrawingCoordinator: PKCanvasViewDelegate {
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-        // Un nouveau trait a ete complete
-        let drawing = canvasView.drawing
-        guard let lastStroke = drawing.strokes.last else { return }
+        let strokes = canvasView.drawing.strokes
 
-        // Convertir le PKStroke en donnees JSON
-        let strokeData = StrokeConverter.convert(
-            stroke: lastStroke,
-            tool: currentToolName,
-            color: currentColorHex,
-            size: currentSize,
-            opacity: currentOpacity,
-            pageId: currentPageId,
-            scale: currentScale
-        )
-
-        // Envoyer au web via JavaScript bridge
-        sendStrokeToWeb(strokeData: strokeData)
-
-        // Effacer le canvas PencilKit (le web prend le relais pour l'affichage)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            canvasView.drawing = PKDrawing()
+        // Le nombre de traits a diminue (ex : gomme native / undo) → on
+        // resynchronise simplement le compteur. (La gomme passe par le chemin
+        // web ; le natif ne gere que pen/surligneur.)
+        guard strokes.count > sentStrokeCount else {
+            sentStrokeCount = strokes.count
+            return
         }
+
+        // N'envoyer que les NOUVEAUX traits au web (pour la sauvegarde). On
+        // n'efface PLUS le canvas natif : l'encre reste affichee "telle quelle"
+        // pendant toute la session. Le canvas est efface a la desactivation ou
+        // au changement de page (clearCanvas()), apres que le JS a materialise
+        // les traits sur son propre canvas (flush).
+        for index in sentStrokeCount..<strokes.count {
+            let strokeData = StrokeConverter.convert(
+                stroke: strokes[index],
+                tool: currentToolName,
+                color: currentColorHex,
+                size: currentSize,
+                opacity: currentOpacity,
+                pageId: currentPageId,
+                scale: currentScale
+            )
+            sendStrokeToWeb(strokeData: strokeData)
+        }
+        sentStrokeCount = strokes.count
     }
 }
 

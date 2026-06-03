@@ -90,6 +90,7 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
         guard let config = config,
               let rectData = config["pageRect"] as? [String: Any] else { return }
 
+        let pageId = config["pageId"] as? String
         let rect = CGRect(
             x: rectData["x"] as? Double ?? 0,
             y: rectData["y"] as? Double ?? 0,
@@ -97,6 +98,6 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
             height: rectData["height"] as? Double ?? 0
         )
 
-        coordinator?.updatePageRect(rect)
+        coordinator?.updatePageRect(rect, pageId: pageId)
     }
 }

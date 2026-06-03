@@ -445,6 +445,13 @@ class WebViewController: UIViewController {
             // Helper: verifier si PencilKit est disponible
             window.pencilKitBridge.isAvailable = true;
 
+            // Ce build garde l'encre PencilKit native affichee pendant la session
+            // (n'efface plus le canvas apres chaque trait). Le JS s'appuie sur ce
+            // flag pour NE PAS re-tracer le trait via perfect-freehand pendant la
+            // session : le trait reste "tel quel". perfect-freehand n'intervient
+            // qu'au flush (changement de page/outil) et au rechargement.
+            window.pencilKitBridge.keepsNativeInk = true;
+
             console.log('[ProfCalendar] PencilKit bridge initialized');
         })();
         """
