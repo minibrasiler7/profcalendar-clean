@@ -9264,8 +9264,8 @@ class CleanPDFViewer {
     notifyPencilKitPageRect() {
         if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
 
-        const pageContainer = document.querySelector('.pdf-page-container.active, .pdf-page-container');
-        if (!pageContainer) return;
+        const pageContainer = this.getCurrentPageElement();
+        if (!pageContainer) { console.log('[PencilKit][diag] notifyPencilKitPageRect: aucune page -> abort'); return; }
 
         // keepsNativeInk : quand on QUITTE une page, matérialiser ses traits de
         // session sur le canvas JS (l'overlay natif va être effacé/repositionné
@@ -9333,12 +9333,52 @@ class CleanPDFViewer {
         console.log('[PencilKit] Deactivated');
     }
     
+    // Élément DOM de la page courante dont le rect écran sert à positionner
+    // l'overlay PencilKit. BUG HISTORIQUE : on cherchait '.pdf-page-container',
+    // qui n'existe PAS dans le DOM (les pages sont des '.pdf-page-wrapper' >
+    // '.pdf-canvas-container'). Résultat : rect nul → côté Swift le guard
+    // (width>0) sortait sans recadrer → l'overlay restait en PLEIN ÉCRAN →
+    // barre d'outils figée, dessin sur tout l'écran, scroll mort.
+    getCurrentPageElement() {
+        if (!this.container) return null;
+        const pageId = this.getCurrentPageId();
+        let wrapper = (pageId != null)
+            ? this.container.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"]')
+            : null;
+        // Fallback : la page la plus proche du centre du viewer.
+        if (!wrapper) {
+            const wrappers = this.container.querySelectorAll('.pdf-page-wrapper');
+            const viewer = this.elements && this.elements.viewer;
+            if (viewer && wrappers.length) {
+                const vr = viewer.getBoundingClientRect();
+                const center = vr.top + vr.height / 2;
+                let bestDist = Infinity;
+                wrappers.forEach(w => {
+                    const r = w.getBoundingClientRect();
+                    if (r.bottom > vr.top && r.top < vr.bottom) {
+                        const d = Math.abs((r.top + r.height / 2) - center);
+                        if (d < bestDist) { bestDist = d; wrapper = w; }
+                    }
+                });
+            }
+            if (!wrapper && wrappers.length) wrapper = wrappers[0];
+        }
+        if (!wrapper) return null;
+        // Le conteneur du canvas = la zone exacte de la page rendue.
+        return wrapper.querySelector('.pdf-canvas-container') || wrapper;
+    }
+
     // Obtenir le rectangle de la page visible
     getVisiblePageRect() {
-        const pageContainer = document.querySelector('.pdf-page-container.active, .pdf-page-container');
-        if (!pageContainer) return { x: 0, y: 0, width: 0, height: 0 };
-        const rect = pageContainer.getBoundingClientRect();
-        return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+        const el = this.getCurrentPageElement();
+        if (!el) {
+            console.log('[PencilKit][diag] getVisiblePageRect: aucune page trouvée -> rect nul');
+            return { x: 0, y: 0, width: 0, height: 0 };
+        }
+        const rect = el.getBoundingClientRect();
+        const out = { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+        console.log('[PencilKit][diag] getVisiblePageRect ->', JSON.stringify(out), '| pageId:', this.getCurrentPageId());
+        return out;
     }
     
     // Obtenir l'ID de la page courante

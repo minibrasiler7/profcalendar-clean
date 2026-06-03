@@ -121,7 +121,11 @@ class WebViewController: UIViewController {
         // la WebView (incluant la barre d'outils du lecteur PDF) →
         // impossible de changer d'outil avec le stylet.
         if let pc = pencilCanvas, pc.isHidden {
-            pc.frame = contentFrame
+            // SÉCURITÉ : caché → cadre NUL (et non plein écran). Sinon ce cadre
+            // plein écran devient le repli si l'overlay s'affiche avant d'avoir
+            // un pageRect valide → il recouvre toute la WebView (barre d'outils
+            // figée, dessin partout, scroll mort).
+            pc.frame = .zero
         } else {
             // PencilKit actif → on redemande à la WebView de communiquer le
             // nouveau pageRect côté JS si l'orientation/scroll a changé.
@@ -1073,8 +1077,16 @@ extension WebViewController: DrawingCoordinatorDelegate {
 
     private func updatePencilCanvasFrame() {
         let rect = drawingCoordinator.pageRect
-        guard rect.width > 0 && rect.height > 0 else { return }
-
+        // SÉCURITÉ : ne JAMAIS laisser l'overlay en plein écran. Si le pageRect
+        // n'est pas (encore) valide, on met un cadre NUL (ne recouvre rien)
+        // plutôt que de conserver l'ancien cadre (souvent plein écran) → évite
+        // de figer la barre d'outils / rendre tout l'écran annotable.
+        guard rect.width > 0 && rect.height > 0 else {
+            print("[DrawingCoordinator][diag] pageRect invalide \(rect) -> frame .zero (overlay neutralisé)")
+            pencilCanvas.frame = .zero
+            return
+        }
+        print("[DrawingCoordinator][diag] frame overlay = \(rect)")
         pencilCanvas.translatesAutoresizingMaskIntoConstraints = true
         pencilCanvas.frame = rect
     }
