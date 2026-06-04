@@ -1473,6 +1473,7 @@ class CleanPDFViewer {
 
                 // Utiliser la couleur du bouton
                 this.currentColor = btn.dataset.color;
+                this.syncPencilKitConfig();
             });
         });
 
@@ -1485,6 +1486,7 @@ class CleanPDFViewer {
             btnCustom.style.background = e.target.value;
 
             console.log('[ColorPicker] Couleur changée:', e.target.value);
+            this.syncPencilKitConfig();
         });
 
         this.elements.colorPicker.addEventListener('click', () => {
@@ -1517,6 +1519,7 @@ class CleanPDFViewer {
                 }
                 console.log('[ColorPicker] Re-clic — réapplication couleur custom:', this.elements.colorPicker.value);
             }
+            this.syncPencilKitConfig();
         });
 
         // Boutons de taille
@@ -1530,6 +1533,7 @@ class CleanPDFViewer {
 
                 // Définir la taille
                 this.currentSize = parseInt(btn.dataset.size);
+                this.syncPencilKitConfig();
 
                 // Mettre à jour le curseur si visible
                 if (this.cursorVisible) {
@@ -9379,6 +9383,16 @@ class CleanPDFViewer {
         });
         console.log('[PencilKit] Deactivated');
     }
+
+    // Renvoyer la config courante (outil/couleur/taille/opacité) à l'overlay
+    // natif PencilKit s'il est actif. À appeler après un changement de couleur
+    // ou de taille pour que l'encre native reflète tout de suite le réglage
+    // (sinon le natif garde l'ancienne couleur/épaisseur).
+    syncPencilKitConfig() {
+        if (this.isPencilKitAvailable && this.pencilKitActive) {
+            this.activatePencilKit();
+        }
+    }
     
     // Élément DOM de la page courante dont le rect écran sert à positionner
     // l'overlay PencilKit. BUG HISTORIQUE : on cherchait '.pdf-page-container',
@@ -9480,13 +9494,11 @@ class CleanPDFViewer {
         // Filet de sécurité côté JS : si l'utilisateur tourne encore une
         // version Swift sans les fixes (StrokeConverter divise toujours),
         // applyScaleCompensation() en handleStroke remultiplie par scale.
-        if (this.isPencilKitAvailable) {
-            if (tool === 'pen' || tool === 'highlighter') {
-                this.activatePencilKit();
-            } else if (this.pencilKitActive) {
-                this.deactivatePencilKit();
-            }
-        }
+        // NB : la (ré)activation de l'overlay natif PencilKit est faite à la FIN
+        // de cette méthode (voir plus bas), APRÈS la mise à jour de
+        // currentTool / currentColor / currentOpacity / currentSize. Sinon
+        // activatePencilKit() lit l'ANCIEN outil et envoie une mauvaise config
+        // au natif.
 
         console.log('[Tool] setTool appelé avec:', tool);
 
@@ -9559,6 +9571,22 @@ class CleanPDFViewer {
                     btn.classList.toggle('active', btn.dataset.color === '#000000');
                 });
                 this.container.querySelector('.custom-color-wrapper').classList.remove('active');
+            }
+        }
+
+        // PencilKit (overlay natif iPad) : (ré)activer / désactiver MAINTENANT,
+        // après avoir mis à jour currentTool, currentColor, currentOpacity et
+        // currentSize. C'était LE bug principal : l'activation se faisait en
+        // tête de méthode, donc activatePencilKit() envoyait l'ANCIEN
+        // outil/couleur au natif → « je prends le stylo et c'est le surligneur
+        // (ou l'outil précédent) qui sort », certains outils ne traçaient plus
+        // (le natif recevait p.ex. « eraser »), et le changement de couleur/
+        // taille ne se répercutait pas sur l'encre native.
+        if (this.isPencilKitAvailable) {
+            if (this.currentTool === 'pen' || this.currentTool === 'highlighter') {
+                this.activatePencilKit();
+            } else if (this.pencilKitActive) {
+                this.deactivatePencilKit();
             }
         }
     }
@@ -12042,6 +12070,17 @@ class CleanPDFViewer {
 
         // Masquer l'équerre si elle est affichée
         this.hideSetSquare();
+
+        // Désactiver l'overlay natif PencilKit (iPad). Sans ça, l'encre native
+        // capturée pendant la session reste affichée par-dessus la page après
+        // la fermeture du lecteur (bug « les annotations restent à la
+        // fermeture »). deactivatePencilKit() se contente de poster
+        // « deactivate » au natif — c'est sûr (déjà utilisé au changement de
+        // page) et sans rapport avec l'abort des listeners qui, lui, cassait
+        // l'annotation.
+        if (this.isPencilKitAvailable && this.pencilKitActive) {
+            this.deactivatePencilKit();
+        }
 
         // Sauvegarder avant de fermer
         if (this.isDirty) {
