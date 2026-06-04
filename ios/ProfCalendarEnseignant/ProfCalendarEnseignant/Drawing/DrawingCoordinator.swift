@@ -142,6 +142,13 @@ class DrawingCoordinator: NSObject {
                     print("[DrawingCoordinator] JS error: \(error.localizedDescription)")
                 } else {
                     print("[DrawingCoordinator] Stroke sent to web successfully")
+                    // keepsNativeInk=true : on NE vide PLUS le canvas natif après
+                    // chaque trait. L'encre Apple native reste affichée "telle
+                    // quelle" pendant toute la session (zéro re-rendu JS → pas de
+                    // reshape ni de translation à main levée). Le web ne sert qu'à
+                    // SAUVEGARDER le trait ; il le matérialise sur son canvas
+                    // seulement au flush (changement de page / d'outil non-natif /
+                    // fermeture), juste avant que clearCanvas() vide le natif.
                 }
             }
         }
@@ -151,6 +158,18 @@ class DrawingCoordinator: NSObject {
 // MARK: - PKCanvasViewDelegate
 
 extension DrawingCoordinator: PKCanvasViewDelegate {
+    // Début d'un vrai tracé Pencil : couper le scroll de la WebView le temps du
+    // tracé (évite qu'une paume posée ne fasse défiler la page pendant qu'on
+    // écrit). Le scroll au doigt reste possible le reste du temps.
+    func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+        webView?.scrollView.isScrollEnabled = false
+    }
+
+    // Fin du tracé Pencil : rétablir le scroll.
+    func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+        webView?.scrollView.isScrollEnabled = true
+    }
+
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
         let strokes = canvasView.drawing.strokes
 

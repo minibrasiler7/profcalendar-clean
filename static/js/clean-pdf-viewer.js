@@ -37,10 +37,17 @@
     if (window.pencilKitBridge && window.pencilKitBridge.__realBridge) return;
 
     const buffered = (window.pencilKitBridge && window.pencilKitBridge.__buffered) || [];
+    // Préserver les flags éventuellement déjà posés par le bridge natif Swift
+    // (keepsNativeInk / isAvailable), sinon cette réassignation du stub les
+    // effacerait.
+    const prevKeepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+    const prevIsAvailable = !!(window.pencilKitBridge && window.pencilKitBridge.isAvailable);
 
     window.pencilKitBridge = {
         __isStub: true,
         __buffered: buffered,
+        keepsNativeInk: prevKeepsNativeInk,
+        isAvailable: prevIsAvailable,
         onStrokeCompleted: function (strokeData) {
             try {
                 console.log('[PencilKit] Stub received stroke (viewer not ready), buffering');
@@ -9256,6 +9263,16 @@ class CleanPDFViewer {
         window.pencilKitBridge = {
             __realBridge: true,
             __buffered: [],
+            // PRÉSERVER les flags posés par le bridge natif Swift. Cette
+            // réassignation écrasait `keepsNativeInk` (que Swift met à true) →
+            // il repassait à undefined/false → le JS re-dessinait chaque trait
+            // PAR-DESSUS l'encre native = double trait, puis (après le fix
+            // anti-double) reshape + translation à main levée. En le préservant,
+            // keepsNativeInk reste true : le JS NE re-dessine plus pendant la
+            // session (l'encre Apple native reste telle quelle) et ne matérialise
+            // qu'au flush (changement de page / d'outil non-natif / fermeture).
+            keepsNativeInk: !!(previousBridge && previousBridge.keepsNativeInk),
+            isAvailable: !!(previousBridge && previousBridge.isAvailable),
             // Appele par Swift quand un trait est termine
             onStrokeCompleted: handleStroke,
 

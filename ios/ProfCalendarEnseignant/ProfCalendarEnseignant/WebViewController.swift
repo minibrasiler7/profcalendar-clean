@@ -207,7 +207,10 @@ class WebViewController: UIViewController {
     }
 
     private func setupPencilKitCanvas() {
-        pencilCanvas = PKCanvasView()
+        // PassthroughCanvasView : laisse passer les touches du DOIGT vers la
+        // WebView (scroll) tout en captant l'Apple Pencil (dessin). Sans ça,
+        // l'overlay intercepte le doigt et bloque le scroll de la page.
+        pencilCanvas = PassthroughCanvasView()
         pencilCanvas.backgroundColor = .clear
         pencilCanvas.isOpaque = false
         pencilCanvas.drawingPolicy = .pencilOnly  // Seul l'Apple Pencil dessine, le doigt scroll
@@ -1052,20 +1055,29 @@ extension WebViewController: DrawingCoordinatorDelegate {
         pencilCanvas.isHidden = !isActive
 
         if isActive {
-            // Desactiver le scroll de la WebView pendant le dessin
-            webView.scrollView.isScrollEnabled = false
-            webView.scrollView.bounces = false
-
-            // Positionner le canvas PencilKit sur la zone de la page
+            // IMPORTANT : on NE coupe PLUS le scroll de la WebView ici. Avant,
+            // dès que l'outil stylo/surligneur était actif, le scroll était mort
+            // (l'enseignant ne pouvait plus faire défiler la page). Désormais le
+            // scroll au DOIGT reste possible : l'overlay (PassthroughCanvasView)
+            // laisse passer les touches du doigt vers la WebView, et le scroll
+            // n'est coupé QUE le temps d'un vrai tracé Pencil (voir
+            // canvasViewDidBeginUsingTool / canvasViewDidEndUsingTool).
             updatePencilCanvasFrame()
 
             // S'assurer que le canvas est au-dessus de tout (sauf activity indicator)
             view.bringSubviewToFront(pencilCanvas)
 
             pencilCanvas.tool = coordinator.currentPKTool
-            pencilCanvas.drawing = PKDrawing()
+            // NE PLUS vider le canvas natif ici. keepsNativeInk=true : l'encre
+            // native doit PERSISTER pendant la session. Avant, ce
+            // `drawing = PKDrawing()` se déclenchait à CHAQUE (ré)activation —
+            // donc à chaque changement d'outil stylo↔surligneur — et faisait
+            // DISPARAÎTRE les traits déjà tracés. Le canvas est désormais vidé
+            // uniquement au changement de page (DrawingCoordinator.activatePencilKit,
+            // via clearCanvas) et à la désactivation (passage gomme/règle/…),
+            // APRÈS que le JS a matérialisé les traits (flush).
         } else {
-            // Reactiver le scroll
+            // Filet de sécurité : si un tracé avait coupé le scroll, le rétablir.
             webView.scrollView.isScrollEnabled = true
             webView.scrollView.bounces = true
         }
@@ -1106,5 +1118,37 @@ extension WebViewController: UIPencilInteractionDelegate {
         """
         webView.evaluateJavaScript(js, completionHandler: nil)
         print("[WebViewController] Apple Pencil double-tap detected")
+    }
+}
+
+// MARK: - PassthroughCanvasView
+
+/// PKCanvasView qui laisse passer les touches du DOIGT vers la vue située
+/// dessous (la WebView) afin de permettre le scroll de la page, tout en
+/// captant l'Apple Pencil pour dessiner.
+///
+/// Pourquoi : même avec `drawingPolicy = .pencilOnly` (le doigt ne dessine
+/// pas), un PKCanvasView intercepte quand même les touches du doigt dans son
+/// cadre — ce qui bloquait le scroll dès que l'overlay couvrait la page. En
+/// renvoyant `nil` depuis `hitTest` pour les touches non-Pencil, ces touches
+/// atteignent la WebView en dessous et font défiler la page normalement.
+final class PassthroughCanvasView: PKCanvasView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // S'il y a des touches mais AUCUNE n'est un Apple Pencil (donc doigt
+        // et/ou paume uniquement) → renvoyer nil pour laisser passer vers la
+        // WebView dessous (scroll). On teste « au moins une touche Pencil »
+        // plutôt que la première, pour rester robuste quand la paume repose
+        // sur l'écran en même temps que le stylet.
+        if let touches = event?.allTouches, !touches.isEmpty,
+           !touches.contains(where: { $0.type == .pencil }) {
+            // DIAG (throttlé : seulement au début d'une touche) pour vérifier que
+            // le doigt est bien laissé passer vers la WebView (scroll).
+            if let t = touches.first, t.phase == .began {
+                print("[Passthrough] hitTest doigt (type=\(t.type.rawValue)) -> passe vers WebView (scroll)")
+            }
+            return nil
+        }
+        // Apple Pencil présent (ou pas d'info de touche) → dessin normal.
+        return super.hitTest(point, with: event)
     }
 }
