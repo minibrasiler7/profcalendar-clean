@@ -8489,6 +8489,15 @@ class CleanPDFViewer {
      * Dessiner l'effet de verre dépoli (frosted glass) avec déformation type loupe
      */
     drawFrostedGlassMask(ctx, x, y, width, height, radius, pdfCanvas = null) {
+        // Garde-fou défensif : des coordonnées non-finies feraient lever
+        // « non-finite » à createLinearGradient (via drawDeformationEffect).
+        // Couvre aussi l'aperçu live (drawTextHiderPreview) en plus des masques
+        // stockés (drawTextMask).
+        if (!Number.isFinite(x) || !Number.isFinite(y) ||
+            !Number.isFinite(width) || !Number.isFinite(height)) {
+            return;
+        }
+
         ctx.save();
 
         // Dessiner le rectangle arrondi et clipper
@@ -8726,6 +8735,26 @@ class CleanPDFViewer {
         const scaledY = annotation.y * scaleRatioY;
         const scaledWidth = annotation.width * scaleRatioX;
         const scaledHeight = annotation.height * scaleRatioY;
+
+        // Garde-fou : un masque dont la géométrie stockée est invalide (champs
+        // x/y/width/height absents ou NaN — annotations legacy/corrompues) ferait
+        // lever « non-finite » à createLinearGradient (drawDeformationEffect) à
+        // CHAQUE redraw, donc à chaque pointermove pendant un tracé. Sur iPad cela
+        // inonde le thread principal et bloque le scroll / le changement d'outil.
+        // On ignore alors le masque (il ne s'affichait de toute façon pas).
+        if (!Number.isFinite(scaledX) || !Number.isFinite(scaledY) ||
+            !Number.isFinite(scaledWidth) || !Number.isFinite(scaledHeight)) {
+            if (!this._textHiderGeometryWarned) {
+                this._textHiderGeometryWarned = true;
+                console.warn('[TextHider] Masque ignoré (géométrie non valide):', {
+                    x: annotation.x, y: annotation.y,
+                    width: annotation.width, height: annotation.height,
+                    scaleRatioX, scaleRatioY
+                });
+            }
+            return;
+        }
+
         const radius = Math.min(scaledWidth, scaledHeight) * 0.2;
 
         ctx.save();
