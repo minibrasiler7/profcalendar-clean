@@ -9431,8 +9431,15 @@ class CleanPDFViewer {
     // de translation des traits).
     getViewerClipRect() {
         const v = this.elements && this.elements.viewer;
-        if (!v) return null;
-        const r = v.getBoundingClientRect();
+        // Base TOUJOURS valide : rect du viewer, ou à défaut le viewport entier.
+        // CRITIQUE : ne JAMAIS renvoyer null / largeur|hauteur ≤ 0. Côté Swift,
+        // un clipRect invalide déclenche un REPLI qui cadre l'overlay sur la PAGE
+        // ENTIÈRE (sans clip de barre d'outils) → l'encre déborde alors SUR la
+        // barre (« trait sur la barre d'outils »). On garantit donc ici un rect
+        // borné au bas de la barre, quoi qu'il arrive.
+        const r = (v && typeof v.getBoundingClientRect === 'function')
+            ? v.getBoundingClientRect()
+            : { left: 0, top: 0, right: (window.innerWidth || 1024), bottom: (window.innerHeight || 768), width: (window.innerWidth || 1024), height: (window.innerHeight || 768) };
         // La barre d'outils est `position: fixed; top: 0` : elle FLOTTE au-dessus
         // du .pdf-viewer (qui démarre lui à y=0, DERRIÈRE la barre, avec juste un
         // padding-top de réserve). Si on clippe l'overlay natif au seul rect du
@@ -9451,28 +9458,38 @@ class CleanPDFViewer {
             const tr = tb.getBoundingClientRect();
             if (tr.height > 0) top = Math.max(r.top, tr.bottom);
         }
-        let left = r.left, right = r.right, bottom = r.bottom;
-        // INTERSECTION avec la PAGE COURANTE. Sans ça, la zone de dessin native
-        // s'étendait du BAS de la barre d'outils (y≈49) jusqu'en bas du viewport,
-        // alors que la page commence plus bas (y≈96) : il restait une BANDE MORTE
-        // (≈49→96) au-dessus de la page où l'overlay natif captait quand même
-        // l'encre → « le stylet dépasse le PDF par le haut », et un trait qui
-        // sort par le haut laissait le scroll bloqué. En bornant le clip aux
-        // bords réels de la page (haut/bas/gauche/droite), l'overlay ne couvre
-        // QUE la page : plus de débordement, et la bande au-dessus repasse au
-        // WebView (scroll au doigt). Le clip suit la page au scroll (cette
-        // fonction est rappelée par notifyPencilKitPageRect à chaque frame).
+        // Zone GARANTIE valide : viewer sous la barre d'outils. C'est le repli si
+        // l'intersection avec la page donne un rect vide.
+        const base = { x: r.left, y: top, width: r.width, height: Math.max(0, r.bottom - top) };
+
+        // INTERSECTION avec la PAGE COURANTE (si disponible et NON vide). Borne
+        // l'overlay aux bords réels de la page (haut/bas/gauche/droite) → pas de
+        // débordement au-dessus du PDF ni dans les marges. Mais on n'applique
+        // l'intersection QUE si elle reste non vide : sinon on garde `base`
+        // (sous la barre), pour ne jamais renvoyer un rect invalide qui ferait
+        // déborder l'overlay sur la barre via le repli Swift.
+        let result = base;
         const pageEl = (typeof this.getCurrentPageElement === 'function') ? this.getCurrentPageElement() : null;
         if (pageEl) {
             const p = pageEl.getBoundingClientRect();
             if (p.width > 0 && p.height > 0) {
-                top = Math.max(top, p.top);
-                bottom = Math.min(bottom, p.bottom);
-                left = Math.max(left, p.left);
-                right = Math.min(right, p.right);
+                const iLeft = Math.max(r.left, p.left);
+                const iTop = Math.max(top, p.top);
+                const iRight = Math.min(r.right, p.right);
+                const iBottom = Math.min(r.bottom, p.bottom);
+                if (iRight - iLeft > 0 && iBottom - iTop > 0) {
+                    result = { x: iLeft, y: iTop, width: iRight - iLeft, height: iBottom - iTop };
+                }
             }
         }
-        return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+        // Garde-fou final : jamais de dimension nulle (sinon repli Swift = plein
+        // page = encre sur la barre). On retombe sur `base`, puis sur le viewport.
+        if (!(result.width > 0) || !(result.height > 0)) result = base;
+        if (!(result.width > 0) || !(result.height > 0)) {
+            result = { x: r.left, y: top, width: Math.max(1, r.width), height: Math.max(1, r.bottom - top) };
+        }
+        console.log('[ClipRect][diag] ->', JSON.stringify(result), '| viewer.y=' + Math.round(r.top) + ' toolbarBottom=' + Math.round(top));
+        return result;
     }
 
     // Pendant le scroll, repositionner l'overlay natif sur la page courante
