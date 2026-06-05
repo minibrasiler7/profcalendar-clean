@@ -1178,28 +1178,24 @@ extension WebViewController: UIPencilInteractionDelegate {
 /// atteignent la WebView en dessous et font défiler la page normalement.
 final class PassthroughCanvasView: PKCanvasView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Par DÉFAUT on laisse passer (retour nil) : la WebView en dessous reçoit
-        // la touche et peut faire défiler la page. On ne capte le toucher pour
-        // DESSINER que si un Apple Pencil est réellement POSÉ (phase active).
+        // Règle : on capte le toucher (pour DESSINER) dès qu'un Apple Pencil est
+        // présent dans l'événement ; s'il n'y a QUE du doigt/paume (aucun Pencil),
+        // on renvoie nil → la touche atteint la WebView dessous et fait défiler la
+        // page. Le stylet, lui, est capté par le canvas natif (qui ne scrolle pas)
+        // → le scroll est donc bien désactivé tant que le stylet touche l'écran.
         //
-        // L'ancienne logique (« capter sauf si AUCUNE touche n'est un Pencil »)
-        // happait le doigt dès qu'une touche Pencil traînait dans l'événement —
-        // typiquement un SURVOL (hover, iPad M2) ou un Pencil resté détecté après
-        // un tracé. Résultat : le doigt n'atteignait plus la WebView → scroll
-        // bloqué par intermittence, puis overlay figé et encre qui « colle »
-        // d'une page à l'autre. En exigeant un Pencil en phase began/moved/
-        // stationary, le scroll au doigt fonctionne sauf pendant un vrai tracé.
-        let hasActivePencil = event?.allTouches?.contains { t in
-            t.type == .pencil && (t.phase == .began || t.phase == .moved || t.phase == .stationary)
-        } ?? false
-        if !hasActivePencil {
-            // DIAG throttlé (début de touche) : confirme le passage vers la WebView.
-            if let t = event?.allTouches?.first, t.phase == .began {
-                print("[Passthrough] hitTest sans Pencil actif (type=\(t.type.rawValue)) -> passe vers WebView (scroll)")
-            }
+        // IMPORTANT : on teste la simple PRÉSENCE d'une touche Pencil, SANS filtrer
+        // la phase. Un filtrage par phase (.began/.moved/.stationary) s'est révélé
+        // trop strict : selon l'iPad, la phase n'est pas « active » au moment précis
+        // où hitTest est appelé, si bien que le stylet n'était PLUS capté et partait
+        // dans la WebView (symptômes : « le stylet scrolle au lieu d'annoter », ou
+        // « ne fait ni annotation ni scroll »). La présence suffit et capte le
+        // stylet de façon fiable.
+        if let touches = event?.allTouches, !touches.isEmpty,
+           !touches.contains(where: { $0.type == .pencil }) {
             return nil
         }
-        // Apple Pencil réellement posé → dessin normal.
+        // Apple Pencil présent (ou pas d'info de touche) → dessin normal.
         return super.hitTest(point, with: event)
     }
 }
@@ -1212,13 +1208,14 @@ final class PassthroughCanvasView: PKCanvasView {
 /// atteint le canvas (dessin).
 final class PassthroughContainerView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Même logique que PassthroughCanvasView : par défaut on laisse passer
-        // (scroll au doigt), on ne happe la touche que si un Apple Pencil est
-        // réellement posé (phase active). Voir le commentaire détaillé ci-dessus.
-        let hasActivePencil = event?.allTouches?.contains { t in
-            t.type == .pencil && (t.phase == .began || t.phase == .moved || t.phase == .stationary)
-        } ?? false
-        guard hasActivePencil else { return nil }
+        // Même logique que PassthroughCanvasView : Pencil présent → on laisse le
+        // canvas capter (dessin) ; doigt/paume seuls → nil (scroll de la WebView).
+        // Présence du Pencil sans filtrage de phase (cf. commentaire détaillé
+        // ci-dessus) pour une capture fiable du stylet.
+        if let touches = event?.allTouches, !touches.isEmpty,
+           !touches.contains(where: { $0.type == .pencil }) {
+            return nil
+        }
         return super.hitTest(point, with: event)
     }
 }
