@@ -1596,15 +1596,23 @@ class CleanPDFViewer {
             console.log(`[Viewer NEW] touchstart - touches: ${e.touches.length}`);
 
             // Si on est en train d'annoter (stylet détecté via pointer events)
-            // OU si l'équerre est active (bloquer scroll/zoom des doigts)
-            if (this.isAnnotating || this.setSquareActive) {
+            // OU si l'équerre est active (bloquer scroll/zoom des doigts).
+            //
+            // GARDE-FOU iPad : ne JAMAIS bloquer le scroll au doigt quand l'overlay
+            // natif PencilKit est actif (stylo/surligneur natifs). Le pinceau natif
+            // est capté par le canvas natif (jamais par le web), donc `isAnnotating`
+            // ne devrait pas être armé ; mais s'il restait coincé à true, il gelait
+            // le scroll au doigt — ce qui ensuite figeait l'overlay natif et faisait
+            // « coller » l'encre d'une page à l'autre. Tant que PencilKit est actif,
+            // le doigt doit pouvoir faire défiler la page librement.
+            if ((this.isAnnotating || this.setSquareActive) && !this.pencilKitActive) {
                 console.log('[Viewer NEW] touchstart - BLOQUANT (annotation en cours ou équerre active)');
                 e.preventDefault();
             }
         }, { passive: false });
 
         this.elements.viewer.addEventListener('touchmove', (e) => {
-            if (this.isAnnotating || this.setSquareActive) {
+            if ((this.isAnnotating || this.setSquareActive) && !this.pencilKitActive) {
                 // Log seulement occasionnellement pour éviter de surcharger la console
                 if (Math.random() < 0.01) {
                     console.log('[Viewer NEW] touchmove - BLOQUANT (annotation en cours ou équerre active)');
@@ -9367,7 +9375,21 @@ class CleanPDFViewer {
         const v = this.elements && this.elements.viewer;
         if (!v) return null;
         const r = v.getBoundingClientRect();
-        return { x: r.left, y: r.top, width: r.width, height: r.height };
+        // La barre d'outils est `position: fixed; top: 0` : elle FLOTTE au-dessus
+        // du .pdf-viewer (qui démarre lui à y=0, DERRIÈRE la barre, avec juste un
+        // padding-top de réserve). Si on clippe l'overlay natif au seul rect du
+        // viewer (y=0), l'encre tracée près du haut s'affiche PAR-DESSUS la barre
+        // d'outils (symptôme : « le stylo annote jusque sur la barre des outils »
+        // — déborde verticalement). On remonte donc le HAUT de la zone de dessin
+        // au BAS RÉEL de la barre d'outils (hauteur variable selon les
+        // media-queries → on lit le rect rendu plutôt qu'une constante).
+        let top = r.top;
+        const tb = this.elements.toolbar;
+        if (tb) {
+            const tr = tb.getBoundingClientRect();
+            if (tr.height > 0) top = Math.max(top, tr.bottom);
+        }
+        return { x: r.left, y: top, width: r.width, height: Math.max(0, r.bottom - top) };
     }
 
     // Pendant le scroll, repositionner l'overlay natif sur la page courante
