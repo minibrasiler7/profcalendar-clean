@@ -504,9 +504,13 @@ class CleanPDFViewer {
                 justify-content: space-between;
                 align-items: center;
                 padding: 8px 12px;
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
+                /* Barre OPAQUE : le .pdf-viewer démarre à y=0 (sous la barre fixe),
+                   donc le contenu (canvas d'annotations web + traits matérialisés)
+                   défile DERRIÈRE la barre. Avec un fond translucide (0.95), ces
+                   traits transparaissaient « sur » la barre d'outils. Fond opaque
+                   = ils sont masqués proprement. (L'overlay natif, lui, est déjà
+                   clippé sous la barre côté Swift.) */
+                background: #ffffff;
                 border-bottom: 1px solid #e0e0e0;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 gap: 10px;
@@ -9361,7 +9365,12 @@ class CleanPDFViewer {
                 pageRect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
                 clipRect: this.getViewerClipRect(),
                 scale: this.currentScale,
-                pageId: newInkPageId
+                // pageId envoyé en STRING : côté Swift, `config["pageId"] as? String`
+                // renvoie nil pour un nombre JSON → le test `pageId != currentPageId`
+                // ne se déclenchait jamais → clearCanvas() n'était JAMAIS appelé au
+                // changement de page → l'encre native restait et « sautait » de page
+                // en page. En forçant une String, le nettoyage natif refonctionne.
+                pageId: String(newInkPageId)
             }
         });
     }
@@ -9383,11 +9392,15 @@ class CleanPDFViewer {
         // — déborde verticalement). On remonte donc le HAUT de la zone de dessin
         // au BAS RÉEL de la barre d'outils (hauteur variable selon les
         // media-queries → on lit le rect rendu plutôt qu'une constante).
-        let top = r.top;
+        // Repli ~50px si la barre n'est pas mesurable à cet instant (rect height 0
+        // pendant un reflow) : on ne laisse JAMAIS le haut retomber à r.top (=0),
+        // sinon l'overlay natif déborderait sur la barre d'outils par intermittence.
+        const FALLBACK_TOOLBAR_H = 50;
+        let top = r.top + FALLBACK_TOOLBAR_H;
         const tb = this.elements.toolbar;
         if (tb) {
             const tr = tb.getBoundingClientRect();
-            if (tr.height > 0) top = Math.max(top, tr.bottom);
+            if (tr.height > 0) top = Math.max(r.top, tr.bottom);
         }
         return { x: r.left, y: top, width: r.width, height: Math.max(0, r.bottom - top) };
     }
@@ -9424,7 +9437,9 @@ class CleanPDFViewer {
                 pageRect: this.getVisiblePageRect(),
                 clipRect: this.getViewerClipRect(),
                 scale: this.currentScale,
-                pageId: this.getCurrentPageId()
+                // STRING obligatoire (cf. notifyPencilKitPageRect) : sinon Swift
+                // initialise currentPageId au défaut "page-1" et ne nettoie jamais.
+                pageId: String(this.getCurrentPageId())
             }
         });
         console.log('[PencilKit] Activated for tool:', this.currentTool);
