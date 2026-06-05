@@ -58,6 +58,7 @@
     .mx-fig { display: block; max-width: 300px; height: auto; margin: 0.5rem 0; }
     .mx-grid-svg { display: block; width: 270px; max-width: 100%; height: auto; margin: 0.5rem 0; background: #fff; border: 1px solid #EEF0F3; border-radius: 0.5rem; }
     .mx-grid-hit { cursor: crosshair; }
+    .mx-ang-hit { cursor: pointer; }
     .mx-fields { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 0.5rem; }
     .mx-fld { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: #4B5563; }
     .mx-input { width: 86px; padding: 0.42rem 0.5rem; border: 1.5px solid #D1D5DB; border-radius: 0.42rem; font-size: 0.98rem; text-align: center; font-variant-numeric: tabular-nums; }
@@ -554,24 +555,190 @@
         const a = pick([-1, 1]); let r = ri(-4, 4), s = ri(-4, 4); while (s === r) s = ri(-4, 4); const b = -a * (r + s), c = a * r * s; return { q: 'En quels points la parabole croise-t-elle l’axe des x ? Donne la plus petite puis la plus grande valeur de x.', svg: graphSVG([], [], [[a, b, c]]), fields: [{ label: 'x₁ =', e: Math.min(r, s) }, { label: 'x₂ =', e: Math.max(r, s) }], sol: 'x = ' + Math.min(r, s) + ' et x = ' + Math.max(r, s) };
     }
 
-    function angleFigSVG(fig) {
-        if (!fig) return '';
-        const t = fig[0];
-        if (t === 'tri') return '<svg class="mx-fig" viewBox="0 0 200 130"><polygon points="20,110 180,110 70,20" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/><text x="36" y="103" font-size="12" fill="#1E3A8A">' + fig[1] + '°</text><text x="156" y="103" font-size="12" fill="#1E3A8A">' + fig[2] + '°</text><text x="64" y="42" font-size="14" font-weight="700" fill="#DC2626">?</text></svg>';
-        if (t === 'cross') return '<svg class="mx-fig" viewBox="0 0 200 130"><line x1="20" y1="115" x2="180" y2="20" stroke="#2563EB" stroke-width="2"/><line x1="20" y1="35" x2="180" y2="118" stroke="#2563EB" stroke-width="2"/><text x="92" y="52" font-size="12" fill="#1E3A8A">' + fig[1] + '°</text><text x="90" y="100" font-size="14" font-weight="700" fill="#DC2626">?</text></svg>';
-        if (t === 'circle') return '<svg class="mx-fig" viewBox="0 0 170 150"><circle cx="85" cy="78" r="62" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/><circle cx="85" cy="78" r="2.5" fill="#1E3A8A"/><line x1="85" y1="78" x2="32" y2="108" stroke="#2563EB" stroke-width="1.5"/><line x1="85" y1="78" x2="140" y2="98" stroke="#2563EB" stroke-width="1.5"/><text x="73" y="73" font-size="11" fill="#1E3A8A">' + fig[1] + '°</text><circle cx="85" cy="16" r="3" fill="#DC2626"/><line x1="85" y1="16" x2="32" y2="108" stroke="#DC2626" stroke-width="1.2"/><line x1="85" y1="16" x2="140" y2="98" stroke="#DC2626" stroke-width="1.2"/></svg>';
-        return '<svg class="mx-fig" viewBox="0 0 200 120"><line x1="10" y1="40" x2="190" y2="40" stroke="#2563EB" stroke-width="2"/><line x1="10" y1="85" x2="190" y2="85" stroke="#2563EB" stroke-width="2"/><line x1="45" y1="10" x2="160" y2="115" stroke="#1E3A8A" stroke-width="1.6"/><text x="78" y="34" font-size="12" fill="#1E3A8A">' + fig[1] + '°</text><text x="120" y="103" font-size="14" font-weight="700" fill="#DC2626">?</text></svg>';
+    const rad = d => d * Math.PI / 180;
+
+    // ---- geometry/svg helpers (verbatim-port to template) ----
+    function fitPts(pts, W, H, pad) {
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const mnx = Math.min.apply(null, xs), mxx = Math.max.apply(null, xs), mny = Math.min.apply(null, ys), mxy = Math.max.apply(null, ys);
+        const sc = Math.min((W - 2 * pad) / ((mxx - mnx) || 1), (H - 2 * pad) / ((mxy - mny) || 1));
+        const ox = (W - (mxx - mnx) * sc) / 2, oy = (H - (mxy - mny) * sc) / 2;
+        return pts.map(p => [ox + (p[0] - mnx) * sc, oy + (p[1] - mny) * sc]);
     }
+    function shortDelta(a, b) { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; }
+    function arcPoly(vx, vy, rr, p1, p2) { const d = shortDelta(p1, p2); let s = ''; const n = 10; for (let i = 0; i <= n; i++) { const a = p1 + d * i / n; s += (vx + rr * Math.cos(a)).toFixed(1) + ',' + (vy + rr * Math.sin(a)).toFixed(1) + ' '; } return s.trim(); }
+    function midAng(p1, p2) { return p1 + shortDelta(p1, p2) / 2; }
+    function triPts(a1, a2) { const base = 160, b = rad(a1), c = rad(a2); const t = base / (Math.cos(b) + Math.sin(b) * Math.cos(c) / Math.sin(c)); return [[t * Math.cos(b), -t * Math.sin(b)], [0, 0], [base, 0]]; }
+
+    function polyAngFig(rawPts, marks, ticks, noArc) {
+        const W = 210, H = 152, pad = 30, pts = fitPts(rawPts, W, H, pad), n = pts.length;
+        let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">';
+        s += '<polygon points="' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') + '" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>';
+        (ticks || []).forEach(e => { const A = pts[e[0]], B = pts[e[1]], mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, tl = 5; s += '<line x1="' + (mx - nx * tl).toFixed(1) + '" y1="' + (my - ny * tl).toFixed(1) + '" x2="' + (mx + nx * tl).toFixed(1) + '" y2="' + (my + ny * tl).toFixed(1) + '" stroke="#1D4ED8" stroke-width="1.6"/>'; });
+        for (let i = 0; i < n; i++) {
+            const V = pts[i], U = pts[(i - 1 + n) % n], Wp = pts[(i + 1) % n];
+            const phU = Math.atan2(U[1] - V[1], U[0] - V[0]), phW = Math.atan2(Wp[1] - V[1], Wp[0] - V[0]), mid = midAng(phU, phW);
+            if (!noArc) s += '<polyline points="' + arcPoly(V[0], V[1], 15, phU, phW) + '" fill="none" stroke="#1E3A8A" stroke-width="1.3"/>';
+            if (marks[i] != null) { const lx = V[0] + 30 * Math.cos(mid), ly = V[1] + 30 * Math.sin(mid), q = marks[i] === '?'; s += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" font-size="' + (q ? 15 : 12) + '" font-weight="' + (q ? 700 : 600) + '" fill="' + (q ? '#DC2626' : '#1E3A8A') + '" text-anchor="middle">' + marks[i] + '</text>'; }
+        }
+        return s + '</svg>';
+    }
+    function rightSplitFig(a) {
+        const ox = 32, oy = 118, len = 92, sx = ox + len * Math.cos(rad(a)), sy = oy - len * Math.sin(rad(a));
+        let s = '<svg class="mx-fig" viewBox="0 0 172 146">';
+        s += '<line x1="' + ox + '" y1="' + oy + '" x2="' + (ox + len) + '" y2="' + oy + '" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + ox + '" y1="' + oy + '" x2="' + ox + '" y2="' + (oy - len) + '" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + ox + '" y1="' + oy + '" x2="' + sx.toFixed(1) + '" y2="' + sy.toFixed(1) + '" stroke="#1E3A8A" stroke-width="1.8"/>';
+        s += '<rect x="' + ox + '" y="' + (oy - 12) + '" width="12" height="12" fill="none" stroke="#94A3B8" stroke-width="1"/>';
+        s += '<text x="' + (ox + 46 * Math.cos(rad(a / 2))).toFixed(1) + '" y="' + (oy - 46 * Math.sin(rad(a / 2)) + 4).toFixed(1) + '" font-size="12" fill="#1E3A8A" text-anchor="middle">' + a + '°</text>';
+        s += '<text x="' + (ox + 44 * Math.cos(rad((a + 90) / 2))).toFixed(1) + '" y="' + (oy - 44 * Math.sin(rad((a + 90) / 2)) + 4).toFixed(1) + '" font-size="14" font-weight="700" fill="#DC2626" text-anchor="middle">?</text>';
+        return s + '</svg>';
+    }
+    function straightSplitFig(a) {
+        const ox = 90, oy = 96, len = 80, sx = ox + len * Math.cos(rad(a)), sy = oy - len * Math.sin(rad(a));
+        let s = '<svg class="mx-fig" viewBox="0 0 192 122">';
+        s += '<line x1="' + (ox - len) + '" y1="' + oy + '" x2="' + (ox + len) + '" y2="' + oy + '" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + ox + '" y1="' + oy + '" x2="' + sx.toFixed(1) + '" y2="' + sy.toFixed(1) + '" stroke="#1E3A8A" stroke-width="1.8"/>';
+        s += '<text x="' + (ox + 48 * Math.cos(rad(a / 2))).toFixed(1) + '" y="' + (oy - 48 * Math.sin(rad(a / 2)) + 4).toFixed(1) + '" font-size="12" fill="#1E3A8A" text-anchor="middle">' + a + '°</text>';
+        s += '<text x="' + (ox + 48 * Math.cos(rad((a + 180) / 2))).toFixed(1) + '" y="' + (oy - 48 * Math.sin(rad((a + 180) / 2)) + 4).toFixed(1) + '" font-size="14" font-weight="700" fill="#DC2626" text-anchor="middle">?</text>';
+        s += '<circle cx="' + ox + '" cy="' + oy + '" r="2.4" fill="#1E3A8A"/>';
+        return s + '</svg>';
+    }
+    function quadPts() { return [225, 315, 45, 135].map(d => { const a = rad(d + ri(-16, 16)), rx = 72 + ri(-10, 10), ry = 52 + ri(-8, 8); return [Math.cos(a) * rx, Math.sin(a) * ry]; }); }
+    function paraPts() { const w = 150, h = 80, sk = ri(26, 52); return [[0, h], [w, h], [w + sk, 0], [sk, 0]]; }
+    function crossFig(val, askRel) {
+        const cx = 100, cy = 72, R = 60, base = ri(-12, 12), b1 = base, b2 = base + val;
+        const ref = [b1, b2], opp = [b1 + 180, b2 + 180], adj = [b2, b1 + 180];
+        const tgt = askRel === 'opp' ? opp : adj;
+        const arc = (d1, d2, rr) => { let z = ''; const n = 12, a1 = rad(d1), a2 = rad(d2); for (let i = 0; i <= n; i++) { const a = a1 + (a2 - a1) * i / n; z += (cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1) + ' '; } return z.trim(); };
+        let s = '<svg class="mx-fig" viewBox="0 0 200 146">';
+        [b1, b2].forEach(b => { const a = rad(b); s += '<line x1="' + (cx - R * Math.cos(a)).toFixed(1) + '" y1="' + (cy - R * Math.sin(a)).toFixed(1) + '" x2="' + (cx + R * Math.cos(a)).toFixed(1) + '" y2="' + (cy + R * Math.sin(a)).toFixed(1) + '" stroke="#2563EB" stroke-width="2"/>'; });
+        s += '<polyline points="' + arc(ref[0], ref[1], 20) + '" fill="none" stroke="#2563EB" stroke-width="1.8"/>';
+        s += '<polyline points="' + arc(tgt[0], tgt[1], 20) + '" fill="none" stroke="#DC2626" stroke-width="1.8"/>';
+        const rm = (ref[0] + ref[1]) / 2, tm = (tgt[0] + tgt[1]) / 2;
+        s += '<text x="' + (cx + 34 * Math.cos(rad(rm))).toFixed(1) + '" y="' + (cy + 34 * Math.sin(rad(rm)) + 4).toFixed(1) + '" font-size="12" fill="#1E3A8A" text-anchor="middle">' + val + '°</text>';
+        s += '<text x="' + (cx + 34 * Math.cos(rad(tm))).toFixed(1) + '" y="' + (cy + 34 * Math.sin(rad(tm)) + 4).toFixed(1) + '" font-size="14" font-weight="700" fill="#DC2626" text-anchor="middle">?</text>';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="2.4" fill="#1E3A8A"/>';
+        return s + '</svg>';
+    }
+    function circFig(central, askCentral) {
+        const cx = 100, cy = 86, r = 58, half = central / 2, mu = ri(0, 359), mo = 180 - half - 20, off = ri(-mo, mo);
+        const aA = mu - half, aB = mu + half, gam = mu + 180 + off;
+        const P = ang => [cx + r * Math.cos(rad(ang)), cy - r * Math.sin(rad(ang))];
+        const A = P(aA), B = P(aB), C = P(gam);
+        let s = '<svg class="mx-fig" viewBox="0 0 200 176">';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + A[0].toFixed(1) + '" y2="' + A[1].toFixed(1) + '" stroke="#2563EB" stroke-width="1.7"/>';
+        s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + B[0].toFixed(1) + '" y2="' + B[1].toFixed(1) + '" stroke="#2563EB" stroke-width="1.7"/>';
+        s += '<line x1="' + C[0].toFixed(1) + '" y1="' + C[1].toFixed(1) + '" x2="' + A[0].toFixed(1) + '" y2="' + A[1].toFixed(1) + '" stroke="#1E3A8A" stroke-width="1.5"/>';
+        s += '<line x1="' + C[0].toFixed(1) + '" y1="' + C[1].toFixed(1) + '" x2="' + B[0].toFixed(1) + '" y2="' + B[1].toFixed(1) + '" stroke="#1E3A8A" stroke-width="1.5"/>';
+        const oa = Math.atan2(A[1] - cy, A[0] - cx), ob = Math.atan2(B[1] - cy, B[0] - cx);
+        const ca = Math.atan2(A[1] - C[1], A[0] - C[0]), cb = Math.atan2(B[1] - C[1], B[0] - C[0]);
+        s += '<polyline points="' + arcPoly(cx, cy, 17, oa, ob) + '" fill="none" stroke="#2563EB" stroke-width="1.6"/>';
+        s += '<polyline points="' + arcPoly(C[0], C[1], 17, ca, cb) + '" fill="none" stroke="#1E3A8A" stroke-width="1.6"/>';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="#1E3A8A"/>';
+        [A, B, C].forEach(p => { s += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="#1E3A8A"/>'; });
+        const om = midAng(oa, ob), cm = midAng(ca, cb);
+        const oL = [cx + 31 * Math.cos(om), cy + 31 * Math.sin(om)], cL = [C[0] + 30 * Math.cos(cm), C[1] + 30 * Math.sin(cm)];
+        const oT = askCentral ? '?' : (central + '°'), cT = askCentral ? (half + '°') : '?';
+        s += '<text x="' + oL[0].toFixed(1) + '" y="' + (oL[1] + 4).toFixed(1) + '" font-size="' + (askCentral ? 14 : 12) + '" font-weight="' + (askCentral ? 700 : 600) + '" fill="' + (askCentral ? '#DC2626' : '#1E3A8A') + '" text-anchor="middle">' + oT + '</text>';
+        s += '<text x="' + cL[0].toFixed(1) + '" y="' + (cL[1] + 4).toFixed(1) + '" font-size="' + (askCentral ? 12 : 14) + '" font-weight="' + (askCentral ? 600 : 700) + '" fill="' + (askCentral ? '#1E3A8A' : '#DC2626') + '" text-anchor="middle">' + cT + '</text>';
+        return s + '</svg>';
+    }
+    function triCevianFig(a1, a2, opt) {
+        const pts = fitPts(triPts(a1, a2), 200, 150, 30), apex = pts[0], Lp = pts[1], Rp = pts[2], foot = [(Lp[0] + Rp[0]) / 2, (Lp[1] + Rp[1]) / 2];
+        let s = '<svg class="mx-fig" viewBox="0 0 200 150">';
+        s += '<polygon points="' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') + '" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + apex[0].toFixed(1) + '" y1="' + apex[1].toFixed(1) + '" x2="' + foot[0].toFixed(1) + '" y2="' + foot[1].toFixed(1) + '" stroke="#1E3A8A" stroke-width="1.5" stroke-dasharray="5 3"/>';
+        if (opt.right) s += '<rect x="' + foot[0].toFixed(1) + '" y="' + (foot[1] - 11).toFixed(1) + '" width="11" height="11" fill="none" stroke="#94A3B8" stroke-width="1"/>';
+        const lab = (p, txt, dx, dy) => { const q = txt === '?'; s += '<text x="' + (p[0] + dx).toFixed(1) + '" y="' + (p[1] + dy).toFixed(1) + '" font-size="' + (q ? 14 : 12) + '" font-weight="' + (q ? 700 : 600) + '" fill="' + (q ? '#DC2626' : '#1E3A8A') + '" text-anchor="middle">' + txt + '</text>'; };
+        if (opt.mLeft) lab(Lp, opt.mLeft, 15, -6);
+        if (opt.mRight) lab(Rp, opt.mRight, -15, -6);
+        if (opt.mApex) lab(apex, opt.mApex, -4, 22);
+        return s + '</svg>';
+    }
+    function aroundFig(labels, sizes) {
+        const cx = 100, cy = 84, r = 66, n = sizes.length, start = ri(0, 359); let acc = start; const rays = [];
+        for (let i = 0; i < n; i++) { rays.push(acc); acc += sizes[i]; }
+        let s = '<svg class="mx-fig" viewBox="0 0 200 170">';
+        rays.forEach(d => { const a = rad(d); s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + r * Math.cos(a)).toFixed(1) + '" y2="' + (cy - r * Math.sin(a)).toFixed(1) + '" stroke="#2563EB" stroke-width="2"/>'; });
+        for (let i = 0; i < n; i++) { const mid = rad(rays[i] + sizes[i] / 2), lx = cx + 42 * Math.cos(mid), ly = cy - 42 * Math.sin(mid), q = labels[i] === '?'; s += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" font-size="' + (q ? 14 : 12) + '" font-weight="' + (q ? 700 : 600) + '" fill="' + (q ? '#DC2626' : '#1E3A8A') + '" text-anchor="middle">' + labels[i] + '</text>'; }
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="#1E3A8A"/>';
+        return s + '</svg>';
+    }
+    function parallelFig(refV, refK, relKey) {
+        const top = 64, bot = 150, x0 = 22, x1 = 210, P = [[150, top], [110, bot]];
+        const dT = [P[0][0] - P[1][0], P[0][1] - P[1][1]], Lt = Math.hypot(dT[0], dT[1]), uT = [dT[0] / Lt, dT[1] / Lt];
+        const aL = 0, aLn = Math.PI, aT = Math.atan2(uT[1], uT[0]), aTn = aT + Math.PI;
+        const secRays = [[aL, aT], [aT, aLn], [aLn, aTn], [aTn, aL]];
+        const neg = k => (k + 2) % 4;
+        let correct;
+        if (relKey === 'oppose') correct = refV * 4 + neg(refK);
+        else if (relKey === 'corresp') correct = (1 - refV) * 4 + refK;
+        else correct = (1 - refV) * 4 + neg(refK);
+        let s = '<svg class="mx-fig mx-ang-hit" viewBox="0 0 232 200">';
+        s += '<line x1="' + x0 + '" y1="' + top + '" x2="' + x1 + '" y2="' + top + '" stroke="#2563EB" stroke-width="2"/>';
+        s += '<line x1="' + x0 + '" y1="' + bot + '" x2="' + x1 + '" y2="' + bot + '" stroke="#2563EB" stroke-width="2"/>';
+        const ext = 66;
+        s += '<line x1="' + (P[0][0] + uT[0] * ext).toFixed(1) + '" y1="' + (P[0][1] + uT[1] * ext).toFixed(1) + '" x2="' + (P[1][0] - uT[0] * ext).toFixed(1) + '" y2="' + (P[1][1] - uT[1] * ext).toFixed(1) + '" stroke="#475569" stroke-width="1.8"/>';
+        s += '<path d="M' + (x1 - 30) + ' ' + (top - 5) + ' l8 5 l-8 5" fill="none" stroke="#2563EB" stroke-width="1.4"/>';
+        s += '<path d="M' + (x1 - 30) + ' ' + (bot - 5) + ' l8 5 l-8 5" fill="none" stroke="#2563EB" stroke-width="1.4"/>';
+        const hit = [];
+        for (let v = 0; v < 2; v++) for (let k = 0; k < 4; k++) {
+            const idx = v * 4 + k, V = P[v], rays = secRays[k], mid = midAng(rays[0], rays[1]);
+            const tx = V[0] + 30 * Math.cos(mid), ty = V[1] + 30 * Math.sin(mid);
+            hit.push({ i: idx, x: tx, y: ty, vx: V[0], vy: V[1], a0: rays[0], a1: rays[1] });
+            const isRef = (v === refV && k === refK);
+            if (isRef) { s += '<polygon points="' + V[0].toFixed(1) + ',' + V[1].toFixed(1) + ' ' + arcPoly(V[0], V[1], 18, rays[0], rays[1]) + '" fill="#3B82F6" fill-opacity="0.28"/>'; s += '<polyline points="' + arcPoly(V[0], V[1], 15, rays[0], rays[1]) + '" fill="none" stroke="#2563EB" stroke-width="3"/>'; }
+            else { s += '<polyline points="' + arcPoly(V[0], V[1], 14, rays[0], rays[1]) + '" fill="none" stroke="#CBD5E1" stroke-width="1.3"/><circle cx="' + tx.toFixed(1) + '" cy="' + ty.toFixed(1) + '" r="2.1" fill="#CBD5E1"/>'; }
+        }
+        P.forEach(p => { s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.6" fill="#1E3A8A"/>'; });
+        s += '<g class="mx-ang-mark"></g></svg>';
+        return { svg: s, hit: hit, correct: correct };
+    }
+
+    const REL = { oppose: 'opposé par le sommet', corresp: 'correspondant', altint: 'alterne-interne', altext: 'alterne-externe' };
+    function buildClick(relKey) {
+        const rn = REL[relKey], refV = ri(0, 1); let refK;
+        if (relKey === 'altint') refK = pick(refV === 0 ? [2, 3] : [0, 1]);
+        else if (relKey === 'altext') refK = pick(refV === 0 ? [0, 1] : [2, 3]);
+        else refK = ri(0, 3);
+        const fig = parallelFig(refV, refK, relKey);
+        return { q: 'Deux droites parallèles (en bleu) sont coupées par une sécante. Clique sur l’angle <strong>' + rn + '</strong> à l’angle surligné en bleu.', interactive: 'angle', svg: fig.svg, hit: fig.hit, correct: fig.correct, target: { c: fig.correct, v: refV, k: refK, r: relKey }, sol: 'L’angle ' + rn + ' a la même mesure que l’angle bleu (clique sur le bon secteur).', _dbg: { type: 'click', relKey: relKey, refV: refV, refK: refK, correct: fig.correct, hit: fig.hit } };
+    }
+    function mkAng(ans, reason, q, svg, dbg) { return { q: q, svg: svg, fields: [{ label: '', e: ans, suffix: '°' }], sol: '= ' + ans + '° (' + reason + ')', _dbg: Object.assign({ ans: ans }, dbg) }; }
     function applyT(t, x, y) { if (t === 'ox') return [x, -y]; if (t === 'oy') return [-x, y]; if (t === 'cO') return [-x, -y]; if (t === 'r90') return [-y, x]; if (t === 'r-90') return [y, -x]; if (t === 'r180') return [-x, -y]; return [x, y]; }
     function sameOrColinear(A, B, C) { if ((A[0] === B[0] && A[1] === B[1]) || (B[0] === C[0] && B[1] === C[1]) || (A[0] === C[0] && A[1] === C[1])) return true; return (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]) === 0; }
     const SOLIDS = { cube: [6, 12, 8], 'pavé droit': [6, 12, 8], 'prisme droit à base triangulaire': [5, 9, 6], 'pyramide à base carrée': [5, 8, 5], 'pyramide à base triangulaire': [4, 6, 4], 'prisme droit à base hexagonale': [8, 18, 12] };
     function genAngles(diff) {
-        const L = lvl(diff); let t;
-        if (L === 0) t = pick([() => { const a = ri(30, 100), b = ri(20, 150 - a); return { q: 'Dans ce triangle, deux angles mesurent ' + a + '° et ' + b + '°. Quel est le troisième angle ?', fig: ['tri', a, b], e: 180 - a - b }; }, () => { const a = ri(20, 70); return { q: 'Quel est le complémentaire d’un angle de ' + a + '° ?', e: 90 - a }; }, () => { const a = ri(20, 150); return { q: 'Quel est le supplémentaire d’un angle de ' + a + '° ?', e: 180 - a }; }, () => { const a = ri(30, 150); return { q: 'Deux droites se croisent. Un angle mesure ' + a + '°. Quel est l’angle opposé par le sommet ?', fig: ['cross', a], e: a }; }])();
-        else if (L === 1) t = pick([() => { const a = ri(30, 150); return { q: 'Deux droites se croisent. Un angle mesure ' + a + '°. Quel est l’angle adjacent (supplémentaire) ?', fig: ['cross', a], e: 180 - a }; }, () => { const c = ri(20, 80) * 2; return { q: 'Un angle au centre mesure ' + c + '°. Quel est l’angle inscrit qui intercepte le même arc ?', fig: ['circle', c], e: c / 2 }; }, () => { const a = ri(30, 140); return { q: 'Deux droites parallèles coupées par une sécante : un angle mesure ' + a + '°. Quel est l’angle alterne-interne ?', fig: ['par', a], e: a }; }, () => { const a = ri(60, 140), b = ri(60, Math.min(140, 350 - a - 60)), c = ri(60, 360 - a - b - 60); return { q: 'Trois angles d’un quadrilatère mesurent ' + a + '°, ' + b + '° et ' + c + '°. Quel est le quatrième ?', e: 360 - a - b - c }; }])();
-        else t = pick([() => { const base = ri(20, 75); return { q: 'Un triangle isocèle a un angle au sommet de ' + (180 - 2 * base) + '°. Quel est chacun des angles à la base ?', fig: ['tri', 180 - 2 * base, base], e: base }; }, () => { const a = ri(40, 80), b = ri(40, 80); return { q: 'L’angle extérieur d’un triangle vaut la somme des deux angles non adjacents. S’ils valent ' + a + '° et ' + b + '°, quel est l’angle extérieur ?', e: a + b }; }, () => { const c = ri(20, 80) * 2; return { q: 'Un angle inscrit mesure ' + (c / 2) + '°. Quel est l’angle au centre qui intercepte le même arc ?', fig: ['circle', c], e: c }; }])();
-        return { q: t.q, svg: t.fig ? angleFigSVG(t.fig) : '', fields: [{ label: 'angle (°)', e: t.e }], sol: '= ' + t.e + '°' };
+        const L = lvl(diff);
+        if (L === 0) {
+            const w = pick(['tri', 'comp', 'supp', 'vert', 'equi']);
+            if (w === 'tri') { let a1 = ri(35, 85), a2 = ri(35, 85); while (a1 + a2 > 150 || a1 + a2 < 55) { a1 = ri(35, 85); a2 = ri(35, 85); } return mkAng(180 - a1 - a2, 'somme des angles d’un triangle = 180°', 'Dans ce triangle, deux angles sont donnés. Quelle est la mesure de l’angle marqué « ? » ?', polyAngFig(triPts(a1, a2), ['?', a1 + '°', a2 + '°']), { type: 'tri', a: a1, b: a2 }); }
+            if (w === 'comp') { const a = ri(20, 70); return mkAng(90 - a, 'angles complémentaires : somme 90°', 'Les deux angles forment ensemble un angle droit (90°). L’un mesure ' + a + '°. Combien mesure l’angle marqué « ? » ?', rightSplitFig(a), { type: 'comp', a: a }); }
+            if (w === 'supp') { const a = ri(25, 155); return mkAng(180 - a, 'angles supplémentaires : somme 180°', 'Ces deux angles sont adjacents sur une droite. L’un mesure ' + a + '°. Combien mesure l’angle marqué « ? » ?', straightSplitFig(a), { type: 'supp', a: a }); }
+            if (w === 'vert') { const a = ri(35, 150); return mkAng(a, 'angles opposés par le sommet : égaux', 'Deux droites se croisent. Un angle mesure ' + a + '°. Combien mesure l’angle marqué « ? » ?', crossFig(a, 'opp'), { type: 'vert', a: a }); }
+            return mkAng(60, 'triangle équilatéral : 3 angles de 60°', 'Ce triangle est équilatéral (côtés égaux). Combien mesure l’angle marqué « ? » ?', polyAngFig(triPts(60, 60), ['?', null, null], [[0, 1], [1, 2], [2, 0]]), { type: 'equi' });
+        }
+        if (L === 1) {
+            const w = pick(['iso', 'para', 'quad', 'adj', 'circ', 'clickE']);
+            if (w === 'iso') {
+                if (Math.random() < 0.5) { const apex = 2 * ri(11, 60), base = (180 - apex) / 2; return mkAng(base, 'triangle isocèle : angles à la base égaux, (180−' + apex + ')÷2', 'Ce triangle est isocèle (les deux côtés marqués sont égaux). L’angle au sommet vaut ' + apex + '°. Combien mesure l’angle à la base marqué « ? » ?', polyAngFig(triPts(base, base), [apex + '°', '?', null], [[0, 1], [0, 2]]), { type: 'isoApex', apex: apex, base: base }); }
+                const base = ri(25, 80), apex = 180 - 2 * base; return mkAng(apex, 'triangle isocèle : sommet = 180 − 2×base', 'Ce triangle est isocèle (côtés marqués égaux). Chaque angle à la base vaut ' + base + '°. Combien mesure l’angle au sommet « ? » ?', polyAngFig(triPts(base, base), ['?', base + '°', null], [[0, 1], [0, 2]]), { type: 'isoBase', apex: apex, base: base });
+            }
+            if (w === 'para') { const ang = ri(35, 140), rel = pick(['opp', 'adj']); const marks = [ang + '°', null, null, null]; let ans; if (rel === 'opp') { marks[2] = '?'; ans = ang; } else { marks[1] = '?'; ans = 180 - ang; } return mkAng(ans, rel === 'opp' ? 'parallélogramme : angles opposés égaux' : 'parallélogramme : angles consécutifs supplémentaires (180°)', 'ABCD est un parallélogramme. Un angle mesure ' + ang + '°. Combien mesure l’angle marqué « ? » ?', polyAngFig(paraPts(), marks, null, true), { type: 'para', ang: ang, rel: rel }); }
+            if (w === 'quad') { let a = ri(60, 140), b = ri(60, 140), c = ri(60, 140); while (a + b + c >= 345 || a + b + c <= 220) { a = ri(60, 140); b = ri(60, 140); c = ri(60, 140); } const d = 360 - a - b - c; return mkAng(d, 'somme des angles d’un quadrilatère = 360°', 'Trois angles d’un quadrilatère mesurent ' + a + '°, ' + b + '° et ' + c + '°. Combien mesure le quatrième (marqué « ? ») ?', polyAngFig(quadPts(), [a + '°', b + '°', c + '°', '?'], null, true), { type: 'quad', a: a, b: b, c: c }); }
+            if (w === 'adj') { const a = ri(35, 150); return mkAng(180 - a, 'angles adjacents sur une droite : supplémentaires (180°)', 'Deux droites se croisent. Un angle mesure ' + a + '°. Combien mesure l’angle marqué « ? » ?', crossFig(a, 'adj'), { type: 'adj', a: a }); }
+            if (w === 'circ') { const central = 2 * ri(20, 82), askCentral = Math.random() < 0.5, ans = askCentral ? central : central / 2; return mkAng(ans, askCentral ? 'angle au centre = 2 × angle inscrit (même arc)' : 'angle inscrit = moitié de l’angle au centre (même arc)', 'Les deux angles marqués interceptent le même arc. Détermine la mesure de l’angle marqué « ? ».', circFig(central, askCentral), { type: 'circ', central: central, askCentral: askCentral }); }
+            return buildClick(pick(['oppose', 'corresp']));
+        }
+        const w = pick(['clickH', 'bisTri', 'altitude', 'around']);
+        if (w === 'clickH') return buildClick(pick(['altint', 'altext']));
+        if (w === 'bisTri') { let b = ri(40, 75), c = ri(40, 75); while ((b + c) % 2 !== 0 || b + c > 150 || b + c < 90) { b = ri(40, 75); c = ri(40, 75); } const apex = 180 - b - c, half = apex / 2; return mkAng(half, 'sommet = 180−' + b + '−' + c + ' = ' + apex + '°, puis ÷2', 'Deux angles d’un triangle valent ' + b + '° et ' + c + '°. La bissectrice (en pointillé) issue du troisième sommet partage son angle en deux parts égales. Combien mesure chaque demi-angle « ? » ?', triCevianFig(b, c, { mLeft: b + '°', mRight: c + '°', mApex: '?' }), { type: 'bisTri', b: b, c: c, half: half }); }
+        if (w === 'altitude') { const a = ri(30, 70), a2 = ri(45, 75); return mkAng(90 - a, 'la hauteur fait 90° : 90 − ' + a + ' = ' + (90 - a) + '°', 'La hauteur (en pointillé) est perpendiculaire à la base. Un angle à la base vaut ' + a + '°. Combien mesure l’angle « ? » au sommet du triangle rectangle ainsi formé ?', triCevianFig(a, a2, { right: true, mLeft: a + '°', mApex: '?' }), { type: 'altitude', a: a }); }
+        let a = ri(45, 110), b = ri(45, 110), c = ri(45, 110); while (a + b + c > 330 || a + b + c < 250) { a = ri(45, 110); b = ri(45, 110); c = ri(45, 110); } const d = 360 - a - b - c; return mkAng(d, 'angles autour d’un point : somme 360°', 'Ces angles sont autour d’un même point. Ils mesurent ' + a + '°, ' + b + '° et ' + c + '°. Combien mesure le dernier angle « ? » ?', aroundFig([a + '°', b + '°', c + '°', '?'], [a, b, c, d]), { type: 'around', a: a, b: b, c: c, d: d });
     }
+
     function genTransformations(diff) {
         const L = lvl(diff); const x = nz(ri(-5, 5)), y = nz(ri(-5, 5));
         if (L === 0) { const t = pick([['ox', 'la symétrie d’axe Ox (axe horizontal)'], ['oy', 'la symétrie d’axe Oy (axe vertical)'], ['cO', 'la symétrie centrale de centre O']]); const im = applyT(t[0], x, y); return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par ' + t[1] + ' ?', fields: [{ label: 'x′', e: im[0] }, { label: 'y′', e: im[1] }], sol: 'A′ = (' + im[0] + ' ; ' + im[1] + ')' }; }
@@ -760,6 +927,8 @@
             } else if (ex.interactive === 'slider') {
                 const sl = '<label>a = <b id="av-' + i + '">0</b><input type="range" class="mx-range" data-ix="' + i + '" data-p="a" min="-5" max="5" step="1" value="0"></label><label>b = <b id="bv-' + i + '">0</b><input type="range" class="mx-range" data-ix="' + i + '" data-p="b" min="-6" max="6" step="1" value="0"></label>' + (ex.parab ? '<label>c = <b id="cv-' + i + '">0</b><input type="range" class="mx-range" data-ix="' + i + '" data-p="c" min="-6" max="6" step="1" value="0"></label>' : '');
                 body = '<div class="mx-sliders" style="grid-column:2">' + sl + vbtn + '</div>';
+            } else if (ex.interactive === 'angle') {
+                body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">Clique sur le bon angle dans la figure.</span> ' + vbtn + '</div>';
             } else {
                 body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
@@ -790,6 +959,9 @@
                 const draw = () => { const s = +svg.dataset.s, cx = +svg.dataset.cx, cy = +svg.dataset.cy, R = +svg.dataset.r, px = x => cx + x * s, py = y => cy - y * s; let h; if (ex.parab) { let pl = ''; for (let x = -R; x <= R + 1e-9; x += 0.2) { const y = ex._a * x * x + ex._b * x + ex._c; if (Math.abs(y) <= R + 0.4) pl += px(x).toFixed(1) + ',' + py(y).toFixed(1) + ' '; } h = '<polyline points="' + pl.trim() + '" fill="none" stroke="#EA580C" stroke-width="2.5"/>'; } else { h = '<line x1="' + px(-R) + '" y1="' + py(ex._a * -R + ex._b) + '" x2="' + px(R) + '" y2="' + py(ex._a * R + ex._b) + '" stroke="#EA580C" stroke-width="2.5"/>'; } svg.querySelector('.mx-line').innerHTML = h; };
                 draw();
                 el.querySelectorAll('.mx-range').forEach(rg => rg.addEventListener('input', () => { const v = +rg.value, p = rg.dataset.p; ex['_' + p] = v; $(p + 'v-' + i).textContent = v; draw(); }));
+            } else if (ex.interactive === 'angle') {
+                const svg = el.querySelector('.mx-ang-hit'); if (!svg) return;
+                svg.addEventListener('click', e => { const rect = svg.getBoundingClientRect(), vb = svg.getAttribute('viewBox').split(' '), vbW = parseFloat(vb[2]); const X = (e.clientX - rect.left) / rect.width * vbW, Y = (e.clientY - rect.top) / rect.width * vbW; let best = -1, bd = 1e9, bh = null; ex.hit.forEach(h => { const d = (h.x - X) * (h.x - X) + (h.y - Y) * (h.y - Y); if (d < bd) { bd = d; best = h.i; bh = h; } }); ex._sel = best; svg.querySelector('.mx-ang-mark').innerHTML = '<polygon points="' + bh.vx.toFixed(1) + ',' + bh.vy.toFixed(1) + ' ' + arcPoly(bh.vx, bh.vy, 18, bh.a0, bh.a1) + '" fill="#EF4444" fill-opacity="0.3"/><polyline points="' + arcPoly(bh.vx, bh.vy, 15, bh.a0, bh.a1) + '" fill="none" stroke="#DC2626" stroke-width="3"/>'; });
             }
         });
     }
@@ -814,6 +986,7 @@
         else if (ex.interactive === 'line') allOk = ex._ok ? ex._ok(ex._p1, ex._p2) : false;
         else if (ex.interactive === 'parab') allOk = ex._ok3 ? ex._ok3(ex._pp && ex._pp[0], ex._pp && ex._pp[1], ex._pp && ex._pp[2]) : false;
         else if (ex.interactive === 'slider') allOk = ex._a === ex.target.a && ex._b === ex.target.b && (ex.parab ? ex._c === ex.target.c : true);
+        else if (ex.interactive === 'angle') allOk = ex._sel === ex.correct;
         else ex.fields.forEach((f, j) => { const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]'); const ok = checkField(f, inp.value); inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko'); if (!ok) allOk = false; });
         return allOk;
     }
