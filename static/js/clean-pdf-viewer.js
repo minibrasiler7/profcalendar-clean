@@ -9451,7 +9451,28 @@ class CleanPDFViewer {
             const tr = tb.getBoundingClientRect();
             if (tr.height > 0) top = Math.max(r.top, tr.bottom);
         }
-        return { x: r.left, y: top, width: r.width, height: Math.max(0, r.bottom - top) };
+        let left = r.left, right = r.right, bottom = r.bottom;
+        // INTERSECTION avec la PAGE COURANTE. Sans ça, la zone de dessin native
+        // s'étendait du BAS de la barre d'outils (y≈49) jusqu'en bas du viewport,
+        // alors que la page commence plus bas (y≈96) : il restait une BANDE MORTE
+        // (≈49→96) au-dessus de la page où l'overlay natif captait quand même
+        // l'encre → « le stylet dépasse le PDF par le haut », et un trait qui
+        // sort par le haut laissait le scroll bloqué. En bornant le clip aux
+        // bords réels de la page (haut/bas/gauche/droite), l'overlay ne couvre
+        // QUE la page : plus de débordement, et la bande au-dessus repasse au
+        // WebView (scroll au doigt). Le clip suit la page au scroll (cette
+        // fonction est rappelée par notifyPencilKitPageRect à chaque frame).
+        const pageEl = (typeof this.getCurrentPageElement === 'function') ? this.getCurrentPageElement() : null;
+        if (pageEl) {
+            const p = pageEl.getBoundingClientRect();
+            if (p.width > 0 && p.height > 0) {
+                top = Math.max(top, p.top);
+                bottom = Math.min(bottom, p.bottom);
+                left = Math.max(left, p.left);
+                right = Math.min(right, p.right);
+            }
+        }
+        return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
     }
 
     // Pendant le scroll, repositionner l'overlay natif sur la page courante
