@@ -48,6 +48,34 @@ class DrawingCoordinator: NSObject {
     // NOUVEAUX traits au-dela de ce compteur.
     private var sentStrokeCount = 0
 
+    // FILET DE SÉCURITÉ scroll. On coupe le scroll de la WebView le temps d'un
+    // tracé Pencil (palm-rejection). Le rétablissement via canvasViewDidEndUsingTool
+    // n'est PAS fiable : quand le tracé sort du cadre du canvas (ex. trait tiré
+    // au-dessus du PDF) ou est annulé, ce délégué peut ne jamais être appelé →
+    // le scroll restait bloqué jusqu'au changement d'outil. Ce work item, (re)armé
+    // au début ET à chaque mouvement du tracé, réactive le scroll peu après la fin
+    // réelle du tracé même si le délégué de fin manque. Annulé immédiatement quand
+    // canvasViewDidEndUsingTool arrive (cas normal → réactivation instantanée).
+    private var scrollReenableWorkItem: DispatchWorkItem?
+    private let scrollReenableDelay: TimeInterval = 0.6
+
+    private func scheduleScrollReenable() {
+        scrollReenableWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.webView?.scrollView.isScrollEnabled = true
+            self?.webView?.scrollView.bounces = true
+        }
+        scrollReenableWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + scrollReenableDelay, execute: item)
+    }
+
+    private func reenableScrollNow() {
+        scrollReenableWorkItem?.cancel()
+        scrollReenableWorkItem = nil
+        webView?.scrollView.isScrollEnabled = true
+        webView?.scrollView.bounces = true
+    }
+
     // References UI
     weak var webView: WKWebView?
     weak var canvasView: PKCanvasView?
@@ -171,14 +199,22 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     // écrit). Le scroll au doigt reste possible le reste du temps.
     func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
         webView?.scrollView.isScrollEnabled = false
+        // Armer le filet de sécurité : si la fin du tracé n'est pas signalée
+        // (tracé sorti du cadre / annulé), le scroll sera quand même rétabli.
+        scheduleScrollReenable()
     }
 
-    // Fin du tracé Pencil : rétablir le scroll.
+    // Fin du tracé Pencil : rétablir le scroll IMMÉDIATEMENT (cas normal).
     func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
-        webView?.scrollView.isScrollEnabled = true
+        reenableScrollNow()
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        // Le tracé évolue → repousser le filet de sécurité. Tant que le stylet
+        // bouge, le scroll reste coupé ; il sera rétabli peu après le DERNIER
+        // mouvement, même si canvasViewDidEndUsingTool ne se déclenche pas.
+        scheduleScrollReenable()
+
         let strokes = canvasView.drawing.strokes
 
         // Le nombre de traits a diminue (ex : gomme native / undo) → on
