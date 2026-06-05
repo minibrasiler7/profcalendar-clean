@@ -9247,7 +9247,28 @@ class CleanPDFViewer {
                     // plus bas) et re-rendu en JS au flush (changement de page /
                     // d'outil) et au rechargement du document.
                     const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-                    if (!keepsNativeInk) {
+                    if (keepsNativeInk) {
+                        // ANTI-DISPARITION : on matérialise le trait sur le canvas
+                        // web TOUT DE SUITE (en plus de l'overlay natif). Avec
+                        // canvasWidth/Height corrects (cf. convertPencilKitStroke), le
+                        // rendu web coïncide avec l'encre native qui est AU-DESSUS →
+                        // invisible pendant la session (pas de double). Mais quand
+                        // Swift efface l'overlay natif au changement de page, le trait
+                        // reste affiché sur le canvas web. AVANT : le canvas web
+                        // n'était dessiné qu'au « flush » au moment de quitter la page ;
+                        // depuis que Swift efface l'overlay (fix pageId), si ce flush
+                        // ne se produisait pas, le trait disparaissait.
+                        if (canvas) {
+                            const ctx = canvas.getContext('2d');
+                            if (ctx) {
+                                try { viewer.drawAnnotation(ctx, annotation); }
+                                catch (e) { console.warn('[PencilKit] dessin immédiat échec:', e && e.message); }
+                            }
+                            console.log('[PencilKit] Trait matérialisé immédiatement sur le canvas web (pageId=' + pageId + ')');
+                        } else {
+                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId, '-> trait non matérialisé');
+                        }
+                    } else {
                         if (canvas) {
                             viewer.redrawAnnotations(canvas, pageId);
                         } else {
@@ -9318,7 +9339,22 @@ class CleanPDFViewer {
         if (!strokeData || !strokeData.points || strokeData.points.length === 0) {
             return null;
         }
-        
+
+        // Les points PencilKit sont dans le repère du PKCanvasView natif, dont le
+        // frame = le rect d'AFFICHAGE (CSS) de la page (ex: 1015×1437). Le canvas
+        // web a une résolution INTERNE plus grande (ex: 1045×1479). On enregistre
+        // donc la taille d'affichage comme canvasWidth/Height : drawAnnotation
+        // rescale alors les points (display → interne) et le trait matérialisé
+        // COÏNCIDE pile avec l'encre native. Sans ça : trait ~3% trop petit /
+        // « translaté », et — depuis que Swift efface l'overlay au changement de
+        // page — le trait semblait carrément disparaître.
+        let canvasWidth, canvasHeight;
+        const vis = (typeof this.getVisiblePageRect === 'function') ? this.getVisiblePageRect() : null;
+        if (vis && vis.width > 0 && vis.height > 0) {
+            canvasWidth = vis.width;
+            canvasHeight = vis.height;
+        }
+
         return {
             id: 'pk-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
             tool: strokeData.tool || 'pen',
@@ -9334,6 +9370,8 @@ class CleanPDFViewer {
                 y: p.y,
                 pressure: p.pressure || 0.5
             })),
+            canvasWidth,
+            canvasHeight,
             source: 'pencilkit',
             pageId: strokeData.pageId || this.getCurrentPageId(),
             timestamp: Date.now()
