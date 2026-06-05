@@ -28,6 +28,11 @@ class DrawingCoordinator: NSObject {
             delegate?.drawingCoordinator(self, didUpdatePageRect: pageRect)
         }
     }
+    // Zone de dessin visible (le conteneur .pdf-viewer côté web, sous la barre
+    // d'outils, dans le viewport). On l'utilise pour CLIPPER l'overlay natif.
+    // Toujours affectée AVANT pageRect (dont le didSet déclenche le recadrage),
+    // pour que updatePencilCanvasFrame lise une valeur fraîche.
+    var clipRect = CGRect.zero
 
     // Config dessin courante
     var currentToolName: String = "pen"
@@ -70,6 +75,7 @@ class DrawingCoordinator: NSObject {
         size: Double,
         opacity: Double,
         pageRect: CGRect,
+        clipRect: CGRect,
         scale: Double,
         pageId: String
     ) {
@@ -77,6 +83,7 @@ class DrawingCoordinator: NSObject {
         self.currentColorHex = color
         self.currentSize = size
         self.currentOpacity = opacity
+        self.clipRect = clipRect      // AVANT pageRect (cf. commentaire propriété)
         self.pageRect = pageRect
         self.currentScale = scale
         // Changement de page : repartir d'un canvas natif vierge (les traits de
@@ -116,13 +123,14 @@ class DrawingCoordinator: NSObject {
         canvasView?.tool = currentPKTool
     }
 
-    func updatePageRect(_ rect: CGRect, pageId: String? = nil) {
+    func updatePageRect(_ rect: CGRect, clipRect: CGRect, pageId: String? = nil) {
         // Changement de page pendant que PencilKit est actif : effacer l'encre
         // native (le JS a deja materialise les traits de la page quittee).
         if let pageId = pageId, pageId != self.currentPageId {
             clearCanvas()
             self.currentPageId = pageId
         }
+        self.clipRect = clipRect      // AVANT pageRect (cf. commentaire propriété)
         self.pageRect = rect
     }
 

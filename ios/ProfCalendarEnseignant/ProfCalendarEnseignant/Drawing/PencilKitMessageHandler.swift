@@ -64,14 +64,29 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
             )
         }
 
+        // Clip rect (zone de dessin visible) — sert à clipper l'overlay.
+        let clipRect = PencilKitMessageHandler.rect(from: config["clipRect"])
+
         coordinator?.activatePencilKit(
             tool: tool,
             color: color,
             size: size,
             opacity: opacity,
             pageRect: pageRect,
+            clipRect: clipRect,
             scale: scale,
             pageId: pageId
+        )
+    }
+
+    /// Parse un rect {x,y,width,height} depuis le JSON (CGRect.zero si absent).
+    private static func rect(from value: Any?) -> CGRect {
+        guard let d = value as? [String: Any] else { return .zero }
+        return CGRect(
+            x: d["x"] as? Double ?? 0,
+            y: d["y"] as? Double ?? 0,
+            width: d["width"] as? Double ?? 0,
+            height: d["height"] as? Double ?? 0
         )
     }
 
@@ -97,7 +112,8 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
             width: rectData["width"] as? Double ?? 0,
             height: rectData["height"] as? Double ?? 0
         )
+        let clipRect = PencilKitMessageHandler.rect(from: config["clipRect"])
 
-        coordinator?.updatePageRect(rect, pageId: pageId)
+        coordinator?.updatePageRect(rect, clipRect: clipRect, pageId: pageId)
     }
 }

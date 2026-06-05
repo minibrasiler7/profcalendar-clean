@@ -9351,9 +9351,36 @@ class CleanPDFViewer {
             action: 'updatePageRect',
             config: {
                 pageRect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+                clipRect: this.getViewerClipRect(),
                 scale: this.currentScale,
                 pageId: newInkPageId
             }
+        });
+    }
+
+    // Rect (coordonnées écran) de la ZONE DE DESSIN visible = le conteneur
+    // .pdf-viewer (sous la barre d'outils, dans le viewport). Sert côté Swift à
+    // CLIPPER l'overlay natif pour qu'il ne déborde pas sur la barre d'outils ni
+    // hors écran (le canvas natif garde, lui, les coordonnées de la page → pas
+    // de translation des traits).
+    getViewerClipRect() {
+        const v = this.elements && this.elements.viewer;
+        if (!v) return null;
+        const r = v.getBoundingClientRect();
+        return { x: r.left, y: r.top, width: r.width, height: r.height };
+    }
+
+    // Pendant le scroll, repositionner l'overlay natif sur la page courante
+    // (throttlé à 1×/frame). Sans ça l'overlay reste FIGÉ à sa position
+    // d'activation pendant que la page défile → il déborde sur la barre
+    // d'outils, capte le scroll, et l'encre « colle » d'une page à l'autre.
+    _scheduleInkRectSync() {
+        if (!this.isPencilKitAvailable || !this.pencilKitActive) return;
+        if (this._inkRectSyncScheduled) return;
+        this._inkRectSyncScheduled = true;
+        requestAnimationFrame(() => {
+            this._inkRectSyncScheduled = false;
+            this.notifyPencilKitPageRect();
         });
     }
     
@@ -9373,6 +9400,7 @@ class CleanPDFViewer {
                 size: this.currentSize,
                 opacity: this.currentTool === 'highlighter' ? 0.5 : this.currentOpacity,
                 pageRect: this.getVisiblePageRect(),
+                clipRect: this.getViewerClipRect(),
                 scale: this.currentScale,
                 pageId: this.getCurrentPageId()
             }
@@ -10582,6 +10610,11 @@ class CleanPDFViewer {
 
             console.log(`[Scroll] Page courante changée: ${oldPage} → ${this.currentPage}`);
         }
+
+        // iPad : faire suivre l'overlay natif PencilKit à la page courante
+        // pendant le scroll (throttlé). Repositionne le canvas natif et, au
+        // franchissement d'une page, matérialise les traits de la page quittée.
+        this._scheduleInkRectSync();
     }
 
     /**

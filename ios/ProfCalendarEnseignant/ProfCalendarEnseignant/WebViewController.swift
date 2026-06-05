@@ -45,6 +45,11 @@ class WebViewController: UIViewController {
 
     private let drawingCoordinator = DrawingCoordinator()
     private var pencilCanvas: PKCanvasView!
+    // Conteneur qui CLIPPE l'overlay PencilKit à la zone de dessin visible
+    // (sous la barre d'outils, dans le viewport). Le canvas, lui, garde la
+    // taille/position de la PAGE → les coordonnées des traits restent
+    // page-relatives (aucune translation à corriger).
+    private var pencilCanvasContainer: PassthroughContainerView!
     private var pencilKitMessageHandler: PencilKitMessageHandler!
 
     // MARK: - External display detection
@@ -120,15 +125,16 @@ class WebViewController: UIViewController {
         // invalidation de layout, et le PKCanvasView se met à couvrir TOUTE
         // la WebView (incluant la barre d'outils du lecteur PDF) →
         // impossible de changer d'outil avec le stylet.
-        if let pc = pencilCanvas, pc.isHidden {
+        if let container = pencilCanvasContainer, container.isHidden {
             // SÉCURITÉ : caché → cadre NUL (et non plein écran). Sinon ce cadre
             // plein écran devient le repli si l'overlay s'affiche avant d'avoir
             // un pageRect valide → il recouvre toute la WebView (barre d'outils
             // figée, dessin partout, scroll mort).
-            pc.frame = .zero
-        } else {
-            // PencilKit actif → on redemande à la WebView de communiquer le
-            // nouveau pageRect côté JS si l'orientation/scroll a changé.
+            container.frame = .zero
+            pencilCanvas?.frame = .zero
+        } else if pencilCanvasContainer != nil {
+            // PencilKit actif → recadrer l'overlay (conteneur + canvas) selon le
+            // dernier pageRect/clipRect connus.
             updatePencilCanvasFrame()
         }
     }
@@ -221,12 +227,24 @@ class WebViewController: UIViewController {
         pencilCanvas.isScrollEnabled = false
         pencilCanvas.bounces = false
 
-        pencilCanvas.isHidden = true  // Cache par defaut, active via JS bridge
-        pencilCanvas.translatesAutoresizingMaskIntoConstraints = false
+        pencilCanvas.isHidden = false  // La visibilité est gérée par le conteneur
+        pencilCanvas.translatesAutoresizingMaskIntoConstraints = true
+
+        // Conteneur clippant : caché par défaut, activé via le bridge JS. Il est
+        // borné à la zone de dessin visible (clipRect) ; le canvas est placé
+        // DEDANS à la position de la page (donc clippé visuellement à la barre
+        // d'outils / au viewport), sans changer les coordonnées des traits.
+        pencilCanvasContainer = PassthroughContainerView()
+        pencilCanvasContainer.backgroundColor = .clear
+        pencilCanvasContainer.isOpaque = false
+        pencilCanvasContainer.clipsToBounds = true
+        pencilCanvasContainer.isHidden = true
+        pencilCanvasContainer.translatesAutoresizingMaskIntoConstraints = true
+        pencilCanvasContainer.addSubview(pencilCanvas)
 
         drawingCoordinator.canvasView = pencilCanvas
 
-        view.addSubview(pencilCanvas)
+        view.addSubview(pencilCanvasContainer)
     }
 
     private func setupActivityIndicator() {
@@ -1052,7 +1070,7 @@ extension WebViewController: UIDocumentPickerDelegate {
 extension WebViewController: DrawingCoordinatorDelegate {
 
     func drawingCoordinator(_ coordinator: DrawingCoordinator, didChangeActiveState isActive: Bool) {
-        pencilCanvas.isHidden = !isActive
+        pencilCanvasContainer.isHidden = !isActive
 
         if isActive {
             // IMPORTANT : on NE coupe PLUS le scroll de la WebView ici. Avant,
@@ -1064,8 +1082,8 @@ extension WebViewController: DrawingCoordinatorDelegate {
             // canvasViewDidBeginUsingTool / canvasViewDidEndUsingTool).
             updatePencilCanvasFrame()
 
-            // S'assurer que le canvas est au-dessus de tout (sauf activity indicator)
-            view.bringSubviewToFront(pencilCanvas)
+            // S'assurer que l'overlay est au-dessus de tout (sauf activity indicator)
+            view.bringSubviewToFront(pencilCanvasContainer)
 
             pencilCanvas.tool = coordinator.currentPKTool
             // NE PLUS vider le canvas natif ici. keepsNativeInk=true : l'encre
@@ -1088,19 +1106,45 @@ extension WebViewController: DrawingCoordinatorDelegate {
     }
 
     private func updatePencilCanvasFrame() {
-        let rect = drawingCoordinator.pageRect
-        // SÉCURITÉ : ne JAMAIS laisser l'overlay en plein écran. Si le pageRect
-        // n'est pas (encore) valide, on met un cadre NUL (ne recouvre rien)
-        // plutôt que de conserver l'ancien cadre (souvent plein écran) → évite
-        // de figer la barre d'outils / rendre tout l'écran annotable.
-        guard rect.width > 0 && rect.height > 0 else {
-            print("[DrawingCoordinator][diag] pageRect invalide \(rect) -> frame .zero (overlay neutralisé)")
+        guard pencilCanvasContainer != nil else { return }
+        let pageRect = drawingCoordinator.pageRect
+        let clipRect = drawingCoordinator.clipRect
+
+        // SÉCURITÉ : pageRect invalide → cadre NUL (ne recouvre rien) plutôt que
+        // de garder l'ancien cadre (souvent plein écran) → évite de figer la
+        // barre d'outils / rendre tout l'écran annotable.
+        guard pageRect.width > 0 && pageRect.height > 0 else {
+            print("[DrawingCoordinator][diag] pageRect invalide \(pageRect) -> frame .zero")
+            pencilCanvasContainer.frame = .zero
             pencilCanvas.frame = .zero
             return
         }
-        print("[DrawingCoordinator][diag] frame overlay = \(rect)")
+
         pencilCanvas.translatesAutoresizingMaskIntoConstraints = true
-        pencilCanvas.frame = rect
+        pencilCanvasContainer.translatesAutoresizingMaskIntoConstraints = true
+
+        if clipRect.width > 0 && clipRect.height > 0 {
+            // Conteneur = ZONE DE DESSIN VISIBLE (sous la barre d'outils, dans le
+            // viewport). Il CLIPPE l'overlay → plus de débordement sur la barre
+            // d'outils ni hors écran, et il ne capte pas le scroll ailleurs.
+            pencilCanvasContainer.frame = clipRect
+            // Le canvas garde la taille de la PAGE, positionné DANS le conteneur
+            // (origine = position de la page relative à la zone visible). Les
+            // coordonnées des traits (point.location) restent donc page-relatives
+            // → aucune translation à compenser.
+            pencilCanvas.frame = CGRect(
+                x: pageRect.minX - clipRect.minX,
+                y: pageRect.minY - clipRect.minY,
+                width: pageRect.width,
+                height: pageRect.height
+            )
+            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvas=\(pencilCanvas.frame)")
+        } else {
+            // Repli (pas de clipRect transmis) : ancien comportement plein page.
+            pencilCanvasContainer.frame = pageRect
+            pencilCanvas.frame = pencilCanvasContainer.bounds
+            print("[DrawingCoordinator][diag] (fallback sans clip) frame overlay = \(pageRect)")
+        }
     }
 }
 
@@ -1149,6 +1193,22 @@ final class PassthroughCanvasView: PKCanvasView {
             return nil
         }
         // Apple Pencil présent (ou pas d'info de touche) → dessin normal.
+        return super.hitTest(point, with: event)
+    }
+}
+
+// MARK: - PassthroughContainerView
+
+/// Conteneur de l'overlay PencilKit. Il CLIPPE le canvas à la zone de dessin
+/// visible (sous la barre d'outils, dans le viewport) et LAISSE PASSER les
+/// touches du doigt/paume vers la WebView (scroll) ; seul l'Apple Pencil
+/// atteint le canvas (dessin).
+final class PassthroughContainerView: UIView {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        if let touches = event?.allTouches, !touches.isEmpty,
+           !touches.contains(where: { $0.type == .pencil }) {
+            return nil
+        }
         return super.hitTest(point, with: event)
     }
 }
