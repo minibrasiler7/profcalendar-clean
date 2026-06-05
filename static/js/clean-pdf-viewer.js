@@ -284,6 +284,30 @@ class CleanPDFViewer {
 
         // Sauvegarder avant la fermeture du navigateur
         this.setupBeforeUnload();
+
+        // iPad : ACTIVER PencilKit dès le chargement (outil pen/highlighter).
+        // CAUSE RACINE des 3 bugs : tant que l'utilisateur n'avait pas tapé un
+        // bouton d'outil, l'overlay natif n'était PAS activé. Le stylet était
+        // alors capté par l'ANCIEN système web (pointer events / startAnnotation),
+        // qui :
+        //   1) bloque le scroll au doigt (isAnnotating → touchmove preventDefault),
+        //   2) trace sur le canvas web NON clippé → encre sous la barre d'outils,
+        //   3) redessine TOUTES les annotations de la page à chaque pointermove (lag).
+        // En activant le natif tout de suite, le stylet est capté par PencilKit
+        // dès le 1er trait → scroll au doigt libre (pencilKitActive=true),
+        // encre clippée sous la barre, et rendu natif « tel quel ».
+        if (this.isPencilKitAvailable && (this.currentTool === 'pen' || this.currentTool === 'highlighter')) {
+            // rAF : laisser le layout se stabiliser pour que getVisiblePageRect()
+            // renvoie le rect de la page courante (sinon overlay mal positionné).
+            requestAnimationFrame(() => {
+                try {
+                    this.activatePencilKit();
+                    console.log('[PencilKit] Activé automatiquement au chargement (outil ' + this.currentTool + ')');
+                } catch (e) {
+                    console.warn('[PencilKit] Activation auto au chargement échouée:', e && e.message);
+                }
+            });
+        }
     }
 
     /**
@@ -9247,34 +9271,21 @@ class CleanPDFViewer {
                     // plus bas) et re-rendu en JS au flush (changement de page /
                     // d'outil) et au rechargement du document.
                     const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-                    if (keepsNativeInk) {
-                        // ANTI-DISPARITION : on matérialise le trait sur le canvas
-                        // web TOUT DE SUITE (en plus de l'overlay natif). Avec
-                        // canvasWidth/Height corrects (cf. convertPencilKitStroke), le
-                        // rendu web coïncide avec l'encre native qui est AU-DESSUS →
-                        // invisible pendant la session (pas de double). Mais quand
-                        // Swift efface l'overlay natif au changement de page, le trait
-                        // reste affiché sur le canvas web. AVANT : le canvas web
-                        // n'était dessiné qu'au « flush » au moment de quitter la page ;
-                        // depuis que Swift efface l'overlay (fix pageId), si ce flush
-                        // ne se produisait pas, le trait disparaissait.
-                        if (canvas) {
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                                try { viewer.drawAnnotation(ctx, annotation); }
-                                catch (e) { console.warn('[PencilKit] dessin immédiat échec:', e && e.message); }
-                            }
-                            console.log('[PencilKit] Trait matérialisé immédiatement sur le canvas web (pageId=' + pageId + ')');
-                        } else {
-                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId, '-> trait non matérialisé');
-                        }
-                    } else {
+                    if (!keepsNativeInk) {
                         if (canvas) {
                             viewer.redrawAnnotations(canvas, pageId);
                         } else {
                             console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
                         }
                     }
+                    // keepsNativeInk = true : NE PAS dessiner le trait sur le canvas
+                    // web pendant la session. L'overlay natif PencilKit affiche déjà
+                    // l'encre brute « telle quelle ». Dessiner ici en plus créait un
+                    // DOUBLE trait (encre native + rendu perfect-freehand). Le trait
+                    // est sauvegardé (isDirty + saveAnnotations ci-dessous) et
+                    // matérialisé sur le canvas web au « flush » (quand on QUITTE la
+                    // page : notifyPencilKitPageRect / deactivatePencilKit / goToPage),
+                    // juste avant que Swift efface l'overlay natif.
 
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,
                     // sauvegarde ignorée" et le trait est perdu au prochain reload.
@@ -10625,6 +10636,23 @@ class CleanPDFViewer {
      * Naviguer vers une page
      */
     goToPage(pageId) {
+        // FLUSH AVANT DE QUITTER : matérialiser l'encre native de la page qu'on
+        // quitte sur SON canvas web, AVANT que Swift n'efface l'overlay natif
+        // (déclenché par le changement de pageId). Sans ça, en naviguant via les
+        // miniatures, les traits natifs de la page disparaissaient. Le flush au
+        // scroll (notifyPencilKitPageRect) ne couvre pas un saut direct.
+        try {
+            const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+            if (keepsNativeInk && this.isPencilKitAvailable &&
+                this._lastInkPageId != null && this._lastInkPageId !== pageId) {
+                const prevCanvas = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
+                if (prevCanvas) {
+                    this.redrawAnnotations(prevCanvas, this._lastInkPageId);
+                    console.log('[goToPage] Encre native matérialisée avant de quitter la page ' + this._lastInkPageId);
+                }
+            }
+        } catch (e) { console.warn('[goToPage] flush encre native échec:', e && e.message); }
+
         this.currentPage = pageId;
 
         // Scroller vers la page dans le viewer (pas dans la sidebar)
