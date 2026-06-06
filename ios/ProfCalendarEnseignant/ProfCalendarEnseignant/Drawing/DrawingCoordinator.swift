@@ -181,13 +181,18 @@ class DrawingCoordinator: NSObject {
                 if let error = error {
                     print("[DrawingCoordinator] JS error: \(error.localizedDescription)")
                 } else {
-                    print("[DrawingCoordinator] Stroke sent to web successfully")
-                    // NE PAS effacer l'encre native ici. "Trait tel quel" : l'encre
-                    // Apple reste affichée toute la session (et est clippée à la zone
-                    // visible par le conteneur natif). Le web ne sert qu'à mémoriser le
-                    // trait pour la sauvegarde / la matérialisation au flush.
-                    // (Tentative précédente : effacer ici pour laisser le web afficher
-                    // le trait. Abandonnée → le trait disparaissait au lever du stylet.)
+                    // PencilKit ignore tout clipping → son encre déborde au-dessus du
+                    // PDF (live ET terminée). On délègue donc l'AFFICHAGE du trait
+                    // terminé au canvas WEB (qui ne peut pas déborder) et on EFFACE
+                    // l'encre native — MAIS seulement si le web confirme avoir dessiné
+                    // le trait (valeur de retour de onStrokeCompleted). Sinon on garde
+                    // l'encre native pour ne JAMAIS faire disparaître un trait.
+                    let webDrew = (result as? NSNumber)?.boolValue ?? false
+                    print("[DrawingCoordinator] Stroke sent to web (webDrew=\(webDrew))")
+                    if let self = self, webDrew, !self.isPencilDrawing {
+                        self.canvasView?.drawing = PKDrawing()
+                        self.sentStrokeCount = 0
+                    }
                 }
             }
         }

@@ -7243,6 +7243,7 @@ class CleanPDFViewer {
             }
         }
         console.log(`[Redraw] ${drawn}/${pageAnnotations.length} annotations dessinées avec succès pour page ${pageId}`);
+        return drawn;
     }
 
     /**
@@ -9263,26 +9264,23 @@ class CleanPDFViewer {
                             '| scale=', viewer.currentScale);
                     } catch (e) { console.warn('[PencilKit][diag] log error', e); }
 
-                    // Build natif "trait tel quel" (keepsNativeInk) : l'encre Apple
-                    // native reste affichée pendant toute la session ET est clippée à
-                    // la zone visible par le conteneur natif (clipsToBounds, sous la
-                    // barre d'outils). On NE redessine donc PAS en JS ici : sinon le
-                    // trait s'afficherait en DOUBLE (encre native + rendu web par-dessus).
-                    // Le trait est quand même mémorisé (annotations + historique) pour
-                    // la SAUVEGARDE et il est matérialisé sur le canvas web au flush
-                    // (changement de page / d'outil non-natif / fermeture) et au
-                    // rechargement du document.
-                    //
-                    // (Tentative précédente : effacer l'encre native après chaque trait
-                    // et laisser le web l'afficher. Abandonnée → le trait disparaissait
-                    // au lever du stylet. Cf. logs natifs.)
-                    const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-                    if (!keepsNativeInk) {
-                        if (canvas) {
-                            viewer.redrawAnnotations(canvas, pageId);
-                        } else {
-                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
-                        }
+                    // "Trait tel quel" + ANTI-DÉBORDEMENT. PencilKit ignore TOUT
+                    // clipping (conteneur, canvas, masque — confirmé sur device) :
+                    // l'encre native, même TERMINÉE, reste affichée au-dessus du PDF.
+                    // La SEULE façon fiable d'empêcher le débordement est d'afficher le
+                    // trait terminé sur le canvas WEB : un <canvas> 2D ne peut
+                    // PHYSIQUEMENT pas dessiner hors de sa zone (= la page) → jamais de
+                    // débordement. Swift efface ensuite l'encre native, MAIS seulement
+                    // si ce rendu web a réussi (valeur de retour `webDrew`). Si le
+                    // canvas web est introuvable, on renvoie false → Swift GARDE l'encre
+                    // native → le trait ne disparaît jamais (au pire il déborde,
+                    // exactement comme avant ce correctif).
+                    let webDrew = false;
+                    if (canvas) {
+                        const drawn = viewer.redrawAnnotations(canvas, pageId);
+                        webDrew = (drawn > 0);
+                    } else {
+                        console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
                     }
 
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,
@@ -9291,7 +9289,10 @@ class CleanPDFViewer {
 
                     // Sauvegarder en base
                     viewer.saveAnnotations();
-                    console.log('[PencilKit] Stroke saved as annotation');
+                    console.log('[PencilKit] Stroke saved as annotation | webDrew=', webDrew);
+                    // Valeur renvoyée à Swift (evaluateJavaScript) : autorise (true) ou
+                    // non (false) l'effacement de l'encre native.
+                    return webDrew;
                 }
             } catch (err) {
                 // Ne JAMAIS jeter — Swift utilise un Result<>; un throw ici
