@@ -172,6 +172,30 @@ def _find_class_file_candidates(file_id, user):
     return candidates
 
 
+def _resolve_annotation_target(file_id, user):
+    """Pour save/load-annotations : retourne (file_id, file_type) de la 1re
+    source accessible à l'utilisateur (priorité v2 > legacy > userfile), ou None.
+
+    Aligne la sauvegarde/chargement des annotations sur serve_file, qui sert
+    déjà ces 3 systèmes. Avant, ces routes ne regardaient QUE la table v2
+    (class_files_v2) → un fichier legacy (class_files) ou un UserFile s'affichait
+    correctement mais renvoyait 404 à la sauvegarde (cas observé : .docx importé
+    converti en PDF). Le file_type distingue chaque source pour éviter les
+    collisions d'ID entre tables. 'v2' garde file_type='class_file' → les
+    annotations déjà enregistrées restent valides.
+    """
+    candidates = _find_class_file_candidates(file_id, user)
+    if not candidates:
+        return None
+    kind, _obj = candidates[0]
+    file_type = {
+        'v2': 'class_file',
+        'legacy': 'legacy_class_file',
+        'userfile': 'user_file',
+    }.get(kind, 'class_file')
+    return (file_id, file_type)
+
+
 def _serve_class_file_candidate(kind, obj, as_attachment=False):
     """Sert un candidat issu de _find_class_file_candidates. Renvoie None
     si aucun contenu n'est disponible pour ce candidat (ex : ClassFile v2
@@ -2259,24 +2283,19 @@ def save_annotations():
         if not file_id:
             return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
 
-        # Vérifier que le fichier existe et appartient à l'utilisateur
-        from models.class_file import ClassFile
-        from models.classroom import Classroom
-
-        class_file = ClassFile.query.join(
-            Classroom, ClassFile.classroom_id == Classroom.id
-        ).filter(
-            ClassFile.id == file_id,
-            Classroom.user_id == current_user.id
-        ).first()
-
-        if not class_file:
+        # Accepter les 3 systèmes de fichiers (v2 / legacy / userfile), comme
+        # serve_file. Avant, on ne regardait que la table v2 → un fichier legacy
+        # ou un UserFile (ex. .docx converti en PDF) s'affichait mais renvoyait
+        # 404 ici → annotations jamais sauvegardées.
+        target = _resolve_annotation_target(file_id, current_user)
+        if not target:
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+        file_id, file_type = target
 
         # Chercher une annotation existante
         annotation = FileAnnotation.query.filter_by(
             file_id=file_id,
-            file_type='class_file',
+            file_type=file_type,
             user_id=current_user.id
         ).first()
 
@@ -2289,7 +2308,7 @@ def save_annotations():
             # Créer une nouvelle annotation
             annotation = FileAnnotation(
                 file_id=file_id,
-                file_type='class_file',
+                file_type=file_type,
                 user_id=current_user.id,
                 annotations_data=annotations_data,
                 custom_pages_data=custom_pages_data
@@ -2314,25 +2333,18 @@ def load_annotations(file_id):
     """Charger les annotations d'un fichier"""
     try:
         from models.file_manager import FileAnnotation
-            
-        # Vérifier que le fichier existe et appartient à l'utilisateur
-        from models.class_file import ClassFile
-        from models.classroom import Classroom
-        
-        class_file = ClassFile.query.join(
-            Classroom, ClassFile.classroom_id == Classroom.id
-        ).filter(
-            ClassFile.id == file_id,
-            Classroom.user_id == current_user.id
-        ).first()
-        
-        if not class_file:
+
+        # Accepter les 3 systèmes de fichiers (v2 / legacy / userfile), comme
+        # serve_file et save-annotations.
+        target = _resolve_annotation_target(file_id, current_user)
+        if not target:
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-            
+        file_id, file_type = target
+
         # Chercher l'annotation
         annotation = FileAnnotation.query.filter_by(
             file_id=file_id,
-            file_type='class_file',
+            file_type=file_type,
             user_id=current_user.id
         ).first()
         
