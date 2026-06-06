@@ -50,6 +50,12 @@ class DrawingCoordinator: NSObject {
     // ne jamais effacer un trait que l'utilisateur est en train de dessiner.
     private var isPencilDrawing = false
 
+    // Vrai pendant qu'on REMPLACE programmatiquement le dessin (rognage du trait
+    // qui sort de la page). Réaffecter `canvasView.drawing` redéclenche
+    // canvasViewDrawingDidChange : ce drapeau évite de re-traiter / re-rogner en
+    // boucle notre propre modification.
+    private var isTrimming = false
+
     // FILET DE SÉCURITÉ scroll. On coupe le scroll de la WebView le temps d'un
     // tracé Pencil (palm-rejection). Le rétablissement via canvasViewDidEndUsingTool
     // n'est PAS fiable : quand le tracé sort du cadre du canvas (ex. trait tiré
@@ -181,18 +187,13 @@ class DrawingCoordinator: NSObject {
                 if let error = error {
                     print("[DrawingCoordinator] JS error: \(error.localizedDescription)")
                 } else {
-                    // PencilKit ignore tout clipping → son encre déborde au-dessus du
-                    // PDF (live ET terminée). On délègue donc l'AFFICHAGE du trait
-                    // terminé au canvas WEB (qui ne peut pas déborder) et on EFFACE
-                    // l'encre native — MAIS seulement si le web confirme avoir dessiné
-                    // le trait (valeur de retour de onStrokeCompleted). Sinon on garde
-                    // l'encre native pour ne JAMAIS faire disparaître un trait.
-                    let webDrew = (result as? NSNumber)?.boolValue ?? false
-                    print("[DrawingCoordinator] Stroke sent to web (webDrew=\(webDrew))")
-                    if let self = self, webDrew, !self.isPencilDrawing {
-                        self.canvasView?.drawing = PKDrawing()
-                        self.sentStrokeCount = 0
-                    }
+                    // "Trait tel quel" : on NE vide PAS l'encre native (aspect natif
+                    // voulu + position exacte). Le web ne sert qu'à la sauvegarde et à
+                    // la matérialisation au flush. (Le rendu web immédiat translatait le
+                    // trait vers le bas + aspect perfect-freehand → rejeté.) Le
+                    // débordement par le haut est traité par le rognage du trait natif
+                    // (cf. canvasViewDrawingDidChange).
+                    print("[DrawingCoordinator] Stroke sent to web successfully")
                 }
             }
         }
@@ -223,12 +224,15 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        // Changement provoqué par NOTRE propre rognage → ne rien re-traiter.
+        if isTrimming { return }
+
         // Le tracé évolue → repousser le filet de sécurité. Tant que le stylet
         // bouge, le scroll reste coupé ; il sera rétabli peu après le DERNIER
         // mouvement, même si canvasViewDidEndUsingTool ne se déclenche pas.
         scheduleScrollReenable()
 
-        let strokes = canvasView.drawing.strokes
+        var strokes = canvasView.drawing.strokes
 
         // Le nombre de traits a diminue (ex : gomme native / undo) → on
         // resynchronise simplement le compteur. (La gomme passe par le chemin
@@ -238,11 +242,30 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
             return
         }
 
-        // N'envoyer que les NOUVEAUX traits au web (pour la sauvegarde). On
-        // n'efface PLUS le canvas natif : l'encre reste affichee "telle quelle"
-        // pendant toute la session. Le canvas est efface a la desactivation ou
-        // au changement de page (clearCanvas()), apres que le JS a materialise
-        // les traits sur son propre canvas (flush).
+        // ROGNAGE anti-débordement. PencilKit ignore tout clipping (conteneur,
+        // canvas, masque — confirmé sur device) : un trait qui sort de la page
+        // (ex. tiré au-dessus du haut du PDF) y reste affiché. On retire donc, des
+        // NOUVEAUX traits TERMINÉS, les points hors des bornes de la page (= bounds
+        // du canvas), tout en conservant le RENDU NATIF et la position exacte.
+        let pageBounds = canvasView.bounds
+        var didTrim = false
+        for index in sentStrokeCount..<strokes.count {
+            if let trimmed = Self.trimmedStroke(strokes[index], pageBounds: pageBounds) {
+                strokes[index] = trimmed
+                didTrim = true
+            }
+        }
+        if didTrim {
+            isTrimming = true
+            canvasView.drawing = PKDrawing(strokes: strokes)
+            isTrimming = false
+            strokes = canvasView.drawing.strokes
+        }
+
+        // N'envoyer que les NOUVEAUX traits (rognés) au web pour la SAUVEGARDE.
+        // L'encre native reste affichée "telle quelle" pendant la session ; le
+        // canvas natif est effacé à la désactivation / au changement de page
+        // (clearCanvas()), après matérialisation des traits côté JS (flush).
         for index in sentStrokeCount..<strokes.count {
             let strokeData = StrokeConverter.convert(
                 stroke: strokes[index],
@@ -256,6 +279,36 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
             sendStrokeToWeb(strokeData: strokeData)
         }
         sentStrokeCount = strokes.count
+    }
+
+    /// Renvoie une copie du trait dont les points HORS des bornes `pageBounds`
+    /// (coordonnées locales du canvas = la page) ont été retirés, ou `nil` si le
+    /// trait est entièrement dans la page (rien à rogner). Conserve le rendu natif
+    /// (même encre / transform). Empêche le trait de "déborder" du PDF.
+    private static func trimmedStroke(_ stroke: PKStroke, pageBounds: CGRect) -> PKStroke? {
+        let tol: CGFloat = 1.0
+        let minX = pageBounds.minX - tol, maxX = pageBounds.maxX + tol
+        let minY = pageBounds.minY - tol, maxY = pageBounds.maxY + tol
+
+        var kept: [PKStrokePoint] = []
+        var anyOutside = false
+        for point in stroke.path {
+            let loc = point.location.applying(stroke.transform)
+            if loc.x >= minX && loc.x <= maxX && loc.y >= minY && loc.y <= maxY {
+                kept.append(point)
+            } else {
+                anyOutside = true
+            }
+        }
+
+        // Rien hors page → ne pas toucher au trait (cas le plus fréquent).
+        guard anyOutside else { return nil }
+        // Trait quasi entièrement hors page (improbable : un tracé démarre toujours
+        // DANS la page) → on garde l'original pour éviter un chemin vide invalide.
+        guard kept.count >= 1 else { return nil }
+
+        let newPath = PKStrokePath(controlPoints: kept, creationDate: stroke.path.creationDate)
+        return PKStroke(ink: stroke.ink, path: newPath, transform: stroke.transform, mask: stroke.mask)
     }
 }
 
