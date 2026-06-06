@@ -64,6 +64,7 @@ class DrawingCoordinator: NSObject {
         let item = DispatchWorkItem { [weak self] in
             self?.webView?.scrollView.isScrollEnabled = true
             self?.webView?.scrollView.bounces = true
+            print("[Scroll][diag] RÉACTIVÉ (watchdog)")
         }
         scrollReenableWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + scrollReenableDelay, execute: item)
@@ -74,6 +75,7 @@ class DrawingCoordinator: NSObject {
         scrollReenableWorkItem = nil
         webView?.scrollView.isScrollEnabled = true
         webView?.scrollView.bounces = true
+        print("[Scroll][diag] RÉACTIVÉ (immédiat / fin de tracé)")
     }
 
     // References UI
@@ -199,6 +201,7 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     // écrit). Le scroll au doigt reste possible le reste du temps.
     func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
         webView?.scrollView.isScrollEnabled = false
+        print("[Scroll][diag] COUPÉ (début de tracé)")
         // Armer le filet de sécurité : si la fin du tracé n'est pas signalée
         // (tracé sorti du cadre / annulé), le scroll sera quand même rétabli.
         scheduleScrollReenable()

@@ -1125,24 +1125,33 @@ extension WebViewController: DrawingCoordinatorDelegate {
 
         if clipRect.width > 0 && clipRect.height > 0 {
             // Conteneur = ZONE DE DESSIN VISIBLE (sous la barre d'outils, dans le
-            // viewport). Il CLIPPE l'overlay → plus de débordement sur la barre
-            // d'outils ni hors écran, et il ne capte pas le scroll ailleurs.
+            // viewport).
             pencilCanvasContainer.frame = clipRect
-            // Le canvas garde la taille de la PAGE, positionné DANS le conteneur
-            // (origine = position de la page relative à la zone visible). Les
-            // coordonnées des traits (point.location) restent donc page-relatives
-            // → aucune translation à compenser.
-            pencilCanvas.frame = CGRect(
-                x: pageRect.minX - clipRect.minX,
-                y: pageRect.minY - clipRect.minY,
-                width: pageRect.width,
-                height: pageRect.height
+
+            // CANVAS = la zone visible elle-même (= bounds du conteneur), et NON
+            // la page entière. La page entière est représentée via le mécanisme
+            // de UIScrollView (PKCanvasView EN est un) : contentSize = taille de
+            // la page, contentOffset = décalage page→zone visible. Ainsi l'encre
+            // située au-dessus de la zone visible (sous la barre d'outils) est
+            // DÉFILÉE HORS du cadre → JAMAIS rendue. C'est fiable même quand
+            // clipsToBounds n'arrête pas le rendu PencilKit (cas observé : le
+            // trait débordait sur la barre alors que le conteneur clippait bien).
+            // Les coordonnées des traits (point.location) restent dans le repère
+            // CONTENU = page → inchangées pour le web (aucune translation).
+            pencilCanvas.frame = pencilCanvasContainer.bounds
+            pencilCanvas.contentSize = pageRect.size
+            pencilCanvas.contentOffset = CGPoint(
+                x: clipRect.minX - pageRect.minX,
+                y: clipRect.minY - pageRect.minY
             )
-            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvas=\(pencilCanvas.frame)")
+            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvasFrame=\(pencilCanvas.frame) offset=\(pencilCanvas.contentOffset)")
         } else {
-            // Repli (pas de clipRect transmis) : ancien comportement plein page.
+            // Repli (pas de clipRect transmis) : plein page. Le JS garantit
+            // désormais un clipRect valide → ce repli ne devrait plus survenir.
             pencilCanvasContainer.frame = pageRect
             pencilCanvas.frame = pencilCanvasContainer.bounds
+            pencilCanvas.contentSize = pageRect.size
+            pencilCanvas.contentOffset = .zero
             print("[DrawingCoordinator][diag] (fallback sans clip) frame overlay = \(pageRect)")
         }
     }
