@@ -228,6 +228,14 @@ class WebViewController: UIViewController {
         pencilCanvas.isScrollEnabled = false
         pencilCanvas.bounces = false
 
+        // CLIPPER le canvas sur ses propres bords (= la PAGE, cf. frame ci-dessous).
+        // Le conteneur clippe déjà la zone visible MAIS son clipsToBounds n'arrête
+        // pas l'encre EN COURS de PencilKit (rendu hors-limites, confirmé par les
+        // logs). En clippant le canvas lui-même à la taille de la page, le trait vif
+        // qui « bave » au-dessus du bord supérieur du PDF est découpé. L'encre
+        // légitime (sur la page) n'est jamais affectée.
+        pencilCanvas.clipsToBounds = true
+
         pencilCanvas.isHidden = false  // La visibilité est gérée par le conteneur
         pencilCanvas.translatesAutoresizingMaskIntoConstraints = true
 
@@ -1128,12 +1136,10 @@ extension WebViewController: DrawingCoordinatorDelegate {
             // Conteneur = ZONE DE DESSIN VISIBLE (sous la barre d'outils, dans le
             // viewport).
             pencilCanvasContainer.frame = clipRect
-            // Canvas = taille de la PAGE, positionné dans le conteneur. On NE rend
-            // PAS le canvas scrollable (contentSize = frame) : un PKCanvasView
-            // scrollable interceptait le geste de défilement au doigt. Le clipping
-            // visuel n'est de toute façon pas assuré par le conteneur (PencilKit
-            // ignore clipsToBounds) → c'est l'effacement de l'encre native après
-            // chaque trait + le canvas web (clippé) qui empêchent le débordement.
+            // Canvas = taille de la PAGE, positionné dans le conteneur (non
+            // scrollable). Le conteneur clippe la zone visible ; le canvas (via son
+            // propre clipsToBounds, cf. setup) clippe l'encre EN COURS au bord de la
+            // page → plus de débordement au-dessus du PDF.
             pencilCanvas.frame = CGRect(
                 x: pageRect.minX - clipRect.minX,
                 y: pageRect.minY - clipRect.minY,
@@ -1142,7 +1148,6 @@ extension WebViewController: DrawingCoordinatorDelegate {
             )
             pencilCanvas.contentSize = pencilCanvas.bounds.size
             pencilCanvas.contentOffset = .zero
-            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvas=\(pencilCanvas.frame)")
         } else {
             // Repli (pas de clipRect transmis) : plein page. Le JS garantit
             // désormais un clipRect valide → ce repli ne devrait plus survenir.
