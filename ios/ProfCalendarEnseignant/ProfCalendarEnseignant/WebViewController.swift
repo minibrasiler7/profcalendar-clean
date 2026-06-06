@@ -4,6 +4,7 @@ import MobileCoreServices
 import UniformTypeIdentifiers
 import PhotosUI
 import PencilKit
+import QuartzCore
 
 class WebViewController: UIViewController {
 
@@ -1171,38 +1172,48 @@ extension WebViewController: UIPencilInteractionDelegate {
     }
 }
 
+// MARK: - PencilTouchState (départage hitTest)
+
+/// État partagé entre l'overlay et le coordinateur de dessin pour résoudre
+/// l'AMBIGUÏTÉ du hitTest au POSER du doigt/stylet.
+///
+/// Le problème (prouvé par les logs `[HitTest][diag] CONTAINER capte
+/// (n=0/-1 types=[])`) : au tout premier hitTest d'un nouveau toucher, iOS
+/// n'a pas encore inséré ce toucher dans `event.allTouches` → on ne peut PAS
+/// savoir si c'est un doigt (→ scroll) ou un stylet (→ dessin). L'ancienne
+/// règle « pas d'info → on capte » bloquait alors le scroll au doigt ; la
+/// règle inverse « pas d'info → on laisse passer » ferait rater des traits.
+///
+/// Départage : on capte un toucher ambigu UNIQUEMENT si un stylet est
+/// réellement dans les parages — soit un tracé est en cours (`isDrawing`),
+/// soit un stylet a été vu très récemment dans un hitTest (`lastPencilSeen`,
+/// alimenté notamment par le survol/proximité de l'Apple Pencil). Sinon on
+/// laisse passer → la WebView scrolle.
+enum PencilTouchState {
+    /// Vrai entre canvasViewDidBeginUsingTool et …DidEndUsingTool.
+    static var isDrawing = false
+    /// Horodatage (CACurrentMediaTime) du dernier hitTest ayant vu un stylet.
+    static var lastPencilSeen: CFTimeInterval = 0
+    /// Fenêtre pendant laquelle un toucher ambigu est considéré "stylet".
+    static let pencilRecencyWindow: CFTimeInterval = 0.15
+
+    /// Décision pour un hitTest dont l'événement ne contient AUCUNE info de
+    /// toucher exploitable (n<=0). true → capter (dessin), false → laisser
+    /// passer (scroll).
+    static func shouldCaptureAmbiguous() -> Bool {
+        if isDrawing { return true }
+        return (CACurrentMediaTime() - lastPencilSeen) < pencilRecencyWindow
+    }
+}
+
 // MARK: - PassthroughCanvasView
 
 /// PKCanvasView qui laisse passer les touches du DOIGT vers la vue située
 /// dessous (la WebView) afin de permettre le scroll de la page, tout en
 /// captant l'Apple Pencil pour dessiner.
-///
-/// Pourquoi : même avec `drawingPolicy = .pencilOnly` (le doigt ne dessine
-/// pas), un PKCanvasView intercepte quand même les touches du doigt dans son
-/// cadre — ce qui bloquait le scroll dès que l'overlay couvrait la page. En
-/// renvoyant `nil` depuis `hitTest` pour les touches non-Pencil, ces touches
-/// atteignent la WebView en dessous et font défiler la page normalement.
 final class PassthroughCanvasView: PKCanvasView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Règle : on capte le toucher (pour DESSINER) dès qu'un Apple Pencil est
-        // présent dans l'événement ; s'il n'y a QUE du doigt/paume (aucun Pencil),
-        // on renvoie nil → la touche atteint la WebView dessous et fait défiler la
-        // page. Le stylet, lui, est capté par le canvas natif (qui ne scrolle pas)
-        // → le scroll est donc bien désactivé tant que le stylet touche l'écran.
-        //
-        // IMPORTANT : on teste la simple PRÉSENCE d'une touche Pencil, SANS filtrer
-        // la phase. Un filtrage par phase (.began/.moved/.stationary) s'est révélé
-        // trop strict : selon l'iPad, la phase n'est pas « active » au moment précis
-        // où hitTest est appelé, si bien que le stylet n'était PLUS capté et partait
-        // dans la WebView (symptômes : « le stylet scrolle au lieu d'annoter », ou
-        // « ne fait ni annotation ni scroll »). La présence suffit et capte le
-        // stylet de façon fiable.
-        if let touches = event?.allTouches, !touches.isEmpty,
-           !touches.contains(where: { $0.type == .pencil }) {
-            return nil
-        }
-        // Apple Pencil présent (ou pas d'info de touche) → dessin normal.
-        return super.hitTest(point, with: event)
+        PassthroughHitTest.shouldCapture(event) ? super.hitTest(point, with: event) : nil
     }
 }
 
@@ -1214,20 +1225,34 @@ final class PassthroughCanvasView: PKCanvasView {
 /// atteint le canvas (dessin).
 final class PassthroughContainerView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Même logique que PassthroughCanvasView : Pencil présent → on laisse le
-        // canvas capter (dessin) ; doigt/paume seuls → nil (scroll de la WebView).
+        PassthroughHitTest.shouldCapture(event) ? super.hitTest(point, with: event) : nil
+    }
+}
+
+// MARK: - Logique de hitTest partagée (overlay)
+
+enum PassthroughHitTest {
+    /// Décide si l'overlay doit CAPTER le toucher (true → dessin) ou le LAISSER
+    /// PASSER à la WebView (false → scroll). Règle commune au conteneur et au canvas :
+    ///  1. Stylet présent dans l'événement → CAPTER + mémoriser l'instant.
+    ///  2. Doigt/paume seuls (aucun stylet) → laisser passer (scroll).
+    ///  3. Aucune info de toucher (n<=0, cas du POSER) → départage par
+    ///     PencilTouchState (stylet récent / tracé en cours).
+    static func shouldCapture(_ event: UIEvent?) -> Bool {
         let all = event?.allTouches
         let hasPencil = all?.contains(where: { $0.type == .pencil }) ?? false
-        if let touches = all, !touches.isEmpty, !hasPencil {
-            return nil
+        if hasPencil {
+            PencilTouchState.lastPencilSeen = CACurrentMediaTime()
+            return true                               // (1) stylet → dessin
         }
-        // CAPTURE (Pencil présent OU aucune info de touche). DIAGNOSTIC scroll :
-        // si, en essayant de scroller au doigt (stylet levé), on voit cette ligne,
-        // c'est l'overlay qui bloque — et `types`/`hasPencil` disent pourquoi
-        // (0=doigt, 1=stylet ; n=-1 → aucune touche dans l'événement).
+        let hasOther = all?.contains(where: { $0.type != .pencil }) ?? false
+        if hasOther {
+            return false                              // (2) doigt seul → scroll
+        }
+        // (3) ambigu : aucune info exploitable.
+        let capture = PencilTouchState.shouldCaptureAmbiguous()
         let n = all?.count ?? -1
-        let types = (all?.map { String($0.type.rawValue) } ?? []).joined(separator: ",")
-        print("[HitTest][diag] CONTAINER capte (n=\(n) types=[\(types)] hasPencil=\(hasPencil))")
-        return super.hitTest(point, with: event)
+        print("[HitTest][diag] ambigu n=\(n) → \(capture ? "CAPTE (stylet récent/tracé)" : "PASSE (scroll)")")
+        return capture
     }
 }

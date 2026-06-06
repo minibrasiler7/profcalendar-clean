@@ -9263,25 +9263,26 @@ class CleanPDFViewer {
                             '| scale=', viewer.currentScale);
                     } catch (e) { console.warn('[PencilKit][diag] log error', e); }
 
-                    // Si le build natif garde l'encre PencilKit affichée pendant
-                    // la session (keepsNativeInk), NE PAS redessiner en JS ici :
-                    // sinon le trait s'afficherait en double (encre native + rendu
-                    // perfect-freehand) et serait "reprocessé". Le trait reste tel
-                    // quel ; il est quand même sauvegardé (isDirty + saveAnnotations
-                    // plus bas) et re-rendu en JS au flush (changement de page /
-                    // d'outil) et au rechargement du document.
-                    // L'overlay natif est EFFACÉ après chaque trait (côté Swift, une
-                    // fois ce trait reçu et dessiné ici). Le canvas web devient donc la
-                    // SEULE source d'affichage des traits TERMINÉS — et un canvas 2D ne
-                    // dessine PAS hors de ses bords (taille = page) → plus de
-                    // débordement au-dessus du PDF / sur la barre, MÊME si PencilKit
-                    // ignore clipsToBounds (confirmé par les logs natifs). On redessine
-                    // donc systématiquement ici. Pas de double trait : Swift n'efface
-                    // l'encre native qu'APRÈS ce dessin web (callback evaluateJavaScript).
-                    if (canvas) {
-                        viewer.redrawAnnotations(canvas, pageId);
-                    } else {
-                        console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
+                    // Build natif "trait tel quel" (keepsNativeInk) : l'encre Apple
+                    // native reste affichée pendant toute la session ET est clippée à
+                    // la zone visible par le conteneur natif (clipsToBounds, sous la
+                    // barre d'outils). On NE redessine donc PAS en JS ici : sinon le
+                    // trait s'afficherait en DOUBLE (encre native + rendu web par-dessus).
+                    // Le trait est quand même mémorisé (annotations + historique) pour
+                    // la SAUVEGARDE et il est matérialisé sur le canvas web au flush
+                    // (changement de page / d'outil non-natif / fermeture) et au
+                    // rechargement du document.
+                    //
+                    // (Tentative précédente : effacer l'encre native après chaque trait
+                    // et laisser le web l'afficher. Abandonnée → le trait disparaissait
+                    // au lever du stylet. Cf. logs natifs.)
+                    const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+                    if (!keepsNativeInk) {
+                        if (canvas) {
+                            viewer.redrawAnnotations(canvas, pageId);
+                        } else {
+                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
+                        }
                     }
 
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,

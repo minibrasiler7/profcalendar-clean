@@ -182,19 +182,12 @@ class DrawingCoordinator: NSObject {
                     print("[DrawingCoordinator] JS error: \(error.localizedDescription)")
                 } else {
                     print("[DrawingCoordinator] Stroke sent to web successfully")
-                    // Le trait vient d'être DESSINÉ sur le canvas web (clippé à la
-                    // page). On EFFACE donc l'encre native : sinon elle resterait
-                    // affichée NON clippée — PencilKit ignore clipsToBounds/contentOffset
-                    // (confirmé par les logs) → le trait "dépasse" au-dessus du PDF et
-                    // sur la barre. Le web devient la seule source d'affichage des
-                    // traits TERMINÉS.
-                    // - Pas de double : on efface APRÈS que le web a dessiné (ici).
-                    // - On n'efface PAS si un nouveau tracé est en cours (isPencilDrawing)
-                    //   pour ne jamais effacer un trait que l'utilisateur dessine.
-                    if let self = self, !self.isPencilDrawing {
-                        self.canvasView?.drawing = PKDrawing()
-                        self.sentStrokeCount = 0
-                    }
+                    // NE PAS effacer l'encre native ici. "Trait tel quel" : l'encre
+                    // Apple reste affichée toute la session (et est clippée à la zone
+                    // visible par le conteneur natif). Le web ne sert qu'à mémoriser le
+                    // trait pour la sauvegarde / la matérialisation au flush.
+                    // (Tentative précédente : effacer ici pour laisser le web afficher
+                    // le trait. Abandonnée → le trait disparaissait au lever du stylet.)
                 }
             }
         }
@@ -209,6 +202,7 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     // écrit). Le scroll au doigt reste possible le reste du temps.
     func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
         isPencilDrawing = true
+        PencilTouchState.isDrawing = true   // pour le départage du hitTest (scroll)
         webView?.scrollView.isScrollEnabled = false
         print("[Scroll][diag] COUPÉ (début de tracé)")
         // Armer le filet de sécurité : si la fin du tracé n'est pas signalée
@@ -219,6 +213,7 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     // Fin du tracé Pencil : rétablir le scroll IMMÉDIATEMENT (cas normal).
     func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
         isPencilDrawing = false
+        PencilTouchState.isDrawing = false
         reenableScrollNow()
     }
 
