@@ -42,11 +42,13 @@ class DrawingCoordinator: NSObject {
     var currentScale: Double = 1.0
     var currentPageId: String = "page-1"
 
-    // Nombre de traits deja envoyes au web depuis le dernier effacement du
-    // canvas. On n'efface plus le canvas apres chaque trait (l'encre native
-    // reste affichee pendant la session) : on envoie donc seulement les
-    // NOUVEAUX traits au-dela de ce compteur.
+    // Nombre de traits deja envoyes au web depuis le dernier effacement du canvas.
     private var sentStrokeCount = 0
+
+    // Vrai pendant qu'un tracé Pencil est en cours (entre didBegin et didEnd).
+    // Sert à n'effacer l'encre native QUE lorsqu'aucun trait n'est en cours, pour
+    // ne jamais effacer un trait que l'utilisateur est en train de dessiner.
+    private var isPencilDrawing = false
 
     // FILET DE SÉCURITÉ scroll. On coupe le scroll de la WebView le temps d'un
     // tracé Pencil (palm-rejection). Le rétablissement via canvasViewDidEndUsingTool
@@ -180,13 +182,19 @@ class DrawingCoordinator: NSObject {
                     print("[DrawingCoordinator] JS error: \(error.localizedDescription)")
                 } else {
                     print("[DrawingCoordinator] Stroke sent to web successfully")
-                    // keepsNativeInk=true : on NE vide PLUS le canvas natif après
-                    // chaque trait. L'encre Apple native reste affichée "telle
-                    // quelle" pendant toute la session (zéro re-rendu JS → pas de
-                    // reshape ni de translation à main levée). Le web ne sert qu'à
-                    // SAUVEGARDER le trait ; il le matérialise sur son canvas
-                    // seulement au flush (changement de page / d'outil non-natif /
-                    // fermeture), juste avant que clearCanvas() vide le natif.
+                    // Le trait vient d'être DESSINÉ sur le canvas web (clippé à la
+                    // page). On EFFACE donc l'encre native : sinon elle resterait
+                    // affichée NON clippée — PencilKit ignore clipsToBounds/contentOffset
+                    // (confirmé par les logs) → le trait "dépasse" au-dessus du PDF et
+                    // sur la barre. Le web devient la seule source d'affichage des
+                    // traits TERMINÉS.
+                    // - Pas de double : on efface APRÈS que le web a dessiné (ici).
+                    // - On n'efface PAS si un nouveau tracé est en cours (isPencilDrawing)
+                    //   pour ne jamais effacer un trait que l'utilisateur dessine.
+                    if let self = self, !self.isPencilDrawing {
+                        self.canvasView?.drawing = PKDrawing()
+                        self.sentStrokeCount = 0
+                    }
                 }
             }
         }
@@ -200,6 +208,7 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     // tracé (évite qu'une paume posée ne fasse défiler la page pendant qu'on
     // écrit). Le scroll au doigt reste possible le reste du temps.
     func canvasViewDidBeginUsingTool(_ canvasView: PKCanvasView) {
+        isPencilDrawing = true
         webView?.scrollView.isScrollEnabled = false
         print("[Scroll][diag] COUPÉ (début de tracé)")
         // Armer le filet de sécurité : si la fin du tracé n'est pas signalée
@@ -209,6 +218,7 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
 
     // Fin du tracé Pencil : rétablir le scroll IMMÉDIATEMENT (cas normal).
     func canvasViewDidEndUsingTool(_ canvasView: PKCanvasView) {
+        isPencilDrawing = false
         reenableScrollNow()
     }
 

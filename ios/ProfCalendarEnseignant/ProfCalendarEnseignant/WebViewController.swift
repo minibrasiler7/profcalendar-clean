@@ -1127,30 +1127,27 @@ extension WebViewController: DrawingCoordinatorDelegate {
             // Conteneur = ZONE DE DESSIN VISIBLE (sous la barre d'outils, dans le
             // viewport).
             pencilCanvasContainer.frame = clipRect
-
-            // CANVAS = la zone visible elle-même (= bounds du conteneur), et NON
-            // la page entière. La page entière est représentée via le mécanisme
-            // de UIScrollView (PKCanvasView EN est un) : contentSize = taille de
-            // la page, contentOffset = décalage page→zone visible. Ainsi l'encre
-            // située au-dessus de la zone visible (sous la barre d'outils) est
-            // DÉFILÉE HORS du cadre → JAMAIS rendue. C'est fiable même quand
-            // clipsToBounds n'arrête pas le rendu PencilKit (cas observé : le
-            // trait débordait sur la barre alors que le conteneur clippait bien).
-            // Les coordonnées des traits (point.location) restent dans le repère
-            // CONTENU = page → inchangées pour le web (aucune translation).
-            pencilCanvas.frame = pencilCanvasContainer.bounds
-            pencilCanvas.contentSize = pageRect.size
-            pencilCanvas.contentOffset = CGPoint(
-                x: clipRect.minX - pageRect.minX,
-                y: clipRect.minY - pageRect.minY
+            // Canvas = taille de la PAGE, positionné dans le conteneur. On NE rend
+            // PAS le canvas scrollable (contentSize = frame) : un PKCanvasView
+            // scrollable interceptait le geste de défilement au doigt. Le clipping
+            // visuel n'est de toute façon pas assuré par le conteneur (PencilKit
+            // ignore clipsToBounds) → c'est l'effacement de l'encre native après
+            // chaque trait + le canvas web (clippé) qui empêchent le débordement.
+            pencilCanvas.frame = CGRect(
+                x: pageRect.minX - clipRect.minX,
+                y: pageRect.minY - clipRect.minY,
+                width: pageRect.width,
+                height: pageRect.height
             )
-            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvasFrame=\(pencilCanvas.frame) offset=\(pencilCanvas.contentOffset)")
+            pencilCanvas.contentSize = pencilCanvas.bounds.size
+            pencilCanvas.contentOffset = .zero
+            print("[DrawingCoordinator][diag] clip=\(clipRect) page=\(pageRect) canvas=\(pencilCanvas.frame)")
         } else {
             // Repli (pas de clipRect transmis) : plein page. Le JS garantit
             // désormais un clipRect valide → ce repli ne devrait plus survenir.
             pencilCanvasContainer.frame = pageRect
             pencilCanvas.frame = pencilCanvasContainer.bounds
-            pencilCanvas.contentSize = pageRect.size
+            pencilCanvas.contentSize = pencilCanvas.bounds.size
             pencilCanvas.contentOffset = .zero
             print("[DrawingCoordinator][diag] (fallback sans clip) frame overlay = \(pageRect)")
         }
@@ -1219,12 +1216,18 @@ final class PassthroughContainerView: UIView {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         // Même logique que PassthroughCanvasView : Pencil présent → on laisse le
         // canvas capter (dessin) ; doigt/paume seuls → nil (scroll de la WebView).
-        // Présence du Pencil sans filtrage de phase (cf. commentaire détaillé
-        // ci-dessus) pour une capture fiable du stylet.
-        if let touches = event?.allTouches, !touches.isEmpty,
-           !touches.contains(where: { $0.type == .pencil }) {
+        let all = event?.allTouches
+        let hasPencil = all?.contains(where: { $0.type == .pencil }) ?? false
+        if let touches = all, !touches.isEmpty, !hasPencil {
             return nil
         }
+        // CAPTURE (Pencil présent OU aucune info de touche). DIAGNOSTIC scroll :
+        // si, en essayant de scroller au doigt (stylet levé), on voit cette ligne,
+        // c'est l'overlay qui bloque — et `types`/`hasPencil` disent pourquoi
+        // (0=doigt, 1=stylet ; n=-1 → aucune touche dans l'événement).
+        let n = all?.count ?? -1
+        let types = (all?.map { String($0.type.rawValue) } ?? []).joined(separator: ",")
+        print("[HitTest][diag] CONTAINER capte (n=\(n) types=[\(types)] hasPencil=\(hasPencil))")
         return super.hitTest(point, with: event)
     }
 }

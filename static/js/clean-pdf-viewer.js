@@ -9270,22 +9270,19 @@ class CleanPDFViewer {
                     // quel ; il est quand même sauvegardé (isDirty + saveAnnotations
                     // plus bas) et re-rendu en JS au flush (changement de page /
                     // d'outil) et au rechargement du document.
-                    const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-                    if (!keepsNativeInk) {
-                        if (canvas) {
-                            viewer.redrawAnnotations(canvas, pageId);
-                        } else {
-                            console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
-                        }
+                    // L'overlay natif est EFFACÉ après chaque trait (côté Swift, une
+                    // fois ce trait reçu et dessiné ici). Le canvas web devient donc la
+                    // SEULE source d'affichage des traits TERMINÉS — et un canvas 2D ne
+                    // dessine PAS hors de ses bords (taille = page) → plus de
+                    // débordement au-dessus du PDF / sur la barre, MÊME si PencilKit
+                    // ignore clipsToBounds (confirmé par les logs natifs). On redessine
+                    // donc systématiquement ici. Pas de double trait : Swift n'efface
+                    // l'encre native qu'APRÈS ce dessin web (callback evaluateJavaScript).
+                    if (canvas) {
+                        viewer.redrawAnnotations(canvas, pageId);
+                    } else {
+                        console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
                     }
-                    // keepsNativeInk = true : NE PAS dessiner le trait sur le canvas
-                    // web pendant la session. L'overlay natif PencilKit affiche déjà
-                    // l'encre brute « telle quelle ». Dessiner ici en plus créait un
-                    // DOUBLE trait (encre native + rendu perfect-freehand). Le trait
-                    // est sauvegardé (isDirty + saveAnnotations ci-dessous) et
-                    // matérialisé sur le canvas web au « flush » (quand on QUITTE la
-                    // page : notifyPencilKitPageRect / deactivatePencilKit / goToPage),
-                    // juste avant que Swift efface l'overlay natif.
 
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,
                     // sauvegarde ignorée" et le trait est perdu au prochain reload.
