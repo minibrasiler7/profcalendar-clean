@@ -1132,14 +1132,27 @@ extension WebViewController: DrawingCoordinatorDelegate {
         pencilCanvas.translatesAutoresizingMaskIntoConstraints = true
         pencilCanvasContainer.translatesAutoresizingMaskIntoConstraints = true
 
+        // CONVERSION coordonnées WEB → coordonnées VUE.
+        // Les rects viennent de getBoundingClientRect (repère de la WebView). Or la
+        // WebView est posée à y = topInset (zone sûre, cf. viewDidLayoutSubviews) ;
+        // l'overlay PencilKit, lui, est un sous-vue de `view`. Sans cet ajout,
+        // l'overlay est REMONTÉ de `topInset` → on dessine au-dessus du PDF, on ne
+        // peut pas dessiner tout en bas, et l'overlay mord sur la barre d'outils.
+        // (x = 0 pour la WebView → pas de décalage horizontal ; gauche/droite déjà OK.)
+        let yOffset = webView?.frame.minY ?? 0
+
         if clipRect.width > 0 && clipRect.height > 0 {
             // Conteneur = ZONE DE DESSIN VISIBLE (sous la barre d'outils, dans le
-            // viewport).
-            pencilCanvasContainer.frame = clipRect
-            // Canvas = taille de la PAGE, positionné dans le conteneur (non
-            // scrollable). Le conteneur clippe la zone visible ; le canvas (via son
-            // propre clipsToBounds, cf. setup) clippe l'encre EN COURS au bord de la
-            // page → plus de débordement au-dessus du PDF.
+            // viewport), recalée en coordonnées de `view`.
+            pencilCanvasContainer.frame = CGRect(
+                x: clipRect.minX,
+                y: clipRect.minY + yOffset,
+                width: clipRect.width,
+                height: clipRect.height
+            )
+            // Canvas = taille de la PAGE, positionné DANS le conteneur. La position
+            // est RELATIVE au conteneur → pageRect - clipRect (le yOffset est déjà
+            // porté par le conteneur, ne pas le rajouter ici).
             pencilCanvas.frame = CGRect(
                 x: pageRect.minX - clipRect.minX,
                 y: pageRect.minY - clipRect.minY,
@@ -1151,11 +1164,16 @@ extension WebViewController: DrawingCoordinatorDelegate {
         } else {
             // Repli (pas de clipRect transmis) : plein page. Le JS garantit
             // désormais un clipRect valide → ce repli ne devrait plus survenir.
-            pencilCanvasContainer.frame = pageRect
+            pencilCanvasContainer.frame = CGRect(
+                x: pageRect.minX,
+                y: pageRect.minY + yOffset,
+                width: pageRect.width,
+                height: pageRect.height
+            )
             pencilCanvas.frame = pencilCanvasContainer.bounds
             pencilCanvas.contentSize = pencilCanvas.bounds.size
             pencilCanvas.contentOffset = .zero
-            print("[DrawingCoordinator][diag] (fallback sans clip) frame overlay = \(pageRect)")
+            print("[DrawingCoordinator][diag] (fallback sans clip) frame overlay = \(pageRect) +yOffset=\(yOffset)")
         }
     }
 }
