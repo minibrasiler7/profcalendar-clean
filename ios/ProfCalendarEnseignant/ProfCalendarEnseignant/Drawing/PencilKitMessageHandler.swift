@@ -37,6 +37,12 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
                 self?.handleUpdatePageRect(config: config)
             case "updateTool":
                 self?.handleUpdateTool(config: config)
+            case "log":
+                // Pont de diagnostic JS → Xcode : permet de voir les logs du web
+                // (matérialisation, gomme, etc.) directement dans la console Xcode.
+                if let msg = body["message"] as? String {
+                    print("[JS] \(msg)")
+                }
             default:
                 print("[PencilKit] Unknown action: \(action)")
             }

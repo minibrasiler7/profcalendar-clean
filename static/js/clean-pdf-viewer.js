@@ -6211,8 +6211,11 @@ class CleanPDFViewer {
 
         if (hasErased) {
             this.annotations.set(pageId, newAnnotations);
-            this.redrawAnnotations(canvas, pageId);
+            const drawn = this.redrawAnnotations(canvas, pageId);
             this.isDirty = true;
+            this.nativeLog('[Erase] page=' + pageId + ' restant=' + newAnnotations.length + ' dessinés=' + drawn);
+        } else {
+            this.nativeLog('[Erase] page=' + pageId + ' (rien touché) store=' + pageAnnotations.length);
         }
     }
 
@@ -9530,6 +9533,17 @@ class CleanPDFViewer {
         console.log('[PencilKit] Activated for tool:', this.currentTool);
     }
     
+    // Pont de logs JS → Swift (console Xcode). Permet de diagnostiquer le web
+    // depuis les logs Xcode habituels (les console.log JS n'y apparaissent pas).
+    nativeLog(msg) {
+        try {
+            console.log(msg);
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit) {
+                window.webkit.messageHandlers.pencilKit.postMessage({ action: 'log', message: String(msg) });
+            }
+        } catch (e) {}
+    }
+
     // Desactiver PencilKit
     deactivatePencilKit() {
         if (!this.isPencilKitAvailable) return;
@@ -9547,18 +9561,26 @@ class CleanPDFViewer {
         // reflow, et on couvre la page courante ET la dernière page d'encre (au cas
         // où _lastInkPageId serait mal apparié).
         const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-        const materialize = () => {
+        const materialize = (tag) => {
             if (!keepsNativeInk) return;
             const ids = new Set();
             const cur = this.getCurrentPageId();
             if (cur != null) ids.add(cur);
             if (this._lastInkPageId != null) ids.add(this._lastInkPageId);
+            const report = [];
             ids.forEach(pid => {
                 const c = document.querySelector('.annotation-canvas[data-page-id="' + pid + '"]');
-                if (c) this.redrawAnnotations(c, pid);
+                const store = (this.annotations.get(pid) || []).length;
+                if (c) {
+                    const drawn = this.redrawAnnotations(c, pid);
+                    report.push(pid + ':canvas=1,store=' + store + ',drawn=' + drawn + ',cw=' + c.width + ',ch=' + c.height);
+                } else {
+                    report.push(pid + ':canvas=0,store=' + store);
+                }
             });
+            this.nativeLog('[Deactivate/' + tag + '] cur=' + this.getCurrentPageId() + ' last=' + this._lastInkPageId + ' keys=[' + [...this.annotations.keys()].join(',') + '] → ' + report.join(' | '));
         };
-        materialize();
+        materialize('sync');
 
         this.pencilKitActive = false;
         window.webkit.messageHandlers.pencilKit.postMessage({
@@ -9566,8 +9588,9 @@ class CleanPDFViewer {
         });
 
         // Re-matérialiser APRÈS le reflow provoqué par la désactivation native.
-        requestAnimationFrame(materialize);
-        setTimeout(materialize, 150);
+        requestAnimationFrame(() => materialize('raf'));
+        setTimeout(() => materialize('t150'), 150);
+        setTimeout(() => materialize('t500'), 500);
         console.log('[PencilKit] Deactivated');
     }
 
