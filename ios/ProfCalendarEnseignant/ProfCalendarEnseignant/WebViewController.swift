@@ -1254,10 +1254,7 @@ enum PassthroughHitTest {
         if hasOther {
             return false                              // (2) doigt seul → scroll
         }
-        // (3) ambigu : aucune info exploitable.
-        let capture = PencilTouchState.shouldCaptureAmbiguous()
-        let n = all?.count ?? -1
-        print("[HitTest][diag] ambigu n=\(n) → \(capture ? "CAPTE (stylet récent/tracé)" : "PASSE (scroll)")")
-        return capture
+        // (3) ambigu : aucune info exploitable → départage stylet récent / tracé.
+        return PencilTouchState.shouldCaptureAmbiguous()
     }
 }
