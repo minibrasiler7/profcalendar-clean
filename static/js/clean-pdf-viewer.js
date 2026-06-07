@@ -9535,19 +9535,39 @@ class CleanPDFViewer {
         if (!this.isPencilKitAvailable) return;
 
         // Avant de désactiver (changement d'outil, gomme, fermeture) : si on
-        // gardait l'encre native, matérialiser les traits de la page courante
-        // sur le canvas JS pour qu'ils restent visibles après l'effacement du
-        // canvas natif côté Swift.
+        // gardait l'encre native, MATÉRIALISER les traits sur le canvas JS pour
+        // qu'ils restent visibles après l'effacement du canvas natif côté Swift.
+        //
+        // BUG corrigé : à la sélection de la gomme, les traits natifs
+        // "disparaissaient" puis revenaient au 1er toucher. Cause : le masquage de
+        // l'overlay natif déclenche un reflow qui efface le canvas web JUSTE APRÈS
+        // un premier rendu → canvas vide jusqu'à ce qu'un eraseAtPoint le
+        // redessine. Correctif : on re-matérialise à PLUSIEURS instants (tout de
+        // suite, au frame suivant, puis après un court délai) pour survivre au
+        // reflow, et on couvre la page courante ET la dernière page d'encre (au cas
+        // où _lastInkPageId serait mal apparié).
         const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
-        if (keepsNativeInk && this._lastInkPageId != null) {
-            const c = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
-            if (c) this.redrawAnnotations(c, this._lastInkPageId);
-        }
+        const materialize = () => {
+            if (!keepsNativeInk) return;
+            const ids = new Set();
+            const cur = this.getCurrentPageId();
+            if (cur != null) ids.add(cur);
+            if (this._lastInkPageId != null) ids.add(this._lastInkPageId);
+            ids.forEach(pid => {
+                const c = document.querySelector('.annotation-canvas[data-page-id="' + pid + '"]');
+                if (c) this.redrawAnnotations(c, pid);
+            });
+        };
+        materialize();
 
         this.pencilKitActive = false;
         window.webkit.messageHandlers.pencilKit.postMessage({
             action: 'deactivate'
         });
+
+        // Re-matérialiser APRÈS le reflow provoqué par la désactivation native.
+        requestAnimationFrame(materialize);
+        setTimeout(materialize, 150);
         console.log('[PencilKit] Deactivated');
     }
 
