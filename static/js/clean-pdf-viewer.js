@@ -6882,6 +6882,12 @@ class CleanPDFViewer {
         // mais au moins la gomme ne crashe plus l'app.
         if (this.currentTool === 'eraser') {
             this.currentStroke = null;
+            // PERSISTER l'effacement. eraseAtPoint a modifié this.annotations et mis
+            // isDirty = true, mais NE sauvegardait pas → au moindre rechargement
+            // (changement de page, réouverture) le serveur renvoyait la version NON
+            // effacée et les traits « réapparaissaient ». On sauvegarde donc en fin
+            // de geste de gomme (une fois par levée de stylet, pas à chaque point).
+            this.saveAnnotations();
             return;
         }
 
