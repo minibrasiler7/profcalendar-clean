@@ -206,7 +206,7 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
-        console.log('🔥 CLEAN PDF VIEWER - VERSION 2024-12-09-16:30 - INIT STARTED');
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-FIX - INIT STARTED');
 
         // IMPORTANT: Forcer la réinitialisation des états d'interaction
         this.isAnnotating = false;
