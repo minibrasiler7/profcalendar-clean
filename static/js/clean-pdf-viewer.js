@@ -206,7 +206,7 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
-        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-FIX - INIT STARTED');
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-NATIVE-P1 - INIT STARTED');
 
         // IMPORTANT: Forcer la réinitialisation des états d'interaction
         this.isAnnotating = false;
@@ -7251,6 +7251,14 @@ class CleanPDFViewer {
         // exactement le symptôme "le trait disparaît au lever du stylet".
         let drawn = 0;
         for (const annotation of pageAnnotations) {
+            // Gomme native (iPad) : les traits dessinés pendant cette session sont
+            // rendus par l'encre native PencilKit, PAS par le web. On les saute donc
+            // ici tant qu'ils sont "live native" — sinon double rendu + bascule en
+            // perfect-freehand dès le moindre redraw (ex. sélection de la gomme).
+            // Ils repassent au web au "flush" (cf. _flushNativePage).
+            if (annotation && annotation.id && this._liveNativeIds && this._liveNativeIds.has(annotation.id)) {
+                continue;
+            }
             try {
                 this.drawAnnotation(ctx, annotation);
                 drawn++;
@@ -7260,6 +7268,20 @@ class CleanPDFViewer {
         }
         console.log(`[Redraw] ${drawn}/${pageAnnotations.length} annotations dessinées avec succès pour page ${pageId}`);
         return drawn;
+    }
+
+    /**
+     * "Flush" l'encre native d'une page vers le web : ces traits quittent le
+     * canvas natif (changement de page / désactivation / fermeture), donc ils ne
+     * sont plus "live native" → on retire leur marquage pour qu'ils soient
+     * désormais rendus par le canvas web, puis on redessine.
+     */
+    _flushNativePage(canvas, pageId) {
+        if (this._liveNativeIds) {
+            const anns = this.annotations.get(pageId) || [];
+            for (const a of anns) { if (a && a.id) this._liveNativeIds.delete(a.id); }
+        }
+        return this.redrawAnnotations(canvas, pageId);
     }
 
     /**
@@ -9295,6 +9317,15 @@ class CleanPDFViewer {
                         console.warn('[PencilKit] Canvas introuvable pour pageId:', pageId);
                     }
 
+                    // Gomme native (iPad) : marquer ce trait comme "rendu par l'encre
+                    // native" → le web ne le redessine pas (sinon il passerait en
+                    // perfect-freehand au prochain redraw, p.ex. à la sélection de la
+                    // gomme). Marquage runtime-only, jamais persisté : au rechargement le
+                    // Set est vide → les traits chargés du serveur sont bien rendus web.
+                    if (keepsNativeInk && annotation.id) {
+                        (viewer._liveNativeIds || (viewer._liveNativeIds = new Set())).add(annotation.id);
+                    }
+
                     // Sans isDirty=true, saveAnnotations log "Pas de modifications,
                     // sauvegarde ignorée" et le trait est perdu au prochain reload.
                     viewer.isDirty = true;
@@ -9411,7 +9442,7 @@ class CleanPDFViewer {
         const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
         if (keepsNativeInk && this._lastInkPageId != null && this._lastInkPageId !== newInkPageId) {
             const prevCanvas = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
-            if (prevCanvas) this.redrawAnnotations(prevCanvas, this._lastInkPageId);
+            if (prevCanvas) this._flushNativePage(prevCanvas, this._lastInkPageId);
         }
         this._lastInkPageId = newInkPageId;
 
@@ -9576,7 +9607,7 @@ class CleanPDFViewer {
                 const c = this.container.querySelector('.pdf-page-wrapper[data-page-id="' + pid + '"] .annotation-canvas')
                        || document.querySelector('.annotation-canvas[data-page-id="' + pid + '"]');
                 if (c) {
-                    const drawn = this.redrawAnnotations(c, pid);
+                    const drawn = this._flushNativePage(c, pid);
                     report.push(pid + ':drawn=' + drawn);
                 } else {
                     report.push(pid + ':canvas=NULL');
@@ -9796,7 +9827,13 @@ class CleanPDFViewer {
         // (le natif recevait p.ex. « eraser »), et le changement de couleur/
         // taille ne se répercutait pas sur l'encre native.
         if (this.isPencilKitAvailable) {
-            if (this.currentTool === 'pen' || this.currentTool === 'highlighter') {
+            if (this.currentTool === 'pen' || this.currentTool === 'highlighter' || this.currentTool === 'eraser') {
+                // 'eraser' inclus : on GARDE l'overlay PencilKit actif et on bascule
+                // l'outil natif sur la gomme (PKEraserTool, mappé côté Swift). L'encre
+                // native reste NATIVE (fini la matérialisation perfect-freehand au
+                // changement d'outil) et est effacée nativement. La gomme web superposée
+                // (traits rechargés) + la persistance de l'effacement natif arrivent en
+                // Phase 2 (Swift). Sur web/Mac (pas de bridge) : aucun changement.
                 this.activatePencilKit();
             } else if (this.pencilKitActive) {
                 this.deactivatePencilKit();
@@ -10729,7 +10766,7 @@ class CleanPDFViewer {
                 this._lastInkPageId != null && this._lastInkPageId !== pageId) {
                 const prevCanvas = document.querySelector('.annotation-canvas[data-page-id="' + this._lastInkPageId + '"]');
                 if (prevCanvas) {
-                    this.redrawAnnotations(prevCanvas, this._lastInkPageId);
+                    this._flushNativePage(prevCanvas, this._lastInkPageId);
                     console.log('[goToPage] Encre native matérialisée avant de quitter la page ' + this._lastInkPageId);
                 }
             }
