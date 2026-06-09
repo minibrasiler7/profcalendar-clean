@@ -56,6 +56,8 @@
                 // Swallow — never throw back to Swift, sinon le trait peut être perdu côté natif.
             }
         },
+        onEraserMove: function () { /* no-op tant que le vrai bridge n'est pas installé */ },
+        onEraserEnd: function () { /* no-op tant que le vrai bridge n'est pas installé */ },
         getPageInfo: function () {
             return null;
         },
@@ -206,7 +208,7 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
-        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-NATIVE-P1 - INIT STARTED');
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-NATIVE-P2 - INIT STARTED');
 
         // IMPORTANT: Forcer la réinitialisation des états d'interaction
         this.isAnnotating = false;
@@ -9358,6 +9360,37 @@ class CleanPDFViewer {
             isAvailable: !!(previousBridge && previousBridge.isAvailable),
             // Appele par Swift quand un trait est termine
             onStrokeCompleted: handleStroke,
+
+            // === Gomme native "deux-en-un" (Phase 2) ===
+            // Pendant l'effacement, PKEraserTool efface l'encre NATIVE à l'écran.
+            // Swift transmet ici la position de la gomme (fraction 0-1 de la page) :
+            // on répercute l'effacement sur le STORE via eraseAtPoint.
+            //  - Traits "web" rechargés (perfect-freehand) : découpés/supprimés et
+            //    redessinés → ils s'effacent vraiment.
+            //  - Traits "live native" : découpés dans le store ; comme cutStroke
+            //    recopie le même id, les morceaux restent dans _liveNativeIds → ils
+            //    NE sont PAS redessinés par le web (l'encre native PKEraserTool fait
+            //    foi à l'écran), mais le store reflète la coupe → effacement
+            //    PERSISTANT au rechargement.
+            onEraserMove: (fx, fy) => {
+                try {
+                    if (viewer.currentTool !== 'eraser') return;
+                    const pageId = (viewer._lastInkPageId != null) ? viewer._lastInkPageId : viewer.getCurrentPageId();
+                    const canvas = viewer.container.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"] .annotation-canvas')
+                                || document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
+                    if (!canvas) return;
+                    // Fraction 0-1 → coordonnées d'AFFICHAGE de la page (repère des
+                    // points stockés). getBoundingClientRect = taille affichée (~1015),
+                    // pas la résolution interne (~1045).
+                    const rect = canvas.getBoundingClientRect();
+                    if (!(rect.width > 0) || !(rect.height > 0)) return;
+                    viewer.eraseAtPoint(canvas, pageId, fx * rect.width, fy * rect.height);
+                } catch (e) { /* ne jamais jeter vers Swift */ }
+            },
+            // Fin du geste de gomme : sauvegarder une fois (persistance).
+            onEraserEnd: () => {
+                try { viewer.isDirty = true; viewer.saveAnnotations(); } catch (e) {}
+            },
 
             // Appele par Swift pour obtenir les infos de la page visible
             getPageInfo: () => {

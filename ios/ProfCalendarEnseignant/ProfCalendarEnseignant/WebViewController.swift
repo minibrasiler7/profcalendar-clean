@@ -1,4 +1,5 @@
 import UIKit
+import UIKit.UIGestureRecognizerSubclass  // requis pour surcharger touchesBegan/… et écrire `state` (PencilEraserForwarder)
 import WebKit
 import MobileCoreServices
 import UniformTypeIdentifiers
@@ -52,6 +53,10 @@ class WebViewController: UIViewController {
     // page-relatives (aucune translation à corriger).
     private var pencilCanvasContainer: PassthroughContainerView!
     private var pencilKitMessageHandler: PencilKitMessageHandler!
+    // Gomme native "deux-en-un" : transmet la position de la gomme Pencil au web
+    // (efface aussi les traits rechargés + persistance), sans bloquer l'effacement
+    // natif PKEraserTool. Voir PencilEraserForwarder en bas de fichier.
+    private var eraserForwarder: PencilEraserForwarder?
 
     // MARK: - External display detection
     //
@@ -252,6 +257,29 @@ class WebViewController: UIViewController {
         pencilCanvasContainer.addSubview(pencilCanvas)
 
         drawingCoordinator.canvasView = pencilCanvas
+
+        // Gomme native "deux-en-un" : un recognizer non bloquant transmet la
+        // position de la gomme Pencil au web pendant que PKEraserTool efface
+        // l'encre native. Le web efface alors aussi les traits rechargés
+        // (perfect-freehand) et persiste la coupe. Inactif hors gomme.
+        let forwarder = PencilEraserForwarder(target: nil, action: nil)
+        forwarder.isActive = { [weak self] in self?.drawingCoordinator.currentToolName == "eraser" }
+        forwarder.onMove = { [weak self] loc in
+            guard let self = self, let canvas = self.pencilCanvas else { return }
+            let w = canvas.bounds.width
+            let h = canvas.bounds.height
+            guard w > 0, h > 0 else { return }
+            let fx = min(max(loc.x / w, 0), 1)
+            let fy = min(max(loc.y / h, 0), 1)
+            let js = "window.pencilKitBridge && window.pencilKitBridge.onEraserMove && window.pencilKitBridge.onEraserMove(\(fx), \(fy))"
+            self.webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+        forwarder.onEnd = { [weak self] in
+            guard let self = self else { return }
+            self.webView?.evaluateJavaScript("window.pencilKitBridge && window.pencilKitBridge.onEraserEnd && window.pencilKitBridge.onEraserEnd()", completionHandler: nil)
+        }
+        pencilCanvas.addGestureRecognizer(forwarder)
+        eraserForwarder = forwarder
 
         view.addSubview(pencilCanvasContainer)
     }
@@ -1274,5 +1302,64 @@ enum PassthroughHitTest {
         }
         // (3) ambigu : aucune info exploitable → départage stylet récent / tracé.
         return PencilTouchState.shouldCaptureAmbiguous()
+    }
+}
+
+// MARK: - Transfert position de la gomme Pencil → web (gomme native "deux-en-un")
+
+/// Recognizer NON bloquant attaché au PKCanvasView. Pendant l'effacement,
+/// PKEraserTool efface l'encre NATIVE à l'écran ; ce recognizer transmet la
+/// position du stylet au web (via onMove) pour que la gomme web superposée
+/// efface aussi les traits rechargés (perfect-freehand) et PERSISTE la coupe
+/// dans le store. Il ne consomme PAS les touches (cancelsTouchesInView=false) et
+/// reconnaît SIMULTANÉMENT avec les recognizers internes de PencilKit → l'encre
+/// native continue de s'effacer normalement. Hors gomme (isActive == false), il
+/// échoue immédiatement → zéro interférence avec le stylo.
+final class PencilEraserForwarder: UIGestureRecognizer, UIGestureRecognizerDelegate {
+    var isActive: (() -> Bool)?
+    var onMove: ((CGPoint) -> Void)?
+    var onEnd: (() -> Void)?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+        delegate = self
+    }
+
+    private func pencilLocation(_ touches: Set<UITouch>) -> CGPoint? {
+        guard let v = view else { return nil }
+        let t = touches.first(where: { $0.type == .pencil }) ?? touches.first
+        return t?.location(in: v)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard isActive?() ?? false else { state = .failed; return }
+        if let p = pencilLocation(touches) { onMove?(p) }
+        state = .began
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard state == .began || state == .changed else { return }
+        if let p = pencilLocation(touches) { onMove?(p) }
+        state = .changed
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        if state == .began || state == .changed { onEnd?() }
+        state = .ended
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        if state == .began || state == .changed { onEnd?() }
+        state = .cancelled
+    }
+
+    // Reconnaître EN MÊME TEMPS que les recognizers de PencilKit (sinon l'un
+    // annule l'autre → soit l'effacement natif, soit le transfert casserait).
+    func gestureRecognizer(_ g: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        return true
     }
 }
