@@ -894,6 +894,24 @@ def create_app(config_name='development'):
         """Rend la session permanente pour que PERMANENT_SESSION_LIFETIME soit respecté"""
         session.permanent = True
 
+    @app.after_request
+    def no_cache_viewer_pages(response):
+        """Empeche la mise en cache des pages du lecteur PDF (lesson / calendar).
+
+        Ces pages embarquent clean-pdf-viewer.js via une balise <script> avec un
+        parametre cache-bust regenere a chaque rendu. Mais si la PAGE elle-meme est
+        mise en cache par le WebView (cache persistant WKWebsiteDataStore de l'app
+        iPad), le cache-bust reste fige et l'ancien JS est resservi indefiniment.
+        En forcant ces pages a ne jamais etre mises en cache, chaque rechargement
+        regenere le cache-bust -> le tout dernier JS est toujours charge.
+        """
+        from flask import request
+        if request.endpoint in ('planning.lesson_view', 'planning.calendar_view'):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        return response
+
     @app.before_request
     def check_premium_access():
         """Redirige les utilisateurs freemium vers la page pricing pour les routes premium"""
