@@ -2548,6 +2548,13 @@ class CleanPDFViewer {
 
         const annotationCanvas = document.createElement('canvas');
         annotationCanvas.className = 'annotation-canvas';
+        // CRITIQUE : poser data-page-id SUR LE CANVAS lui-même. Plusieurs sélecteurs
+        // (matérialisation à la désactivation/gomme, flush au changement de page,
+        // goToPage) cherchent le canvas via `.annotation-canvas[data-page-id="X"]`.
+        // Sans cet attribut (il n'était posé que sur le wrapper), ces sélecteurs
+        // renvoyaient null → pas de redraw → l'encre native "disparaissait" en
+        // sélectionnant la gomme. (cf. logs : aucun [Redraw] après [Deactivated].)
+        annotationCanvas.dataset.pageId = pageId;
 
         container.appendChild(pdfCanvas);
         container.appendChild(annotationCanvas);
@@ -9548,37 +9555,34 @@ class CleanPDFViewer {
     deactivatePencilKit() {
         if (!this.isPencilKitAvailable) return;
 
-        // Avant de désactiver (changement d'outil, gomme, fermeture) : si on
-        // gardait l'encre native, MATÉRIALISER les traits sur le canvas JS pour
-        // qu'ils restent visibles après l'effacement du canvas natif côté Swift.
+        // Avant de désactiver (changement d'outil, gomme, fermeture) :
+        // MATÉRIALISER les traits sur les canvas web pour qu'ils restent visibles
+        // après l'effacement du canvas natif côté Swift.
         //
         // BUG corrigé : à la sélection de la gomme, les traits natifs
-        // "disparaissaient" puis revenaient au 1er toucher. Cause : le masquage de
-        // l'overlay natif déclenche un reflow qui efface le canvas web JUSTE APRÈS
-        // un premier rendu → canvas vide jusqu'à ce qu'un eraseAtPoint le
-        // redessine. Correctif : on re-matérialise à PLUSIEURS instants (tout de
-        // suite, au frame suivant, puis après un court délai) pour survivre au
-        // reflow, et on couvre la page courante ET la dernière page d'encre (au cas
-        // où _lastInkPageId serait mal apparié).
-        const keepsNativeInk = !!(window.pencilKitBridge && window.pencilKitBridge.keepsNativeInk);
+        // "disparaissaient" puis revenaient au 1er toucher d'un trait. Cause : on
+        // cherchait le canvas via `.annotation-canvas[data-page-id="X"]`, attribut
+        // qui n'était JAMAIS posé sur le canvas → null → aucun redraw. (cf. logs :
+        // pas de [Redraw] après [Deactivated].)
+        //
+        // Correctif robuste : on itère DIRECTEMENT le store d'annotations, on trouve
+        // le canvas via le WRAPPER (qui, lui, porte data-page-id), SANS garde
+        // keepsNativeInk (un redraw est idempotent). Re-matérialisé à plusieurs
+        // instants pour survivre à un éventuel reflow de la désactivation.
         const materialize = (tag) => {
-            if (!keepsNativeInk) return;
-            const ids = new Set();
-            const cur = this.getCurrentPageId();
-            if (cur != null) ids.add(cur);
-            if (this._lastInkPageId != null) ids.add(this._lastInkPageId);
             const report = [];
-            ids.forEach(pid => {
-                const c = document.querySelector('.annotation-canvas[data-page-id="' + pid + '"]');
-                const store = (this.annotations.get(pid) || []).length;
+            this.annotations.forEach((anns, pid) => {
+                if (!anns || anns.length === 0) return;
+                const c = this.container.querySelector('.pdf-page-wrapper[data-page-id="' + pid + '"] .annotation-canvas')
+                       || document.querySelector('.annotation-canvas[data-page-id="' + pid + '"]');
                 if (c) {
                     const drawn = this.redrawAnnotations(c, pid);
-                    report.push(pid + ':canvas=1,store=' + store + ',drawn=' + drawn + ',cw=' + c.width + ',ch=' + c.height);
+                    report.push(pid + ':drawn=' + drawn);
                 } else {
-                    report.push(pid + ':canvas=0,store=' + store);
+                    report.push(pid + ':canvas=NULL');
                 }
             });
-            this.nativeLog('[Deactivate/' + tag + '] cur=' + this.getCurrentPageId() + ' last=' + this._lastInkPageId + ' keys=[' + [...this.annotations.keys()].join(',') + '] → ' + report.join(' | '));
+            this.nativeLog('[Deactivate/' + tag + '] keys=[' + [...this.annotations.keys()].join(',') + '] → ' + (report.join(' | ') || 'rien'));
         };
         materialize('sync');
 
@@ -9589,8 +9593,7 @@ class CleanPDFViewer {
 
         // Re-matérialiser APRÈS le reflow provoqué par la désactivation native.
         requestAnimationFrame(() => materialize('raf'));
-        setTimeout(() => materialize('t150'), 150);
-        setTimeout(() => materialize('t500'), 500);
+        setTimeout(() => materialize('t200'), 200);
         console.log('[PencilKit] Deactivated');
     }
 
