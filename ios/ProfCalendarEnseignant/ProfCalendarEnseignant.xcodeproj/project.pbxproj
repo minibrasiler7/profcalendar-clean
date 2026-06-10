@@ -26,7 +26,7 @@
 		11ED248BE5765C6192C65D2D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2E8C3921A2C7A1DD7123496C /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		44F5E08A64F2CB1BD831D2FF /* PencilKitMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PencilKitMessageHandler.swift; sourceTree = "<group>"; };
-		489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ProfCalendarEnseignant.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		489AE3DF95A2DF50F320C24B /* ProfCalendarEnseignant.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProfCalendarEnseignant.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BAEDC5EB161E73275A45DD4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ChatGPT Image 15 avr. 2026 à 20_40_56.png"; sourceTree = "<group>"; };
 		8C6DA3FE9C04306F4310FCAE /* PaywallViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallViewController.swift; sourceTree = "<group>"; };
@@ -283,7 +283,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
@@ -291,7 +291,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
@@ -307,7 +307,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 267P8NFWYA;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ProfCalendarEnseignant/Info.plist;
@@ -315,7 +315,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ch.teacherplanner.teacher;
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
