@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Inscription - ProfCalendar{% endblock %}
+{% block title %}{{ _('Inscription') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-user-plus auth-icon"></i>
-            <h1 class="auth-title">Inscription</h1>
-            <p class="auth-subtitle">Créez votre compte gratuitement</p>
+            <h1 class="auth-title">{{ _('Inscription') }}</h1>
+            <p class="auth-subtitle">{{ _('Créez votre compte gratuitement') }}</p>
             {# Annonce de l'essai : on met en avant les 30 jours de Premium
                offerts (toutes fonctionnalités, sans carte) — auparavant
                accordés en silence, donc personne ne le savait. Pas de prix
@@ -17,7 +17,7 @@
                         background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE;
                         padding:0.6rem 1rem; border-radius:0.5rem; font-size:0.9rem; font-weight:500;">
                 <i class="fas fa-gift" style="color:#6366F1;"></i>
-                <span><strong>30 jours de Premium offerts</strong> — toutes les fonctionnalités débloquées, sans carte bancaire.</span>
+                <span><strong>{{ _('30 jours de Premium offerts') }}</strong> — {{ _('toutes les fonctionnalités débloquées, sans carte bancaire.') }}</span>
             </div>
         </div>
         
@@ -90,12 +90,12 @@
             
             <div class="form-group">
                 <div class="features-list">
-                    <h3>Avec ProfCalendar, vous pourrez :</h3>
+                    <h3>{{ _('Avec ProfCalendar, vous pourrez :') }}</h3>
                     <ul>
-                        <li><i class="fas fa-check"></i> Créer votre emploi du temps personnalisé</li>
-                        <li><i class="fas fa-check"></i> Planifier vos cours sur toute l'année</li>
-                        <li><i class="fas fa-check"></i> Gérer plusieurs classes facilement</li>
-                        <li><i class="fas fa-check"></i> Synchroniser vos calendriers</li>
+                        <li><i class="fas fa-check"></i> {{ _('Créer votre emploi du temps personnalisé') }}</li>
+                        <li><i class="fas fa-check"></i> {{ _("Planifier vos cours sur toute l'année") }}</li>
+                        <li><i class="fas fa-check"></i> {{ _('Gérer plusieurs classes facilement') }}</li>
+                        <li><i class="fas fa-check"></i> {{ _('Synchroniser vos calendriers') }}</li>
                     </ul>
                 </div>
             </div>
@@ -106,7 +106,7 @@
         </form>
         
         <div class="auth-footer">
-            <p>Déjà inscrit ? <a href="{{ url_for('auth.login') }}">Connectez-vous</a></p>
+            <p>{{ _('Déjà inscrit ?') }} <a href="{{ url_for('auth.login') }}">{{ _('Connectez-vous') }}</a></p>
         </div>
     </div>
 </div>

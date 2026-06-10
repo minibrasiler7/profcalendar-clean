@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Connexion - ProfCalendar{% endblock %}
+{% block title %}{{ _('Connexion') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-calendar-alt auth-icon"></i>
-            <h1 class="auth-title">Espace Enseignant</h1>
-            <p class="auth-subtitle">Accédez à votre espace de planification</p>
+            <h1 class="auth-title">{{ _('Espace Enseignant') }}</h1>
+            <p class="auth-subtitle">{{ _('Accédez à votre espace de planification') }}</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -63,14 +63,14 @@
         </form>
         
         <div class="auth-footer">
-            <p>Pas encore de compte ? <a href="{{ url_for('auth.register') }}">Inscrivez-vous</a></p>
+            <p>{{ _('Pas encore de compte ?') }} <a href="{{ url_for('auth.register') }}">{{ _("Inscrivez-vous") }}</a></p>
             <div class="platform-links">
-                <p>Autres plateformes :</p>
+                <p>{{ _('Autres plateformes :') }}</p>
                 <a href="{{ url_for('parent_auth.login') }}" class="platform-link">
-                    <i class="fas fa-users"></i> Espace Parent
+                    <i class="fas fa-users"></i> {{ _('Espace Parent') }}
                 </a>
                 <a href="{{ url_for('student_auth.login') }}" class="platform-link">
-                    <i class="fas fa-graduation-cap"></i> Espace Élève
+                    <i class="fas fa-graduation-cap"></i> {{ _('Espace Élève') }}
                 </a>
             </div>
         </div>

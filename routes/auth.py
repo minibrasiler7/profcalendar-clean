@@ -10,40 +10,44 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Regexp
 from datetime import datetime, timedelta
+# i18n : _ traduit immédiatement (flash, à l'exécution d'une requête) ;
+# _l est "paresseux" (libellés de formulaires définis au niveau du module,
+# évalués au rendu — sinon ils figeraient la langue du démarrage du serveur).
+from flask_babel import gettext as _, lazy_gettext as _l
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Mot de passe', validators=[DataRequired()])
-    submit = SubmitField('Se connecter')
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_l('Mot de passe'), validators=[DataRequired()])
+    submit = SubmitField(_l('Se connecter'))
 
 class RegisterForm(FlaskForm):
-    username = StringField('Nom d\'utilisateur', validators=[
+    username = StringField(_l("Nom d'utilisateur"), validators=[
         DataRequired(),
-        Length(min=3, max=80, message="Le nom d'utilisateur doit contenir entre 3 et 80 caractères")
+        Length(min=3, max=80, message=_l("Le nom d'utilisateur doit contenir entre 3 et 80 caractères"))
     ])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Mot de passe', validators=[
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_l('Mot de passe'), validators=[
         DataRequired(),
-        Length(min=8, message="Le mot de passe doit contenir au moins 8 caractères"),
-        Regexp(r'(?=.*[A-Z])(?=.*[0-9])', message="Le mot de passe doit contenir au moins une majuscule et un chiffre")
+        Length(min=8, message=_l("Le mot de passe doit contenir au moins 8 caractères")),
+        Regexp(r'(?=.*[A-Z])(?=.*[0-9])', message=_l("Le mot de passe doit contenir au moins une majuscule et un chiffre"))
     ])
-    password_confirm = PasswordField('Confirmer le mot de passe', validators=[
+    password_confirm = PasswordField(_l('Confirmer le mot de passe'), validators=[
         DataRequired(),
-        EqualTo('password', message='Les mots de passe doivent correspondre')
+        EqualTo('password', message=_l('Les mots de passe doivent correspondre'))
     ])
-    submit = SubmitField('S\'inscrire')
+    submit = SubmitField(_l("S'inscrire"))
 
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
-            raise ValidationError('Ce nom d\'utilisateur est déjà pris.')
+            raise ValidationError(_("Ce nom d'utilisateur est déjà pris."))
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
-            raise ValidationError('Cette adresse email est déjà enregistrée.')
+            raise ValidationError(_('Cette adresse email est déjà enregistrée.'))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -65,7 +69,7 @@ def login():
             from datetime import datetime
             if datetime.utcnow().timestamp() < lockout_until:
                 remaining = int(lockout_until - datetime.utcnow().timestamp()) // 60 + 1
-                flash(f'Trop de tentatives. Reessayez dans {remaining} minute(s).', 'error')
+                flash(_('Trop de tentatives. Réessayez dans %(min)d minute(s).', min=remaining), 'error')
                 return render_template('auth/login.html', form=form)
             else:
                 session.pop('login_lockout', None)
@@ -77,7 +81,7 @@ def login():
         from utils.encryption import encryption_engine
         parent_check = Parent.query.filter_by(email_hash=encryption_engine.hash_email(form.email.data)).first()
         if parent_check:
-            flash('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.', 'error')
+            flash(_('Cet email appartient à un compte parent. Veuillez utiliser la connexion parent.'), 'error')
             return render_template('auth/login.html', form=form)
 
         # Ensuite vérifier l'enseignant
@@ -103,9 +107,9 @@ def login():
                 session['pending_user_type'] = 'teacher'
                 session['verification_email'] = user.email
                 if email_sent:
-                    flash('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.', 'info')
+                    flash(_('Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé.'), 'info')
                 else:
-                    flash('Impossible d\'envoyer le code de vérification. Veuillez réessayer ou contacter le support.', 'error')
+                    flash(_("Impossible d'envoyer le code de vérification. Veuillez réessayer ou contacter le support."), 'error')
                 return redirect(url_for('auth.verify_email'))
 
             # Vérifier si la 2FA est activée
@@ -142,10 +146,10 @@ def login():
             if session['login_attempts'] >= 5:
                 from datetime import datetime
                 session['login_lockout'] = datetime.utcnow().timestamp() + 900  # 15 minutes
-                flash('Trop de tentatives. Compte verrouille pour 15 minutes.', 'error')
+                flash(_('Trop de tentatives. Compte verrouillé pour 15 minutes.'), 'error')
             else:
                 remaining = 5 - session['login_attempts']
-                flash(f'Email ou mot de passe incorrect. {remaining} tentative(s) restante(s).', 'error')
+                flash(_('Email ou mot de passe incorrect. %(n)d tentative(s) restante(s).', n=remaining), 'error')
 
     return render_template('auth/login.html', form=form)
 
@@ -195,9 +199,9 @@ def register():
         session['verification_email'] = user.email
 
         if email_sent:
-            flash('Un code de vérification a été envoyé à votre adresse email.', 'info')
+            flash(_('Un code de vérification a été envoyé à votre adresse email.'), 'info')
         else:
-            flash('Compte créé, mais impossible d\'envoyer le code de vérification. Veuillez réessayer.', 'error')
+            flash(_("Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."), 'error')
         return redirect(url_for('auth.verify_email'))
     else:
         if form.errors:
@@ -242,8 +246,7 @@ def verify_email():
             session.pop('pending_user_type', None)
             session.pop('verification_email', None)
 
-            flash('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de '
-                  'Premium offerts — toutes les fonctionnalités débloquées.',
+            flash(_('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées.'),
                   'success')
             # On entre DIRECTEMENT dans l'app : la config est déjà pré-remplie
             # (apply_smart_defaults à l'inscription) et l'essai Premium 30 j est
@@ -252,7 +255,7 @@ def verify_email():
             # monde alors qu'ils avaient déjà 30 j gratuits.
             return redirect(url_for('planning.dashboard'))
         else:
-            flash('Code invalide ou expiré.', 'error')
+            flash(_('Code invalide ou expiré.'), 'error')
 
     return render_template('auth/verify_email.html', email=user.email)
 
@@ -272,7 +275,7 @@ def resend_code():
     if last_sent:
         elapsed = (datetime.utcnow() - datetime.fromisoformat(last_sent)).total_seconds()
         if elapsed < 60:
-            flash(f'Veuillez attendre {int(60 - elapsed)} secondes avant de renvoyer un code.', 'error')
+            flash(_('Veuillez attendre %(sec)d secondes avant de renvoyer un code.', sec=int(60 - elapsed)), 'error')
             return redirect(url_for('auth.verify_email'))
 
     verification = EmailVerification.create_verification(user.email, 'teacher')
@@ -282,9 +285,9 @@ def resend_code():
 
     email_sent = send_verification_code(user.email, verification.code, 'teacher')
     if email_sent:
-        flash('Un nouveau code a été envoyé.', 'success')
+        flash(_('Un nouveau code a été envoyé.'), 'success')
     else:
-        flash('Impossible d\'envoyer le code. Veuillez réessayer.', 'error')
+        flash(_("Impossible d'envoyer le code. Veuillez réessayer."), 'error')
     return redirect(url_for('auth.verify_email'))
 
 @auth_bp.route('/verify-totp', methods=['GET', 'POST'])
@@ -328,7 +331,7 @@ def verify_totp():
                     next_page = url_for('planning.dashboard')
             return redirect(next_page)
         else:
-            flash('Code invalide. Veuillez réessayer.', 'error')
+            flash(_('Code invalide. Veuillez réessayer.'), 'error')
 
     return render_template('auth/verify_totp.html', email=user.email)
 
@@ -338,5 +341,5 @@ def verify_totp():
 def logout():
     session.pop('user_type', None)  # Retirer le type d'utilisateur de la session
     logout_user()
-    flash('Vous avez été déconnecté avec succès.', 'info')
+    flash(_('Vous avez été déconnecté avec succès.'), 'info')
     return redirect(url_for('auth.login'))

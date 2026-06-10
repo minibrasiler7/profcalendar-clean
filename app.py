@@ -1,5 +1,5 @@
 from config import Config
-from flask import Flask, redirect, url_for, flash, render_template, session
+from flask import Flask, redirect, url_for, flash, render_template, session, request
 from flask_login import current_user, login_required
 from extensions import db, login_manager, migrate, socketio
 import logging
@@ -32,6 +32,49 @@ def create_app(config_name='development'):
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.jinja_env.auto_reload = True
 
+    # ------------------------------------------------------------------
+    # Internationalisation (Flask-Babel)
+    # Langue servie : 1) choix explicite de l'utilisateur (session['lang'],
+    # posé par la route /set-language), 2) langue du navigateur / de l'iPad
+    # (en-tête Accept-Language — PAS la géolocalisation : un francophone à
+    # l'étranger veut le site en français), 3) français par défaut.
+    # Les textes source sont en français : sans traduction, le français
+    # s'affiche tel quel (aucune page ne casse).
+    # ------------------------------------------------------------------
+    from flask_babel import Babel
+    app.config.setdefault('BABEL_DEFAULT_LOCALE', 'fr')
+    app.config['LANGUAGES'] = {
+        'fr': 'Français',
+        'en': 'English',
+        'es': 'Español',
+        'de': 'Deutsch',
+        'it': 'Italiano',
+    }
+
+    def get_locale():
+        lang = session.get('lang')
+        if lang in app.config['LANGUAGES']:
+            return lang
+        return request.accept_languages.best_match(list(app.config['LANGUAGES'].keys())) or 'fr'
+
+    babel = Babel(app, locale_selector=get_locale)
+
+    @app.context_processor
+    def inject_i18n():
+        from flask_babel import get_locale as _babel_get_locale
+        return {
+            'LANGUAGES': app.config['LANGUAGES'],
+            'current_locale': str(_babel_get_locale() or 'fr'),
+        }
+
+    @app.route('/set-language/<lang>')
+    def set_language(lang):
+        """Sélecteur de langue manuel : mémorise le choix en session
+        (permanente) et revient à la page d'origine."""
+        if lang in app.config['LANGUAGES']:
+            session['lang'] = lang
+        return redirect(request.referrer or url_for('index'))
+
     # Initialisation des extensions
     db.init_app(app)
     migrate.init_app(app, db)
@@ -39,7 +82,10 @@ def create_app(config_name='development'):
     socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet',
                        ping_timeout=60, ping_interval=25)
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+    # lazy_gettext : le message est traduit au moment de l'affichage (langue du
+    # visiteur), pas au démarrage du serveur.
+    from flask_babel import lazy_gettext as _l
+    login_manager.login_message = _l('Veuillez vous connecter pour accéder à cette page.')
     
     # Initialisation du moteur de chiffrement
     try:

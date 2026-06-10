@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
     {% if config.get('GOOGLE_SITE_VERIFICATION') %}
     <meta name="google-site-verification" content="{{ config.GOOGLE_SITE_VERIFICATION }}">
     {% endif %}
-    <title>{% block title %}ProfCalendar - Planification simplifiée{% endblock %}</title>
+    <title>{% block title %}{{ _('ProfCalendar - Planification simplifiée') }}{% endblock %}</title>
 
     {% include 'includes/favicon.html' %}
 
@@ -39,17 +39,17 @@
        script en bas du body décide d'afficher en fonction de
        navigator.maxTouchPoints + UA. Dismissable, mémorisée 7 jours. #}
     {% if not is_ios_native_app %}
-    <div id="ipadAppBanner" class="ipad-app-banner" style="display: none;" role="region" aria-label="App iPad disponible">
+    <div id="ipadAppBanner" class="ipad-app-banner" style="display: none;" role="region" aria-label="{{ _('App iPad disponible') }}">
         <div class="ipad-app-banner-content">
             <i class="fas fa-tablet-alt ipad-app-banner-icon"></i>
             <div class="ipad-app-banner-text">
-                <strong>ProfCalendar pour iPad</strong>
-                <span>Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore.</span>
+                <strong>{{ _('ProfCalendar pour iPad') }}</strong>
+                <span>{{ _('Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore.') }}</span>
             </div>
             <a href="#" id="ipadAppBannerLink" class="ipad-app-banner-cta" aria-disabled="true">
-                <i class="fas fa-info-circle"></i> Bientôt disponible
+                <i class="fas fa-info-circle"></i> {{ _('Bientôt disponible') }}
             </a>
-            <button type="button" class="ipad-app-banner-close" onclick="dismissIpadBanner()" aria-label="Fermer la bannière">
+            <button type="button" class="ipad-app-banner-close" onclick="dismissIpadBanner()" aria-label="{{ _('Fermer la bannière') }}">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -173,7 +173,7 @@
                classe .open sur .nav-menu pour afficher le drawer. #}
             {% if current_user.is_authenticated %}
             <button type="button" class="nav-burger" id="navBurger"
-                    aria-label="Ouvrir le menu" aria-expanded="false"
+                    aria-label="{{ _('Ouvrir le menu') }}" aria-expanded="false"
                     onclick="toggleNavMenu(this)">
                 <span></span><span></span><span></span>
             </button>
@@ -182,22 +182,22 @@
             {% if current_user.is_authenticated %}
             <div class="nav-menu" id="navMenu">
                 <a href="{{ url_for('planning.dashboard') }}" class="nav-link {% if request.endpoint == 'planning.dashboard' %}active{% endif %}">
-                    <i class="fas fa-home"></i> Tableau de bord
+                    <i class="fas fa-home"></i> {{ _('Tableau de bord') }}
                 </a>
                 <a href="{{ url_for('planning.lesson_view') }}" class="nav-link {% if request.endpoint == 'planning.lesson_view' %}active{% endif %} {% if global_has_current_lesson %}lesson-active current-lesson{% endif %}">
                     <i class="fas fa-graduation-cap"></i>
                     {% if global_has_current_lesson %}
-                        Cours actuel
+                        {{ _('Cours actuel') }}
                     {% else %}
-                        Prochain cours
+                        {{ _('Prochain cours') }}
                     {% endif %}
                 </a>
                 <a href="{{ url_for('planning.manage_classes') }}" class="nav-link {% if request.endpoint == 'planning.manage_classes' %}active{% endif %}">
-                    <i class="fas fa-users"></i> Gestion de classe
+                    <i class="fas fa-users"></i> {{ _('Gestion de classe') }}
                     {% if not current_user.has_premium_access() %}<i class="fas fa-lock nav-lock"></i>{% endif %}
                 </a>
                 <a href="{{ url_for('planning.calendar_view') }}" class="nav-link {% if request.endpoint == 'planning.calendar_view' %}active{% endif %}">
-                    <i class="fas fa-calendar"></i> Calendrier
+                    <i class="fas fa-calendar"></i> {{ _('Calendrier') }}
                 </a>
             </div>
 
@@ -214,7 +214,7 @@
                     <div class="dropdown-menu">
                         {% if current_user.is_admin %}
                         <a href="{{ url_for('admin.dashboard') }}">
-                            <i class="fas fa-shield-alt"></i> Administration
+                            <i class="fas fa-shield-alt"></i> {{ _('Administration') }}
                         </a>
                         {% endif %}
                         {# Bouton Abonnement : visible partout. Sur iOS, la
@@ -222,31 +222,71 @@
                            qui propose le paywall natif StoreKit. Sur web,
                            c'est pricing.html (Stripe). #}
                         <a href="{{ url_for('subscription.pricing') }}">
-                            <i class="fas fa-crown"></i> Abonnement
+                            <i class="fas fa-crown"></i> {{ _('Abonnement') }}
                         </a>
                         <a href="{{ url_for('settings.index') }}">
-                            <i class="fas fa-cog"></i> Paramètres
+                            <i class="fas fa-cog"></i> {{ _('Paramètres') }}
                         </a>
                         {% if current_user.__class__.__name__ == 'User' %}
                         <a href="#" onclick="event.preventDefault(); replayTutorial();">
-                            <i class="fas fa-play-circle"></i> Revoir le tutoriel
+                            <i class="fas fa-play-circle"></i> {{ _('Revoir le tutoriel') }}
                         </a>
                         {% endif %}
+                        {# Sélecteur de langue (utilisateur connecté) : le choix est
+                           mémorisé en session via /set-language. #}
+                        <div class="lang-switcher-row">
+                            <i class="fas fa-globe"></i>
+                            {% for code, name in LANGUAGES.items() %}
+                            <a href="{{ url_for('set_language', lang=code) }}" class="lang-pill {% if code == current_locale %}active{% endif %}" title="{{ name }}">{{ code|upper }}</a>
+                            {% endfor %}
+                        </div>
                         <a href="{{ url_for('auth.logout') }}">
-                            <i class="fas fa-sign-out-alt"></i> Déconnexion
+                            <i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}
                         </a>
                     </div>
                 </div>
             </div>
             {% else %}
             <div class="nav-auth">
-                <a href="{{ url_for('auth.login') }}" class="btn btn-outline">Connexion</a>
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Inscription</a>
+                {# Sélecteur de langue (visiteur non connecté) #}
+                <span class="lang-switcher-row lang-switcher-inline">
+                    <i class="fas fa-globe"></i>
+                    {% for code, name in LANGUAGES.items() %}
+                    <a href="{{ url_for('set_language', lang=code) }}" class="lang-pill {% if code == current_locale %}active{% endif %}" title="{{ name }}">{{ code|upper }}</a>
+                    {% endfor %}
+                </span>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline">{{ _('Connexion') }}</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary">{{ _('Inscription') }}</a>
             </div>
             {% endif %}
         </div>
     </nav>
     {% endif %}
+    <style>
+        /* Sélecteur de langue (nav + dropdown) */
+        .lang-switcher-row {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.5rem 1rem;
+            color: #6B7280;
+            font-size: 0.8rem;
+            border-top: 1px solid #F3F4F6;
+        }
+        .lang-switcher-inline {
+            border-top: none;
+            padding: 0 0.5rem 0 0;
+        }
+        .lang-pill {
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.35rem;
+            text-decoration: none;
+            color: #6B7280;
+            font-weight: 600;
+        }
+        .lang-pill:hover { background: #EEF2FF; color: #4F46E5; }
+        .lang-pill.active { background: #4F46E5; color: #fff; }
+    </style>
 
     <!-- Messages flash -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -285,23 +325,23 @@
                 <span style="display:flex; align-items:center; gap:0.5rem;">
                     {% if expired %}
                         <i class="fas fa-lock"></i>
-                        <span>Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices.</span>
+                        <span>{{ _('Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices.') }}</span>
                     {% elif urgent %}
                         <i class="fas fa-hourglass-half"></i>
-                        <span><strong>Ton essai Premium se termine dans {{ trial.days_remaining }} jour{{ 's' if trial.days_remaining > 1 else '' }}.</strong> Ne perds pas la gestion de classe, les notes et les présences.</span>
+                        <span><strong>{{ ngettext('Ton essai Premium se termine dans %(num)d jour.', 'Ton essai Premium se termine dans %(num)d jours.', trial.days_remaining) }}</strong> {{ _('Ne perds pas la gestion de classe, les notes et les présences.') }}</span>
                     {% else %}
                         <i class="fas fa-crown" style="color:#6366F1;"></i>
-                        <span>Tu profites de <strong>Premium gratuit</strong> · {{ trial.days_remaining }} jours restants. Profites-en pour tout explorer&nbsp;!</span>
+                        <span>{{ _('Tu profites de') }} <strong>{{ _('Premium gratuit') }}</strong> · {{ ngettext('%(num)d jour restant', '%(num)d jours restants', trial.days_remaining) }}. {{ _('Profites-en pour tout explorer !') }}</span>
                     {% endif %}
                 </span>
                 <a href="{{ url_for('subscription.pricing') }}"
                    style="white-space:nowrap; font-weight:600; text-decoration:none; padding:0.4rem 0.9rem; border-radius:0.4rem;
                           {% if expired %}background:#DC2626;{% elif urgent %}background:#D97706;{% else %}background:#6366F1;{% endif %} color:#fff;">
-                    {% if expired %}Passer à Premium · dès CHF 4.90/mois
-                    {% elif urgent %}Garder Premium · dès CHF 4.90/mois
-                    {% else %}Découvrir Premium{% endif %}
+                    {% if expired %}{{ _('Passer à Premium · dès CHF 4.90/mois') }}
+                    {% elif urgent %}{{ _('Garder Premium · dès CHF 4.90/mois') }}
+                    {% else %}{{ _('Découvrir Premium') }}{% endif %}
                 </a>
-                <button type="button" aria-label="Fermer" onclick="dismissTrialBanner()"
+                <button type="button" aria-label="{{ _('Fermer') }}" onclick="dismissTrialBanner()"
                         style="background:transparent; border:none; cursor:pointer; color:inherit; opacity:0.6; font-size:1rem; line-height:1;">
                     <i class="fas fa-times"></i>
                 </button>
@@ -333,13 +373,15 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p>&copy; 2024-2026 ProfCalendar. Tous droits réservés.</p>
+            <p>&copy; 2024-2026 ProfCalendar. {{ _('Tous droits réservés.') }}</p>
             <p style="margin-top: 0.25rem;">
-                <a href="{{ url_for('privacy_policy') }}" style="color: #6B7280; text-decoration: underline;">Politique de confidentialité</a>
+                <a href="{{ url_for('privacy_policy') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Politique de confidentialité') }}</a>
                 &middot;
-                <a href="{{ url_for('terms_of_service') }}" style="color: #6B7280; text-decoration: underline;">CGU</a>
+                <a href="{{ url_for('terms_of_service') }}" style="color: #6B7280; text-decoration: underline;">{{ _('CGU') }}</a>
                 &middot;
-                <a href="{{ url_for('support_page') }}" style="color: #6B7280; text-decoration: underline;">Support</a>
+                <a href="{{ url_for('support_page') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Support') }}</a>
+                &middot;
+                {% for code, name in LANGUAGES.items() %}<a href="{{ url_for('set_language', lang=code) }}" style="color: {% if code == current_locale %}#4F46E5; font-weight:600{% else %}#6B7280{% endif %}; text-decoration: underline;">{{ name }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
             </p>
         </div>
     </footer>
@@ -474,18 +516,18 @@
 
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <!-- Système d'aide enseignant -->
-    <button class="help-fab" title="Aide"><i class="fas fa-question"></i></button>
+    <button class="help-fab" title="{{ _('Aide') }}"><i class="fas fa-question"></i></button>
 
     <div class="help-panel">
         <div class="help-panel-header">
-            <h3><i class="fas fa-life-ring"></i> Aide</h3>
+            <h3><i class="fas fa-life-ring"></i> {{ _('Aide') }}</h3>
             <button class="help-panel-close"><i class="fas fa-times"></i></button>
         </div>
         <div class="help-panel-body">
             <!-- Rempli dynamiquement par help-system.js -->
         </div>
         <div class="help-panel-footer">
-            <button class="help-restart-tour"><i class="fas fa-redo"></i> Relancer le tour guide</button>
+            <button class="help-restart-tour"><i class="fas fa-redo"></i> {{ _('Relancer le tour guide') }}</button>
         </div>
     </div>
     {% endif %}

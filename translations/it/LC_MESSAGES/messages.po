@@ -1,0 +1,290 @@
+# Traductions it pour ProfCalendar.
+# Générées par scripts/build_translations.py — modifier CE script, pas ce fichier.
+msgid ""
+msgstr ""
+"Project-Id-Version: ProfCalendar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: it\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "ProfCalendar - Planification simplifiée"
+msgstr "ProfCalendar - Pianificazione semplificata"
+
+msgid "App iPad disponible"
+msgstr "App per iPad disponibile"
+
+msgid "ProfCalendar pour iPad"
+msgstr "ProfCalendar per iPad"
+
+msgid "Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore."
+msgstr "Annotazioni con Apple Pencil ultrareattive, modalità offline e altro ancora."
+
+msgid "Bientôt disponible"
+msgstr "Presto disponibile"
+
+msgid "Fermer la bannière"
+msgstr "Chiudi il banner"
+
+msgid "Ouvrir le menu"
+msgstr "Apri il menu"
+
+msgid "Tableau de bord"
+msgstr "Pannello di controllo"
+
+msgid "Cours actuel"
+msgstr "Lezione in corso"
+
+msgid "Prochain cours"
+msgstr "Prossima lezione"
+
+msgid "Gestion de classe"
+msgstr "Gestione della classe"
+
+msgid "Calendrier"
+msgstr "Calendario"
+
+msgid "Administration"
+msgstr "Amministrazione"
+
+msgid "Abonnement"
+msgstr "Abbonamento"
+
+msgid "Paramètres"
+msgstr "Impostazioni"
+
+msgid "Revoir le tutoriel"
+msgstr "Rivedi il tutorial"
+
+msgid "Déconnexion"
+msgstr "Esci"
+
+msgid "Connexion"
+msgstr "Accedi"
+
+msgid "Inscription"
+msgstr "Registrati"
+
+msgid "Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices."
+msgstr "La tua prova Premium è terminata. Riattivala per ritrovare la gestione della classe, i voti, le presenze e gli esercizi."
+
+msgid "Ne perds pas la gestion de classe, les notes et les présences."
+msgstr "Non perdere la gestione della classe, i voti e le presenze."
+
+msgid "Tu profites de"
+msgstr "Stai usufruendo di"
+
+msgid "Premium gratuit"
+msgstr "Premium gratuito"
+
+msgid "Profites-en pour tout explorer !"
+msgstr "Approfittane per esplorare tutto!"
+
+msgid "Passer à Premium · dès CHF 4.90/mois"
+msgstr "Passa a Premium · da 4,90 CHF/mese"
+
+msgid "Garder Premium · dès CHF 4.90/mois"
+msgstr "Mantieni Premium · da 4,90 CHF/mese"
+
+msgid "Découvrir Premium"
+msgstr "Scopri Premium"
+
+msgid "Fermer"
+msgstr "Chiudi"
+
+msgid "Tous droits réservés."
+msgstr "Tutti i diritti riservati."
+
+msgid "Politique de confidentialité"
+msgstr "Informativa sulla privacy"
+
+msgid "CGU"
+msgstr "Termini di servizio"
+
+msgid "Support"
+msgstr "Assistenza"
+
+msgid "Aide"
+msgstr "Aiuto"
+
+msgid "Relancer le tour guide"
+msgstr "Riavvia il tour guidato"
+
+msgid "Espace Enseignant"
+msgstr "Area insegnante"
+
+msgid "Accédez à votre espace de planification"
+msgstr "Accedi al tuo spazio di pianificazione"
+
+msgid "Pas encore de compte ?"
+msgstr "Non hai ancora un account?"
+
+msgid "Inscrivez-vous"
+msgstr "Registrati"
+
+msgid "Autres plateformes :"
+msgstr "Altre piattaforme:"
+
+msgid "Espace Parent"
+msgstr "Area genitori"
+
+msgid "Espace Élève"
+msgstr "Area studenti"
+
+msgid "Créez votre compte gratuitement"
+msgstr "Crea il tuo account gratuitamente"
+
+msgid "30 jours de Premium offerts"
+msgstr "30 giorni di Premium in regalo"
+
+msgid "toutes les fonctionnalités débloquées, sans carte bancaire."
+msgstr "tutte le funzionalità sbloccate, senza carta di credito."
+
+msgid "Avec ProfCalendar, vous pourrez :"
+msgstr "Con ProfCalendar potrai:"
+
+msgid "Créer votre emploi du temps personnalisé"
+msgstr "Creare il tuo orario personalizzato"
+
+msgid "Planifier vos cours sur toute l'année"
+msgstr "Pianificare le tue lezioni per tutto l'anno"
+
+msgid "Gérer plusieurs classes facilement"
+msgstr "Gestire facilmente più classi"
+
+msgid "Synchroniser vos calendriers"
+msgstr "Sincronizzare i tuoi calendari"
+
+msgid "Déjà inscrit ?"
+msgstr "Già registrato?"
+
+msgid "Connectez-vous"
+msgstr "Accedi"
+
+msgid "Vérification email"
+msgstr "Verifica email"
+
+msgid "Vérifiez votre email"
+msgstr "Verifica la tua email"
+
+msgid "Un code à 6 chiffres a été envoyé à"
+msgstr "Un codice a 6 cifre è stato inviato a"
+
+msgid "Code de vérification"
+msgstr "Codice di verifica"
+
+msgid "Vérifier"
+msgstr "Verifica"
+
+msgid "Vous n'avez pas reçu le code ?"
+msgstr "Non hai ricevuto il codice?"
+
+msgid "Renvoyer le code"
+msgstr "Invia di nuovo il codice"
+
+msgid "Renvoi possible dans"
+msgstr "Potrai reinviare tra"
+
+msgid "Double authentification"
+msgstr "Autenticazione a due fattori"
+
+msgid "Entrez le code affiché par votre application d'authentification"
+msgstr "Inserisci il codice mostrato dalla tua app di autenticazione"
+
+msgid "Retour à la connexion"
+msgstr "Torna all'accesso"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Mot de passe"
+msgstr "Password"
+
+msgid "Se connecter"
+msgstr "Accedi"
+
+msgid "Nom d'utilisateur"
+msgstr "Nome utente"
+
+msgid "Le nom d'utilisateur doit contenir entre 3 et 80 caractères"
+msgstr "Il nome utente deve contenere tra 3 e 80 caratteri"
+
+msgid "Le mot de passe doit contenir au moins 8 caractères"
+msgstr "La password deve contenere almeno 8 caratteri"
+
+msgid "Le mot de passe doit contenir au moins une majuscule et un chiffre"
+msgstr "La password deve contenere almeno una lettera maiuscola e una cifra"
+
+msgid "Confirmer le mot de passe"
+msgstr "Conferma password"
+
+msgid "Les mots de passe doivent correspondre"
+msgstr "Le password devono corrispondere"
+
+msgid "S'inscrire"
+msgstr "Registrati"
+
+msgid "Ce nom d'utilisateur est déjà pris."
+msgstr "Questo nome utente è già in uso."
+
+msgid "Cette adresse email est déjà enregistrée."
+msgstr "Questo indirizzo email è già registrato."
+
+msgid "Trop de tentatives. Réessayez dans %(min)d minute(s)."
+msgstr "Troppi tentativi. Riprova tra %(min)d minuto/i."
+
+msgid "Cet email appartient à un compte parent. Veuillez utiliser la connexion parent."
+msgstr "Questa email appartiene a un account genitore. Usa l'accesso per genitori."
+
+msgid "Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé."
+msgstr "Verifica il tuo indirizzo email. Ti è stato inviato un nuovo codice."
+
+msgid "Impossible d'envoyer le code de vérification. Veuillez réessayer ou contacter le support."
+msgstr "Impossibile inviare il codice di verifica. Riprova o contatta l'assistenza."
+
+msgid "Trop de tentatives. Compte verrouillé pour 15 minutes."
+msgstr "Troppi tentativi. Account bloccato per 15 minuti."
+
+msgid "Email ou mot de passe incorrect. %(n)d tentative(s) restante(s)."
+msgstr "Email o password errati. %(n)d tentativo/i rimanente/i."
+
+msgid "Un code de vérification a été envoyé à votre adresse email."
+msgstr "Un codice di verifica è stato inviato al tuo indirizzo email."
+
+msgid "Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."
+msgstr "Account creato, ma impossibile inviare il codice di verifica. Riprova."
+
+msgid "Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
+msgstr "Benvenuto su ProfCalendar! 🎉 Hai 30 giorni di Premium in regalo: tutte le funzionalità sbloccate."
+
+msgid "Code invalide ou expiré."
+msgstr "Codice non valido o scaduto."
+
+msgid "Veuillez attendre %(sec)d secondes avant de renvoyer un code."
+msgstr "Attendi %(sec)d secondi prima di reinviare un codice."
+
+msgid "Un nouveau code a été envoyé."
+msgstr "È stato inviato un nuovo codice."
+
+msgid "Impossible d'envoyer le code. Veuillez réessayer."
+msgstr "Impossibile inviare il codice. Riprova."
+
+msgid "Code invalide. Veuillez réessayer."
+msgstr "Codice non valido. Riprova."
+
+msgid "Vous avez été déconnecté avec succès."
+msgstr "Disconnessione avvenuta con successo."
+
+msgid "Veuillez vous connecter pour accéder à cette page."
+msgstr "Accedi per visualizzare questa pagina."
+
+msgid "Ton essai Premium se termine dans %(num)d jour."
+msgid_plural "Ton essai Premium se termine dans %(num)d jours."
+msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
+msgstr[1] "La tua prova Premium termina tra %(num)d giorni."
+
+msgid "%(num)d jour restant"
+msgid_plural "%(num)d jours restants"
+msgstr[0] "%(num)d giorno rimanente"
+msgstr[1] "%(num)d giorni rimanenti"

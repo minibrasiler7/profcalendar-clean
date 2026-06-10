@@ -1,0 +1,290 @@
+# Traductions en pour ProfCalendar.
+# Générées par scripts/build_translations.py — modifier CE script, pas ce fichier.
+msgid ""
+msgstr ""
+"Project-Id-Version: ProfCalendar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "ProfCalendar - Planification simplifiée"
+msgstr "ProfCalendar - Planning made simple"
+
+msgid "App iPad disponible"
+msgstr "iPad app available"
+
+msgid "ProfCalendar pour iPad"
+msgstr "ProfCalendar for iPad"
+
+msgid "Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore."
+msgstr "Ultra-responsive Apple Pencil annotation, offline mode, and more."
+
+msgid "Bientôt disponible"
+msgstr "Coming soon"
+
+msgid "Fermer la bannière"
+msgstr "Close banner"
+
+msgid "Ouvrir le menu"
+msgstr "Open menu"
+
+msgid "Tableau de bord"
+msgstr "Dashboard"
+
+msgid "Cours actuel"
+msgstr "Current lesson"
+
+msgid "Prochain cours"
+msgstr "Next lesson"
+
+msgid "Gestion de classe"
+msgstr "Class management"
+
+msgid "Calendrier"
+msgstr "Calendar"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "Abonnement"
+msgstr "Subscription"
+
+msgid "Paramètres"
+msgstr "Settings"
+
+msgid "Revoir le tutoriel"
+msgstr "Replay the tutorial"
+
+msgid "Déconnexion"
+msgstr "Log out"
+
+msgid "Connexion"
+msgstr "Log in"
+
+msgid "Inscription"
+msgstr "Sign up"
+
+msgid "Ton essai Premium est terminé. Réactive pour retrouver la gestion de classe, les notes, les présences et les exercices."
+msgstr "Your Premium trial has ended. Reactivate to get back class management, grades, attendance and exercises."
+
+msgid "Ne perds pas la gestion de classe, les notes et les présences."
+msgstr "Don't lose class management, grades and attendance."
+
+msgid "Tu profites de"
+msgstr "You're enjoying"
+
+msgid "Premium gratuit"
+msgstr "free Premium"
+
+msgid "Profites-en pour tout explorer !"
+msgstr "Make the most of it and explore everything!"
+
+msgid "Passer à Premium · dès CHF 4.90/mois"
+msgstr "Upgrade to Premium · from CHF 4.90/month"
+
+msgid "Garder Premium · dès CHF 4.90/mois"
+msgstr "Keep Premium · from CHF 4.90/month"
+
+msgid "Découvrir Premium"
+msgstr "Discover Premium"
+
+msgid "Fermer"
+msgstr "Close"
+
+msgid "Tous droits réservés."
+msgstr "All rights reserved."
+
+msgid "Politique de confidentialité"
+msgstr "Privacy Policy"
+
+msgid "CGU"
+msgstr "Terms of Service"
+
+msgid "Support"
+msgstr "Support"
+
+msgid "Aide"
+msgstr "Help"
+
+msgid "Relancer le tour guide"
+msgstr "Restart the guided tour"
+
+msgid "Espace Enseignant"
+msgstr "Teacher Area"
+
+msgid "Accédez à votre espace de planification"
+msgstr "Access your planning workspace"
+
+msgid "Pas encore de compte ?"
+msgstr "Don't have an account yet?"
+
+msgid "Inscrivez-vous"
+msgstr "Sign up"
+
+msgid "Autres plateformes :"
+msgstr "Other platforms:"
+
+msgid "Espace Parent"
+msgstr "Parent Area"
+
+msgid "Espace Élève"
+msgstr "Student Area"
+
+msgid "Créez votre compte gratuitement"
+msgstr "Create your free account"
+
+msgid "30 jours de Premium offerts"
+msgstr "30 days of Premium for free"
+
+msgid "toutes les fonctionnalités débloquées, sans carte bancaire."
+msgstr "all features unlocked, no credit card required."
+
+msgid "Avec ProfCalendar, vous pourrez :"
+msgstr "With ProfCalendar, you can:"
+
+msgid "Créer votre emploi du temps personnalisé"
+msgstr "Create your personalized timetable"
+
+msgid "Planifier vos cours sur toute l'année"
+msgstr "Plan your lessons for the whole year"
+
+msgid "Gérer plusieurs classes facilement"
+msgstr "Manage several classes with ease"
+
+msgid "Synchroniser vos calendriers"
+msgstr "Sync your calendars"
+
+msgid "Déjà inscrit ?"
+msgstr "Already have an account?"
+
+msgid "Connectez-vous"
+msgstr "Log in"
+
+msgid "Vérification email"
+msgstr "Email verification"
+
+msgid "Vérifiez votre email"
+msgstr "Check your email"
+
+msgid "Un code à 6 chiffres a été envoyé à"
+msgstr "A 6-digit code has been sent to"
+
+msgid "Code de vérification"
+msgstr "Verification code"
+
+msgid "Vérifier"
+msgstr "Verify"
+
+msgid "Vous n'avez pas reçu le code ?"
+msgstr "Didn't receive the code?"
+
+msgid "Renvoyer le code"
+msgstr "Resend code"
+
+msgid "Renvoi possible dans"
+msgstr "You can resend in"
+
+msgid "Double authentification"
+msgstr "Two-factor authentication"
+
+msgid "Entrez le code affiché par votre application d'authentification"
+msgstr "Enter the code shown in your authenticator app"
+
+msgid "Retour à la connexion"
+msgstr "Back to login"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Mot de passe"
+msgstr "Password"
+
+msgid "Se connecter"
+msgstr "Log in"
+
+msgid "Nom d'utilisateur"
+msgstr "Username"
+
+msgid "Le nom d'utilisateur doit contenir entre 3 et 80 caractères"
+msgstr "The username must be between 3 and 80 characters long"
+
+msgid "Le mot de passe doit contenir au moins 8 caractères"
+msgstr "The password must be at least 8 characters long"
+
+msgid "Le mot de passe doit contenir au moins une majuscule et un chiffre"
+msgstr "The password must contain at least one uppercase letter and one digit"
+
+msgid "Confirmer le mot de passe"
+msgstr "Confirm password"
+
+msgid "Les mots de passe doivent correspondre"
+msgstr "Passwords must match"
+
+msgid "S'inscrire"
+msgstr "Sign up"
+
+msgid "Ce nom d'utilisateur est déjà pris."
+msgstr "This username is already taken."
+
+msgid "Cette adresse email est déjà enregistrée."
+msgstr "This email address is already registered."
+
+msgid "Trop de tentatives. Réessayez dans %(min)d minute(s)."
+msgstr "Too many attempts. Try again in %(min)d minute(s)."
+
+msgid "Cet email appartient à un compte parent. Veuillez utiliser la connexion parent."
+msgstr "This email belongs to a parent account. Please use the parent login."
+
+msgid "Veuillez vérifier votre adresse email. Un nouveau code vous a été envoyé."
+msgstr "Please verify your email address. A new code has been sent to you."
+
+msgid "Impossible d'envoyer le code de vérification. Veuillez réessayer ou contacter le support."
+msgstr "Unable to send the verification code. Please try again or contact support."
+
+msgid "Trop de tentatives. Compte verrouillé pour 15 minutes."
+msgstr "Too many attempts. Account locked for 15 minutes."
+
+msgid "Email ou mot de passe incorrect. %(n)d tentative(s) restante(s)."
+msgstr "Incorrect email or password. %(n)d attempt(s) remaining."
+
+msgid "Un code de vérification a été envoyé à votre adresse email."
+msgstr "A verification code has been sent to your email address."
+
+msgid "Compte créé, mais impossible d'envoyer le code de vérification. Veuillez réessayer."
+msgstr "Account created, but the verification code could not be sent. Please try again."
+
+msgid "Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées."
+msgstr "Welcome to ProfCalendar! 🎉 You get 30 days of free Premium — all features unlocked."
+
+msgid "Code invalide ou expiré."
+msgstr "Invalid or expired code."
+
+msgid "Veuillez attendre %(sec)d secondes avant de renvoyer un code."
+msgstr "Please wait %(sec)d seconds before resending a code."
+
+msgid "Un nouveau code a été envoyé."
+msgstr "A new code has been sent."
+
+msgid "Impossible d'envoyer le code. Veuillez réessayer."
+msgstr "Unable to send the code. Please try again."
+
+msgid "Code invalide. Veuillez réessayer."
+msgstr "Invalid code. Please try again."
+
+msgid "Vous avez été déconnecté avec succès."
+msgstr "You have been logged out successfully."
+
+msgid "Veuillez vous connecter pour accéder à cette page."
+msgstr "Please log in to access this page."
+
+msgid "Ton essai Premium se termine dans %(num)d jour."
+msgid_plural "Ton essai Premium se termine dans %(num)d jours."
+msgstr[0] "Your Premium trial ends in %(num)d day."
+msgstr[1] "Your Premium trial ends in %(num)d days."
+
+msgid "%(num)d jour restant"
+msgid_plural "%(num)d jours restants"
+msgstr[0] "%(num)d day left"
+msgstr[1] "%(num)d days left"

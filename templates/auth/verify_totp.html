@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Double authentification - ProfCalendar{% endblock %}
+{% block title %}{{ _('Double authentification') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-shield-alt auth-icon"></i>
-            <h1 class="auth-title">Double authentification</h1>
-            <p class="auth-subtitle">Entrez le code affiché par votre application d'authentification</p>
+            <h1 class="auth-title">{{ _('Double authentification') }}</h1>
+            <p class="auth-subtitle">{{ _("Entrez le code affiché par votre application d'authentification") }}</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -25,7 +25,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="form-group">
-                <label for="totp_code" class="form-label">Code de vérification</label>
+                <label for="totp_code" class="form-label">{{ _('Code de vérification') }}</label>
                 <div class="code-input-container">
                     <input type="text" id="totp_code" name="totp_code" class="form-control code-input"
                            maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
@@ -34,12 +34,12 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-block">Vérifier</button>
+                <button type="submit" class="btn btn-primary btn-block">{{ _('Vérifier') }}</button>
             </div>
         </form>
 
         <div class="auth-footer">
-            <p><a href="{{ url_for('auth.login') }}"><i class="fas fa-arrow-left"></i> Retour à la connexion</a></p>
+            <p><a href="{{ url_for('auth.login') }}"><i class="fas fa-arrow-left"></i> {{ _('Retour à la connexion') }}</a></p>
         </div>
     </div>
 </div>
