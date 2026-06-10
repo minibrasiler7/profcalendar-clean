@@ -208,7 +208,7 @@ class CleanPDFViewer {
      * Initialisation du viewer
      */
     async init() {
-        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-NATIVE-P2 - INIT STARTED');
+        console.log('🔥 CLEAN PDF VIEWER - VERSION 2026-06-10-GOMME-NATIVE-P3 - INIT STARTED');
 
         // IMPORTANT: Forcer la réinitialisation des états d'interaction
         this.isAnnotating = false;
@@ -2204,7 +2204,10 @@ class CleanPDFViewer {
             const afterScroll = this.elements.viewer.scrollTop;
 
             if (afterScroll !== 100) {
-                console.error('❌ SCROLL BLOQUÉ - Le viewer ne peut PAS scroller!');
+                // console.log (pas error) : ce diagnostic se déclenche à CHAQUE
+                // chargement (le contenu n'est pas encore assez haut pour scroller
+                // à t+2s) et polluait la console avec une fausse alerte rouge.
+                console.log('❌ SCROLL BLOQUÉ - Le viewer ne peut PAS scroller!');
                 console.log('Analyse de la hiérarchie CSS:');
 
                 let el = this.elements.viewer;
@@ -9070,7 +9073,17 @@ class CleanPDFViewer {
      * Effacer la page actuelle
      */
     clearCurrentPage() {
-        if (!confirm('Effacer toutes les annotations de cette page ?')) return;
+        // Anti double-confirmation : avec l'Apple Pencil, le bouton corbeille
+        // reçoit DEUX clics (le clic synthétique du PEN INTERCEPT au pointerdown
+        // via control.click(), PUIS le clic natif iOS au lever du stylet) → la
+        // boîte de confirmation s'ouvrait deux fois. Le clic dupliqué étant mis
+        // en file pendant que confirm() bloque, il arrive juste après la
+        // fermeture de la boîte : on ignore tout déclenchement < 600 ms après.
+        const now = Date.now();
+        if (this._lastClearPromptClosed && (now - this._lastClearPromptClosed) < 600) return;
+        const confirmed = confirm('Effacer toutes les annotations de cette page ?');
+        this._lastClearPromptClosed = Date.now();
+        if (!confirmed) return;
 
         const pageId = this.currentPage;
 

@@ -5,6 +5,23 @@
 <!-- VERSION: 2dfd042-fix-studentsdata-tojson - 2026-01-19T16:35:00Z -->
 
 {% block extra_css %}
+<!-- Console silencieuse : cette page émet des centaines de logs de diagnostic
+     (lecteur PDF, annotations, PencilKit…). On coupe console.log/console.debug
+     par défaut pour garder une console propre. console.warn / console.error
+     (vrais problèmes) restent actifs, et le pont de logs JS→Xcode (nativeLog)
+     continue de fonctionner. Pour RÉACTIVER les logs (débogage) :
+       localStorage.setItem('pcDebug', '1')  puis recharger la page
+     Pour les recouper : localStorage.removeItem('pcDebug') -->
+<script>
+(function () {
+    try {
+        if (!localStorage.getItem('pcDebug')) {
+            console.log = function () {};
+            console.debug = function () {};
+        }
+    } catch (e) { /* localStorage indisponible : on garde les logs */ }
+})();
+</script>
 <!-- Cache busting pour forcer le rechargement -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
