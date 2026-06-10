@@ -225,6 +225,16 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
 
         let strokes = canvasView.drawing.strokes
 
+        // GOMME NATIVE : pendant l'effacement, le nombre de traits peut AUGMENTER
+        // (la gomme bitmap DÉCOUPE un trait en morceaux). Ne JAMAIS renvoyer ces
+        // morceaux au web : ils étaient sauvegardés comme de nouvelles annotations
+        // fantômes (tool="eraser", dupliquant le trait découpé). La persistance de
+        // l'effacement passe par PencilEraserForwarder (onEraserMove → eraseAtPoint).
+        if currentToolName == "eraser" {
+            sentStrokeCount = strokes.count
+            return
+        }
+
         // Le nombre de traits a diminue (ex : gomme native / undo) → on
         // resynchronise simplement le compteur.
         guard strokes.count > sentStrokeCount else {

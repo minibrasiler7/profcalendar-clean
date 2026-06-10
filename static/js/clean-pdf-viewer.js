@@ -9074,6 +9074,19 @@ class CleanPDFViewer {
 
         const pageId = this.currentPage;
 
+        // Gomme native (iPad) : la corbeille doit aussi effacer l'ENCRE NATIVE.
+        // Sans ça, seules les annotations web (perfect-freehand) disparaissaient :
+        // les traits natifs de la session restaient affichés par PencilKit.
+        // On purge leur marquage live-native puis on demande à Swift de vider le
+        // canvas natif (qui ne contient que l'encre de la page courante).
+        if (this._liveNativeIds) {
+            const anns = this.annotations.get(pageId) || [];
+            for (const a of anns) { if (a && a.id) this._liveNativeIds.delete(a.id); }
+        }
+        if (this.isPencilKitAvailable && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit) {
+            window.webkit.messageHandlers.pencilKit.postMessage({ action: 'clearNative' });
+        }
+
         // Supprimer les annotations de cette page
         this.annotations.set(pageId, []);
 
@@ -9379,12 +9392,12 @@ class CleanPDFViewer {
                     const canvas = viewer.container.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"] .annotation-canvas')
                                 || document.querySelector('.annotation-canvas[data-page-id="' + pageId + '"]');
                     if (!canvas) return;
-                    // Fraction 0-1 → coordonnées d'AFFICHAGE de la page (repère des
-                    // points stockés). getBoundingClientRect = taille affichée (~1015),
-                    // pas la résolution interne (~1045).
-                    const rect = canvas.getBoundingClientRect();
-                    if (!(rect.width > 0) || !(rect.height > 0)) return;
-                    viewer.eraseAtPoint(canvas, pageId, fx * rect.width, fy * rect.height);
+                    // Fraction 0-1 → coordonnées INTERNES du canvas (~1045), la même
+                    // convention que la gomme web (startAnnotation calcule x,y via
+                    // scaleX = canvas.width / rect.width). eraseAtPoint compare les
+                    // points bruts du store, majoritairement stockés dans ce repère.
+                    if (!(canvas.width > 0) || !(canvas.height > 0)) return;
+                    viewer.eraseAtPoint(canvas, pageId, fx * canvas.width, fy * canvas.height);
                 } catch (e) { /* ne jamais jeter vers Swift */ }
             },
             // Fin du geste de gomme : sauvegarder une fois (persistance).

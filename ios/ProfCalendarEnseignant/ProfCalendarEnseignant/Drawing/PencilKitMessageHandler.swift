@@ -33,6 +33,11 @@ class PencilKitMessageHandler: NSObject, WKScriptMessageHandler {
                 self?.handleActivate(config: config)
             case "deactivate":
                 self?.coordinator?.deactivatePencilKit()
+            case "clearNative":
+                // Corbeille : efface l'encre NATIVE de la page courante (le web a
+                // déjà vidé son store). Sans ça, la corbeille ne supprimait que les
+                // annotations web et les traits natifs de session restaient affichés.
+                self?.coordinator?.clearCanvas()
             case "updatePageRect":
                 self?.handleUpdatePageRect(config: config)
             case "updateTool":
