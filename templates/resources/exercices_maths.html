@@ -270,15 +270,17 @@
     function exF(q, poly, def, ansIn) { return { q: q, fields: [{ type: 'expr', poly: poly, paren: true }], sol: '= ' + ansIn, _def: def, _poly: poly, _ansIn: ansIn, _factor: true }; }
 
     // ====== SVG ======
-    function gridSVG(points, interactive) {
+    function gridSVG(points, interactive, polys) {
         const R = 5, s = 24, pad = 16, W = 2 * R * s + 2 * pad, cx = pad + R * s, cy = pad + R * s;
         let g = '<svg class="mx-grid-svg' + (interactive ? ' mx-grid-hit' : '') + '" viewBox="0 0 ' + W + ' ' + W + '" data-s="' + s + '" data-cx="' + cx + '" data-cy="' + cy + '" data-r="' + R + '">';
         for (let i = -R; i <= R; i++) { const xp = cx + i * s, yp = cy - i * s; const c = i === 0 ? '#475569' : '#E2E8F0', wdt = i === 0 ? 1.4 : 1; g += '<line x1="' + xp + '" y1="' + pad + '" x2="' + xp + '" y2="' + (W - pad) + '" stroke="' + c + '" stroke-width="' + wdt + '"/>'; g += '<line x1="' + pad + '" y1="' + yp + '" x2="' + (W - pad) + '" y2="' + yp + '" stroke="' + c + '" stroke-width="' + wdt + '"/>'; }
         for (let i = -R; i <= R; i += 1) { if (i !== 0) { g += '<text x="' + (cx + i * s) + '" y="' + (cy + 11) + '" font-size="8" fill="#94A3B8" text-anchor="middle">' + i + '</text>'; g += '<text x="' + (cx - 8) + '" y="' + (cy - i * s + 3) + '" font-size="8" fill="#94A3B8" text-anchor="end">' + i + '</text>'; } }
+        (polys || []).forEach(po => { const str = po.pts.map(p => (cx + p[0] * s) + ',' + (cy - p[1] * s)).join(' '); g += '<poly' + (po.closed ? 'gon' : 'line') + ' points="' + str + '" fill="' + (po.closed ? '#6366F1' : 'none') + '"' + (po.closed ? ' fill-opacity="0.13"' : '') + ' stroke="#6366F1" stroke-width="2"' + (po.dash ? ' stroke-dasharray="5 4"' : '') + '/>'; });
         (points || []).forEach(p => { const xp = cx + p[0] * s, yp = cy - p[1] * s; g += '<circle cx="' + xp + '" cy="' + yp + '" r="4.5" fill="#6366F1"/>'; if (p[2]) g += '<text x="' + (xp + 6) + '" y="' + (yp - 6) + '" font-size="11" font-weight="700" fill="#4338CA">' + p[2] + '</text>'; });
         g += '<g class="mx-mark"></g></svg>';
         return g;
     }
+
     function rtTriangleSVG(low, left, hyp) {
         let s = '<svg class="mx-fig" viewBox="0 0 214 132">';
         s += '<polygon points="34,112 184,112 34,22" fill="#EEF2FF" stroke="#6366F1" stroke-width="2"/>';
@@ -742,27 +744,116 @@
     function genTransformations(diff) {
         const L = lvl(diff); const x = nz(ri(-5, 5)), y = nz(ri(-5, 5));
         if (L === 0) { const t = pick([['ox', 'la symétrie d’axe Ox (axe horizontal)'], ['oy', 'la symétrie d’axe Oy (axe vertical)'], ['cO', 'la symétrie centrale de centre O']]); const im = applyT(t[0], x, y); return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par ' + t[1] + ' ?', fields: [{ label: 'x′', e: im[0] }, { label: 'y′', e: im[1] }], sol: 'A′ = (' + im[0] + ' ; ' + im[1] + ')' }; }
-        if (L === 1) { if (Math.random() < 0.5) { const t = pick([['r90', 'la rotation de 90° (sens anti-horaire) autour de O'], ['r-90', 'la rotation de 90° (sens horaire) autour de O'], ['r180', 'la rotation de 180° autour de O']]); const im = applyT(t[0], x, y); return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par ' + t[1] + ' ?', fields: [{ label: 'x′', e: im[0] }, { label: 'y′', e: im[1] }], sol: 'A′ = (' + im[0] + ' ; ' + im[1] + ')' }; } const u = ri(-5, 5), v = ri(-5, 5); return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par la translation de vecteur (' + u + ' ; ' + v + ') ?', fields: [{ label: 'x′', e: x + u }, { label: 'y′', e: y + v }], sol: 'A′ = (' + (x + u) + ' ; ' + (y + v) + ')' }; }
+        if (L === 1) { if (Math.random() < 0.5) { const t = pick([['r90', 'la rotation de 90° (sens anti-horaire) autour de O'], ['r-90', 'la rotation de 90° (sens horaire) autour de O'], ['r180', 'la rotation de 180° autour de O']]); const im = applyT(t[0], x, y); return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par ' + t[1] + ' ?', fields: [{ label: 'x′', e: im[0] }, { label: 'y′', e: im[1] }], sol: 'A′ = (' + im[0] + ' ; ' + im[1] + ')' }; } let u = ri(-5, 5), v = ri(-5, 5); if (!u && !v) u = 2; return { q: 'Quelle est l’image du point A(' + x + ' ; ' + y + ') par ' + trDesc(u, v) + ' ?', fields: [{ label: 'x′', e: x + u }, { label: 'y′', e: y + v }], sol: 'A′ = (' + (x + u) + ' ; ' + (y + v) + ')' }; }
         if (Math.random() < 0.5) { const x2 = nz(ri(-3, 3)), y2 = nz(ri(-3, 3)), k = pick([-1, 2, -2]); return { q: 'Quelle est l’image du point A(' + x2 + ' ; ' + y2 + ') par l’homothétie de centre O et de rapport ' + k + ' ?', fields: [{ label: 'x′', e: k * x2 }, { label: 'y′', e: k * y2 }], sol: 'A′ = (' + (k * x2) + ' ; ' + (k * y2) + ')' }; }
-        const t = pick(['ox', 'oy', 'cO']); const u = ri(-4, 4), v = ri(-4, 4); const i1 = applyT(t, x, y); const desc = { ox: 'la symétrie d’axe Ox', oy: 'la symétrie d’axe Oy', cO: 'la symétrie centrale de centre O' }[t];
-        return { q: 'On applique à A(' + x + ' ; ' + y + ') ' + desc + ', puis la translation de vecteur (' + u + ' ; ' + v + '). Quelle est l’image finale ?', fields: [{ label: 'x′', e: i1[0] + u }, { label: 'y′', e: i1[1] + v }], sol: 'A′ = (' + (i1[0] + u) + ' ; ' + (i1[1] + v) + ')' };
+        const t = pick(['ox', 'oy', 'cO']); let u = ri(-4, 4), v = ri(-4, 4); if (!u && !v) v = -2; const i1 = applyT(t, x, y); const desc = { ox: 'la symétrie d’axe Ox', oy: 'la symétrie d’axe Oy', cO: 'la symétrie centrale de centre O' }[t];
+        return { q: 'On applique à A(' + x + ' ; ' + y + ') ' + desc + ', puis ' + trDesc(u, v) + '. Quelle est l’image finale ?', fields: [{ label: 'x′', e: i1[0] + u }, { label: 'y′', e: i1[1] + v }], sol: 'A′ = (' + (i1[0] + u) + ' ; ' + (i1[1] + v) + ')' };
     }
     function genCoordonnees(diff) {
         const L = lvl(diff);
-        if (L === 0) { const x = ri(-5, 5), y = ri(-5, 5); return { q: 'Lis les coordonnées du point A.', svg: gridSVG([[x, y, 'A']]), fields: [{ label: 'x', e: x }, { label: 'y', e: y }], sol: 'A(' + x + ' ; ' + y + ')' }; }
-        if (L === 1) { let xa = ri(-5, 5), ya = ri(-5, 5), xb = ri(-5, 5), yb = ri(-5, 5); while ((xa + xb) % 2 || (ya + yb) % 2 || (xa === xb && ya === yb)) { xb = ri(-5, 5); yb = ri(-5, 5); } return { q: 'Lis les coordonnées du milieu M du segment AB.', svg: gridSVG([[xa, ya, 'A'], [xb, yb, 'B']]), fields: [{ label: 'x', e: (xa + xb) / 2 }, { label: 'y', e: (ya + yb) / 2 }], sol: 'M(' + ((xa + xb) / 2) + ' ; ' + ((ya + yb) / 2) + ')' }; }
-        let xa = ri(-5, 5), ya = ri(-5, 5), xb = ri(-5, 5), yb = ri(-5, 5); while (xa === xb && ya === yb) { xb = ri(-5, 5); yb = ri(-5, 5); } return { q: 'Lis les composantes du vecteur AB (de A vers B).', svg: gridSVG([[xa, ya, 'A'], [xb, yb, 'B']]), fields: [{ label: 'x', e: xb - xa }, { label: 'y', e: yb - ya }], sol: 'AB = (' + (xb - xa) + ' ; ' + (yb - ya) + ')' };
+        if (L === 0) {
+            if (Math.random() < 0.5) { const x = ri(-5, 5), y = ri(-5, 5); return { q: 'Lis les coordonnées du point A.', svg: gridSVG([[x, y, 'A']]), fields: [{ label: 'x', e: x }, { label: 'y', e: y }], sol: 'A(' + x + ' ; ' + y + ')', _dbg: { type: 'lire', x: x, y: y } }; }
+            const onX = Math.random() < 0.5; const T = onX ? [nz(ri(-5, 5)), 0] : [0, nz(ri(-5, 5))];
+            const dec = () => [nz(ri(-5, 5)), nz(ri(-5, 5))];
+            let D1 = dec(), D2 = dec(); while (D1[0] === D2[0] && D1[1] === D2[1]) D2 = dec();
+            const arr = [T, D1, D2]; for (let i = arr.length - 1; i > 0; i--) { const j = ri(0, i); const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+            const labs = ['A', 'B', 'C']; const tl = labs[arr.indexOf(T)];
+            return { q: 'Un seul des points A, B et C est situé <strong>sur l’axe des ' + (onX ? 'x (abscisses)' : 'y (ordonnées)') + '</strong>. Lis ses coordonnées.', svg: gridSVG(arr.map((p, i) => [p[0], p[1], labs[i]])), fields: [{ label: 'x', e: T[0] }, { label: 'y', e: T[1] }], sol: tl + '(' + T[0] + ' ; ' + T[1] + ')', _dbg: { type: 'axe', T: T, onX: onX } };
+        }
+        if (L === 1) {
+            if (Math.random() < 0.5) { let xa = ri(-5, 5), ya = ri(-5, 5), xb = ri(-5, 5), yb = ri(-5, 5); while ((xa + xb) % 2 || (ya + yb) % 2 || (xa === xb && ya === yb)) { xb = ri(-5, 5); yb = ri(-5, 5); } return { q: 'Lis les coordonnées du milieu M du segment AB.', svg: gridSVG([[xa, ya, 'A'], [xb, yb, 'B']], false, [{ pts: [[xa, ya], [xb, yb]], dash: true }]), fields: [{ label: 'x', e: (xa + xb) / 2 }, { label: 'y', e: (ya + yb) / 2 }], sol: 'M(' + ((xa + xb) / 2) + ' ; ' + ((ya + yb) / 2) + ')', _dbg: { type: 'milieu', xa: xa, ya: ya, xb: xb, yb: yb } }; }
+            const horiz = Math.random() < 0.5; let A, B, dist;
+            if (horiz) { const y = ri(-4, 4), x1 = ri(-5, 1); dist = ri(2, 4 - Math.max(0, x1 - 1)); const x2 = Math.min(5, x1 + dist); A = [x1, y]; B = [x2, y]; dist = x2 - x1; }
+            else { const x = ri(-4, 4), y1 = ri(-5, 1); dist = ri(2, 4); const y2 = Math.min(5, y1 + dist); A = [x, y1]; B = [x, y2]; dist = y2 - y1; }
+            return { q: 'Les points A et B sont placés. Quelle est la <strong>distance AB</strong> (en unités) ?', svg: gridSVG([[A[0], A[1], 'A'], [B[0], B[1], 'B']], false, [{ pts: [A, B], dash: true }]), fields: [{ label: 'AB =', e: dist }], sol: 'AB = ' + dist + (horiz ? ' (même ordonnée : on compte les unités horizontales)' : ' (même abscisse : on compte les unités verticales)'), _dbg: { type: 'dist', A: A, B: B, dist: dist } };
+        }
+        if (Math.random() < 0.5) {
+            const x1 = ri(-5, 1), x2 = x1 + ri(2, 4), y1 = ri(-5, 1), y2 = y1 + ri(2, 4);
+            return { q: 'ABCD est un <strong>rectangle</strong> dont les côtés sont parallèles aux axes. Lis la figure et donne les coordonnées du sommet C.', svg: gridSVG([[x1, y1, 'A'], [x2, y1, 'B'], [x1, y2, 'D']]), fields: [{ label: 'x', e: x2 }, { label: 'y', e: y2 }], sol: 'C(' + x2 + ' ; ' + y2 + ')', _dbg: { type: 'rect4', x1: x1, x2: x2, y1: y1, y2: y2 } };
+        }
+        let xa = ri(-5, 5), ya = ri(-5, 5), xb = ri(-5, 5), yb = ri(-5, 5);
+        while (((xa + xb) % 2 === 0 && (ya + yb) % 2 === 0) || (xa === xb && ya === yb)) { xb = ri(-5, 5); yb = ri(-5, 5); }
+        return { q: 'Lis les coordonnées du milieu M du segment AB. (Réponse avec un nombre à virgule si nécessaire, p. ex. 2.5.)', svg: gridSVG([[xa, ya, 'A'], [xb, yb, 'B']], false, [{ pts: [[xa, ya], [xb, yb]], dash: true }]), fields: [{ label: 'x', e: (xa + xb) / 2 }, { label: 'y', e: (ya + yb) / 2 }], sol: 'M(' + ((xa + xb) / 2) + ' ; ' + ((ya + yb) / 2) + ')', _dbg: { type: 'milieu2', xa: xa, ya: ya, xb: xb, yb: yb } };
     }
     function genPlacerPoint(diff) { const L = lvl(diff); const r = L === 0 ? 4 : 5; const x = ri(-r, r), y = ri(-r, r); return { q: 'Place le point A(' + x + ' ; ' + y + ') dans le repère (clique sur le quadrillage).', interactive: 'point', target: { x, y }, svg: gridSVG([], true), sol: 'A(' + x + ' ; ' + y + ')' }; }
+    const d2 = (P, Q) => (P[0] - Q[0]) * (P[0] - Q[0]) + (P[1] - Q[1]) * (P[1] - Q[1]);
+    const crossV = (O, P, Q) => (P[0] - O[0]) * (Q[1] - O[1]) - (P[1] - O[1]) * (Q[0] - O[0]);
+    function quadCheck(pts, fn) {
+        if (pts.length !== 4) return false;
+        const ords = [[0, 1, 2, 3], [0, 1, 3, 2], [0, 2, 1, 3]];
+        for (let i = 0; i < 3; i++) { const p = ords[i].map(k => pts[k]); if (p[0][0] + p[2][0] === p[1][0] + p[3][0] && p[0][1] + p[2][1] === p[1][1] + p[3][1] && crossV(p[0], p[1], p[3]) !== 0 && fn(p)) return true; }
+        return false;
+    }
+    const okSquare = (pts, s2) => quadCheck(pts, p => d2(p[0], p[1]) === s2 && d2(p[1], p[2]) === s2 && d2(p[0], p[2]) === d2(p[1], p[3]));
+    const okRectDims = (pts, a2, b2) => quadCheck(pts, p => ((d2(p[0], p[1]) === a2 && d2(p[1], p[2]) === b2) || (d2(p[0], p[1]) === b2 && d2(p[1], p[2]) === a2)) && d2(p[0], p[2]) === d2(p[1], p[3]));
+    const okRectArea = (pts, ar) => quadCheck(pts, p => d2(p[0], p[2]) === d2(p[1], p[3]) && Math.abs(crossV(p[0], p[1], p[3])) === ar);
+    const okRhombus = (pts, s2) => quadCheck(pts, p => d2(p[0], p[1]) === s2 && d2(p[1], p[2]) === s2 && d2(p[0], p[2]) !== d2(p[1], p[3]));
+    const okSquareDiag = (A, B, P, Q) => P[0] + Q[0] === A[0] + B[0] && P[1] + Q[1] === A[1] + B[1] && d2(P, Q) === d2(A, B) && (B[0] - A[0]) * (Q[0] - P[0]) + (B[1] - A[1]) * (Q[1] - P[1]) === 0 && d2(P, Q) > 0;
+
+    function trDesc(u, v) { const w = []; if (u) w.push(Math.abs(u) + (Math.abs(u) > 1 ? ' unités' : ' unité') + ' vers la ' + (u > 0 ? 'droite' : 'gauche')); if (v) w.push(Math.abs(v) + (Math.abs(v) > 1 ? ' unités' : ' unité') + ' vers le ' + (v > 0 ? 'haut' : 'bas')); return 'la translation de ' + w.join(' et '); }
+    function genConstruction(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            const w = pick(['carre', 'rect', 'triR']);
+            if (w === 'carre') { const s = ri(2, 4); const A = [ri(-5, 5 - s), ri(-5, 5 - s)];
+                return { q: 'Le point A est placé. Construis un <strong>carré de côté ' + s + '</strong> dont A est un sommet : clique les 3 autres sommets.', interactive: 'poly', npts: 3, hint: 'Clique 3 points sur le quadrillage.', svg: gridSVG([[A[0], A[1], 'A']], true), _okP: P => okSquare([A].concat(P), s * s), outline: P => [A].concat(P), sol: 'p. ex. (' + (A[0] + s) + ' ; ' + A[1] + '), (' + (A[0] + s) + ' ; ' + (A[1] + s) + ') et (' + A[0] + ' ; ' + (A[1] + s) + ')', _dbg: { type: 'carre', s: s, A: A } }; }
+            if (w === 'rect') { const l = ri(3, 5), wd = ri(2, l - 1); const A = [ri(-5, 5 - l), ri(-5, 5 - wd)];
+                return { q: 'Le point A est placé. Construis un <strong>rectangle de ' + l + ' sur ' + wd + '</strong> dont A est un sommet : clique les 3 autres sommets.', interactive: 'poly', npts: 3, hint: 'Clique 3 points sur le quadrillage.', svg: gridSVG([[A[0], A[1], 'A']], true), _okP: P => okRectDims([A].concat(P), wd * wd, l * l), outline: P => [A].concat(P), sol: 'p. ex. (' + (A[0] + l) + ' ; ' + A[1] + '), (' + (A[0] + l) + ' ; ' + (A[1] + wd) + ') et (' + A[0] + ' ; ' + (A[1] + wd) + ')', _dbg: { type: 'rect', l: l, w: wd, A: A } }; }
+            const a = ri(2, 4), b = ri(2, 4); const A = [ri(-1, 1), ri(-1, 1)];
+            return { q: 'Le point A est placé. Construis un <strong>triangle rectangle en A</strong> dont les côtés de l’angle droit mesurent ' + a + ' et ' + b + ' : clique les 2 autres sommets.', interactive: 'poly', npts: 2, hint: 'Clique 2 points sur le quadrillage.', svg: gridSVG([[A[0], A[1], 'A']], true), _okP: P => { if (P.length !== 2) return false; const dB = d2(A, P[0]), dC = d2(A, P[1]); const dot = (P[0][0] - A[0]) * (P[1][0] - A[0]) + (P[0][1] - A[1]) * (P[1][1] - A[1]); return dot === 0 && ((dB === a * a && dC === b * b) || (dB === b * b && dC === a * a)); }, outline: P => [P[0], A, P[1]], sol: 'p. ex. (' + (A[0] + a) + ' ; ' + A[1] + ') et (' + A[0] + ' ; ' + (A[1] + b) + ')', _dbg: { type: 'triR', a: a, b: b, A: A } };
+        }
+        if (L === 1) {
+            const w = pick(['carreA', 'rectA', 'isoC']);
+            if (w === 'carreA') { const X = pick([4, 9, 16, 25]); const c = Math.round(Math.sqrt(X));
+                return { q: 'Construis un <strong>carré d’aire ' + X + '</strong> unités² : clique ses 4 sommets.', interactive: 'poly', npts: 4, hint: 'Clique 4 points sur le quadrillage.', svg: gridSVG([], true), _okP: P => okSquare(P, X), outline: P => P, sol: 'côté ' + c + ', p. ex. (0 ; 0), (' + c + ' ; 0), (' + c + ' ; ' + c + ') et (0 ; ' + c + ')', _dbg: { type: 'carreA', X: X } }; }
+            if (w === 'rectA') { const X = pick([6, 8, 12]);
+                return { q: 'Construis un <strong>rectangle d’aire ' + X + '</strong> unités² : clique ses 4 sommets. (Plusieurs réponses possibles !)', interactive: 'poly', npts: 4, hint: 'Clique 4 points sur le quadrillage.', svg: gridSVG([], true), _okP: P => okRectArea(P, X), outline: P => P, sol: 'p. ex. 2 × ' + (X / 2) + ' : (0 ; 0), (' + (X / 2) + ' ; 0), (' + (X / 2) + ' ; 2) et (0 ; 2)', _dbg: { type: 'rectA', X: X } }; }
+            const k = ri(1, 2), ax = ri(-4, 5 - 2 * k - 1), ay = ri(-4, 4); const A = [ax, ay], B = [ax + 2 * k, ay];
+            return { q: 'Le segment [AB] est dessiné. Construis un <strong>triangle isocèle</strong> de base [AB] : clique le sommet C (avec CA = CB).', interactive: 'poly', npts: 1, hint: 'Clique 1 point sur le quadrillage.', svg: gridSVG([[A[0], A[1], 'A'], [B[0], B[1], 'B']], true, [{ pts: [A, B] }]), _okP: P => P.length === 1 && d2(P[0], A) === d2(P[0], B) && crossV(A, B, P[0]) !== 0, outline: P => [A, B, P[0]], sol: 'tout point de la médiatrice de [AB], p. ex. (' + (ax + k) + ' ; ' + (ay + 2) + ')', _dbg: { type: 'isoC', A: A, B: B, k: k } };
+        }
+        const w = pick(['losange', 'carreDiag', 'triAire']);
+        if (w === 'losange') {
+            return { q: 'Construis un <strong>losange</strong> (qui n’est <strong>pas</strong> un carré) dont les 4 côtés mesurent exactement <strong>5</strong> unités : clique ses 4 sommets.', interactive: 'poly', npts: 4, hint: 'Clique 4 points sur le quadrillage.', svg: gridSVG([], true), _okP: P => okRhombus(P, 25), outline: P => P, sol: 'p. ex. (−4 ; −2), (1 ; −2), (4 ; 2) et (−1 ; 2) — côtés (5 ; 0) et (3 ; 4)', _dbg: { type: 'losange' } };
+        }
+        if (w === 'carreDiag') {
+            let A, B, P, Q, g = 0;
+            do { const hx = ri(1, 2), hy = ri(-2, 2); A = [ri(-3, 1), ri(-3, 1)]; B = [A[0] + 2 * hx, A[1] + 2 * hy]; const M = [A[0] + hx, A[1] + hy]; P = [M[0] - hy, M[1] + hx]; Q = [M[0] + hy, M[1] - hx]; g++; } while ((Math.abs(B[0]) > 5 || Math.abs(B[1]) > 5 || Math.abs(P[0]) > 5 || Math.abs(P[1]) > 5 || Math.abs(Q[0]) > 5 || Math.abs(Q[1]) > 5 || d2(A, B) < 8) && g < 120);
+            return { q: 'Le segment [AB] est dessiné. Construis le <strong>carré dont [AB] est une diagonale</strong> : clique les 2 sommets manquants.', interactive: 'poly', npts: 2, hint: 'Clique 2 points sur le quadrillage.', svg: gridSVG([[A[0], A[1], 'A'], [B[0], B[1], 'B']], true, [{ pts: [A, B], dash: true }]), _okP: Pts => Pts.length === 2 && okSquareDiag(A, B, Pts[0], Pts[1]), outline: Pts => [A, Pts[0], B, Pts[1]], sol: '(' + P[0] + ' ; ' + P[1] + ') et (' + Q[0] + ' ; ' + Q[1] + ')', _dbg: { type: 'carreDiag', A: A, B: B, P: P, Q: Q } };
+        }
+        const X = pick([4, 6, 8, 10]);
+        return { q: 'Construis un <strong>triangle d’aire ' + X + '</strong> unités² : clique ses 3 sommets. (Plusieurs réponses possibles !)', interactive: 'poly', npts: 3, hint: 'Clique 3 points sur le quadrillage.', svg: gridSVG([], true), _okP: P => P.length === 3 && Math.abs(crossV(P[0], P[1], P[2])) === 2 * X, outline: P => P, sol: 'p. ex. base 4 et hauteur ' + (X / 2) + ' : (−2 ; −2), (2 ; −2) et (−2 ; ' + (-2 + X / 2) + ')', _dbg: { type: 'triAire', X: X } };
+    }
     function genImageTransfo(diff) {
-        const L = lvl(diff); let x, y, td, im, g = 0;
-        do { x = nz(ri(-5, 5)); y = nz(ri(-5, 5));
-            if (L === 0) { const t = pick([['ox', 'la symétrie d’axe Ox'], ['oy', 'la symétrie d’axe Oy'], ['cO', 'la symétrie centrale de centre O']]); td = t[1]; im = applyT(t[0], x, y); }
-            else if (L === 1) { if (Math.random() < 0.5) { const u = ri(-4, 4), v = ri(-4, 4); td = 'la translation de vecteur (' + u + ' ; ' + v + ')'; im = [x + u, y + v]; } else { const t = pick([['r180', 'la rotation de 180° autour de O'], ['r90', 'la rotation de 90° (anti-horaire) autour de O']]); td = t[1]; im = applyT(t[0], x, y); } }
-            else { const t = pick([['r90', 'la rotation de 90° (anti-horaire) autour de O'], ['r-90', 'la rotation de 90° (horaire) autour de O']]); td = t[1]; im = applyT(t[0], x, y); }
+        const L = lvl(diff);
+        const n = L === 2 ? 4 : 3;
+        let pts = null, im = null, td = '', code = '', g = 0;
+        while (g < 400) {
             g++;
-        } while ((Math.abs(im[0]) > 5 || Math.abs(im[1]) > 5 || (im[0] === x && im[1] === y)) && g < 60);
-        return { q: 'Place l’image A′ du point A(' + x + ' ; ' + y + ') par ' + td + ' (clique sur le quadrillage).', interactive: 'point', target: { x: im[0], y: im[1] }, svg: gridSVG([[x, y, 'A']], true), sol: 'A′(' + im[0] + ' ; ' + im[1] + ')' };
+            if (n === 3) { const x0 = ri(-4, 1), y0 = ri(-4, 1); pts = [[x0, y0], [x0 + ri(2, 3), y0 + ri(-1, 1)], [x0 + ri(0, 1), y0 + ri(2, 3)]]; }
+            else { const x0 = ri(-4, 0), y0 = ri(-4, 0); const w = ri(2, 3), h = ri(2, 3), t1 = ri(-1, 1), t2 = ri(-1, 1); if (w + t2 - t1 < 1) continue; pts = [[x0, y0], [x0 + w, y0], [x0 + w + t2, y0 + h], [x0 + t1, y0 + h]]; }
+            let f;
+            if (L === 0) { const c = pick(['ox', 'oy', 'tr']);
+                if (c === 'tr') { const u = ri(-3, 3), v = ri(-3, 3); if (!u && !v) continue; td = trDesc(u, v); f = p => [p[0] + u, p[1] + v]; code = 'tr ' + u + ',' + v; }
+                else if (c === 'ox') { td = 'la symétrie d’axe Ox (l’axe horizontal)'; f = p => [p[0], -p[1]]; code = 'ox'; }
+                else { td = 'la symétrie d’axe Oy (l’axe vertical)'; f = p => [-p[0], p[1]]; code = 'oy'; }
+            } else if (L === 1) { const c = pick(['cO', 'r90', 'r-90']);
+                if (c === 'cO') { td = 'la symétrie centrale de centre O'; f = p => [-p[0], -p[1]]; code = 'cO'; }
+                else if (c === 'r90') { td = 'la rotation de 90° autour de O (sens anti-horaire)'; f = p => [-p[1], p[0]]; code = 'r90'; }
+                else { td = 'la rotation de 90° autour de O (sens horaire)'; f = p => [p[1], -p[0]]; code = 'r-90'; }
+            } else { const c = pick(['r90', 'r-90', 'compo']);
+                if (c === 'r90') { td = 'la rotation de 90° autour de O (sens anti-horaire)'; f = p => [-p[1], p[0]]; code = 'r90'; }
+                else if (c === 'r-90') { td = 'la rotation de 90° autour de O (sens horaire)'; f = p => [p[1], -p[0]]; code = 'r-90'; }
+                else { const ax = pick(['ox', 'oy']); const u = ri(-2, 2), v = ri(-2, 2); if (!u && !v) continue; td = 'la symétrie d’axe O' + (ax === 'ox' ? 'x' : 'y') + ', <strong>puis</strong> ' + trDesc(u, v); f = ax === 'ox' ? (p => [p[0] + u, -p[1] + v]) : (p => [-p[0] + u, p[1] + v]); code = 'compo ' + ax + ' ' + u + ',' + v; }
+            }
+            im = pts.map(f);
+            const inR = a => a.every(p => Math.abs(p[0]) <= 5 && Math.abs(p[1]) <= 5);
+            const allDiff = im.every((p, i) => p[0] !== pts[i][0] || p[1] !== pts[i][1]);
+            if (inR(pts) && inR(im) && allDiff) break;
+            pts = null;
+        }
+        const labs = n === 4 ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C'];
+        const name = labs.join('');
+        return { q: 'Le polygone ' + name + ' est dessiné. Construis son image par <strong>' + td + '</strong> : clique, dans l’ordre, ' + labs.map(l => l + '′').join(', ') + '.', interactive: 'mpoint', npts: n, targets: im, labels: labs.map(l => l + '′'), hint: 'Clique les ' + n + ' sommets images, dans l’ordre.', svg: gridSVG(pts.map((p, i) => [p[0], p[1], labs[i]]), true, [{ pts: pts, closed: true }]), sol: im.map((p, i) => labs[i] + '′(' + p[0] + ' ; ' + p[1] + ')').join(', '), _dbg: { type: 'imgT', code: code, pts: pts, im: im, n: n } };
     }
     function genMilieu(diff) {
         const L = lvl(diff);
@@ -821,7 +912,7 @@
         const a = pick([-1, 1]); let h, kk, b, c, P, g = 0; do { h = ri(-2, 2); kk = ri(-3, 2); b = -2 * a * h; c = a * h * h + kk; P = [-1, 0, 1].map(x => [x, a * x * x + b * x + c]); g++; } while ((P.some(p => Math.abs(p[1]) > 5) || Math.abs(b) > 5 || Math.abs(c) > 5) && g < 80); return { q: 'Règle a, b et c pour que la parabole y = ax² + bx + c passe par A(' + P[0][0] + ' ; ' + P[0][1] + '), B(' + P[1][0] + ' ; ' + P[1][1] + ') et C(' + P[2][0] + ' ; ' + P[2][1] + ').', interactive: 'slider', parab: true, target: { a: a, b: b, c: c }, pts: P, svg: sliderGridSVG(P), sol: 'a = ' + a + ' , b = ' + b + ' , c = ' + c };
     }
 
-    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, construction: genConstruction, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
@@ -858,10 +949,11 @@
         { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', years: [9, 10, 11], ds: 'Lire un diagramme en barres', vis: 1 },
         { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', years: [9, 10, 11], ds: 'Triangle, opposés, inscrit, alternes-internes', vis: 1 },
         { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', years: [9, 10, 11], ds: 'Symétries, rotations, homothétie' },
-        { id: 'coordonnees', dom: 'ES', nm: 'Lire des coordonnées', icon: 'fa-location-dot', years: [9, 10, 11], ds: 'Point, milieu, vecteur', vis: 1 },
+        { id: 'coordonnees', dom: 'ES', nm: 'Lire des coordonnées', icon: 'fa-location-dot', years: [9, 10, 11], ds: 'Point, axes, milieu, distances', vis: 1 },
         { id: 'placer_point', dom: 'ES', nm: 'Placer un point', icon: 'fa-crosshairs', years: [9, 10, 11], ds: 'Clique dans le repère', inter: 1 },
-        { id: 'image_transfo', dom: 'ES', nm: 'Image par une transformation', icon: 'fa-copy', years: [10, 11], ds: 'Clique l’image (symétrie, rotation…)', inter: 1 },
+        { id: 'image_transfo', dom: 'ES', nm: 'Image par une transformation', icon: 'fa-copy', years: [9, 10, 11], ds: 'Construis l’image d’un polygone', inter: 1 },
         { id: 'milieu', dom: 'ES', nm: 'Milieu & parallélogramme', icon: 'fa-bullseye', years: [9, 10, 11], ds: 'Clique le milieu ou le 4ᵉ sommet', inter: 1 },
+        { id: 'construction', dom: 'ES', nm: 'Construction géométrique', icon: 'fa-shapes', years: [9, 10, 11], ds: 'Construis carrés, losanges, triangles…', inter: 1 },
         { id: 'solides', dom: 'ES', nm: 'Solides', icon: 'fa-cube', years: [9, 10, 11], ds: 'Faces, arêtes, sommets, Euler' },
         { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', years: [9, 10], ds: 'Polygones et disque' },
         { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', years: [9, 10, 11], ds: 'Du cube au cylindre' },
@@ -895,7 +987,7 @@
         $('domains').querySelectorAll('.mx-card').forEach(c => c.addEventListener('click', () => selectTheme(c.dataset.id)));
     }
 
-    function exSig(ex) { if (ex.interactive) return ex.q + JSON.stringify(ex.target); return ex.q + '#' + (ex.svg || '') + '#' + ex.fields.map(f => f.type ? (f.base + '/' + f.exp + '/' + f.coef + '/' + f.rad) : f.e).join(','); }
+    function exSig(ex) { if (ex.interactive) return ex.q + '#' + (ex.svg || '') + '#' + JSON.stringify(ex.target || ex.targets || 0); return ex.q + '#' + (ex.svg || '') + '#' + ex.fields.map(f => f.type ? (f.base + '/' + f.exp + '/' + f.coef + '/' + f.rad) : f.e).join(','); }
     function makeSeries(id, n) { const gen = GENS[id], arr = [], seen = new Set(); let guard = 0; while (arr.length < n && guard < n * 60) { guard++; const ex = gen(curDiff); const k = exSig(ex); if (seen.has(k)) continue; seen.add(k); arr.push(ex); } return arr; }
 
     function fieldType(f) { return f.type === 'expr' ? 'expr' : f.type === 'pownum' ? 'pownum' : f.type === 'root' ? 'root' : (f.frac ? 'frac' : 'num'); }
@@ -929,6 +1021,8 @@
                 body = '<div class="mx-sliders" style="grid-column:2">' + sl + vbtn + '</div>';
             } else if (ex.interactive === 'angle') {
                 body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">Clique sur le bon angle dans la figure.</span> ' + vbtn + '</div>';
+            } else if (ex.interactive === 'mpoint' || ex.interactive === 'poly') {
+                body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">' + ex.hint + '</span> ' + vbtn + '</div>';
             } else {
                 body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
@@ -962,6 +1056,20 @@
             } else if (ex.interactive === 'angle') {
                 const svg = el.querySelector('.mx-ang-hit'); if (!svg) return;
                 svg.addEventListener('click', e => { const rect = svg.getBoundingClientRect(), vb = svg.getAttribute('viewBox').split(' '), vbW = parseFloat(vb[2]); const X = (e.clientX - rect.left) / rect.width * vbW, Y = (e.clientY - rect.top) / rect.width * vbW; let best = -1, bd = 1e9, bh = null; ex.hit.forEach(h => { const d = (h.x - X) * (h.x - X) + (h.y - Y) * (h.y - Y); if (d < bd) { bd = d; best = h.i; bh = h; } }); ex._sel = best; svg.querySelector('.mx-ang-mark').innerHTML = '<polygon points="' + bh.vx.toFixed(1) + ',' + bh.vy.toFixed(1) + ' ' + arcPoly(bh.vx, bh.vy, 18, bh.a0, bh.a1) + '" fill="#EF4444" fill-opacity="0.3"/><polyline points="' + arcPoly(bh.vx, bh.vy, 15, bh.a0, bh.a1) + '" fill="none" stroke="#DC2626" stroke-width="3"/>'; });
+            } else if (ex.interactive === 'mpoint' || ex.interactive === 'poly') {
+                const svg = el.querySelector('.mx-grid-hit'); if (!svg) return; ex._cl = [];
+                svg.addEventListener('click', e => {
+                    const c = cellFromClick(svg, e);
+                    if (ex._cl.length >= ex.npts) ex._cl = [];
+                    ex._cl.push({ x: c.mx, y: c.my });
+                    const px = x => c.cx + x * c.s, py = y => c.cy - y * c.s; let h = '';
+                    if (ex._cl.length === ex.npts) {
+                        const ol = ex.outline ? ex.outline(ex._cl.map(p => [p.x, p.y])) : ex._cl.map(p => [p.x, p.y]);
+                        if (ol && ol.length >= 2) h += '<poly' + (ol.length >= 3 ? 'gon' : 'line') + ' points="' + ol.map(p => px(p[0]) + ',' + py(p[1])).join(' ') + '" fill="' + (ol.length >= 3 ? '#EF4444' : 'none') + '"' + (ol.length >= 3 ? ' fill-opacity="0.12"' : '') + ' stroke="#EF4444" stroke-width="2"/>';
+                    }
+                    ex._cl.forEach((p, j) => { h += '<circle cx="' + px(p.x) + '" cy="' + py(p.y) + '" r="5" fill="#EF4444"/>'; if (ex.labels && ex.labels[j]) h += '<text x="' + (px(p.x) + 6) + '" y="' + (py(p.y) - 6) + '" font-size="11" font-weight="700" fill="#B91C1C">' + ex.labels[j] + '</text>'; });
+                    svg.querySelector('.mx-mark').innerHTML = h;
+                });
             }
         });
     }
@@ -987,6 +1095,8 @@
         else if (ex.interactive === 'parab') allOk = ex._ok3 ? ex._ok3(ex._pp && ex._pp[0], ex._pp && ex._pp[1], ex._pp && ex._pp[2]) : false;
         else if (ex.interactive === 'slider') allOk = ex._a === ex.target.a && ex._b === ex.target.b && (ex.parab ? ex._c === ex.target.c : true);
         else if (ex.interactive === 'angle') allOk = ex._sel === ex.correct;
+        else if (ex.interactive === 'mpoint') allOk = !!ex._cl && ex._cl.length === ex.npts && ex.targets.every((t, j) => ex._cl[j].x === t[0] && ex._cl[j].y === t[1]);
+        else if (ex.interactive === 'poly') allOk = !!ex._cl && ex._cl.length === ex.npts && ex._okP(ex._cl.map(p => [p.x, p.y]));
         else ex.fields.forEach((f, j) => { const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]'); const ok = checkField(f, inp.value); inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko'); if (!ok) allOk = false; });
         return allOk;
     }
