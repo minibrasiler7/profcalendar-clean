@@ -59,6 +59,7 @@
     .mx-grid-svg { display: block; width: 270px; max-width: 100%; height: auto; margin: 0.5rem 0; background: #fff; border: 1px solid #EEF0F3; border-radius: 0.5rem; }
     .mx-grid-hit { cursor: crosshair; }
     .mx-ang-hit { cursor: pointer; }
+    .mx-cells-hit { cursor: pointer; }
     .mx-fields { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 0.5rem; }
     .mx-fld { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.92rem; color: #4B5563; }
     .mx-input { width: 86px; padding: 0.42rem 0.5rem; border: 1.5px solid #D1D5DB; border-radius: 0.42rem; font-size: 0.98rem; text-align: center; font-variant-numeric: tabular-nums; }
@@ -870,14 +871,331 @@
         const opt = pick([['cône', 1], ['cylindre', 0], ['sphère', 0]]); return { q: 'Combien de sommets a un ' + opt[0] + ' ?', fields: [{ label: 'sommets =', e: opt[1] }], sol: opt[1] + ' sommet' + (opt[1] > 1 ? 's' : '') };
     }
 
-    function genAires() { const T = [() => { const L = ri(3, 15), l = ri(2, 12); return { q: 'Aire d’un rectangle de ' + L + ' cm sur ' + l + ' cm ?', e: L * l, lab: 'aire (cm²)', sol: L + ' × ' + l + ' = ' + (L * l) + ' cm²' }; }, () => { const b = ri(2, 14), h = pick([2, 4, 6, 8, 10, 12]); return { q: 'Aire d’un triangle de base ' + b + ' cm et hauteur ' + h + ' cm ?', e: b * h / 2, lab: 'aire (cm²)', sol: '(' + b + ' × ' + h + ') ÷ 2 = ' + (b * h / 2) + ' cm²' }; }, () => { const b = ri(3, 12), h = ri(2, 10); return { q: 'Aire d’un parallélogramme de base ' + b + ' cm et hauteur ' + h + ' cm ?', e: b * h, lab: 'aire (cm²)', sol: b + ' × ' + h + ' = ' + (b * h) + ' cm²' }; }, () => { const D = pick([4, 6, 8, 10, 12]), d = pick([2, 4, 6, 8]); return { q: 'Aire d’un losange de diagonales ' + D + ' cm et ' + d + ' cm ?', e: D * d / 2, lab: 'aire (cm²)', sol: '(' + D + ' × ' + d + ') ÷ 2 = ' + (D * d / 2) + ' cm²' }; }, () => { const r = ri(2, 12); return { q: 'Aire d’un disque de rayon ' + r + ' cm ? (donne le coefficient de π)', e: r * r, lab: '× π cm²', sol: 'π·r² = ' + (r * r) + 'π cm²' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
-    function genVolumes() { const T = [() => { const a = ri(2, 8); return { q: 'Volume d’un cube d’arête ' + a + ' cm ?', e: a * a * a, lab: 'V (cm³)', sol: a + '³ = ' + (a * a * a) + ' cm³' }; }, () => { const L = ri(2, 9), l = ri(2, 8), h = ri(2, 8); return { q: 'Volume d’un pavé droit ' + L + ' × ' + l + ' × ' + h + ' cm ?', e: L * l * h, lab: 'V (cm³)', sol: L + ' × ' + l + ' × ' + h + ' = ' + (L * l * h) + ' cm³' }; }, () => { const A = ri(6, 30), h = ri(2, 9); return { q: 'Volume d’un prisme droit, aire de base ' + A + ' cm², hauteur ' + h + ' cm ?', e: A * h, lab: 'V (cm³)', sol: A + ' × ' + h + ' = ' + (A * h) + ' cm³' }; }, () => { const r = ri(2, 8), h = ri(2, 9); return { q: 'Volume d’un cylindre de rayon ' + r + ' cm et hauteur ' + h + ' cm ? (coefficient de π)', e: r * r * h, lab: '× π cm³', sol: 'π·r²·h = ' + (r * r * h) + 'π cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
-    function genPythagore() { const tr = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [20, 21, 29], [9, 40, 41], [12, 16, 20]]; const t = pick(tr); if (Math.random() < 0.6) return { q: 'Triangle rectangle : cathètes ' + t[0] + ' cm et ' + t[1] + ' cm. Calcule l’hypoténuse.', svg: rtTriangleSVG(t[0] + ' cm', t[1] + ' cm', '?'), fields: [{ label: 'hypoténuse (cm)', e: t[2] }], sol: 'h = √(' + t[0] + '² + ' + t[1] + '²) = √' + (t[0] * t[0] + t[1] * t[1]) + ' = ' + t[2] + ' cm' }; return { q: 'Triangle rectangle : hypoténuse ' + t[2] + ' cm, une cathète ' + t[0] + ' cm. Calcule l’autre cathète.', svg: rtTriangleSVG(t[0] + ' cm', '?', t[2] + ' cm'), fields: [{ label: 'cathète (cm)', e: t[1] }], sol: 'c = √(' + t[2] + '² ' + M + ' ' + t[0] + '²) = √' + (t[2] * t[2] - t[0] * t[0]) + ' = ' + t[1] + ' cm' }; }
-    function genThales() { const k = pick([2, 3, 4, 5]), AM = ri(2, 6), AB = AM * k, AN = ri(2, 6), AC = AN * k; return { q: 'Configuration de Thalès (droites parallèles) : AM = ' + AM + ', AB = ' + AB + ', AN = ' + AN + '. Calcule AC.', fields: [{ label: 'AC', e: AC }], sol: 'AC = AN × (AB ÷ AM) = ' + AN + ' × ' + k + ' = ' + AC }; }
-    function genTrigo() { const ang = pick([30, 45, 60]), hyp = ri(6, 20), rad = ang * Math.PI / 180; if (Math.random() < 0.5) { const opp = Math.round(hyp * Math.sin(rad) * 10) / 10; return { q: 'Triangle rectangle : hypoténuse ' + hyp + ' cm, angle ' + ang + '°. Côté opposé à l’angle (au dixième) ?', fields: [{ label: 'opposé (cm)', e: opp, tol: 0.15 }], sol: 'opposé = ' + hyp + '·sin(' + ang + '°) ≈ ' + opp + ' cm' }; } const adj = Math.round(hyp * Math.cos(rad) * 10) / 10; return { q: 'Triangle rectangle : hypoténuse ' + hyp + ' cm, angle ' + ang + '°. Côté adjacent à l’angle (au dixième) ?', fields: [{ label: 'adjacent (cm)', e: adj, tol: 0.15 }], sol: 'adjacent = ' + hyp + '·cos(' + ang + '°) ≈ ' + adj + ' cm' }; }
-    function genConversions() { const units = [['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'mm', 1000], ['kg', 'g', 1000], ['L', 'cL', 100]]; const u = pick(units); if (Math.random() < 0.5) { const v = ri(1, 50) / (Math.random() < 0.4 ? 2 : 1); return { q: 'Convertis : ' + v + ' ' + u[0] + ' = ? ' + u[1], fields: [{ label: u[1], e: v * u[2] }], sol: v + ' × ' + u[2] + ' = ' + (v * u[2]) + ' ' + u[1] }; } const v = ri(1, 50) * u[2]; return { q: 'Convertis : ' + v + ' ' + u[1] + ' = ? ' + u[0], fields: [{ label: u[0], e: v / u[2] }], sol: v + ' ÷ ' + u[2] + ' = ' + (v / u[2]) + ' ' + u[0] }; }
-    function genConversionsAV() { const T = [() => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m² = ? dm²', e: v * 100, lab: 'dm²', sol: v + ' × 100 = ' + (v * 100) + ' dm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' cm² = ? mm²', e: v * 100, lab: 'mm²', sol: v + ' × 100 = ' + (v * 100) + ' mm²' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' dm³ = ? L (1 dm³ = 1 L)', e: v, lab: 'L', sol: v + ' dm³ = ' + v + ' L' }; }, () => { const v = ri(2, 40); return { q: 'Convertis : ' + v + ' m³ = ? L', e: v * 1000, lab: 'L', sol: v + ' × 1000 = ' + (v * 1000) + ' L' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
-    function genGrandeurs() { const T = [() => { const v = ri(20, 120), t = ri(2, 6); return { q: 'Une voiture roule à ' + v + ' km/h pendant ' + t + ' h. Distance parcourue ?', e: v * t, lab: 'distance (km)', sol: v + ' × ' + t + ' = ' + (v * t) + ' km' }; }, () => { const d = ri(2, 12) * 10, t = ri(2, 5); return { q: 'On parcourt ' + d + ' km en ' + t + ' h. Vitesse moyenne ?', e: d / t, lab: 'vitesse (km/h)', sol: d + ' ÷ ' + t + ' = ' + (d / t) + ' km/h' }; }, () => { const rho = ri(2, 20), V = ri(2, 10); return { q: 'Un objet de masse ' + (rho * V) + ' g occupe ' + V + ' cm³. Masse volumique ?', e: rho, lab: 'ρ (g/cm³)', sol: (rho * V) + ' ÷ ' + V + ' = ' + rho + ' g/cm³' }; }]; const t = pick(T)(); return { q: t.q, fields: [{ label: t.lab, e: t.e }], sol: t.sol }; }
+    const fcm = v => String(v).replace('.', ',');
+    function dimFigSVG(kind, o) {
+        const GR = '#059669', GF = '#ECFDF5', TX = '#065F46';
+        const lab = (x, y, t, rot) => '<text x="' + x + '" y="' + y + '" font-size="12" font-weight="600" text-anchor="middle" fill="' + TX + '"' + (rot ? ' transform="rotate(' + rot + ' ' + x + ' ' + y + ')"' : '') + '>' + t + '</text>';
+        if (kind === 'rect') { const u = Math.min(150 / o.L, 92 / o.l), w = o.L * u, h = o.l * u, x = (214 - w) / 2, y = (118 - h) / 2;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/>' + lab(x + w / 2, y + h + 16, o.L + ' cm') + lab(x + w + 14, y + h / 2 + 4, o.l + ' cm', -90) + '</svg>'; }
+        if (kind === 'tri') { const u = Math.min(150 / o.b, 86 / o.h), bw = o.b * u, hh = o.h * u, x = (214 - bw) / 2, yb = 108, ax = x + bw * 0.62;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><polygon points="' + x + ',' + yb + ' ' + (x + bw) + ',' + yb + ' ' + ax + ',' + (yb - hh) + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + ax + '" y1="' + (yb - hh) + '" x2="' + ax + '" y2="' + yb + '" stroke="' + TX + '" stroke-width="1.4" stroke-dasharray="5 3"/><rect x="' + (ax - 8) + '" y="' + (yb - 8) + '" width="8" height="8" fill="none" stroke="#94A3B8" stroke-width="1"/>' + lab(x + bw / 2, yb + 16, o.b + ' cm') + lab(ax + 16, yb - hh / 2 + 4, o.h + ' cm', -90) + '</svg>'; }
+        if (kind === 'para') { const u = Math.min(132 / o.b, 80 / o.h), bw = o.b * u, hh = o.h * u, sk = 26, x = (214 - bw - sk) / 2, yb = 104;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><polygon points="' + x + ',' + yb + ' ' + (x + bw) + ',' + yb + ' ' + (x + bw + sk) + ',' + (yb - hh) + ' ' + (x + sk) + ',' + (yb - hh) + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (x + sk + 12) + '" y1="' + (yb - hh) + '" x2="' + (x + sk + 12) + '" y2="' + yb + '" stroke="' + TX + '" stroke-width="1.4" stroke-dasharray="5 3"/>' + lab(x + bw / 2, yb + 16, o.b + ' cm') + lab(x + sk + 26, yb - hh / 2 + 4, o.h + ' cm', -90) + '</svg>'; }
+        if (kind === 'trap') { const u = Math.min(150 / o.B, 78 / o.h), Bw = o.B * u, bw = o.b * u, hh = o.h * u, x = (214 - Bw) / 2, yb = 104, xt = x + (Bw - bw) * 0.55;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><polygon points="' + x + ',' + yb + ' ' + (x + Bw) + ',' + yb + ' ' + (xt + bw) + ',' + (yb - hh) + ' ' + xt + ',' + (yb - hh) + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (xt + bw * 0.5) + '" y1="' + (yb - hh) + '" x2="' + (xt + bw * 0.5) + '" y2="' + yb + '" stroke="' + TX + '" stroke-width="1.4" stroke-dasharray="5 3"/>' + lab(x + Bw / 2, yb + 16, o.B + ' cm') + lab(xt + bw / 2, yb - hh - 6, o.b + ' cm') + lab(xt + bw * 0.5 + 16, yb - hh / 2 + 4, o.h + ' cm', -90) + '</svg>'; }
+        if (kind === 'los') { const u = Math.min(150 / o.D, 92 / o.d), Dw = o.D * u, dh = o.d * u, cx = 107, cy = 62;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><polygon points="' + (cx - Dw / 2) + ',' + cy + ' ' + cx + ',' + (cy - dh / 2) + ' ' + (cx + Dw / 2) + ',' + cy + ' ' + cx + ',' + (cy + dh / 2) + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (cx - Dw / 2) + '" y1="' + cy + '" x2="' + (cx + Dw / 2) + '" y2="' + cy + '" stroke="' + TX + '" stroke-width="1.3" stroke-dasharray="5 3"/><line x1="' + cx + '" y1="' + (cy - dh / 2) + '" x2="' + cx + '" y2="' + (cy + dh / 2) + '" stroke="' + TX + '" stroke-width="1.3" stroke-dasharray="5 3"/>' + lab(cx, cy + dh / 2 + 16, 'D = ' + o.D + ' cm') + lab(cx + 30, cy - 6, 'd = ' + o.d + ' cm') + '</svg>'; }
+        if (kind === 'circ') { const r = 44;
+            return '<svg class="mx-fig" viewBox="0 0 214 132"><circle cx="107" cy="62" r="' + r + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><line x1="107" y1="62" x2="' + (107 + r) + '" y2="62" stroke="' + TX + '" stroke-width="1.6"/><circle cx="107" cy="62" r="2.4" fill="' + TX + '"/>' + lab(107 + r / 2, 56, 'r = ' + o.r + ' cm') + '</svg>'; }
+        // 'L' composite: outer a×b minus top-right notch c×d
+        const u = Math.min(140 / o.a, 92 / o.b), aw = o.a * u, bh = o.b * u, cw = o.c * u, dh = o.d * u, x = (214 - aw) / 2, yT = (118 - bh) / 2, yB = yT + bh;
+        let s = '<svg class="mx-fig" viewBox="0 0 214 140"><polygon points="' + x + ',' + yB + ' ' + (x + aw) + ',' + yB + ' ' + (x + aw) + ',' + (yT + dh) + ' ' + (x + aw - cw) + ',' + (yT + dh) + ' ' + (x + aw - cw) + ',' + yT + ' ' + x + ',' + yT + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/>';
+        s += lab(x + aw / 2, yB + 16, o.a + ' cm') + lab(x - 13, yT + bh / 2 + 4, o.b + ' cm', -90) + lab(x + aw - cw / 2, yT + dh + 14, o.c + ' cm') + lab(x + aw + 13, yT + dh / 2 + 4, o.d + ' cm', -90);
+        return s + '</svg>';
+    }
+    function solidSVG(kind, o) {
+        const GR = '#059669', GF = '#ECFDF5', GD = '#A7F3D0', TX = '#065F46';
+        const lab = (x, y, t, rot) => '<text x="' + x + '" y="' + y + '" font-size="11.5" font-weight="600" text-anchor="middle" fill="' + TX + '"' + (rot ? ' transform="rotate(' + rot + ' ' + x + ' ' + y + ')"' : '') + '>' + t + '</text>';
+        if (kind === 'cube' || kind === 'pave') {
+            const dims = kind === 'cube' ? [o.a, o.a, o.a] : [o.L, o.l, o.h]; const mx = Math.max(dims[0], dims[2]);
+            const w = dims[0] / mx * 86, h = dims[2] / mx * 86, dp = 30, x = 48, yB = 116, yT = yB - h;
+            let s = '<svg class="mx-fig" viewBox="0 0 214 142">';
+            s += '<polygon points="' + x + ',' + yT + ' ' + (x + dp) + ',' + (yT - 18) + ' ' + (x + w + dp) + ',' + (yT - 18) + ' ' + (x + w) + ',' + yT + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<polygon points="' + (x + w) + ',' + yT + ' ' + (x + w + dp) + ',' + (yT - 18) + ' ' + (x + w + dp) + ',' + (yB - 18) + ' ' + (x + w) + ',' + yB + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<rect x="' + x + '" y="' + yT + '" width="' + w + '" height="' + h + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += lab(x + w / 2, yB + 15, (kind === 'cube' ? 'a = ' + o.a : o.L) + ' cm') + (kind === 'pave' ? lab(x - 13, yT + h / 2 + 4, o.h + ' cm', -90) + lab(x + w + dp / 2 + 14, yB - 2, o.l + ' cm') : '');
+            return s + '</svg>';
+        }
+        if (kind === 'cyl') { const x = 107, yT = 34, yB = 110, rx = 38, ry = 11;
+            let s = '<svg class="mx-fig" viewBox="0 0 214 142">';
+            s += '<rect x="' + (x - rx) + '" y="' + yT + '" width="' + (2 * rx) + '" height="' + (yB - yT) + '" fill="' + GF + '" stroke="none"/>';
+            s += '<line x1="' + (x - rx) + '" y1="' + yT + '" x2="' + (x - rx) + '" y2="' + yB + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (x + rx) + '" y1="' + yT + '" x2="' + (x + rx) + '" y2="' + yB + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<ellipse cx="' + x + '" cy="' + yB + '" rx="' + rx + '" ry="' + ry + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<ellipse cx="' + x + '" cy="' + yT + '" rx="' + rx + '" ry="' + ry + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<line x1="' + x + '" y1="' + yT + '" x2="' + (x + rx) + '" y2="' + yT + '" stroke="' + TX + '" stroke-width="1.5"/>' + lab(x + rx / 2, yT - 6, 'r = ' + o.r + ' cm') + lab(x + rx + 15, (yT + yB) / 2 + 4, 'h = ' + o.h + ' cm', -90);
+            return s + '</svg>';
+        }
+        if (kind === 'prisme') { const x = 36, yB = 112, bw = 78, hh = 56, dp = 64;
+            let s = '<svg class="mx-fig" viewBox="0 0 230 142">';
+            s += '<polygon points="' + (x + dp) + ',' + (yB - 14) + ' ' + (x + bw + dp) + ',' + (yB - 14) + ' ' + (x + bw * 0.45 + dp) + ',' + (yB - 14 - hh) + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="1.6"/>';
+            s += '<line x1="' + (x + bw) + '" y1="' + yB + '" x2="' + (x + bw + dp) + '" y2="' + (yB - 14) + '" stroke="' + GR + '" stroke-width="1.8"/>';
+            s += '<line x1="' + (x + bw * 0.45) + '" y1="' + (yB - hh) + '" x2="' + (x + bw * 0.45 + dp) + '" y2="' + (yB - 14 - hh) + '" stroke="' + GR + '" stroke-width="1.8"/>';
+            s += '<line x1="' + x + '" y1="' + yB + '" x2="' + (x + dp) + '" y2="' + (yB - 14) + '" stroke="' + GR + '" stroke-width="1.8" stroke-dasharray="4 3"/>';
+            s += '<polygon points="' + x + ',' + yB + ' ' + (x + bw) + ',' + yB + ' ' + (x + bw * 0.45) + ',' + (yB - hh) + '" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<line x1="' + (x + bw * 0.45) + '" y1="' + (yB - hh) + '" x2="' + (x + bw * 0.45) + '" y2="' + yB + '" stroke="' + TX + '" stroke-width="1.3" stroke-dasharray="5 3"/>';
+            s += lab(x + bw / 2, yB + 15, 'b = ' + o.b + ' cm') + lab(x + bw * 0.45 + 15, yB - hh / 2 + 2, o.ht + ' cm', -90) + lab(x + bw + dp / 2 + 6, yB - 1, 'L = ' + o.L + ' cm');
+            return s + '</svg>';
+        }
+        if (kind === 'pyr') { const cx = 107, yB = 112, w = 86, dp = 30, apx = cx + 4, apy = 24;
+            let s = '<svg class="mx-fig" viewBox="0 0 214 142">';
+            s += '<polygon points="' + (cx - w / 2) + ',' + yB + ' ' + (cx + w / 2) + ',' + yB + ' ' + (cx + w / 2 + dp) + ',' + (yB - 16) + ' ' + (cx - w / 2 + dp) + ',' + (yB - 16) + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="1.6"/>';
+            s += '<line x1="' + (cx - w / 2) + '" y1="' + yB + '" x2="' + apx + '" y2="' + apy + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (cx + w / 2) + '" y1="' + yB + '" x2="' + apx + '" y2="' + apy + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (cx + w / 2 + dp) + '" y1="' + (yB - 16) + '" x2="' + apx + '" y2="' + apy + '" stroke="' + GR + '" stroke-width="2"/><line x1="' + (cx - w / 2 + dp) + '" y1="' + (yB - 16) + '" x2="' + apx + '" y2="' + apy + '" stroke="' + GR + '" stroke-width="1.5" stroke-dasharray="4 3"/>';
+            s += '<line x1="' + apx + '" y1="' + apy + '" x2="' + apx + '" y2="' + (yB - 8) + '" stroke="' + TX + '" stroke-width="1.4" stroke-dasharray="5 3"/>';
+            s += lab(cx, yB + 15, 'c = ' + o.c + ' cm') + lab(apx + 16, (apy + yB) / 2, 'h = ' + o.h + ' cm', -90);
+            return s + '</svg>';
+        }
+        if (kind === 'cone') { const cx = 107, yB = 108, rx = 44, ry = 12, apy = 22;
+            let s = '<svg class="mx-fig" viewBox="0 0 214 142">';
+            s += '<ellipse cx="' + cx + '" cy="' + yB + '" rx="' + rx + '" ry="' + ry + '" fill="' + GD + '" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<polygon points="' + (cx - rx) + ',' + yB + ' ' + cx + ',' + apy + ' ' + (cx + rx) + ',' + yB + '" fill="' + GF + '" fill-opacity="0.8" stroke="' + GR + '" stroke-width="2"/>';
+            s += '<line x1="' + cx + '" y1="' + apy + '" x2="' + cx + '" y2="' + yB + '" stroke="' + TX + '" stroke-width="1.4" stroke-dasharray="5 3"/><line x1="' + cx + '" y1="' + yB + '" x2="' + (cx + rx) + '" y2="' + yB + '" stroke="' + TX + '" stroke-width="1.5"/>';
+            s += lab(cx + rx / 2, yB + 18, 'r = ' + o.r + ' cm') + lab(cx - 14, (apy + yB) / 2, 'h = ' + o.h + ' cm', -90);
+            return s + '</svg>';
+        }
+        // sphere
+        let s = '<svg class="mx-fig" viewBox="0 0 214 142"><circle cx="107" cy="70" r="48" fill="' + GF + '" stroke="' + GR + '" stroke-width="2"/><ellipse cx="107" cy="70" rx="48" ry="14" fill="none" stroke="' + GR + '" stroke-width="1.3" stroke-dasharray="5 3"/><line x1="107" y1="70" x2="155" y2="70" stroke="' + TX + '" stroke-width="1.6"/><circle cx="107" cy="70" r="2.4" fill="' + TX + '"/>' + lab(131, 62, 'r = ' + o.r + ' cm');
+        return s + '</svg>';
+    }
+    function thalesSVG() {
+        const A = [16, 76], B = [196, 22], C = [196, 132], t = 0.45;
+        const Mx = A[0] + (B[0] - A[0]) * t, My = A[1] + (B[1] - A[1]) * t, Nx = A[0] + (C[0] - A[0]) * t, Ny = A[1] + (C[1] - A[1]) * t;
+        const lab = (x, y, txt) => '<text x="' + x + '" y="' + y + '" font-size="12" font-weight="700" fill="#065F46" text-anchor="middle">' + txt + '</text>';
+        let s = '<svg class="mx-fig" viewBox="0 0 214 150">';
+        s += '<polygon points="' + A.join(',') + ' ' + B.join(',') + ' ' + C.join(',') + '" fill="#ECFDF5" stroke="none"/>';
+        s += '<line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + B[0] + '" y2="' + B[1] + '" stroke="#059669" stroke-width="2"/><line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + C[0] + '" y2="' + C[1] + '" stroke="#059669" stroke-width="2"/>';
+        s += '<line x1="' + B[0] + '" y1="' + B[1] + '" x2="' + C[0] + '" y2="' + C[1] + '" stroke="#059669" stroke-width="2"/>';
+        s += '<line x1="' + Mx + '" y1="' + My + '" x2="' + Nx + '" y2="' + Ny + '" stroke="#065F46" stroke-width="2"/>';
+        s += '<path d="M' + (Mx + (Nx - Mx) * 0.42 - 5) + ' ' + (My + (Ny - My) * 0.42 - 4) + ' l7 4 l-7 4" fill="none" stroke="#065F46" stroke-width="1.3"/>';
+        s += '<path d="M' + (B[0] + (C[0] - B[0]) * 0.42 - 5) + ' ' + (B[1] + (C[1] - B[1]) * 0.42 - 4) + ' l7 4 l-7 4" fill="none" stroke="#059669" stroke-width="1.3"/>';
+        [[A, 'A', -7, 4], [B, 'B', 8, 0], [C, 'C', 8, 8], [[Mx, My], 'M', 0, -8], [[Nx, Ny], 'N', 0, 14]].forEach(p => { s += '<circle cx="' + p[0][0] + '" cy="' + p[0][1] + '" r="2.6" fill="#065F46"/>' + lab(p[0][0] + p[2], p[0][1] + p[3], p[1]); });
+        return s + '</svg>';
+    }
+    function trigoSVG(ang, adjL, oppL, hypL) {
+        const base = 150, tan = Math.tan(ang * Math.PI / 180); let bw = base, hh = bw * tan;
+        if (hh > 96) { hh = 96; bw = hh / tan; }
+        const x = (210 - bw) / 2 + 4, yB = 116, Ax = x, Bx = x + bw, By = yB - hh;
+        const lab = (xx, yy, t, rot) => t ? '<text x="' + xx + '" y="' + yy + '" font-size="11.5" font-weight="600" text-anchor="middle" fill="#065F46"' + (rot ? ' transform="rotate(' + rot + ' ' + xx + ' ' + yy + ')"' : '') + '>' + t + '</text>' : '';
+        let s = '<svg class="mx-fig" viewBox="0 0 214 138">';
+        s += '<polygon points="' + Ax + ',' + yB + ' ' + Bx + ',' + yB + ' ' + Bx + ',' + By + '" fill="#ECFDF5" stroke="#059669" stroke-width="2"/>';
+        s += '<rect x="' + (Bx - 11) + '" y="' + (yB - 11) + '" width="11" height="11" fill="none" stroke="#94A3B8" stroke-width="1.1"/>';
+        const aRad = Math.atan2(hh, bw); s += '<path d="M' + (Ax + 26) + ' ' + yB + ' A26 26 0 0 0 ' + (Ax + 26 * Math.cos(aRad)) + ' ' + (yB - 26 * Math.sin(aRad)) + '" fill="none" stroke="#065F46" stroke-width="1.4"/>';
+        s += lab(Ax + 38, yB - 7, ang + '°');
+        s += lab((Ax + Bx) / 2, yB + 15, adjL) + lab(Bx + 14, (yB + By) / 2 + 3, oppL, -90) + lab((Ax + Bx) / 2 - 8, (yB + By) / 2 - 8, hypL, -Math.round(aRad * 180 / Math.PI));
+        return s + '</svg>';
+    }
+    function cellGridSVG(cols, rows) {
+        const cs = 26, pad = 8, W = cols * cs + 2 * pad, H = rows * cs + 2 * pad;
+        let g = '<svg class="mx-grid-svg mx-cells-hit" viewBox="0 0 ' + W + ' ' + H + '" data-cs="' + cs + '" data-pad="' + pad + '" data-cols="' + cols + '" data-rows="' + rows + '">';
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) g += '<rect x="' + (pad + c * cs) + '" y="' + (pad + r * cs) + '" width="' + cs + '" height="' + cs + '" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.2"/>';
+        g += '<g class="mx-mark"></g></svg>';
+        return g;
+    }
+    function thermoSVG(val, mn, mx, step) {
+        const x = 70, yT = 14, yB = 138, H = yB - yT, scale = v => yB - (v - mn) / (mx - mn) * H;
+        let s = '<svg class="mx-fig" viewBox="0 0 170 168">';
+        s += '<rect x="' + (x - 7) + '" y="' + (yT - 4) + '" width="14" height="' + (H + 10) + '" rx="7" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/>';
+        s += '<circle cx="' + x + '" cy="' + (yB + 13) + '" r="11" fill="#DC2626"/>';
+        s += '<rect x="' + (x - 3.5) + '" y="' + scale(val) + '" width="7" height="' + (yB + 6 - scale(val)) + '" fill="#DC2626"/>';
+        for (let v = mn; v <= mx; v += step) { const y = scale(v), maj = (v % (step * 2) === 0); s += '<line x1="' + (x + 9) + '" y1="' + y + '" x2="' + (x + (maj ? 19 : 14)) + '" y2="' + y + '" stroke="#475569" stroke-width="1.2"/>'; if (maj) s += '<text x="' + (x + 23) + '" y="' + (y + 3.5) + '" font-size="10" fill="#334155">' + v + '</text>'; }
+        s += '<text x="' + (x + 23) + '" y="12" font-size="10" font-weight="700" fill="#334155">°C</text>';
+        return s + '</svg>';
+    }
+    function beakerSVG(val, mx, step) {
+        const xL = 52, xR = 142, yT = 18, yB = 142, scale = v => yB - v / mx * (yB - yT - 8);
+        let s = '<svg class="mx-fig" viewBox="0 0 190 158">';
+        s += '<rect x="' + xL + '" y="' + scale(val) + '" width="' + (xR - xL) + '" height="' + (yB - scale(val)) + '" fill="#BFDBFE"/>';
+        s += '<path d="M' + (xL - 6) + ' ' + (yT - 6) + ' L' + xL + ' ' + yT + ' L' + xL + ' ' + yB + ' L' + xR + ' ' + yB + ' L' + xR + ' ' + yT + ' L' + (xR + 6) + ' ' + (yT - 6) + '" fill="none" stroke="#475569" stroke-width="2"/>';
+        for (let v = step; v <= mx; v += step) { const y = scale(v), maj = (v % (step * 2) === 0); s += '<line x1="' + xL + '" y1="' + y + '" x2="' + (xL + (maj ? 16 : 10)) + '" y2="' + y + '" stroke="#475569" stroke-width="1.2"/>'; if (maj) s += '<text x="' + (xL + 20) + '" y="' + (y + 3.5) + '" font-size="10" fill="#334155">' + v + '</text>'; }
+        s += '<text x="' + (xR - 8) + '" y="' + (yT - 8) + '" font-size="10" font-weight="700" fill="#334155" text-anchor="end">mL</text>';
+        s += '<line x1="' + xL + '" y1="' + scale(val) + '" x2="' + xR + '" y2="' + scale(val) + '" stroke="#2563EB" stroke-width="1.6"/>';
+        return s + '</svg>';
+    }
+    function scaleSVG(val, mx, step) {
+        const cx = 105, cy = 112, r = 78;
+        const angOf = v => Math.PI - v / mx * Math.PI;
+        let s = '<svg class="mx-fig" viewBox="0 0 210 138">';
+        s += '<path d="M' + (cx - r) + ' ' + cy + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + r) + ' ' + cy + '" fill="#F8FAFC" stroke="#475569" stroke-width="2"/><line x1="' + (cx - r) + '" y1="' + cy + '" x2="' + (cx + r) + '" y2="' + cy + '" stroke="#475569" stroke-width="2"/>';
+        for (let v = 0; v <= mx; v += step) { const a = angOf(v), maj = (v % (step * 2) === 0); const x1 = cx + Math.cos(a) * (r - (maj ? 14 : 8)), y1 = cy - Math.sin(a) * (r - (maj ? 14 : 8)), x2 = cx + Math.cos(a) * (r - 2), y2 = cy - Math.sin(a) * (r - 2); s += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="#475569" stroke-width="1.2"/>'; if (maj) { const lx = cx + Math.cos(a) * (r - 24), ly = cy - Math.sin(a) * (r - 24); s += '<text x="' + lx.toFixed(1) + '" y="' + (ly + 3.5).toFixed(1) + '" font-size="9.5" fill="#334155" text-anchor="middle">' + v + '</text>'; } }
+        const a = angOf(val); s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + Math.cos(a) * (r - 30)).toFixed(1) + '" y2="' + (cy - Math.sin(a) * (r - 30)).toFixed(1) + '" stroke="#DC2626" stroke-width="2.6"/><circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#DC2626"/>';
+        s += '<text x="' + cx + '" y="' + (cy + 18) + '" font-size="10" font-weight="700" fill="#334155" text-anchor="middle">grammes</text>';
+        return s + '</svg>';
+    }
+    function rulerSVG(from, to) {
+        const x0 = 18, perCm = 21, yR = 70;
+        let s = '<svg class="mx-fig" viewBox="0 0 260 118">';
+        s += '<rect x="' + (x0 + from * perCm) + '" y="34" width="' + ((to - from) * perCm) + '" height="16" rx="7" fill="#FBBF24" stroke="#B45309" stroke-width="1.5"/>';
+        s += '<rect x="' + (x0 - 6) + '" y="' + yR + '" width="' + (10 * perCm + 14) + '" height="34" fill="#F8FAFC" stroke="#475569" stroke-width="1.5"/>';
+        for (let c = 0; c <= 10; c++) { const x = x0 + c * perCm; s += '<line x1="' + x + '" y1="' + yR + '" x2="' + x + '" y2="' + (yR + 13) + '" stroke="#334155" stroke-width="1.3"/><text x="' + x + '" y="' + (yR + 26) + '" font-size="9" fill="#334155" text-anchor="middle">' + c + '</text>'; if (c < 10) for (let m = 1; m < 10; m++) { const xm = x + m * perCm / 10; s += '<line x1="' + xm.toFixed(1) + '" y1="' + yR + '" x2="' + xm.toFixed(1) + '" y2="' + (yR + (m === 5 ? 9 : 5.5)) + '" stroke="#64748B" stroke-width="0.8"/>'; } }
+        s += '<text x="' + (x0 + 10 * perCm + 2) + '" y="' + (yR + 31) + '" font-size="8.5" fill="#334155">cm</text>';
+        s += '<line x1="' + (x0 + from * perCm) + '" y1="52" x2="' + (x0 + from * perCm) + '" y2="' + yR + '" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2"/><line x1="' + (x0 + to * perCm) + '" y1="52" x2="' + (x0 + to * perCm) + '" y2="' + yR + '" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2"/>';
+        return s + '</svg>';
+    }
+    function clockSVG(h, m, label, ox) {
+        const cx = (ox || 0) + 72, cy = 76, r = 56;
+        let s = '<g>';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#FFFFFF" stroke="#334155" stroke-width="2.5"/>';
+        for (let i = 0; i < 60; i++) { const a = i * 6 * Math.PI / 180, maj = i % 5 === 0; const x1 = cx + Math.sin(a) * (r - (maj ? 9 : 4)), y1 = cy - Math.cos(a) * (r - (maj ? 9 : 4)), x2 = cx + Math.sin(a) * (r - 2), y2 = cy - Math.cos(a) * (r - 2); s += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke="#334155" stroke-width="' + (maj ? 1.8 : 0.8) + '"/>'; }
+        [[12, 0, -1], [3, 1, 0], [6, 0, 1], [9, -1, 0]].forEach(t => { s += '<text x="' + (cx + t[1] * (r - 20)) + '" y="' + (cy + t[2] * (r - 20) + 4) + '" font-size="13" font-weight="700" fill="#334155" text-anchor="middle">' + t[0] + '</text>'; });
+        const ha = ((h % 12) * 30 + m * 0.5) * Math.PI / 180, ma = m * 6 * Math.PI / 180;
+        s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + Math.sin(ha) * (r - 28)).toFixed(1) + '" y2="' + (cy - Math.cos(ha) * (r - 28)).toFixed(1) + '" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>';
+        s += '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + Math.sin(ma) * (r - 12)).toFixed(1) + '" y2="' + (cy - Math.cos(ma) * (r - 12)).toFixed(1) + '" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"/>';
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="#0F172A"/>';
+        if (label) s += '<text x="' + cx + '" y="151" font-size="12" font-weight="700" fill="#065F46" text-anchor="middle">' + label + '</text>';
+        return s + '</g>';
+    }
+    function clockFigSVG(h, m, label) { return '<svg class="mx-fig" viewBox="0 0 144 158">' + clockSVG(h, m, label, 0) + '</svg>'; }
+    function clock2SVG(h1, m1, h2, m2) { return '<svg class="mx-fig" viewBox="0 0 300 158">' + clockSVG(h1, m1, 'départ', 0) + clockSVG(h2, m2, 'arrivée', 156) + '</svg>'; }
+    function genAires(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            if (Math.random() < 0.5) { const Lo = ri(4, 14), lo = ri(2, Lo - 1); const per = Math.random() < 0.5; return { q: (per ? 'Calcule le <strong>périmètre</strong>' : 'Calcule l’<strong>aire</strong>') + ' de ce rectangle.', svg: dimFigSVG('rect', { L: Lo, l: lo }), fields: [{ label: per ? 'périmètre (cm)' : 'aire (cm²)', e: per ? 2 * (Lo + lo) : Lo * lo }], sol: per ? '2 × (' + Lo + ' + ' + lo + ') = ' + (2 * (Lo + lo)) + ' cm' : Lo + ' × ' + lo + ' = ' + (Lo * lo) + ' cm²', _dbg: { type: per ? 'rectP' : 'rectA', L: Lo, l: lo } }; }
+            const c = ri(3, 12); const per = Math.random() < 0.5; return { q: (per ? 'Calcule le <strong>périmètre</strong>' : 'Calcule l’<strong>aire</strong>') + ' d’un carré de côté ' + c + ' cm.', svg: dimFigSVG('rect', { L: c, l: c }), fields: [{ label: per ? 'périmètre (cm)' : 'aire (cm²)', e: per ? 4 * c : c * c }], sol: per ? '4 × ' + c + ' = ' + (4 * c) + ' cm' : c + ' × ' + c + ' = ' + (c * c) + ' cm²', _dbg: { type: per ? 'carreP' : 'carreA2', c: c } };
+        }
+        if (L === 1) {
+            const w = pick(['tri', 'para', 'circA', 'circC']);
+            if (w === 'tri') { const b = ri(3, 14), h = pick([2, 4, 6, 8, 10]); return { q: 'Calcule l’aire de ce triangle.', svg: dimFigSVG('tri', { b: b, h: h }), fields: [{ label: 'aire (cm²)', e: b * h / 2 }], sol: '(' + b + ' × ' + h + ') ÷ 2 = ' + (b * h / 2) + ' cm²', _dbg: { type: 'tri', b: b, h: h } }; }
+            if (w === 'para') { const b = ri(3, 12), h = ri(2, 9); return { q: 'Calcule l’aire de ce parallélogramme.', svg: dimFigSVG('para', { b: b, h: h }), fields: [{ label: 'aire (cm²)', e: b * h }], sol: b + ' × ' + h + ' = ' + (b * h) + ' cm²', _dbg: { type: 'para', b: b, h: h } }; }
+            const r = ri(2, 9);
+            if (w === 'circA') { const e = Math.round(Math.PI * r * r * 10) / 10; return { q: 'Calcule l’<strong>aire</strong> de ce disque (arrondis au dixième).', svg: dimFigSVG('circ', { r: r }), fields: [{ label: 'aire (cm²)', e: e, tol: 0.15 }], sol: 'π × ' + r + '² ≈ ' + fcm(e) + ' cm²', _dbg: { type: 'circA', r: r } }; }
+            const e = Math.round(2 * Math.PI * r * 10) / 10; return { q: 'Calcule la <strong>circonférence</strong> de ce cercle (arrondis au dixième).', svg: dimFigSVG('circ', { r: r }), fields: [{ label: 'circonférence (cm)', e: e, tol: 0.15 }], sol: '2 × π × ' + r + ' ≈ ' + fcm(e) + ' cm', _dbg: { type: 'circC', r: r } };
+        }
+        const w = pick(['trap', 'los', 'compo']);
+        if (w === 'trap') { const B = ri(6, 14), b = ri(2, B - 2), h = pick([2, 4, 6, 8]); return { q: 'Calcule l’aire de ce trapèze.', svg: dimFigSVG('trap', { B: B, b: b, h: h }), fields: [{ label: 'aire (cm²)', e: (B + b) * h / 2 }], sol: '(' + B + ' + ' + b + ') × ' + h + ' ÷ 2 = ' + ((B + b) * h / 2) + ' cm²', _dbg: { type: 'trap', B: B, b: b, h: h } }; }
+        if (w === 'los') { const D = pick([4, 6, 8, 10, 12]), dd = pick([2, 4, 6]); return { q: 'Calcule l’aire de ce losange (avec ses diagonales).', svg: dimFigSVG('los', { D: D, d: dd }), fields: [{ label: 'aire (cm²)', e: D * dd / 2 }], sol: '(' + D + ' × ' + dd + ') ÷ 2 = ' + (D * dd / 2) + ' cm²', _dbg: { type: 'los', D: D, d: dd } }; }
+        const a = ri(8, 14), b2 = ri(6, 10), c = ri(3, a - 4), dd2 = ri(2, b2 - 3);
+        return { q: 'Calcule l’aire de cette figure (rectangle avec une encoche rectangulaire découpée en haut à droite).', svg: dimFigSVG('L', { a: a, b: b2, c: c, d: dd2 }), fields: [{ label: 'aire (cm²)', e: a * b2 - c * dd2 }], sol: a + ' × ' + b2 + ' ' + M + ' ' + c + ' × ' + dd2 + ' = ' + (a * b2 - c * dd2) + ' cm²', _dbg: { type: 'compo', a: a, b: b2, c: c, d: dd2 } };
+    }
+    function genVolumes(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            if (Math.random() < 0.5) { const a = ri(2, 9); return { q: 'Calcule le volume de ce cube.', svg: solidSVG('cube', { a: a }), fields: [{ label: 'V (cm³)', e: a * a * a }], sol: a + '³ = ' + (a * a * a) + ' cm³', _dbg: { type: 'cube', a: a } }; }
+            const Lo = ri(3, 9), lo = ri(2, 8), h = ri(2, 8); return { q: 'Calcule le volume de ce pavé droit.', svg: solidSVG('pave', { L: Lo, l: lo, h: h }), fields: [{ label: 'V (cm³)', e: Lo * lo * h }], sol: Lo + ' × ' + lo + ' × ' + h + ' = ' + (Lo * lo * h) + ' cm³', _dbg: { type: 'pave', L: Lo, l: lo, h: h } };
+        }
+        if (L === 1) {
+            if (Math.random() < 0.5) { const b = ri(3, 10), ht = pick([2, 4, 6, 8]), Ln = ri(3, 10); return { q: 'Calcule le volume de ce prisme droit à base triangulaire (base b, hauteur du triangle, longueur L).', svg: solidSVG('prisme', { b: b, ht: ht, L: Ln }), fields: [{ label: 'V (cm³)', e: b * ht / 2 * Ln }], sol: '(' + b + ' × ' + ht + ' ÷ 2) × ' + Ln + ' = ' + (b * ht / 2 * Ln) + ' cm³', _dbg: { type: 'prisme', b: b, ht: ht, L: Ln } }; }
+            const r = ri(2, 7), h = ri(3, 10); const e = Math.round(Math.PI * r * r * h * 10) / 10; return { q: 'Calcule le volume de ce cylindre (arrondis au dixième).', svg: solidSVG('cyl', { r: r, h: h }), fields: [{ label: 'V (cm³)', e: e, tol: 0.15 }], sol: 'π × ' + r + '² × ' + h + ' ≈ ' + fcm(e) + ' cm³', _dbg: { type: 'cyl', r: r, h: h } };
+        }
+        const w = pick(['pyr', 'cone', 'sph']);
+        if (w === 'pyr') { const c = pick([3, 6, 9, 12]), h = pick([2, 4, 5, 7, 8, 10]); const e = c * c * h / 3; return { q: 'Calcule le volume de cette pyramide à base carrée. (V = aire de la base × h ÷ 3)', svg: solidSVG('pyr', { c: c, h: h }), fields: [{ label: 'V (cm³)', e: e }], sol: c + '² × ' + h + ' ÷ 3 = ' + e + ' cm³', _dbg: { type: 'pyr', c: c, h: h } }; }
+        if (w === 'cone') { const r = ri(2, 6), h = pick([3, 6, 9]); const e = Math.round(Math.PI * r * r * h / 3 * 10) / 10; return { q: 'Calcule le volume de ce cône (arrondis au dixième). (V = π × r² × h ÷ 3)', svg: solidSVG('cone', { r: r, h: h }), fields: [{ label: 'V (cm³)', e: e, tol: 0.15 }], sol: 'π × ' + r + '² × ' + h + ' ÷ 3 ≈ ' + fcm(e) + ' cm³', _dbg: { type: 'cone', r: r, h: h } }; }
+        const r = ri(2, 6); const e = Math.round(4 / 3 * Math.PI * r * r * r * 10) / 10; return { q: 'Calcule le volume de cette sphère (arrondis au dixième). (V = 4⁄3 × π × r³)', svg: solidSVG('sph', { r: r }), fields: [{ label: 'V (cm³)', e: e, tol: 0.2 }], sol: '4⁄3 × π × ' + r + '³ ≈ ' + fcm(e) + ' cm³', _dbg: { type: 'sph', r: r } };
+    }
+    function genPythagore(diff) {
+        const L = lvl(diff);
+        const tr = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [12, 16, 20], [20, 21, 29], [10, 24, 26]];
+        if (L === 0) { const t = pick(tr); return { q: 'Dans ce triangle rectangle, calcule l’<strong>hypoténuse</strong>.', svg: rtTriangleSVG(t[0] + ' cm', t[1] + ' cm', '?'), fields: [{ label: 'hypoténuse (cm)', e: t[2] }], sol: '√(' + t[0] + '² + ' + t[1] + '²) = √' + (t[0] * t[0] + t[1] * t[1]) + ' = ' + t[2] + ' cm', _dbg: { type: 'hyp', t: t } }; }
+        if (L === 1) { const t = pick(tr); return { q: 'Dans ce triangle rectangle, calcule la <strong>cathète</strong> manquante.', svg: rtTriangleSVG(t[0] + ' cm', '?', t[2] + ' cm'), fields: [{ label: 'cathète (cm)', e: t[1] }], sol: '√(' + t[2] + '² ' + M + ' ' + t[0] + '²) = √' + (t[2] * t[2] - t[0] * t[0]) + ' = ' + t[1] + ' cm', _dbg: { type: 'cath', t: t } }; }
+        const w = pick(['diag', 'echelle', 'grille']);
+        if (w === 'diag') { const p = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15], [8, 15, 17]]); return { q: 'Un rectangle mesure ' + p[0] + ' cm sur ' + p[1] + ' cm. Calcule la longueur de sa <strong>diagonale</strong>.', svg: dimFigSVG('rect', { L: Math.max(p[0], p[1]), l: Math.min(p[0], p[1]) }), fields: [{ label: 'diagonale (cm)', e: p[2] }], sol: '√(' + p[0] + '² + ' + p[1] + '²) = ' + p[2] + ' cm', _dbg: { type: 'diag', t: p } }; }
+        if (w === 'echelle') { const cas = pick([[5, 3, 4], [5, 1.4, 4.8], [2.5, 0.7, 2.4], [6.5, 2.5, 6], [10, 6, 8], [8.5, 4, 7.5], [2.9, 2, 2.1]]); return { q: 'Une échelle de ' + fcm(cas[0]) + ' m est posée au sol à ' + fcm(cas[1]) + ' m du pied d’un mur. À quelle <strong>hauteur</strong> touche-t-elle le mur ?', fields: [{ label: 'hauteur (m)', e: cas[2], tol: 0.05 }], sol: '√(' + fcm(cas[0]) + '² ' + M + ' ' + fcm(cas[1]) + '²) = ' + fcm(cas[2]) + ' m', _dbg: { type: 'echelle', t: cas } }; }
+        let dx = pick([3, 4, 6, 8]), dy, hyp; if (dx === 3) { dy = 4; hyp = 5; } else if (dx === 4) { dy = 3; hyp = 5; } else if (dx === 6) { dy = 8; hyp = 10; } else { dy = 6; hyp = 10; }
+        const sx = pick([-1, 1]), sy = pick([-1, 1]); const Ax = sx > 0 ? ri(-5, 5 - dx) : ri(-5 + dx, 5), Ay = sy > 0 ? ri(-5, 5 - dy) : ri(-5 + dy, 5); const Bx = Ax + sx * dx, By = Ay + sy * dy;
+        return { q: 'Calcule la <strong>distance AB</strong> entre les deux points (utilise le triangle rectangle en pointillé).', svg: gridSVG([[Ax, Ay, 'A'], [Bx, By, 'B']], false, [{ pts: [[Ax, Ay], [Bx, By]] }, { pts: [[Ax, Ay], [Bx, Ay], [Bx, By]], dash: true }]), fields: [{ label: 'AB', e: hyp }], sol: '√(' + dx + '² + ' + dy + '²) = √' + (dx * dx + dy * dy) + ' = ' + hyp, _dbg: { type: 'grille', dx: dx, dy: dy, hyp: hyp } };
+    }
+    function genThales(diff) {
+        const L = lvl(diff);
+        const fig = thalesSVG();
+        if (L === 0) { const k = pick([2, 3, 4]), AM = ri(2, 5), AN = ri(2, 5), AB = AM * k, AC = AN * k; return { q: '(MN) est parallèle à (BC). On donne AM = ' + AM + ' cm, AB = ' + AB + ' cm et AN = ' + AN + ' cm. Calcule <strong>AC</strong>.', svg: fig, fields: [{ label: 'AC (cm)', e: AC }], sol: 'AB ÷ AM = ' + k + ', donc AC = ' + AN + ' × ' + k + ' = ' + AC + ' cm', _dbg: { type: 'AC', k: k, AM: AM, AN: AN, e: AC } }; }
+        if (L === 1) { const k = pick([2, 3, 4]), AM = ri(2, 5), MN = ri(2, 6), AB = AM * k, BC = MN * k; return { q: '(MN) est parallèle à (BC). On donne AM = ' + AM + ' cm, AB = ' + AB + ' cm et MN = ' + MN + ' cm. Calcule <strong>BC</strong>.', svg: fig, fields: [{ label: 'BC (cm)', e: BC }], sol: 'BC = MN × (AB ÷ AM) = ' + MN + ' × ' + k + ' = ' + BC + ' cm', _dbg: { type: 'BC', k: k, AM: AM, MN: MN, e: BC } }; }
+        if (Math.random() < 0.5) { const k = pick([2, 3, 4, 5]), AN = ri(2, 5), BC = ri(2, 5) * k, AC = AN * k, MN = BC / k; return { q: '(MN) est parallèle à (BC). On donne AN = ' + AN + ' cm, AC = ' + AC + ' cm et BC = ' + BC + ' cm. Calcule <strong>MN</strong>.', svg: fig, fields: [{ label: 'MN (cm)', e: MN }], sol: 'MN = BC × (AN ÷ AC) = ' + BC + ' ÷ ' + k + ' = ' + MN + ' cm', _dbg: { type: 'MN', k: k, AN: AN, BC: BC, e: MN } }; }
+        const AM = pick([2, 4, 5]), kd = pick([1.5, 2.5]), AB = AM * kd, MN = pick([2, 4, 6]), BC = MN * kd;
+        return { q: '(MN) est parallèle à (BC). On donne AM = ' + AM + ' cm, AB = ' + fcm(AB) + ' cm et MN = ' + MN + ' cm. Calcule <strong>BC</strong>.', svg: fig, fields: [{ label: 'BC (cm)', e: BC, tol: 0.01 }], sol: 'BC = ' + MN + ' × (' + fcm(AB) + ' ÷ ' + AM + ') = ' + fcm(BC) + ' cm', _dbg: { type: 'BCdec', kd: kd, AM: AM, MN: MN, e: BC } };
+    }
+    function genTrigo(diff) {
+        const L = lvl(diff);
+        const rad = a => a * Math.PI / 180;
+        if (L === 0) { const ang = pick([30, 45, 60]), hyp = ri(6, 20); const sin = Math.random() < 0.5;
+            const e = Math.round(hyp * (sin ? Math.sin(rad(ang)) : Math.cos(rad(ang))) * 10) / 10;
+            return { q: 'Dans ce triangle rectangle, calcule le côté <strong>' + (sin ? 'opposé' : 'adjacent') + '</strong> à l’angle de ' + ang + '° (arrondis au dixième).', svg: trigoSVG(ang, sin ? '' : '?', sin ? '?' : '', hyp + ' cm'), fields: [{ label: (sin ? 'opposé' : 'adjacent') + ' (cm)', e: e, tol: 0.15 }], sol: hyp + ' × ' + (sin ? 'sin' : 'cos') + '(' + ang + '°) ≈ ' + fcm(e) + ' cm', _dbg: { type: sin ? 'sin' : 'cos', ang: ang, hyp: hyp, e: e } }; }
+        if (L === 1) { const ang = ri(20, 70), adj = ri(4, 15); const e = Math.round(adj * Math.tan(rad(ang)) * 10) / 10;
+            return { q: 'Dans ce triangle rectangle, calcule le côté <strong>opposé</strong> à l’angle de ' + ang + '° avec la tangente (arrondis au dixième).', svg: trigoSVG(ang, adj + ' cm', '?', ''), fields: [{ label: 'opposé (cm)', e: e, tol: 0.15 }], sol: 'opposé = ' + adj + ' × tan(' + ang + '°) ≈ ' + fcm(e) + ' cm', _dbg: { type: 'tan', ang: ang, adj: adj, e: e } }; }
+        if (Math.random() < 0.5) { const opp = ri(3, 12); let adj = ri(3, 12); while (adj === opp) adj = ri(3, 12); const e = Math.round(Math.atan(opp / adj) * 180 / Math.PI);
+            return { q: 'Dans ce triangle rectangle, calcule l’<strong>angle</strong> marqué « ? » (arrondis au degré).', svg: trigoSVG(e, adj + ' cm', opp + ' cm', '').replace(e + '°', '?'), fields: [{ label: 'angle (°)', e: e, tol: 0.6 }], sol: 'tan⁻¹(' + opp + ' ÷ ' + adj + ') ≈ ' + e + '°', _dbg: { type: 'angle', opp: opp, adj: adj, e: e } }; }
+        const ang = ri(25, 65), opp = ri(4, 14); const e = Math.round(opp / Math.sin(rad(ang)) * 10) / 10;
+        return { q: 'Dans ce triangle rectangle, calcule l’<strong>hypoténuse</strong> (arrondis au dixième).', svg: trigoSVG(ang, '', opp + ' cm', '?'), fields: [{ label: 'hypoténuse (cm)', e: e, tol: 0.15 }], sol: 'hyp = ' + opp + ' ÷ sin(' + ang + '°) ≈ ' + fcm(e) + ' cm', _dbg: { type: 'hyp2', ang: ang, opp: opp, e: e } };
+    }
+    function genConversions(diff) {
+        const L = lvl(diff);
+        const ask = (v, from, to, f, sol2) => ({ q: 'Convertis : <strong>' + fcm(v) + ' ' + from + '</strong> = ? ' + to, fields: [{ label: to, e: f }], sol: fcm(v) + ' ' + from + ' = ' + fcm(f) + ' ' + to + (sol2 ? ' (' + sol2 + ')' : ''), _dbg: { v: v, from: from, to: to, e: f } });
+        if (L === 0) { const u = pick([['km', 'm', 1000], ['m', 'cm', 100], ['cm', 'mm', 10], ['m', 'dm', 10], ['dm', 'cm', 10]]); const down = Math.random() < 0.5;
+            if (down) { const v = ri(2, 60); const r = ask(v, u[0], u[1], v * u[2], '× ' + u[2]); r._dbg.type = 'lng'; return r; }
+            const v0 = ri(2, 60); const r = ask(v0 * u[2], u[1], u[0], v0, '÷ ' + u[2]); r._dbg.type = 'lng'; return r; }
+        if (L === 1) { const u = pick([['kg', 'g', 1000], ['g', 'mg', 1000], ['t', 'kg', 1000], ['L', 'dL', 10], ['L', 'cL', 100], ['L', 'mL', 1000], ['dL', 'cL', 10]]); const down = Math.random() < 0.5;
+            if (down) { const v = pick([ri(2, 40), ri(1, 19) / 2, ri(1, 39) / 4]); const e = Math.round(v * u[2] * 100) / 100; const r = ask(v, u[0], u[1], e, '× ' + u[2]); r._dbg.type = 'mc'; return r; }
+            const v0 = pick([ri(2, 40), ri(1, 19) / 2]); const e0 = Math.round(v0 * u[2] * 100) / 100; const r = ask(e0, u[1], u[0], v0, '÷ ' + u[2]); r._dbg.type = 'mc'; return r; }
+        if (Math.random() < 0.5) { const u = pick([['km', 'cm', 100000], ['km', 'dm', 10000], ['m', 'mm', 1000], ['kg', 'mg', 1000000]]); const down = Math.random() < 0.5;
+            if (down) { const v = pick([ri(1, 9) / 10, ri(1, 99) / 100, ri(2, 9)]); const e = Math.round(v * u[2] * 1000) / 1000; const r = ask(v, u[0], u[1], e, '× ' + u[2]); r._dbg.type = 'multi'; return r; }
+            const v0 = pick([ri(1, 9) / 10, ri(1, 99) / 100, ri(2, 9)]); const e0 = Math.round(v0 * u[2] * 1000) / 1000; const r = ask(e0, u[1], u[0], v0, '÷ ' + u[2]); r._dbg.type = 'multi'; return r; }
+        const w = pick([['m', 'cm', 100], ['kg', 'g', 1000], ['L', 'cL', 100]]); const a = ri(1, 9), b = w[2] === 100 ? ri(1, 99) : ri(1, 999);
+        return { q: 'Convertis : <strong>' + a + ' ' + w[0] + ' ' + b + ' ' + w[1] + '</strong> = ? ' + w[1], fields: [{ label: w[1], e: a * w[2] + b }], sol: a + ' × ' + w[2] + ' + ' + b + ' = ' + (a * w[2] + b) + ' ' + w[1], _dbg: { type: 'compose', a: a, b: b, f: w[2], e: a * w[2] + b } };
+    }
+    function genConversionsAV(diff) {
+        const L = lvl(diff);
+        const ask = (v, from, to, f, sol2) => ({ q: 'Convertis : <strong>' + fcm(v) + ' ' + from + '</strong> = ? ' + to, fields: [{ label: to, e: f }], sol: fcm(v) + ' ' + from + ' = ' + fcm(f) + ' ' + to + (sol2 ? ' (' + sol2 + ')' : ''), _dbg: { v: v, from: from, to: to, e: f } });
+        if (L === 0) { const u = pick([['m²', 'dm²', 100], ['dm²', 'cm²', 100], ['cm²', 'mm²', 100], ['km²', 'hm²', 100]]); const down = Math.random() < 0.5;
+            if (down) { const v = ri(2, 50); const r = ask(v, u[0], u[1], v * 100, '× 100'); r._dbg.type = 'aire1'; return r; }
+            const v0 = ri(2, 50); const r = ask(v0 * 100, u[1], u[0], v0, '÷ 100'); r._dbg.type = 'aire1'; return r; }
+        if (L === 1) { const w = pick(['ident', 'm3L', 'cm3mL', 'aire2']);
+            if (w === 'ident') { const v = ri(2, 80); return Object.assign(ask(v, 'dm³', 'L', v, '1 dm³ = 1 L'), { _dbg: { type: 'ident', e: v } }); }
+            if (w === 'm3L') { const v = pick([ri(2, 30), ri(1, 19) / 2]); const r = ask(v, 'm³', 'L', v * 1000, '× 1000'); r._dbg.type = 'm3L'; return r; }
+            if (w === 'cm3mL') { const v = ri(5, 900); return Object.assign(ask(v, 'cm³', 'mL', v, '1 cm³ = 1 mL'), { _dbg: { type: 'cm3mL', e: v } }); }
+            const v = ri(2, 30); const r = ask(v, 'm²', 'cm²', v * 10000, '× 10 000'); r._dbg.type = 'aire2'; return r; }
+        const w = pick(['ha', 'aireDec', 'duree', 'duree2']);
+        if (w === 'ha') { const down = Math.random() < 0.5; if (down) { const v = pick([ri(1, 30), ri(1, 9) / 2]); const r = ask(v, 'ha', 'm²', v * 10000, '× 10 000'); r._dbg.type = 'ha'; return r; } const v0 = pick([ri(1, 30), ri(1, 9) / 2]); const r = ask(v0 * 10000, 'm²', 'ha', v0, '÷ 10 000'); r._dbg.type = 'ha'; return r; }
+        if (w === 'aireDec') { const v = pick([ri(1, 9) / 10, ri(1, 99) / 100]); const e = Math.round(v * 10000 * 100) / 100; const r = ask(v, 'm²', 'cm²', e, '× 10 000'); r._dbg.type = 'aireDec'; return r; }
+        if (w === 'duree') { const v = pick([1.5, 2.5, 0.5, 0.75, 1.25, 3.5, 2.25]); return { q: 'Convertis : <strong>' + fcm(v) + ' h</strong> = ? min', fields: [{ label: 'min', e: v * 60 }], sol: fcm(v) + ' × 60 = ' + (v * 60) + ' min', _dbg: { type: 'duree', v: v, e: v * 60 } }; }
+        const h = ri(1, 4), mn = pick([10, 15, 20, 25, 30, 40, 45, 50]); return { q: 'Convertis : <strong>' + h + ' h ' + mn + ' min</strong> = ? min', fields: [{ label: 'min', e: h * 60 + mn }], sol: h + ' × 60 + ' + mn + ' = ' + (h * 60 + mn) + ' min', _dbg: { type: 'duree2', h: h, mn: mn, e: h * 60 + mn } };
+    }
+    function genGrandeurs(diff) {
+        const L = lvl(diff);
+        if (L === 0) { if (Math.random() < 0.5) { const v = ri(2, 12) * 10, t = ri(2, 6); return { q: 'Un train roule à ' + v + ' km/h pendant ' + t + ' h. Quelle <strong>distance</strong> parcourt-il ?', fields: [{ label: 'distance (km)', e: v * t }], sol: v + ' × ' + t + ' = ' + (v * t) + ' km', _dbg: { type: 'dist', v: v, t: t, e: v * t } }; }
+            const t = pick([2, 3, 4, 5]), v = ri(3, 25) * 4, d = v * t; return { q: 'Un cycliste parcourt ' + d + ' km en ' + t + ' h. Quelle est sa <strong>vitesse moyenne</strong> ?', fields: [{ label: 'vitesse (km/h)', e: v }], sol: d + ' ÷ ' + t + ' = ' + v + ' km/h', _dbg: { type: 'vit', d: d, t: t, e: v } }; }
+        if (L === 1) { const w = pick(['temps', 'rho', 'masse', 'vit30']);
+            if (w === 'temps') { const v = pick([40, 50, 60, 80, 100, 120]), t = pick([0.5, 1.5, 2, 2.5, 3]); return { q: 'À ' + v + ' km/h, combien de <strong>temps</strong> (en h) faut-il pour parcourir ' + fcm(v * t) + ' km ?', fields: [{ label: 'temps (h)', e: t, tol: 0.01 }], sol: fcm(v * t) + ' ÷ ' + v + ' = ' + fcm(t) + ' h', _dbg: { type: 'temps', v: v, t: t, e: t } }; }
+            if (w === 'rho') { const rho = ri(2, 12), V = ri(2, 10); return { q: 'Un objet de ' + (rho * V) + ' g occupe un volume de ' + V + ' cm³. Quelle est sa <strong>masse volumique</strong> ?', fields: [{ label: 'ρ (g/cm³)', e: rho }], sol: (rho * V) + ' ÷ ' + V + ' = ' + rho + ' g/cm³', _dbg: { type: 'rho', rho: rho, V: V, e: rho } }; }
+            if (w === 'masse') { const rho = ri(2, 9), V = ri(3, 12); return { q: 'Un matériau a une masse volumique de ' + rho + ' g/cm³. Quelle est la <strong>masse</strong> de ' + V + ' cm³ de ce matériau ?', fields: [{ label: 'masse (g)', e: rho * V }], sol: rho + ' × ' + V + ' = ' + (rho * V) + ' g', _dbg: { type: 'masse', rho: rho, V: V, e: rho * V } }; }
+            const v = pick([30, 50, 60, 70, 90]); return { q: 'Une voiture roule à ' + v + ' km/h pendant <strong>30 minutes</strong>. Quelle distance parcourt-elle ?', fields: [{ label: 'distance (km)', e: v / 2 }], sol: v + ' × 0,5 = ' + fcm(v / 2) + ' km', _dbg: { type: 'vit30', v: v, e: v / 2 } }; }
+        const w = pick(['kmh_ms', 'ms_kmh', 'debit', 'tmin']);
+        if (w === 'kmh_ms') { const ms = pick([10, 15, 20, 25, 30]); return { q: 'Convertis : <strong>' + (ms * 3.6) + ' km/h</strong> = ? m/s', fields: [{ label: 'm/s', e: ms }], sol: (ms * 3.6) + ' ÷ 3,6 = ' + ms + ' m/s', _dbg: { type: 'kmh_ms', e: ms } }; }
+        if (w === 'ms_kmh') { const ms = pick([5, 10, 15, 20, 25]); return { q: 'Convertis : <strong>' + ms + ' m/s</strong> = ? km/h', fields: [{ label: 'km/h', e: ms * 3.6 }], sol: ms + ' × 3,6 = ' + fcm(ms * 3.6) + ' km/h', _dbg: { type: 'ms_kmh', e: ms * 3.6 } }; }
+        if (w === 'debit') { const lmin = ri(2, 12); return { q: 'Un robinet a un débit de ' + lmin + ' L/min. Combien de litres coulent en <strong>1 h 30</strong> ?', fields: [{ label: 'litres', e: lmin * 90 }], sol: lmin + ' × 90 = ' + (lmin * 90) + ' L', _dbg: { type: 'debit', lmin: lmin, e: lmin * 90 } }; }
+        const v = pick([60, 80, 100, 120]), mn = pick([15, 45, 90]); return { q: 'À ' + v + ' km/h, quelle distance parcourt-on en <strong>' + mn + ' minutes</strong> ?', fields: [{ label: 'distance (km)', e: v * mn / 60 }], sol: v + ' × ' + fcm(mn / 60) + ' = ' + fcm(v * mn / 60) + ' km', _dbg: { type: 'tmin', v: v, mn: mn, e: v * mn / 60 } };
+    }
+    function genAireGrille(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const X = ri(4, 12); return { q: 'Colorie une surface de <strong>' + X + ' unités²</strong> en cliquant sur les cases (chaque case = 1 unité²).', interactive: 'cells', target: { n: X }, npts: X, hint: 'Clique les cases (re-clique pour effacer).', svg: cellGridSVG(7, 5), _okC: cells => cells.size === X, sol: 'n’importe quelles ' + X + ' cases', _dbg: { type: 'libre', X: X } }; }
+        const bbox = cells => { let mnc = 99, mxc = -1, mnr = 99, mxr = -1; cells.forEach(k => { const p = k.split(','); const c = +p[0], r = +p[1]; if (c < mnc) mnc = c; if (c > mxc) mxc = c; if (r < mnr) mnr = r; if (r > mxr) mxr = r; }); return { w: mxc - mnc + 1, h: mxr - mnr + 1 }; };
+        if (L === 1) { const X = pick([6, 8, 9, 10, 12]); return { q: 'Colorie un <strong>rectangle plein d’aire ' + X + ' unités²</strong> (les cases doivent former un rectangle).', interactive: 'cells', target: { rA: X }, npts: X, hint: 'Clique les cases (re-clique pour effacer).', svg: cellGridSVG(8, 5), _okC: cells => { if (cells.size !== X) return false; const b = bbox(cells); return b.w * b.h === X; }, sol: 'p. ex. un rectangle ' + (X % 3 === 0 ? (X / 3) + ' × 3' : (X / 2) + ' × 2'), _dbg: { type: 'rectAire', X: X } }; }
+        const P = pick([10, 12, 14, 16]); return { q: 'Colorie un <strong>rectangle plein de périmètre ' + P + ' unités</strong>. (Attention : périmètre, pas aire !)', interactive: 'cells', target: { rP: P }, npts: P, hint: 'Clique les cases (re-clique pour effacer).', svg: cellGridSVG(8, 5), _okC: cells => { if (!cells.size) return false; const b = bbox(cells); return b.w * b.h === cells.size && 2 * (b.w + b.h) === P; }, sol: 'p. ex. un rectangle ' + (P / 2 - 2) + ' × 2 (2 × (' + (P / 2 - 2) + ' + 2) = ' + P + ')', _dbg: { type: 'rectPer', P: P } };
+    }
+    function genSegments(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const Ln = ri(3, 7); return { q: 'Clique <strong>deux points</strong> du quadrillage distants d’exactement <strong>' + Ln + ' unités</strong>.', interactive: 'poly', npts: 2, hint: 'Clique 2 points sur le quadrillage.', svg: gridSVG([], true), target: { L: Ln }, _okP: P => P.length === 2 && d2(P[0], P[1]) === Ln * Ln, outline: P => P, sol: 'p. ex. (0 ; 0) et (' + Ln + ' ; 0)', _dbg: { type: 'seg', L: Ln } }; }
+        if (L === 1) { return { q: 'Clique deux points distants d’exactement <strong>5 unités</strong>, mais le segment ne doit être <strong>ni horizontal ni vertical</strong>. (Pense à Pythagore !)', interactive: 'poly', npts: 2, hint: 'Clique 2 points sur le quadrillage.', svg: gridSVG([], true), target: { L: 5, ob: 1 }, _okP: P => P.length === 2 && d2(P[0], P[1]) === 25 && P[0][0] !== P[1][0] && P[0][1] !== P[1][1], outline: P => P, sol: 'p. ex. (0 ; 0) et (3 ; 4), car 3² + 4² = 5²', _dbg: { type: 'seg5', L: 5 } }; }
+        return { q: 'Clique deux points distants d’exactement <strong>10 unités</strong>, <strong>ni horizontalement ni verticalement</strong>.', interactive: 'poly', npts: 2, hint: 'Clique 2 points sur le quadrillage.', svg: gridSVG([], true), target: { L: 10, ob: 1 }, _okP: P => P.length === 2 && d2(P[0], P[1]) === 100 && P[0][0] !== P[1][0] && P[0][1] !== P[1][1], outline: P => P, sol: 'p. ex. (−3 ; −4) et (3 ; 4), car 6² + 8² = 10²', _dbg: { type: 'seg10', L: 10 } };
+    }
+    function genInstruments(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            if (Math.random() < 0.5) { const val = ri(-3, 8) * 5; return { q: 'Quelle température indique ce thermomètre ?', svg: thermoSVG(val, -20, 45, 5), fields: [{ label: '°C', e: val }], sol: val + ' °C', _dbg: { type: 'thermo', val: val } }; }
+            const val = ri(1, 9) * 50; return { q: 'Quel volume d’eau contient ce verre mesureur ?', svg: beakerSVG(val, 500, 50), fields: [{ label: 'mL', e: val }], sol: val + ' mL', _dbg: { type: 'beaker', val: val } };
+        }
+        if (L === 1) {
+            const w = pick(['balance', 'thermoFin', 'beakerFin']);
+            if (w === 'balance') { const val = ri(1, 19) * 50; return { q: 'Quelle masse indique cette balance ?', svg: scaleSVG(val, 1000, 50), fields: [{ label: 'g', e: val }], sol: val + ' g', _dbg: { type: 'balance', val: val } }; }
+            if (w === 'thermoFin') { const val = ri(-8, 19) * 2; return { q: 'Quelle température indique ce thermomètre ? (graduations de 2 en 2)', svg: thermoSVG(val, -16, 40, 2), fields: [{ label: '°C', e: val }], sol: val + ' °C', _dbg: { type: 'thermoFin', val: val } }; }
+            const val = ri(1, 19) * 25; return { q: 'Quel volume indique ce verre mesureur ? (graduations de 25 en 25)', svg: beakerSVG(val, 500, 25), fields: [{ label: 'mL', e: val }], sol: val + ' mL', _dbg: { type: 'beakerFin', val: val } };
+        }
+        const w = pick(['regle', 'manque', 'balanceFin']);
+        if (w === 'regle') { const from = ri(0, 3), len = ri(25, 65) / 10; const to = Math.round((from + len) * 10) / 10; return { q: 'Quelle est la <strong>longueur du crayon</strong> en cm ? (lis les graduations en millimètres)', svg: rulerSVG(from, to), fields: [{ label: 'cm', e: Math.round(len * 10) / 10, tol: 0.01 }], sol: fcm(to) + ' ' + M + ' ' + from + ' = ' + fcm(Math.round(len * 10) / 10) + ' cm', _dbg: { type: 'regle', from: from, to: to, e: Math.round(len * 10) / 10 } }; }
+        if (w === 'manque') { const val = ri(3, 17) * 25; return { q: 'Ce verre contient le volume affiché. <strong>Combien de mL manque-t-il</strong> pour atteindre 500 mL ?', svg: beakerSVG(val, 500, 25), fields: [{ label: 'mL manquants', e: 500 - val }], sol: '500 ' + M + ' ' + val + ' = ' + (500 - val) + ' mL', _dbg: { type: 'manque', val: val, e: 500 - val } }; }
+        const val = ri(1, 39) * 25; return { q: 'Quelle masse indique cette balance ? (graduations de 25 g)', svg: scaleSVG(val, 1000, 25), fields: [{ label: 'g', e: val }], sol: val + ' g', _dbg: { type: 'balanceFin', val: val } };
+    }
+    function genHorloges(diff) {
+        const L = lvl(diff);
+        if (L === 0) { const h = ri(1, 12), m = ri(0, 11) * 5; return { q: 'Quelle heure indique cette horloge ? (heures entre 1 et 12)', svg: clockFigSVG(h, m), fields: [{ label: 'h', e: h }, { label: 'min', e: m }], sol: h + ' h ' + (m < 10 ? '0' : '') + m, _dbg: { type: 'lire', h: h, m: m } }; }
+        if (L === 1) { let h1 = ri(1, 9), m1 = ri(0, 11) * 5, dur = ri(7, 33) * 5; const t1 = h1 * 60 + m1, t2 = t1 + dur; const h2 = Math.floor(t2 / 60), m2 = t2 % 60;
+            if (t2 > 720) { return genHorloges(diff); }
+            return { q: 'Combien de temps s’écoule entre l’horloge de départ et celle d’arrivée ?', svg: clock2SVG(h1, m1, h2, m2), fields: [{ label: 'h', e: Math.floor(dur / 60) }, { label: 'min', e: dur % 60 }], sol: Math.floor(dur / 60) + ' h ' + (dur % 60 < 10 ? '0' : '') + (dur % 60), _dbg: { type: 'duree', t1: t1, t2: t2, dur: dur } }; }
+        let h1 = ri(1, 9), m1 = ri(0, 11) * 5, dh = ri(0, 2), dm = ri(1, 59); if (!dh && dm < 20) dh = 1;
+        const t2 = h1 * 60 + m1 + dh * 60 + dm; if (t2 > 12 * 60) { return genHorloges(diff); }
+        const h2 = Math.floor(t2 / 60), m2 = t2 % 60;
+        return { q: 'Un film commence à l’heure affichée et dure <strong>' + dh + ' h ' + (dm < 10 ? '0' : '') + dm + ' min</strong>. À quelle heure se termine-t-il ?', svg: clockFigSVG(h1, m1, 'début du film'), fields: [{ label: 'h', e: h2 }, { label: 'min', e: m2 }], sol: h1 + ' h ' + (m1 < 10 ? '0' : '') + m1 + ' + ' + dh + ' h ' + (dm < 10 ? '0' : '') + dm + ' = ' + h2 + ' h ' + (m2 < 10 ? '0' : '') + m2, _dbg: { type: 'fin', h1: h1, m1: m1, dh: dh, dm: dm, h2: h2, m2: m2 } };
+    }
+
+    // ================= HARNESS =================
+    const diffs = ['facile', 'moyen', 'difficile'];
+    let n = 0; const errors = []; const tc = {};
     function genDiagramme(diff) {
         const L = lvl(diff);
         const type = pick(L === 0 ? ['bar', 'line', 'picto'] : ['bar', 'line', 'pie', 'picto']);
@@ -912,7 +1230,7 @@
         const a = pick([-1, 1]); let h, kk, b, c, P, g = 0; do { h = ri(-2, 2); kk = ri(-3, 2); b = -2 * a * h; c = a * h * h + kk; P = [-1, 0, 1].map(x => [x, a * x * x + b * x + c]); g++; } while ((P.some(p => Math.abs(p[1]) > 5) || Math.abs(b) > 5 || Math.abs(c) > 5) && g < 80); return { q: 'Règle a, b et c pour que la parabole y = ax² + bx + c passe par A(' + P[0][0] + ' ; ' + P[0][1] + '), B(' + P[1][0] + ' ; ' + P[1][1] + ') et C(' + P[2][0] + ' ; ' + P[2][1] + ').', interactive: 'slider', parab: true, target: { a: a, b: b, c: c }, pts: P, svg: sliderGridSVG(P), sol: 'a = ' + a + ' , b = ' + b + ' , c = ' + c };
     }
 
-    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, construction: genConstruction, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs };
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, construction: genConstruction, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs, aire_grille: genAireGrille, segments: genSegments, instruments: genInstruments, horloges: genHorloges };
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
@@ -955,14 +1273,18 @@
         { id: 'milieu', dom: 'ES', nm: 'Milieu & parallélogramme', icon: 'fa-bullseye', years: [9, 10, 11], ds: 'Clique le milieu ou le 4ᵉ sommet', inter: 1 },
         { id: 'construction', dom: 'ES', nm: 'Construction géométrique', icon: 'fa-shapes', years: [9, 10, 11], ds: 'Construis carrés, losanges, triangles…', inter: 1 },
         { id: 'solides', dom: 'ES', nm: 'Solides', icon: 'fa-cube', years: [9, 10, 11], ds: 'Faces, arêtes, sommets, Euler' },
-        { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', years: [9, 10], ds: 'Polygones et disque' },
-        { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', years: [9, 10, 11], ds: 'Du cube au cylindre' },
-        { id: 'pythagore', dom: 'GM', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', years: [10, 11], ds: 'Hypoténuse et cathètes', vis: 1 },
-        { id: 'thales', dom: 'GM', nm: 'Théorème de Thalès', icon: 'fa-grip-lines', years: [11], ds: 'Segments proportionnels' },
-        { id: 'trigo', dom: 'GM', nm: 'Trigonométrie', icon: 'fa-ruler-combined', years: [10, 11], ds: 'Sinus, cosinus, tangente' },
-        { id: 'conversions', dom: 'GM', nm: 'Conversions (longueurs)', icon: 'fa-ruler', years: [9, 10], ds: 'km, m, cm, kg, L…' },
-        { id: 'conversions_av', dom: 'GM', nm: 'Conversions (aires/volumes)', icon: 'fa-ruler-horizontal', years: [10, 11], ds: 'm², dm³, litres…' },
-        { id: 'grandeurs', dom: 'GM', nm: 'Vitesse, masse volumique', icon: 'fa-gauge-high', years: [11], ds: 'Grandeurs composées' },
+        { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', years: [9, 10, 11], ds: 'Rectangle, disque, figures composées', vis: 1 },
+        { id: 'aire_grille', dom: 'GM', nm: 'Aire sur quadrillage', icon: 'fa-table-cells', years: [9, 10], ds: 'Colorie la surface demandée', inter: 1 },
+        { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', years: [9, 10, 11], ds: 'Cube, prisme, cylindre, pyramide…', vis: 1 },
+        { id: 'pythagore', dom: 'GM', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', years: [10, 11], ds: 'Hypoténuse, applications, distances', vis: 1 },
+        { id: 'segments', dom: 'GM', nm: 'Segments à construire', icon: 'fa-slash', years: [9, 10, 11], ds: 'Clique 2 points à la bonne distance', inter: 1 },
+        { id: 'thales', dom: 'GM', nm: 'Théorème de Thalès', icon: 'fa-grip-lines', years: [11], ds: 'Segments proportionnels', vis: 1 },
+        { id: 'trigo', dom: 'GM', nm: 'Trigonométrie', icon: 'fa-ruler-combined', years: [10, 11], ds: 'Sinus, cosinus, tangente, angles', vis: 1 },
+        { id: 'instruments', dom: 'GM', nm: 'Lire les instruments', icon: 'fa-temperature-half', years: [9, 10], ds: 'Thermomètre, balance, règle…', vis: 1 },
+        { id: 'horloges', dom: 'GM', nm: 'Heures et durées', icon: 'fa-clock', years: [9, 10], ds: 'Horloges, durées, heure d’arrivée', vis: 1 },
+        { id: 'conversions', dom: 'GM', nm: 'Conversions (longueurs, masses)', icon: 'fa-ruler', years: [9, 10, 11], ds: 'km, m, cm, kg, L…' },
+        { id: 'conversions_av', dom: 'GM', nm: 'Conversions (aires/volumes)', icon: 'fa-ruler-horizontal', years: [10, 11], ds: 'm², dm³, litres, durées' },
+        { id: 'grandeurs', dom: 'GM', nm: 'Vitesse, masse volumique', icon: 'fa-gauge-high', years: [10, 11], ds: 'Vitesse, débit, km/h ↔ m/s' },
     ];
     const domColor = code => (DOMAINS.find(d => d.code === code) || {}).col || '#6366F1';
 
@@ -1023,6 +1345,8 @@
                 body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">Clique sur le bon angle dans la figure.</span> ' + vbtn + '</div>';
             } else if (ex.interactive === 'mpoint' || ex.interactive === 'poly') {
                 body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">' + ex.hint + '</span> ' + vbtn + '</div>';
+            } else if (ex.interactive === 'cells') {
+                body = '<div class="mx-iact" style="grid-column:2"><span class="mx-hint">' + ex.hint + ' Sélection : <b class="mx-cnt">0</b> unité(s)²</span> ' + vbtn + '</div>';
             } else {
                 body = '<div class="mx-fields">' + ex.fields.map((f, j) => fieldHTML(f, i, j)).join('') + '</div>';
             }
@@ -1070,6 +1394,18 @@
                     ex._cl.forEach((p, j) => { h += '<circle cx="' + px(p.x) + '" cy="' + py(p.y) + '" r="5" fill="#EF4444"/>'; if (ex.labels && ex.labels[j]) h += '<text x="' + (px(p.x) + 6) + '" y="' + (py(p.y) - 6) + '" font-size="11" font-weight="700" fill="#B91C1C">' + ex.labels[j] + '</text>'; });
                     svg.querySelector('.mx-mark').innerHTML = h;
                 });
+            } else if (ex.interactive === 'cells') {
+                const svg = el.querySelector('.mx-cells-hit'); if (!svg) return; ex._cells = new Set();
+                svg.addEventListener('click', e => {
+                    const rect = svg.getBoundingClientRect(), vbW = parseFloat(svg.getAttribute('viewBox').split(' ')[2]), sc = vbW / rect.width;
+                    const cs = +svg.dataset.cs, pad = +svg.dataset.pad, cols = +svg.dataset.cols, rows = +svg.dataset.rows;
+                    const cc = Math.floor(((e.clientX - rect.left) * sc - pad) / cs), rr = Math.floor(((e.clientY - rect.top) * sc - pad) / cs);
+                    if (cc < 0 || rr < 0 || cc >= cols || rr >= rows) return;
+                    const k = cc + ',' + rr; if (ex._cells.has(k)) ex._cells.delete(k); else ex._cells.add(k);
+                    let h = ''; ex._cells.forEach(key => { const p = key.split(','); h += '<rect x="' + (pad + p[0] * cs + 1.5) + '" y="' + (pad + p[1] * cs + 1.5) + '" width="' + (cs - 3) + '" height="' + (cs - 3) + '" rx="3" fill="#059669" fill-opacity="0.55"/>'; });
+                    svg.querySelector('.mx-mark').innerHTML = h;
+                    const cnt = el.querySelector('.mx-cnt'); if (cnt) cnt.textContent = ex._cells.size;
+                });
             }
         });
     }
@@ -1097,6 +1433,7 @@
         else if (ex.interactive === 'angle') allOk = ex._sel === ex.correct;
         else if (ex.interactive === 'mpoint') allOk = !!ex._cl && ex._cl.length === ex.npts && ex.targets.every((t, j) => ex._cl[j].x === t[0] && ex._cl[j].y === t[1]);
         else if (ex.interactive === 'poly') allOk = !!ex._cl && ex._cl.length === ex.npts && ex._okP(ex._cl.map(p => [p.x, p.y]));
+        else if (ex.interactive === 'cells') allOk = !!ex._cells && ex._okC(ex._cells);
         else ex.fields.forEach((f, j) => { const inp = $('exList').querySelector('.mx-input[data-i="' + i + '"][data-j="' + j + '"]'); const ok = checkField(f, inp.value); inp.classList.remove('ok', 'ko'); inp.classList.add(ok ? 'ok' : 'ko'); if (!ok) allOk = false; });
         return allOk;
     }
