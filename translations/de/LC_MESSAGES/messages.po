@@ -279,6 +279,267 @@ msgstr "Du wurdest erfolgreich abgemeldet."
 msgid "Veuillez vous connecter pour accéder à cette page."
 msgstr "Bitte melde dich an, um auf diese Seite zuzugreifen."
 
+msgid "ProfCalendar - La plateforme scolaire tout-en-un"
+msgstr "ProfCalendar - Die All-in-One-Schulplattform"
+
+msgid "ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer."
+msgstr "ProfCalendar erleichtert den Lehreralltag: Planung, interaktive Übungen, Anwesenheitskontrolle, Noten und Zusammenarbeit. Kostenlos starten."
+
+msgid "Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer."
+msgstr "Plane deinen Unterricht, erstelle interaktive Übungen, verfolge Anwesenheiten und Noten. Kostenlos starten."
+
+msgid "Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes."
+msgstr "Plane deinen Unterricht, erstelle interaktive Übungen, verfolge Anwesenheiten und Noten."
+
+msgid "Inscription gratuite"
+msgstr "Kostenlos registrieren"
+
+msgid "La plateforme qui simplifie le quotidien des enseignants"
+msgstr "Die Plattform, die den Lehreralltag vereinfacht"
+
+msgid "Planifiez, enseignez et suivez vos classes en un seul endroit"
+msgstr "Plane, unterrichte und begleite deine Klassen an einem Ort"
+
+msgid "ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne."
+msgstr "ProfCalendar vereint Unterrichtsplanung, interaktive Übungen, Anwesenheitskontrolle und Notenverwaltung in einer intuitiven, modernen Plattform."
+
+msgid "Créer un compte gratuit"
+msgstr "Kostenloses Konto erstellen"
+
+msgid "Tout ce dont vous avez besoin"
+msgstr "Alles, was du brauchst"
+
+msgid "Des outils puissants conçus par et pour les enseignants, regroupés dans une seule plateforme."
+msgstr "Leistungsstarke Werkzeuge von Lehrpersonen für Lehrpersonen, vereint in einer einzigen Plattform."
+
+msgid "Planification intelligente"
+msgstr "Intelligente Planung"
+
+msgid "Calendrier hebdomadaire et annuel avec planification par période. Créez vos leçons, ajoutez des ressources et suivez votre programme."
+msgstr "Wochen- und Jahreskalender mit Planung pro Lektion. Erstelle deine Lektionen, füge Materialien hinzu und behalte dein Programm im Blick."
+
+msgid "Exercices interactifs"
+msgstr "Interaktive Übungen"
+
+msgid "Créez des QCM, textes à trous, correspondances, classements et plus encore. Les élèves résolvent sur leur appareil avec feedback instantané."
+msgstr "Erstelle Multiple-Choice-Quiz, Lückentexte, Zuordnungen, Reihenfolgen und mehr. Die Schüler lösen sie auf ihrem Gerät mit sofortigem Feedback."
+
+msgid "Notes & évaluations"
+msgstr "Noten & Bewertungen"
+
+msgid "Saisissez les notes par évaluation, calculez les moyennes automatiquement. Parents et élèves consultent leurs résultats en temps réel."
+msgstr "Erfasse Noten pro Bewertung, Durchschnitte werden automatisch berechnet. Eltern und Schüler sehen ihre Ergebnisse in Echtzeit."
+
+msgid "Suivi des présences"
+msgstr "Anwesenheitskontrolle"
+
+msgid "Marquez les présences, absences et retards en un clic pendant votre cours. Historique complet et statistiques détaillées."
+msgstr "Erfasse Anwesenheiten, Absenzen und Verspätungen mit einem Klick während des Unterrichts. Vollständiger Verlauf und detaillierte Statistiken."
+
+msgid "Collaboration enseignants"
+msgstr "Zusammenarbeit unter Lehrpersonen"
+
+msgid "Partagez vos classes avec vos collègues. Travaillez ensemble sur les mêmes élèves, sanctions et plans de classe."
+msgstr "Teile deine Klassen mit Kolleginnen und Kollegen. Arbeitet gemeinsam an denselben Schülern, Sanktionen und Sitzplänen."
+
+msgid "Gestionnaire de fichiers"
+msgstr "Dateiverwaltung"
+
+msgid "Uploadez, organisez et partagez vos documents. Annotations PDF intégrées avec support du stylet."
+msgstr "Lade Dokumente hoch, organisiere und teile sie. Integrierte PDF-Notizen mit Stift-Unterstützung."
+
+msgid "Votre salle de classe numérique"
+msgstr "Dein digitales Klassenzimmer"
+
+msgid "Une interface pensée pour le quotidien de l'enseignant, accessible depuis n'importe quel appareil."
+msgstr "Eine Oberfläche für den Lehreralltag, erreichbar von jedem Gerät aus."
+
+msgid "Semaine du 14 au 18 avril 2026"
+msgstr "Woche vom 14. bis 18. April 2026"
+
+msgid "P1 - 9VG Sciences"
+msgstr "P1 - 9VG Naturwissenschaft"
+
+msgid "P2 - 9VG Sciences"
+msgstr "P2 - 9VG Naturwissenschaft"
+
+msgid "P3 - Libre"
+msgstr "P3 - Frei"
+
+msgid "P4 - 11VP Maths"
+msgstr "P4 - 11VP Mathe"
+
+msgid "P5 - 10VG Français"
+msgstr "P5 - 10VG Französisch"
+
+msgid "Calendrier semaine"
+msgstr "Wochenkalender"
+
+msgid "Visualisez votre emploi du temps, cliquez sur une période pour accéder directement à votre leçon."
+msgstr "Sieh deinen Stundenplan auf einen Blick und klicke auf eine Lektion, um sie direkt zu öffnen."
+
+msgid "Exercice : Quiz Fractions"
+msgstr "Übung: Quiz Brüche"
+
+msgid "Question 3/10"
+msgstr "Frage 3/10"
+
+msgid "Combien font 1/4 + 1/2 ?"
+msgstr "Was ergibt 1/4 + 1/2?"
+
+msgid "Correct !"
+msgstr "Richtig!"
+
+msgid "QCM, textes à trous, correspondances et bien plus. Les élèves résolvent les exercices sur leur appareil avec un retour instantané."
+msgstr "Multiple Choice, Lückentexte, Zuordnungen und vieles mehr. Die Schüler lösen die Übungen auf ihrem Gerät mit sofortiger Rückmeldung."
+
+msgid "Suivi - 11VG niveau 2"
+msgstr "Übersicht - 11VG Niveau 2"
+
+msgid "Present"
+msgstr "Anwesend"
+
+msgid "Absent"
+msgstr "Abwesend"
+
+msgid "Retard 5min"
+msgstr "5 Min. zu spät"
+
+msgid "Présences en direct"
+msgstr "Anwesenheit live"
+
+msgid "Gérez les présences, absences et retards pendant votre cours. Sanctions et coches intégrées."
+msgstr "Verwalte Anwesenheiten, Absenzen und Verspätungen während des Unterrichts. Integrierte Sanktionen und Häkchen."
+
+msgid "Ce qu'en disent les enseignants"
+msgstr "Das sagen Lehrpersonen"
+
+msgid "Rejoignez les enseignants qui ont déjà adopté ProfCalendar."
+msgstr "Schliesse dich den Lehrpersonen an, die ProfCalendar bereits nutzen."
+
+msgid "ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent énormément mes élèves."
+msgstr "ProfCalendar hat meine Unterrichtsvorbereitung komplett verändert. Der Kalender ist intuitiv und die interaktiven Übungen motivieren meine Schüler enorm."
+
+msgid "Enseignante de mathématiques"
+msgstr "Mathematiklehrerin"
+
+msgid "Les exercices interactifs sont un vrai plus. Je prépare mes QCM et mes textes à trous en quelques minutes, et mes élèves reçoivent un retour immédiat sur leurs réponses."
+msgstr "Die interaktiven Übungen sind ein echtes Plus. Ich erstelle meine Quiz und Lückentexte in wenigen Minuten, und meine Schüler erhalten sofort Rückmeldung zu ihren Antworten."
+
+msgid "Enseignant de sciences"
+msgstr "Naturwissenschaftslehrer"
+
+msgid "Enfin un outil qui regroupe tout : présences, notes, fichiers et planification. Plus besoin de jongler entre 5 applications différentes. Un gain de temps énorme."
+msgstr "Endlich ein Tool, das alles vereint: Anwesenheiten, Noten, Dateien und Planung. Kein Jonglieren mehr zwischen 5 verschiedenen Apps. Eine enorme Zeitersparnis."
+
+msgid "Enseignante de français"
+msgstr "Französischlehrerin"
+
+msgid "Un plan pour chaque enseignant"
+msgstr "Ein Plan für jede Lehrperson"
+
+msgid "Commencez gratuitement, passez à Premium quand vous êtes prêt."
+msgstr "Starte kostenlos und wechsle zu Premium, wenn du bereit bist."
+
+msgid "Gratuit"
+msgstr "Kostenlos"
+
+msgid "pour toujours"
+msgstr "für immer"
+
+msgid "Planification des cours"
+msgstr "Unterrichtsplanung"
+
+msgid "Calendrier scolaire"
+msgstr "Schulkalender"
+
+msgid "Configuration de base"
+msgstr "Grundkonfiguration"
+
+msgid "Commencer gratuitement"
+msgstr "Kostenlos starten"
+
+msgid "Le plus populaire"
+msgstr "Am beliebtesten"
+
+msgid "mois"
+msgstr "Monat"
+
+msgid "Tout du plan gratuit"
+msgstr "Alles aus dem Gratis-Plan"
+
+msgid "Gestion de classe complète"
+msgstr "Komplette Klassenverwaltung"
+
+msgid "Essayer Premium"
+msgstr "Premium testen"
+
+msgid "Premium Annuel"
+msgstr "Premium Jahresabo"
+
+msgid "an"
+msgstr "Jahr"
+
+msgid "Tout du plan Premium"
+msgstr "Alles aus dem Premium-Plan"
+
+msgid "Économisez 32%%"
+msgstr "Spare 32%%"
+
+msgid "3 Go de stockage"
+msgstr "3 GB Speicherplatz"
+
+msgid "Support prioritaire"
+msgstr "Prioritäts-Support"
+
+msgid "Choisir l'annuel"
+msgstr "Jahresabo wählen"
+
+msgid "Disponible partout"
+msgstr "Überall verfügbar"
+
+msgid "Accédez à ProfCalendar depuis votre ordinateur, tablette ou téléphone."
+msgstr "Greife von Computer, Tablet oder Smartphone auf ProfCalendar zu."
+
+msgid "App native avec PencilKit"
+msgstr "Native App mit PencilKit"
+
+msgid "Tablettes et smartphones"
+msgstr "Tablets und Smartphones"
+
+msgid "Tableau interactif"
+msgstr "Interaktives Whiteboard"
+
+msgid "Compatible TBI/TNI"
+msgstr "Kompatibel mit interaktiven Whiteboards"
+
+msgid "Prêt à simplifier votre quotidien ?"
+msgstr "Bereit, deinen Alltag zu vereinfachen?"
+
+msgid "Rejoignez les enseignants qui utilisent déjà ProfCalendar. Inscription gratuite, aucune carte de crédit requise."
+msgstr "Schliesse dich den Lehrpersonen an, die ProfCalendar bereits nutzen. Kostenlose Registrierung, keine Kreditkarte nötig."
+
+msgid "Créer mon compte gratuitement"
+msgstr "Mein kostenloses Konto erstellen"
+
+msgid "Conçu avec"
+msgstr "Entwickelt mit"
+
+msgid "pour les enseignants."
+msgstr "für Lehrpersonen."
+
+msgid "Calendriers scolaires"
+msgstr "Schulkalender"
+
+msgid "Créateur de barème"
+msgstr "Notenskala-Generator"
+
+msgid "Exercices de maths"
+msgstr "Mathe-Übungen"
+
+msgid "Conditions générales"
+msgstr "AGB"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

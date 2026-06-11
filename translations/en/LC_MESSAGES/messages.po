@@ -279,6 +279,267 @@ msgstr "You have been logged out successfully."
 msgid "Veuillez vous connecter pour accéder à cette page."
 msgstr "Please log in to access this page."
 
+msgid "ProfCalendar - La plateforme scolaire tout-en-un"
+msgstr "ProfCalendar - The all-in-one school platform"
+
+msgid "ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer."
+msgstr "ProfCalendar makes teachers' lives easier: planning, interactive exercises, attendance tracking, grades and collaboration. Free to get started."
+
+msgid "Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer."
+msgstr "Plan your lessons, create interactive exercises, track attendance and grades. Free to get started."
+
+msgid "Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes."
+msgstr "Plan your lessons, create interactive exercises, track attendance and grades."
+
+msgid "Inscription gratuite"
+msgstr "Sign up free"
+
+msgid "La plateforme qui simplifie le quotidien des enseignants"
+msgstr "The platform that simplifies teachers' daily lives"
+
+msgid "Planifiez, enseignez et suivez vos classes en un seul endroit"
+msgstr "Plan, teach and track your classes in one place"
+
+msgid "ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne."
+msgstr "ProfCalendar combines lesson planning, interactive exercises, attendance tracking and grade management in one intuitive, modern platform."
+
+msgid "Créer un compte gratuit"
+msgstr "Create a free account"
+
+msgid "Tout ce dont vous avez besoin"
+msgstr "Everything you need"
+
+msgid "Des outils puissants conçus par et pour les enseignants, regroupés dans une seule plateforme."
+msgstr "Powerful tools designed by and for teachers, brought together in a single platform."
+
+msgid "Planification intelligente"
+msgstr "Smart planning"
+
+msgid "Calendrier hebdomadaire et annuel avec planification par période. Créez vos leçons, ajoutez des ressources et suivez votre programme."
+msgstr "Weekly and yearly calendar with period-by-period planning. Create your lessons, add resources and keep track of your curriculum."
+
+msgid "Exercices interactifs"
+msgstr "Interactive exercises"
+
+msgid "Créez des QCM, textes à trous, correspondances, classements et plus encore. Les élèves résolvent sur leur appareil avec feedback instantané."
+msgstr "Create multiple-choice quizzes, fill-in-the-blanks, matching, ranking and more. Students solve them on their device with instant feedback."
+
+msgid "Notes & évaluations"
+msgstr "Grades & assessments"
+
+msgid "Saisissez les notes par évaluation, calculez les moyennes automatiquement. Parents et élèves consultent leurs résultats en temps réel."
+msgstr "Enter grades for each assessment and averages are calculated automatically. Parents and students see their results in real time."
+
+msgid "Suivi des présences"
+msgstr "Attendance tracking"
+
+msgid "Marquez les présences, absences et retards en un clic pendant votre cours. Historique complet et statistiques détaillées."
+msgstr "Mark attendance, absences and late arrivals in one click during your lesson. Full history and detailed statistics."
+
+msgid "Collaboration enseignants"
+msgstr "Teacher collaboration"
+
+msgid "Partagez vos classes avec vos collègues. Travaillez ensemble sur les mêmes élèves, sanctions et plans de classe."
+msgstr "Share your classes with colleagues. Work together on the same students, sanctions and seating plans."
+
+msgid "Gestionnaire de fichiers"
+msgstr "File manager"
+
+msgid "Uploadez, organisez et partagez vos documents. Annotations PDF intégrées avec support du stylet."
+msgstr "Upload, organize and share your documents. Built-in PDF annotation with stylus support."
+
+msgid "Votre salle de classe numérique"
+msgstr "Your digital classroom"
+
+msgid "Une interface pensée pour le quotidien de l'enseignant, accessible depuis n'importe quel appareil."
+msgstr "An interface designed for teachers' daily work, accessible from any device."
+
+msgid "Semaine du 14 au 18 avril 2026"
+msgstr "Week of April 14–18, 2026"
+
+msgid "P1 - 9VG Sciences"
+msgstr "P1 - 9VG Science"
+
+msgid "P2 - 9VG Sciences"
+msgstr "P2 - 9VG Science"
+
+msgid "P3 - Libre"
+msgstr "P3 - Free"
+
+msgid "P4 - 11VP Maths"
+msgstr "P4 - 11VP Math"
+
+msgid "P5 - 10VG Français"
+msgstr "P5 - 10VG French"
+
+msgid "Calendrier semaine"
+msgstr "Week calendar"
+
+msgid "Visualisez votre emploi du temps, cliquez sur une période pour accéder directement à votre leçon."
+msgstr "See your timetable at a glance and click any period to jump straight to your lesson."
+
+msgid "Exercice : Quiz Fractions"
+msgstr "Exercise: Fractions Quiz"
+
+msgid "Question 3/10"
+msgstr "Question 3/10"
+
+msgid "Combien font 1/4 + 1/2 ?"
+msgstr "What is 1/4 + 1/2?"
+
+msgid "Correct !"
+msgstr "Correct!"
+
+msgid "QCM, textes à trous, correspondances et bien plus. Les élèves résolvent les exercices sur leur appareil avec un retour instantané."
+msgstr "Multiple-choice, fill-in-the-blanks, matching and much more. Students solve exercises on their device with instant feedback."
+
+msgid "Suivi - 11VG niveau 2"
+msgstr "Tracking - 11VG level 2"
+
+msgid "Present"
+msgstr "Present"
+
+msgid "Absent"
+msgstr "Absent"
+
+msgid "Retard 5min"
+msgstr "5 min late"
+
+msgid "Présences en direct"
+msgstr "Live attendance"
+
+msgid "Gérez les présences, absences et retards pendant votre cours. Sanctions et coches intégrées."
+msgstr "Manage attendance, absences and late arrivals during your lesson. Built-in sanctions and checkmarks."
+
+msgid "Ce qu'en disent les enseignants"
+msgstr "What teachers say"
+
+msgid "Rejoignez les enseignants qui ont déjà adopté ProfCalendar."
+msgstr "Join the teachers who have already adopted ProfCalendar."
+
+msgid "ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent énormément mes élèves."
+msgstr "ProfCalendar has completely changed the way I prepare my lessons. The calendar is intuitive and the interactive exercises really motivate my students."
+
+msgid "Enseignante de mathématiques"
+msgstr "Mathematics teacher"
+
+msgid "Les exercices interactifs sont un vrai plus. Je prépare mes QCM et mes textes à trous en quelques minutes, et mes élèves reçoivent un retour immédiat sur leurs réponses."
+msgstr "The interactive exercises are a real plus. I create my quizzes and fill-in-the-blanks in minutes, and my students get instant feedback on their answers."
+
+msgid "Enseignant de sciences"
+msgstr "Science teacher"
+
+msgid "Enfin un outil qui regroupe tout : présences, notes, fichiers et planification. Plus besoin de jongler entre 5 applications différentes. Un gain de temps énorme."
+msgstr "Finally a tool that brings everything together: attendance, grades, files and planning. No more juggling 5 different apps. A huge time saver."
+
+msgid "Enseignante de français"
+msgstr "French teacher"
+
+msgid "Un plan pour chaque enseignant"
+msgstr "A plan for every teacher"
+
+msgid "Commencez gratuitement, passez à Premium quand vous êtes prêt."
+msgstr "Start for free, upgrade to Premium when you're ready."
+
+msgid "Gratuit"
+msgstr "Free"
+
+msgid "pour toujours"
+msgstr "forever"
+
+msgid "Planification des cours"
+msgstr "Lesson planning"
+
+msgid "Calendrier scolaire"
+msgstr "School calendar"
+
+msgid "Configuration de base"
+msgstr "Basic setup"
+
+msgid "Commencer gratuitement"
+msgstr "Start for free"
+
+msgid "Le plus populaire"
+msgstr "Most popular"
+
+msgid "mois"
+msgstr "month"
+
+msgid "Tout du plan gratuit"
+msgstr "Everything in the Free plan"
+
+msgid "Gestion de classe complète"
+msgstr "Full class management"
+
+msgid "Essayer Premium"
+msgstr "Try Premium"
+
+msgid "Premium Annuel"
+msgstr "Premium Annual"
+
+msgid "an"
+msgstr "year"
+
+msgid "Tout du plan Premium"
+msgstr "Everything in Premium"
+
+msgid "Économisez 32%%"
+msgstr "Save 32%%"
+
+msgid "3 Go de stockage"
+msgstr "3 GB of storage"
+
+msgid "Support prioritaire"
+msgstr "Priority support"
+
+msgid "Choisir l'annuel"
+msgstr "Choose annual"
+
+msgid "Disponible partout"
+msgstr "Available everywhere"
+
+msgid "Accédez à ProfCalendar depuis votre ordinateur, tablette ou téléphone."
+msgstr "Access ProfCalendar from your computer, tablet or phone."
+
+msgid "App native avec PencilKit"
+msgstr "Native app with PencilKit"
+
+msgid "Tablettes et smartphones"
+msgstr "Tablets and smartphones"
+
+msgid "Tableau interactif"
+msgstr "Interactive whiteboard"
+
+msgid "Compatible TBI/TNI"
+msgstr "Works with interactive whiteboards"
+
+msgid "Prêt à simplifier votre quotidien ?"
+msgstr "Ready to simplify your day-to-day?"
+
+msgid "Rejoignez les enseignants qui utilisent déjà ProfCalendar. Inscription gratuite, aucune carte de crédit requise."
+msgstr "Join the teachers already using ProfCalendar. Free sign-up, no credit card required."
+
+msgid "Créer mon compte gratuitement"
+msgstr "Create my free account"
+
+msgid "Conçu avec"
+msgstr "Made with"
+
+msgid "pour les enseignants."
+msgstr "for teachers."
+
+msgid "Calendriers scolaires"
+msgstr "School calendars"
+
+msgid "Créateur de barème"
+msgstr "Grading scale maker"
+
+msgid "Exercices de maths"
+msgstr "Math exercises"
+
+msgid "Conditions générales"
+msgstr "Terms of Service"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

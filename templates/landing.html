@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,23 +9,23 @@
     {% if config.get('GOOGLE_SITE_VERIFICATION') %}
     <meta name="google-site-verification" content="{{ config.GOOGLE_SITE_VERIFICATION }}">
     {% endif %}
-    <title>ProfCalendar - La plateforme scolaire tout-en-un</title>
-    <meta name="description" content="ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer.">
+    <title>{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}</title>
+    <meta name="description" content="{{ _('ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer.') }}">
 
     {% include 'includes/favicon.html' %}
 
     <!-- Open Graph -->
-    <meta property="og:title" content="ProfCalendar - La plateforme scolaire tout-en-un">
-    <meta property="og:description" content="Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer.">
+    <meta property="og:title" content="{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}">
+    <meta property="og:description" content="{{ _('Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer.') }}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://profcalendar.org/">
-    <meta property="og:locale" content="fr_CH">
+    <meta property="og:locale" content="{{ {'fr': 'fr_CH', 'en': 'en_US', 'es': 'es_ES', 'de': 'de_CH', 'it': 'it_CH'}.get(current_locale, 'fr_CH') }}">
     <meta property="og:site_name" content="ProfCalendar">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ProfCalendar - La plateforme scolaire tout-en-un">
-    <meta name="twitter:description" content="Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes.">
+    <meta name="twitter:title" content="{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}">
+    <meta name="twitter:description" content="{{ _('Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes.') }}">
 
     <!-- Google Analytics -->
     {% if config.get('GA_MEASUREMENT_ID') %}
@@ -293,21 +293,27 @@
 <!-- NAVBAR -->
 <nav class="landing-nav">
     <a href="/" class="logo"><i class="fas fa-calendar-alt"></i> ProfCalendar</a>
-    <div class="nav-buttons">
-        <a href="{{ url_for('auth.login') }}" class="btn-login">Se connecter</a>
-        <a href="{{ url_for('auth.register') }}" class="btn-cta">Inscription gratuite</a>
+    <div class="nav-buttons" style="align-items: center;">
+        {# Sélecteur de langue : choix mémorisé en session via /set-language #}
+        <span style="display:flex; align-items:center; gap:0.2rem; margin-right:0.5rem; font-size:0.78rem;">
+            {% for code, name in LANGUAGES.items() %}
+            <a href="{{ url_for('set_language', lang=code) }}" title="{{ name }}" style="padding:0.2rem 0.45rem; border-radius:0.4rem; font-weight:600; {% if code == current_locale %}background: var(--primary); color: white;{% else %}color: var(--gray);{% endif %}">{{ code|upper }}</a>
+            {% endfor %}
+        </span>
+        <a href="{{ url_for('auth.login') }}" class="btn-login">{{ _('Se connecter') }}</a>
+        <a href="{{ url_for('auth.register') }}" class="btn-cta">{{ _('Inscription gratuite') }}</a>
     </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
     <div class="container">
-        <div class="hero-badge"><i class="fas fa-graduation-cap"></i> La plateforme qui simplifie le quotidien des enseignants</div>
-        <h1>Planifiez, enseignez et suivez vos classes en un seul endroit</h1>
-        <p>ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne.</p>
+        <div class="hero-badge"><i class="fas fa-graduation-cap"></i> {{ _('La plateforme qui simplifie le quotidien des enseignants') }}</div>
+        <h1>{{ _('Planifiez, enseignez et suivez vos classes en un seul endroit') }}</h1>
+        <p>{{ _('ProfCalendar combine planification de cours, exercices interactifs, suivi des présences et gestion des notes dans une plateforme intuitive et moderne.') }}</p>
         <div class="hero-buttons">
-            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> Créer un compte gratuit</a>
-            <a href="{{ url_for('auth.login') }}" class="btn-hero-secondary"><i class="fas fa-sign-in-alt"></i> Se connecter</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-rocket"></i> {{ _('Créer un compte gratuit') }}</a>
+            <a href="{{ url_for('auth.login') }}" class="btn-hero-secondary"><i class="fas fa-sign-in-alt"></i> {{ _('Se connecter') }}</a>
         </div>
     </div>
 </section>
@@ -315,38 +321,38 @@
 <!-- FEATURES -->
 <section class="features">
     <div class="container">
-        <h2 class="section-title">Tout ce dont vous avez besoin</h2>
-        <p class="section-subtitle">Des outils puissants conçus par et pour les enseignants, regroupés dans une seule plateforme.</p>
+        <h2 class="section-title">{{ _('Tout ce dont vous avez besoin') }}</h2>
+        <p class="section-subtitle">{{ _('Des outils puissants conçus par et pour les enseignants, regroupés dans une seule plateforme.') }}</p>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #4F46E5, #7C3AED);"><i class="fas fa-calendar-week"></i></div>
-                <h3>Planification intelligente</h3>
-                <p>Calendrier hebdomadaire et annuel avec planification par période. Créez vos leçons, ajoutez des ressources et suivez votre programme.</p>
+                <h3>{{ _('Planification intelligente') }}</h3>
+                <p>{{ _('Calendrier hebdomadaire et annuel avec planification par période. Créez vos leçons, ajoutez des ressources et suivez votre programme.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #06B6D4, #0891B2);"><i class="fas fa-puzzle-piece"></i></div>
-                <h3>Exercices interactifs</h3>
-                <p>Créez des QCM, textes à trous, correspondances, classements et plus encore. Les élèves résolvent sur leur appareil avec feedback instantané.</p>
+                <h3>{{ _('Exercices interactifs') }}</h3>
+                <p>{{ _('Créez des QCM, textes à trous, correspondances, classements et plus encore. Les élèves résolvent sur leur appareil avec feedback instantané.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #10B981, #059669);"><i class="fas fa-chart-line"></i></div>
-                <h3>Notes & évaluations</h3>
-                <p>Saisissez les notes par évaluation, calculez les moyennes automatiquement. Parents et élèves consultent leurs résultats en temps réel.</p>
+                <h3>{{ _('Notes & évaluations') }}</h3>
+                <p>{{ _('Saisissez les notes par évaluation, calculez les moyennes automatiquement. Parents et élèves consultent leurs résultats en temps réel.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);"><i class="fas fa-clipboard-check"></i></div>
-                <h3>Suivi des présences</h3>
-                <p>Marquez les présences, absences et retards en un clic pendant votre cours. Historique complet et statistiques détaillées.</p>
+                <h3>{{ _('Suivi des présences') }}</h3>
+                <p>{{ _('Marquez les présences, absences et retards en un clic pendant votre cours. Historique complet et statistiques détaillées.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #EF4444, #DC2626);"><i class="fas fa-users"></i></div>
-                <h3>Collaboration enseignants</h3>
-                <p>Partagez vos classes avec vos collègues. Travaillez ensemble sur les mêmes élèves, sanctions et plans de classe.</p>
+                <h3>{{ _('Collaboration enseignants') }}</h3>
+                <p>{{ _('Partagez vos classes avec vos collègues. Travaillez ensemble sur les mêmes élèves, sanctions et plans de classe.') }}</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);"><i class="fas fa-folder-open"></i></div>
-                <h3>Gestionnaire de fichiers</h3>
-                <p>Uploadez, organisez et partagez vos documents. Annotations PDF intégrées avec support du stylet.</p>
+                <h3>{{ _('Gestionnaire de fichiers') }}</h3>
+                <p>{{ _('Uploadez, organisez et partagez vos documents. Annotations PDF intégrées avec support du stylet.') }}</p>
             </div>
         </div>
     </div>
@@ -355,50 +361,50 @@
 <!-- SHOWCASE -->
 <section>
     <div class="container">
-        <h2 class="section-title">Votre salle de classe numérique</h2>
-        <p class="section-subtitle">Une interface pensée pour le quotidien de l'enseignant, accessible depuis n'importe quel appareil.</p>
+        <h2 class="section-title">{{ _('Votre salle de classe numérique') }}</h2>
+        <p class="section-subtitle">{{ _("Une interface pensée pour le quotidien de l'enseignant, accessible depuis n'importe quel appareil.") }}</p>
         <div class="showcase-grid">
             <div class="showcase-item">
                 <div class="showcase-mockup">
-                    <div class="mockup-header"><i class="fas fa-calendar"></i> Semaine du 14 au 18 avril 2026</div>
+                    <div class="mockup-header"><i class="fas fa-calendar"></i> {{ _('Semaine du 14 au 18 avril 2026') }}</div>
                     <div class="mockup-body">
-                        <div class="mockup-row"><div class="dot green"></div> P1 - 9VG Sciences</div>
-                        <div class="mockup-row"><div class="dot green"></div> P2 - 9VG Sciences</div>
-                        <div class="mockup-row" style="opacity:0.4"><div class="dot" style="background:#ddd"></div> P3 - Libre</div>
-                        <div class="mockup-row"><div class="dot" style="background: var(--primary)"></div> P4 - 11VP Maths</div>
-                        <div class="mockup-row"><div class="dot" style="background: var(--secondary)"></div> P5 - 10VG Français</div>
+                        <div class="mockup-row"><div class="dot green"></div> {{ _('P1 - 9VG Sciences') }}</div>
+                        <div class="mockup-row"><div class="dot green"></div> {{ _('P2 - 9VG Sciences') }}</div>
+                        <div class="mockup-row" style="opacity:0.4"><div class="dot" style="background:#ddd"></div> {{ _('P3 - Libre') }}</div>
+                        <div class="mockup-row"><div class="dot" style="background: var(--primary)"></div> {{ _('P4 - 11VP Maths') }}</div>
+                        <div class="mockup-row"><div class="dot" style="background: var(--secondary)"></div> {{ _('P5 - 10VG Français') }}</div>
                     </div>
                 </div>
-                <h3>Calendrier semaine</h3>
-                <p>Visualisez votre emploi du temps, cliquez sur une période pour accéder directement à votre leçon.</p>
+                <h3>{{ _('Calendrier semaine') }}</h3>
+                <p>{{ _('Visualisez votre emploi du temps, cliquez sur une période pour accéder directement à votre leçon.') }}</p>
             </div>
             <div class="showcase-item">
                 <div class="showcase-mockup">
-                    <div class="mockup-header" style="background: var(--success);"><i class="fas fa-puzzle-piece"></i> Exercice : Quiz Fractions</div>
+                    <div class="mockup-header" style="background: var(--success);"><i class="fas fa-puzzle-piece"></i> {{ _('Exercice : Quiz Fractions') }}</div>
                     <div class="mockup-body">
-                        <div class="mockup-row"><strong>Question 3/10</strong></div>
-                        <div class="mockup-row">Combien font 1/4 + 1/2 ?</div>
+                        <div class="mockup-row"><strong>{{ _('Question 3/10') }}</strong></div>
+                        <div class="mockup-row">{{ _('Combien font 1/4 + 1/2 ?') }}</div>
                         <div class="mockup-row" style="background: #F0FDF4; border-radius: 0.25rem;">
-                            <div class="dot green"></div> 3/4 <span style="margin-left:auto; color: var(--success);">Correct !</span>
+                            <div class="dot green"></div> 3/4 <span style="margin-left:auto; color: var(--success);">{{ _('Correct !') }}</span>
                         </div>
                         <div class="mockup-row"><div class="dot red"></div> 2/6</div>
                     </div>
                 </div>
-                <h3>Exercices interactifs</h3>
-                <p>QCM, textes à trous, correspondances et bien plus. Les élèves résolvent les exercices sur leur appareil avec un retour instantané.</p>
+                <h3>{{ _('Exercices interactifs') }}</h3>
+                <p>{{ _('QCM, textes à trous, correspondances et bien plus. Les élèves résolvent les exercices sur leur appareil avec un retour instantané.') }}</p>
             </div>
             <div class="showcase-item">
                 <div class="showcase-mockup">
-                    <div class="mockup-header" style="background: var(--warning);"><i class="fas fa-user-check"></i> Suivi - 11VG niveau 2</div>
+                    <div class="mockup-header" style="background: var(--warning);"><i class="fas fa-user-check"></i> {{ _('Suivi - 11VG niveau 2') }}</div>
                     <div class="mockup-body">
-                        <div class="mockup-row"><div class="dot green"></div> Lucas M. <span style="margin-left:auto;">Present</span></div>
-                        <div class="mockup-row"><div class="dot green"></div> Emma D. <span style="margin-left:auto;">Present</span></div>
-                        <div class="mockup-row"><div class="dot red"></div> Noah B. <span style="margin-left:auto; color:#EF4444;">Absent</span></div>
-                        <div class="mockup-row"><div class="dot yellow"></div> Chloe R. <span style="margin-left:auto; color:var(--warning);">Retard 5min</span></div>
+                        <div class="mockup-row"><div class="dot green"></div> Lucas M. <span style="margin-left:auto;">{{ _('Present') }}</span></div>
+                        <div class="mockup-row"><div class="dot green"></div> Emma D. <span style="margin-left:auto;">{{ _('Present') }}</span></div>
+                        <div class="mockup-row"><div class="dot red"></div> Noah B. <span style="margin-left:auto; color:#EF4444;">{{ _('Absent') }}</span></div>
+                        <div class="mockup-row"><div class="dot yellow"></div> Chloe R. <span style="margin-left:auto; color:var(--warning);">{{ _('Retard 5min') }}</span></div>
                     </div>
                 </div>
-                <h3>Présences en direct</h3>
-                <p>Gérez les présences, absences et retards pendant votre cours. Sanctions et coches intégrées.</p>
+                <h3>{{ _('Présences en direct') }}</h3>
+                <p>{{ _('Gérez les présences, absences et retards pendant votre cours. Sanctions et coches intégrées.') }}</p>
             </div>
         </div>
     </div>
@@ -407,31 +413,31 @@
 <!-- TESTIMONIALS -->
 <section class="testimonials">
     <div class="container">
-        <h2 class="section-title">Ce qu'en disent les enseignants</h2>
-        <p class="section-subtitle">Rejoignez les enseignants qui ont déjà adopté ProfCalendar.</p>
+        <h2 class="section-title">{{ _("Ce qu'en disent les enseignants") }}</h2>
+        <p class="section-subtitle">{{ _('Rejoignez les enseignants qui ont déjà adopté ProfCalendar.') }}</p>
         <div class="testimonials-grid">
             <div class="testimonial-card">
                 <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                <blockquote>"ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent énormément mes élèves."</blockquote>
+                <blockquote>"{{ _('ProfCalendar a complètement transformé ma façon de préparer mes cours. Le calendrier est intuitif et les exercices interactifs motivent énormément mes élèves.') }}"</blockquote>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--primary);">M</div>
-                    <div><div class="testimonial-name">Marie</div><div class="testimonial-role">Enseignante de mathématiques</div></div>
+                    <div><div class="testimonial-name">Marie</div><div class="testimonial-role">{{ _('Enseignante de mathématiques') }}</div></div>
                 </div>
             </div>
             <div class="testimonial-card">
                 <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                <blockquote>"Les exercices interactifs sont un vrai plus. Je prépare mes QCM et mes textes à trous en quelques minutes, et mes élèves reçoivent un retour immédiat sur leurs réponses."</blockquote>
+                <blockquote>"{{ _('Les exercices interactifs sont un vrai plus. Je prépare mes QCM et mes textes à trous en quelques minutes, et mes élèves reçoivent un retour immédiat sur leurs réponses.') }}"</blockquote>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--success);">P</div>
-                    <div><div class="testimonial-name">Pierre</div><div class="testimonial-role">Enseignant de sciences</div></div>
+                    <div><div class="testimonial-name">Pierre</div><div class="testimonial-role">{{ _('Enseignant de sciences') }}</div></div>
                 </div>
             </div>
             <div class="testimonial-card">
                 <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                <blockquote>"Enfin un outil qui regroupe tout : présences, notes, fichiers et planification. Plus besoin de jongler entre 5 applications différentes. Un gain de temps énorme."</blockquote>
+                <blockquote>"{{ _('Enfin un outil qui regroupe tout : présences, notes, fichiers et planification. Plus besoin de jongler entre 5 applications différentes. Un gain de temps énorme.') }}"</blockquote>
                 <div class="testimonial-author">
                     <div class="testimonial-avatar" style="background: var(--secondary);">L</div>
-                    <div><div class="testimonial-name">Laure</div><div class="testimonial-role">Enseignante de français</div></div>
+                    <div><div class="testimonial-name">Laure</div><div class="testimonial-role">{{ _('Enseignante de français') }}</div></div>
                 </div>
             </div>
         </div>
@@ -442,46 +448,46 @@
 <!-- PRICING -->
 <section>
     <div class="container">
-        <h2 class="section-title">Un plan pour chaque enseignant</h2>
-        <p class="section-subtitle">Commencez gratuitement, passez à Premium quand vous êtes prêt.</p>
+        <h2 class="section-title">{{ _('Un plan pour chaque enseignant') }}</h2>
+        <p class="section-subtitle">{{ _('Commencez gratuitement, passez à Premium quand vous êtes prêt.') }}</p>
         <div class="pricing-grid">
             <div class="pricing-card">
-                <h3>Gratuit</h3>
-                <div class="pricing-price">CHF 0 <span>/ pour toujours</span></div>
+                <h3>{{ _('Gratuit') }}</h3>
+                <div class="pricing-price">CHF 0 <span>/ {{ _('pour toujours') }}</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> Tableau de bord</li>
-                    <li><i class="fas fa-check"></i> Planification des cours</li>
-                    <li><i class="fas fa-check"></i> Calendrier scolaire</li>
-                    <li><i class="fas fa-check"></i> Configuration de base</li>
-                    <li class="locked"><i class="fas fa-lock"></i> Gestion de classe</li>
-                    <li class="locked"><i class="fas fa-lock"></i> Notes & évaluations</li>
+                    <li><i class="fas fa-check"></i> {{ _('Tableau de bord') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Planification des cours') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Calendrier scolaire') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Configuration de base') }}</li>
+                    <li class="locked"><i class="fas fa-lock"></i> {{ _('Gestion de classe') }}</li>
+                    <li class="locked"><i class="fas fa-lock"></i> {{ _('Notes & évaluations') }}</li>
                 </ul>
-                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">Commencer gratuitement</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">{{ _('Commencer gratuitement') }}</a>
             </div>
             <div class="pricing-card popular">
-                <div class="pricing-badge">Le plus populaire</div>
+                <div class="pricing-badge">{{ _('Le plus populaire') }}</div>
                 <h3>Premium</h3>
-                <div class="pricing-price">CHF 4.90 <span>/ mois</span></div>
+                <div class="pricing-price">CHF 4.90 <span>/ {{ _('mois') }}</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> Tout du plan gratuit</li>
-                    <li><i class="fas fa-check"></i> Gestion de classe complète</li>
-                    <li><i class="fas fa-check"></i> Notes & évaluations</li>
-                    <li><i class="fas fa-check"></i> Suivi des présences</li>
-                    <li><i class="fas fa-check"></i> Exercices interactifs</li>
-                    <li><i class="fas fa-check"></i> Collaboration enseignants</li>
+                    <li><i class="fas fa-check"></i> {{ _('Tout du plan gratuit') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Gestion de classe complète') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Notes & évaluations') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Suivi des présences') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Exercices interactifs') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Collaboration enseignants') }}</li>
                 </ul>
-                <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">Essayer Premium</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing primary">{{ _('Essayer Premium') }}</a>
             </div>
             <div class="pricing-card">
-                <h3>Premium Annuel</h3>
-                <div class="pricing-price">CHF 39.90 <span>/ an</span></div>
+                <h3>{{ _('Premium Annuel') }}</h3>
+                <div class="pricing-price">CHF 39.90 <span>/ {{ _('an') }}</span></div>
                 <ul class="pricing-features">
-                    <li><i class="fas fa-check"></i> Tout du plan Premium</li>
-                    <li><i class="fas fa-check"></i> Économisez 32%</li>
-                    <li><i class="fas fa-check"></i> 3 Go de stockage</li>
-                    <li><i class="fas fa-check"></i> Support prioritaire</li>
+                    <li><i class="fas fa-check"></i> {{ _('Tout du plan Premium') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Économisez 32%%') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('3 Go de stockage') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Support prioritaire') }}</li>
                 </ul>
-                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">Choisir l'annuel</a>
+                <a href="{{ url_for('auth.register') }}" class="btn-pricing outline">{{ _("Choisir l'annuel") }}</a>
             </div>
         </div>
     </div>
@@ -491,8 +497,8 @@
 <!-- PLATFORMS -->
 <section class="platforms">
     <div class="container">
-        <h2 class="section-title">Disponible partout</h2>
-        <p class="section-subtitle">Accédez à ProfCalendar depuis votre ordinateur, tablette ou téléphone.</p>
+        <h2 class="section-title">{{ _('Disponible partout') }}</h2>
+        <p class="section-subtitle">{{ _('Accédez à ProfCalendar depuis votre ordinateur, tablette ou téléphone.') }}</p>
         <div class="platforms-grid">
             <div class="platform-card">
                 <i class="fas fa-desktop"></i>
@@ -502,7 +508,7 @@
             <div class="platform-card">
                 <i class="fab fa-apple"></i>
                 <h3>iPad & iPhone</h3>
-                <p>App native avec PencilKit</p>
+                <p>{{ _('App native avec PencilKit') }}</p>
             </div>
             {# Apple Guideline 2.3.10 : une app iOS ne doit pas mentionner d'autres
                plateformes/stores (Android). On masque cette carte uniquement quand
@@ -513,13 +519,13 @@
             <div class="platform-card">
                 <i class="fab fa-android"></i>
                 <h3>Android</h3>
-                <p>Tablettes et smartphones</p>
+                <p>{{ _('Tablettes et smartphones') }}</p>
             </div>
             {% endif %}
             <div class="platform-card">
                 <i class="fas fa-chalkboard-teacher"></i>
-                <h3>Tableau interactif</h3>
-                <p>Compatible TBI/TNI</p>
+                <h3>{{ _('Tableau interactif') }}</h3>
+                <p>{{ _('Compatible TBI/TNI') }}</p>
             </div>
         </div>
     </div>
@@ -528,10 +534,10 @@
 <!-- CTA BOTTOM -->
 <section class="cta-bottom">
     <div class="container">
-        <h2>Prêt à simplifier votre quotidien ?</h2>
-        <p>Rejoignez les enseignants qui utilisent déjà ProfCalendar. Inscription gratuite, aucune carte de crédit requise.</p>
+        <h2>{{ _('Prêt à simplifier votre quotidien ?') }}</h2>
+        <p>{{ _('Rejoignez les enseignants qui utilisent déjà ProfCalendar. Inscription gratuite, aucune carte de crédit requise.') }}</p>
         <div class="hero-buttons">
-            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-user-plus"></i> Créer mon compte gratuitement</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-primary"><i class="fas fa-user-plus"></i> {{ _('Créer mon compte gratuitement') }}</a>
         </div>
     </div>
 </section>
@@ -539,20 +545,20 @@
 <!-- FOOTER -->
 <footer class="landing-footer">
     <div class="container">
-        <p>&copy; 2024-2026 ProfCalendar. Tous droits réservés. Conçu avec <span style="color:#EF4444;">&hearts;</span> pour les enseignants.</p>
+        <p>&copy; 2024-2026 ProfCalendar. {{ _('Tous droits réservés.') }} {{ _('Conçu avec') }} <span style="color:#EF4444;">&hearts;</span> {{ _('pour les enseignants.') }}</p>
         <p style="margin-top: 0.5rem;">
-            <a href="{{ url_for('auth.login') }}">Espace Enseignant</a> &middot;
-            <a href="{{ url_for('student_auth.login') }}">Espace Élève</a> &middot;
-            <a href="{{ url_for('parent_auth.login') }}">Espace Parent</a>
+            <a href="{{ url_for('auth.login') }}">{{ _('Espace Enseignant') }}</a> &middot;
+            <a href="{{ url_for('student_auth.login') }}">{{ _('Espace Élève') }}</a> &middot;
+            <a href="{{ url_for('parent_auth.login') }}">{{ _('Espace Parent') }}</a>
         </p>
         <p style="margin-top: 0.5rem;">
-            <a href="{{ url_for('resources.calendar_index') }}">Calendriers scolaires</a> &middot;
-            <a href="{{ url_for('resources.bareme') }}">Créateur de barème</a> &middot;
-            <a href="{{ url_for('resources.exercices_maths') }}">Exercices de maths</a>
+            <a href="{{ url_for('resources.calendar_index') }}">{{ _('Calendriers scolaires') }}</a> &middot;
+            <a href="{{ url_for('resources.bareme') }}">{{ _('Créateur de barème') }}</a> &middot;
+            <a href="{{ url_for('resources.exercices_maths') }}">{{ _('Exercices de maths') }}</a>
         </p>
         <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.7;">
-            <a href="{{ url_for('privacy_policy') }}">Politique de confidentialité</a> &middot;
-            <a href="{{ url_for('terms_of_service') }}">Conditions générales</a>
+            <a href="{{ url_for('privacy_policy') }}">{{ _('Politique de confidentialité') }}</a> &middot;
+            <a href="{{ url_for('terms_of_service') }}">{{ _('Conditions générales') }}</a>
         </p>
     </div>
 </footer>
