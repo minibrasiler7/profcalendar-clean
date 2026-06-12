@@ -118,14 +118,22 @@
 
     <h1>Exercices de mathématiques — 9H, 10H&nbsp;&amp;&nbsp;11H</h1>
     <p class="mx-sub">Des exercices du <strong>Cycle 3 (PER)</strong> classés selon les <strong>4 thèmes officiels</strong> et
-       les découpages romands. L'outil les génère <strong>à l'infini</strong>, avec <strong>correction immédiate</strong>,
-       solution détaillée, figures et exercices <strong>interactifs</strong>. Gratuit, pour s'entraîner ou imprimer une fiche.</p>
+       les découpages vaudois, filtrables par <strong>année (9H, 10H, 11H)</strong> et par <strong>voie/niveau
+       (VG niveau 1, VG niveau 2, VP)</strong> pour ne travailler que ce qui est au programme. L'outil les génère
+       <strong>à l'infini</strong>, avec <strong>correction immédiate</strong>, solution détaillée, figures et exercices
+       <strong>interactifs</strong>. Gratuit, pour s'entraîner ou imprimer une fiche.</p>
 
     <div class="mx-years" id="yearChips">
         <button class="mx-chip active" data-y="0">Tous les degrés</button>
         <button class="mx-chip" data-y="9">9H</button>
         <button class="mx-chip" data-y="10">10H</button>
         <button class="mx-chip" data-y="11">11H</button>
+    </div>
+    <div class="mx-years" id="nivChips">
+        <button class="mx-chip active" data-n="all">Tous les niveaux</button>
+        <button class="mx-chip" data-n="1">VG niveau 1</button>
+        <button class="mx-chip" data-n="2">VG niveau 2</button>
+        <button class="mx-chip" data-n="P">VP</button>
     </div>
 
     <div id="domains"></div>
@@ -1230,7 +1238,84 @@
         const a = pick([-1, 1]); let h, kk, b, c, P, g = 0; do { h = ri(-2, 2); kk = ri(-3, 2); b = -2 * a * h; c = a * h * h + kk; P = [-1, 0, 1].map(x => [x, a * x * x + b * x + c]); g++; } while ((P.some(p => Math.abs(p[1]) > 5) || Math.abs(b) > 5 || Math.abs(c) > 5) && g < 80); return { q: 'Règle a, b et c pour que la parabole y = ax² + bx + c passe par A(' + P[0][0] + ' ; ' + P[0][1] + '), B(' + P[1][0] + ' ; ' + P[1][1] + ') et C(' + P[2][0] + ' ; ' + P[2][1] + ').', interactive: 'slider', parab: true, target: { a: a, b: b, c: c }, pts: P, svg: sliderGridSVG(P), sol: 'a = ' + a + ' , b = ' + b + ' , c = ' + c };
     }
 
-    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, construction: genConstruction, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs, aire_grille: genAireGrille, segments: genSegments, instruments: genInstruments, horloges: genHorloges };
+    function machineSVG(ops, inLab, outLab) {
+        const n = ops.length, bw = 74, gap = 38, W = 30 + n * bw + (n + 1) * gap + 30, H = 86, y = 22, bh = 44;
+        let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">';
+        const arrow = (x1, x2, ty) => '<line x1="' + x1 + '" y1="' + (y + bh / 2) + '" x2="' + (x2 - 7) + '" y2="' + (y + bh / 2) + '" stroke="#475569" stroke-width="2"/><path d="M' + (x2 - 8) + ' ' + (y + bh / 2 - 5) + ' L' + x2 + ' ' + (y + bh / 2) + ' L' + (x2 - 8) + ' ' + (y + bh / 2 + 5) + ' Z" fill="#475569"/>' + (ty ? '<text x="' + ((x1 + x2) / 2) + '" y="' + (y + bh / 2 - 10) + '" font-size="13" font-weight="700" fill="#B45309" text-anchor="middle">' + ty + '</text>' : '');
+        let x = 30;
+        s += arrow(x - 24, x + gap - 6, inLab); x += gap;
+        for (let i = 0; i < n; i++) {
+            s += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + bh + '" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>';
+            s += '<text x="' + (x + bw / 2) + '" y="' + (y + bh / 2 + 5.5) + '" font-size="16" font-weight="800" fill="#92400E" text-anchor="middle">' + ops[i] + '</text>';
+            s += '<circle cx="' + (x + 12) + '" cy="' + (y + 8) + '" r="2.2" fill="#D97706"/><circle cx="' + (x + bw - 12) + '" cy="' + (y + 8) + '" r="2.2" fill="#D97706"/>';
+            x += bw;
+            s += arrow(x, x + gap - 6, i === n - 1 ? outLab : null); x += gap;
+        }
+        return s + '</svg>';
+    }
+    function tableSVG(labels, row1, row2) {
+        const n = row1.length, cw = 56, hw = 76, ch = 34, W = hw + n * cw + 4, H = 2 * ch + 4;
+        let s = '<svg class="mx-fig" viewBox="0 0 ' + W + ' ' + H + '">';
+        const cell = (x, y, w, txt, head, q) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + ch + '" fill="' + (head ? '#EA580C' : q ? '#FEF2F2' : '#FFFFFF') + '" stroke="#9A3412" stroke-width="1.4"/><text x="' + (x + w / 2) + '" y="' + (y + ch / 2 + 5) + '" font-size="13.5" font-weight="' + (head || q ? 800 : 600) + '" fill="' + (head ? '#FFFFFF' : q ? '#DC2626' : '#1F2937') + '" text-anchor="middle">' + txt + '</text>';
+        s += cell(2, 2, hw, labels[0], true) + cell(2, 2 + ch, hw, labels[1], true);
+        for (let i = 0; i < n; i++) { const x = 2 + hw + i * cw; s += cell(x, 2, cw, row1[i] === null ? '?' : fcm(row1[i]), false, row1[i] === null); s += cell(x, 2 + ch, cw, row2[i] === null ? '?' : fcm(row2[i]), false, row2[i] === null); }
+        return s + '</svg>';
+    }
+    function genMachines(diff) {
+        const L = lvl(diff);
+        if (L === 0) {
+            const kind = pick(['+', M, '×', ':']);
+            let k, ins;
+            if (kind === '+') { k = ri(3, 25); ins = [ri(2, 40), ri(41, 90), ri(2, 60)]; }
+            else if (kind === M) { k = ri(3, 25); ins = [ri(k + 2, 60), ri(k + 2, 99), ri(k + 2, 80)]; }
+            else if (kind === '×') { k = ri(2, 9); ins = [ri(2, 9), ri(3, 12), ri(2, 15)]; }
+            else { k = ri(2, 9); ins = [k * ri(2, 9), k * ri(2, 12), k * ri(3, 10)]; }
+            while (ins[1] === ins[0] || ins[2] === ins[0] || ins[2] === ins[1]) { ins[1] += (kind === ':' ? k : 1); ins[2] += (kind === ':' ? 2 * k : 2); }
+            const f = x => kind === '+' ? x + k : kind === M ? x - k : kind === '×' ? x * k : x / k;
+            const outs = ins.map(f);
+            return { q: 'Cette machine applique « <strong>' + kind + ' ' + k + '</strong> » à chaque nombre. Complète les sorties pour les entrées ' + ins.join(', puis ') + '.', svg: machineSVG([kind + ' ' + k], 'entrée', 'sortie'), fields: ins.map((v, i) => ({ label: v + ' → ', e: outs[i] })), sol: ins.map((v, i) => v + ' → ' + outs[i]).join(' ; '), _dbg: { type: 'simple', kind: kind, k: k, ins: ins, outs: outs } };
+        }
+        if (L === 1) {
+            const a = ri(2, 6), b = ri(2, 15), ordre = pick(['mp', 'pm']);
+            const f = ordre === 'mp' ? (x => x * a + b) : (x => (x + b) * a);
+            const inv = y => ordre === 'mp' ? (y - b) / a : y / a - b;
+            let x1 = ri(2, 9), x2 = ri(2, 12); while (x2 === x1) x2 = ri(2, 12);
+            let x3 = ri(2, 12); while (x3 === x1 || x3 === x2) x3 = ri(2, 12);
+            const y3 = f(x3);
+            const ops = ordre === 'mp' ? ['× ' + a, '+ ' + b] : ['+ ' + b, '× ' + a];
+            return { q: 'Deux machines sont enchaînées (« ' + ops[0] + ' » puis « ' + ops[1] + ' »). Complète : les sorties de ' + x1 + ' et ' + x2 + ', puis l’<strong>entrée</strong> qui donne la sortie ' + y3 + '.', svg: machineSVG(ops, 'entrée', 'sortie'), fields: [{ label: x1 + ' → ', e: f(x1) }, { label: x2 + ' → ', e: f(x2) }, { label: '? → ' + y3 + ' : entrée =', e: x3 }], sol: x1 + ' → ' + f(x1) + ' ; ' + x2 + ' → ' + f(x2) + ' ; entrée ' + x3 + ' → ' + y3, _dbg: { type: 'chain', a: a, b: b, ordre: ordre, xs: [x1, x2, x3], y3: y3 } };
+        }
+        const a = ri(2, 6), b = pick([ri(1, 9), -ri(1, 7)]);
+        let xs = []; while (xs.length < 5) { const v = ri(1, 12); if (!xs.includes(v)) xs.push(v); }
+        const f = x => a * x + b;
+        return { q: 'Machine <strong>mystère</strong> : le tableau montre trois passages. Découvre la règle et complète les deux sorties manquantes.', svg: tableSVG(['entrée', 'sortie'], xs, [f(xs[0]), f(xs[1]), f(xs[2]), null, null]), fields: [{ label: xs[3] + ' → ', e: f(xs[3]) }, { label: xs[4] + ' → ', e: f(xs[4]) }], sol: 'règle : × ' + a + (b >= 0 ? ' + ' + b : ' ' + M + ' ' + (-b)) + ' ; ' + xs[3] + ' → ' + f(xs[3]) + ' ; ' + xs[4] + ' → ' + f(xs[4]), _dbg: { type: 'mystere', a: a, b: b, xs: xs } };
+    }
+    function genTableauProp(diff) {
+        const L = lvl(diff);
+        const ctx = pick([['kg', 'CHF'], ['L', 'CHF'], ['h', 'km'], ['x', 'y'], ['objets', 'g']]);
+        if (L === 0) {
+            const k = ri(2, 9); let xs = []; while (xs.length < 4) { const v = ri(2, 12); if (!xs.includes(v)) xs.push(v); }
+            const qi = ri(0, 3); const ys = xs.map(v => v * k);
+            const row2 = ys.map((v, i) => i === qi ? null : v);
+            return { q: 'Ce tableau est <strong>proportionnel</strong>. Trouve la valeur manquante.', svg: tableSVG(ctx, xs, row2), fields: [{ label: '? =', e: ys[qi] }], sol: 'coefficient : × ' + k + ' → ' + xs[qi] + ' × ' + k + ' = ' + ys[qi], _dbg: { type: 'simple', k: k, xs: xs, qi: qi } };
+        }
+        if (L === 1) {
+            const k = pick([1.5, 2.5, 3.5, 0.5, 4.5]); let xs = []; while (xs.length < 4) { const v = ri(2, 12) * 2; if (!xs.includes(v)) xs.push(v); }
+            const ys = xs.map(v => Math.round(v * k * 100) / 100);
+            let q1 = ri(0, 3), q2 = ri(0, 3); while (q2 === q1) q2 = ri(0, 3);
+            const row2 = ys.map((v, i) => (i === q1 || i === q2) ? null : v);
+            return { q: 'Tableau <strong>proportionnel</strong> : trouve les deux valeurs manquantes. (Indice : cherche d’abord le coefficient.)', svg: tableSVG(ctx, xs, row2), fields: [q1, q2].sort((u, v) => u - v).map(i => ({ label: ctx[0] === 'x' ? 'y(' + xs[i] + ') =' : xs[i] + ' ' + ctx[0] + ' → ', e: ys[i] })), sol: 'coefficient : × ' + fcm(k) + ' ; ' + [q1, q2].sort((u, v) => u - v).map(i => xs[i] + ' → ' + fcm(ys[i])).join(' ; '), _dbg: { type: 'deux', k: k, xs: xs, qs: [q1, q2].sort((u, v) => u - v) } };
+        }
+        const q = ri(2, 5); let p = ri(2, 9); while (p % q === 0) p = ri(2, 9);
+        const k = p / q;
+        let xs = []; while (xs.length < 4) { const v = q * ri(1, 8); if (!xs.includes(v)) xs.push(v); }
+        const ys = xs.map(v => v * k);
+        const qy = ri(0, 2);
+        const row1 = xs.map((v, i) => i === 3 ? null : v);
+        const row2 = ys.map((v, i) => i === qy ? null : v);
+        return { q: 'Tableau <strong>proportionnel</strong> : complète la sortie manquante <strong>et</strong> l’entrée manquante (dernière colonne).', svg: tableSVG(ctx, row1, row2), fields: [{ label: 'sortie ? =', e: ys[qy] }, { label: 'entrée ? =', e: xs[3] }], sol: 'coefficient : ' + p + '/' + q + ' ; sortie ' + xs[qy] + ' → ' + fcm(ys[qy]) + ' ; entrée = ' + fcm(ys[3]) + ' ÷ ' + fcm(k) + ' = ' + xs[3], _dbg: { type: 'inverse', p: p, q: q, xs: xs, qy: qy } };
+    }
+    const GENS = { priorites: genPriorites, relatifs: genRelatifs, fractions: genFractions, puissances: genPuissances, racines: genRacines, diviseurs: genDiviseurs, ecritures: genEcritures, notation_sci: genNotationSci, probabilites: genProbabilites, fraction_vis: genFractionVis, proportion: genProportion, pourcentages: genPourcentages, substitution: genSubstitution, reduction: genReduction, developpement: genDeveloppement, identites: genIdentites, factorisation: genFactorisation, equation: genEquation, systemes: genSystemes, fonction_image: genFonctionImage, fonction_affine: genFonctionAffine, graph_fn: genGraphFn, diagramme: genDiagramme, tracer_droite: genTracerDroite, curseurs: genCurseurs, angles: genAngles, transformations: genTransformations, coordonnees: genCoordonnees, placer_point: genPlacerPoint, image_transfo: genImageTransfo, construction: genConstruction, milieu: genMilieu, solides: genSolides, aires: genAires, volumes: genVolumes, pythagore: genPythagore, thales: genThales, trigo: genTrigo, conversions: genConversions, conversions_av: genConversionsAV, grandeurs: genGrandeurs, aire_grille: genAireGrille, segments: genSegments, instruments: genInstruments, horloges: genHorloges, machines: genMachines, tableau_prop: genTableauProp };
 
     // ====== Domaines + thèmes ======
     const DOMAINS = [
@@ -1240,68 +1325,73 @@
         { code: 'GM', name: 'Grandeurs et mesures', col: '#059669' },
     ];
     const THEMES = [
-        { id: 'priorites', dom: 'NO', nm: 'Priorités opératoires', icon: 'fa-calculator', years: [9, 10, 11], ds: 'Ordre des opérations et parenthèses' },
-        { id: 'relatifs', dom: 'NO', nm: 'Nombres relatifs', icon: 'fa-plus-minus', years: [9, 10, 11], ds: 'Calculs avec des nombres négatifs' },
-        { id: 'fractions', dom: 'NO', nm: 'Fractions', icon: 'fa-divide', years: [9, 10, 11], ds: 'Additions, produits et quotients' },
-        { id: 'fraction_vis', dom: 'NO', nm: 'Fractions (visuel)', icon: 'fa-chart-pie', years: [9, 10], ds: 'Lire une fraction sur une figure', vis: 1 },
-        { id: 'puissances', dom: 'NO', nm: 'Puissances', icon: 'fa-superscript', years: [10, 11], ds: 'Carrés, cubes et lois des puissances' },
-        { id: 'racines', dom: 'NO', nm: 'Racines carrées', icon: 'fa-square-root-variable', years: [10, 11], ds: 'Racines de carrés parfaits' },
-        { id: 'diviseurs', dom: 'NO', nm: 'PGDC et PPMC', icon: 'fa-list-ol', years: [9, 10, 11], ds: 'Diviseurs et multiples communs' },
-        { id: 'ecritures', dom: 'NO', nm: 'Fraction · décimal · %', icon: 'fa-right-left', years: [9, 10, 11], ds: 'Passer d’une écriture à l’autre' },
-        { id: 'notation_sci', dom: 'NO', nm: 'Notation scientifique', icon: 'fa-flask', years: [10, 11], ds: 'Écrire a · 10ⁿ' },
-        { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', years: [11], ds: 'Dés, billes, roue, cartes' },
-        { id: 'proportion', dom: 'FA', nm: 'Proportionnalité', icon: 'fa-scale-balanced', years: [9, 10, 11], ds: 'Règle de trois, prix unitaire' },
-        { id: 'pourcentages', dom: 'FA', nm: 'Pourcentages', icon: 'fa-percent', years: [10, 11], ds: 'Hausses et baisses' },
-        { id: 'substitution', dom: 'FA', nm: 'Évaluer une expression littérale', icon: 'fa-pen-nib', years: [9, 10, 11], ds: 'Substituer des nombres aux lettres' },
-        { id: 'reduction', dom: 'FA', nm: 'Réduire une expression', icon: 'fa-compress', years: [10, 11], ds: 'Regrouper les termes semblables' },
-        { id: 'developpement', dom: 'FA', nm: 'Distributivité', icon: 'fa-expand', years: [10, 11], ds: 'Développer un produit' },
-        { id: 'identites', dom: 'FA', nm: 'Identités remarquables', icon: 'fa-star', years: [11], ds: '(a ± b)², (a + b)(a − b)' },
-        { id: 'factorisation', dom: 'FA', nm: 'Factoriser', icon: 'fa-object-group', years: [11], ds: 'Mettre en évidence le facteur commun' },
-        { id: 'equation', dom: 'FA', nm: 'Équations du 1er degré', icon: 'fa-equals', years: [10, 11], ds: 'Résoudre ax + b = c' },
-        { id: 'systemes', dom: 'FA', nm: 'Systèmes d’équations', icon: 'fa-layer-group', years: [11], ds: 'Deux équations, deux inconnues' },
-        { id: 'fonction_image', dom: 'FA', nm: 'Image par une fonction', icon: 'fa-bezier-curve', years: [10, 11], ds: 'Calculer f(x)' },
-        { id: 'fonction_affine', dom: 'FA', nm: 'Fonction affine', icon: 'fa-chart-line', years: [11], ds: 'Trouver a et b' },
-        { id: 'graph_fn', dom: 'FA', nm: 'Lecture de graphique', icon: 'fa-chart-area', years: [10, 11], ds: 'Lire f(x), la pente, une intersection…', vis: 1 },
-        { id: 'tracer_droite', dom: 'FA', nm: 'Tracer une droite', icon: 'fa-pencil', years: [10, 11], ds: 'Place la droite y = ax + b (clic)', inter: 1 },
-        { id: 'curseurs', dom: 'FA', nm: 'Curseurs : trouve la droite', icon: 'fa-sliders', years: [10, 11], ds: 'Règle a et b pour passer par 2 points', inter: 1 },
-        { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', years: [9, 10, 11], ds: 'Lire un diagramme en barres', vis: 1 },
-        { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', years: [9, 10, 11], ds: 'Triangle, opposés, inscrit, alternes-internes', vis: 1 },
-        { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', years: [9, 10, 11], ds: 'Symétries, rotations, homothétie' },
-        { id: 'coordonnees', dom: 'ES', nm: 'Lire des coordonnées', icon: 'fa-location-dot', years: [9, 10, 11], ds: 'Point, axes, milieu, distances', vis: 1 },
-        { id: 'placer_point', dom: 'ES', nm: 'Placer un point', icon: 'fa-crosshairs', years: [9, 10, 11], ds: 'Clique dans le repère', inter: 1 },
-        { id: 'image_transfo', dom: 'ES', nm: 'Image par une transformation', icon: 'fa-copy', years: [9, 10, 11], ds: 'Construis l’image d’un polygone', inter: 1 },
-        { id: 'milieu', dom: 'ES', nm: 'Milieu & parallélogramme', icon: 'fa-bullseye', years: [9, 10, 11], ds: 'Clique le milieu ou le 4ᵉ sommet', inter: 1 },
-        { id: 'construction', dom: 'ES', nm: 'Construction géométrique', icon: 'fa-shapes', years: [9, 10, 11], ds: 'Construis carrés, losanges, triangles…', inter: 1 },
-        { id: 'solides', dom: 'ES', nm: 'Solides', icon: 'fa-cube', years: [9, 10, 11], ds: 'Faces, arêtes, sommets, Euler' },
-        { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', years: [9, 10, 11], ds: 'Rectangle, disque, figures composées', vis: 1 },
-        { id: 'aire_grille', dom: 'GM', nm: 'Aire sur quadrillage', icon: 'fa-table-cells', years: [9, 10], ds: 'Colorie la surface demandée', inter: 1 },
-        { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', years: [9, 10, 11], ds: 'Cube, prisme, cylindre, pyramide…', vis: 1 },
-        { id: 'pythagore', dom: 'GM', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', years: [10, 11], ds: 'Hypoténuse, applications, distances', vis: 1 },
-        { id: 'segments', dom: 'GM', nm: 'Segments à construire', icon: 'fa-slash', years: [9, 10, 11], ds: 'Clique 2 points à la bonne distance', inter: 1 },
-        { id: 'thales', dom: 'GM', nm: 'Théorème de Thalès', icon: 'fa-grip-lines', years: [11], ds: 'Segments proportionnels', vis: 1 },
-        { id: 'trigo', dom: 'GM', nm: 'Trigonométrie', icon: 'fa-ruler-combined', years: [10, 11], ds: 'Sinus, cosinus, tangente, angles', vis: 1 },
-        { id: 'instruments', dom: 'GM', nm: 'Lire les instruments', icon: 'fa-temperature-half', years: [9, 10], ds: 'Thermomètre, balance, règle…', vis: 1 },
-        { id: 'horloges', dom: 'GM', nm: 'Heures et durées', icon: 'fa-clock', years: [9, 10], ds: 'Horloges, durées, heure d’arrivée', vis: 1 },
-        { id: 'conversions', dom: 'GM', nm: 'Conversions (longueurs, masses)', icon: 'fa-ruler', years: [9, 10, 11], ds: 'km, m, cm, kg, L…' },
-        { id: 'conversions_av', dom: 'GM', nm: 'Conversions (aires/volumes)', icon: 'fa-ruler-horizontal', years: [10, 11], ds: 'm², dm³, litres, durées' },
-        { id: 'grandeurs', dom: 'GM', nm: 'Vitesse, masse volumique', icon: 'fa-gauge-high', years: [10, 11], ds: 'Vitesse, débit, km/h ↔ m/s' },
+        { id: 'priorites', dom: 'NO', nm: 'Priorités opératoires', icon: 'fa-calculator', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Ordre des opérations et parenthèses' },
+        { id: 'relatifs', dom: 'NO', nm: 'Nombres relatifs', icon: 'fa-plus-minus', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Calculs avec des nombres négatifs' },
+        { id: 'fractions', dom: 'NO', nm: 'Fractions', icon: 'fa-divide', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Additions, produits et quotients' },
+        { id: 'fraction_vis', dom: 'NO', nm: 'Fractions (visuel)', icon: 'fa-chart-pie', niv: { 9: '12P', 10: '12P' }, ds: 'Lire une fraction sur une figure', vis: 1 },
+        { id: 'puissances', dom: 'NO', nm: 'Puissances', icon: 'fa-superscript', niv: { 10: '12P', 11: '12P' }, ds: 'Carrés, cubes et lois des puissances' },
+        { id: 'racines', dom: 'NO', nm: 'Racines carrées', icon: 'fa-square-root-variable', niv: { 10: '12P', 11: '12P' }, ds: 'Racines de carrés parfaits' },
+        { id: 'diviseurs', dom: 'NO', nm: 'PGDC et PPMC', icon: 'fa-list-ol', niv: { 9: '2P', 10: '12P' }, ds: 'Diviseurs et multiples communs' },
+        { id: 'ecritures', dom: 'NO', nm: 'Fraction · décimal · %', icon: 'fa-right-left', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Passer d’une écriture à l’autre' },
+        { id: 'notation_sci', dom: 'NO', nm: 'Notation scientifique', icon: 'fa-flask', niv: { 10: '12P', 11: '12P' }, ds: 'Écrire a · 10ⁿ' },
+        { id: 'probabilites', dom: 'NO', nm: 'Probabilités', icon: 'fa-dice', niv: { 10: '12P', 11: '12P' }, ds: 'Dés, billes, roue, cartes' },
+        { id: 'proportion', dom: 'FA', nm: 'Proportionnalité', icon: 'fa-scale-balanced', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Règle de trois, prix unitaire' },
+        { id: 'pourcentages', dom: 'FA', nm: 'Pourcentages', icon: 'fa-percent', niv: { 10: '12P', 11: '12P' }, ds: 'Hausses et baisses' },
+        { id: 'substitution', dom: 'FA', nm: 'Évaluer une expression littérale', icon: 'fa-pen-nib', niv: { 9: '2P', 10: '12P', 11: '12P' }, ds: 'Substituer des nombres aux lettres' },
+        { id: 'reduction', dom: 'FA', nm: 'Réduire une expression', icon: 'fa-compress', niv: { 10: '2P', 11: '12P' }, ds: 'Regrouper les termes semblables' },
+        { id: 'developpement', dom: 'FA', nm: 'Distributivité', icon: 'fa-expand', niv: { 10: '2P', 11: '2P' }, ds: 'Développer un produit' },
+        { id: 'identites', dom: 'FA', nm: 'Identités remarquables', icon: 'fa-star', niv: { 11: '2P' }, ds: '(a ± b)², (a + b)(a − b)' },
+        { id: 'factorisation', dom: 'FA', nm: 'Factoriser', icon: 'fa-object-group', niv: { 11: 'P' }, ds: 'Mettre en évidence le facteur commun' },
+        { id: 'equation', dom: 'FA', nm: 'Équations du 1er degré', icon: 'fa-equals', niv: { 10: '2P', 11: '12P' }, ds: 'Résoudre ax + b = c' },
+        { id: 'systemes', dom: 'FA', nm: 'Systèmes d’équations', icon: 'fa-layer-group', niv: { 11: '2P' }, ds: 'Deux équations, deux inconnues' },
+        { id: 'fonction_image', dom: 'FA', nm: 'Image par une fonction', icon: 'fa-bezier-curve', niv: { 10: '2P', 11: '12P' }, ds: 'Calculer f(x)' },
+        { id: 'fonction_affine', dom: 'FA', nm: 'Fonction affine', icon: 'fa-chart-line', niv: { 10: '2P', 11: '12P' }, ds: 'Trouver a et b' },
+        { id: 'graph_fn', dom: 'FA', nm: 'Lecture de graphique', icon: 'fa-chart-area', niv: { 10: '2P', 11: '12P' }, ds: 'Lire f(x), la pente, une intersection…', vis: 1 },
+        { id: 'tracer_droite', dom: 'FA', nm: 'Tracer une droite', icon: 'fa-pencil', niv: { 10: '2P', 11: '12P' }, ds: 'Place la droite y = ax + b (clic)', inter: 1 },
+        { id: 'curseurs', dom: 'FA', nm: 'Curseurs : trouve la droite', icon: 'fa-sliders', niv: { 10: '2P', 11: '12P' }, ds: 'Règle a et b pour passer par 2 points', inter: 1 },
+        { id: 'machines', dom: 'FA', nm: 'Machines à nombres', icon: 'fa-gears', niv: { 9: '12P', 10: '12P' }, ds: 'Opérateurs en chaîne, machine mystère', vis: 1 },
+        { id: 'tableau_prop', dom: 'FA', nm: 'Tableaux de proportionnalité', icon: 'fa-table', niv: { 9: '12P', 10: '12P' }, ds: 'Complète le tableau, trouve le coefficient', vis: 1 },
+        { id: 'diagramme', dom: 'FA', nm: 'Lecture de diagramme', icon: 'fa-chart-column', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Lire un diagramme en barres', vis: 1 },
+        { id: 'angles', dom: 'ES', nm: 'Angles', icon: 'fa-compass-drafting', niv: { 9: '12P', 11: '2P' }, ds: 'Triangle, opposés, inscrit, alternes-internes', vis: 1 },
+        { id: 'transformations', dom: 'ES', nm: 'Transformations', icon: 'fa-clone', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Symétries, rotations, homothétie' },
+        { id: 'coordonnees', dom: 'ES', nm: 'Lire des coordonnées', icon: 'fa-location-dot', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Point, axes, milieu, distances', vis: 1 },
+        { id: 'placer_point', dom: 'ES', nm: 'Placer un point', icon: 'fa-crosshairs', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Clique dans le repère', inter: 1 },
+        { id: 'image_transfo', dom: 'ES', nm: 'Image par une transformation', icon: 'fa-copy', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Construis l’image d’un polygone', inter: 1 },
+        { id: 'milieu', dom: 'ES', nm: 'Milieu & parallélogramme', icon: 'fa-bullseye', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Clique le milieu ou le 4ᵉ sommet', inter: 1 },
+        { id: 'construction', dom: 'ES', nm: 'Construction géométrique', icon: 'fa-shapes', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Construis carrés, losanges, triangles…', inter: 1 },
+        { id: 'solides', dom: 'ES', nm: 'Solides', icon: 'fa-cube', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Faces, arêtes, sommets, Euler' },
+        { id: 'aires', dom: 'GM', nm: 'Périmètres et aires', icon: 'fa-vector-square', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Rectangle, disque, figures composées', vis: 1 },
+        { id: 'aire_grille', dom: 'GM', nm: 'Aire sur quadrillage', icon: 'fa-table-cells', niv: { 9: '12P', 10: '12P' }, ds: 'Colorie la surface demandée', inter: 1 },
+        { id: 'volumes', dom: 'GM', nm: 'Volumes', icon: 'fa-cube', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Cube, prisme, cylindre, pyramide…', vis: 1 },
+        { id: 'pythagore', dom: 'GM', nm: 'Théorème de Pythagore', icon: 'fa-draw-polygon', niv: { 10: '12P', 11: '12P' }, ds: 'Hypoténuse, applications, distances', vis: 1 },
+        { id: 'segments', dom: 'GM', nm: 'Segments à construire', icon: 'fa-slash', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'Clique 2 points à la bonne distance', inter: 1 },
+        { id: 'thales', dom: 'GM', nm: 'Théorème de Thalès', icon: 'fa-grip-lines', niv: { 11: '2P' }, ds: 'Segments proportionnels', vis: 1 },
+        { id: 'trigo', dom: 'GM', nm: 'Trigonométrie', icon: 'fa-ruler-combined', niv: { 10: 'P', 11: '12P' }, ds: 'Sinus, cosinus, tangente, angles', vis: 1 },
+        { id: 'instruments', dom: 'GM', nm: 'Lire les instruments', icon: 'fa-temperature-half', niv: { 9: '12P', 10: '12P' }, ds: 'Thermomètre, balance, règle…', vis: 1 },
+        { id: 'horloges', dom: 'GM', nm: 'Heures et durées', icon: 'fa-clock', niv: { 9: '12P', 10: '12P' }, ds: 'Horloges, durées, heure d’arrivée', vis: 1 },
+        { id: 'conversions', dom: 'GM', nm: 'Conversions (longueurs, masses)', icon: 'fa-ruler', niv: { 9: '12P', 10: '12P', 11: '12P' }, ds: 'km, m, cm, kg, L…' },
+        { id: 'conversions_av', dom: 'GM', nm: 'Conversions (aires/volumes)', icon: 'fa-ruler-horizontal', niv: { 10: '12P', 11: '12P' }, ds: 'm², dm³, litres, durées' },
+        { id: 'grandeurs', dom: 'GM', nm: 'Vitesse, masse volumique', icon: 'fa-gauge-high', niv: { 10: '12P', 11: '12P' }, ds: 'Vitesse, débit, km/h ↔ m/s' },
     ];
     const domColor = code => (DOMAINS.find(d => d.code === code) || {}).col || '#6366F1';
 
     // ====== État + UI ======
-    let curYear = 0, selTheme = null, series = [], curDiff = 'moyen';
+    let curYear = 0, curNiv = 'all', selTheme = null, series = [], curDiff = 'moyen';
     const themeById = id => THEMES.find(t => t.id === id);
+    const NIVL = { 1: 'VG1', 2: 'VG2', P: 'VP' };
+    const nivTxt = s => s === '12P' ? '' : ' · ' + s.split('').map(c => NIVL[c]).join('·');
+    function themeVisible(t) { const ys = curYear ? [curYear] : [9, 10, 11]; return ys.some(y => t.niv[y] && (curNiv === 'all' || t.niv[y].indexOf(curNiv) !== -1)); }
 
     function renderDomains() {
         let html = '';
         DOMAINS.forEach(dom => {
-            const list = THEMES.filter(t => t.dom === dom.code && (!curYear || t.years.includes(curYear)));
+            const list = THEMES.filter(t => t.dom === dom.code && themeVisible(t));
             if (!list.length) return;
             html += '<div class="mx-dom"><div class="mx-dom-head"><span class="mx-dom-code" style="background:' + dom.col + '">' + dom.code + '</span><span class="mx-dom-name" style="color:' + dom.col + '">' + dom.name + '</span></div><div class="mx-grid">';
             html += list.map(t => '<button class="mx-card' + (selTheme === t.id ? ' sel' : '') + '" data-id="' + t.id + '" type="button">' +
                 '<span class="mx-ico" style="background:' + dom.col + '"><i class="fas ' + t.icon + '"></i></span>' +
                 '<span class="nm" style="color:' + dom.col + '">' + t.nm + '</span><span class="ds">' + t.ds + '</span>' +
-                '<span class="mx-badges">' + t.years.map(y => '<span class="mx-badge">' + y + 'H</span>').join('') + (t.inter ? '<span class="mx-tagi">interactif</span>' : (t.vis ? '<span class="mx-tagi">visuel</span>' : '')) + '</span>' +
+                '<span class="mx-badges">' + Object.keys(t.niv).map(y => '<span class="mx-badge">' + y + 'H' + nivTxt(t.niv[y]) + '</span>').join('') + (t.inter ? '<span class="mx-tagi">interactif</span>' : (t.vis ? '<span class="mx-tagi">visuel</span>' : '')) + '</span>' +
                 '</button>').join('');
             html += '</div></div>';
         });
@@ -1448,6 +1538,7 @@
     }
 
     $('yearChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => { curYear = parseInt(ch.dataset.y, 10); $('yearChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active')); ch.classList.add('active'); renderDomains(); }));
+    $('nivChips').querySelectorAll('.mx-chip').forEach(ch => ch.addEventListener('click', () => { curNiv = ch.dataset.n; $('nivChips').querySelectorAll('.mx-chip').forEach(x => x.classList.remove('active')); ch.classList.add('active'); renderDomains(); }));
     $('diffSeg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { curDiff = b.dataset.d; $('diffSeg').querySelectorAll('button').forEach(x => x.classList.remove('active')); b.classList.add('active'); newSeries(); }));
     $('btnNew').addEventListener('click', newSeries);
     $('btnCheck').addEventListener('click', correct);
