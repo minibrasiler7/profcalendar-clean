@@ -540,6 +540,1239 @@ msgstr "Mathe-Übungen"
 msgid "Conditions générales"
 msgstr "AGB"
 
+msgid "Bonjour, %(name)s !"
+msgstr "Hallo, %(name)s!"
+
+msgid "Bienvenue dans votre espace de planification"
+msgstr "Willkommen in deinem Planungsbereich"
+
+msgid "Janvier"
+msgstr "Januar"
+
+msgid "Février"
+msgstr "Februar"
+
+msgid "Mars"
+msgstr "März"
+
+msgid "Avril"
+msgstr "April"
+
+msgid "Mai"
+msgstr "Mai"
+
+msgid "Juin"
+msgstr "Juni"
+
+msgid "Juillet"
+msgstr "Juli"
+
+msgid "Août"
+msgstr "August"
+
+msgid "Septembre"
+msgstr "September"
+
+msgid "Octobre"
+msgstr "Oktober"
+
+msgid "Novembre"
+msgstr "November"
+
+msgid "Décembre"
+msgstr "Dezember"
+
+msgid "Date non disponible"
+msgstr "Datum nicht verfügbar"
+
+msgid "Prêt à commencer ?"
+msgstr "Bereit loszulegen?"
+
+msgid "Ton espace est déjà configuré (horaire, année scolaire…)."
+msgstr "Dein Bereich ist bereits eingerichtet (Stundenplan, Schuljahr…)."
+
+msgid "Il ne reste qu'une chose à faire"
+msgstr "Es bleibt nur noch eines zu tun"
+
+msgid "créer ta première classe"
+msgstr "deine erste Klasse erstellen"
+
+msgid "Ça prend 30 secondes, et tu pourras tout ajuster ensuite."
+msgstr "Es dauert 30 Sekunden, und du kannst danach alles anpassen."
+
+msgid "Créer ma première classe"
+msgstr "Meine erste Klasse erstellen"
+
+msgid "Actions rapides"
+msgstr "Schnellaktionen"
+
+msgid "Voir le calendrier"
+msgstr "Kalender ansehen"
+
+msgid "Modifier l'horaire type"
+msgstr "Standard-Stundenplan bearbeiten"
+
+msgid "Non disponible"
+msgstr "Nicht verfügbar"
+
+msgid "Accès premium"
+msgstr "Premium-Zugang"
+
+msgid "Gestion des sanctions"
+msgstr "Sanktionsverwaltung"
+
+msgid "Suivi des absences"
+msgstr "Absenzenkontrolle"
+
+msgid "Gérer les classes"
+msgstr "Klassen verwalten"
+
+msgid "Configuration des classes"
+msgstr "Klassen-Konfiguration"
+
+msgid "Collaboration"
+msgstr "Zusammenarbeit"
+
+msgid "Création de découpage"
+msgstr "Stoffverteilungsplan"
+
+msgid "Terminer et archiver l'année"
+msgstr "Jahr abschliessen und archivieren"
+
+msgid "Mes mémos"
+msgstr "Meine Memos"
+
+msgid "Nouveau mémo"
+msgstr "Neues Memo"
+
+msgid "Toutes les classes"
+msgstr "Alle Klassen"
+
+msgid "Aujourd'hui"
+msgstr "Heute"
+
+msgid "Période"
+msgstr "Lektion"
+
+msgid "Prochains mémos"
+msgstr "Anstehende Memos"
+
+msgid "Lundi"
+msgstr "Montag"
+
+msgid "Mardi"
+msgstr "Dienstag"
+
+msgid "Mercredi"
+msgstr "Mittwoch"
+
+msgid "Jeudi"
+msgstr "Donnerstag"
+
+msgid "Vendredi"
+msgstr "Freitag"
+
+msgid "Modifier"
+msgstr "Bearbeiten"
+
+msgid "Marquer comme fait"
+msgstr "Als erledigt markieren"
+
+msgid "Aucun mémo pour le moment. Créez-en un pour ne rien oublier !"
+msgstr "Noch keine Memos. Erstelle eines, um nichts zu vergessen!"
+
+msgid "Classe / Groupe"
+msgstr "Klasse / Gruppe"
+
+msgid "-- Sélectionner une classe --"
+msgstr "-- Klasse auswählen --"
+
+msgid "Rappel pour"
+msgstr "Erinnerung für"
+
+msgid "-- Choisir --"
+msgstr "-- Auswählen --"
+
+msgid "Date personnalisée"
+msgstr "Benutzerdefiniertes Datum"
+
+msgid "Sans date"
+msgstr "Ohne Datum"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Contenu du mémo"
+msgstr "Memo-Inhalt"
+
+msgid "Notez votre mémo ici..."
+msgstr "Schreibe dein Memo hier..."
+
+msgid "Annuler"
+msgstr "Abbrechen"
+
+msgid "Enregistrer"
+msgstr "Speichern"
+
+msgid "Erreur lors de la mise à jour du mémo"
+msgstr "Fehler beim Aktualisieren des Memos"
+
+msgid "Erreur lors de la communication avec le serveur"
+msgstr "Fehler bei der Kommunikation mit dem Server"
+
+msgid "Modifier le mémo"
+msgstr "Memo bearbeiten"
+
+msgid "Êtes-vous sûr de vouloir supprimer ce mémo ?"
+msgstr "Möchtest du dieses Memo wirklich löschen?"
+
+msgid "Erreur lors de la suppression du mémo"
+msgstr "Fehler beim Löschen des Memos"
+
+msgid "Veuillez remplir tous les champs obligatoires"
+msgstr "Bitte fülle alle Pflichtfelder aus"
+
+msgid "Veuillez sélectionner une date"
+msgstr "Bitte wähle ein Datum"
+
+msgid "Erreur lors de l'enregistrement du mémo"
+msgstr "Fehler beim Speichern des Memos"
+
+msgid "Supprimer ce rapport archivé ? Cette action est irréversible."
+msgstr "Diesen archivierten Bericht löschen? Diese Aktion ist unwiderruflich."
+
+msgid "Erreur lors de la suppression"
+msgstr "Fehler beim Löschen"
+
+msgid "Demandes d'invitation"
+msgstr "Einladungsanfragen"
+
+msgid "Des enseignants souhaitent rejoindre vos classes en tant qu'enseignants spécialisés."
+msgstr "Lehrpersonen möchten deinen Klassen als Fachlehrpersonen beitreten."
+
+msgid "Veut rejoindre :"
+msgstr "Möchte beitreten:"
+
+msgid "Classe inconnue"
+msgstr "Unbekannte Klasse"
+
+msgid "Email :"
+msgstr "E-Mail:"
+
+msgid "Reçu le :"
+msgstr "Erhalten am:"
+
+msgid "%(date)s à %(time)s"
+msgstr "%(date)s um %(time)s"
+
+msgid "Disciplines proposées :"
+msgstr "Vorgeschlagene Fächer:"
+
+msgid "Message :"
+msgstr "Nachricht:"
+
+msgid "Message de réponse (optionnel)"
+msgstr "Antwortnachricht (optional)"
+
+msgid "Accepter"
+msgstr "Annehmen"
+
+msgid "Rejeter"
+msgstr "Ablehnen"
+
+msgid "Êtes-vous sûr de vouloir rejeter cette demande ?"
+msgstr "Möchtest du diese Anfrage wirklich ablehnen?"
+
+msgid "Rapports archivés"
+msgstr "Archivierte Berichte"
+
+msgid "Des classes partagées ont été supprimées — vos rapports sont disponibles ici."
+msgstr "Geteilte Klassen wurden gelöscht — deine Berichte sind hier verfügbar."
+
+msgid "Télécharger"
+msgstr "Herunterladen"
+
+msgid "Supprimer"
+msgstr "Löschen"
+
+msgid "Voir dans le gestionnaire de fichiers"
+msgstr "In der Dateiverwaltung ansehen"
+
+msgid "Activité récente"
+msgstr "Letzte Aktivität"
+
+msgid "Continuez votre excellent travail de planification !"
+msgstr "Mach weiter so mit deiner hervorragenden Planung!"
+
+msgid "Aucune planification cette semaine"
+msgstr "Keine Planung diese Woche"
+
+msgid "Commencez à planifier vos cours dès maintenant !"
+msgstr "Beginne jetzt mit der Planung deines Unterrichts!"
+
+msgid "Planifier mes cours"
+msgstr "Meinen Unterricht planen"
+
+msgid "Passez à Premium"
+msgstr "Auf Premium upgraden"
+
+msgid "Débloquez toutes les fonctionnalités de ProfCalendar pour gérer vos classes efficacement"
+msgstr "Schalte alle Funktionen von ProfCalendar frei, um deine Klassen effizient zu verwalten"
+
+msgid "Vous avez déjà un accès premium !"
+msgstr "Du hast bereits Premium-Zugang!"
+
+msgid "Gérer mon abonnement"
+msgstr "Mein Abonnement verwalten"
+
+msgid "Pour toujours"
+msgstr "Für immer"
+
+msgid "Plan actuel"
+msgstr "Aktueller Plan"
+
+msgid "Fin d'année scolaire"
+msgstr "Schuljahresende"
+
+msgid "Notes et évaluations"
+msgstr "Noten und Bewertungen"
+
+msgid "Sanctions"
+msgstr "Sanktionen"
+
+msgid "Facturé mensuellement"
+msgstr "Monatlich abgerechnet"
+
+msgid "Plan de classe & impression"
+msgstr "Sitzplan & Druck"
+
+msgid "S'abonner"
+msgstr "Abonnieren"
+
+msgid "Créer un compte"
+msgstr "Konto erstellen"
+
+msgid "Soit CHF 3.33/mois"
+msgstr "Das sind CHF 3.33/Monat"
+
+msgid "Meilleur rapport qualité-prix"
+msgstr "Bestes Preis-Leistungs-Verhältnis"
+
+msgid "Engagement annuel"
+msgstr "Jahresbindung"
+
+msgid "S'abonner annuellement"
+msgstr "Jährlich abonnieren"
+
+msgid "Vous avez un bon ?"
+msgstr "Hast du einen Gutschein?"
+
+msgid "Entrez votre code pour activer l'accès premium gratuitement"
+msgstr "Gib deinen Code ein, um den Premium-Zugang kostenlos zu aktivieren"
+
+msgid "Code du bon (ex: ABCD1234)"
+msgstr "Gutscheincode (z. B. ABCD1234)"
+
+msgid "Activer"
+msgstr "Aktivieren"
+
+msgid "Connectez-vous pour utiliser un bon."
+msgstr "Melde dich an, um einen Gutschein einzulösen."
+
+msgid "Erreur :"
+msgstr "Fehler:"
+
+msgid "Erreur inconnue"
+msgstr "Unbekannter Fehler"
+
+msgid "Erreur lors de la connexion au service de paiement."
+msgstr "Fehler bei der Verbindung zum Zahlungsdienst."
+
+msgid "Veuillez entrer un code."
+msgstr "Bitte gib einen Code ein."
+
+msgid "Erreur de connexion."
+msgstr "Verbindungsfehler."
+
+msgid "Choisir un plan"
+msgstr "Plan wählen"
+
+msgid "Bienvenue sur ProfCalendar !"
+msgstr "Willkommen bei ProfCalendar!"
+
+msgid "Choisissez votre plan"
+msgstr "Wähle deinen Plan"
+
+msgid "Vous bénéficiez automatiquement de <strong>30 jours d'essai Premium gratuit</strong>."
+msgstr "Du erhältst automatisch <strong>30 Tage kostenlose Premium-Testphase</strong>."
+
+msgid "Choisissez maintenant comment continuer ensuite — vous pouvez tout changer plus tard."
+msgstr "Wähle jetzt, wie es danach weitergeht — du kannst später alles ändern."
+
+msgid "Gratuit avec essai Premium"
+msgstr "Kostenlos mit Premium-Testphase"
+
+msgid "pendant 30 jours"
+msgstr "für 30 Tage"
+
+msgid "30 jours d'essai Premium gratuit"
+msgstr "30 Tage kostenlose Premium-Testphase"
+
+msgid "Toutes les fonctionnalités"
+msgstr "Alle Funktionen"
+
+msgid "Pas de carte bancaire requise"
+msgstr "Keine Kreditkarte erforderlich"
+
+msgid "Bascule en plan Gratuit à la fin"
+msgstr "Wechselt am Ende zum Gratis-Plan"
+
+msgid "Continuer en essai gratuit"
+msgstr "Mit kostenloser Testphase fortfahren"
+
+msgid "Premium mensuel"
+msgstr "Premium monatlich"
+
+msgid "30 jours d'essai gratuit"
+msgstr "30 Tage kostenlose Testphase"
+
+msgid "Sans engagement, annulable"
+msgstr "Ohne Bindung, jederzeit kündbar"
+
+msgid "Choisir mensuel"
+msgstr "Monatlich wählen"
+
+msgid "Meilleure offre"
+msgstr "Bestes Angebot"
+
+msgid "Premium annuel"
+msgstr "Premium jährlich"
+
+msgid "Tout du Premium mensuel"
+msgstr "Alles aus Premium monatlich"
+
+msgid "Économisez 32 %%"
+msgstr "Spare 32%%"
+
+msgid "Choisir annuel"
+msgstr "Jährlich wählen"
+
+msgid "Continuer"
+msgstr "Weiter"
+
+msgid "Le paiement passe par votre compte Apple (App Store)."
+msgstr "Die Zahlung erfolgt über dein Apple-Konto (App Store)."
+
+msgid "Vous pouvez annuler à tout moment depuis Réglages → Apple ID → Abonnements."
+msgstr "Du kannst jederzeit unter Einstellungen → Apple-ID → Abonnements kündigen."
+
+msgid "Les paiements sont sécurisés par Stripe. Vous pouvez changer de plan ou annuler à tout moment depuis vos paramètres."
+msgstr "Die Zahlungen werden über Stripe abgesichert. Du kannst deinen Plan jederzeit in deinen Einstellungen ändern oder kündigen."
+
+msgid "L'achat n'est disponible que depuis l'application iPad."
+msgstr "Der Kauf ist nur über die iPad-App möglich."
+
+msgid "Mon abonnement"
+msgstr "Mein Abonnement"
+
+msgid "Premium actif"
+msgstr "Premium aktiv"
+
+msgid "Votre accès premium est actif jusqu'au"
+msgstr "Dein Premium-Zugang ist aktiv bis zum"
+
+msgid "Votre accès premium est"
+msgstr "Dein Premium-Zugang ist"
+
+msgid "illimité"
+msgstr "unbegrenzt"
+
+msgid "Plan gratuit"
+msgstr "Gratis-Plan"
+
+msgid "Vous êtes actuellement sur le plan gratuit."
+msgstr "Du nutzt derzeit den Gratis-Plan."
+
+msgid "Passer à Premium"
+msgstr "Auf Premium upgraden"
+
+msgid "Détails de l'abonnement"
+msgstr "Abonnementdetails"
+
+msgid "Cycle de facturation"
+msgstr "Abrechnungszyklus"
+
+msgid "Annuel"
+msgstr "Jährlich"
+
+msgid "Mensuel"
+msgstr "Monatlich"
+
+msgid "Statut"
+msgstr "Status"
+
+msgid "Actif"
+msgstr "Aktiv"
+
+msgid "Annulé"
+msgstr "Gekündigt"
+
+msgid "Paiement en retard"
+msgstr "Zahlung überfällig"
+
+msgid "Période actuelle"
+msgstr "Aktueller Zeitraum"
+
+msgid "Montant"
+msgstr "Betrag"
+
+msgid "Facturation"
+msgstr "Abrechnung"
+
+msgid "Gérez vos moyens de paiement et votre abonnement sur le portail Stripe."
+msgstr "Verwalte deine Zahlungsmethoden und dein Abonnement im Stripe-Portal."
+
+msgid "Portail de facturation Stripe"
+msgstr "Stripe-Abrechnungsportal"
+
+msgid "Historique des factures"
+msgstr "Rechnungsverlauf"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Actions"
+msgstr "Aktionen"
+
+msgid "Payée"
+msgstr "Bezahlt"
+
+msgid "En attente"
+msgstr "Ausstehend"
+
+msgid "Annulée"
+msgstr "Storniert"
+
+msgid "Télécharger le PDF"
+msgstr "PDF herunterladen"
+
+msgid "Voir en ligne"
+msgstr "Online ansehen"
+
+msgid "Voir"
+msgstr "Ansehen"
+
+msgid "Aucune facture disponible pour le moment."
+msgstr "Derzeit keine Rechnungen verfügbar."
+
+msgid "Abonnement activé"
+msgstr "Abonnement aktiviert"
+
+msgid "Bienvenue dans ProfCalendar Premium !"
+msgstr "Willkommen bei ProfCalendar Premium!"
+
+msgid "Votre abonnement est maintenant actif. Vous avez accès à toutes les fonctionnalités premium."
+msgstr "Dein Abonnement ist jetzt aktiv. Du hast Zugang zu allen Premium-Funktionen."
+
+msgid "Aller à la gestion de classe"
+msgstr "Zur Klassenverwaltung"
+
+msgid "Retour au tableau de bord"
+msgstr "Zurück zur Übersicht"
+
+msgid "Votre compte dispose déjà d'un accès Premium actif."
+msgstr "Dein Konto verfügt bereits über einen aktiven Premium-Zugang."
+
+msgid "Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, exercices interactifs, collaboration, et bien plus."
+msgstr "Schalte alle Funktionen frei, um deine Klassen zu verwalten: Noten, Anwesenheiten, Sitzplan, interaktive Übungen, Zusammenarbeit und vieles mehr."
+
+msgid "Voir les abonnements"
+msgstr "Abonnements ansehen"
+
+msgid "(Accès pour %(n)d jours)"
+msgstr "(Zugang für %(n)d Tage)"
+
+msgid "Configuration de prix manquante côté serveur."
+msgstr "Preiskonfiguration auf dem Server fehlt."
+
+msgid "Erreur de paiement : %(err)s"
+msgstr "Zahlungsfehler: %(err)s"
+
+msgid "L'abonnement n'est pas disponible depuis l'application. Rendez-vous sur profcalendar.org depuis votre navigateur."
+msgstr "Das Abonnement ist in der App nicht verfügbar. Bitte besuche profcalendar.org in deinem Browser."
+
+msgid "Configuration de prix manquante"
+msgstr "Preiskonfiguration fehlt"
+
+msgid "Bienvenue dans Premium ! On va maintenant configurer votre compte."
+msgstr "Willkommen bei Premium! Jetzt richten wir dein Konto ein."
+
+msgid "Aucun abonnement actif trouvé."
+msgstr "Kein aktives Abonnement gefunden."
+
+msgid "Erreur lors de l'accès au portail de facturation."
+msgstr "Fehler beim Zugriff auf das Abrechnungsportal."
+
+msgid "Code invalide."
+msgstr "Ungültiger Code."
+
+msgid "Ce bon n'est plus actif."
+msgstr "Dieser Gutschein ist nicht mehr aktiv."
+
+msgid "Ce bon a expiré."
+msgstr "Dieser Gutschein ist abgelaufen."
+
+msgid "Ce bon a atteint sa limite d'utilisation."
+msgstr "Dieser Gutschein hat sein Nutzungslimit erreicht."
+
+msgid "Vous avez déjà utilisé ce bon."
+msgstr "Du hast diesen Gutschein bereits eingelöst."
+
+msgid "Bon activé avec succès ! Vous avez maintenant accès à toutes les fonctionnalités premium."
+msgstr "Gutschein erfolgreich aktiviert! Du hast jetzt Zugang zu allen Premium-Funktionen."
+
+msgid "Erreur lors de l'activation du bon."
+msgstr "Fehler beim Aktivieren des Gutscheins."
+
+msgid "Page introuvable"
+msgstr "Seite nicht gefunden"
+
+msgid "La page que vous cherchez n'existe pas ou a été déplacée."
+msgstr "Die gesuchte Seite existiert nicht oder wurde verschoben."
+
+msgid "Retour à l'accueil"
+msgstr "Zurück zur Startseite"
+
+msgid "Erreur serveur"
+msgstr "Serverfehler"
+
+msgid "Erreur temporaire"
+msgstr "Vorübergehender Fehler"
+
+msgid "Une erreur est survenue sur le serveur. Notre équipe en a été informée. Veuillez réessayer dans quelques instants."
+msgstr "Auf dem Server ist ein Fehler aufgetreten. Unser Team wurde informiert. Bitte versuche es in einigen Augenblicken erneut."
+
+msgid "Dernière mise à jour : 14 avril 2026"
+msgstr "Letzte Aktualisierung: 14. April 2026"
+
+msgid "Cette traduction est fournie à titre informatif ; en cas de divergence, la version française fait foi."
+msgstr "Diese Übersetzung dient nur zur Information; im Falle von Abweichungen ist die französische Fassung massgebend."
+
+msgid "1. Responsable du traitement"
+msgstr "1. Verantwortlicher"
+
+msgid "ProfCalendar est édité par Loïc Strauch, domicilié en Suisse. Pour toute question relative à la protection de vos données, vous pouvez nous contacter à l'adresse :"
+msgstr "ProfCalendar wird von Loïc Strauch mit Wohnsitz in der Schweiz herausgegeben. Bei Fragen zum Schutz deiner Daten kannst du uns kontaktieren unter:"
+
+msgid "2. Données collectées"
+msgstr "2. Erhobene Daten"
+
+msgid "Nous collectons les données suivantes dans le cadre de l'utilisation de ProfCalendar :"
+msgstr "Im Rahmen der Nutzung von ProfCalendar erheben wir folgende Daten:"
+
+msgid "2.1 Données des enseignants"
+msgstr "2.1 Daten der Lehrpersonen"
+
+msgid "Nom d'utilisateur, adresse email, mot de passe (chiffré)"
+msgstr "Benutzername, E-Mail-Adresse, Passwort (verschlüsselt)"
+
+msgid "Nom de l'établissement scolaire (optionnel)"
+msgstr "Name der Schule (optional)"
+
+msgid "Préférences d'affichage et de configuration"
+msgstr "Anzeige- und Konfigurationseinstellungen"
+
+msgid "Données de planification de cours"
+msgstr "Daten zur Unterrichtsplanung"
+
+msgid "Fichiers uploadés (documents, PDF, images)"
+msgstr "Hochgeladene Dateien (Dokumente, PDFs, Bilder)"
+
+msgid "Données de paiement (traitées exclusivement par Stripe, voir section 6)"
+msgstr "Zahlungsdaten (ausschliesslich von Stripe verarbeitet, siehe Abschnitt 6)"
+
+msgid "2.2 Données des élèves"
+msgstr "2.2 Daten der Schüler"
+
+msgid "Prénom, nom de famille"
+msgstr "Vorname, Nachname"
+
+msgid "Adresse email (optionnelle, pour la création de compte)"
+msgstr "E-Mail-Adresse (optional, zur Kontoerstellung)"
+
+msgid "Présences, absences et retards"
+msgstr "Anwesenheiten, Absenzen und Verspätungen"
+
+msgid "Données de progression dans les exercices (scores, XP, niveaux)"
+msgstr "Fortschrittsdaten bei Übungen (Punkte, XP, Stufen)"
+
+msgid "Sanctions et remarques comportementales"
+msgstr "Sanktionen und Verhaltensbemerkungen"
+
+msgid "2.3 Données des parents"
+msgstr "2.3 Daten der Eltern"
+
+msgid "Prénom, nom, adresse email"
+msgstr "Vorname, Nachname, E-Mail-Adresse"
+
+msgid "Lien avec l'élève (via code de classe)"
+msgstr "Verknüpfung mit dem Schüler (über Klassencode)"
+
+msgid "2.4 Données techniques"
+msgstr "2.4 Technische Daten"
+
+msgid "Adresse IP, type de navigateur, système d'exploitation"
+msgstr "IP-Adresse, Browsertyp, Betriebssystem"
+
+msgid "Cookies de session (voir section 7)"
+msgstr "Sitzungscookies (siehe Abschnitt 7)"
+
+msgid "3. Finalités du traitement"
+msgstr "3. Zwecke der Verarbeitung"
+
+msgid "Vos données sont traitées pour les finalités suivantes :"
+msgstr "Deine Daten werden zu folgenden Zwecken verarbeitet:"
+
+msgid "Fourniture et fonctionnement de la plateforme ProfCalendar"
+msgstr "Bereitstellung und Betrieb der ProfCalendar-Plattform"
+
+msgid "Gestion des comptes utilisateurs et authentification"
+msgstr "Verwaltung von Benutzerkonten und Authentifizierung"
+
+msgid "Planification de cours et suivi pédagogique"
+msgstr "Unterrichtsplanung und pädagogische Begleitung"
+
+msgid "Gestion des présences, notes et évaluations"
+msgstr "Verwaltung von Anwesenheiten, Noten und Bewertungen"
+
+msgid "Traitement des paiements et gestion des abonnements"
+msgstr "Zahlungsabwicklung und Abonnementverwaltung"
+
+msgid "Envoi d'emails transactionnels (vérification, notifications)"
+msgstr "Versand von Transaktions-E-Mails (Bestätigung, Benachrichtigungen)"
+
+msgid "Amélioration et sécurisation de la plateforme"
+msgstr "Verbesserung und Absicherung der Plattform"
+
+msgid "4. Base légale du traitement"
+msgstr "4. Rechtsgrundlage der Verarbeitung"
+
+msgid "Le traitement de vos données repose sur :"
+msgstr "Die Verarbeitung deiner Daten beruht auf:"
+
+msgid "L'exécution du contrat"
+msgstr "der Vertragserfüllung"
+
+msgid "(art. 6 al. 1 let. b RGPD / art. 31 al. 1 nLPD) : traitement nécessaire à la fourniture du service"
+msgstr "(Art. 6 Abs. 1 lit. b DSGVO / Art. 31 Abs. 1 revDSG): zur Erbringung der Dienstleistung erforderliche Verarbeitung"
+
+msgid "Le consentement"
+msgstr "der Einwilligung"
+
+msgid "(art. 6 al. 1 let. a RGPD / art. 6 al. 6 nLPD) : pour les cookies non essentiels et les communications marketing"
+msgstr "(Art. 6 Abs. 1 lit. a DSGVO / Art. 6 Abs. 6 revDSG): für nicht notwendige Cookies und Marketingkommunikation"
+
+msgid "L'intérêt légitime"
+msgstr "dem berechtigten Interesse"
+
+msgid "(art. 6 al. 1 let. f RGPD / art. 31 al. 1 nLPD) : sécurité de la plateforme et prévention des abus"
+msgstr "(Art. 6 Abs. 1 lit. f DSGVO / Art. 31 Abs. 1 revDSG): Sicherheit der Plattform und Missbrauchsprävention"
+
+msgid "5. Durée de conservation"
+msgstr "5. Aufbewahrungsdauer"
+
+msgid "Comptes actifs"
+msgstr "Aktive Konten"
+
+msgid "les données sont conservées tant que le compte est actif"
+msgstr "die Daten werden gespeichert, solange das Konto aktiv ist"
+
+msgid "Après suppression du compte"
+msgstr "Nach Kontolöschung"
+
+msgid "les données sont supprimées dans un délai de 30 jours, sauf obligation légale de conservation"
+msgstr "die Daten werden innerhalb von 30 Tagen gelöscht, sofern keine gesetzliche Aufbewahrungspflicht besteht"
+
+msgid "Données de facturation"
+msgstr "Abrechnungsdaten"
+
+msgid "conservées 10 ans conformément au droit suisse (Code des obligations, art. 958f)"
+msgstr "10 Jahre gemäss Schweizer Recht aufbewahrt (Obligationenrecht, Art. 958f)"
+
+msgid "Logs techniques"
+msgstr "Technische Logs"
+
+msgid "conservés 90 jours maximum"
+msgstr "höchstens 90 Tage aufbewahrt"
+
+msgid "6. Sous-traitants et transferts de données"
+msgstr "6. Auftragsverarbeiter und Datenübermittlungen"
+
+msgid "Sous-traitant"
+msgstr "Auftragsverarbeiter"
+
+msgid "Finalité"
+msgstr "Zweck"
+
+msgid "Localisation"
+msgstr "Standort"
+
+msgid "Hébergement de l'application"
+msgstr "Hosting der Anwendung"
+
+msgid "USA (Oregon)"
+msgstr "USA (Oregon)"
+
+msgid "Stockage des fichiers"
+msgstr "Dateispeicherung"
+
+msgid "UE (région auto)"
+msgstr "EU (Region automatisch)"
+
+msgid "Traitement des paiements"
+msgstr "Zahlungsabwicklung"
+
+msgid "USA / Irlande"
+msgstr "USA / Irland"
+
+msgid "Envoi d'emails"
+msgstr "E-Mail-Versand"
+
+msgid "USA"
+msgstr "USA"
+
+msgid "Les transferts vers les USA sont couverts par des clauses contractuelles types (CCT) conformément à l'art. 46 RGPD et à l'art. 16 al. 2 nLPD."
+msgstr "Übermittlungen in die USA sind durch Standardvertragsklauseln (SCC) gemäss Art. 46 DSGVO und Art. 16 Abs. 2 revDSG abgedeckt."
+
+msgid "7. Cookies"
+msgstr "7. Cookies"
+
+msgid "ProfCalendar utilise les cookies suivants :"
+msgstr "ProfCalendar verwendet die folgenden Cookies:"
+
+msgid "Cookie de session"
+msgstr "Sitzungscookie"
+
+msgid "(essentiel) : maintient votre connexion pendant la navigation. Expire après 30 jours d'inactivité."
+msgstr "(notwendig): hält deine Anmeldung während des Surfens aufrecht. Läuft nach 30 Tagen Inaktivität ab."
+
+msgid "Cookie « Remember me »"
+msgstr "« Remember me »-Cookie"
+
+msgid "(essentiel) : permet la reconnexion automatique. Expire après 90 jours."
+msgstr "(notwendig): ermöglicht die automatische Wiederanmeldung. Läuft nach 90 Tagen ab."
+
+msgid "Cookie de consentement"
+msgstr "Einwilligungscookie"
+
+msgid "(essentiel) : enregistre votre choix concernant les cookies. Expire après 1 an."
+msgstr "(notwendig): speichert deine Cookie-Auswahl. Läuft nach 1 Jahr ab."
+
+msgid "ProfCalendar n'utilise pas de cookies publicitaires ni de trackers tiers."
+msgstr "ProfCalendar verwendet keine Werbe-Cookies oder Tracker von Drittanbietern."
+
+msgid "8. Vos droits"
+msgstr "8. Deine Rechte"
+
+msgid "Conformément au RGPD et à la nLPD, vous disposez des droits suivants :"
+msgstr "Gemäss DSGVO und revDSG stehen dir die folgenden Rechte zu:"
+
+msgid "Droit d'accès"
+msgstr "Auskunftsrecht"
+
+msgid "obtenir une copie de vos données personnelles"
+msgstr "eine Kopie deiner personenbezogenen Daten erhalten"
+
+msgid "Droit de rectification"
+msgstr "Recht auf Berichtigung"
+
+msgid "corriger des données inexactes"
+msgstr "unrichtige Daten berichtigen"
+
+msgid "Droit à l'effacement"
+msgstr "Recht auf Löschung"
+
+msgid "demander la suppression de votre compte et de vos données (Paramètres > Supprimer mon compte)"
+msgstr "die Löschung deines Kontos und deiner Daten verlangen (Einstellungen > Mein Konto löschen)"
+
+msgid "Droit à la portabilité"
+msgstr "Recht auf Datenübertragbarkeit"
+
+msgid "recevoir vos données dans un format structuré et lisible"
+msgstr "deine Daten in einem strukturierten, lesbaren Format erhalten"
+
+msgid "Droit d'opposition"
+msgstr "Widerspruchsrecht"
+
+msgid "vous opposer au traitement de vos données"
+msgstr "der Verarbeitung deiner Daten widersprechen"
+
+msgid "Droit de retirer votre consentement"
+msgstr "Recht, deine Einwilligung zu widerrufen"
+
+msgid "à tout moment"
+msgstr "jederzeit"
+
+msgid "Pour exercer vos droits, contactez-nous à :"
+msgstr "Um deine Rechte auszuüben, kontaktiere uns unter:"
+
+msgid "9. Sécurité"
+msgstr "9. Sicherheit"
+
+msgid "Nous mettons en œuvre les mesures de sécurité suivantes :"
+msgstr "Wir setzen die folgenden Sicherheitsmassnahmen um:"
+
+msgid "Chiffrement des communications (HTTPS/TLS)"
+msgstr "Verschlüsselung der Kommunikation (HTTPS/TLS)"
+
+msgid "Mots de passe chiffrés (hachage bcrypt)"
+msgstr "Verschlüsselte Passwörter (bcrypt-Hashing)"
+
+msgid "Authentification à deux facteurs (TOTP) disponible"
+msgstr "Zwei-Faktor-Authentifizierung (TOTP) verfügbar"
+
+msgid "Protection CSRF sur tous les formulaires"
+msgstr "CSRF-Schutz bei allen Formularen"
+
+msgid "Headers de sécurité (CSP, X-Frame-Options, HSTS)"
+msgstr "Sicherheits-Header (CSP, X-Frame-Options, HSTS)"
+
+msgid "Chiffrement des données sensibles en base de données"
+msgstr "Verschlüsselung sensibler Daten in der Datenbank"
+
+msgid "10. Mineurs"
+msgstr "10. Minderjährige"
+
+msgid "ProfCalendar est utilisé dans un cadre scolaire. Les comptes élèves sont créés par les enseignants ou avec un code de classe. Les données des élèves mineurs sont traitées sous la responsabilité de l'établissement scolaire et de l'enseignant. Les parents disposent d'un accès de consultation via leur espace parent."
+msgstr "ProfCalendar wird im schulischen Kontext genutzt. Schülerkonten werden von Lehrpersonen oder mit einem Klassencode erstellt. Die Daten minderjähriger Schüler werden unter der Verantwortung der Schule und der Lehrperson verarbeitet. Eltern haben über ihren Elternbereich einen Lesezugriff."
+
+msgid "11. Modifications"
+msgstr "11. Änderungen"
+
+msgid "Nous nous réservons le droit de modifier cette politique de confidentialité. En cas de modification substantielle, les utilisateurs seront informés par email ou notification dans l'application."
+msgstr "Wir behalten uns das Recht vor, diese Datenschutzerklärung zu ändern. Bei wesentlichen Änderungen werden die Nutzer per E-Mail oder per Benachrichtigung in der App informiert."
+
+msgid "12. Autorité de contrôle"
+msgstr "12. Aufsichtsbehörde"
+
+msgid "En Suisse, l'autorité compétente est le Préposé fédéral à la protection des données et à la transparence (PFPDT). Dans l'UE, vous pouvez contacter l'autorité de protection des données de votre pays de résidence."
+msgstr "In der Schweiz ist der Eidgenössische Datenschutz- und Öffentlichkeitsbeauftragte (EDÖB) die zuständige Behörde. In der EU kannst du die Datenschutzbehörde deines Wohnsitzlandes kontaktieren."
+
+msgid "Conditions Générales d'Utilisation"
+msgstr "Allgemeine Nutzungsbedingungen"
+
+msgid "1. Objet"
+msgstr "1. Gegenstand"
+
+msgid "Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») régissent l'accès et l'utilisation de la plateforme ProfCalendar, accessible à l'adresse"
+msgstr "Diese Allgemeinen Nutzungsbedingungen (nachfolgend « AGB ») regeln den Zugang zur und die Nutzung der ProfCalendar-Plattform, erreichbar unter"
+
+msgid "et via les applications mobiles associées."
+msgstr "und über die zugehörigen mobilen Apps."
+
+msgid "ProfCalendar est une plateforme de gestion scolaire destinée aux enseignants, élèves et parents, offrant des outils de planification, de suivi pédagogique et de collaboration."
+msgstr "ProfCalendar ist eine Schulverwaltungsplattform für Lehrpersonen, Schüler und Eltern mit Werkzeugen für Planung, pädagogische Begleitung und Zusammenarbeit."
+
+msgid "2. Acceptation des CGU"
+msgstr "2. Annahme der AGB"
+
+msgid "L'utilisation de ProfCalendar implique l'acceptation pleine et entière des présentes CGU. En créant un compte, vous confirmez avoir lu et accepté ces conditions."
+msgstr "Die Nutzung von ProfCalendar setzt die vollständige Annahme dieser AGB voraus. Mit der Erstellung eines Kontos bestätigst du, diese gelesen und akzeptiert zu haben."
+
+msgid "3. Inscription et comptes"
+msgstr "3. Registrierung und Konten"
+
+msgid "3.1 Types de comptes"
+msgstr "3.1 Kontotypen"
+
+msgid "Compte enseignant"
+msgstr "Lehrerkonto"
+
+msgid "accès complet aux fonctionnalités de gestion (gratuit ou Premium)"
+msgstr "vollständiger Zugang zu den Verwaltungsfunktionen (kostenlos oder Premium)"
+
+msgid "Compte élève"
+msgstr "Schülerkonto"
+
+msgid "accès aux exercices, notes et ressources partagées (gratuit)"
+msgstr "Zugang zu Übungen, Noten und geteilten Ressourcen (kostenlos)"
+
+msgid "Compte parent"
+msgstr "Elternkonto"
+
+msgid "accès en consultation aux notes, présences et remarques de l'enfant (gratuit)"
+msgstr "Lesezugriff auf Noten, Anwesenheiten und Bemerkungen des Kindes (kostenlos)"
+
+msgid "3.2 Obligations de l'utilisateur"
+msgstr "3.2 Pflichten des Nutzers"
+
+msgid "Fournir des informations exactes lors de l'inscription"
+msgstr "Bei der Registrierung korrekte Angaben machen"
+
+msgid "Maintenir la confidentialité de ses identifiants"
+msgstr "Die Vertraulichkeit der Zugangsdaten wahren"
+
+msgid "Ne pas partager son compte avec des tiers"
+msgstr "Das Konto nicht mit Dritten teilen"
+
+msgid "Signaler toute utilisation non autorisée de son compte"
+msgstr "Jede unbefugte Nutzung des Kontos melden"
+
+msgid "3.3 Responsabilité des données saisies"
+msgstr "3.3 Verantwortung für die eingegebenen Daten"
+
+msgid "L'enseignant est responsable des données saisies concernant ses élèves (noms, notes, présences, sanctions). Il s'engage à n'utiliser ProfCalendar que dans le cadre de ses fonctions professionnelles et conformément aux règlements de son établissement."
+msgstr "Die Lehrperson ist für die über ihre Schüler eingegebenen Daten (Namen, Noten, Anwesenheiten, Sanktionen) verantwortlich. Sie verpflichtet sich, ProfCalendar nur im Rahmen ihrer beruflichen Tätigkeit und gemäss den Vorschriften ihrer Schule zu nutzen."
+
+msgid "4. Services et fonctionnalités"
+msgstr "4. Dienste und Funktionen"
+
+msgid "4.1 Plan Gratuit"
+msgstr "4.1 Gratis-Plan"
+
+msgid "Le plan gratuit inclut : tableau de bord, planification de cours, calendrier scolaire et configuration de base. Il est disponible sans limite de durée."
+msgstr "Der Gratis-Plan umfasst: Übersicht, Unterrichtsplanung, Schulkalender und Grundkonfiguration. Er ist zeitlich unbegrenzt verfügbar."
+
+msgid "4.2 Plan Premium"
+msgstr "4.2 Premium-Plan"
+
+msgid "Le plan Premium donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, exercices interactifs, collaboration entre enseignants, gestionnaire de fichiers et plan de classe."
+msgstr "Der Premium-Plan gibt Zugang zu allen Funktionen: Klassenverwaltung, Noten und Bewertungen, Anwesenheitskontrolle, interaktive Übungen, Zusammenarbeit unter Lehrpersonen, Dateiverwaltung und Sitzplan."
+
+msgid "4.3 Disponibilité"
+msgstr "4.3 Verfügbarkeit"
+
+msgid "ProfCalendar s'efforce de maintenir un accès continu à la plateforme. Toutefois, des interruptions temporaires peuvent survenir pour des raisons de maintenance, de mise à jour ou de force majeure. ProfCalendar ne garantit pas une disponibilité de 100 %%."
+msgstr "ProfCalendar ist bestrebt, einen kontinuierlichen Zugang zur Plattform zu gewährleisten. Dennoch können vorübergehende Unterbrechungen aus Gründen der Wartung, von Aktualisierungen oder höherer Gewalt auftreten. ProfCalendar garantiert keine Verfügbarkeit von 100%%."
+
+msgid "5. Abonnements et paiements"
+msgstr "5. Abonnements und Zahlungen"
+
+msgid "5.1 Tarification"
+msgstr "5.1 Preisgestaltung"
+
+msgid "CHF 4.90 / mois, facturé mensuellement"
+msgstr "CHF 4.90 / Monat, monatlich abgerechnet"
+
+msgid "CHF 39.90 / an, facturé annuellement (soit CHF 3.33/mois)"
+msgstr "CHF 39.90 / Jahr, jährlich abgerechnet (das sind CHF 3.33/Monat)"
+
+msgid "Les prix sont indiqués en francs suisses (CHF), TVA incluse le cas échéant."
+msgstr "Die Preise sind in Schweizer Franken (CHF) angegeben, gegebenenfalls inklusive MwSt."
+
+msgid "5.2 Paiement"
+msgstr "5.2 Zahlung"
+
+msgid "Les paiements sont traités par"
+msgstr "Die Zahlungen werden abgewickelt von"
+
+msgid ", un prestataire de paiement certifié PCI-DSS. ProfCalendar ne stocke jamais vos données de carte bancaire."
+msgstr ", einem PCI-DSS-zertifizierten Zahlungsdienstleister. ProfCalendar speichert niemals deine Kartendaten."
+
+msgid "5.3 Renouvellement"
+msgstr "5.3 Verlängerung"
+
+msgid "Les abonnements sont renouvelés automatiquement à la fin de chaque période (mensuelle ou annuelle). Un email de rappel est envoyé avant le renouvellement."
+msgstr "Abonnements verlängern sich automatisch am Ende jeder Periode (monatlich oder jährlich). Vor der Verlängerung wird eine Erinnerungs-E-Mail gesendet."
+
+msgid "5.4 Résiliation"
+msgstr "5.4 Kündigung"
+
+msgid "Vous pouvez résilier votre abonnement à tout moment depuis la page « Mon abonnement » ou le portail client Stripe. La résiliation prend effet à la fin de la période en cours. Aucun remboursement n'est effectué pour la période entamée."
+msgstr "Du kannst dein Abonnement jederzeit über die Seite « Mein Abonnement » oder das Stripe-Kundenportal kündigen. Die Kündigung wird zum Ende der laufenden Periode wirksam. Für die bereits begonnene Periode erfolgt keine Rückerstattung."
+
+msgid "5.5 Codes promo / Vouchers"
+msgstr "5.5 Aktionscodes / Gutscheine"
+
+msgid "Des codes promotionnels peuvent être distribués pour offrir un accès Premium gratuit pour une durée limitée. Ces codes sont à usage unique et ne sont pas échangeables contre de l'argent."
+msgstr "Aktionscodes können verteilt werden, um für begrenzte Zeit kostenlosen Premium-Zugang zu gewähren. Diese Codes sind einmalig verwendbar und nicht in Geld umtauschbar."
+
+msgid "6. Propriété intellectuelle"
+msgstr "6. Geistiges Eigentum"
+
+msgid "L'ensemble du contenu de ProfCalendar (code source, design, textes, logos, images) est protégé par le droit d'auteur et reste la propriété de ProfCalendar."
+msgstr "Sämtliche Inhalte von ProfCalendar (Quellcode, Design, Texte, Logos, Bilder) sind urheberrechtlich geschützt und bleiben Eigentum von ProfCalendar."
+
+msgid "Les contenus créés par les utilisateurs (planifications, exercices, fichiers uploadés) restent la propriété de leurs auteurs respectifs. En utilisant ProfCalendar, vous nous accordez une licence limitée pour stocker et afficher vos contenus dans le cadre du service."
+msgstr "Von Nutzern erstellte Inhalte (Planungen, Übungen, hochgeladene Dateien) bleiben Eigentum ihrer jeweiligen Urheber. Durch die Nutzung von ProfCalendar gewährst du uns eine begrenzte Lizenz, deine Inhalte im Rahmen des Dienstes zu speichern und anzuzeigen."
+
+msgid "7. Utilisation acceptable"
+msgstr "7. Zulässige Nutzung"
+
+msgid "L'utilisateur s'engage à ne pas :"
+msgstr "Der Nutzer verpflichtet sich, Folgendes zu unterlassen:"
+
+msgid "Utiliser ProfCalendar à des fins illégales ou non autorisées"
+msgstr "ProfCalendar für illegale oder unbefugte Zwecke zu nutzen"
+
+msgid "Tenter d'accéder aux comptes ou données d'autres utilisateurs"
+msgstr "Zu versuchen, auf Konten oder Daten anderer Nutzer zuzugreifen"
+
+msgid "Injecter du code malveillant ou tenter d'exploiter des failles de sécurité"
+msgstr "Schadcode einzuschleusen oder zu versuchen, Sicherheitslücken auszunutzen"
+
+msgid "Utiliser des robots, scrapers ou outils automatisés pour extraire les données"
+msgstr "Bots, Scraper oder automatisierte Tools zum Extrahieren der Daten zu verwenden"
+
+msgid "Uploader des contenus illicites, diffamatoires ou contraires aux bonnes mœurs"
+msgstr "Rechtswidrige, verleumderische oder sittenwidrige Inhalte hochzuladen"
+
+msgid "Contourner les mécanismes de sécurité ou de limitation d'accès"
+msgstr "Sicherheits- oder Zugangsbeschränkungsmechanismen zu umgehen"
+
+msgid "8. Limitation de responsabilité"
+msgstr "8. Haftungsbeschränkung"
+
+msgid "ProfCalendar est fourni « en l'état ». Dans les limites autorisées par la loi :"
+msgstr "ProfCalendar wird « wie besehen » bereitgestellt. Im gesetzlich zulässigen Rahmen:"
+
+msgid "ProfCalendar ne garantit pas l'absence d'erreurs ou d'interruptions"
+msgstr "ProfCalendar garantiert nicht die Abwesenheit von Fehlern oder Unterbrechungen"
+
+msgid "ProfCalendar n'est pas responsable des pertes de données dues à une mauvaise utilisation"
+msgstr "ProfCalendar haftet nicht für Datenverluste durch unsachgemässe Nutzung"
+
+msgid "La responsabilité de ProfCalendar est limitée au montant des abonnements payés par l'utilisateur au cours des 12 derniers mois"
+msgstr "Die Haftung von ProfCalendar ist auf den Betrag der vom Nutzer in den letzten 12 Monaten bezahlten Abonnements beschränkt"
+
+msgid "9. Suppression de compte"
+msgstr "9. Kontolöschung"
+
+msgid "Vous pouvez supprimer votre compte à tout moment depuis Paramètres > Supprimer mon compte. La suppression entraîne :"
+msgstr "Du kannst dein Konto jederzeit unter Einstellungen > Mein Konto löschen entfernen. Die Löschung bewirkt:"
+
+msgid "La suppression définitive de toutes vos données personnelles"
+msgstr "Die endgültige Löschung all deiner personenbezogenen Daten"
+
+msgid "La suppression de vos classes, élèves, notes et fichiers"
+msgstr "Die Löschung deiner Klassen, Schüler, Noten und Dateien"
+
+msgid "L'annulation automatique de votre abonnement Premium"
+msgstr "Die automatische Kündigung deines Premium-Abonnements"
+
+msgid "Cette action est irréversible. Un délai de 30 jours est appliqué avant la suppression définitive des données."
+msgstr "Diese Aktion ist unwiderruflich. Vor der endgültigen Löschung der Daten gilt eine Frist von 30 Tagen."
+
+msgid "10. Droit applicable et juridiction"
+msgstr "10. Anwendbares Recht und Gerichtsstand"
+
+msgid "Les présentes CGU sont régies par le"
+msgstr "Diese AGB unterliegen dem"
+
+msgid "droit suisse"
+msgstr "Schweizer Recht"
+
+msgid "Tout litige relatif à l'utilisation de ProfCalendar sera soumis aux tribunaux compétents du canton de"
+msgstr "Alle Streitigkeiten im Zusammenhang mit der Nutzung von ProfCalendar werden den zuständigen Gerichten des Kantons"
+
+msgid "Vaud"
+msgstr "Waadt"
+
+msgid "Suisse"
+msgstr "Schweiz"
+
+msgid "11. Modifications des CGU"
+msgstr "11. Änderungen der AGB"
+
+msgid "ProfCalendar se réserve le droit de modifier les présentes CGU. Les modifications seront communiquées aux utilisateurs par email ou notification dans l'application. L'utilisation continue du service après modification vaut acceptation des nouvelles CGU."
+msgstr "ProfCalendar behält sich das Recht vor, diese AGB zu ändern. Änderungen werden den Nutzern per E-Mail oder per Benachrichtigung in der App mitgeteilt. Die fortgesetzte Nutzung des Dienstes nach einer Änderung gilt als Annahme der neuen AGB."
+
+msgid "12. Contact"
+msgstr "12. Kontakt"
+
+msgid "Pour toute question relative aux présentes CGU :"
+msgstr "Bei Fragen zu diesen AGB:"
+
+msgid "Site"
+msgstr "Website"
+
+msgid "Centre d'aide"
+msgstr "Hilfecenter"
+
+msgid "Besoin d'aide avec ProfCalendar ? Nous sommes là pour vous."
+msgstr "Brauchst du Hilfe mit ProfCalendar? Wir sind für dich da."
+
+msgid "Nous contacter"
+msgstr "Kontaktiere uns"
+
+msgid "Pour toute question, problème technique ou suggestion, envoyez-nous un email à :"
+msgstr "Bei Fragen, technischen Problemen oder Vorschlägen schreib uns eine E-Mail an:"
+
+msgid "Nous répondons généralement sous 24 heures en jours ouvrables."
+msgstr "Wir antworten in der Regel innerhalb von 24 Stunden an Werktagen."
+
+msgid "Questions fréquentes"
+msgstr "Häufige Fragen"
+
+msgid "Comment créer mon compte enseignant ?"
+msgstr "Wie erstelle ich mein Lehrerkonto?"
+
+msgid "Rendez-vous sur <a href=\"/auth/register\">la page d'inscription</a> et remplissez le formulaire. Un code de vérification sera envoyé à votre adresse email."
+msgstr "Geh zur <a href=\"/auth/register\">Registrierungsseite</a> und fülle das Formular aus. Ein Bestätigungscode wird an deine E-Mail-Adresse gesendet."
+
+msgid "Comment ajouter mes élèves ?"
+msgstr "Wie füge ich meine Schüler hinzu?"
+
+msgid "Dans la gestion de classe, cliquez sur « Ajouter un élève » pour les ajouter manuellement. Vous pouvez aussi distribuer un code d'accès classe pour que vos élèves s'inscrivent eux-mêmes depuis l'application Élèves."
+msgstr "Klicke in der Klassenverwaltung auf « Schüler hinzufügen », um sie manuell hinzuzufügen. Du kannst auch einen Klassencode verteilen, damit sich deine Schüler selbst über die Schüler-App registrieren."
+
+msgid "Comment les parents peuvent-ils suivre leur enfant ?"
+msgstr "Wie können Eltern ihr Kind verfolgen?"
+
+msgid "Les parents s'inscrivent sur l'application ProfCalendar Parents et rejoignent la classe avec le code fourni par l'enseignant. Ils peuvent consulter les notes, absences et justifier les absences."
+msgstr "Eltern registrieren sich in der App ProfCalendar Eltern und treten der Klasse mit dem von der Lehrperson bereitgestellten Code bei. Sie können Noten und Absenzen einsehen und Absenzen entschuldigen."
+
+msgid "Comment utiliser l'Apple Pencil pour annoter les PDF ?"
+msgstr "Wie nutze ich den Apple Pencil, um PDFs zu kommentieren?"
+
+msgid "Sur l'application iPad Enseignant, ouvrez un document PDF. Le support natif Apple Pencil vous permet d'annoter directement avec votre stylet. Seul le stylet dessine, votre doigt continue de naviguer normalement."
+msgstr "Öffne in der Lehrer-iPad-App ein PDF-Dokument. Die native Apple-Pencil-Unterstützung ermöglicht es dir, direkt mit deinem Stift zu kommentieren. Nur der Stift zeichnet; mit dem Finger navigierst du weiterhin normal."
+
+msgid "Comment fonctionnent les exercices et la gamification ?"
+msgstr "Wie funktionieren die Übungen und die Gamification?"
+
+msgid "Depuis l'Atelier, créez des exercices (QCM, réponses courtes) et publiez-les à vos classes. Le système RPG intégré permet de motiver vos élèves avec des points d'expérience, des niveaux et des combats de groupe en classe."
+msgstr "Erstelle im Atelier Übungen (Multiple-Choice, Kurzantworten) und veröffentliche sie für deine Klassen. Das integrierte RPG-System motiviert deine Schüler mit Erfahrungspunkten, Stufen und Gruppenkämpfen im Unterricht."
+
+msgid "Comment fonctionne l'abonnement ?"
+msgstr "Wie funktioniert das Abonnement?"
+
+msgid "ProfCalendar propose un accès gratuit avec les fonctionnalités de base. L'abonnement Premium débloque l'ensemble des outils avancés. Consultez notre <a href=\"/subscription/pricing\">page tarifs</a> pour plus de détails."
+msgstr "ProfCalendar bietet einen kostenlosen Zugang mit den Grundfunktionen. Das Premium-Abonnement schaltet alle erweiterten Werkzeuge frei. Weitere Details findest du auf unserer <a href=\"/subscription/pricing\">Preisseite</a>."
+
+msgid "Mes données sont-elles sécurisées ?"
+msgstr "Sind meine Daten sicher?"
+
+msgid "Oui. Vos données sont hébergées en Europe, chiffrées en transit et au repos. L'authentification à deux facteurs (2FA) est disponible. Consultez notre <a href=\"/privacy\">politique de confidentialité</a> pour plus de détails."
+msgstr "Ja. Deine Daten werden in Europa gehostet, bei der Übertragung und im Ruhezustand verschlüsselt. Die Zwei-Faktor-Authentifizierung (2FA) ist verfügbar. Weitere Details findest du in unserer <a href=\"/privacy\">Datenschutzerklärung</a>."
+
+msgid "Comment supprimer mon compte ?"
+msgstr "Wie lösche ich mein Konto?"
+
+msgid "Rendez-vous dans Paramètres > Supprimer mon compte. Toutes vos données seront définitivement supprimées."
+msgstr "Geh zu Einstellungen > Mein Konto löschen. All deine Daten werden endgültig gelöscht."
+
+msgid "Applications disponibles"
+msgstr "Verfügbare Apps"
+
+msgid "iPad - Gestion complète des cours"
+msgstr "iPad - Vollständige Unterrichtsverwaltung"
+
+msgid "iPhone - Espace élève"
+msgstr "iPhone - Schülerbereich"
+
+msgid "iPhone - Suivi parental"
+msgstr "iPhone - Elternüberblick"
+
+msgid "Informations légales"
+msgstr "Rechtliche Informationen"
+
+msgid "Conditions générales d'utilisation"
+msgstr "Allgemeine Nutzungsbedingungen"
+
+msgid "ProfCalendar est édité par Loïc Strauch, Suisse."
+msgstr "ProfCalendar wird von Loïc Strauch, Schweiz, herausgegeben."
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."
@@ -549,3 +1782,8 @@ msgid "%(num)d jour restant"
 msgid_plural "%(num)d jours restants"
 msgstr[0] "noch %(num)d Tag"
 msgstr[1] "noch %(num)d Tage"
+
+msgid "%(num)d planification cette semaine"
+msgid_plural "%(num)d planifications cette semaine"
+msgstr[0] "%(num)d Planung diese Woche"
+msgstr[1] "%(num)d Planungen diese Woche"

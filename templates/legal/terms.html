@@ -1,103 +1,109 @@
 {% extends "base.html" %}
-{% block title %}Conditions Générales d'Utilisation - ProfCalendar{% endblock %}
+{% block title %}{{ _("Conditions Générales d'Utilisation") }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div style="max-width: 800px; margin: 2rem auto; padding: 0 1.5rem;">
-    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Conditions Générales d'Utilisation</h1>
-    <p style="color: #6B7280; margin-bottom: 2rem;">Dernière mise à jour : 14 avril 2026</p>
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">{{ _("Conditions Générales d'Utilisation") }}</h1>
+    <p style="color: #6B7280; margin-bottom: 2rem;">{{ _('Dernière mise à jour : 14 avril 2026') }}</p>
+
+    {% if current_locale and current_locale != 'fr' %}
+    <p style="background: #FEF3C7; color: #92400E; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; margin-bottom: 2rem;">
+        {{ _('Cette traduction est fournie à titre informatif ; en cas de divergence, la version française fait foi.') }}
+    </p>
+    {% endif %}
 
     <div style="line-height: 1.8; color: #374151;">
 
-    <h2>1. Objet</h2>
-    <p>Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») régissent l'accès et l'utilisation de la plateforme ProfCalendar, accessible à l'adresse <strong>https://profcalendar.org</strong> et via les applications mobiles associées.</p>
-    <p>ProfCalendar est une plateforme de gestion scolaire destinée aux enseignants, élèves et parents, offrant des outils de planification, de suivi pédagogique et de collaboration.</p>
+    <h2>{{ _('1. Objet') }}</h2>
+    <p>{{ _("Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») régissent l'accès et l'utilisation de la plateforme ProfCalendar, accessible à l'adresse") }} <strong>https://profcalendar.org</strong> {{ _('et via les applications mobiles associées.') }}</p>
+    <p>{{ _("ProfCalendar est une plateforme de gestion scolaire destinée aux enseignants, élèves et parents, offrant des outils de planification, de suivi pédagogique et de collaboration.") }}</p>
 
-    <h2>2. Acceptation des CGU</h2>
-    <p>L'utilisation de ProfCalendar implique l'acceptation pleine et entière des présentes CGU. En créant un compte, vous confirmez avoir lu et accepté ces conditions.</p>
+    <h2>{{ _('2. Acceptation des CGU') }}</h2>
+    <p>{{ _("L'utilisation de ProfCalendar implique l'acceptation pleine et entière des présentes CGU. En créant un compte, vous confirmez avoir lu et accepté ces conditions.") }}</p>
 
-    <h2>3. Inscription et comptes</h2>
-    <h3>3.1 Types de comptes</h3>
+    <h2>{{ _('3. Inscription et comptes') }}</h2>
+    <h3>{{ _('3.1 Types de comptes') }}</h3>
     <ul>
-        <li><strong>Compte enseignant</strong> : accès complet aux fonctionnalités de gestion (gratuit ou Premium)</li>
-        <li><strong>Compte élève</strong> : accès aux exercices, notes et ressources partagées (gratuit)</li>
-        <li><strong>Compte parent</strong> : accès en consultation aux notes, présences et remarques de l'enfant (gratuit)</li>
+        <li><strong>{{ _('Compte enseignant') }}</strong> : {{ _('accès complet aux fonctionnalités de gestion (gratuit ou Premium)') }}</li>
+        <li><strong>{{ _('Compte élève') }}</strong> : {{ _('accès aux exercices, notes et ressources partagées (gratuit)') }}</li>
+        <li><strong>{{ _('Compte parent') }}</strong> : {{ _("accès en consultation aux notes, présences et remarques de l'enfant (gratuit)") }}</li>
     </ul>
-    <h3>3.2 Obligations de l'utilisateur</h3>
+    <h3>{{ _("3.2 Obligations de l'utilisateur") }}</h3>
     <ul>
-        <li>Fournir des informations exactes lors de l'inscription</li>
-        <li>Maintenir la confidentialité de ses identifiants</li>
-        <li>Ne pas partager son compte avec des tiers</li>
-        <li>Signaler toute utilisation non autorisée de son compte</li>
+        <li>{{ _("Fournir des informations exactes lors de l'inscription") }}</li>
+        <li>{{ _('Maintenir la confidentialité de ses identifiants') }}</li>
+        <li>{{ _('Ne pas partager son compte avec des tiers') }}</li>
+        <li>{{ _('Signaler toute utilisation non autorisée de son compte') }}</li>
     </ul>
-    <h3>3.3 Responsabilité des données saisies</h3>
-    <p>L'enseignant est responsable des données saisies concernant ses élèves (noms, notes, présences, sanctions). Il s'engage à n'utiliser ProfCalendar que dans le cadre de ses fonctions professionnelles et conformément aux règlements de son établissement.</p>
+    <h3>{{ _('3.3 Responsabilité des données saisies') }}</h3>
+    <p>{{ _("L'enseignant est responsable des données saisies concernant ses élèves (noms, notes, présences, sanctions). Il s'engage à n'utiliser ProfCalendar que dans le cadre de ses fonctions professionnelles et conformément aux règlements de son établissement.") }}</p>
 
-    <h2>4. Services et fonctionnalités</h2>
-    <h3>4.1 Plan Gratuit</h3>
-    <p>Le plan gratuit inclut : tableau de bord, planification de cours, calendrier scolaire et configuration de base. Il est disponible sans limite de durée.</p>
-    <h3>4.2 Plan Premium</h3>
-    <p>Le plan Premium donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, exercices interactifs, collaboration entre enseignants, gestionnaire de fichiers et plan de classe.</p>
-    <h3>4.3 Disponibilité</h3>
-    <p>ProfCalendar s'efforce de maintenir un accès continu à la plateforme. Toutefois, des interruptions temporaires peuvent survenir pour des raisons de maintenance, de mise à jour ou de force majeure. ProfCalendar ne garantit pas une disponibilité de 100 %.</p>
+    <h2>{{ _('4. Services et fonctionnalités') }}</h2>
+    <h3>{{ _('4.1 Plan Gratuit') }}</h3>
+    <p>{{ _('Le plan gratuit inclut : tableau de bord, planification de cours, calendrier scolaire et configuration de base. Il est disponible sans limite de durée.') }}</p>
+    <h3>{{ _('4.2 Plan Premium') }}</h3>
+    <p>{{ _("Le plan Premium donne accès à l'ensemble des fonctionnalités : gestion de classe, notes et évaluations, suivi des présences, exercices interactifs, collaboration entre enseignants, gestionnaire de fichiers et plan de classe.") }}</p>
+    <h3>{{ _('4.3 Disponibilité') }}</h3>
+    <p>{{ _("ProfCalendar s'efforce de maintenir un accès continu à la plateforme. Toutefois, des interruptions temporaires peuvent survenir pour des raisons de maintenance, de mise à jour ou de force majeure. ProfCalendar ne garantit pas une disponibilité de 100 %%.") }}</p>
 
-    <h2>5. Abonnements et paiements</h2>
-    <h3>5.1 Tarification</h3>
+    <h2>{{ _('5. Abonnements et paiements') }}</h2>
+    <h3>{{ _('5.1 Tarification') }}</h3>
     <ul>
-        <li><strong>Premium mensuel</strong> : CHF 4.90 / mois, facturé mensuellement</li>
-        <li><strong>Premium annuel</strong> : CHF 39.90 / an, facturé annuellement (soit CHF 3.33/mois)</li>
+        <li><strong>{{ _('Premium mensuel') }}</strong> : {{ _('CHF 4.90 / mois, facturé mensuellement') }}</li>
+        <li><strong>{{ _('Premium annuel') }}</strong> : {{ _('CHF 39.90 / an, facturé annuellement (soit CHF 3.33/mois)') }}</li>
     </ul>
-    <p>Les prix sont indiqués en francs suisses (CHF), TVA incluse le cas échéant.</p>
-    <h3>5.2 Paiement</h3>
-    <p>Les paiements sont traités par <strong>Stripe</strong>, un prestataire de paiement certifié PCI-DSS. ProfCalendar ne stocke jamais vos données de carte bancaire.</p>
-    <h3>5.3 Renouvellement</h3>
-    <p>Les abonnements sont renouvelés automatiquement à la fin de chaque période (mensuelle ou annuelle). Un email de rappel est envoyé avant le renouvellement.</p>
-    <h3>5.4 Résiliation</h3>
-    <p>Vous pouvez résilier votre abonnement à tout moment depuis la page « Mon abonnement » ou le portail client Stripe. La résiliation prend effet à la fin de la période en cours. Aucun remboursement n'est effectué pour la période entamée.</p>
-    <h3>5.5 Codes promo / Vouchers</h3>
-    <p>Des codes promotionnels peuvent être distribués pour offrir un accès Premium gratuit pour une durée limitée. Ces codes sont à usage unique et ne sont pas échangeables contre de l'argent.</p>
+    <p>{{ _('Les prix sont indiqués en francs suisses (CHF), TVA incluse le cas échéant.') }}</p>
+    <h3>{{ _('5.2 Paiement') }}</h3>
+    <p>{{ _('Les paiements sont traités par') }} <strong>Stripe</strong>{{ _(', un prestataire de paiement certifié PCI-DSS. ProfCalendar ne stocke jamais vos données de carte bancaire.') }}</p>
+    <h3>{{ _('5.3 Renouvellement') }}</h3>
+    <p>{{ _('Les abonnements sont renouvelés automatiquement à la fin de chaque période (mensuelle ou annuelle). Un email de rappel est envoyé avant le renouvellement.') }}</p>
+    <h3>{{ _('5.4 Résiliation') }}</h3>
+    <p>{{ _("Vous pouvez résilier votre abonnement à tout moment depuis la page « Mon abonnement » ou le portail client Stripe. La résiliation prend effet à la fin de la période en cours. Aucun remboursement n'est effectué pour la période entamée.") }}</p>
+    <h3>{{ _('5.5 Codes promo / Vouchers') }}</h3>
+    <p>{{ _("Des codes promotionnels peuvent être distribués pour offrir un accès Premium gratuit pour une durée limitée. Ces codes sont à usage unique et ne sont pas échangeables contre de l'argent.") }}</p>
 
-    <h2>6. Propriété intellectuelle</h2>
-    <p>L'ensemble du contenu de ProfCalendar (code source, design, textes, logos, images) est protégé par le droit d'auteur et reste la propriété de ProfCalendar.</p>
-    <p>Les contenus créés par les utilisateurs (planifications, exercices, fichiers uploadés) restent la propriété de leurs auteurs respectifs. En utilisant ProfCalendar, vous nous accordez une licence limitée pour stocker et afficher vos contenus dans le cadre du service.</p>
+    <h2>{{ _('6. Propriété intellectuelle') }}</h2>
+    <p>{{ _("L'ensemble du contenu de ProfCalendar (code source, design, textes, logos, images) est protégé par le droit d'auteur et reste la propriété de ProfCalendar.") }}</p>
+    <p>{{ _('Les contenus créés par les utilisateurs (planifications, exercices, fichiers uploadés) restent la propriété de leurs auteurs respectifs. En utilisant ProfCalendar, vous nous accordez une licence limitée pour stocker et afficher vos contenus dans le cadre du service.') }}</p>
 
-    <h2>7. Utilisation acceptable</h2>
-    <p>L'utilisateur s'engage à ne pas :</p>
+    <h2>{{ _('7. Utilisation acceptable') }}</h2>
+    <p>{{ _("L'utilisateur s'engage à ne pas :") }}</p>
     <ul>
-        <li>Utiliser ProfCalendar à des fins illégales ou non autorisées</li>
-        <li>Tenter d'accéder aux comptes ou données d'autres utilisateurs</li>
-        <li>Injecter du code malveillant ou tenter d'exploiter des failles de sécurité</li>
-        <li>Utiliser des robots, scrapers ou outils automatisés pour extraire les données</li>
-        <li>Uploader des contenus illicites, diffamatoires ou contraires aux bonnes mœurs</li>
-        <li>Contourner les mécanismes de sécurité ou de limitation d'accès</li>
-    </ul>
-
-    <h2>8. Limitation de responsabilité</h2>
-    <p>ProfCalendar est fourni « en l'état ». Dans les limites autorisées par la loi :</p>
-    <ul>
-        <li>ProfCalendar ne garantit pas l'absence d'erreurs ou d'interruptions</li>
-        <li>ProfCalendar n'est pas responsable des pertes de données dues à une mauvaise utilisation</li>
-        <li>La responsabilité de ProfCalendar est limitée au montant des abonnements payés par l'utilisateur au cours des 12 derniers mois</li>
+        <li>{{ _('Utiliser ProfCalendar à des fins illégales ou non autorisées') }}</li>
+        <li>{{ _("Tenter d'accéder aux comptes ou données d'autres utilisateurs") }}</li>
+        <li>{{ _("Injecter du code malveillant ou tenter d'exploiter des failles de sécurité") }}</li>
+        <li>{{ _('Utiliser des robots, scrapers ou outils automatisés pour extraire les données') }}</li>
+        <li>{{ _('Uploader des contenus illicites, diffamatoires ou contraires aux bonnes mœurs') }}</li>
+        <li>{{ _("Contourner les mécanismes de sécurité ou de limitation d'accès") }}</li>
     </ul>
 
-    <h2>9. Suppression de compte</h2>
-    <p>Vous pouvez supprimer votre compte à tout moment depuis Paramètres &gt; Supprimer mon compte. La suppression entraîne :</p>
+    <h2>{{ _('8. Limitation de responsabilité') }}</h2>
+    <p>{{ _('ProfCalendar est fourni « en l\'état ». Dans les limites autorisées par la loi :') }}</p>
     <ul>
-        <li>La suppression définitive de toutes vos données personnelles</li>
-        <li>La suppression de vos classes, élèves, notes et fichiers</li>
-        <li>L'annulation automatique de votre abonnement Premium</li>
+        <li>{{ _("ProfCalendar ne garantit pas l'absence d'erreurs ou d'interruptions") }}</li>
+        <li>{{ _("ProfCalendar n'est pas responsable des pertes de données dues à une mauvaise utilisation") }}</li>
+        <li>{{ _("La responsabilité de ProfCalendar est limitée au montant des abonnements payés par l'utilisateur au cours des 12 derniers mois") }}</li>
     </ul>
-    <p>Cette action est irréversible. Un délai de 30 jours est appliqué avant la suppression définitive des données.</p>
 
-    <h2>10. Droit applicable et juridiction</h2>
-    <p>Les présentes CGU sont régies par le <strong>droit suisse</strong>. Tout litige relatif à l'utilisation de ProfCalendar sera soumis aux tribunaux compétents du canton de <strong>Vaud</strong>, Suisse.</p>
+    <h2>{{ _('9. Suppression de compte') }}</h2>
+    <p>{{ _('Vous pouvez supprimer votre compte à tout moment depuis Paramètres > Supprimer mon compte. La suppression entraîne :') }}</p>
+    <ul>
+        <li>{{ _('La suppression définitive de toutes vos données personnelles') }}</li>
+        <li>{{ _('La suppression de vos classes, élèves, notes et fichiers') }}</li>
+        <li>{{ _("L'annulation automatique de votre abonnement Premium") }}</li>
+    </ul>
+    <p>{{ _('Cette action est irréversible. Un délai de 30 jours est appliqué avant la suppression définitive des données.') }}</p>
 
-    <h2>11. Modifications des CGU</h2>
-    <p>ProfCalendar se réserve le droit de modifier les présentes CGU. Les modifications seront communiquées aux utilisateurs par email ou notification dans l'application. L'utilisation continue du service après modification vaut acceptation des nouvelles CGU.</p>
+    <h2>{{ _('10. Droit applicable et juridiction') }}</h2>
+    <p>{{ _('Les présentes CGU sont régies par le') }} <strong>{{ _('droit suisse') }}</strong>. {{ _("Tout litige relatif à l'utilisation de ProfCalendar sera soumis aux tribunaux compétents du canton de") }} <strong>{{ _('Vaud') }}</strong>, {{ _('Suisse') }}.</p>
 
-    <h2>12. Contact</h2>
-    <p>Pour toute question relative aux présentes CGU :<br>
-    <strong>Email</strong> : contact@profcalendar.org<br>
-    <strong>Site</strong> : https://profcalendar.org</p>
+    <h2>{{ _('11. Modifications des CGU') }}</h2>
+    <p>{{ _("ProfCalendar se réserve le droit de modifier les présentes CGU. Les modifications seront communiquées aux utilisateurs par email ou notification dans l'application. L'utilisation continue du service après modification vaut acceptation des nouvelles CGU.") }}</p>
+
+    <h2>{{ _('12. Contact') }}</h2>
+    <p>{{ _('Pour toute question relative aux présentes CGU :') }}<br>
+    <strong>{{ _('Email') }}</strong> : contact@profcalendar.org<br>
+    <strong>{{ _('Site') }}</strong> : https://profcalendar.org</p>
 
     </div>
 </div>

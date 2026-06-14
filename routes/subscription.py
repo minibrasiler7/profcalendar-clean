@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, abort
+from flask_babel import gettext as _, get_locale
 from flask_login import login_required, current_user
 from extensions import db
 from models.user import User
@@ -57,7 +58,7 @@ def choose_plan():
                         if billing_cycle == 'annual'
                         else current_app.config.get('STRIPE_PRICE_MONTHLY'))
             if not price_id:
-                flash('Configuration de prix manquante côté serveur.', 'error')
+                flash(_('Configuration de prix manquante côté serveur.'), 'error')
                 return redirect(url_for('subscription.choose_plan'))
 
             if not current_user.stripe_customer_id:
@@ -84,12 +85,12 @@ def choose_plan():
                             + '?session_id={CHECKOUT_SESSION_ID}&from_signup=1',
                 cancel_url=url_for('subscription.choose_plan', _external=True),
                 client_reference_id=str(current_user.id),
-                locale='fr',
+                locale=str(get_locale() or 'fr'),
             )
             return redirect(checkout_session.url)
         except stripe.error.StripeError as e:
             current_app.logger.error(f"Erreur Stripe choose_plan: {e}")
-            flash(f"Erreur de paiement : {str(e)}", 'error')
+            flash(_('Erreur de paiement : %(err)s', err=str(e)), 'error')
             return redirect(url_for('subscription.choose_plan'))
 
     # GET : afficher la page de choix sur web ET iOS.
@@ -125,8 +126,7 @@ def checkout():
     # les apps iOS natives doivent passer par In-App Purchase, pas Stripe.
     if is_ios_native_app():
         return jsonify({
-            'error': "L'abonnement n'est pas disponible depuis l'application. "
-                     "Rendez-vous sur profcalendar.org depuis votre navigateur."
+            'error': _("L'abonnement n'est pas disponible depuis l'application. Rendez-vous sur profcalendar.org depuis votre navigateur.")
         }), 403
 
     data = request.get_json()
@@ -141,7 +141,7 @@ def checkout():
         current_app.logger.error(f"STRIPE_PRICE_MONTHLY={current_app.config.get('STRIPE_PRICE_MONTHLY')}")
         current_app.logger.error(f"STRIPE_PRICE_ANNUAL={current_app.config.get('STRIPE_PRICE_ANNUAL')}")
         current_app.logger.error(f"billing_cycle={billing_cycle}, price_id={price_id}")
-        return jsonify({'error': 'Configuration de prix manquante'}), 500
+        return jsonify({'error': _('Configuration de prix manquante')}), 500
 
     try:
         stripe.api_key = current_app.config.get('STRIPE_SECRET_KEY')
@@ -168,7 +168,7 @@ def checkout():
             success_url=url_for('subscription.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=url_for('subscription.pricing', _external=True),
             client_reference_id=str(current_user.id),
-            locale='fr',
+            locale=str(get_locale() or 'fr'),
         )
 
         return jsonify({'checkout_url': checkout_session.url})
@@ -232,7 +232,7 @@ def success():
     # Si on vient juste de l'inscription, on enchaîne avec le setup initial
     # au lieu d'afficher la page « merci » habituelle.
     if request.args.get('from_signup') == '1':
-        flash('Bienvenue dans Premium ! On va maintenant configurer votre compte.', 'success')
+        flash(_('Bienvenue dans Premium ! On va maintenant configurer votre compte.'), 'success')
         return redirect(url_for('setup.initial_setup'))
 
     return render_template('subscription/success.html')
@@ -287,7 +287,7 @@ def customer_portal():
         return redirect(url_for('planning.dashboard'))
 
     if not current_user.stripe_customer_id:
-        flash('Aucun abonnement actif trouvé.', 'error')
+        flash(_('Aucun abonnement actif trouvé.'), 'error')
         return redirect(url_for('subscription.pricing'))
 
     try:
@@ -299,7 +299,7 @@ def customer_portal():
         return redirect(portal_session.url)
     except stripe.error.StripeError as e:
         current_app.logger.error(f"Erreur portail Stripe: {e}")
-        flash('Erreur lors de l\'accès au portail de facturation.', 'error')
+        flash(_("Erreur lors de l'accès au portail de facturation."), 'error')
         return redirect(url_for('subscription.manage'))
 
 
@@ -311,30 +311,30 @@ def redeem_voucher():
     code = data.get('code', '').strip().upper()
 
     if not code:
-        return jsonify({'error': 'Veuillez entrer un code.'}), 400
+        return jsonify({'error': _('Veuillez entrer un code.')}), 400
 
     voucher = Voucher.query.filter_by(code=code).first()
 
     if not voucher:
-        return jsonify({'error': 'Code invalide.'}), 404
+        return jsonify({'error': _('Code invalide.')}), 404
 
     if not voucher.is_valid():
         if not voucher.is_active:
-            return jsonify({'error': 'Ce bon n\'est plus actif.'}), 400
+            return jsonify({'error': _("Ce bon n'est plus actif.")}), 400
         if voucher.expires_at and voucher.expires_at < datetime.utcnow():
-            return jsonify({'error': 'Ce bon a expiré.'}), 400
+            return jsonify({'error': _('Ce bon a expiré.')}), 400
         if voucher.max_uses is not None and voucher.current_uses >= voucher.max_uses:
-            return jsonify({'error': 'Ce bon a atteint sa limite d\'utilisation.'}), 400
+            return jsonify({'error': _("Ce bon a atteint sa limite d'utilisation.")}), 400
 
     if current_user in voucher.users:
-        return jsonify({'error': 'Vous avez déjà utilisé ce bon.'}), 400
+        return jsonify({'error': _('Vous avez déjà utilisé ce bon.')}), 400
 
     try:
         voucher.redeem(current_user)
 
-        msg = 'Bon activé avec succès ! Vous avez maintenant accès à toutes les fonctionnalités premium.'
+        msg = _('Bon activé avec succès ! Vous avez maintenant accès à toutes les fonctionnalités premium.')
         if voucher.voucher_type == 'free_days' and voucher.duration_days:
-            msg += f' (Accès pour {voucher.duration_days} jours)'
+            msg += ' ' + _('(Accès pour %(n)d jours)', n=voucher.duration_days)
 
         return jsonify({
             'success': True,
@@ -343,7 +343,7 @@ def redeem_voucher():
         })
     except Exception as e:
         current_app.logger.error(f"Erreur utilisation bon: {e}")
-        return jsonify({'error': 'Erreur lors de l\'activation du bon.'}), 500
+        return jsonify({'error': _("Erreur lors de l'activation du bon.")}), 500
 
 
 @subscription_bp.route('/webhook', methods=['POST'])

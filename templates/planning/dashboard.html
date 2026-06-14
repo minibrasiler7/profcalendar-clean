@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Tableau de bord - ProfCalendar{% endblock %}
+{% block title %}{{ _('Tableau de bord') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -198,21 +198,21 @@
     <div class="welcome-section">
         <div class="welcome-content">
             <div class="welcome-text">
-                <h1>Bonjour, {{ current_user.username }} !</h1>
-                <p>Bienvenue dans votre espace de planification</p>
+                <h1>{{ _('Bonjour, %(name)s !', name=current_user.username) }}</h1>
+                <p>{{ _('Bienvenue dans votre espace de planification') }}</p>
             </div>
             <div class="today-date">
                 <div class="date">{{ today.day }}</div>
                 <div class="day">
                     {% if today %}
                         {% set months = {
-                            1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
-                            5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
-                            9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+                            1: _('Janvier'), 2: _('Février'), 3: _('Mars'), 4: _('Avril'),
+                            5: _('Mai'), 6: _('Juin'), 7: _('Juillet'), 8: _('Août'),
+                            9: _('Septembre'), 10: _('Octobre'), 11: _('Novembre'), 12: _('Décembre')
                         } %}
                         {{ months[today.month] }} {{ today.year }}
                     {% else %}
-                        Date non disponible
+                        {{ _('Date non disponible') }}
                     {% endif %}
                 </div>
             </div>
@@ -229,17 +229,17 @@
         <div style="flex: 1; min-width: 260px;">
             <h2 style="margin: 0 0 0.4rem 0; font-size: 1.25rem; color: #312E81;">
                 <i class="fas fa-rocket" style="color: var(--primary-color, #6366F1);"></i>
-                Prêt à commencer ?
+                {{ _('Prêt à commencer ?') }}
             </h2>
             <p style="margin: 0; color: #4B5563; line-height: 1.5;">
-                Ton espace est déjà configuré (horaire, année scolaire…).
-                Il ne reste qu'une chose à faire&nbsp;: <strong>créer ta première classe</strong>.
-                Ça prend 30&nbsp;secondes, et tu pourras tout ajuster ensuite.
+                {{ _('Ton espace est déjà configuré (horaire, année scolaire…).') }}
+                {{ _("Il ne reste qu'une chose à faire") }}&nbsp;: <strong>{{ _('créer ta première classe') }}</strong>.
+                {{ _('Ça prend 30 secondes, et tu pourras tout ajuster ensuite.') }}
             </p>
         </div>
         <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1"
            style="background: var(--primary-color, #6366F1); color: #fff; padding: 0.85rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; box-shadow: 0 4px 6px rgba(99,102,241,0.25);">
-            <i class="fas fa-plus"></i> Créer ma première classe
+            <i class="fas fa-plus"></i> {{ _('Créer ma première classe') }}
         </a>
     </div>
     {% endif %}
@@ -249,12 +249,12 @@
 
 <!-- Actions rapides -->
 <div class="quick-actions">
-    <h2><i class="fas fa-bolt"></i> Actions rapides</h2>
+    <h2><i class="fas fa-bolt"></i> {{ _('Actions rapides') }}</h2>
     <div class="action-buttons-grid">
         {% if current_lesson %}
         <a href="{{ url_for('planning.lesson_view') }}" class="action-button" style="background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); border-color: var(--warning-color);">
             <i class="fas fa-graduation-cap" style="color: var(--warning-color);"></i>
-            <span>Cours actuel</span>
+            <span>{{ _('Cours actuel') }}</span>
             <small style="font-size: 0.75rem; color: var(--gray-color); margin-top: 0.25rem;">
                 {{ current_lesson.classroom.name }} - P{{ current_lesson.period_number }}
             </small>
@@ -262,7 +262,7 @@
         {% elif next_lesson %}
         <a href="{{ url_for('planning.lesson_view') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-clock" style="color: var(--primary-color);"></i>
-            <span>Prochain cours</span>
+            <span>{{ _('Prochain cours') }}</span>
             <small style="font-size: 0.75rem; color: var(--gray-color); margin-top: 0.25rem;">
                 {{ next_lesson.classroom.name }} - {{ next_lesson.start_time.strftime('%H:%M') }}
             </small>
@@ -270,18 +270,18 @@
         {% else %}
         <a href="{{ url_for('planning.lesson_view') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-calendar-alt" style="color: var(--primary-color);"></i>
-            <span>Prochain cours</span>
+            <span>{{ _('Prochain cours') }}</span>
         </a>
         {% endif %}
 
         <a href="{{ url_for('planning.calendar_view') }}" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
             <i class="fas fa-calendar" style="color: var(--success-color);"></i>
-            <span>Voir le calendrier</span>
+            <span>{{ _('Voir le calendrier') }}</span>
         </a>
 
         <a href="{{ url_for('schedule.view_schedule') }}" class="action-button" style="background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%); border-color: var(--secondary-color);">
             <i class="fas fa-edit" style="color: var(--secondary-color);"></i>
-            <span>Modifier l'horaire type</span>
+            <span>{{ _("Modifier l'horaire type") }}</span>
         </a>
 
         {% set is_premium = current_user.has_premium_access() if current_user.has_premium_access is defined else false %}
@@ -289,149 +289,149 @@
         {% if is_premium %}
         <a href="{{ url_for('file_manager.index') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-folder-open" style="color: var(--primary-color);"></i>
-            <span>Gestionnaire de fichiers</span>
+            <span>{{ _('Gestionnaire de fichiers') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gestionnaire de fichiers</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Gestionnaire de fichiers') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-folder-open" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gestionnaire de fichiers</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Gestionnaire de fichiers') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         {% if is_premium %}
         <a href="{{ url_for('exercises.index') }}" class="action-button" style="background: linear-gradient(135deg, #FDF4FF 0%, #F3E8FF 100%); border-color: #A855F7;">
             <i class="fas fa-flask" style="color: #A855F7;"></i>
-            <span>Exercices interactifs</span>
+            <span>{{ _('Exercices interactifs') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-flask" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Exercices interactifs</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Exercices interactifs') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-flask" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Exercices interactifs</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Exercices interactifs') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         {% if is_premium %}
         <a href="{{ url_for('sanctions.index') }}" class="action-button" style="background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%); border-color: var(--danger-color);">
             <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
-            <span>Gestion des sanctions</span>
+            <span>{{ _('Gestion des sanctions') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gestion des sanctions</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Gestion des sanctions') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-exclamation-triangle" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gestion des sanctions</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Gestion des sanctions') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         {% if is_premium %}
         <a href="{{ url_for('attendance.index') }}" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
             <i class="fas fa-calendar-check" style="color: var(--success-color);"></i>
-            <span>Suivi des absences</span>
+            <span>{{ _('Suivi des absences') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Suivi des absences</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Suivi des absences') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-calendar-check" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Suivi des absences</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Suivi des absences') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         <a href="{{ url_for('setup.initial_setup') }}" class="action-button" style="background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%); border-color: var(--gray-color);">
             <i class="fas fa-cog" style="color: var(--gray-color);"></i>
-            <span>Paramètres</span>
+            <span>{{ _('Paramètres') }}</span>
         </a>
 
         {% if is_premium %}
         <a href="{{ url_for('planning.manage_classes') }}" class="action-button" style="background: linear-gradient(135deg, #F0F9FF 0%, #DBEAFE 100%); border-color: var(--secondary-color);">
             <i class="fas fa-users" style="color: var(--secondary-color);"></i>
-            <span>Gérer les classes</span>
+            <span>{{ _('Gérer les classes') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-users" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gérer les classes</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Gérer les classes') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-users" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Gérer les classes</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Gérer les classes') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1" class="action-button" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); border-color: var(--success-color);">
             <i class="fas fa-chalkboard-teacher" style="color: var(--success-color);"></i>
-            <span>Configuration des classes</span>
+            <span>{{ _('Configuration des classes') }}</span>
         </a>
 
         {% if is_premium %}
         <a href="{{ url_for('collaboration.index') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-handshake" style="color: var(--primary-color);"></i>
-            <span>Collaboration</span>
+            <span>{{ _('Collaboration') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Collaboration</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Collaboration') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-handshake" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Collaboration</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Collaboration') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         {% if is_premium %}
         <a href="{{ url_for('planning.decoupage') }}" class="action-button" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border-color: var(--primary-color);">
             <i class="fas fa-cut" style="color: var(--primary-color);"></i>
-            <span>Création de découpage</span>
+            <span>{{ _('Création de découpage') }}</span>
         </a>
         {% elif is_ios_native_app %}
         <div class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75; cursor: default;">
             <i class="fas fa-cut" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Création de découpage</span>
-            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> Non disponible</small>
+            <span style="color: #6B7280;">{{ _('Création de découpage') }}</span>
+            <small style="font-size: 0.7rem; color: #9CA3AF; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Non disponible') }}</small>
         </div>
         {% else %}
         <a href="{{ url_for('subscription.pricing') }}" class="action-button" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-color: #D1D5DB; opacity: 0.75;">
             <i class="fas fa-cut" style="color: #9CA3AF;"></i>
-            <span style="color: #6B7280;">Création de découpage</span>
-            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> Accès premium</small>
+            <span style="color: #6B7280;">{{ _('Création de découpage') }}</span>
+            <small style="font-size: 0.7rem; color: #F59E0B; font-weight: 600;"><i class="fas fa-lock"></i> {{ _('Accès premium') }}</small>
         </a>
         {% endif %}
 
         <a href="{{ url_for('year_end.step1') }}" class="action-button" style="background: linear-gradient(135deg, #FDF4FF 0%, #FAE8FF 100%); border-color: #A855F7;">
             <i class="fas fa-graduation-cap" style="color: #A855F7;"></i>
-            <span>Terminer et archiver l'année</span>
+            <span>{{ _("Terminer et archiver l'année") }}</span>
         </a>
 
     </div>
@@ -440,14 +440,14 @@
     <!-- Section des mémos -->
     <div class="memos-section" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Mes mémos</h2>
+            <h2><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> {{ _('Mes mémos') }}</h2>
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <button onclick="openMemoCreationModal()" class="action-button" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border: none; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
                     <i class="fas fa-plus"></i>
-                    <span>Nouveau mémo</span>
+                    <span>{{ _('Nouveau mémo') }}</span>
                 </button>
                 <select id="classFilter" onchange="filterMemos()" style="padding: 0.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem;">
-                    <option value="all">Toutes les classes</option>
+                    <option value="all">{{ _('Toutes les classes') }}</option>
                     {% for classroom in user_classrooms %}
                     <option value="classroom-{{ classroom.id }}">{{ classroom.name }}</option>
                     {% endfor %}
@@ -464,7 +464,7 @@
         {% if today_memos %}
         <div class="memos-today" style="margin-bottom: 2rem;">
             <h3 style="color: #DC2626; margin-bottom: 1rem; font-size: 1.1rem;">
-                <i class="fas fa-calendar-day"></i> Aujourd'hui ({{ today_memos|length }})
+                <i class="fas fa-calendar-day"></i> {{ _("Aujourd'hui") }} ({{ today_memos|length }})
             </h3>
             <div class="memos-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 {% for memo in today_memos %}
@@ -477,7 +477,7 @@
                                     {{ memo.get_display_name() }}
                                 </span>
                                 {% if memo.target_period %}
-                                <span style="color: #92400E; font-size: 0.875rem;">Période {{ memo.target_period }}</span>
+                                <span style="color: #92400E; font-size: 0.875rem;">{{ _('Période') }} {{ memo.target_period }}</span>
                                 {% endif %}
                             </div>
                             <p style="margin: 0; color: #78350F;">{{ memo.content }}</p>
@@ -485,12 +485,12 @@
                         <div style="display: flex; gap: 0.5rem;">
                             <button onclick="editMemo({{ memo.id }}, '{{ memo.content|replace("'", "\\'") }}', {{ memo.classroom_id or 'null' }}, {{ memo.mixed_group_id or 'null' }}, '{{ memo.target_date.strftime('%Y-%m-%d') if memo.target_date else '' }}', {{ memo.target_period or 'null' }})"
                                     style="background: none; border: none; color: #3B82F6; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                    title="Modifier">
+                                    title="{{ _('Modifier') }}">
                                 <i class="fas fa-edit" style="font-size: 1.25rem;"></i>
                             </button>
                             <button onclick="completeMemo({{ memo.id }})"
                                     style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                    title="Marquer comme fait">
+                                    title="{{ _('Marquer comme fait') }}">
                                 <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
                             </button>
                         </div>
@@ -505,7 +505,7 @@
         {% if week_memos %}
         <div class="memos-week">
             <h3 style="color: #3B82F6; margin-bottom: 1rem; font-size: 1.1rem;">
-                <i class="fas fa-calendar-week"></i> Prochains mémos ({{ week_memos|length }})
+                <i class="fas fa-calendar-week"></i> {{ _('Prochains mémos') }} ({{ week_memos|length }})
             </h3>
             <div class="memos-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
                 {% for memo in week_memos %}
@@ -519,7 +519,7 @@
                                 </span>
                                 <span style="color: #1E40AF; font-size: 0.875rem;">
                                     {% set days = {
-                                        0: 'Lundi', 1: 'Mardi', 2: 'Mercredi', 3: 'Jeudi', 4: 'Vendredi'
+                                        0: _('Lundi'), 1: _('Mardi'), 2: _('Mercredi'), 3: _('Jeudi'), 4: _('Vendredi')
                                     } %}
                                     {{ days[memo.target_date.weekday()] }} {{ memo.target_date.strftime('%d/%m') }}
                                     {% if memo.target_period %}• P{{ memo.target_period }}{% endif %}
@@ -530,12 +530,12 @@
                         <div style="display: flex; gap: 0.5rem;">
                             <button onclick="editMemo({{ memo.id }}, '{{ memo.content|replace("'", "\\'") }}', {{ memo.classroom_id or 'null' }}, {{ memo.mixed_group_id or 'null' }}, '{{ memo.target_date.strftime('%Y-%m-%d') if memo.target_date else '' }}', {{ memo.target_period or 'null' }})"
                                     style="background: none; border: none; color: #3B82F6; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                    title="Modifier">
+                                    title="{{ _('Modifier') }}">
                                 <i class="fas fa-edit" style="font-size: 1.25rem;"></i>
                             </button>
                             <button onclick="completeMemo({{ memo.id }})"
                                     style="background: none; border: none; color: #059669; cursor: pointer; padding: 0.25rem 0.5rem;"
-                                    title="Marquer comme fait">
+                                    title="{{ _('Marquer comme fait') }}">
                                 <i class="fas fa-check-circle" style="font-size: 1.25rem;"></i>
                             </button>
                         </div>
@@ -550,7 +550,7 @@
         <!-- Message si aucun mémo -->
         <p style="color: #6B7280; text-align: center; padding: 2rem;">
             <i class="fas fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 1rem; opacity: 0.5;"></i>
-            Aucun mémo pour le moment. Créez-en un pour ne rien oublier !
+            {{ _('Aucun mémo pour le moment. Créez-en un pour ne rien oublier !') }}
         </p>
         {% endif %}
     </div>
@@ -560,7 +560,7 @@
         <div style="background: white; padding: 2rem; border-radius: 0.5rem; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 id="memoModalTitle" style="margin: 0;">
-                    <i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Nouveau mémo
+                    <i class="fas fa-sticky-note" style="color: #F59E0B;"></i> {{ _('Nouveau mémo') }}
                 </h2>
                 <button onclick="closeMemoModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6B7280;">
                     <i class="fas fa-times"></i>
@@ -573,10 +573,10 @@
                 <!-- Sélection de la classe -->
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        Classe / Groupe
+                        {{ _('Classe / Groupe') }}
                     </label>
                     <select id="memoClassSelect" required style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
-                        <option value="">-- Sélectionner une classe --</option>
+                        <option value="">{{ _('-- Sélectionner une classe --') }}</option>
                         {% for classroom in user_classrooms %}
                         <option value="classroom-{{ classroom.id }}">{{ classroom.name }}</option>
                         {% endfor %}
@@ -589,20 +589,20 @@
                 <!-- Type de date -->
                 <div>
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        Rappel pour
+                        {{ _('Rappel pour') }}
                     </label>
                     <select id="memoDateType" onchange="handleMemoDateTypeChange()" required style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
-                        <option value="">-- Choisir --</option>
-                        <option value="next_lesson">Prochain cours</option>
-                        <option value="custom">Date personnalisée</option>
-                        <option value="no_date">Sans date</option>
+                        <option value="">{{ _('-- Choisir --') }}</option>
+                        <option value="next_lesson">{{ _('Prochain cours') }}</option>
+                        <option value="custom">{{ _('Date personnalisée') }}</option>
+                        <option value="no_date">{{ _('Sans date') }}</option>
                     </select>
                 </div>
 
                 <!-- Date personnalisée -->
                 <div id="memoCustomDateDiv" style="display: none;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        Date
+                        {{ _('Date') }}
                     </label>
                     <input type="date" id="memoCustomDate" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem;">
                 </div>
@@ -610,18 +610,18 @@
                 <!-- Contenu -->
                 <div id="memoContentDiv" style="display: none;">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">
-                        Contenu du mémo
+                        {{ _('Contenu du mémo') }}
                     </label>
-                    <textarea id="memoContent" required rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem; resize: vertical;" placeholder="Notez votre mémo ici..."></textarea>
+                    <textarea id="memoContent" required rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; font-size: 1rem; resize: vertical;" placeholder="{{ _('Notez votre mémo ici...') }}"></textarea>
                 </div>
 
                 <!-- Boutons -->
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
                     <button type="button" onclick="closeMemoModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; border-radius: 0.375rem; background: white; color: #374151; cursor: pointer; font-size: 1rem;">
-                        Annuler
+                        {{ _('Annuler') }}
                     </button>
                     <button type="submit" style="padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white; cursor: pointer; font-size: 1rem; font-weight: 600;">
-                        <i class="fas fa-save"></i> Enregistrer
+                        <i class="fas fa-save"></i> {{ _('Enregistrer') }}
                     </button>
                 </div>
             </form>
@@ -661,17 +661,17 @@
                 // Recharger la page pour mettre à jour l'affichage
                 location.reload();
             } else {
-                alert('Erreur lors de la mise à jour du mémo');
+                alert({{ _('Erreur lors de la mise à jour du mémo')|tojson }});
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert({{ _('Erreur lors de la communication avec le serveur')|tojson }});
         }
     }
 
     // Fonctions pour le modal de création/édition
     function openMemoCreationModal() {
-        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-sticky-note" style="color: #F59E0B;"></i> Nouveau mémo';
+        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-sticky-note" style="color: #F59E0B;"></i> ' + {{ _('Nouveau mémo')|tojson }};
         document.getElementById('memoId').value = '';
         document.getElementById('memoForm').reset();
         document.getElementById('memoCustomDateDiv').style.display = 'none';
@@ -707,7 +707,7 @@
     }
 
     function editMemo(id, content, classroomId, mixedGroupId, targetDate, targetPeriod) {
-        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-edit" style="color: #3B82F6;"></i> Modifier le mémo';
+        document.getElementById('memoModalTitle').innerHTML = '<i class="fas fa-edit" style="color: #3B82F6;"></i> ' + {{ _('Modifier le mémo')|tojson }};
         document.getElementById('memoId').value = id;
         document.getElementById('memoContent').value = content;
 
@@ -733,7 +733,7 @@
     }
 
     async function deleteMemo(memoId) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce mémo ?')) {
+        if (!confirm({{ _('Êtes-vous sûr de vouloir supprimer ce mémo ?')|tojson }})) {
             return;
         }
 
@@ -746,11 +746,11 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erreur lors de la suppression du mémo');
+                alert({{ _('Erreur lors de la suppression du mémo')|tojson }});
             }
         } catch (error) {
             console.error('Erreur:', error);
-            alert('Erreur lors de la communication avec le serveur');
+            alert({{ _('Erreur lors de la communication avec le serveur')|tojson }});
         }
     }
 
@@ -767,7 +767,7 @@
                 const content = document.getElementById('memoContent').value.trim();
 
                 if (!classValue || !dateType || !content) {
-                    alert('Veuillez remplir tous les champs obligatoires');
+                    alert({{ _('Veuillez remplir tous les champs obligatoires')|tojson }});
                     return;
                 }
 
@@ -784,7 +784,7 @@
                 if (dateType === 'custom') {
                     targetDate = document.getElementById('memoCustomDate').value;
                     if (!targetDate) {
-                        alert('Veuillez sélectionner une date');
+                        alert({{ _('Veuillez sélectionner une date')|tojson }});
                         return;
                     }
                 }
@@ -824,18 +824,18 @@
                         closeMemoModal();
                         location.reload();
                     } else {
-                        alert(data.error || 'Erreur lors de l\'enregistrement du mémo');
+                        alert(data.error || {{ _("Erreur lors de l'enregistrement du mémo")|tojson }});
                     }
                 } catch (error) {
                     console.error('Erreur:', error);
-                    alert('Erreur lors de la communication avec le serveur');
+                    alert({{ _('Erreur lors de la communication avec le serveur')|tojson }});
                 }
             });
         }
     });
 
     async function deleteArchiveReport(fileId, btn) {
-        if (!confirm('Supprimer ce rapport archivé ? Cette action est irréversible.')) return;
+        if (!confirm({{ _('Supprimer ce rapport archivé ? Cette action est irréversible.')|tojson }})) return;
         try {
             const resp = await fetch(`/file_manager/delete-file/${fileId}`, {
                 method: 'DELETE',
@@ -846,11 +846,11 @@
                 const card = btn.closest('[style*="border: 2px solid #A855F7"]');
                 if (card) card.remove();
             } else {
-                alert(data.message || 'Erreur lors de la suppression');
+                alert(data.message || {{ _('Erreur lors de la suppression')|tojson }});
             }
         } catch (e) {
             console.error(e);
-            alert('Erreur lors de la suppression');
+            alert({{ _('Erreur lors de la suppression')|tojson }});
         }
     }
     </script>
@@ -858,9 +858,9 @@
     <!-- Section des invitations reçues -->
     {% if received_invitations %}
     <div class="recent-activity" style="margin-bottom: 2rem;">
-        <h2><i class="fas fa-envelope-open" style="color: #10B981;"></i> Demandes d'invitation ({{ received_invitations|length }})</h2>
+        <h2><i class="fas fa-envelope-open" style="color: #10B981;"></i> {{ _("Demandes d'invitation") }} ({{ received_invitations|length }})</h2>
         <p style="color: var(--gray-color); margin-bottom: 1.5rem; font-size: 0.9rem;">
-            Des enseignants souhaitent rejoindre vos classes en tant qu'enseignants spécialisés.
+            {{ _("Des enseignants souhaitent rejoindre vos classes en tant qu'enseignants spécialisés.") }}
         </p>
         
         <div class="invitations-list" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -873,19 +873,19 @@
                         </h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                             <div>
-                                <strong>Veut rejoindre:</strong> {{ invitation.target_classroom.name if invitation.target_classroom else 'Classe inconnue' }}
+                                <strong>{{ _('Veut rejoindre :') }}</strong> {{ invitation.target_classroom.name if invitation.target_classroom else _('Classe inconnue') }}
                             </div>
                             <div>
-                                <strong>Email:</strong> {{ invitation.requesting_teacher.email }}
+                                <strong>{{ _('Email :') }}</strong> {{ invitation.requesting_teacher.email }}
                             </div>
                             <div>
-                                <strong>Reçu le:</strong> {{ invitation.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                                <strong>{{ _('Reçu le :') }}</strong> {{ _('%(date)s à %(time)s', date=invitation.created_at.strftime('%d/%m/%Y'), time=invitation.created_at.strftime('%H:%M')) }}
                             </div>
                         </div>
                         
                         <!-- Affichage des disciplines proposées -->
                         <div style="background-color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                            <strong>Disciplines proposées :</strong>
+                            <strong>{{ _('Disciplines proposées :') }}</strong>
                             {% if invitation.disciplines %}
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
                                     {% for discipline in invitation.disciplines %}
@@ -911,7 +911,7 @@
                         </div>
                         {% if invitation.message %}
                         <div style="background-color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
-                            <strong>Message:</strong> <em>"{{ invitation.message }}"</em>
+                            <strong>{{ _('Message :') }}</strong> <em>"{{ invitation.message }}"</em>
                         </div>
                         {% endif %}
                     </div>
@@ -919,20 +919,20 @@
                 
                 <div style="border-top: 1px solid #BBF7D0; margin-top: 1rem; padding-top: 1rem;">
                     <form method="POST" action="{{ url_for('setup.respond_to_invitation', invitation_id=invitation.id) }}" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                        <textarea name="response_message" placeholder="Message de réponse (optionnel)" 
+                        <textarea name="response_message" placeholder="{{ _('Message de réponse (optionnel)') }}"
                                  style="flex: 1; min-width: 200px; padding: 0.5rem; border: 1px solid #BBF7D0; border-radius: 0.375rem; resize: vertical;" 
                                  rows="2"></textarea>
                         <div style="display: flex; gap: 0.5rem;">
                             <button type="submit" name="action" value="accept" 
                                    class="btn btn-success" 
                                    style="background-color: #059669; border-color: #059669; padding: 0.5rem 1rem;">
-                                <i class="fas fa-check"></i> Accepter
+                                <i class="fas fa-check"></i> {{ _('Accepter') }}
                             </button>
                             <button type="submit" name="action" value="reject" 
                                    class="btn btn-danger" 
                                    style="background-color: #DC2626; border-color: #DC2626; padding: 0.5rem 1rem;"
-                                   onclick="return confirm('Êtes-vous sûr de vouloir rejeter cette demande ?');">
-                                <i class="fas fa-times"></i> Rejeter
+                                   onclick="return confirm('{{ _('Êtes-vous sûr de vouloir rejeter cette demande ?') }}');">
+                                <i class="fas fa-times"></i> {{ _('Rejeter') }}
                             </button>
                         </div>
                     </form>
@@ -946,9 +946,9 @@
     <!-- Rapports de fin d'année archivés -->
     {% if backup_reports %}
     <div class="recent-activity" style="margin-bottom: 2rem;">
-        <h2><i class="fas fa-archive" style="color: #A855F7;"></i> Rapports archivés ({{ backup_reports|length }})</h2>
+        <h2><i class="fas fa-archive" style="color: #A855F7;"></i> {{ _('Rapports archivés') }} ({{ backup_reports|length }})</h2>
         <p style="color: var(--gray-color); margin-bottom: 1rem; font-size: 0.9rem;">
-            Des classes partagées ont été supprimées — vos rapports sont disponibles ici.
+            {{ _('Des classes partagées ont été supprimées — vos rapports sont disponibles ici.') }}
         </p>
         <div style="display: flex; flex-direction: column; gap: 1rem;">
             {% for report in backup_reports %}
@@ -960,7 +960,7 @@
                             {{ report.original_filename }}
                         </div>
                         <div style="font-size: 0.85rem; color: #7C3AED;">
-                            {{ report.uploaded_at.strftime('%d/%m/%Y à %H:%M') }} · {{ report.format_size() }}
+                            {{ _('%(date)s à %(time)s', date=report.uploaded_at.strftime('%d/%m/%Y'), time=report.uploaded_at.strftime('%H:%M')) }} · {{ report.format_size() }}
                         </div>
                         {% if report.description %}
                         <div style="font-size: 0.85rem; color: #6B21A8; margin-top: 0.25rem;">
@@ -973,13 +973,13 @@
                            style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;
                                   background: #A855F7; color: white; border-radius: 8px; text-decoration: none;
                                   font-size: 0.9rem; font-weight: 500; white-space: nowrap;">
-                            <i class="fas fa-download"></i> Télécharger
+                            <i class="fas fa-download"></i> {{ _('Télécharger') }}
                         </a>
                         <button onclick="deleteArchiveReport({{ report.id }}, this)"
                                 style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;
                                        background: #EF4444; color: white; border-radius: 8px; border: none; cursor: pointer;
                                        font-size: 0.9rem; font-weight: 500; white-space: nowrap;">
-                            <i class="fas fa-trash"></i> Supprimer
+                            <i class="fas fa-trash"></i> {{ _('Supprimer') }}
                         </button>
                     </div>
                 </div>
@@ -988,7 +988,7 @@
         </div>
         <div style="margin-top: 1rem; text-align: center;">
             <a href="{{ url_for('file_manager.index') }}" style="color: #A855F7; text-decoration: none; font-weight: 500;">
-                Voir dans le gestionnaire de fichiers →
+                {{ _('Voir dans le gestionnaire de fichiers') }} →
             </a>
         </div>
     </div>
@@ -996,7 +996,7 @@
 
     <!-- Activité récente -->
     <div class="recent-activity">
-        <h2><i class="fas fa-history"></i> Activité récente</h2>
+        <h2><i class="fas fa-history"></i> {{ _('Activité récente') }}</h2>
 
         {% if week_plannings_count > 0 %}
         <div class="activity-list">
@@ -1005,18 +1005,18 @@
                     <i class="fas fa-calendar-plus"></i>
                 </div>
                 <div class="activity-details">
-                    <div class="activity-title">{{ week_plannings_count }} planifications cette semaine</div>
-                    <div class="activity-time">Continuez votre excellent travail de planification !</div>
+                    <div class="activity-title">{{ ngettext('%(num)d planification cette semaine', '%(num)d planifications cette semaine', week_plannings_count) }}</div>
+                    <div class="activity-time">{{ _('Continuez votre excellent travail de planification !') }}</div>
                 </div>
             </div>
         </div>
         {% else %}
         <div class="empty-state">
             <i class="fas fa-calendar-times"></i>
-            <p>Aucune planification cette semaine</p>
-            <p>Commencez à planifier vos cours dès maintenant !</p>
+            <p>{{ _('Aucune planification cette semaine') }}</p>
+            <p>{{ _('Commencez à planifier vos cours dès maintenant !') }}</p>
             <a href="{{ url_for('planning.calendar_view') }}" class="btn btn-primary" style="margin-top: 1rem;">
-                <i class="fas fa-calendar-plus"></i> Planifier mes cours
+                <i class="fas fa-calendar-plus"></i> {{ _('Planifier mes cours') }}
             </a>
         </div>
         {% endif %}

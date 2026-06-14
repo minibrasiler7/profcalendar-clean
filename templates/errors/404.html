@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page introuvable - ProfCalendar</title>
+    <title>{{ _('Page introuvable') }} - ProfCalendar</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,12 +21,12 @@
 <body>
     <div class="error-container">
         <div class="error-code">404</div>
-        <h1 class="error-title">Page introuvable</h1>
-        <p class="error-text">La page que vous cherchez n'existe pas ou a ete deplacee.</p>
-        <a href="/" class="error-btn">Retour a l'accueil</a>
+        <h1 class="error-title">{{ _('Page introuvable') }}</h1>
+        <p class="error-text">{{ _("La page que vous cherchez n'existe pas ou a été déplacée.") }}</p>
+        <a href="/" class="error-btn">{{ _("Retour à l'accueil") }}</a>
         <div class="error-links">
-            <a href="/auth/login">Se connecter</a>
-            <a href="/auth/register">Creer un compte</a>
+            <a href="/auth/login">{{ _('Se connecter') }}</a>
+            <a href="/auth/register">{{ _('Créer un compte') }}</a>
         </div>
     </div>
 </body>

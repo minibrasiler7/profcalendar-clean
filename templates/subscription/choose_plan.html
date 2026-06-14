@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Choisir un plan - ProfCalendar{% endblock %}
+{% block title %}{{ _('Choisir un plan') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="choose-plan-page">
     <div class="choose-plan-header">
         <div class="choose-plan-badge">
-            <i class="fas fa-rocket"></i> Bienvenue sur ProfCalendar !
+            <i class="fas fa-rocket"></i> {{ _('Bienvenue sur ProfCalendar !') }}
         </div>
-        <h1>Choisissez votre plan</h1>
+        <h1>{{ _('Choisissez votre plan') }}</h1>
         <p class="choose-plan-subtitle">
-            Vous bénéficiez automatiquement de <strong>30 jours d'essai Premium gratuit</strong>.
-            Choisissez maintenant comment continuer ensuite — vous pouvez tout changer plus tard.
+            {{ _("Vous bénéficiez automatiquement de <strong>30 jours d'essai Premium gratuit</strong>.")|safe }}
+            {{ _('Choisissez maintenant comment continuer ensuite — vous pouvez tout changer plus tard.') }}
         </p>
     </div>
 
@@ -24,18 +24,18 @@
                 <div class="plan-card-icon" style="background: linear-gradient(135deg, #10B981, #059669);">
                     <i class="fas fa-gift"></i>
                 </div>
-                <div class="plan-card-title">Gratuit avec essai Premium</div>
+                <div class="plan-card-title">{{ _('Gratuit avec essai Premium') }}</div>
                 <div class="plan-card-price">
                     <span class="price-main">CHF 0</span>
-                    <span class="price-period">pendant 30 jours</span>
+                    <span class="price-period">{{ _('pendant 30 jours') }}</span>
                 </div>
                 <ul class="plan-card-features">
-                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai Premium gratuit</strong></li>
-                    <li><i class="fas fa-check"></i> Toutes les fonctionnalités</li>
-                    <li><i class="fas fa-check"></i> Pas de carte bancaire requise</li>
-                    <li><i class="fas fa-check"></i> Bascule en plan Gratuit à la fin</li>
+                    <li><i class="fas fa-check"></i> <strong>{{ _("30 jours d'essai Premium gratuit") }}</strong></li>
+                    <li><i class="fas fa-check"></i> {{ _('Toutes les fonctionnalités') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Pas de carte bancaire requise') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Bascule en plan Gratuit à la fin') }}</li>
                 </ul>
-                <div class="plan-card-cta">Continuer en essai gratuit</div>
+                <div class="plan-card-cta">{{ _('Continuer en essai gratuit') }}</div>
             </div>
         </label>
 
@@ -46,18 +46,18 @@
                 <div class="plan-card-icon" style="background: linear-gradient(135deg, #4F46E5, #7C3AED);">
                     <i class="fas fa-crown"></i>
                 </div>
-                <div class="plan-card-title">Premium mensuel</div>
+                <div class="plan-card-title">{{ _('Premium mensuel') }}</div>
                 <div class="plan-card-price">
                     <span class="price-main">CHF 4.90</span>
-                    <span class="price-period">/ mois</span>
+                    <span class="price-period">/ {{ _('mois') }}</span>
                 </div>
                 <ul class="plan-card-features">
-                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai gratuit</strong></li>
-                    <li><i class="fas fa-check"></i> Toutes les fonctionnalités</li>
-                    <li><i class="fas fa-check"></i> Sans engagement, annulable</li>
-                    <li><i class="fas fa-check"></i> Support prioritaire</li>
+                    <li><i class="fas fa-check"></i> <strong>{{ _("30 jours d'essai gratuit") }}</strong></li>
+                    <li><i class="fas fa-check"></i> {{ _('Toutes les fonctionnalités') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Sans engagement, annulable') }}</li>
+                    <li><i class="fas fa-check"></i> {{ _('Support prioritaire') }}</li>
                 </ul>
-                <div class="plan-card-cta">Choisir mensuel</div>
+                <div class="plan-card-cta">{{ _('Choisir mensuel') }}</div>
             </div>
         </label>
 
@@ -65,22 +65,22 @@
         <label class="plan-card plan-card-annual">
             <input type="radio" name="choice" value="annual">
             <div class="plan-card-inner">
-                <div class="plan-card-badge-popular">⭐ Meilleure offre</div>
+                <div class="plan-card-badge-popular">⭐ {{ _('Meilleure offre') }}</div>
                 <div class="plan-card-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">
                     <i class="fas fa-star"></i>
                 </div>
-                <div class="plan-card-title">Premium annuel</div>
+                <div class="plan-card-title">{{ _('Premium annuel') }}</div>
                 <div class="plan-card-price">
                     <span class="price-main">CHF 39.90</span>
-                    <span class="price-period">/ an</span>
+                    <span class="price-period">/ {{ _('an') }}</span>
                 </div>
                 <ul class="plan-card-features">
-                    <li><i class="fas fa-check"></i> <strong>30 jours d'essai gratuit</strong></li>
-                    <li><i class="fas fa-check"></i> Tout du Premium mensuel</li>
-                    <li><i class="fas fa-check"></i> <strong>Économisez 32 %</strong></li>
-                    <li><i class="fas fa-check"></i> 3 Go de stockage</li>
+                    <li><i class="fas fa-check"></i> <strong>{{ _("30 jours d'essai gratuit") }}</strong></li>
+                    <li><i class="fas fa-check"></i> {{ _('Tout du Premium mensuel') }}</li>
+                    <li><i class="fas fa-check"></i> <strong>{{ _('Économisez 32 %%') }}</strong></li>
+                    <li><i class="fas fa-check"></i> {{ _('3 Go de stockage') }}</li>
                 </ul>
-                <div class="plan-card-cta">Choisir annuel</div>
+                <div class="plan-card-cta">{{ _('Choisir annuel') }}</div>
             </div>
         </label>
 
@@ -90,15 +90,14 @@
                natif StoreKit pour Mensuel/Annuel, ou continue vers le setup
                pour l'option gratuite. #}
             <button type="submit" class="choose-plan-submit" id="choosePlanSubmit">
-                <i class="fas fa-arrow-right"></i> Continuer
+                <i class="fas fa-arrow-right"></i> {{ _('Continuer') }}
             </button>
             <p class="choose-plan-note" id="choosePlanNote">
                 {% if is_ios_native_app %}
-                Le paiement passe par votre compte Apple (App Store).
-                Vous pouvez annuler à tout moment depuis Réglages → Apple ID → Abonnements.
+                {{ _('Le paiement passe par votre compte Apple (App Store).') }}
+                {{ _('Vous pouvez annuler à tout moment depuis Réglages → Apple ID → Abonnements.') }}
                 {% else %}
-                Les paiements sont sécurisés par Stripe. Vous pouvez changer de plan ou
-                annuler à tout moment depuis vos paramètres.
+                {{ _('Les paiements sont sécurisés par Stripe. Vous pouvez changer de plan ou annuler à tout moment depuis vos paramètres.') }}
                 {% endif %}
             </p>
         </div>
@@ -130,7 +129,7 @@
             if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iap) {
                 window.webkit.messageHandlers.iap.postMessage({action: 'openPaywall'});
             } else {
-                alert("L'achat n'est disponible que depuis l'application iPad.");
+                alert({{ _("L'achat n'est disponible que depuis l'application iPad.")|tojson }});
             }
         } catch (err) {
             console.error('Erreur openPaywall:', err);

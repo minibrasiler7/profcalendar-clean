@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erreur serveur - ProfCalendar</title>
+    <title>{{ _('Erreur serveur') }} - ProfCalendar</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -19,9 +19,9 @@
 <body>
     <div class="error-container">
         <div class="error-code">500</div>
-        <h1 class="error-title">Erreur temporaire</h1>
-        <p class="error-text">Une erreur est survenue sur le serveur. Notre equipe en a ete informee. Veuillez reessayer dans quelques instants.</p>
-        <a href="/" class="error-btn">Retour a l'accueil</a>
+        <h1 class="error-title">{{ _('Erreur temporaire') }}</h1>
+        <p class="error-text">{{ _('Une erreur est survenue sur le serveur. Notre équipe en a été informée. Veuillez réessayer dans quelques instants.') }}</p>
+        <a href="/" class="error-btn">{{ _("Retour à l'accueil") }}</a>
     </div>
 </body>
 </html>

@@ -1,133 +1,139 @@
 {% extends "base.html" %}
-{% block title %}Politique de confidentialité - ProfCalendar{% endblock %}
+{% block title %}{{ _('Politique de confidentialité') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div style="max-width: 800px; margin: 2rem auto; padding: 0 1.5rem;">
-    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Politique de confidentialité</h1>
-    <p style="color: #6B7280; margin-bottom: 2rem;">Dernière mise à jour : 14 avril 2026</p>
+    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">{{ _('Politique de confidentialité') }}</h1>
+    <p style="color: #6B7280; margin-bottom: 2rem;">{{ _('Dernière mise à jour : 14 avril 2026') }}</p>
+
+    {% if current_locale and current_locale != 'fr' %}
+    <p style="background: #FEF3C7; color: #92400E; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; margin-bottom: 2rem;">
+        {{ _('Cette traduction est fournie à titre informatif ; en cas de divergence, la version française fait foi.') }}
+    </p>
+    {% endif %}
 
     <div style="line-height: 1.8; color: #374151;">
 
-    <h2>1. Responsable du traitement</h2>
-    <p>ProfCalendar est édité par Loïc Strauch, domicilié en Suisse. Pour toute question relative à la protection de vos données, vous pouvez nous contacter à l'adresse : <strong>contact@profcalendar.org</strong></p>
+    <h2>{{ _('1. Responsable du traitement') }}</h2>
+    <p>{{ _("ProfCalendar est édité par Loïc Strauch, domicilié en Suisse. Pour toute question relative à la protection de vos données, vous pouvez nous contacter à l'adresse :") }} <strong>contact@profcalendar.org</strong></p>
 
-    <h2>2. Données collectées</h2>
-    <p>Nous collectons les données suivantes dans le cadre de l'utilisation de ProfCalendar :</p>
-    <h3>2.1 Données des enseignants</h3>
+    <h2>{{ _('2. Données collectées') }}</h2>
+    <p>{{ _("Nous collectons les données suivantes dans le cadre de l'utilisation de ProfCalendar :") }}</p>
+    <h3>{{ _('2.1 Données des enseignants') }}</h3>
     <ul>
-        <li>Nom d'utilisateur, adresse email, mot de passe (chiffré)</li>
-        <li>Nom de l'établissement scolaire (optionnel)</li>
-        <li>Préférences d'affichage et de configuration</li>
-        <li>Données de planification de cours</li>
-        <li>Fichiers uploadés (documents, PDF, images)</li>
-        <li>Données de paiement (traitées exclusivement par Stripe, voir section 6)</li>
+        <li>{{ _("Nom d'utilisateur, adresse email, mot de passe (chiffré)") }}</li>
+        <li>{{ _("Nom de l'établissement scolaire (optionnel)") }}</li>
+        <li>{{ _("Préférences d'affichage et de configuration") }}</li>
+        <li>{{ _('Données de planification de cours') }}</li>
+        <li>{{ _('Fichiers uploadés (documents, PDF, images)') }}</li>
+        <li>{{ _('Données de paiement (traitées exclusivement par Stripe, voir section 6)') }}</li>
     </ul>
-    <h3>2.2 Données des élèves</h3>
+    <h3>{{ _('2.2 Données des élèves') }}</h3>
     <ul>
-        <li>Prénom, nom de famille</li>
-        <li>Adresse email (optionnelle, pour la création de compte)</li>
-        <li>Notes et évaluations</li>
-        <li>Présences, absences et retards</li>
-        <li>Données de progression dans les exercices (scores, XP, niveaux)</li>
-        <li>Sanctions et remarques comportementales</li>
+        <li>{{ _('Prénom, nom de famille') }}</li>
+        <li>{{ _('Adresse email (optionnelle, pour la création de compte)') }}</li>
+        <li>{{ _('Notes et évaluations') }}</li>
+        <li>{{ _('Présences, absences et retards') }}</li>
+        <li>{{ _('Données de progression dans les exercices (scores, XP, niveaux)') }}</li>
+        <li>{{ _('Sanctions et remarques comportementales') }}</li>
     </ul>
-    <h3>2.3 Données des parents</h3>
+    <h3>{{ _('2.3 Données des parents') }}</h3>
     <ul>
-        <li>Prénom, nom, adresse email</li>
-        <li>Lien avec l'élève (via code de classe)</li>
+        <li>{{ _('Prénom, nom, adresse email') }}</li>
+        <li>{{ _("Lien avec l'élève (via code de classe)") }}</li>
     </ul>
-    <h3>2.4 Données techniques</h3>
+    <h3>{{ _('2.4 Données techniques') }}</h3>
     <ul>
-        <li>Adresse IP, type de navigateur, système d'exploitation</li>
-        <li>Cookies de session (voir section 7)</li>
-    </ul>
-
-    <h2>3. Finalités du traitement</h2>
-    <p>Vos données sont traitées pour les finalités suivantes :</p>
-    <ul>
-        <li>Fourniture et fonctionnement de la plateforme ProfCalendar</li>
-        <li>Gestion des comptes utilisateurs et authentification</li>
-        <li>Planification de cours et suivi pédagogique</li>
-        <li>Gestion des présences, notes et évaluations</li>
-        <li>Traitement des paiements et gestion des abonnements</li>
-        <li>Envoi d'emails transactionnels (vérification, notifications)</li>
-        <li>Amélioration et sécurisation de la plateforme</li>
+        <li>{{ _("Adresse IP, type de navigateur, système d'exploitation") }}</li>
+        <li>{{ _('Cookies de session (voir section 7)') }}</li>
     </ul>
 
-    <h2>4. Base légale du traitement</h2>
-    <p>Le traitement de vos données repose sur :</p>
+    <h2>{{ _('3. Finalités du traitement') }}</h2>
+    <p>{{ _('Vos données sont traitées pour les finalités suivantes :') }}</p>
     <ul>
-        <li><strong>L'exécution du contrat</strong> (art. 6 al. 1 let. b RGPD / art. 31 al. 1 nLPD) : traitement nécessaire à la fourniture du service</li>
-        <li><strong>Le consentement</strong> (art. 6 al. 1 let. a RGPD / art. 6 al. 6 nLPD) : pour les cookies non essentiels et les communications marketing</li>
-        <li><strong>L'intérêt légitime</strong> (art. 6 al. 1 let. f RGPD / art. 31 al. 1 nLPD) : sécurité de la plateforme et prévention des abus</li>
+        <li>{{ _('Fourniture et fonctionnement de la plateforme ProfCalendar') }}</li>
+        <li>{{ _('Gestion des comptes utilisateurs et authentification') }}</li>
+        <li>{{ _('Planification de cours et suivi pédagogique') }}</li>
+        <li>{{ _('Gestion des présences, notes et évaluations') }}</li>
+        <li>{{ _('Traitement des paiements et gestion des abonnements') }}</li>
+        <li>{{ _("Envoi d'emails transactionnels (vérification, notifications)") }}</li>
+        <li>{{ _('Amélioration et sécurisation de la plateforme') }}</li>
     </ul>
 
-    <h2>5. Durée de conservation</h2>
+    <h2>{{ _('4. Base légale du traitement') }}</h2>
+    <p>{{ _('Le traitement de vos données repose sur :') }}</p>
     <ul>
-        <li><strong>Comptes actifs</strong> : les données sont conservées tant que le compte est actif</li>
-        <li><strong>Après suppression du compte</strong> : les données sont supprimées dans un délai de 30 jours, sauf obligation légale de conservation</li>
-        <li><strong>Données de facturation</strong> : conservées 10 ans conformément au droit suisse (Code des obligations, art. 958f)</li>
-        <li><strong>Logs techniques</strong> : conservés 90 jours maximum</li>
+        <li><strong>{{ _("L'exécution du contrat") }}</strong> {{ _('(art. 6 al. 1 let. b RGPD / art. 31 al. 1 nLPD) : traitement nécessaire à la fourniture du service') }}</li>
+        <li><strong>{{ _('Le consentement') }}</strong> {{ _('(art. 6 al. 1 let. a RGPD / art. 6 al. 6 nLPD) : pour les cookies non essentiels et les communications marketing') }}</li>
+        <li><strong>{{ _("L'intérêt légitime") }}</strong> {{ _('(art. 6 al. 1 let. f RGPD / art. 31 al. 1 nLPD) : sécurité de la plateforme et prévention des abus') }}</li>
     </ul>
 
-    <h2>6. Sous-traitants et transferts de données</h2>
+    <h2>{{ _('5. Durée de conservation') }}</h2>
+    <ul>
+        <li><strong>{{ _('Comptes actifs') }}</strong> : {{ _('les données sont conservées tant que le compte est actif') }}</li>
+        <li><strong>{{ _('Après suppression du compte') }}</strong> : {{ _('les données sont supprimées dans un délai de 30 jours, sauf obligation légale de conservation') }}</li>
+        <li><strong>{{ _('Données de facturation') }}</strong> : {{ _('conservées 10 ans conformément au droit suisse (Code des obligations, art. 958f)') }}</li>
+        <li><strong>{{ _('Logs techniques') }}</strong> : {{ _('conservés 90 jours maximum') }}</li>
+    </ul>
+
+    <h2>{{ _('6. Sous-traitants et transferts de données') }}</h2>
     <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
         <thead>
             <tr style="background: #F3F4F6;">
-                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Sous-traitant</th>
-                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Finalité</th>
-                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">Localisation</th>
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">{{ _('Sous-traitant') }}</th>
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">{{ _('Finalité') }}</th>
+                <th style="padding: 0.75rem; text-align: left; border: 1px solid #E5E7EB;">{{ _('Localisation') }}</th>
             </tr>
         </thead>
         <tbody>
-            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Render.com</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Hébergement de l'application</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA (Oregon)</td></tr>
-            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Cloudflare R2</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Stockage des fichiers</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">UE (région auto)</td></tr>
-            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Stripe</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Traitement des paiements</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA / Irlande</td></tr>
-            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Resend</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Envoi d'emails</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">USA</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Render.com</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _("Hébergement de l'application") }}</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('USA (Oregon)') }}</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Cloudflare R2</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('Stockage des fichiers') }}</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('UE (région auto)') }}</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Stripe</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('Traitement des paiements') }}</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('USA / Irlande') }}</td></tr>
+            <tr><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">Resend</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _("Envoi d'emails") }}</td><td style="padding: 0.75rem; border: 1px solid #E5E7EB;">{{ _('USA') }}</td></tr>
         </tbody>
     </table>
-    <p>Les transferts vers les USA sont couverts par des clauses contractuelles types (CCT) conformément à l'art. 46 RGPD et à l'art. 16 al. 2 nLPD.</p>
+    <p>{{ _("Les transferts vers les USA sont couverts par des clauses contractuelles types (CCT) conformément à l'art. 46 RGPD et à l'art. 16 al. 2 nLPD.") }}</p>
 
-    <h2>7. Cookies</h2>
-    <p>ProfCalendar utilise les cookies suivants :</p>
+    <h2>{{ _('7. Cookies') }}</h2>
+    <p>{{ _('ProfCalendar utilise les cookies suivants :') }}</p>
     <ul>
-        <li><strong>Cookie de session</strong> (essentiel) : maintient votre connexion pendant la navigation. Expire après 30 jours d'inactivité.</li>
-        <li><strong>Cookie « Remember me »</strong> (essentiel) : permet la reconnexion automatique. Expire après 90 jours.</li>
-        <li><strong>Cookie de consentement</strong> (essentiel) : enregistre votre choix concernant les cookies. Expire après 1 an.</li>
+        <li><strong>{{ _('Cookie de session') }}</strong> {{ _("(essentiel) : maintient votre connexion pendant la navigation. Expire après 30 jours d'inactivité.") }}</li>
+        <li><strong>{{ _('Cookie « Remember me »') }}</strong> {{ _('(essentiel) : permet la reconnexion automatique. Expire après 90 jours.') }}</li>
+        <li><strong>{{ _('Cookie de consentement') }}</strong> {{ _('(essentiel) : enregistre votre choix concernant les cookies. Expire après 1 an.') }}</li>
     </ul>
-    <p>ProfCalendar n'utilise pas de cookies publicitaires ni de trackers tiers.</p>
+    <p>{{ _("ProfCalendar n'utilise pas de cookies publicitaires ni de trackers tiers.") }}</p>
 
-    <h2>8. Vos droits</h2>
-    <p>Conformément au RGPD et à la nLPD, vous disposez des droits suivants :</p>
+    <h2>{{ _('8. Vos droits') }}</h2>
+    <p>{{ _('Conformément au RGPD et à la nLPD, vous disposez des droits suivants :') }}</p>
     <ul>
-        <li><strong>Droit d'accès</strong> : obtenir une copie de vos données personnelles</li>
-        <li><strong>Droit de rectification</strong> : corriger des données inexactes</li>
-        <li><strong>Droit à l'effacement</strong> : demander la suppression de votre compte et de vos données (Paramètres &gt; Supprimer mon compte)</li>
-        <li><strong>Droit à la portabilité</strong> : recevoir vos données dans un format structuré et lisible</li>
-        <li><strong>Droit d'opposition</strong> : vous opposer au traitement de vos données</li>
-        <li><strong>Droit de retirer votre consentement</strong> à tout moment</li>
+        <li><strong>{{ _("Droit d'accès") }}</strong> : {{ _('obtenir une copie de vos données personnelles') }}</li>
+        <li><strong>{{ _('Droit de rectification') }}</strong> : {{ _('corriger des données inexactes') }}</li>
+        <li><strong>{{ _("Droit à l'effacement") }}</strong> : {{ _('demander la suppression de votre compte et de vos données (Paramètres > Supprimer mon compte)') }}</li>
+        <li><strong>{{ _('Droit à la portabilité') }}</strong> : {{ _('recevoir vos données dans un format structuré et lisible') }}</li>
+        <li><strong>{{ _("Droit d'opposition") }}</strong> : {{ _('vous opposer au traitement de vos données') }}</li>
+        <li><strong>{{ _('Droit de retirer votre consentement') }}</strong> {{ _('à tout moment') }}</li>
     </ul>
-    <p>Pour exercer vos droits, contactez-nous à : <strong>contact@profcalendar.org</strong></p>
+    <p>{{ _('Pour exercer vos droits, contactez-nous à :') }} <strong>contact@profcalendar.org</strong></p>
 
-    <h2>9. Sécurité</h2>
-    <p>Nous mettons en œuvre les mesures de sécurité suivantes :</p>
+    <h2>{{ _('9. Sécurité') }}</h2>
+    <p>{{ _('Nous mettons en œuvre les mesures de sécurité suivantes :') }}</p>
     <ul>
-        <li>Chiffrement des communications (HTTPS/TLS)</li>
-        <li>Mots de passe chiffrés (hachage bcrypt)</li>
-        <li>Authentification à deux facteurs (TOTP) disponible</li>
-        <li>Protection CSRF sur tous les formulaires</li>
-        <li>Headers de sécurité (CSP, X-Frame-Options, HSTS)</li>
-        <li>Chiffrement des données sensibles en base de données</li>
+        <li>{{ _('Chiffrement des communications (HTTPS/TLS)') }}</li>
+        <li>{{ _('Mots de passe chiffrés (hachage bcrypt)') }}</li>
+        <li>{{ _('Authentification à deux facteurs (TOTP) disponible') }}</li>
+        <li>{{ _('Protection CSRF sur tous les formulaires') }}</li>
+        <li>{{ _('Headers de sécurité (CSP, X-Frame-Options, HSTS)') }}</li>
+        <li>{{ _('Chiffrement des données sensibles en base de données') }}</li>
     </ul>
 
-    <h2>10. Mineurs</h2>
-    <p>ProfCalendar est utilisé dans un cadre scolaire. Les comptes élèves sont créés par les enseignants ou avec un code de classe. Les données des élèves mineurs sont traitées sous la responsabilité de l'établissement scolaire et de l'enseignant. Les parents disposent d'un accès de consultation via leur espace parent.</p>
+    <h2>{{ _('10. Mineurs') }}</h2>
+    <p>{{ _("ProfCalendar est utilisé dans un cadre scolaire. Les comptes élèves sont créés par les enseignants ou avec un code de classe. Les données des élèves mineurs sont traitées sous la responsabilité de l'établissement scolaire et de l'enseignant. Les parents disposent d'un accès de consultation via leur espace parent.") }}</p>
 
-    <h2>11. Modifications</h2>
-    <p>Nous nous réservons le droit de modifier cette politique de confidentialité. En cas de modification substantielle, les utilisateurs seront informés par email ou notification dans l'application.</p>
+    <h2>{{ _('11. Modifications') }}</h2>
+    <p>{{ _("Nous nous réservons le droit de modifier cette politique de confidentialité. En cas de modification substantielle, les utilisateurs seront informés par email ou notification dans l'application.") }}</p>
 
-    <h2>12. Autorité de contrôle</h2>
-    <p>En Suisse, l'autorité compétente est le Préposé fédéral à la protection des données et à la transparence (PFPDT). Dans l'UE, vous pouvez contacter l'autorité de protection des données de votre pays de résidence.</p>
+    <h2>{{ _('12. Autorité de contrôle') }}</h2>
+    <p>{{ _("En Suisse, l'autorité compétente est le Préposé fédéral à la protection des données et à la transparence (PFPDT). Dans l'UE, vous pouvez contacter l'autorité de protection des données de votre pays de résidence.") }}</p>
 
     </div>
 </div>

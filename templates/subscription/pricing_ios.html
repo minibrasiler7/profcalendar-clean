@@ -7,7 +7,7 @@
     {% if is_premium %}
     <div style="background: #d1fae5; color: #065f46; padding: 16px 20px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
         <i class="fas fa-check-circle"></i>
-        <span>Votre compte dispose déjà d'un accès Premium actif.</span>
+        <span>{{ _("Votre compte dispose déjà d'un accès Premium actif.") }}</span>
     </div>
     {% endif %}
 
@@ -21,23 +21,21 @@
         </h1>
 
         <p style="margin: 0 0 20px; color: #4b5563; font-size: 15px; line-height: 1.6;">
-            Débloquez toutes les fonctionnalités pour gérer vos classes :
-            notes, présences, plan de classe, exercices interactifs, collaboration,
-            et bien plus.
+            {{ _('Débloquez toutes les fonctionnalités pour gérer vos classes : notes, présences, plan de classe, exercices interactifs, collaboration, et bien plus.') }}
         </p>
 
         {% if not is_premium %}
         <button onclick="openIAPPaywall()" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #7C3AED); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
-            <i class="fas fa-crown"></i> Voir les abonnements
+            <i class="fas fa-crown"></i> {{ _('Voir les abonnements') }}
         </button>
         <p style="margin-top: 16px; color: #6b7280; font-size: 13px;">
-            Le paiement passe par votre compte Apple (App Store).
+            {{ _('Le paiement passe par votre compte Apple (App Store).') }}
         </p>
         {% endif %}
 
         <div style="margin-top: 28px;">
             <a href="{{ url_for('planning.dashboard') }}" style="display: inline-block; padding: 10px 24px; background: #f3f4f6; color: #4b5563; border-radius: 8px; text-decoration: none; font-weight: 500;">
-                Retour au tableau de bord
+                {{ _('Retour au tableau de bord') }}
             </a>
         </div>
     </div>
@@ -56,7 +54,7 @@ function openIAPPaywall() {
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iap) {
             window.webkit.messageHandlers.iap.postMessage({action: 'openPaywall'});
         } else {
-            alert("L'achat n'est disponible que depuis l'application iPad.");
+            alert({{ _("L'achat n'est disponible que depuis l'application iPad.")|tojson }});
         }
     } catch (e) {
         console.error('Erreur openIAPPaywall:', e);
