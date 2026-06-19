@@ -15,7 +15,16 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def dashboard():
     """Tableau de bord administrateur"""
     total_users = User.query.count()
-    premium_users = User.query.filter(User.subscription_tier == 'premium').count()
+    # « Premium » réel = tier premium ET (illimité OU date d'expiration encore
+    # dans le futur). Sans le filtre de date, les essais 30 j expirés — dont le
+    # champ subscription_tier n'est jamais remis à 'freemium' — étaient comptés
+    # à tort comme premium. Couvre toutes les sources (Stripe, voucher, essai,
+    # Apple) car chacune pose subscription_tier='premium' + premium_until.
+    now = datetime.utcnow()
+    premium_users = User.query.filter(
+        User.subscription_tier == 'premium',
+        db.or_(User.premium_until.is_(None), User.premium_until > now)
+    ).count()
     active_subscriptions = Subscription.query.filter_by(status='active').count()
     active_vouchers = Voucher.query.filter_by(is_active=True).count()
 
@@ -114,7 +123,14 @@ def toggle_voucher(voucher_id):
 @admin_required
 def subscribers():
     """Liste des abonnés premium"""
-    premium_users = User.query.filter(User.subscription_tier == 'premium').all()
+    # Premium réel uniquement : exclut les essais 30 j expirés (subscription_tier
+    # reste 'premium' à vie mais premium_until est dans le passé). Voir la note
+    # dans dashboard().
+    now = datetime.utcnow()
+    premium_users = User.query.filter(
+        User.subscription_tier == 'premium',
+        db.or_(User.premium_until.is_(None), User.premium_until > now)
+    ).order_by(User.premium_until.desc()).all()
     all_users = User.query.order_by(User.created_at.desc()).all()
 
     return render_template('admin/subscribers.html',

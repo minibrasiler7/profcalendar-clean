@@ -74,15 +74,17 @@
                     <td>{{ user.username }}</td>
                     <td>{{ user.email }}</td>
                     <td>
-                        {% if user.subscription_tier == 'premium' %}
+                        {% if user.has_premium_access() %}
                         <span class="badge-active">Premium</span>
+                        {% elif user.subscription_tier == 'premium' %}
+                        <span class="badge-free" style="background:#FEF3C7;color:#92400E;">Essai expiré</span>
                         {% else %}
                         <span class="badge-free">Gratuit</span>
                         {% endif %}
                     </td>
                     <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
                     <td>
-                        {% if user.subscription_tier != 'premium' %}
+                        {% if not user.has_premium_access() %}
                         <button class="btn-success-sm" onclick="grantAccess({{ user.id }}, '{{ user.username }}')">
                             <i class="fas fa-crown"></i> Accorder Premium
                         </button>
