@@ -12,14 +12,28 @@
     <title>{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}</title>
     <meta name="description" content="{{ _('ProfCalendar simplifie la vie des enseignants : planification, exercices interactifs, suivi des présences, notes et collaboration. Gratuit pour commencer.') }}">
 
+    {# URLs canoniques par langue : le français est à la racine, chaque autre
+       langue a son URL dédiée (/en, /es…). canonical = la langue courante ;
+       hreflang relie les 5 versions pour Google (x-default → français). #}
+    {% set lang_urls = {'fr': 'https://profcalendar.org/', 'en': 'https://profcalendar.org/en', 'es': 'https://profcalendar.org/es', 'de': 'https://profcalendar.org/de', 'it': 'https://profcalendar.org/it'} %}
+    {% set og_locales = {'fr': 'fr_CH', 'en': 'en_US', 'es': 'es_ES', 'de': 'de_CH', 'it': 'it_CH'} %}
+    <link rel="canonical" href="{{ lang_urls.get(current_locale, lang_urls['fr']) }}">
+    {% for lc, u in lang_urls.items() %}
+    <link rel="alternate" hreflang="{{ lc }}" href="{{ u }}">
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ lang_urls['fr'] }}">
+
     {% include 'includes/favicon.html' %}
 
     <!-- Open Graph -->
     <meta property="og:title" content="{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}">
     <meta property="og:description" content="{{ _('Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes. Gratuit pour commencer.') }}">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://profcalendar.org/">
-    <meta property="og:locale" content="{{ {'fr': 'fr_CH', 'en': 'en_US', 'es': 'es_ES', 'de': 'de_CH', 'it': 'it_CH'}.get(current_locale, 'fr_CH') }}">
+    <meta property="og:url" content="{{ lang_urls.get(current_locale, lang_urls['fr']) }}">
+    <meta property="og:locale" content="{{ og_locales.get(current_locale, 'fr_CH') }}">
+    {% for lc, ogl in og_locales.items() if lc != current_locale %}
+    <meta property="og:locale:alternate" content="{{ ogl }}">
+    {% endfor %}
     <meta property="og:site_name" content="ProfCalendar">
 
     <!-- Twitter Card -->
@@ -294,10 +308,11 @@
 <nav class="landing-nav">
     <a href="/" class="logo"><i class="fas fa-calendar-alt"></i> ProfCalendar</a>
     <div class="nav-buttons" style="align-items: center;">
-        {# Sélecteur de langue : choix mémorisé en session via /set-language #}
+        {# Sélecteur de langue : URLs dédiées par langue (/ = fr, /en, /es…)
+           pour que chaque version soit indexable et partageable. #}
         <span style="display:flex; align-items:center; gap:0.2rem; margin-right:0.5rem; font-size:0.78rem;">
             {% for code, name in LANGUAGES.items() %}
-            <a href="{{ url_for('set_language', lang=code) }}" title="{{ name }}" style="padding:0.2rem 0.45rem; border-radius:0.4rem; font-weight:600; {% if code == current_locale %}background: var(--primary); color: white;{% else %}color: var(--gray);{% endif %}">{{ code|upper }}</a>
+            <a href="{{ '/' if code == 'fr' else '/' + code }}" title="{{ name }}" hreflang="{{ code }}" style="padding:0.2rem 0.45rem; border-radius:0.4rem; font-weight:600; {% if code == current_locale %}background: var(--primary); color: white;{% else %}color: var(--gray);{% endif %}">{{ code|upper }}</a>
             {% endfor %}
         </span>
         <a href="{{ url_for('auth.login') }}" class="btn-login">{{ _('Se connecter') }}</a>

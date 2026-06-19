@@ -1,5 +1,5 @@
 from config import Config
-from flask import Flask, redirect, url_for, flash, render_template, session, request
+from flask import Flask, redirect, url_for, flash, render_template, session, request, g
 from flask_login import current_user, login_required
 from extensions import db, login_manager, migrate, socketio
 import logging
@@ -52,6 +52,14 @@ def create_app(config_name='development'):
     }
 
     def get_locale():
+        # 0) Locale imposée par l'URL (pages publiques /en, /es, /de, /it) :
+        #    chaque langue a sa propre URL indexable par Google. Prioritaire sur
+        #    la session et le navigateur pour que le crawler et un lien partagé
+        #    voient TOUJOURS la bonne langue.
+        forced = getattr(g, 'forced_locale', None)
+        if forced in app.config['LANGUAGES']:
+            return forced
+        # 1) Choix explicite mémorisé, 2) langue du navigateur, 3) français.
         lang = session.get('lang')
         if lang in app.config['LANGUAGES']:
             return lang
@@ -1051,6 +1059,25 @@ def create_app(config_name='development'):
                 return redirect(url_for('planning.dashboard'))
         return render_template('landing.html')
 
+    @app.route('/<any(en, es, de, it):lang_code>')
+    @app.route('/<any(en, es, de, it):lang_code>/')
+    def index_localized(lang_code):
+        """Landing dans une langue donnée, à une URL dédiée et indexable
+        (/en, /es, /de, /it). La langue est imposée par l'URL (g.forced_locale)
+        pour que Google indexe chaque version séparément ; le français reste à
+        la racine « / ». Les balises hreflang relient les 5 versions."""
+        if current_user.is_authenticated:
+            from models.parent import Parent
+            from models.student import Student
+            if isinstance(current_user, Student):
+                return redirect(url_for('student_auth.dashboard'))
+            elif isinstance(current_user, Parent):
+                return redirect(url_for('parent_auth.dashboard'))
+            else:
+                return redirect(url_for('planning.dashboard'))
+        g.forced_locale = lang_code
+        return render_template('landing.html')
+
     # --- Favicon ---
     # Fallback à la racine : les navigateurs demandent /favicon.ico d'office,
     # ce qui couvre aussi les pages autonomes qui n'incluent pas le partial.
@@ -1069,8 +1096,24 @@ def create_app(config_name='development'):
         # (calendriers scolaires, ajoutés automatiquement depuis les données).
         from flask import Response
         base = 'https://profcalendar.org'
+
+        # Landing multilingue : une URL par langue (/ = fr, /en, /es, /de, /it),
+        # chaque entrée déclarant le cluster hreflang complet pour que Google
+        # indexe et relie les 5 versions. x-default pointe vers le français.
+        landing_urls = {
+            'fr': base + '/',
+            'en': base + '/en',
+            'es': base + '/es',
+            'de': base + '/de',
+            'it': base + '/it',
+        }
+        alternates = ''.join(
+            f'<xhtml:link rel="alternate" hreflang="{lc}" href="{u}"/>'
+            for lc, u in landing_urls.items()
+        ) + f'<xhtml:link rel="alternate" hreflang="x-default" href="{landing_urls["fr"]}"/>'
+
+        # Pages publiques mono-langue (français : ressources régionales suisses).
         urls = [
-            (base + '/', 'weekly', '1.0'),
             (base + '/auth/register', 'monthly', '0.9'),
             (base + '/auth/login', 'monthly', '0.7'),
             (base + '/subscription/pricing', 'monthly', '0.7'),
@@ -1085,8 +1128,16 @@ def create_app(config_name='development'):
                              'monthly', '0.8'))
         except Exception:
             pass
+
         lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+                 'xmlns:xhtml="http://www.w3.org/1999/xhtml">']
+        # Landing : 5 entrées (une par langue), chacune avec le cluster hreflang.
+        for lc, loc in landing_urls.items():
+            pr = '1.0' if lc == 'fr' else '0.9'
+            lines.append(f'  <url><loc>{loc}</loc>{alternates}'
+                         f'<changefreq>weekly</changefreq>'
+                         f'<priority>{pr}</priority></url>')
         for loc, cf, pr in urls:
             lines.append(f'  <url><loc>{loc}</loc>'
                          f'<changefreq>{cf}</changefreq>'
