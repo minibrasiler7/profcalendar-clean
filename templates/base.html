@@ -547,6 +547,7 @@
     <script src="{{ url_for('static', filename='js/capacitor-push-helper.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
+    <script>window.IS_IOS_APP = {{ 'true' if is_ios_native_app else 'false' }};</script>
     <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>
     {% endif %}
     {% block extra_js %}{% endblock %}

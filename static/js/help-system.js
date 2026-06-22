@@ -1235,6 +1235,37 @@ const TOUR_SEQUENCE = [
 ];
 
 // ============================================================
+// APP iOS : réduire l'aide aux pages accessibles depuis le téléphone
+// ============================================================
+// L'app iOS ne donne accès qu'aux 7 actions essentielles (cf. dashboard
+// simplifié). On retire donc ici toute l'aide liée aux pages NON accessibles
+// au téléphone (exercices, fichiers, sanctions, collaboration, découpage,
+// fin d'année, tarifs), on réduit l'aide du tableau de bord à « Actions
+// rapides » (mémos/invitations retirés de l'app), et on désactive le tour
+// guidé multi-pages (il passe par des pages absentes sur téléphone).
+// `window.IS_IOS_APP` est défini dans base.html avant le chargement de ce script.
+if (window.IS_IOS_APP) {
+    const NOT_ON_PHONE = [
+        'exercises.create_exercise', 'exercises.edit_exercise', 'exercises.index',
+        'file_manager.index', 'sanctions.index', 'collaboration.index',
+        'planning.decoupage', 'year_end.step1', 'subscription.pricing',
+    ];
+    NOT_ON_PHONE.forEach(k => { delete HELP_CONTENT[k]; delete PAGE_TUTORIALS[k]; });
+
+    const dash = HELP_CONTENT['planning.dashboard'];
+    if (dash && Array.isArray(dash.sections)) {
+        dash.sections.forEach(s => {
+            if (Array.isArray(s.items)) {
+                s.items = s.items.filter(it => !/m[eé]mo|invitation/i.test(it.title || ''));
+            }
+        });
+    }
+
+    // Pas de tour guidé multi-pages dans l'app (élément cible souvent absent).
+    TOUR_SEQUENCE.length = 0;
+}
+
+// ============================================================
 // CLASSE PRINCIPALE
 // ============================================================
 class HelpSystem {
