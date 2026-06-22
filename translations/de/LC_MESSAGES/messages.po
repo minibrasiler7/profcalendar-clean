@@ -537,6 +537,9 @@ msgstr "Notenskala-Generator"
 msgid "Exercices de maths"
 msgstr "Mathe-Übungen"
 
+msgid "Calculateur de moyenne"
+msgstr "Notendurchschnitt-Rechner"
+
 msgid "Conditions générales"
 msgstr "AGB"
 

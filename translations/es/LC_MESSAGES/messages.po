@@ -537,6 +537,9 @@ msgstr "Creador de baremos"
 msgid "Exercices de maths"
 msgstr "Ejercicios de matemáticas"
 
+msgid "Calculateur de moyenne"
+msgstr "Calculadora de media"
+
 msgid "Conditions générales"
 msgstr "Condiciones generales"
 

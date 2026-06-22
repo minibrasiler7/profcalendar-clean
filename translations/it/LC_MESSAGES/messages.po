@@ -537,6 +537,9 @@ msgstr "Creatore di scale di valutazione"
 msgid "Exercices de maths"
 msgstr "Esercizi di matematica"
 
+msgid "Calculateur de moyenne"
+msgstr "Calcolatore di media"
+
 msgid "Conditions générales"
 msgstr "Termini e condizioni"
 

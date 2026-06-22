@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Calculateur de moyenne (notes pondérées) — gratuit | ProfCalendar{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="Calcule ta moyenne pondérée en ligne, gratuitement : entre tes notes et leurs coefficients, la moyenne se met à jour en direct. Bonus : trouve la note qu'il te faut au prochain test pour atteindre la moyenne visée.">
+<link rel="canonical" href="https://profcalendar.org/ressources/calculateur-moyenne">
+<meta property="og:title" content="Calculateur de moyenne — notes pondérées (gratuit)">
+<meta property="og:description" content="Entre tes notes et coefficients, obtiens ta moyenne en direct. Calcule aussi la note nécessaire au prochain test.">
+<style>
+    .mn-wrap { max-width: 820px; margin: 2rem auto 4rem; padding: 0 1.25rem; }
+    .mn-wrap h1 { font-size: 1.9rem; color: #1F2937; margin-bottom: 0.35rem; }
+    .mn-sub { color: #6B7280; margin-bottom: 1.5rem; }
+    .mn-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 1.5rem; }
+    .mn-rows { display: flex; flex-direction: column; gap: 0.6rem; }
+    .mn-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.6rem; align-items: center; }
+    .mn-row input { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid #D1D5DB; border-radius: 0.45rem;
+        font-size: 0.95rem; box-sizing: border-box; }
+    .mn-row .mn-del { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; border-radius: 0.45rem;
+        width: 38px; height: 38px; cursor: pointer; font-size: 1rem; }
+    .mn-head { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.6rem; font-size: 0.78rem;
+        font-weight: 600; color: #6B7280; margin-bottom: 0.4rem; }
+    .mn-head span:last-child { width: 38px; }
+    .mn-btn { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; border: none;
+        font-weight: 600; padding: 0.6rem 1.1rem; border-radius: 0.5rem; font-size: 0.92rem; }
+    .mn-btn-add { background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; margin-top: 0.9rem; }
+    .mn-result { margin-top: 1.5rem; display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+    .mn-result .mn-avg { font-size: 2.6rem; font-weight: 800; color: #4F46E5; font-variant-numeric: tabular-nums; }
+    .mn-result .mn-lbl { color: #6B7280; }
+    .mn-meta { color: #9CA3AF; font-size: 0.85rem; margin-top: 0.25rem; }
+    .mn-goal { margin-top: 1.75rem; background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 1.25rem 1.5rem; }
+    .mn-goal h2 { font-size: 1.1rem; color: #1F2937; margin: 0 0 0.9rem; }
+    .mn-goal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; align-items: end; }
+    .mn-field label { display: block; font-size: 0.82rem; font-weight: 600; color: #374151; margin-bottom: 0.3rem; }
+    .mn-field input { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid #D1D5DB; border-radius: 0.45rem; font-size: 0.95rem; box-sizing: border-box; }
+    .mn-needed { margin-top: 1rem; font-size: 1.05rem; }
+    .mn-needed b { font-size: 1.3rem; }
+    .mn-ok { color: #047857; } .mn-bad { color: #B91C1C; }
+    .mn-cta { margin-top: 2.5rem; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        border: 1px solid #C7D2FE; border-radius: 0.75rem; padding: 1.5rem 1.75rem; }
+    .mn-cta h2 { margin: 0 0 0.5rem; color: #312E81; font-size: 1.2rem; }
+    .mn-cta p { margin: 0 0 1rem; color: #4B5563; line-height: 1.5; }
+    .mn-cta a { display: inline-flex; align-items: center; gap: 0.5rem; background: #6366F1; color: #fff;
+        text-decoration: none; font-weight: 600; padding: 0.75rem 1.4rem; border-radius: 0.5rem; }
+    .mn-explain { margin-top: 2.5rem; color: #4B5563; line-height: 1.6; font-size: 0.95rem; }
+    .mn-explain h2 { font-size: 1.15rem; color: #1F2937; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mn-wrap">
+    <nav aria-label="fil d'ariane" style="font-size:0.85rem; color:#9CA3AF; margin-bottom:1rem;">
+        <a href="{{ url_for('index') }}" style="color:#6366F1; text-decoration:none;">Accueil</a>
+        &rsaquo; Calculateur de moyenne
+    </nav>
+
+    <h1>Calculateur de moyenne</h1>
+    <p class="mn-sub">Entre tes notes et leurs coefficients&nbsp;: ta <strong>moyenne pondérée</strong> se calcule
+       en direct. Tu peux aussi trouver <strong>la note qu'il te faut au prochain test</strong> pour atteindre une moyenne visée.</p>
+
+    <div class="mn-card">
+        <div class="mn-head"><span>Note</span><span>Coefficient</span><span></span></div>
+        <div class="mn-rows" id="rows"></div>
+        <button class="mn-btn mn-btn-add" id="btnAdd" type="button"><i class="fas fa-plus"></i> Ajouter une note</button>
+
+        <div class="mn-result">
+            <span class="mn-avg" id="avg">—</span>
+            <span class="mn-lbl">de moyenne</span>
+        </div>
+        <div class="mn-meta" id="meta"></div>
+    </div>
+
+    <div class="mn-goal">
+        <h2>🎯 Quelle note me faut-il au prochain test&nbsp;?</h2>
+        <div class="mn-goal-grid">
+            <div class="mn-field">
+                <label for="target">Moyenne visée</label>
+                <input type="number" id="target" min="1" max="6" step="0.1" value="4.5">
+            </div>
+            <div class="mn-field">
+                <label for="nextCoef">Coefficient du prochain test</label>
+                <input type="number" id="nextCoef" min="0.5" step="0.5" value="1">
+            </div>
+            <div class="mn-field">
+                <label for="maxNote">Note maximale</label>
+                <input type="number" id="maxNote" min="1" step="0.5" value="6">
+            </div>
+        </div>
+        <div class="mn-needed" id="needed"></div>
+    </div>
+
+    <div class="mn-cta">
+        <h2>Tes moyennes calculées automatiquement</h2>
+        <p>Avec ProfCalendar, saisis les notes de tes élèves et les moyennes (pondérées, par période, par branche)
+           se calculent toutes seules — fini les tableurs. <strong>30 jours de Premium offerts</strong>, sans carte bancaire.</p>
+        <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte gratuit</a>
+    </div>
+
+    <div class="mn-explain">
+        <h2>Comment calculer une moyenne pondérée&nbsp;?</h2>
+        <p>La moyenne pondérée tient compte du « poids » (coefficient) de chaque note&nbsp;:
+           <strong>moyenne = (somme des notes × leur coefficient) ÷ (somme des coefficients)</strong>.
+           Une note avec un coefficient&nbsp;2 compte donc double par rapport à une note de coefficient&nbsp;1.
+           Si toutes les notes ont le même coefficient, la moyenne pondérée est égale à la moyenne simple.</p>
+        <p>Pour savoir <strong>quelle note obtenir au prochain test</strong> afin d'atteindre une moyenne visée,
+           l'outil résout&nbsp;: <em>note nécessaire = (moyenne visée × (somme des coefficients + coefficient du prochain test)
+           − somme actuelle des notes pondérées) ÷ coefficient du prochain test</em>. Si le résultat dépasse la note
+           maximale, l'objectif n'est pas atteignable avec ce seul test.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const $ = id => document.getElementById(id);
+    const rowsHost = $('rows');
+
+    function addRow(note, coef) {
+        const div = document.createElement('div');
+        div.className = 'mn-row';
+        div.innerHTML =
+            '<input type="number" class="mn-note" inputmode="decimal" step="0.1" placeholder="ex. 5.5" />' +
+            '<input type="number" class="mn-coef" inputmode="decimal" step="0.5" min="0" placeholder="1" />' +
+            '<button type="button" class="mn-del" title="Supprimer">&times;</button>';
+        const inputs = div.querySelectorAll('input');
+        if (note !== undefined && note !== null) inputs[0].value = note;
+        inputs[1].value = (coef === undefined ? 1 : coef);
+        div.querySelector('.mn-del').addEventListener('click', () => { div.remove(); refresh(); });
+        inputs.forEach(inp => inp.addEventListener('input', refresh));
+        rowsHost.appendChild(div);
+    }
+
+    function readData() {
+        let sumWeighted = 0, sumCoef = 0, count = 0;
+        rowsHost.querySelectorAll('.mn-row').forEach(row => {
+            const note = parseFloat(row.querySelector('.mn-note').value);
+            let coef = parseFloat(row.querySelector('.mn-coef').value);
+            if (isNaN(coef)) coef = 1;
+            if (!isNaN(note) && coef > 0) { sumWeighted += note * coef; sumCoef += coef; count++; }
+        });
+        return { sumWeighted, sumCoef, count };
+    }
+
+    function fmt(n) { return (Math.round(n * 100) / 100).toString().replace('.', ','); }
+
+    function refresh() {
+        const d = readData();
+        if (d.sumCoef > 0) {
+            const avg = d.sumWeighted / d.sumCoef;
+            $('avg').textContent = fmt(avg);
+            $('meta').textContent = d.count + ' note' + (d.count > 1 ? 's' : '') +
+                ' · somme des coefficients : ' + fmt(d.sumCoef);
+        } else {
+            $('avg').textContent = '—';
+            $('meta').textContent = 'Ajoute au moins une note pour voir ta moyenne.';
+        }
+        refreshGoal(d);
+    }
+
+    function refreshGoal(d) {
+        const out = $('needed');
+        const target = parseFloat($('target').value);
+        const c = parseFloat($('nextCoef').value);
+        const maxNote = parseFloat($('maxNote').value) || 6;
+        if (isNaN(target) || isNaN(c) || c <= 0) { out.textContent = ''; return; }
+        const needed = (target * (d.sumCoef + c) - d.sumWeighted) / c;
+        if (needed <= 1 && d.sumCoef > 0) {
+            out.innerHTML = '<span class="mn-ok">C\'est déjà gagné&nbsp;: même une note basse au prochain test suffit pour viser ' + fmt(target) + '.</span>';
+        } else if (needed > maxNote) {
+            out.innerHTML = '<span class="mn-bad">Objectif hors d\'atteinte avec un seul test&nbsp;: il faudrait <b>' + fmt(needed) + '</b> (max ' + fmt(maxNote) + ').</span>';
+        } else {
+            out.innerHTML = 'Il te faut <b>' + fmt(needed) + '</b> au prochain test (coef ' + fmt(c) + ') pour atteindre <b>' + fmt(target) + '</b> de moyenne.';
+        }
+    }
+
+    $('btnAdd').addEventListener('click', () => { addRow('', 1); });
+    ['target', 'nextCoef', 'maxNote'].forEach(id => $(id).addEventListener('input', refresh));
+
+    // 3 lignes au départ
+    addRow('', 1); addRow('', 1); addRow('', 1);
+    refresh();
+})();
+</script>
+{% endblock %}

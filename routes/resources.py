@@ -70,5 +70,11 @@ def exercices_maths():
     return render_template('resources/exercices_maths.html')
 
 
+@resources_bp.route('/calculateur-moyenne', strict_slashes=False)
+def calculateur_moyenne():
+    """Outil SEO gratuit : calculateur de moyenne pondérée (+ note nécessaire)."""
+    return render_template('resources/calculateur_moyenne.html')
+
+
 def register_resources(app):
     app.register_blueprint(resources_bp)

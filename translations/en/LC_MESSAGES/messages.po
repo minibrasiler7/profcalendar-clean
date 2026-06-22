@@ -537,6 +537,9 @@ msgstr "Grading scale maker"
 msgid "Exercices de maths"
 msgstr "Math exercises"
 
+msgid "Calculateur de moyenne"
+msgstr "Grade average calculator"
+
 msgid "Conditions générales"
 msgstr "Terms of Service"
 
