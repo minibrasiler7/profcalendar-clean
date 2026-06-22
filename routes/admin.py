@@ -5,7 +5,7 @@ from routes import admin_required
 from models.user import User
 from models.subscription import Subscription
 from models.voucher import Voucher
-from datetime import datetime
+from datetime import datetime, timedelta
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -28,6 +28,19 @@ def dashboard():
     active_subscriptions = Subscription.query.filter_by(status='active').count()
     active_vouchers = Voucher.query.filter_by(is_active=True).count()
 
+    # Tunnel d'acquisition (pour piloter la croissance)
+    signups_7d = User.query.filter(User.created_at >= now - timedelta(days=7)).count()
+    signups_30d = User.query.filter(User.created_at >= now - timedelta(days=30)).count()
+    # Essais actifs ≈ premium daté encore valide, sans abonnement Stripe payant.
+    active_trials = User.query.filter(
+        User.subscription_tier == 'premium',
+        User.premium_until.isnot(None),
+        User.premium_until > now,
+        User.stripe_subscription_id.is_(None),
+    ).count()
+    # Taux de conversion : abonnés payants Stripe / inscriptions totales.
+    conversion_rate = round(active_subscriptions / total_users * 100, 1) if total_users else 0.0
+
     # Revenus mensuels estimés
     active_subs = Subscription.query.filter_by(status='active').all()
     monthly_revenue = 0
@@ -49,6 +62,10 @@ def dashboard():
                            active_subscriptions=active_subscriptions,
                            active_vouchers=active_vouchers,
                            monthly_revenue=monthly_revenue,
+                           signups_7d=signups_7d,
+                           signups_30d=signups_30d,
+                           active_trials=active_trials,
+                           conversion_rate=conversion_rate,
                            recent_subscriptions=recent_subs)
 
 
