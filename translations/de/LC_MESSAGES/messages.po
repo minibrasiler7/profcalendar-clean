@@ -822,6 +822,9 @@ msgstr "Kollegen einladen"
 msgid "1 mois offert"
 msgstr "1 Monat geschenkt"
 
+msgid "D'autres fonctionnalités (exercices, fichiers, sanctions, collaboration…) sont disponibles sur iPad et sur profcalendar.org."
+msgstr "Weitere Funktionen (Übungen, Dateien, Sanktionen, Zusammenarbeit…) sind auf dem iPad und auf profcalendar.org verfügbar."
+
 msgid "Passez à Premium"
 msgstr "Auf Premium upgraden"
 

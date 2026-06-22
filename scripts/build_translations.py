@@ -1321,6 +1321,11 @@ ENTRIES = [
      "1 mes gratis",
      "1 Monat geschenkt",
      "1 mese in regalo"),
+    ("D'autres fonctionnalités (exercices, fichiers, sanctions, collaboration…) sont disponibles sur iPad et sur profcalendar.org.",
+     "Other features (exercises, files, sanctions, collaboration…) are available on iPad and on profcalendar.org.",
+     "Otras funciones (ejercicios, archivos, sanciones, colaboración…) están disponibles en iPad y en profcalendar.org.",
+     "Weitere Funktionen (Übungen, Dateien, Sanktionen, Zusammenarbeit…) sind auf dem iPad und auf profcalendar.org verfügbar.",
+     "Altre funzionalità (esercizi, file, sanzioni, collaborazione…) sono disponibili su iPad e su profcalendar.org."),
     # --- subscription/pricing.html ---
     ("Passez à Premium",
      "Upgrade to Premium",
