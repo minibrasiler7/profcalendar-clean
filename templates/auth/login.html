@@ -64,6 +64,9 @@
         
         <div class="auth-footer">
             <p>{{ _('Pas encore de compte ?') }} <a href="{{ url_for('auth.register') }}">{{ _("Inscrivez-vous") }}</a></p>
+            {# Dans l'app Teacher native : pas de liens vers les espaces parent/
+               élève (ils ont leur application dédiée). Conservés sur le web. #}
+            {% if not is_ios_native_app %}
             <div class="platform-links">
                 <p>{{ _('Autres plateformes :') }}</p>
                 <a href="{{ url_for('parent_auth.login') }}" class="platform-link">
@@ -73,6 +76,7 @@
                     <i class="fas fa-graduation-cap"></i> {{ _('Espace Élève') }}
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
