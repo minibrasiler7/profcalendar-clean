@@ -246,6 +246,15 @@ def verify_email():
             session.pop('pending_user_type', None)
             session.pop('verification_email', None)
 
+            # Email de bienvenue / onboarding (non bloquant : send_email gère ses
+            # propres erreurs, et on isole tout échec pour ne jamais casser
+            # l'inscription). Complète les relances d'essai (services/trial_reminders).
+            try:
+                from services.onboarding_emails import send_welcome_email
+                send_welcome_email(user.email, user.username)
+            except Exception:
+                pass
+
             flash(_('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées.'),
                   'success')
             # On entre DIRECTEMENT dans l'app : la config est déjà pré-remplie
