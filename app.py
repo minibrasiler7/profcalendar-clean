@@ -1180,6 +1180,31 @@ def create_app(config_name='development'):
                                referral_url=referral_url,
                                referral_count=current_user.referral_count())
 
+    # --- Filet de sécurité schéma (parrainage) ---
+    # L'historique de ce repo a connu des `flask db upgrade` silencieusement
+    # sans effet (cf. migration merge_heads). Or le modèle User lit désormais
+    # referral_code / referred_by_id : si ces colonnes manquent, TOUTE requête
+    # User échoue (login → 500). On garantit donc leur existence au démarrage,
+    # de façon idempotente et sur la base réellement utilisée par l'app.
+    try:
+        from sqlalchemy import text
+        with app.app_context():
+            db.session.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR(12)"))
+            db.session.execute(text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_id "
+                "INTEGER REFERENCES users(id) ON DELETE SET NULL"))
+            db.session.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code "
+                "ON users (referral_code)"))
+            db.session.commit()
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        print(f"[schema-safety] colonnes parrainage: {e}", flush=True)
+
     return app
 
 # Création de l'instance par défaut (sauf si importé par render_production.py)
