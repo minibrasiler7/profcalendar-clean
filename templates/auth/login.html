@@ -205,6 +205,20 @@
 .platform-link i {
     margin-right: 0.5rem;
 }
+
+/* Petit écran (iPhone / app mobile) : on compacte la verticale pour que toute
+   la page de connexion tienne sans scroller. */
+@media (max-width: 480px), (max-height: 760px) {
+    .auth-container { margin: 1.25rem auto; padding: 0 1rem; }
+    .auth-card { padding: 1.5rem; border-radius: 0.85rem; }
+    .auth-header { margin-bottom: 1.25rem; }
+    .auth-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .auth-title { font-size: 1.5rem; }
+    .auth-form { margin-bottom: 1.25rem; }
+    .platform-links { margin-top: 1.25rem; padding-top: 1.25rem; }
+    .platform-links p { margin-bottom: 0.6rem; }
+    .platform-link { margin: 0.25rem; }
+}
 </style>
 
 <script>

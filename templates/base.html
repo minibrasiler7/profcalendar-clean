@@ -2,7 +2,18 @@
 <html lang="{{ current_locale or 'fr' }}">
 <head>
     <meta charset="UTF-8">
+    {# Dans l'app native iOS : zoom bloqué + safe-area (rendu « app mobile »).
+       Sur le web normal : zoom autorisé (accessibilité). #}
+    {% if is_ios_native_app %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <style>
+        /* Page de connexion/inscription dans l'app : on masque la barre de nav
+           web (redondante hors connexion) pour une page épurée qui tient à l'écran. */
+        {% if not current_user.is_authenticated %}.navbar { display: none !important; }{% endif %}
+    </style>
+    {% else %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% endif %}
     {# Vérification Google Search Console (méthode balise HTML). Apparaît dès que
        la variable d'env GOOGLE_SITE_VERIFICATION est définie. #}
     {% if config.get('GOOGLE_SITE_VERIFICATION') %}
