@@ -394,6 +394,19 @@
     .teacher-response .detail-label {
         color: #3b82f6;
     }
+
+    /* Mobile / app téléphone : empiler les grilles, compacter, rendre les
+       tableaux larges scrollables horizontalement plutôt que tronqués. */
+    @media (max-width: 600px) {
+        .attendance-tabs .nav-link { padding: 0.5rem 0.6rem; font-size: 0.85rem; }
+        .date-filters { grid-template-columns: 1fr; }
+        .stat-card { padding: 0.85rem; }
+        .stat-value { font-size: 1.5rem; }
+        .attendance-table { display: block; overflow-x: auto; white-space: nowrap; }
+        .attendance-table td, .attendance-table th { padding: 8px 10px; font-size: 0.85rem; }
+        .justification-header { grid-template-columns: 1fr; gap: 0.4rem; }
+        .justification-details { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
 
