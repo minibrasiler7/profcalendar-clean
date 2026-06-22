@@ -94,6 +94,46 @@ CALENDARS = {
              "note": "Fin de l'année scolaire"},
         ],
     },
+    "jura-2026-2027": {
+        "canton": "Jura",
+        "canton_slug": "jura",
+        "school_year": "2026-2027",
+        "official_url": "https://www.jura.ch/fr/Autorites/Administration/DFNS/SEN/Vacances-scolaires/Vacances-scolaires.html",
+        "source_label": "République et Canton du Jura (jura.ch)",
+        "updated": "2026-06",
+        # Source : arrêté du Gouvernement jurassien fixant les vacances 2025-2028
+        # (adopté le 10.03.2026), jura.ch — dates officielles 2026-2027.
+        "periods": [
+            {"name": "Rentrée scolaire", "start": "2026-08-17", "end": None,
+             "note": "Reprise des cours"},
+            {"name": "Vacances d'automne", "start": "2026-10-05", "end": "2026-10-16"},
+            {"name": "Vacances de Noël", "start": "2026-12-24", "end": "2027-01-08"},
+            {"name": "Relâche hivernale", "start": "2027-02-15", "end": "2027-02-19"},
+            {"name": "Vacances de Pâques", "start": "2027-03-26", "end": "2027-04-09"},
+            {"name": "Vacances d'été", "start": "2027-07-05", "end": "2027-08-13",
+             "note": "Fin de l'année scolaire"},
+        ],
+    },
+    "berne-francophone-2026-2027": {
+        "canton": "Berne (partie francophone)",
+        "canton_slug": "berne-francophone",
+        "school_year": "2026-2027",
+        "official_url": "https://www.akvb-gemeinden.bkd.be.ch/fr/start/organisation-finanzierung/schulorganisation/schulferienplanung.html",
+        "source_label": "Canton de Berne, partie francophone (be.ch)",
+        "updated": "2026-06",
+        # Source : Direction de l'instruction publique du canton de Berne,
+        # planification francophone 2025/26-2030/31 (be.ch). La « semaine blanche »
+        # (relâche de février) est fixée librement par chaque école → non listée.
+        "periods": [
+            {"name": "Rentrée scolaire", "start": "2026-08-17", "end": None,
+             "note": "Reprise des cours"},
+            {"name": "Vacances d'automne", "start": "2026-10-05", "end": "2026-10-16"},
+            {"name": "Vacances de Noël", "start": "2026-12-25", "end": "2027-01-08"},
+            {"name": "Vacances de printemps", "start": "2027-03-26", "end": "2027-04-09"},
+            {"name": "Vacances d'été", "start": "2027-07-05", "end": "2027-08-13",
+             "note": "Fin de l'année scolaire"},
+        ],
+    },
 }
 
 
