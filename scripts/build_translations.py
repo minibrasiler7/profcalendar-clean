@@ -1305,6 +1305,17 @@ ENTRIES = [
      "Planificar mis clases",
      "Meinen Unterricht planen",
      "Pianifica le mie lezioni"),
+    # --- planning/dashboard.html : parrainage ---
+    ("Inviter un collègue",
+     "Invite a colleague",
+     "Invitar a un colega",
+     "Kollegen einladen",
+     "Invita un collega"),
+    ("1 mois offert",
+     "1 month free",
+     "1 mes gratis",
+     "1 Monat geschenkt",
+     "1 mese in regalo"),
     # --- subscription/pricing.html ---
     ("Passez à Premium",
      "Upgrade to Premium",

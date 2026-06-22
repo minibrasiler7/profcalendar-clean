@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Parrainage - ProfCalendar{% endblock %}
+
+{% block content %}
+<div style="max-width: 720px; margin: 2rem auto; padding: 0 1.5rem;">
+
+    <div style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: #fff; border-radius: 1rem; padding: 2rem; text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎁</div>
+        <h1 style="margin: 0 0 0.5rem; font-size: 1.6rem;">Invite un collègue, gagne du Premium</h1>
+        <p style="margin: 0; opacity: 0.92; line-height: 1.5;">
+            Pour chaque collègue qui crée un compte via ton lien&nbsp;: il démarre avec
+            <strong>60&nbsp;jours d'essai</strong> (au lieu de 30) et tu reçois
+            <strong>1&nbsp;mois de Premium offert</strong>.
+        </p>
+    </div>
+
+    <!-- Lien de parrainage -->
+    <div style="background: #fff; border: 1px solid #E5E7EB; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+        <label style="display:block; font-weight:600; color:#374151; margin-bottom:0.5rem;">Ton lien de parrainage</label>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <input id="refLink" type="text" readonly value="{{ referral_url }}"
+                   style="flex:1; min-width:220px; padding:0.7rem 0.9rem; border:1px solid #D1D5DB; border-radius:0.5rem; font-size:0.95rem; background:#F9FAFB; color:#1F2937;">
+            <button id="copyBtn" onclick="copyRefLink()"
+                    style="background:#4F46E5; color:#fff; border:none; border-radius:0.5rem; padding:0.7rem 1.25rem; font-weight:600; cursor:pointer; white-space:nowrap;">
+                <i class="fas fa-copy"></i> Copier
+            </button>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+            <a id="shareEmail" href="#" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border:1px solid #D1D5DB; border-radius:0.5rem; color:#374151; text-decoration:none; font-weight:500;">
+                <i class="fas fa-envelope"></i> Partager par email
+            </a>
+            <a id="shareWhatsApp" href="#" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1rem; border:1px solid #D1D5DB; border-radius:0.5rem; color:#374151; text-decoration:none; font-weight:500;">
+                <i class="fab fa-whatsapp"></i> Partager sur WhatsApp
+            </a>
+        </div>
+    </div>
+
+    <!-- Suivi -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem;">
+        <div style="background:#fff; border:1px solid #E5E7EB; border-radius:0.75rem; padding:1.5rem; text-align:center;">
+            <div style="font-size:2rem; font-weight:700; color:#4F46E5;">{{ referral_count }}</div>
+            <div style="color:#6B7280;">Collègues inscrits</div>
+        </div>
+        <div style="background:#fff; border:1px solid #E5E7EB; border-radius:0.75rem; padding:1.5rem; text-align:center;">
+            <div style="font-size:2rem; font-weight:700; color:#10B981;">{{ referral_count }}</div>
+            <div style="color:#6B7280;">Mois de Premium gagnés</div>
+        </div>
+    </div>
+
+    <p style="color:#9CA3AF; font-size:0.85rem; margin-top:1.5rem; text-align:center;">
+        Le mois offert est crédité dès que ton collègue vérifie son adresse email.
+    </p>
+</div>
+
+<script>
+(function() {
+    var url = {{ referral_url|tojson }};
+    var msg = "Je te recommande ProfCalendar pour planifier les cours, gérer notes et présences (avec annotation Apple Pencil sur iPad). Avec mon lien tu as 60 jours d'essai : " + url;
+    var emailLink = document.getElementById('shareEmail');
+    if (emailLink) emailLink.href = "mailto:?subject=" + encodeURIComponent("ProfCalendar — 60 jours d'essai offerts") + "&body=" + encodeURIComponent(msg);
+    var waLink = document.getElementById('shareWhatsApp');
+    if (waLink) waLink.href = "https://wa.me/?text=" + encodeURIComponent(msg);
+})();
+
+function copyRefLink() {
+    var input = document.getElementById('refLink');
+    var btn = document.getElementById('copyBtn');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    var done = function() {
+        btn.innerHTML = '<i class="fas fa-check"></i> Copié !';
+        setTimeout(function(){ btn.innerHTML = '<i class="fas fa-copy"></i> Copier'; }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value).then(done).catch(function(){ document.execCommand('copy'); done(); });
+    } else {
+        document.execCommand('copy'); done();
+    }
+}
+</script>
+{% endblock %}

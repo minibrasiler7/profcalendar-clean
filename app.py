@@ -75,6 +75,14 @@ def create_app(config_name='development'):
             'current_locale': str(_babel_get_locale() or 'fr'),
         }
 
+    @app.before_request
+    def _capture_referral_code():
+        """Parrainage : mémorise un code (?ref=CODE) en session pour l'appliquer
+        à l'inscription. Ignoré si l'utilisateur est déjà connecté."""
+        code = request.args.get('ref')
+        if code and not current_user.is_authenticated:
+            session['ref_code'] = code.strip()[:12]
+
     @app.route('/set-language/<lang>')
     def set_language(lang):
         """Sélecteur de langue manuel : mémorise le choix en session
@@ -1157,6 +1165,19 @@ def create_app(config_name='development'):
     @app.route('/support')
     def support_page():
         return render_template('legal/support.html')
+
+    @app.route('/parrainage')
+    @login_required
+    def referral():
+        """Page de parrainage « invite un collègue » : lien de partage + suivi.
+        Réservée aux enseignants."""
+        if not isinstance(current_user, User):
+            return redirect(url_for('index'))
+        code = current_user.ensure_referral_code()
+        referral_url = request.url_root.rstrip('/') + '/?ref=' + code
+        return render_template('referral.html',
+                               referral_url=referral_url,
+                               referral_count=current_user.referral_count())
 
     return app
 

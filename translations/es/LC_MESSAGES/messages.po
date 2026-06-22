@@ -813,6 +813,12 @@ msgstr "¡Empieza a planificar tus clases ahora mismo!"
 msgid "Planifier mes cours"
 msgstr "Planificar mis clases"
 
+msgid "Inviter un collègue"
+msgstr "Invitar a un colega"
+
+msgid "1 mois offert"
+msgstr "1 mes gratis"
+
 msgid "Passez à Premium"
 msgstr "Pásate a Premium"
 

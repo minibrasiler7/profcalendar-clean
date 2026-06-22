@@ -174,8 +174,17 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        # Essai gratuit : 30 jours de Premium offerts à l'inscription
-        user.grant_premium_access(days=30)
+        # Essai gratuit : 30 jours de Premium offerts à l'inscription — ou 60
+        # si le prof vient d'un lien de parrainage. On relie alors le filleul au
+        # parrain ; le parrain est récompensé (+30 j) à la vérification email du
+        # filleul (voir verify_email), pas avant, pour éviter les faux comptes.
+        ref_code = session.pop('ref_code', None)
+        referrer = User.query.filter_by(referral_code=ref_code).first() if ref_code else None
+        if referrer and referrer.id != user.id:
+            user.referred_by_id = referrer.id
+            user.grant_premium_access(days=60)
+        else:
+            user.grant_premium_access(days=30)
 
         # Créer automatiquement un code d'accès par défaut pour les enseignants spécialisés
         from models.class_collaboration import TeacherAccessCode
@@ -254,6 +263,17 @@ def verify_email():
                 send_welcome_email(user.email, user.username)
             except Exception:
                 pass
+
+            # Parrainage : récompenser le parrain (+30 j de Premium) maintenant
+            # que le filleul a confirmé son email. Une seule fois (verify-success
+            # ne se produit qu'une fois par compte).
+            if user.referred_by_id:
+                try:
+                    referrer = User.query.get(user.referred_by_id)
+                    if referrer:
+                        referrer.add_premium_days(30)
+                except Exception:
+                    pass
 
             flash(_('Bienvenue sur ProfCalendar ! 🎉 Tu profites de 30 jours de Premium offerts — toutes les fonctionnalités débloquées.'),
                   'success')

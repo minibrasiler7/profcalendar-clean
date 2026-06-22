@@ -27,6 +27,11 @@ class User(UserMixin, db.Model):
     # 2=J-1 envoyée, 3=email d'expiration envoyé. Évite les doublons.
     trial_reminder_stage = db.Column(db.Integer, default=0)
 
+    # Parrainage « invite un collègue » : code de partage de CE prof + qui l'a
+    # parrainé. Récompense gérée côté code (filleul 60 j, parrain +30 j).
+    referral_code = db.Column(db.String(12), unique=True, index=True, nullable=True)
+    referred_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
     # Configuration initiale
     setup_completed = db.Column(db.Boolean, default=False)  # Configuration de base complétée
     schedule_completed = db.Column(db.Boolean, default=False)  # Horaire type complété
@@ -105,6 +110,33 @@ class User(UserMixin, db.Model):
         self.premium_until = None
         self.stripe_subscription_id = None
         db.session.commit()
+
+    def add_premium_days(self, days):
+        """Ajoute N jours de Premium à partir de max(maintenant, premium_until).
+        Utilisé pour la récompense de parrainage (+30 j au parrain)."""
+        from datetime import timedelta
+        now = datetime.utcnow()
+        base = self.premium_until if (self.premium_until and self.premium_until > now) else now
+        self.subscription_tier = 'premium'
+        self.premium_until = base + timedelta(days=days)
+        db.session.commit()
+
+    def ensure_referral_code(self):
+        """Génère (et persiste) un code de parrainage unique si absent."""
+        if not self.referral_code:
+            import secrets
+            alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'  # sans 0,1,O,I ambigus
+            for _ in range(12):
+                code = ''.join(secrets.choice(alphabet) for _ in range(8))
+                if not User.query.filter_by(referral_code=code).first():
+                    self.referral_code = code
+                    db.session.commit()
+                    break
+        return self.referral_code
+
+    def referral_count(self):
+        """Nombre de filleuls dont l'email est vérifié (parrainages validés)."""
+        return User.query.filter_by(referred_by_id=self.id, email_verified=True).count()
 
     def apply_smart_defaults(self):
         """Pré-remplit la configuration avec des valeurs par défaut (marché
