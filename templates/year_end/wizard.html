@@ -569,31 +569,9 @@
             <i class="fas fa-umbrella-beach" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 1rem; display: block;"></i>
             <h2>Vacances scolaires</h2>
             <p class="section-desc">
-                Que souhaitez-vous faire avec les périodes de vacances ?
+                Les périodes de vacances de l'année écoulée seront <strong>supprimées</strong>.
+                Vous configurerez vos nouvelles vacances juste après la clôture, sur la page dédiée.
             </p>
-
-            <div class="action-options" style="flex-direction: column;">
-                <div class="action-option">
-                    <input type="radio" name="holiday_action" value="shift" id="holiday_shift">
-                    <label for="holiday_shift">
-                        <i class="fas fa-calendar-plus" style="color: var(--primary-color);"></i>
-                        <div>
-                            <strong>Décaler d'un an</strong>
-                            <br><small style="color: var(--gray-color);">Les mêmes vacances sont reportées à l'année suivante. Vous pourrez les ajuster ensuite.</small>
-                        </div>
-                    </label>
-                </div>
-                <div class="action-option">
-                    <input type="radio" name="holiday_action" value="clear" id="holiday_clear" checked>
-                    <label for="holiday_clear">
-                        <i class="fas fa-eraser" style="color: var(--warning-color);"></i>
-                        <div>
-                            <strong>Effacer et reconfigurer</strong>
-                            <br><small style="color: var(--gray-color);">Supprimer les vacances actuelles. Vous les reconfigurerez dans les paramètres.</small>
-                        </div>
-                    </label>
-                </div>
-            </div>
         </div>
 
         <div class="wizard-buttons">
@@ -623,11 +601,7 @@
             <h3 style="margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> Nouvelles dates</h3>
             <p style="margin-bottom: 1.5rem;">
                 Du <strong>{{ new_start }}</strong> au <strong>{{ new_end }}</strong>
-                {% if holiday_action == 'shift' %}
-                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront décalées d'un an.</small>
-                {% else %}
-                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront supprimées (à reconfigurer).</small>
-                {% endif %}
+                <br><small style="color: var(--gray-color);"><i class="fas fa-info-circle"></i> Les vacances seront supprimées (à reconfigurer juste après).</small>
             </p>
 
             <!-- Actions par classe -->

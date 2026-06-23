@@ -505,7 +505,9 @@ def execute():
     try:
         new_start = date.fromisoformat(dates_info['start'])
         new_end = date.fromisoformat(dates_info['end'])
-        holiday_action = dates_info.get('holiday_action', 'clear')
+        # Les vacances de l'année écoulée sont toujours supprimées à la clôture
+        # (l'enseignant reconfigure ses nouvelles vacances sur /setup/holidays juste après).
+        holiday_action = 'clear'
 
         from services.year_end_cleanup import execute_year_end_cleanup
         summary = execute_year_end_cleanup(
@@ -526,10 +528,10 @@ def execute():
             f'{summary["attendance_deleted"]} présences supprimées, '
             f'{summary["classes_deleted"]} classes supprimées, '
             f'{summary["classes_renamed"]} classes renommées. '
-            f'Vous pouvez maintenant configurer vos nouvelles classes.',
+            f'Configurez maintenant vos nouvelles vacances scolaires.',
             'success'
         )
-        return redirect(url_for('setup.manage_classrooms'))
+        return redirect(url_for('setup.manage_holidays'))
 
     except Exception as e:
         db.session.rollback()
