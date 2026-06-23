@@ -29,6 +29,9 @@ def _delete_student_dependencies(student_ids):
     from models.class_collaboration import StudentClassroomLink
     from models.parent import ParentChild
     from models.student_access_code import StudentAccessCode
+    from models.rpg import StudentRPGProfile, StudentBadge, StudentItem
+    from models.combat import CombatParticipant
+    from models.exercise_progress import StudentExerciseAttempt, StudentBlockAnswer
 
     # Supprimer toutes les tables avec FK vers students
     Attendance.query.filter(Attendance.student_id.in_(student_ids)).delete(synchronize_session='fetch')
@@ -47,6 +50,20 @@ def _delete_student_dependencies(student_ids):
     ParentChild.query.filter(ParentChild.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentAccessCode.query.filter(StudentAccessCode.student_id.in_(student_ids)).delete(synchronize_session='fetch')
     StudentFile.query.filter(StudentFile.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+
+    # Système RPG / combat / exercices (FK vers students, sans ON DELETE CASCADE en base).
+    # student_block_answers dépend de student_exercise_attempts → supprimer les réponses d'abord.
+    attempt_ids = [a.id for a in StudentExerciseAttempt.query.filter(
+        StudentExerciseAttempt.student_id.in_(student_ids)).all()]
+    if attempt_ids:
+        StudentBlockAnswer.query.filter(
+            StudentBlockAnswer.attempt_id.in_(attempt_ids)
+        ).delete(synchronize_session='fetch')
+    StudentExerciseAttempt.query.filter(StudentExerciseAttempt.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentRPGProfile.query.filter(StudentRPGProfile.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentBadge.query.filter(StudentBadge.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    StudentItem.query.filter(StudentItem.student_id.in_(student_ids)).delete(synchronize_session='fetch')
+    CombatParticipant.query.filter(CombatParticipant.student_id.in_(student_ids)).delete(synchronize_session='fetch')
 
 
 def _delete_classroom_dependencies(classroom_id):
@@ -74,6 +91,9 @@ def _delete_classroom_dependencies(classroom_id):
     from models.file_manager import FileShare
     from models.mixed_group import MixedGroup
     from models.user_preferences import UserSanctionPreferences
+    from models.combat import CombatSession, CombatParticipant, CombatMonster
+    from models.exercise_progress import ExercisePublication, StudentExerciseAttempt, StudentBlockAnswer
+    from models.exercise import Exercise
 
     # --- 1. Gérer la chaîne de collaboration ---
     # Si cette classe est une classe originale (maître de classe),
@@ -176,6 +196,38 @@ def _delete_classroom_dependencies(classroom_id):
 
     # ClassMaster a ondelete='CASCADE' mais on le supprime explicitement par sécurité
     ClassMaster.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
+
+    # --- 4. Système combat (combat_sessions a une FK NOT NULL vers classrooms) ---
+    combat_session_ids = [s.id for s in CombatSession.query.filter_by(classroom_id=classroom_id).all()]
+    if combat_session_ids:
+        CombatParticipant.query.filter(
+            CombatParticipant.combat_session_id.in_(combat_session_ids)
+        ).delete(synchronize_session='fetch')
+        CombatMonster.query.filter(
+            CombatMonster.combat_session_id.in_(combat_session_ids)
+        ).delete(synchronize_session='fetch')
+        CombatSession.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
+
+    # --- 5. Publications d'exercices (FK NOT NULL vers classrooms) ---
+    # On supprime les publications et leurs tentatives, mais on CONSERVE les exercices
+    # eux-mêmes (classroom_id est nullable) : ils restent dans la bibliothèque de l'enseignant.
+    pub_ids = [p.id for p in ExercisePublication.query.filter_by(classroom_id=classroom_id).all()]
+    if pub_ids:
+        pub_attempt_ids = [a.id for a in StudentExerciseAttempt.query.filter(
+            StudentExerciseAttempt.publication_id.in_(pub_ids)).all()]
+        if pub_attempt_ids:
+            StudentBlockAnswer.query.filter(
+                StudentBlockAnswer.attempt_id.in_(pub_attempt_ids)
+            ).delete(synchronize_session='fetch')
+            StudentExerciseAttempt.query.filter(
+                StudentExerciseAttempt.id.in_(pub_attempt_ids)
+            ).delete(synchronize_session='fetch')
+        ExercisePublication.query.filter_by(classroom_id=classroom_id).delete(synchronize_session='fetch')
+
+    # Détacher les exercices de la classe (classroom_id nullable) — conserver le contenu créé.
+    Exercise.query.filter_by(classroom_id=classroom_id).update(
+        {'classroom_id': None}, synchronize_session='fetch'
+    )
 
 
 def get_classroom_collaboration_info(classroom_id):
