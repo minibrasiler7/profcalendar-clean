@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Dessin natif Canvas optimisé - pas de dépendance externe -->
 <!-- Lecteur PDF unifié (inclut les styles pour clean-pdf-viewer) -->
-<link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}">
+<!-- cache_bust régénéré à chaque rendu (page en no-store) pour que la
+     WKWebView de l'app ne resserve jamais un ancien CSS en cache. -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}?v=1&cache_bust={{ range(1000000, 9999999) | random }}">
 <script>
 // Configuration du worker PDF.js
 if (typeof pdfjsLib !== 'undefined') {
