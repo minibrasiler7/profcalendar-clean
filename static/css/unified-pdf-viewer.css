@@ -64,7 +64,12 @@
     
     /* Z-index */
     --z-dropdown: 1000;
-    --z-sticky: 1020;
+    /* --z-sticky volontairement NON redéfini ici : c'est un token PARTAGÉ
+       avec style.css où la navbar vaut var(--z-sticky)=1050. Le forcer à 1020
+       (ce :root écrase le global) faisait passer la navbar SOUS l'overlay du
+       menu burger (z-index 1045) → menu déroulant grisé et non cliquable sur
+       toutes les pages chargeant ce CSS (leçon, calendrier). Cette variable
+       n'est d'ailleurs jamais utilisée dans ce fichier. */
     --z-fixed: 1030;
     --z-modal-backdrop: 1040;
     --z-modal: 1050;
