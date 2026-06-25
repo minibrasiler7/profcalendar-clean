@@ -184,22 +184,63 @@
         <p>Les périodes de vacances seront automatiquement exclues de votre planification. Vous pouvez ajouter toutes les vacances scolaires et jours fériés.</p>
     </div>
 
-    <!-- Import automatique des vacances vaudoises -->
-    {% if current_user.school_year_start %}
+    <!-- Import automatique par canton et année scolaire -->
     <div class="import-section">
-        <h3><i class="fas fa-download"></i> Import rapide</h3>
-        <p>Importez automatiquement les vacances scolaires du canton de Vaud pour votre année scolaire.</p>
-        <form method="POST" action="{{ url_for('setup.import_vaud_holidays') }}" style="display: flex; gap: 1rem; align-items: center;">
-            <label class="checkbox-group" style="margin: 0;">
+        <h3><i class="fas fa-download"></i> Import rapide par canton</h3>
+        <p>Choisissez votre <strong>canton</strong> et votre <strong>année scolaire</strong> : les vacances et les jours fériés cantonaux sont remplis automatiquement (dates officielles vérifiées).</p>
+        <form method="POST" action="{{ url_for('setup.import_holidays') }}">
+            <div class="import-row">
+                <div class="import-field">
+                    <label class="form-label" for="importCanton">Canton / région</label>
+                    <select name="canton" id="importCanton" class="form-control">
+                        {% for c in import_cantons %}
+                        <option value="{{ c.slug }}">{{ c.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="import-field">
+                    <label class="form-label" for="importYear">Année scolaire</label>
+                    <select name="school_year" id="importYear" class="form-control"></select>
+                </div>
+            </div>
+            <label class="checkbox-group" style="margin: 0.75rem 0 0;">
+                <input type="checkbox" name="include_feries" value="true" checked>
+                <span>Inclure les jours fériés cantonaux (Ascension, Pentecôte, Jeûne, Fête-Dieu…)</span>
+            </label>
+            <label class="checkbox-group" style="margin: 0.5rem 0 1rem;">
                 <input type="checkbox" name="replace_existing" value="true">
                 <span>Remplacer les vacances existantes</span>
             </label>
             <button type="submit" class="btn btn-secondary">
-                <i class="fas fa-magic"></i> Importer les vacances vaudoises
+                <i class="fas fa-magic"></i> Importer les vacances
             </button>
         </form>
     </div>
-    {% endif %}
+    <script>
+        (function () {
+            var YBC = {{ import_years_by_canton|tojson }};
+            var defYear = {{ import_default_year|tojson }};
+            var cantonSel = document.getElementById('importCanton');
+            var yearSel = document.getElementById('importYear');
+            function fillYears() {
+                var ys = (YBC[cantonSel.value] || []).slice().reverse();
+                yearSel.innerHTML = '';
+                ys.forEach(function (y) {
+                    var o = document.createElement('option');
+                    o.value = y; o.textContent = y;
+                    if (y === defYear) o.selected = true;
+                    yearSel.appendChild(o);
+                });
+            }
+            cantonSel.addEventListener('change', fillYears);
+            fillYears();
+        })();
+    </script>
+    <style>
+        .import-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .import-field { flex: 1; min-width: 160px; }
+        .import-field .form-label { display: block; margin-bottom: 0.35rem; }
+    </style>
 
     <!-- Formulaire d'ajout de vacances -->
     <div class="add-classroom-section">

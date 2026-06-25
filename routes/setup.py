@@ -12,6 +12,10 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.vaud_holidays import get_vaud_holidays
+from data.cantonal_holidays import (
+    get_import_periods, available_cantons, years_by_canton,
+    default_school_year, canton_label, VACATIONS,
+)
 
 # ========================================
 # NOUVEAU SYSTÈME DE COLLABORATION SIMPLE
@@ -2987,7 +2991,12 @@ def manage_holidays():
 
     holidays = current_user.holidays.all()
     form = HolidayForm()
-    return render_template('setup/manage_holidays.html', holidays=holidays, form=form)
+    return render_template(
+        'setup/manage_holidays.html', holidays=holidays, form=form,
+        import_cantons=available_cantons(),
+        import_years_by_canton=years_by_canton(),
+        import_default_year=default_school_year(current_user.school_year_start),
+    )
 
 @setup_bp.route('/holidays/<int:id>/delete', methods=['POST'])
 @login_required
@@ -3111,6 +3120,63 @@ def import_vaud_holidays():
     try:
         db.session.commit()
         flash(f'{len(holidays)} périodes de vacances importées avec succès !', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erreur lors de l\'import : {str(e)}', 'error')
+
+    return redirect(url_for('setup.manage_holidays'))
+
+
+@setup_bp.route('/holidays/import', methods=['POST'])
+@login_required
+def import_holidays():
+    """Importe les vacances + jours fériés d'un canton pour une année scolaire choisie."""
+    canton = request.form.get('canton', 'vaud')
+    school_year = request.form.get('school_year', '')
+    include_feries = request.form.get('include_feries') == 'true'
+
+    if canton not in VACATIONS or school_year not in VACATIONS.get(canton, {}):
+        flash('Sélection de canton ou d\'année scolaire invalide.', 'warning')
+        return redirect(url_for('setup.manage_holidays'))
+
+    periods = get_import_periods(canton, school_year, include_feries)
+    if not periods:
+        flash('Aucune donnée de vacances disponible pour cette sélection.', 'warning')
+        return redirect(url_for('setup.manage_holidays'))
+
+    if request.form.get('replace_existing') == 'true':
+        Holiday.query.filter_by(user_id=current_user.id).delete()
+        db.session.flush()
+
+    college = None
+    if current_user.college_name:
+        college = College.query.filter_by(name=current_user.college_name).first()
+
+    added = 0
+    for p in periods:
+        existing = Holiday.query.filter_by(
+            user_id=current_user.id, name=p['name'], start_date=p['start']
+        ).first()
+        if existing:
+            continue
+        db.session.add(Holiday(
+            user_id=current_user.id, name=p['name'],
+            start_date=p['start'], end_date=p['end']
+        ))
+        added += 1
+        if college and current_user.id == college.created_by_id:
+            ch_existing = CollegeHoliday.query.filter_by(
+                college_id=college.id, name=p['name'], start_date=p['start']
+            ).first()
+            if not ch_existing:
+                db.session.add(CollegeHoliday(
+                    college_id=college.id, name=p['name'],
+                    start_date=p['start'], end_date=p['end']
+                ))
+
+    try:
+        db.session.commit()
+        flash(f'{added} période(s) importée(s) — {canton_label(canton)}, {school_year}.', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erreur lors de l\'import : {str(e)}', 'error')
