@@ -1610,6 +1610,44 @@ if (typeof pdfjsLib !== 'undefined') {
 .file-item.blank-sheet .file-icon {
     color: #f59e0b;
 }
+
+{% if is_ios_native_app %}
+/* ============================================================================
+   LECTEUR PDF SIMPLIFIÉ — iPhone (app iOS, écran ≤ 600px) — page Calendrier.
+   Même logique que la page Leçon : pas de barre latérale ni d'outils. En plus,
+   le split 50% (inutilisable sur iPhone) passe en plein écran. Placé APRÈS la
+   règle width:50% (l.~1308) → l'ordre source + !important font gagner ce bloc
+   (et !important bat le style inline width:50% du conteneur).
+   iPad (≥744px, PencilKit) et web non touchés. ============================== */
+@media (max-width: 600px) {
+    /* Split 50% → plein écran */
+    #pdf-viewer-container-calendar,
+    #pdf-viewer-container-day { width: 100% !important; }
+
+    /* Barre latérale (vignettes) masquée */
+    #pdf-viewer-container-calendar .pdf-sidebar,
+    #pdf-viewer-container-day .pdf-sidebar { display: none !important; }
+
+    /* Outils de dessin + sélecteurs couleur/taille + mini-barre flottante */
+    .clean-pdf-viewer .toolbar-left,
+    .clean-pdf-viewer .toolbar-center,
+    .clean-pdf-viewer #pdf-mini-toolbar { display: none !important; }
+
+    /* Actions d'annotation (annuler/rétablir/effacer/télécharger) masquées.
+       On GARDE uniquement le bouton Fermer (#btn-close). */
+    .clean-pdf-viewer #btn-undo,
+    .clean-pdf-viewer #btn-redo,
+    .clean-pdf-viewer #btn-clear-page,
+    .clean-pdf-viewer #btn-download,
+    .clean-pdf-viewer .toolbar-right .separator { display: none !important; }
+
+    /* La barre ne contient plus que la croix → alignée à droite, tap confortable */
+    .clean-pdf-viewer .pdf-toolbar { justify-content: flex-end !important; }
+    .clean-pdf-viewer #btn-close {
+        width: 40px !important; height: 40px !important; font-size: 18px !important;
+    }
+}
+{% endif %}
 </style>
 {% endblock %}
 
