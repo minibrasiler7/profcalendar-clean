@@ -315,6 +315,7 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
     from models.mixed_group import MixedGroup, MixedGroupStudent
     from models.user import Holiday
     from models.schedule import Schedule
+    from models.class_file import ClassFile, ClassFolder
 
     summary = {
         'plannings_deleted': 0,
@@ -419,6 +420,20 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
                 DecoupageAssignment.classroom_id.in_(classroom_ids)
             ).delete(synchronize_session='fetch')
 
+        # Horaires (Schedule) — remis à zéro pour la nouvelle année (classes + groupes
+        # mixtes). Sinon la vue annuelle du calendrier garde les "cases actives" des
+        # classes conservées (has_schedule reste vrai même sans planning).
+        Schedule.query.filter_by(user_id=user.id).delete(synchronize_session='fetch')
+
+        # Fichiers et dossiers de classe — retirés (y compris des classes conservées).
+        if classroom_ids:
+            ClassFile.query.filter(
+                ClassFile.classroom_id.in_(classroom_ids)
+            ).delete(synchronize_session='fetch')
+            ClassFolder.query.filter(
+                ClassFolder.classroom_id.in_(classroom_ids)
+            ).delete(synchronize_session='fetch')
+
         # =========================================================
         # 2. Gérer les classes selon les choix de l'utilisateur
         # =========================================================
@@ -455,6 +470,12 @@ def execute_year_end_cleanup(user, class_actions, new_year_start, new_year_end, 
             elif action == 'rename':
                 new_name = action_info.get('new_name', classroom.name)
                 classroom.name = new_name
+                # Recalculer class_group (clé de regroupement des classes dans l'app,
+                # ex. page manage-classes) avec la même règle qu'à la création :
+                # la partie du nom située avant le tiret.
+                import re
+                m = re.match(r'^([^-]+?)(?:\s*-\s*.*)?$', new_name.strip())
+                classroom.class_group = m.group(1).strip() if m else new_name
                 summary['classes_renamed'] += 1
                 # Vider les groupes d'élèves (les compositions changent)
                 groups = StudentGroup.query.filter_by(classroom_id=classroom.id).all()
