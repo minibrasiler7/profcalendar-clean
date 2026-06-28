@@ -7,6 +7,7 @@ import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import GradeCard from '../../components/GradeCard';
 import RemarkCard from '../../components/RemarkCard';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 import colors from '../../theme/colors';
 
 export default function DashboardScreen({ navigation }) {
@@ -14,6 +15,7 @@ export default function DashboardScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -54,9 +56,14 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.greeting}>Bonjour, {user?.first_name} !</Text>
           <Text style={styles.classroom}>{data?.student?.classroom || ''}</Text>
         </View>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setShowDelete(true)} style={styles.logoutBtn}>
+            <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+            <Ionicons name="log-out-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stats rapides */}
@@ -101,6 +108,8 @@ export default function DashboardScreen({ navigation }) {
       )}
 
       <View style={{ height: 32 }} />
+
+      <DeleteAccountModal visible={showDelete} onClose={() => setShowDelete(false)} />
     </ScrollView>
   );
 }
@@ -114,6 +123,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 22, fontWeight: '800', color: colors.text },
   classroom: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
   logoutBtn: { padding: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 16 },
   statCard: {
     flex: 1, backgroundColor: colors.surface, borderRadius: 14, padding: 14,

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 import colors from '../../theme/colors';
 
 export default function MoreScreen({ navigation }) {
   const { logout } = useAuth();
+  const [showDelete, setShowDelete] = useState(false);
 
   const items = [
     { icon: 'person-add', label: 'Ajouter un enfant', screen: 'AddChild', color: colors.success || '#22C55E' },
@@ -36,6 +38,13 @@ export default function MoreScreen({ navigation }) {
         <Ionicons name="log-out-outline" size={22} color={colors.error} />
         <Text style={styles.logoutText}>Se déconnecter</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.deleteRow} onPress={() => setShowDelete(true)}>
+        <Ionicons name="trash-outline" size={20} color={colors.error} />
+        <Text style={styles.deleteText}>Supprimer mon compte</Text>
+      </TouchableOpacity>
+
+      <DeleteAccountModal visible={showDelete} onClose={() => setShowDelete(false)} />
     </ScrollView>
   );
 }
@@ -58,4 +67,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16, gap: 8,
   },
   logoutText: { fontSize: 15, fontWeight: '600', color: colors.error },
+  deleteRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, gap: 6,
+  },
+  deleteText: {
+    fontSize: 14, fontWeight: '600', color: colors.error, textDecorationLine: 'underline',
+  },
 });

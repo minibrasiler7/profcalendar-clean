@@ -337,6 +337,15 @@ def create_app(config_name='development'):
     except ImportError as e:
         print(f"❌ Commande check-users non chargée : {e}")
 
+    # Commande CLI pour (re)créer les comptes démo App Store (élève + parent
+    # pré-vérifiés). Usage côté Render shell : flask create-apple-demo
+    try:
+        from commands.apple_demo import register_apple_demo_command
+        register_apple_demo_command(app)
+        print("✅ Commande create-apple-demo enregistrée")
+    except ImportError as e:
+        print(f"❌ Commande create-apple-demo non chargée : {e}")
+
     # Commandes CLI pour préparer/restaurer un compte démo Premium expiré
     # (utile pour Apple App Review qui veut tester le flux post-expiration).
     # Usage : flask demo-expire-premium <email> [--days-ago N]

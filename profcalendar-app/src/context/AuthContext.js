@@ -91,9 +91,20 @@ export function AuthProvider({ children }) {
     setUserType(null);
   };
 
+  // Suppression de compte (exigence App Store 5.1.1).
+  // Lève une erreur si le mot de passe est incorrect (gérée par l'appelant) ;
+  // en cas de succès, déconnecte et nettoie le stockage local.
+  const deleteAccount = async (password) => {
+    const endpoint = userType === 'student'
+      ? '/auth/student/delete-account'
+      : '/auth/parent/delete-account';
+    await api.post(endpoint, { password });
+    await logout();
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, userType, token, loading, login, register, verifyEmail, updateUser, logout }}
+      value={{ user, userType, token, loading, login, register, verifyEmail, updateUser, logout, deleteAccount }}
     >
       {children}
     </AuthContext.Provider>

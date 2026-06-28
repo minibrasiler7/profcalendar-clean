@@ -563,6 +563,55 @@ def parent_link_child():
     return jsonify({'success': True, 'message': msg, 'children_linked': children_linked})
 
 
+@api_bp.route('/auth/student/delete-account', methods=['POST'])
+@jwt_required(user_type='student')
+def student_delete_account():
+    """Suppression du compte élève (App Store Guideline 5.1.1) : révocation d'accès.
+    On efface les identifiants de connexion ; la fiche élève (nom, classe, notes)
+    reste, gérée par l'enseignant responsable. L'élève ne peut plus se connecter."""
+    from werkzeug.security import check_password_hash
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Compte introuvable'}), 404
+
+    data = request.get_json(silent=True) or {}
+    password = data.get('password', '')
+    if not student.password_hash or not check_password_hash(student.password_hash, password):
+        return jsonify({'error': 'Mot de passe incorrect'}), 403
+
+    student.email = None
+    student.email_hash = None
+    student.password_hash = None
+    student.email_verified = False
+    student.is_authenticated = False
+    student.last_login = None
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Votre compte a été supprimé.'}), 200
+
+
+@api_bp.route('/auth/parent/delete-account', methods=['POST'])
+@jwt_required(user_type='parent')
+def parent_delete_account():
+    """Suppression complète du compte parent (App Store Guideline 5.1.1) :
+    supprime le parent et ses liens enfants (ParentChild)."""
+    parent = _get_current_parent()
+    if not parent:
+        return jsonify({'error': 'Compte introuvable'}), 404
+
+    data = request.get_json(silent=True) or {}
+    password = data.get('password', '')
+    if not parent.check_password(password):
+        return jsonify({'error': 'Mot de passe incorrect'}), 403
+
+    from models.parent import ParentChild
+    ParentChild.query.filter_by(parent_id=parent.id).delete(synchronize_session='fetch')
+    db.session.delete(parent)
+    db.session.commit()
+
+    return jsonify({'success': True, 'message': 'Votre compte a été supprimé.'}), 200
+
+
 # ═══════════════════════════════════════════════════════════════════
 #                       STUDENT ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════
