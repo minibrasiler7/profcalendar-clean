@@ -1131,8 +1131,8 @@ def create_app(config_name='development'):
             (base + '/ressources/calculateur-moyenne', 'monthly', '0.8'),
         ]
         try:
-            from data.school_calendars import list_calendars
-            for slug, _cal in list_calendars():
+            from data.cantonal_holidays import seo_list
+            for slug, _cal in seo_list():
                 urls.append((base + '/ressources/calendrier-scolaire/' + slug,
                              'monthly', '0.8'))
         except Exception:

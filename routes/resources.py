@@ -10,7 +10,9 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, abort
 
-from data.school_calendars import get_calendar, list_calendars
+from data.cantonal_holidays import (
+    seo_calendar, seo_list, available_years, VACATIONS, CANTON_META, CANTON_ORDER,
+)
 
 resources_bp = Blueprint('resources', __name__, url_prefix='/ressources')
 
@@ -29,33 +31,74 @@ def _fr_date(iso):
 
 
 def _enrich(cal):
-    """Ajoute des libellés FR aux périodes pour l'affichage."""
+    """Ajoute des libellés FR aux périodes et jours fériés pour l'affichage."""
     enriched = dict(cal)
-    periods = []
-    for p in cal['periods']:
-        q = dict(p)
-        q['start_fr'] = _fr_date(p['start'])
-        q['end_fr'] = _fr_date(p.get('end'))
-        periods.append(q)
-    enriched['periods'] = periods
+    enriched['periods'] = [dict(p, start_fr=_fr_date(p['start']),
+                                end_fr=_fr_date(p.get('end'))) for p in cal['periods']]
+    enriched['feries'] = [dict(f, date_fr=_fr_date(f['date']))
+                          for f in cal.get('feries', [])]
     return enriched
+
+
+def _build_faq(cal):
+    """Quelques Q/R basées sur les dates, pour la section FAQ + le JSON-LD."""
+    canton, sy = cal['canton'], cal['school_year']
+    def pget(prefix):
+        return next((p for p in cal['periods'] if p['name'].startswith(prefix)), None)
+    faq = []
+    r = pget('Rentrée')
+    if r:
+        faq.append((f"Quand a lieu la rentrée scolaire {sy} dans le canton de {canton} ?",
+                    f"La rentrée scolaire {canton} {sy} a lieu le {r['start_fr']}."))
+    e = pget("Vacances d'été")
+    if e and e['end_fr']:
+        faq.append((f"Quand sont les vacances d'été {canton} {sy} ?",
+                    f"Les vacances d'été {sy} dans le canton de {canton} vont du {e['start_fr']} au {e['end_fr']}."))
+    elif e:
+        faq.append((f"Quand commencent les vacances d'été {canton} {sy} ?",
+                    f"Les vacances d'été {sy} dans le canton de {canton} commencent le {e['start_fr']}."))
+    a = pget("Vacances d'automne")
+    if a:
+        faq.append((f"Quand sont les vacances d'automne {canton} {sy} ?",
+                    f"Du {a['start_fr']} au {a['end_fr']}."))
+    n = pget("Vacances de Noël")
+    if n:
+        faq.append((f"Quand sont les vacances de Noël {canton} {sy} ?",
+                    f"Du {n['start_fr']} au {n['end_fr']}."))
+    return faq
 
 
 @resources_bp.route('/calendrier-scolaire', strict_slashes=False)
 def calendar_index():
-    """Hub : liste des calendriers scolaires disponibles."""
-    calendars = list_calendars()
-    return render_template('resources/calendar_index.html', calendars=calendars)
+    """Hub : tous les calendriers, regroupés par canton."""
+    by_canton = {}
+    for slug, brief in seo_list():
+        by_canton.setdefault(brief['canton_slug'],
+                             {'label': brief['canton'], 'years': []})
+        by_canton[brief['canton_slug']]['years'].append(
+            {'slug': slug, 'year': brief['school_year']})
+    groups = [by_canton[c] for c in CANTON_ORDER if c in by_canton]
+    total = sum(len(g['years']) for g in groups)
+    return render_template('resources/calendar_index.html',
+                           groups=groups, total=total)
 
 
 @resources_bp.route('/calendrier-scolaire/<slug>', strict_slashes=False)
 def calendar_page(slug):
     """Page calendrier d'un canton / d'une année scolaire."""
-    cal = get_calendar(slug)
+    cal = seo_calendar(slug)
     if not cal:
         abort(404)
-    return render_template('resources/calendar.html',
-                           cal=_enrich(cal), slug=slug)
+    cal = _enrich(cal)
+    canton, sy = cal['canton_slug'], cal['school_year']
+    other_years = [{'slug': canton + '-' + y, 'year': y}
+                   for y in available_years(canton) if y != sy]
+    other_cantons = [{'slug': c + '-' + sy, 'label': CANTON_META[c]['label']}
+                     for c in CANTON_ORDER
+                     if c in VACATIONS and sy in VACATIONS[c] and c != canton]
+    return render_template('resources/calendar.html', cal=cal, slug=slug,
+                           faq=_build_faq(cal),
+                           other_years=other_years, other_cantons=other_cantons)
 
 
 @resources_bp.route('/bareme', strict_slashes=False)

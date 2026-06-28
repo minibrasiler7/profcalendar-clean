@@ -3,10 +3,13 @@
 {% block title %}Vacances scolaires {{ cal.canton }} {{ cal.school_year }} — calendrier à imprimer | ProfCalendar{% endblock %}
 
 {% block extra_head %}
-<meta name="description" content="Toutes les dates des vacances scolaires {{ cal.canton }} {{ cal.school_year }} : automne, Noël, relâches de février, Pâques et été. Calendrier officiel, gratuit et à imprimer pour les enseignants.">
+<meta name="description" content="Vacances scolaires et jours fériés {{ cal.canton }} {{ cal.school_year }} : dates officielles (automne, Noël, février, Pâques, été) + tous les jours fériés cantonaux. Gratuit et à imprimer pour les enseignants.">
 <link rel="canonical" href="https://profcalendar.org/ressources/calendrier-scolaire/{{ slug }}">
 <meta property="og:title" content="Vacances scolaires {{ cal.canton }} {{ cal.school_year }}">
-<meta property="og:description" content="Calendrier scolaire {{ cal.canton }} {{ cal.school_year }} — dates des vacances, gratuit et à imprimer.">
+<meta property="og:description" content="Calendrier scolaire {{ cal.canton }} {{ cal.school_year }} — vacances et jours fériés, gratuit et à imprimer.">
+{% if faq %}<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for q, a in faq %}{"@type":"Question","name":{{ q|tojson }},"acceptedAnswer":{"@type":"Answer","text":{{ a|tojson }}}}{% if not loop.last %},{% endif %}{% endfor %}]}
+</script>{% endif %}
 <style>
     .res-wrap { max-width: 820px; margin: 2rem auto 4rem; padding: 0 1.25rem; }
     .res-wrap h1 { font-size: 1.9rem; color: #1F2937; margin-bottom: 0.35rem; }
@@ -31,9 +34,17 @@
                  color: #fff; text-decoration: none; font-weight: 600; padding: 0.75rem 1.4rem;
                  border-radius: 0.5rem; }
     .res-other { margin-top: 2rem; font-size: 0.9rem; }
+    .res-h2 { font-size: 1.3rem; color: #1F2937; margin: 2.5rem 0 0.75rem; }
+    .res-faq details { border: 1px solid #E5E7EB; border-radius: 0.5rem; padding: 0.75rem 1rem;
+                       margin-bottom: 0.6rem; background: #fff; }
+    .res-faq summary { font-weight: 600; color: #1F2937; cursor: pointer; }
+    .res-faq p { margin: 0.6rem 0 0; color: #4B5563; line-height: 1.5; }
+    .res-links { margin-top: 2rem; font-size: 0.92rem; color: #374151; line-height: 1.9; }
+    .res-links a { color: #6366F1; text-decoration: none; }
+    .res-links a:hover { text-decoration: underline; }
     @media print {
         .navbar, .landing-footer, #trial-banner, .flash-container,
-        .res-actions, .res-cta, .res-other, .help-fab, .help-button { display: none !important; }
+        .res-actions, .res-cta, .res-other, .res-links, .help-fab, .help-button { display: none !important; }
         .res-wrap { margin: 0; max-width: 100%; }
         body { background: #fff; }
     }
@@ -49,8 +60,9 @@
     </nav>
 
     <h1>Vacances scolaires {{ cal.canton }} {{ cal.school_year }}</h1>
-    <p class="res-sub">Toutes les dates officielles des vacances scolaires du canton de {{ cal.canton }}
-       pour l'année {{ cal.school_year }} — gratuit, à imprimer.</p>
+    <p class="res-sub">Toutes les dates officielles des <strong>vacances scolaires</strong> et des
+       <strong>jours fériés</strong> du canton de {{ cal.canton }} pour l'année {{ cal.school_year }}
+       — gratuit, à imprimer.</p>
 
     <div class="res-actions">
         <button type="button" class="res-btn res-btn-print" onclick="window.print()">
@@ -75,9 +87,29 @@
 
     <p class="res-source">
         Source : <a href="{{ cal.official_url }}" target="_blank" rel="noopener">{{ cal.source_label }}</a>.
-        Dates vérifiées {{ cal.updated }}. Vérifie toujours auprès de ton établissement
-        pour d'éventuels ajustements locaux.
+        Vérifie toujours auprès de ton établissement pour d'éventuels ajustements locaux.
     </p>
+
+    {% if cal.feries %}
+    <h2 class="res-h2">Jours fériés {{ cal.canton }} {{ cal.school_year }}</h2>
+    <table class="res-table">
+        <thead><tr><th>Jour férié</th><th>Date</th></tr></thead>
+        <tbody>
+            {% for f in cal.feries %}
+            <tr><td>{{ f.name }}</td><td>{{ f.date_fr }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if faq %}
+    <h2 class="res-h2">Questions fréquentes</h2>
+    <div class="res-faq">
+        {% for q, a in faq %}
+        <details><summary>{{ q }}</summary><p>{{ a }}</p></details>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="res-cta">
         <h2>Planifie ton année autour de ces dates</h2>
@@ -87,10 +119,20 @@
         <a href="{{ url_for('auth.register') }}"><i class="fas fa-rocket"></i> Créer mon compte gratuit</a>
     </div>
 
-    <p class="res-other">
-        <a href="{{ url_for('resources.calendar_index') }}" style="color:#6366F1;">
-            &larr; Voir les autres calendriers scolaires
-        </a>
-    </p>
+    <div class="res-links">
+        {% if other_years %}
+        <div><strong>Autres années — {{ cal.canton }} :</strong>
+            {% for y in other_years %}<a href="{{ url_for('resources.calendar_page', slug=y.slug) }}">{{ y.year }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+        {% if other_cantons %}
+        <div><strong>Autres cantons — {{ cal.school_year }} :</strong>
+            {% for c in other_cantons %}<a href="{{ url_for('resources.calendar_page', slug=c.slug) }}">{{ c.label }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+        </div>
+        {% endif %}
+        <div style="margin-top:0.75rem;">
+            <a href="{{ url_for('resources.calendar_index') }}">&larr; Tous les calendriers scolaires</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -15,27 +15,34 @@
                   padding: 1rem 1.25rem; text-decoration: none; color: #1F2937; font-weight: 600; }
     .res-list a:hover { border-color: #C7D2FE; background: #F8FAFF; }
     .res-list .yr { color: #6B7280; font-weight: 400; font-size: 0.9rem; }
+    .res-group { margin-bottom: 1.5rem; }
+    .res-group h2 { font-size: 1.15rem; color: #1F2937; margin: 0 0 0.6rem; }
+    .res-years { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .res-years a { background: #fff; border: 1px solid #E5E7EB; border-radius: 0.5rem;
+                   padding: 0.5rem 0.9rem; text-decoration: none; color: #3730A3;
+                   font-weight: 600; font-size: 0.92rem; }
+    .res-years a:hover { border-color: #C7D2FE; background: #F8FAFF; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="res-wrap">
     <h1>Calendriers scolaires des cantons romands</h1>
-    <p class="res-sub">Les dates officielles des vacances scolaires, gratuites et à imprimer.
-       Choisis ton canton :</p>
+    <p class="res-sub">Les dates officielles des <strong>vacances scolaires</strong> et des
+       <strong>jours fériés</strong>, gratuites et à imprimer.
+       {% if total %}{{ total }} calendriers&nbsp;; {% endif %}choisis ton canton et ton année&nbsp;:</p>
 
-    {% if calendars %}
-    <ul class="res-list">
-        {% for slug, cal in calendars %}
-        <li>
-            <a href="{{ url_for('resources.calendar_page', slug=slug) }}">
-                <span><i class="fas fa-calendar-alt" style="color:#6366F1; margin-right:0.5rem;"></i>
-                    Vacances scolaires {{ cal.canton }}</span>
-                <span class="yr">{{ cal.school_year }} &rsaquo;</span>
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
+    {% if groups %}
+    {% for g in groups %}
+    <div class="res-group">
+        <h2><i class="fas fa-calendar-alt" style="color:#6366F1; margin-right:0.5rem;"></i>{{ g.label }}</h2>
+        <div class="res-years">
+            {% for y in g.years %}
+            <a href="{{ url_for('resources.calendar_page', slug=y.slug) }}">{{ y.year }} &rsaquo;</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
     {% else %}
     <p>Les calendriers arrivent bientôt.</p>
     {% endif %}

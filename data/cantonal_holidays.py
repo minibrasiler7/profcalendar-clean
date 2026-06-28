@@ -17,6 +17,7 @@ fériés cantonaux isolés (ceux qui ne tombent ni dans une période de vacances
 un week-end), avec la fin de l'été reliée à la rentrée suivante.
 """
 
+import re
 from datetime import date, timedelta
 
 
@@ -533,3 +534,58 @@ def get_import_periods(canton, school_year, include_feries=True):
         seen.add(key)
         deduped.append(r)
     return deduped
+
+
+# ───────────────── pages SEO publiques (vacances + jours fériés) ─────────────
+def feries_school_year(canton, school_year):
+    """Liste complète des jours fériés cantonaux de l'année scolaire (août Y1 →
+    juillet Y2), triée. [{'name', 'date': 'YYYY-MM-DD'}]."""
+    y1 = int(school_year[:4])
+    a, b = date(y1, 8, 1), date(y1 + 1, 7, 31)
+    keys = FERIE_RULES.get(canton, [])
+    out = []
+    for yr in (y1, y1 + 1):
+        fy = feries_for_year(yr)
+        for k in keys:
+            d = fy[k]
+            if a <= d <= b:
+                out.append({'name': FERIE_LABEL[k], 'date': d.isoformat()})
+    out.sort(key=lambda x: x['date'])
+    return out
+
+
+def seo_calendar(slug):
+    """Données d'une page calendrier SEO pour un slug 'canton-AAAA-AAAA'.
+    Renvoie un dict compatible avec le template, ou None si inconnu."""
+    m = re.match(r'^(.+)-(\d{4}-\d{4})$', slug)
+    if not m:
+        return None
+    canton, sy = m.group(1), m.group(2)
+    raw = VACATIONS.get(canton, {}).get(sy)
+    if not raw:
+        return None
+    meta = CANTON_META[canton]
+    return {
+        'canton': meta['label'],
+        'canton_slug': canton,
+        'school_year': sy,
+        'official_url': meta['official_url'],
+        'source_label': meta['source_label'],
+        'periods': [{'name': n, 'start': s, 'end': e} for (n, s, e) in raw],
+        'feries': feries_school_year(canton, sy),
+    }
+
+
+def seo_list():
+    """Tous les (slug, {canton, canton_slug, school_year}) — pour le hub et le
+    sitemap. Trié par canton puis année."""
+    out = []
+    for canton in CANTON_ORDER:
+        if canton not in VACATIONS:
+            continue
+        for sy in available_years(canton):
+            out.append((canton + '-' + sy, {
+                'canton': CANTON_META[canton]['label'],
+                'canton_slug': canton, 'school_year': sy,
+            }))
+    return sorted(out, key=lambda kv: (kv[1]['canton'], kv[1]['school_year']))
