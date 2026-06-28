@@ -1172,6 +1172,7 @@ def create_app(config_name='development'):
     def referral():
         """Page de parrainage « invite un collègue » : lien de partage + suivi.
         Réservée aux enseignants."""
+        from models.user import User
         if not isinstance(current_user, User):
             return redirect(url_for('index'))
         code = current_user.ensure_referral_code()
