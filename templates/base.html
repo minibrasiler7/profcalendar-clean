@@ -40,6 +40,30 @@
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/help-system.css') }}">
     {% endif %}
+    {# Données structurées (SEO) : entité de marque, présente sur toutes les pages. #}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://profcalendar.org/#organization",
+          "name": "ProfCalendar",
+          "url": "https://profcalendar.org/",
+          "logo": "https://profcalendar.org/static/img/favicon/android-chrome-192x192.png",
+          "sameAs": ["https://apps.apple.com/ch/app/profcalendar-teacher/id6762359372"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://profcalendar.org/#website",
+          "url": "https://profcalendar.org/",
+          "name": "ProfCalendar",
+          "inLanguage": "fr",
+          "publisher": { "@id": "https://profcalendar.org/#organization" }
+        }
+      ]
+    }
+    </script>
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
@@ -385,6 +409,15 @@
     <footer class="footer">
         <div class="footer-content">
             <p>&copy; 2024-2026 ProfCalendar. {{ _('Tous droits réservés.') }}</p>
+            <p style="margin-top: 0.25rem;">
+                <a href="{{ url_for('resources.exercices_maths') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Exercices de maths') }}</a>
+                &middot;
+                <a href="{{ url_for('resources.calendar_index') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Calendriers scolaires') }}</a>
+                &middot;
+                <a href="{{ url_for('resources.bareme') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Créateur de barème') }}</a>
+                &middot;
+                <a href="{{ url_for('resources.calculateur_moyenne') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Calculateur de moyenne') }}</a>
+            </p>
             <p style="margin-top: 0.25rem;">
                 <a href="{{ url_for('privacy_policy') }}" style="color: #6B7280; text-decoration: underline;">{{ _('Politique de confidentialité') }}</a>
                 &middot;

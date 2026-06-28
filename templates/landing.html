@@ -45,6 +45,31 @@
     <meta name="twitter:title" content="{{ _('ProfCalendar - La plateforme scolaire tout-en-un') }}">
     <meta name="twitter:description" content="{{ _('Planifiez vos cours, créez des exercices interactifs, suivez les présences et les notes.') }}">
 
+    <!-- Données structurées (SEO) : entité de marque -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://profcalendar.org/#organization",
+          "name": "ProfCalendar",
+          "url": "https://profcalendar.org/",
+          "logo": "https://profcalendar.org/static/img/favicon/android-chrome-192x192.png",
+          "sameAs": ["https://apps.apple.com/ch/app/profcalendar-teacher/id6762359372"]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://profcalendar.org/#website",
+          "url": "https://profcalendar.org/",
+          "name": "ProfCalendar",
+          "inLanguage": "fr",
+          "publisher": { "@id": "https://profcalendar.org/#organization" }
+        }
+      ]
+    }
+    </script>
+
     <!-- Google Analytics -->
     {% if config.get('GA_MEASUREMENT_ID') %}
     <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.GA_MEASUREMENT_ID }}"></script>
@@ -585,6 +610,40 @@
                 <h3>{{ _('Tableau interactif') }}</h3>
                 <p>{{ _('Compatible TBI/TNI') }}</p>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- RESSOURCES GRATUITES (outils en libre accès, sans compte) -->
+<section class="features" id="ressources">
+    <div class="container">
+        <h2 class="section-title">{{ _('Ressources gratuites, sans inscription') }}</h2>
+        <p class="section-subtitle">{{ _('Des outils en libre accès pour les enseignants romands — à utiliser tout de suite.') }}</p>
+        <div class="features-grid">
+            <a class="feature-card" href="{{ url_for('resources.exercices_maths') }}" style="display:block; text-decoration:none; color:inherit;">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #DC2626, #EA580C);"><i class="fas fa-square-root-variable"></i></div>
+                <h3>{{ _('Générateur d’exercices de maths') }}</h3>
+                <p>{{ _('Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives.') }}</p>
+                <span style="color: var(--primary); font-weight: 600;">{{ _('Essayer') }} &rarr;</span>
+            </a>
+            <a class="feature-card" href="{{ url_for('resources.calendar_index') }}" style="display:block; text-decoration:none; color:inherit;">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #2563EB, #1D4ED8);"><i class="fas fa-calendar-days"></i></div>
+                <h3>{{ _('Calendriers scolaires des cantons') }}</h3>
+                <p>{{ _('Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer.') }}</p>
+                <span style="color: var(--primary); font-weight: 600;">{{ _('Voir les calendriers') }} &rarr;</span>
+            </a>
+            <a class="feature-card" href="{{ url_for('resources.bareme') }}" style="display:block; text-decoration:none; color:inherit;">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fas fa-table-list"></i></div>
+                <h3>{{ _('Créateur de barème') }}</h3>
+                <p>{{ _('Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller.') }}</p>
+                <span style="color: var(--primary); font-weight: 600;">{{ _('Créer un barème') }} &rarr;</span>
+            </a>
+            <a class="feature-card" href="{{ url_for('resources.calculateur_moyenne') }}" style="display:block; text-decoration:none; color:inherit;">
+                <div class="feature-icon" style="background: linear-gradient(135deg, #7C3AED, #6D28D9);"><i class="fas fa-calculator"></i></div>
+                <h3>{{ _('Calculateur de moyenne') }}</h3>
+                <p>{{ _('Calcule une moyenne pondérée en direct et trouve la note nécessaire au prochain test.') }}</p>
+                <span style="color: var(--primary); font-weight: 600;">{{ _('Calculer') }} &rarr;</span>
+            </a>
         </div>
     </div>
 </section>
