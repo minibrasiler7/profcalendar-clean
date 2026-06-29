@@ -9973,6 +9973,14 @@ class CleanPDFViewer {
         if (attendanceSection && modalBody) {
             modalBody.innerHTML = attendanceSection.innerHTML;
 
+            // Préserver le nom d'onglet (extrait de showTrackingTab('X')) dans data-tab-name
+            // AVANT de retirer les onclick : attachTrackingTabHandlers en a besoin pour
+            // basculer les onglets (sinon le nom est perdu → le changement d'onglet échoue).
+            modalBody.querySelectorAll('.tracking-tab[onclick]').forEach(tab => {
+                const m = tab.getAttribute('onclick').match(/showTrackingTab\('([^']+)'\)/);
+                if (m) tab.setAttribute('data-tab-name', m[1]);
+            });
+
             // IMPORTANT: Supprimer tous les handlers inline (onclick, onchange) du HTML copié.
             // Le HTML original utilise des fonctions globales avec document.getElementById()
             // qui trouvent les éléments ORIGINAUX (pas ceux du panneau) car les IDs sont dupliqués.
@@ -9989,6 +9997,11 @@ class CleanPDFViewer {
 
             // Réattacher les événements pour les sanctions
             this.attachSanctionEventHandlers(modalBody);
+
+            // Largeur adaptée à l'onglet actif : Coches/Plan de classe ont un contenu large.
+            const activeTab = modalBody.querySelector('.tracking-tab.active');
+            const activeName = activeTab ? activeTab.getAttribute('data-tab-name') : null;
+            panel.classList.toggle('wide', activeName === 'sanctions' || activeName === 'seating-plan');
         }
 
         // Replier la sidebar (miniatures) et déployer le panneau avec l'animation de glissement.
@@ -10009,9 +10022,9 @@ class CleanPDFViewer {
             tab.addEventListener('click', (e) => {
                 e.preventDefault();
 
-                // Récupérer le nom de l'onglet depuis l'attribut onclick
-                const onclickAttr = tab.getAttribute('onclick');
-                const tabName = onclickAttr ? onclickAttr.match(/showTrackingTab\('([^']+)'\)/)?.[1] : null;
+                // Le nom de l'onglet a été préservé dans data-tab-name par openClassManagementModal
+                // (les onclick d'origine ont été retirés du HTML copié).
+                const tabName = tab.getAttribute('data-tab-name');
 
                 if (!tabName) return;
 
@@ -10033,6 +10046,13 @@ class CleanPDFViewer {
                 const content = container.querySelector(`#${contentId}`);
                 if (content) {
                     content.classList.add('active');
+                }
+
+                // Élargir le panneau pour Coches / Plan de classe (contenu large),
+                // le ramener à sa largeur normale pour Présences.
+                const trackingPanel = container.closest('.pdf-tracking-panel');
+                if (trackingPanel) {
+                    trackingPanel.classList.toggle('wide', tabName === 'sanctions' || tabName === 'seating-plan');
                 }
 
                 // Si c'est l'onglet plan de classe, charger le plan
@@ -10688,6 +10708,12 @@ class CleanPDFViewer {
                 max-width: 85%;
             }
 
+            /* Onglets Coches / Plan de classe : contenu large → panneau élargi
+               pour qu'il soit visible en entier (avec scroll horizontal en secours). */
+            .pdf-tracking-panel.open.wide {
+                width: min(660px, 72vw);
+            }
+
             .pdf-tracking-panel .tracking-panel-header {
                 display: flex;
                 justify-content: space-between;
@@ -10739,6 +10765,7 @@ class CleanPDFViewer {
             .class-modal-body {
                 flex: 1;
                 overflow-y: auto;
+                overflow-x: auto;
                 padding: 16px;
                 min-width: 360px;
             }
