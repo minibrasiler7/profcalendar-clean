@@ -9925,45 +9925,57 @@ class CleanPDFViewer {
      * Ouvrir le modal de gestion de classe
      */
     openClassManagementModal() {
-        // Vérifier si le modal existe déjà
-        let modal = document.getElementById('class-management-modal');
+        window.cleanPDFViewer = this;
 
-        if (!modal) {
-            // Créer le modal
-            modal = document.createElement('div');
-            modal.id = 'class-management-modal';
-            modal.className = 'class-management-modal';
-            modal.innerHTML = `
-                <div class="class-modal-overlay" onclick="window.cleanPDFViewer.closeClassManagementModal()"></div>
-                <div class="class-modal-content">
-                    <div class="class-modal-header">
-                        <h2><i class="fas fa-users"></i> Gestion de classe</h2>
-                        <button class="class-modal-close" onclick="window.cleanPDFViewer.closeClassManagementModal()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="class-modal-body" id="class-modal-body">
-                        <!-- Le contenu de .attendance-section sera copié ici -->
-                    </div>
+        const pdfMain = document.querySelector('.pdf-main');
+        let panel = document.getElementById('class-management-modal');
+
+        // Toggle : si le panneau est déjà ouvert, on le referme.
+        if (panel && panel.classList.contains('open')) {
+            this.closeClassManagementModal();
+            return;
+        }
+
+        if (!panel) {
+            // Créer le panneau coulissant (à la place de la sidebar, sans overlay).
+            // On garde l'id 'class-management-modal' et le body '#class-modal-body'
+            // pour rester compatible avec syncModalToMainPage()/closeClassManagementModal().
+            panel = document.createElement('div');
+            panel.id = 'class-management-modal';
+            panel.className = 'pdf-tracking-panel';
+            panel.innerHTML = `
+                <div class="tracking-panel-header">
+                    <h2><i class="fas fa-users"></i> Suivi des élèves</h2>
+                    <button class="tracking-panel-close" onclick="window.cleanPDFViewer.closeClassManagementModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="class-modal-body" id="class-modal-body">
+                    <!-- Le contenu de .attendance-section sera copié ici -->
                 </div>
             `;
 
-            // Ajouter les styles du modal
+            // Ajouter les styles du panneau
             this.injectClassManagementStyles();
 
-            document.body.appendChild(modal);
+            // Insérer en premier dans .pdf-main → à gauche, à l'emplacement de la sidebar.
+            if (pdfMain) {
+                pdfMain.insertBefore(panel, pdfMain.firstChild);
+            } else {
+                document.body.appendChild(panel);
+            }
         }
 
-        // Copier le contenu de .attendance-section dans le modal
+        // Copier le contenu de .attendance-section dans le panneau
         const attendanceSection = document.querySelector('.attendance-section');
-        const modalBody = modal.querySelector('#class-modal-body');
+        const modalBody = panel.querySelector('#class-modal-body');
 
         if (attendanceSection && modalBody) {
             modalBody.innerHTML = attendanceSection.innerHTML;
 
             // IMPORTANT: Supprimer tous les handlers inline (onclick, onchange) du HTML copié.
             // Le HTML original utilise des fonctions globales avec document.getElementById()
-            // qui trouvent les éléments ORIGINAUX (pas ceux du modal) car les IDs sont dupliqués.
+            // qui trouvent les éléments ORIGINAUX (pas ceux du panneau) car les IDs sont dupliqués.
             // Cela causait: (1) l'alert "Veuillez entrer le nombre de minutes" même quand une
             // valeur était saisie, (2) un freeze complet avec le stylet (boucle Scribble + alert).
             modalBody.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
@@ -9979,11 +9991,12 @@ class CleanPDFViewer {
             this.attachSanctionEventHandlers(modalBody);
         }
 
-        // Afficher le modal
-        modal.style.display = 'flex';
-
-        // Stocker la référence pour fermeture
-        window.cleanPDFViewer = this;
+        // Replier la sidebar (miniatures) et déployer le panneau avec l'animation de glissement.
+        const sidebar = pdfMain ? pdfMain.querySelector('.pdf-sidebar') : null;
+        if (sidebar) sidebar.classList.add('collapsed');
+        // Forcer un reflow pour que la transition width 0 → 360px s'applique bien.
+        void panel.offsetWidth;
+        panel.classList.add('open');
     }
 
     /**
@@ -10585,18 +10598,25 @@ class CleanPDFViewer {
      * Fermer le modal de gestion de classe
      */
     closeClassManagementModal() {
-        const modal = document.getElementById('class-management-modal');
-        if (modal) {
-            // Synchroniser les changements du modal vers la page principale
-            // avant de détruire le contenu du modal
+        const panel = document.getElementById('class-management-modal');
+        if (panel) {
+            // Synchroniser les changements du panneau vers la page principale
+            // avant de vider son contenu.
             this.syncModalToMainPage();
-            // Supprimer le contenu du modal pour éviter les éléments dupliqués
-            // (la fonction globale updateStats() compte tous les .student-attendance dans le DOM)
-            const modalBody = modal.querySelector('#class-modal-body');
+
+            // Replier le panneau (animation) et ré-afficher la sidebar des miniatures.
+            panel.classList.remove('open');
+            const sidebar = document.querySelector('.pdf-main .pdf-sidebar');
+            if (sidebar) sidebar.classList.remove('collapsed');
+
+            // Vider le contenu APRÈS l'animation pour éviter les éléments dupliqués
+            // (updateStats() compte tous les .student-attendance présents dans le DOM).
+            const modalBody = panel.querySelector('#class-modal-body');
             if (modalBody) {
-                modalBody.innerHTML = '';
+                setTimeout(() => {
+                    if (!panel.classList.contains('open')) modalBody.innerHTML = '';
+                }, 360);
             }
-            modal.style.display = 'none';
         }
     }
 
@@ -10649,77 +10669,78 @@ class CleanPDFViewer {
         const style = document.createElement('style');
         style.id = styleId;
         style.textContent = `
-            .class-management-modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 10000;
-                justify-content: center;
-                align-items: center;
-            }
-
-            .class-modal-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-            }
-
-            .class-modal-content {
-                position: relative;
+            /* Panneau coulissant « Suivi des élèves » — se place à l'emplacement de la
+               sidebar (miniatures) avec une animation de glissement gauche→droite.
+               PAS de modal/overlay : le PDF à droite reste pleinement annotable. */
+            .pdf-tracking-panel {
+                width: 0;
+                flex-shrink: 0;
                 background: white;
-                border-radius: 12px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                width: 90%;
-                max-width: 600px;
-                max-height: 80vh;
+                border-right: 1px solid #e0e0e0;
+                overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                overflow: hidden;
+                transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
-            .class-modal-header {
+            .pdf-tracking-panel.open {
+                width: 360px;
+                max-width: 85%;
+            }
+
+            .pdf-tracking-panel .tracking-panel-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 16px 20px;
+                padding: 14px 16px;
                 border-bottom: 1px solid #e0e0e0;
                 background: #f8f9fa;
+                flex-shrink: 0;
+                min-width: 360px;
             }
 
-            .class-modal-header h2 {
+            .pdf-tracking-panel .tracking-panel-header h2 {
                 margin: 0;
-                font-size: 1.25rem;
+                font-size: 1.1rem;
                 display: flex;
                 align-items: center;
                 gap: 10px;
+                white-space: nowrap;
             }
 
-            .class-modal-close {
+            .pdf-tracking-panel .tracking-panel-close {
                 background: none;
                 border: none;
-                font-size: 1.5rem;
+                font-size: 1.3rem;
                 cursor: pointer;
                 color: #666;
-                padding: 8px;
+                padding: 6px 10px;
                 border-radius: 8px;
                 transition: all 0.2s;
             }
 
-            .class-modal-close:hover {
+            .pdf-tracking-panel .tracking-panel-close:hover {
                 background: #e0e0e0;
                 color: #333;
+            }
+
+            /* La sidebar des miniatures se replie quand le panneau s'ouvre */
+            .pdf-sidebar {
+                transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s;
+            }
+
+            .pdf-sidebar.collapsed {
+                width: 0 !important;
+                padding: 0 !important;
+                border-right: none !important;
+                overflow: hidden;
             }
 
             .class-modal-body {
                 flex: 1;
                 overflow-y: auto;
-                padding: 20px;
+                padding: 16px;
+                min-width: 360px;
             }
 
             /* Styles copiés pour le contenu du modal */
