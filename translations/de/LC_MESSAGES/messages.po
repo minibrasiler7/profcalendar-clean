@@ -27,6 +27,15 @@ msgstr "Bald verfügbar"
 msgid "Fermer la bannière"
 msgstr "Banner schließen"
 
+msgid "Application mobile disponible"
+msgstr "Mobile App verfügbar"
+
+msgid "ProfCalendar Parents & Élèves"
+msgstr "ProfCalendar Eltern & Schüler"
+
+msgid "Notes, présences et devoirs de votre enfant, suivis où que vous soyez."
+msgstr "Noten, Anwesenheit und Hausaufgaben Ihres Kindes, überall dabei."
+
 msgid "Ouvrir le menu"
 msgstr "Menü öffnen"
 

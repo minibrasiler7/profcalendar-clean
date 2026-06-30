@@ -27,6 +27,15 @@ msgstr "Coming soon"
 msgid "Fermer la bannière"
 msgstr "Close banner"
 
+msgid "Application mobile disponible"
+msgstr "Mobile app available"
+
+msgid "ProfCalendar Parents & Élèves"
+msgstr "ProfCalendar Parents & Students"
+
+msgid "Notes, présences et devoirs de votre enfant, suivis où que vous soyez."
+msgstr "Your child's grades, attendance and homework, tracked wherever you are."
+
 msgid "Ouvrir le menu"
 msgstr "Open menu"
 
