@@ -303,6 +303,14 @@
         .platform-card i { font-size: 2.5rem; margin-bottom: 1rem; color: var(--secondary); }
         .platform-card h3 { font-weight: 600; margin-bottom: 0.25rem; }
         .platform-card p { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+        .appstore-badge { display: inline-flex; align-items: center; gap: 0.6rem; background: #000;
+            color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 0.75rem;
+            padding: 0.6rem 1.2rem; text-decoration: none; transition: transform .15s ease; }
+        .appstore-badge:hover { transform: translateY(-2px); }
+        .appstore-badge i { font-size: 1.9rem; }
+        .appstore-badge span { display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
+        .appstore-badge small { font-size: 0.62rem; opacity: 0.85; }
+        .appstore-badge strong { font-size: 1.15rem; font-weight: 600; }
 
         /* === FOOTER === */
         .landing-footer {
@@ -611,6 +619,15 @@
                 <p>{{ _('Compatible TBI/TNI') }}</p>
             </div>
         </div>
+        {% if not is_ios_native_app %}
+        <div style="text-align: center; margin-top: 2.25rem;">
+            <a href="https://apps.apple.com/ch/app/profcalendar-teacher/id6762359372" target="_blank" rel="noopener"
+               class="appstore-badge" aria-label="{{ _('Télécharger ProfCalendar sur l’App Store') }}">
+                <i class="fab fa-apple"></i>
+                <span><small>{{ _('Télécharger sur l’') }}</small><strong>App Store</strong></span>
+            </a>
+        </div>
+        {% endif %}
     </div>
 </section>
 
