@@ -1,31 +1,41 @@
 {% if not is_ios_native_app %}
-{# Bandeau promotionnel app native, adaptatif selon l'appareil :
-   - iPad  → app « ProfCalendar Teacher » (iPadOS)
-   - iPhone → app « ProfCalendar Parents & Élèves » (iOS)
-   Caché par défaut ; un script choisit la variante via l'UA + maxTouchPoints
-   (iPadOS ≥ 13 se présente comme un Mac, distingué par maxTouchPoints).
-   Dismissable, mémorisé 7 jours. Inclus dans base.html (pages connectées)
-   et landing.html (accueil public). Les textes/URL des deux variantes sont
-   portés en data-attributes pour rester traduisibles côté Jinja. #}
+{# Bandeau promotionnel app native, adaptatif selon la PARTIE DU SITE :
+   - espace parent/élève (session user_type == student|parent) → app Parents & Élèves seule
+   - reste (enseignant connecté, vitrine publique) → les deux apps (Enseignant + Parents & Élèves)
+   Affiché uniquement sur iPad/iPhone (UA + maxTouchPoints ; iPadOS ≥ 13 se
+   présente comme un Mac, distingué par maxTouchPoints). Caché par défaut,
+   dismissable, mémorisé 7 jours. Inclus dans base.html (élèves + enseignants),
+   parent/base.html (parents) et landing.html (vitrine). #}
+{% set _app_url_teacher = 'https://apps.apple.com/ch/app/profcalendar-teacher/id6762359372' %}
+{% set _app_url_family = 'https://apps.apple.com/ch/app/id6769804400' %}
+{% set _is_family_area = session.get('user_type') in ['student', 'parent'] %}
 <div id="appPromoBanner" class="app-promo-banner" style="display: none;" role="region"
-     aria-label="{{ _('Application mobile disponible') }}"
-     data-ipad-title="{{ _('ProfCalendar pour iPad') }}"
-     data-ipad-desc="{{ _('Annotation Apple Pencil ultra-réactive, mode hors-ligne, et plus encore.') }}"
-     data-ipad-icon="fa-tablet-alt"
-     data-ipad-url="https://apps.apple.com/ch/app/profcalendar-teacher/id6762359372"
-     data-iphone-title="{{ _('ProfCalendar Parents & Élèves') }}"
-     data-iphone-desc="{{ _('Notes, présences et devoirs de votre enfant, suivis où que vous soyez.') }}"
-     data-iphone-icon="fa-mobile-screen-button"
-     data-iphone-url="https://apps.apple.com/ch/app/id6769804400">
+     aria-label="{{ _('Application mobile disponible') }}">
     <div class="app-promo-banner-content">
-        <i class="fas fa-tablet-alt app-promo-banner-icon" id="appPromoBannerIcon"></i>
+        <i class="fas fa-mobile-screen-button app-promo-banner-icon"></i>
         <div class="app-promo-banner-text">
-            <strong id="appPromoBannerTitle"></strong>
-            <span id="appPromoBannerDesc"></span>
+        {% if _is_family_area %}
+            <strong>{{ _('ProfCalendar Parents & Élèves') }}</strong>
+            <span>{{ _('Notes, présences et devoirs de votre enfant, suivis où que vous soyez.') }}</span>
+        {% else %}
+            <strong>{{ _('Les applications ProfCalendar') }}</strong>
+            <span>{{ _("L'app Enseignant et l'app Parents & Élèves sont disponibles sur l'App Store.") }}</span>
+        {% endif %}
         </div>
-        <a href="#" id="appPromoBannerLink" class="app-promo-banner-cta" target="_blank" rel="noopener">
-            <i class="fab fa-app-store-ios"></i> {{ _('Télécharger') }}
-        </a>
+        <div class="app-promo-banner-actions">
+        {% if _is_family_area %}
+            <a href="{{ _app_url_family }}" class="app-promo-banner-cta" target="_blank" rel="noopener">
+                <i class="fab fa-app-store-ios"></i> {{ _('Télécharger') }}
+            </a>
+        {% else %}
+            <a href="{{ _app_url_teacher }}" class="app-promo-banner-cta" target="_blank" rel="noopener">
+                <i class="fas fa-chalkboard-user"></i> {{ _('App Enseignant') }}
+            </a>
+            <a href="{{ _app_url_family }}" class="app-promo-banner-cta" target="_blank" rel="noopener">
+                <i class="fas fa-user-group"></i> {{ _('Parents & Élèves') }}
+            </a>
+        {% endif %}
+        </div>
         <button type="button" class="app-promo-banner-close" onclick="dismissAppPromoBanner()" aria-label="{{ _('Fermer la bannière') }}">
             <i class="fas fa-times"></i>
         </button>
@@ -36,20 +46,17 @@
         function isIpad() {
             var ua = navigator.userAgent || '';
             if (/iPad/i.test(ua)) return true;
-            // iPadOS ≥ 13 : Safari iPad se présente comme Macintosh.
-            // On le distingue d'un vrai Mac via maxTouchPoints (Mac = 0/1, iPad ≥ 5).
+            // iPadOS ≥ 13 : Safari iPad se présente comme Macintosh ; distingué via maxTouchPoints.
             if (/Macintosh/i.test(ua) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) return true;
             return false;
         }
-        function isIphone() {
-            return /iPhone|iPod/i.test(navigator.userAgent || '');
-        }
-        // Décale les navbars en position:fixed (landing) pour qu'elles ne
-        // passent pas sous le bandeau sticky. Sans effet sur les navbars sticky.
-        function shiftFixedNavbars(topPx) {
+        function isIphone() { return /iPhone|iPod/i.test(navigator.userAgent || ''); }
+        // Décale les navbars en position:fixed (landing) sous le bandeau sticky.
+        // Sans effet sur les navbars sticky (base.html, parent/base.html).
+        function shiftFixedNavbars(top) {
             ['.landing-nav', '.navbar'].forEach(function(sel) {
                 document.querySelectorAll(sel).forEach(function(n) {
-                    if (getComputedStyle(n).position === 'fixed') n.style.top = topPx;
+                    if (getComputedStyle(n).position === 'fixed') n.style.top = top;
                 });
             });
         }
@@ -59,22 +66,14 @@
                 var d = localStorage.getItem('pc_app_banner_dismissed');
                 if (d && (Date.now() - parseInt(d, 10)) < 7 * 24 * 60 * 60 * 1000) return;
             } catch (e) {}
-            var variant = isIpad() ? 'ipad' : (isIphone() ? 'iphone' : null);
-            if (!variant) return;
+            if (!(isIpad() || isIphone())) return;
             var b = document.getElementById('appPromoBanner');
             if (!b) return;
-            document.getElementById('appPromoBannerTitle').textContent = b.getAttribute('data-' + variant + '-title');
-            document.getElementById('appPromoBannerDesc').textContent = b.getAttribute('data-' + variant + '-desc');
-            document.getElementById('appPromoBannerIcon').className = 'fas ' + b.getAttribute('data-' + variant + '-icon') + ' app-promo-banner-icon';
-            document.getElementById('appPromoBannerLink').href = b.getAttribute('data-' + variant + '-url');
             b.style.display = 'block';
             shiftFixedNavbars(b.offsetHeight + 'px');
         }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
         window.dismissAppPromoBanner = function() {
             var el = document.getElementById('appPromoBanner');
             if (el) el.style.display = 'none';
@@ -111,6 +110,7 @@
     }
     .app-promo-banner-text strong { font-size: 0.95rem; }
     .app-promo-banner-text span { font-size: 0.8rem; opacity: 0.9; }
+    .app-promo-banner-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; flex-shrink: 0; }
     .app-promo-banner-cta {
         background: rgba(255, 255, 255, 0.18);
         color: white;
@@ -141,6 +141,10 @@
     .app-promo-banner-close:hover { background: rgba(255, 255, 255, 0.2); }
     @media (max-width: 600px) {
         .app-promo-banner-text span { display: none; }
+        /* Le × en coin haut-droit pour ne pas occuper une ligne à part quand
+           le contenu passe à la ligne (variante 2 apps notamment). */
+        .app-promo-banner-content { position: relative; padding-right: 2rem; }
+        .app-promo-banner-close { position: absolute; top: 0; right: 0; }
     }
 </style>
 {% endif %}

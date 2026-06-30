@@ -36,6 +36,18 @@ msgstr "ProfCalendar Genitori e Studenti"
 msgid "Notes, présences et devoirs de votre enfant, suivis où que vous soyez."
 msgstr "Voti, presenze e compiti di tuo figlio, ovunque tu sia."
 
+msgid "Les applications ProfCalendar"
+msgstr "Le applicazioni ProfCalendar"
+
+msgid "L'app Enseignant et l'app Parents & Élèves sont disponibles sur l'App Store."
+msgstr "L'app Insegnante e l'app Genitori e Studenti sono disponibili sull'App Store."
+
+msgid "App Enseignant"
+msgstr "App Insegnante"
+
+msgid "Parents & Élèves"
+msgstr "Genitori e Studenti"
+
 msgid "Ouvrir le menu"
 msgstr "Apri il menu"
 

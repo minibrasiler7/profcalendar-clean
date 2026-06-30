@@ -36,6 +36,18 @@ msgstr "ProfCalendar Padres y Alumnos"
 msgid "Notes, présences et devoirs de votre enfant, suivis où que vous soyez."
 msgstr "Notas, asistencia y tareas de su hijo, estés donde estés."
 
+msgid "Les applications ProfCalendar"
+msgstr "Las aplicaciones ProfCalendar"
+
+msgid "L'app Enseignant et l'app Parents & Élèves sont disponibles sur l'App Store."
+msgstr "La aplicación Docente y la aplicación Padres y Alumnos están disponibles en la App Store."
+
+msgid "App Enseignant"
+msgstr "App Docente"
+
+msgid "Parents & Élèves"
+msgstr "Padres y Alumnos"
+
 msgid "Ouvrir le menu"
 msgstr "Abrir el menú"
 
