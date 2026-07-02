@@ -693,6 +693,41 @@
 
     <!-- Liste des classes -->
     <div class="classrooms-list">
+        {% if my_access_code and master_classroom_ids %}
+        <!-- Code d'accès du maître de classe : c'est LA clé de la collaboration,
+             affichée en permanence pour qu'un maître sache quoi transmettre. -->
+        <div style="display:flex; align-items:center; gap:0.9rem; flex-wrap:wrap;
+                    background:linear-gradient(135deg,#EEF2FF,#F5F3FF); border:1px solid #C7D2FE;
+                    border-radius:12px; padding:0.9rem 1.1rem; margin-bottom:1.25rem;">
+            <i class="fas fa-crown" style="color:#F59E0B; font-size:1.4rem;"></i>
+            <div style="flex:1; min-width:230px;">
+                <strong>Tu es maître de classe.</strong>
+                <span style="color:#4B5563;">Transmets ce code à tes collègues&nbsp;: ils l'utilisent dans
+                «&nbsp;Rejoindre avec un code d'accès&nbsp;» (avec ton nom d'utilisateur
+                <strong>{{ current_user.username }}</strong>) pour se lier à tes classes.</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <code id="masterAccessCode" style="font-size:1.25rem; font-weight:700; letter-spacing:2px;
+                      background:#fff; border:1px dashed #6366F1; color:#3730A3;
+                      padding:0.4rem 0.8rem; border-radius:8px;">{{ my_access_code }}</code>
+                <button type="button" class="btn btn-secondary btn-sm" id="copyMasterCodeBtn"
+                        onclick="copyMasterAccessCode()" title="Copier le code">
+                    <i class="fas fa-copy"></i> Copier
+                </button>
+            </div>
+        </div>
+        <script>
+        function copyMasterAccessCode() {
+            const code = document.getElementById('masterAccessCode').textContent.trim();
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.getElementById('copyMasterCodeBtn');
+                const old = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copié !';
+                setTimeout(() => { btn.innerHTML = old; }, 1600);
+            });
+        }
+        </script>
+        {% endif %}
         <h2><i class="fas fa-list"></i> Mes classes</h2>
         
         <!-- Classes propres -->

@@ -860,6 +860,25 @@ def send_invitation():
             'message': f'Erreur lors de l\'envoi : {str(e)}'
         })
 
+def _get_or_create_teacher_access_code():
+    """Code d'accès permanent de l'enseignant (get-or-create).
+
+    C'est le code que les collègues saisissent dans « Rejoindre avec un code
+    d'accès » pour se lier à un maître de classe. Créé normalement à
+    l'inscription ; on le régénère ici s'il manque ou n'est plus valide,
+    afin de pouvoir l'afficher en permanence aux maîtres de classe."""
+    from models.class_collaboration import TeacherAccessCode
+    code = (TeacherAccessCode.query
+            .filter_by(master_teacher_id=current_user.id, is_active=True)
+            .order_by(TeacherAccessCode.id.desc()).first())
+    if not code or not code.is_valid():
+        code = TeacherAccessCode(master_teacher_id=current_user.id,
+                                 code=TeacherAccessCode.generate_code(6))
+        db.session.add(code)
+        db.session.commit()
+    return code.code
+
+
 @setup_bp.route('/classrooms', methods=['GET', 'POST'])
 @login_required
 def manage_classrooms():
@@ -893,7 +912,7 @@ def manage_classrooms():
                 
                 if existing_mixed_class:
                     flash(f'Le nom de classe "{class_group}" est déjà utilisé par une classe mixte. Veuillez choisir un autre nom.', 'error')
-                    return render_template('setup/manage_classrooms.html', form=form, classrooms=classrooms)
+                    return render_template('setup/manage_classrooms.html', form=form, classrooms=classrooms, my_access_code=_get_or_create_teacher_access_code())
                 
                 classroom = Classroom(
                     user_id=current_user.id,
@@ -1851,7 +1870,8 @@ def manage_classrooms():
                          all_class_masters=all_class_masters,
                          received_invitations=received_invitations,
                          sent_invitations=sent_invitations,
-                         from_dashboard=from_dashboard)
+                         from_dashboard=from_dashboard,
+                         my_access_code=_get_or_create_teacher_access_code())
 
 @setup_bp.route('/api/own-classes', methods=['GET'])
 @login_required
@@ -2185,13 +2205,14 @@ def become_class_master(classroom_id):
                 group_classroom.is_class_master = True
         
         if classes_made_master:
-            flash(f'Vous êtes maintenant maître de classe pour : {", ".join(classes_made_master)}', 'success')
+            _code = _get_or_create_teacher_access_code()
+            flash(f'Vous êtes maintenant maître de classe pour : {", ".join(classes_made_master)}. '
+                  f'Partagez votre code d\'accès {_code} avec vos collègues (encadré ci-dessous).', 'success')
         else:
             flash('Vous étiez déjà maître de toutes les classes de ce groupe.', 'info')
         
         try:
             db.session.commit()
-            flash(f'Vous êtes maintenant maître de la classe "{classroom.name}".', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Erreur lors de la configuration : {str(e)}', 'error')
@@ -2564,7 +2585,7 @@ def manage_classrooms_initial():
         form.classrooms.append_entry()
 
     classrooms = current_user.classrooms.all()
-    return render_template('setup/manage_classrooms.html', classrooms=classrooms, form=form)
+    return render_template('setup/manage_classrooms.html', classrooms=classrooms, form=form, my_access_code=_get_or_create_teacher_access_code())
 
 def _purge_classroom_and_children(classroom_id):
     """Supprime une classe ET tous ses enfants (élèves copiés, évaluations, notes,

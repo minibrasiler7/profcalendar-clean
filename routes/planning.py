@@ -3649,6 +3649,189 @@ def add_student():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+def _parse_students_csv(raw_text):
+    """Parse un CSV/collage Excel d'élèves.
+
+    Tolérant sur le format : séparateur ; , ou tabulation (collage Excel),
+    ligne d'en-têtes optionnelle (détectée par les mots nom/prénom/email…),
+    colonnes attendues dans l'ordre : Nom ; Prénom ; Email élève ;
+    Email mère ; Email père (les 3 emails sont optionnels).
+    Retourne (rows, errors) où rows = liste de dicts prêts pour Student.
+    """
+    import csv as _csv
+    import io as _io
+    import re as _re
+
+    text = (raw_text or '').replace('\r\n', '\n').replace('\r', '\n').strip()
+    if not text:
+        return [], [{'line': 0, 'reason': 'Aucune donnée fournie'}]
+
+    # Détection du séparateur sur les premières lignes non vides
+    sample_lines = [l for l in text.split('\n') if l.strip()][:10]
+    sample = '\n'.join(sample_lines)
+    delimiter = max(';', ',', '\t', key=lambda d: sample.count(d))
+    if sample.count(delimiter) == 0:
+        delimiter = ';'  # une seule colonne par ligne : "Nom" seul
+
+    reader = _csv.reader(_io.StringIO(text), delimiter=delimiter)
+    all_rows = [[(c or '').strip() for c in row] for row in reader]
+    all_rows = [r for r in all_rows if any(c for c in r)]
+    if not all_rows:
+        return [], [{'line': 0, 'reason': 'Aucune ligne exploitable'}]
+
+    # En-têtes ? (si la 1re ligne contient des mots-clés de colonnes)
+    header_words = ('nom', 'prenom', 'prénom', 'first', 'last', 'email', 'mail',
+                    'mère', 'mere', 'père', 'pere', 'eleve', 'élève')
+    first_lower = ' '.join(all_rows[0]).lower()
+    # Une vraie ligne d'en-têtes ne contient jamais d'adresse email, et au moins
+    # DEUX cellules ressemblent à des intitulés (Nom + Prénom au minimum) — sinon
+    # une donnée isolée contenant « mail » ou « nom » serait prise pour un en-tête.
+    header_cells = sum(
+        1 for c in all_rows[0]
+        if c and len(c) < 25 and any(w in c.lower() for w in header_words)
+    )
+    has_header = ('@' not in first_lower) and header_cells >= 2
+
+    # Ordre des colonnes : par défaut Nom;Prénom;Email;Email mère;Email père.
+    # Si en-têtes présents, on mappe chaque colonne par son intitulé.
+    col_map = {0: 'last_name', 1: 'first_name', 2: 'email',
+               3: 'parent_email_mother', 4: 'parent_email_father'}
+    start_idx = 0
+    if has_header:
+        start_idx = 1
+        col_map = {}
+        for i, h in enumerate(all_rows[0]):
+            h_low = h.lower()
+            if 'prén' in h_low or 'pren' in h_low or 'first' in h_low:
+                col_map[i] = 'first_name'
+            elif 'nom' in h_low or 'last' in h_low:
+                col_map[i] = 'last_name'
+            elif ('mère' in h_low or 'mere' in h_low or 'mother' in h_low):
+                col_map[i] = 'parent_email_mother'
+            elif ('père' in h_low or 'pere' in h_low or 'father' in h_low):
+                col_map[i] = 'parent_email_father'
+            elif 'mail' in h_low:
+                col_map[i] = 'email'
+        if 'first_name' not in col_map.values():
+            return [], [{'line': 1, 'reason': "En-têtes détectés mais aucune colonne Prénom trouvée"}]
+
+    email_re = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    rows, errors = [], []
+    for n, raw in enumerate(all_rows[start_idx:], start=start_idx + 1):
+        entry = {'first_name': '', 'last_name': '', 'email': None,
+                 'parent_email_mother': None, 'parent_email_father': None,
+                 'line': n, 'warnings': []}
+        for i, cell in enumerate(raw):
+            field = col_map.get(i)
+            if field and cell:
+                entry[field] = cell
+        # Ligne à une seule colonne "Prénom Nom" ou "Nom Prénom" → au moins un prénom
+        if not entry['first_name'] and entry['last_name'] and delimiter not in ('\t',) and len(raw) == 1:
+            parts = entry['last_name'].split()
+            if len(parts) >= 2:
+                entry['last_name'], entry['first_name'] = parts[0], ' '.join(parts[1:])
+            else:
+                entry['first_name'], entry['last_name'] = parts[0], ''
+        if not entry['first_name']:
+            errors.append({'line': n, 'reason': 'Prénom manquant'})
+            continue
+        # Emails invalides -> ignorés avec avertissement (l'élève est quand même créé)
+        for f in ('email', 'parent_email_mother', 'parent_email_father'):
+            if entry[f] and not email_re.match(entry[f]):
+                entry['warnings'].append(f"Email invalide ignoré : {entry[f]}")
+                entry[f] = None
+        rows.append(entry)
+
+    return rows, errors
+
+
+@planning_bp.route('/import-students', methods=['POST'])
+@login_required
+def import_students():
+    """Importer des élèves en lot depuis un CSV / collage Excel.
+
+    JSON attendu : {classroom_id, csv_text, dry_run}
+    - dry_run=true  : parse + contrôle les doublons, ne crée rien (aperçu).
+    - dry_run=false : crée les élèves (ORM -> chiffrement + email_hash automatiques).
+    """
+    from models.student import Student
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Aucune donnée reçue'}), 400
+
+    try:
+        classroom_id = int(data.get('classroom_id')) if data.get('classroom_id') else None
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'message': 'ID de classe invalide'}), 400
+    if not classroom_id:
+        return jsonify({'success': False, 'message': 'ID de classe manquant'}), 400
+
+    can_add, error_message, original_classroom = can_add_student_to_class(classroom_id, current_user)
+    if not can_add:
+        return jsonify({'success': False, 'message': error_message}), 403
+    if original_classroom:
+        return jsonify({
+            'success': False,
+            'message': "L'import CSV se fait dans la classe du maître de classe. "
+                       "Les élèves apparaîtront ensuite dans votre classe liée."
+        }), 400
+
+    dry_run = bool(data.get('dry_run', True))
+    rows, errors = _parse_students_csv(data.get('csv_text', ''))
+
+    if len(rows) > 200:
+        return jsonify({'success': False,
+                        'message': f'Trop de lignes ({len(rows)}). Maximum 200 élèves par import.'}), 400
+
+    # Doublons : dans la classe existante et à l'intérieur du fichier lui-même.
+    # Les noms sont chiffrés en base (non requêtables) -> comparaison en Python.
+    existing = {(s.first_name.strip().lower(), (s.last_name or '').strip().lower())
+                for s in Student.query.filter_by(classroom_id=classroom_id).all()}
+    seen = set()
+    to_create, skipped = [], []
+    for r in rows:
+        key = (r['first_name'].lower(), (r['last_name'] or '').lower())
+        if key in existing:
+            skipped.append({'line': r['line'],
+                            'name': f"{r['first_name']} {r['last_name']}".strip(),
+                            'reason': 'Existe déjà dans la classe'})
+        elif key in seen:
+            skipped.append({'line': r['line'],
+                            'name': f"{r['first_name']} {r['last_name']}".strip(),
+                            'reason': 'Doublon dans le fichier'})
+        else:
+            seen.add(key)
+            to_create.append(r)
+
+    preview = [{'line': r['line'], 'first_name': r['first_name'], 'last_name': r['last_name'],
+                'email': r['email'], 'parent_email_mother': r['parent_email_mother'],
+                'parent_email_father': r['parent_email_father'], 'warnings': r['warnings']}
+               for r in to_create]
+
+    if dry_run:
+        return jsonify({'success': True, 'dry_run': True, 'to_create': preview,
+                        'skipped': skipped, 'errors': errors})
+
+    try:
+        for r in to_create:
+            db.session.add(Student(
+                classroom_id=classroom_id,
+                user_id=current_user.id,
+                first_name=r['first_name'],
+                last_name=r['last_name'],
+                email=r['email'],
+                parent_email_mother=r['parent_email_mother'],
+                parent_email_father=r['parent_email_father'],
+            ))
+        db.session.commit()
+        return jsonify({'success': True, 'dry_run': False, 'created': len(to_create),
+                        'skipped': skipped, 'errors': errors})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @planning_bp.route('/add-student-from-master', methods=['POST'])
 @login_required
 def add_student_from_master():

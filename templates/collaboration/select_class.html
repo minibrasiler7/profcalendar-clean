@@ -371,32 +371,73 @@
     </a>
 </div>
 
+<!-- Modal de confirmation (remplace les confirm()/alert() natifs, incohérents
+     avec le design et bloquants pour le navigateur) -->
+<div id="pcConfirmModal" style="display:none; position:fixed; inset:0; z-index:1000;
+     background:rgba(17,24,39,0.55); align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:14px; max-width:430px; width:92%;
+                padding:1.5rem 1.5rem 1.25rem; box-shadow:0 20px 50px rgba(0,0,0,0.25);">
+        <h3 id="pcModalTitle" style="margin:0 0 0.5rem; font-size:1.1rem; color:#111827;"></h3>
+        <p id="pcModalMessage" style="margin:0 0 1.25rem; color:#4B5563; line-height:1.5;"></p>
+        <div style="display:flex; justify-content:flex-end; gap:0.6rem;">
+            <button type="button" class="btn btn-secondary" id="pcModalCancel">Annuler</button>
+            <button type="button" class="btn btn-success" id="pcModalOk">Confirmer</button>
+        </div>
+    </div>
+</div>
 <script>
+function pcShowModal({title, message, okLabel, okOnly, onConfirm}) {
+    const modal = document.getElementById('pcConfirmModal');
+    document.getElementById('pcModalTitle').textContent = title || 'Confirmation';
+    document.getElementById('pcModalMessage').textContent = message || '';
+    const ok = document.getElementById('pcModalOk');
+    const cancel = document.getElementById('pcModalCancel');
+    ok.textContent = okLabel || 'Confirmer';
+    cancel.style.display = okOnly ? 'none' : '';
+    modal.style.display = 'flex';
+    const close = () => { modal.style.display = 'none'; ok.onclick = cancel.onclick = modal.onclick = null; };
+    ok.onclick = () => { close(); if (onConfirm) onConfirm(); };
+    cancel.onclick = close;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+}
+
 // Validation des formulaires
 document.querySelectorAll('.class-form').forEach(form => {
     form.addEventListener('submit', function(e) {
+        e.preventDefault();
         const subject = this.querySelector('input[name="subject"]').value.trim();
-        
+
         if (!subject) {
-            e.preventDefault();
-            alert('Veuillez spécifier la matière que vous enseignez');
+            pcShowModal({title: 'Matière manquante',
+                         message: 'Veuillez spécifier la matière que vous enseignez.',
+                         okLabel: 'OK', okOnly: true});
             return;
         }
-        
         if (subject.length < 2) {
-            e.preventDefault();
-            alert('Le nom de la matière doit contenir au moins 2 caractères');
+            pcShowModal({title: 'Matière invalide',
+                         message: 'Le nom de la matière doit contenir au moins 2 caractères.',
+                         okLabel: 'OK', okOnly: true});
             return;
         }
-        
-        // Confirmation avant création
+
         const className = this.querySelector('input[name="new_class_name"]').value.trim();
-        const originalName = this.closest('.class-card').querySelector('.class-name').textContent;
+        const originalName = this.closest('.class-card').querySelector('.class-name').textContent.trim();
         const finalName = className || `${originalName} - ${subject}`;
-        
-        if (!confirm(`Créer la classe "${finalName}" pour la matière "${subject}" ?`)) {
-            e.preventDefault();
-        }
+        const formEl = this;
+        const submitBtn = this.querySelector('button[type="submit"]');
+
+        pcShowModal({
+            title: 'Créer ta classe liée ?',
+            message: `La classe « ${finalName} » sera créée pour la matière « ${subject} », avec les élèves du maître de classe.`,
+            okLabel: 'Créer la classe',
+            onConfirm: () => {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours…';
+                }
+                formEl.submit();   // .submit() natif : ne re-déclenche pas ce handler
+            }
+        });
     });
 });
 
