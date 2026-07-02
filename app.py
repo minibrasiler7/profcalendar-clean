@@ -172,7 +172,13 @@ def create_app(config_name='development'):
         app.register_blueprint(evaluations_bp)
     except ImportError:
         print("evaluations blueprint non trouvé")
-        
+
+    try:
+        from routes.announcements import announcements_bp
+        app.register_blueprint(announcements_bp)
+    except ImportError:
+        print("announcements blueprint non trouvé")
+
     try:
         from routes.attendance import attendance_bp
         app.register_blueprint(attendance_bp)
@@ -488,6 +494,32 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Vérification table apple_subscriptions échouée: {e}")
+
+        # Filet de sécurité : table announcements (annonces de classe -> parents).
+        # Idempotent — créée si absente. Contenu de diffusion (non chiffré).
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS announcements (
+                    id SERIAL PRIMARY KEY,
+                    classroom_id INTEGER NOT NULL REFERENCES classrooms(id) ON DELETE CASCADE,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    title VARCHAR(255) NOT NULL,
+                    content TEXT NOT NULL,
+                    email_sent BOOLEAN DEFAULT FALSE,
+                    email_recipients INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_announcements_classroom_id "
+                "ON announcements (classroom_id)"
+            ))
+            db.session.commit()
+            print("✅ Table announcements vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification table announcements échouée: {e}")
 
         # Table subscriptions
         try:

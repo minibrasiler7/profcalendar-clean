@@ -43,3 +43,4 @@ profcalendar-app/.ios-old-viewer-backup/
 # Claude Code session scratch docs
 CLAUDE_CODE_CONTEXT.md
 CLAUDE_CODE_TEST_PROMPT.md
+.env.prod

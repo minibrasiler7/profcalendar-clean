@@ -3160,6 +3160,7 @@
                     <option value="seating">🪑 Plan de classe</option>
                     <option value="groups">👥 Groupes</option>
                     <option value="accommodations">♿ Aménagements</option>
+                    <option value="announcements">📣 Annonces</option>
                     {% if show_teachers_tab %}
                     <option value="teachers">👨‍🏫 Enseignants</option>
                     {% endif %}
@@ -3193,6 +3194,9 @@
                 </button>
                 <button class="tab-button" onclick="showTab('accommodations')">
                     <i class="fas fa-universal-access"></i> Aménagements
+                </button>
+                <button class="tab-button" onclick="showTab('announcements')">
+                    <i class="fas fa-bullhorn"></i> Annonces
                 </button>
                 {% if show_teachers_tab %}
                 <button class="tab-button" onclick="showTab('teachers')">
@@ -3488,6 +3492,148 @@
             </div>
             {% endif %}
         </div>
+    </div>
+
+    <!-- Onglet Annonces -->
+    <div id="announcements-tab" class="tab-content">
+        <div class="announcements-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-bullhorn"></i> Annonces de classe
+                </h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="toggleAnnouncementForm()">
+                        <i class="fas fa-plus"></i> Nouvelle annonce
+                    </button>
+                </div>
+            </div>
+
+            <p style="color: var(--gray-color); margin-bottom: 1rem;">
+                Publie une information à toute la classe. Elle s'affiche dans l'espace des parents ;
+                tu peux aussi les prévenir par email.
+            </p>
+
+            <div id="announcementForm" class="add-student-form" style="display: none; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label" for="announcementTitle">Titre</label>
+                    <input type="text" id="announcementTitle" class="form-control" maxlength="255"
+                           placeholder="Ex. : Sortie au musée jeudi">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="announcementContent">Message</label>
+                    <textarea id="announcementContent" class="form-control" rows="4"
+                              placeholder="Détaille ton annonce ici…"></textarea>
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="announcementNotify" checked style="width: auto;">
+                    <label for="announcementNotify" style="margin: 0; cursor: pointer;">
+                        Prévenir les parents par email
+                    </label>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" id="announcementSubmitBtn" onclick="createAnnouncement()">
+                        <i class="fas fa-paper-plane"></i> Publier
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleAnnouncementForm()">Annuler</button>
+                </div>
+            </div>
+
+            <div id="announcementsList">
+                <div style="color: var(--gray-color); text-align: center; padding: 1rem;">Chargement…</div>
+            </div>
+        </div>
+
+        <script>
+        (function() {
+            const CLASSROOM_ID = "{{ primary_classroom.id }}";
+            const listEl = () => document.getElementById('announcementsList');
+            const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+            window.toggleAnnouncementForm = function() {
+                const f = document.getElementById('announcementForm');
+                const show = f.style.display === 'none';
+                f.style.display = show ? 'block' : 'none';
+                if (show) document.getElementById('announcementTitle').focus();
+            };
+
+            window.loadAnnouncements = async function() {
+                try {
+                    const r = await fetch('/api/announcements/classroom/' + CLASSROOM_ID);
+                    const data = await r.json();
+                    if (!data.success) { listEl().innerHTML = '<div style="color:#DC2626;">Impossible de charger les annonces.</div>'; return; }
+                    if (!data.announcements.length) {
+                        listEl().innerHTML = '<div style="color:var(--gray-color); text-align:center; padding:1rem;">Aucune annonce pour l\'instant.</div>';
+                        return;
+                    }
+                    listEl().innerHTML = data.announcements.map(a => `
+                        <div style="background:#fff; border:1px solid #E5E7EB; border-left:4px solid #4F46E5; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.85rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+                                <div>
+                                    <h4 style="margin:0 0 0.3rem; color:#1F2937;">${esc(a.title)}</h4>
+                                    <div style="font-size:0.8rem; color:#6B7280;">
+                                        <i class="fas fa-calendar"></i> ${esc(a.created_at)}
+                                        ${a.email_sent ? ` <span style="margin-left:0.5rem;"><i class="fas fa-envelope"></i> envoyée à ${a.email_recipients} parent(s)</span>` : ''}
+                                    </div>
+                                </div>
+                                <button class="btn btn-danger btn-sm" title="Supprimer" onclick="deleteAnnouncement(${a.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div style="color:#374151; font-size:0.95rem; line-height:1.55; white-space:pre-wrap; margin-top:0.5rem;">${esc(a.content)}</div>
+                        </div>`).join('');
+                } catch (e) {
+                    listEl().innerHTML = '<div style="color:#DC2626;">Erreur de chargement.</div>';
+                }
+            };
+
+            window.createAnnouncement = async function() {
+                const title = document.getElementById('announcementTitle').value.trim();
+                const content = document.getElementById('announcementContent').value.trim();
+                const notify = document.getElementById('announcementNotify').checked;
+                if (!title || !content) { showNotification('error', 'Titre et message obligatoires.'); return; }
+                const btn = document.getElementById('announcementSubmitBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publication…';
+                try {
+                    const r = await fetch('/api/announcements/classroom/' + CLASSROOM_ID, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ title, content, notify_email: notify })
+                    });
+                    const data = await r.json();
+                    if (data.success) {
+                        const a = data.announcement;
+                        showNotification('success', a.email_sent
+                            ? `Annonce publiée · email envoyé à ${a.email_recipients} parent(s)`
+                            : 'Annonce publiée');
+                        document.getElementById('announcementTitle').value = '';
+                        document.getElementById('announcementContent').value = '';
+                        toggleAnnouncementForm();
+                        loadAnnouncements();
+                    } else {
+                        showNotification('error', data.message || 'Publication impossible');
+                    }
+                } catch (e) {
+                    showNotification('error', 'Erreur lors de la publication');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publier';
+                }
+            };
+
+            window.deleteAnnouncement = async function(id) {
+                if (!confirm('Supprimer cette annonce ?')) return;
+                try {
+                    const r = await fetch('/api/announcements/' + id, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const data = await r.json();
+                    if (data.success) { showNotification('success', 'Annonce supprimée'); loadAnnouncements(); }
+                    else { showNotification('error', data.message || 'Suppression impossible'); }
+                } catch (e) { showNotification('error', 'Erreur lors de la suppression'); }
+            };
+
+            document.addEventListener('DOMContentLoaded', loadAnnouncements);
+        })();
+        </script>
     </div>
 
     <!-- Onglet Rapport élève -->

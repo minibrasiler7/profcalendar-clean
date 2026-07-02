@@ -115,6 +115,65 @@
         {% endif %}
     </div>
 
+    <!-- Section des annonces de classe -->
+    {% if announcements %}
+    <style>
+        .announcements-section { margin-bottom: 2rem; }
+        .announcement-card {
+            background: #fff;
+            border: 1px solid #E5E7EB;
+            border-left: 4px solid #4F46E5;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .announcement-card .announcement-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;
+        }
+        .announcement-card h4 { margin: 0; font-size: 1.05rem; color: #1F2937; }
+        .announcement-card .announcement-meta { font-size: 0.8rem; color: #6B7280; }
+        .announcement-card .announcement-meta .separator { margin: 0 0.4rem; }
+        .announcement-card .announcement-content {
+            color: #374151; font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap;
+        }
+        .announcement-card .class-pill {
+            display: inline-block; background: #EEF2FF; color: #4F46E5;
+            font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.55rem;
+            border-radius: 999px; white-space: nowrap;
+        }
+    </style>
+    <div class="announcements-section">
+        <div class="section-header">
+            <h2>
+                <i class="fas fa-bullhorn"></i>
+                Annonces de classe
+            </h2>
+        </div>
+        <div class="announcements-list">
+            {% for announcement in announcements %}
+                <div class="announcement-card">
+                    <div class="announcement-header">
+                        <div>
+                            <h4>{{ announcement.title }}</h4>
+                            <span class="announcement-meta">
+                                <i class="fas fa-user"></i> {{ announcement.user.username if announcement.user else 'Enseignant' }}
+                                <span class="separator">•</span>
+                                <i class="fas fa-calendar"></i> {{ announcement.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                            </span>
+                        </div>
+                        {% if announcement.classroom %}
+                        <span class="class-pill">{{ announcement.classroom.name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="announcement-content">{{ announcement.content }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Section des remarques -->
     {% if remarks %}
     <div class="remarks-section">

@@ -547,11 +547,21 @@ def dashboard():
         StudentRemark.is_viewed_by_parent == False
     ).count()
 
+    # Annonces de classe (diffusées par les enseignants aux parents)
+    from models.announcement import Announcement
+    classroom_ids = list({child.classroom_id for child, _ in children if child.classroom_id})
+    announcements = []
+    if classroom_ids:
+        announcements = Announcement.query.filter(
+            Announcement.classroom_id.in_(classroom_ids)
+        ).order_by(Announcement.created_at.desc()).limit(20).all()
+
     return render_template('parent/dashboard.html',
                          children=children,
                          justifications=justifications,
                          remarks=remarks,
-                         unread_remarks_count=unread_remarks_count)
+                         unread_remarks_count=unread_remarks_count,
+                         announcements=announcements)
 
 @parent_auth_bp.route('/logout')
 @parent_required

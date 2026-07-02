@@ -2614,7 +2614,7 @@ def _purge_classroom_and_children(classroom_id):
     ex("DELETE FROM combat_monsters WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
     ex("DELETE FROM mixed_group_students WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
     # d) enfants directs de la classe (colonne classroom_id)
-    for t in ("attendance", "class_codes", "class_files", "class_files_v2",
+    for t in ("announcements", "attendance", "class_codes", "class_files", "class_files_v2",
               "class_folders", "classroom_access_codes", "classroom_chapters",
               "classroom_sanction_imports", "combat_sessions", "decoupage_assignments",
               "evaluations", "exercise_publications", "file_shares", "grades",
