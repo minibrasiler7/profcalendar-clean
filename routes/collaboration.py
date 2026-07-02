@@ -504,8 +504,12 @@ def select_class(collaboration_id):
 @teacher_required
 def create_shared_class():
     """Créer une classe dérivée à partir d'une classe du maître"""
-    collaboration_id = request.form.get('collaboration_id')
-    original_classroom_id = request.form.get('original_classroom_id')
+    # NB: sur PostgreSQL (prod) le typage est strict : comparer une colonne
+    # INTEGER à une chaîne (issue du formulaire) lève "operator does not exist:
+    # integer = character varying". On caste donc explicitement en int (SQLite
+    # en dev tolérait la chaîne, d'où le bug invisible en local).
+    collaboration_id = request.form.get('collaboration_id', type=int)
+    original_classroom_id = request.form.get('original_classroom_id', type=int)
     subject = request.form.get('subject', '').strip()
     new_class_name = request.form.get('new_class_name', '').strip()
     is_multi_subject = request.form.get('is_multi_subject') == 'true'
