@@ -1588,6 +1588,10 @@ def save_planning():
                 db.session.add(planning)
         else:
             if existing:
+                # Les publications d'exercices référencent ce planning (FK NON-CASCADE
+                # en prod) -> les supprimer avant, sinon ForeignKeyViolation 500.
+                from models.exercise_progress import ExercisePublication
+                ExercisePublication.query.filter_by(planning_id=existing.id).delete()
                 db.session.delete(existing)
                 deleted = True
 
@@ -3769,37 +3773,14 @@ def delete_student(student_id):
 
         student_name = student.full_name
 
-        # Supprimer d'abord toutes les données liées à cet élève manuellement
-        from models.evaluation import EvaluationGrade
-        from models.attendance import Attendance
-        from models.student_sanctions import StudentSanctionCount
-        from models.absence_justification import AbsenceJustification
-        
-        # Supprimer tous les liens et données associées
-        StudentClassroomLink.query.filter_by(student_id=student_id).delete()
-        EvaluationGrade.query.filter_by(student_id=student_id).delete()
-        Attendance.query.filter_by(student_id=student_id).delete()
-        StudentSanctionCount.query.filter_by(student_id=student_id).delete()
-        AbsenceJustification.query.filter_by(student_id=student_id).delete()
-        
-        # Supprimer les autres relations si elles existent
-        try:
-            from models.accommodation import Accommodation
-            Accommodation.query.filter_by(student_id=student_id).delete()
-        except ImportError:
-            pass
-            
-        try:
-            from models.parent import ParentStudentConnection
-            ParentStudentConnection.query.filter_by(student_id=student_id).delete()
-        except ImportError:
-            pass
-            
-        try:
-            from models.student_group import StudentGroupMembership
-            StudentGroupMembership.query.filter_by(student_id=student_id).delete()
-        except ImportError:
-            pass
+        # Supprimer TOUTES les dépendances FK de l'élève avant l'élève lui-même.
+        # On réutilise le helper de fin d'année (complet et testé : présences,
+        # évaluations, sanctions + records, fichiers, codes d'accès, RPG/combat,
+        # exercices, remarques, etc.). Indispensable en prod PostgreSQL où les FK
+        # ne sont pas ON DELETE CASCADE (l'ancien nettoyage manuel en oubliait
+        # une douzaine -> 500 dès qu'un élève avait ce type de données).
+        from services.year_end_cleanup import _delete_student_dependencies
+        _delete_student_dependencies([student_id])
 
         # Si c'est une classe dérivée, récupérer l'info de l'élève original pour le retour
         from models.class_collaboration import SharedClassroom
@@ -6950,7 +6931,7 @@ def upload_student_report_file():
         from werkzeug.utils import secure_filename
         from models.student import StudentFile
         
-        student_id = request.form.get('student_id')
+        student_id = request.form.get('student_id', type=int)
         files = request.files.getlist('files')
         
         if not student_id or not files:
@@ -8342,6 +8323,10 @@ def delete_decoupage(decoupage_id):
         return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
 
     try:
+        # Les affectations du découpage aux classes référencent decoupage_id (FK
+        # NON-CASCADE en prod) -> les supprimer avant, sinon ForeignKeyViolation 500.
+        from models.decoupage import DecoupageAssignment
+        DecoupageAssignment.query.filter_by(decoupage_id=decoupage.id).delete()
         db.session.delete(decoupage)
         db.session.commit()
         return jsonify({

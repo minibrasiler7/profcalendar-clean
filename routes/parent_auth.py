@@ -967,8 +967,8 @@ def get_teacher_periods(student_id):
 def justify_absence():
     """Traiter une justification d'absence soumise par un parent"""
     try:
-        student_id = request.form.get('student_id')
-        
+        student_id = request.form.get('student_id', type=int)
+
         # Vérifier que l'élève appartient bien au parent
         parent_child = ParentChild.query.filter_by(
             parent_id=current_user.id,

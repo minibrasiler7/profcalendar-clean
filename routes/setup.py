@@ -105,7 +105,7 @@ def _handle_join_by_access_code(request, current_user):
     
     # Récupérer les données du formulaire (nouvelle structure)
     access_code = request.form.get('access_code', '').strip().upper()
-    target_classroom_id = request.form.get('join_target_classroom_id', '').strip()
+    target_classroom_id = request.form.get('join_target_classroom_id', type=int)
     personal_class_name = request.form.get('personal_class_name', '').strip()
     
     # Récupérer les disciplines depuis l'interface
@@ -241,7 +241,7 @@ def _handle_invitation_request(request, current_user):
     
     # Récupérer les données du formulaire (nouvelle structure)
     master_teacher_name = request.form.get('invite_master_teacher_name', '').strip()
-    target_classroom_id = request.form.get('target_classroom_id', '').strip()
+    target_classroom_id = request.form.get('target_classroom_id', type=int)
     message = request.form.get('invite_message', '').strip()
     personal_class_name = request.form.get('personal_class_name', '').strip()
     
@@ -990,7 +990,7 @@ def manage_classrooms():
             print("DEBUG JOIN: Form data received:", dict(request.form))
             access_code = request.form.get('access_code', '').strip().upper()
             master_teacher_name = request.form.get('master_teacher_name', '').strip()
-            target_classroom_id = request.form.get('join_target_classroom_id', '').strip()
+            target_classroom_id = request.form.get('join_target_classroom_id', type=int)
             print(f"DEBUG JOIN: access_code='{access_code}', master_teacher_name='{master_teacher_name}', target_classroom_id='{target_classroom_id}'")
             
             # Récupérer les disciplines pour le code d'accès
@@ -1271,7 +1271,7 @@ def manage_classrooms():
         elif action_type == 'invite_old':
             # Envoyer une invitation multi-disciplines à un maître de classe
             master_teacher_name = request.form.get('invite_master_teacher_name', '').strip()
-            target_classroom_id = request.form.get('target_classroom_id', '').strip()
+            target_classroom_id = request.form.get('target_classroom_id', type=int)
             message = request.form.get('invite_message', '').strip()
             
             # Récupérer les disciplines
@@ -1974,7 +1974,11 @@ def validate_access_code():
         data = request.get_json()
         access_code = data.get('access_code', '').strip().upper()
         target_classroom_id = data.get('target_classroom_id')
-        
+        try:
+            target_classroom_id = int(target_classroom_id) if target_classroom_id is not None else None
+        except (TypeError, ValueError):
+            target_classroom_id = None
+
         if not access_code or not target_classroom_id:
             return jsonify({'valid': False, 'error': 'Code d\'accès ou classe cible manquant'})
         
@@ -2599,6 +2603,10 @@ def _purge_classroom_and_children(classroom_id):
         ex(f"DELETE FROM {t} WHERE classroom_id = :cid")
     # e) FK à colonnes non standard
     ex("DELETE FROM shared_classrooms WHERE original_classroom_id = :cid OR derived_classroom_id = :cid")
+    # horaires / plannings / mémos rattachés aux groupes mixtes auto-créés de cette classe
+    ex("DELETE FROM schedules WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
+    ex("DELETE FROM plannings WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
+    ex("DELETE FROM lesson_memos WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
     ex("DELETE FROM mixed_groups WHERE auto_classroom_id = :cid")
     ex("DELETE FROM invitation_classrooms WHERE target_classroom_id = :cid")
     ex("DELETE FROM teacher_invitations WHERE target_classroom_id = :cid")

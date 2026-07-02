@@ -252,6 +252,12 @@ def delete(template_id):
             template_id=template.id
         ).delete()
         
+        # Supprimer les sanctions déjà attribuées aux élèves pour ce modèle
+        # (FK vers template/threshold/option, NON-CASCADE en prod) AVANT le modèle
+        # et ses seuils/options, sinon ForeignKeyViolation 500.
+        from models.sanctions import StudentSanctionRecord
+        StudentSanctionRecord.query.filter_by(template_id=template.id).delete()
+
         # Supprimer le modèle (les seuils et options seront supprimés en cascade)
         db.session.delete(template)
         db.session.commit()

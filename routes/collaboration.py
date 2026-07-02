@@ -666,24 +666,15 @@ def delete_collaboration(collaboration_id):
         # Récupérer toutes les classes partagées de cette collaboration
         shared_classrooms = SharedClassroom.query.filter_by(collaboration_id=collaboration_id).all()
         
-        # Pour chaque classe partagée, supprimer la classe dérivée et ses données
+        # Pour chaque classe partagée, purger complètement la classe dérivée.
+        # L'ancien code faisait Student.query...delete() en masse + delete(classroom)
+        # SANS nettoyer les enfants (le commentaire « grâce aux cascades » était faux
+        # en prod PostgreSQL : FK NON-CASCADE) -> ForeignKeyViolation 500. On réutilise
+        # le helper complet (il supprime aussi le SharedClassroom associé).
+        from routes.setup import _purge_classroom_and_children
         for shared_classroom in shared_classrooms:
-            derived_classroom = shared_classroom.derived_classroom
-            
-            # Supprimer les liens élève-classe pour cette classe dérivée
-            StudentClassroomLink.query.filter_by(classroom_id=derived_classroom.id).delete()
-            
-            # Supprimer les élèves de la classe dérivée
-            # (cela supprime automatiquement les notes, absences, etc. grâce aux cascades)
-            from models.student import Student
-            Student.query.filter_by(classroom_id=derived_classroom.id).delete()
-            
-            # Supprimer la classe dérivée elle-même
-            db.session.delete(derived_classroom)
-            
-            # Supprimer l'enregistrement de classe partagée
-            db.session.delete(shared_classroom)
-        
+            _purge_classroom_and_children(shared_classroom.derived_classroom_id)
+
         # Supprimer la collaboration
         db.session.delete(collaboration)
         
