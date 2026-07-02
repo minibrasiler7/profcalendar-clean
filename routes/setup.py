@@ -2875,12 +2875,49 @@ def delete_classroom(id):
             )
             print(f"DEBUG DELETE: Removed mixed group {mixed_group_id}")
         
-        # Supprimer uniquement la classe de l'utilisateur (pas les étudiants, codes, etc.)
-        db.session.execute(
-            db.text("DELETE FROM classrooms WHERE id = :classroom_id"),
-            {"classroom_id": classroom.id}
-        )
-        print(f"DEBUG DELETE: Removed classroom {classroom.id}")
+        # La classe dérivée possède ses PROPRES copies d'élèves, évaluations,
+        # notes, fichiers, etc. (create_shared_class les COPIE). En base PostgreSQL
+        # quasi aucune FK n'est ON DELETE CASCADE : il faut donc supprimer
+        # explicitement tous les enfants AVANT la classe, sinon ForeignKeyViolation
+        # -> 500 (SQLite en dev ne vérifiait pas les FK, d'où le bug invisible en
+        # local). Toutes les suppressions sont bornées à CETTE classe / SES élèves :
+        # les données du maître (autre classe, autres élèves) ne sont jamais touchées.
+        _cid = {"cid": classroom.id}
+        _ex = lambda sql: db.session.execute(db.text(sql), _cid)
+        # a) enfants des élèves (copies) de la classe dérivée
+        for _t in ("absence_justifications", "attendance", "combat_participants",
+                   "evaluation_grades", "grades", "mixed_group_students",
+                   "parent_children", "student_access_codes", "student_accommodations",
+                   "student_badges", "student_classroom_links", "student_exercise_attempts",
+                   "student_files", "student_file_shares", "student_group_memberships",
+                   "student_info_history", "student_items", "student_remarks",
+                   "student_rpg_profiles", "student_sanction_counts", "student_sanction_records"):
+            _ex(f"DELETE FROM {_t} WHERE student_id IN (SELECT id FROM students WHERE classroom_id = :cid)")
+        # b) les élèves (copies) de la classe dérivée
+        _ex("DELETE FROM students WHERE classroom_id = :cid")
+        # c) petits-enfants reliés à la classe via un parent intermédiaire
+        _ex("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :cid)")
+        _ex("DELETE FROM student_group_memberships WHERE group_id IN (SELECT id FROM student_groups WHERE classroom_id = :cid)")
+        _ex("DELETE FROM combat_participants WHERE session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
+        _ex("DELETE FROM mixed_group_students WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
+        # d) enfants directs de la classe (colonne classroom_id)
+        for _t in ("attendance", "class_codes", "class_files", "class_files_v2",
+                   "class_folders", "classroom_access_codes", "classroom_chapters",
+                   "classroom_sanction_imports", "combat_sessions", "decoupage_assignments",
+                   "evaluations", "exercise_publications", "file_shares", "grades",
+                   "lesson_blank_sheets", "lesson_memos", "plannings", "schedules",
+                   "seating_plans", "student_classroom_links", "student_groups",
+                   "user_sanction_preferences"):
+            _ex(f"DELETE FROM {_t} WHERE classroom_id = :cid")
+        # e) FK à colonnes non standard
+        _ex("DELETE FROM shared_classrooms WHERE original_classroom_id = :cid OR derived_classroom_id = :cid")
+        _ex("DELETE FROM mixed_groups WHERE auto_classroom_id = :cid")
+        _ex("DELETE FROM invitation_classrooms WHERE target_classroom_id = :cid")
+        _ex("DELETE FROM teacher_invitations WHERE target_classroom_id = :cid")
+        _ex("UPDATE exercises SET classroom_id = NULL WHERE classroom_id = :cid")
+        # f) enfin la classe dérivée elle-même
+        _ex("DELETE FROM classrooms WHERE id = :cid")
+        print(f"DEBUG DELETE: Removed derived classroom {classroom.id} + all children")
         
         flash(f'Vous avez été délié de la classe "{classroom.name}" avec succès.', 'info')
     
