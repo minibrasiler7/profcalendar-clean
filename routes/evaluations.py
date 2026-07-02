@@ -441,3 +441,142 @@ def delete_evaluation(evaluation_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+
+# ---------------------------------------------------------------------------
+# Export des notes (PDF / CSV)
+# ---------------------------------------------------------------------------
+
+def _grades_matrix(classroom_id):
+    """Construit la matrice élèves × évaluations + moyennes, en répliquant la
+    logique d'affichage de l'app : les items d'un groupe TA comptent comme UNE
+    évaluation (moyenne du groupe) dans la moyenne de l'élève."""
+    students = Student.query.filter_by(classroom_id=classroom_id).all()
+    sort_pref = getattr(current_user, 'student_sort_pref', 'last_name') or 'last_name'
+    if sort_pref == 'first_name':
+        students.sort(key=lambda s: ((s.first_name or '').lower(), (s.last_name or '').lower()))
+    else:
+        students.sort(key=lambda s: ((s.last_name or '').lower(), (s.first_name or '').lower()))
+
+    evaluations = (Evaluation.query.filter_by(classroom_id=classroom_id)
+                   .order_by(Evaluation.date, Evaluation.id).all())
+    grades = {}
+    if evaluations:
+        ev_ids = [e.id for e in evaluations]
+        for g in EvaluationGrade.query.filter(EvaluationGrade.evaluation_id.in_(ev_ids)).all():
+            grades[(g.evaluation_id, g.student_id)] = g.points
+
+    def student_average(sid):
+        vals = []
+        # évaluations significatives : comptées telles quelles
+        for ev in evaluations:
+            if ev.type != 'ta':
+                v = grades.get((ev.id, sid))
+                if v is not None:
+                    vals.append(v)
+        # groupes TA : moyenne du groupe comptée une seule fois
+        ta_groups = {}
+        for ev in evaluations:
+            if ev.type == 'ta':
+                ta_groups.setdefault(ev.ta_group_name or 'TA', []).append(ev)
+        for evs in ta_groups.values():
+            g_vals = [grades[(e.id, sid)] for e in evs if grades.get((e.id, sid)) is not None]
+            if g_vals:
+                vals.append(sum(g_vals) / len(g_vals))
+        return (sum(vals) / len(vals)) if vals else None
+
+    return students, evaluations, grades, student_average
+
+
+@evaluations_bp.route('/classroom/<int:classroom_id>/export.<fmt>')
+@login_required
+def export_grades(classroom_id, fmt):
+    """Exporte les notes d'une classe en PDF ou CSV (pour entretiens de parents,
+    conseils de classe, archivage)."""
+    from flask import Response, abort
+
+    if fmt not in ('pdf', 'csv'):
+        abort(404)
+    if not user_can_access_classroom(current_user.id, classroom_id):
+        abort(403)
+    classroom = Classroom.query.get_or_404(classroom_id)
+
+    students, evaluations, grades, student_average = _grades_matrix(classroom_id)
+
+    def fmt_val(v, dec=1):
+        return ('%.*f' % (dec, v)) if v is not None else ''
+
+    safe_name = ''.join(c if c.isalnum() or c in '-_' else '_'
+                        for c in f"notes_{classroom.name}_{classroom.subject}")
+
+    if fmt == 'csv':
+        import csv as _csv
+        import io as _io
+        buf = _io.StringIO()
+        w = _csv.writer(buf, delimiter=';')
+        w.writerow(['Élève'] + [f"{e.title} ({e.date.strftime('%d.%m.%Y')})" for e in evaluations]
+                   + ['Moyenne'])
+        w.writerow([''] + [f"sur {fmt_val(e.max_points, 0)}" for e in evaluations] + [''])
+        for s in students:
+            w.writerow([s.full_name]
+                       + [fmt_val(grades.get((e.id, s.id))) for e in evaluations]
+                       + [fmt_val(student_average(s.id), 2)])
+        w.writerow(['Moyenne de classe']
+                   + [fmt_val(e.get_average(), 2) for e in evaluations] + [''])
+        # BOM pour qu'Excel ouvre l'UTF-8 correctement
+        data = '\ufeff' + buf.getvalue()
+        return Response(data, mimetype='text/csv; charset=utf-8',
+                        headers={'Content-Disposition': f'attachment; filename="{safe_name}.csv"'})
+
+    # ---- PDF (reportlab, paysage) ----
+    import io as _io
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    buf = _io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            rightMargin=1.2 * cm, leftMargin=1.2 * cm,
+                            topMargin=1.2 * cm, bottomMargin=1.2 * cm)
+    styles = getSampleStyleSheet()
+    elements = [
+        Paragraph(f"<b>Notes — {classroom.name} · {classroom.subject}</b>", styles['Title']),
+        Paragraph(f"Enseignant : {current_user.username} — généré le "
+                  f"{datetime.now().strftime('%d.%m.%Y à %H:%M')}", styles['Normal']),
+        Spacer(1, 0.5 * cm),
+    ]
+
+    header = ['Élève'] + [f"{e.title}\n{e.date.strftime('%d.%m.%y')} · /{fmt_val(e.max_points, 0)}"
+                          for e in evaluations] + ['Moyenne']
+    rows = [header]
+    for s in students:
+        rows.append([s.full_name]
+                    + [fmt_val(grades.get((e.id, s.id))) for e in evaluations]
+                    + [fmt_val(student_average(s.id), 2)])
+    rows.append(['Moyenne de classe']
+                + [fmt_val(e.get_average(), 2) for e in evaluations] + [''])
+
+    first_col = 4.2 * cm
+    avail = landscape(A4)[0] - 2.4 * cm - first_col - 2 * cm
+    ev_w = max(1.5 * cm, min(3 * cm, avail / max(1, len(evaluations))))
+    table = Table(rows, colWidths=[first_col] + [ev_w] * len(evaluations) + [2 * cm],
+                  repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTSIZE', (0, 0), (-1, 0), 7),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.4, colors.HexColor('#D1D5DB')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#F9FAFB')]),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#EEF2FF')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (-1, 1), (-1, -1), 'Helvetica-Bold'),
+    ]))
+    elements.append(table)
+    doc.build(elements)
+    buf.seek(0)
+    return Response(buf.read(), mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment; filename="{safe_name}.pdf"'})

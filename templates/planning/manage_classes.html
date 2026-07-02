@@ -3638,6 +3638,16 @@
                 <h2 class="section-title">
                     <i class="fas fa-clipboard-check"></i> Gestion des notes
                 </h2>
+                <div class="header-actions">
+                    <a class="btn btn-secondary" target="_blank"
+                       href="{{ url_for('evaluations.export_grades', classroom_id=primary_classroom.id, fmt='pdf') }}">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
+                    <a class="btn btn-secondary"
+                       href="{{ url_for('evaluations.export_grades', classroom_id=primary_classroom.id, fmt='csv') }}">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </a>
+                </div>
             </div>
 
             <!-- Statistiques -->
