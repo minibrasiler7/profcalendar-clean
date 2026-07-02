@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from extensions import db
+from routes import admin_required
 import os
 import re
 import uuid
@@ -571,6 +572,64 @@ def api_migrate_to_r2():
         'errors': errors,
         'error_details': error_details
     })
+
+
+@file_manager_bp.route('/api/admin/backfill-r2', methods=['POST'])
+@admin_required
+def api_admin_backfill_r2():
+    """One-shot admin : migre TOUS les user_files encore stockés en BLOB DB vers
+    Cloudflare R2, à la clé canonique files/{user_id}/{filename} — cohérente avec
+    le chemin de lecture (serve_user_file_content), contrairement à l'ancienne
+    route par-utilisateur. Le BLOB n'est libéré qu'APRÈS vérification de la
+    présence de l'objet sur R2 (aucun risque de perte). Idempotent.
+
+    Body JSON optionnel : {"dry_run": true} pour un aperçu sans écrire.
+    """
+    from models.file_manager import UserFile
+    from services.r2_storage import (upload_file_to_r2, upload_thumbnail_to_r2,
+                                      file_exists_on_r2, is_r2_enabled)
+
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'message': 'R2 non configuré'}), 400
+
+    dry_run = bool((request.get_json(silent=True) or {}).get('dry_run', False))
+
+    files = UserFile.query.filter(UserFile.file_content.isnot(None)).all()
+    report = {'candidates': len(files), 'migrated': 0, 'thumbs_migrated': 0,
+              'freed_bytes': 0, 'errors': []}
+
+    for f in files:
+        blob = f.file_content
+        if not blob:
+            continue
+        if dry_run:
+            report['migrated'] += 1
+            report['freed_bytes'] += len(blob)
+            continue
+        try:
+            key = upload_file_to_r2(blob, f.user_id, f.filename, f.mime_type)
+            # Sécurité : ne jamais vider le BLOB sans confirmer l'objet sur R2.
+            if not key or not file_exists_on_r2(f.user_id, f.filename):
+                report['errors'].append({'id': f.id, 'name': f.original_filename,
+                                         'error': 'r2_upload_non_verifie'})
+                continue
+            f.r2_key = key
+            if f.thumbnail_content:
+                tkey = upload_thumbnail_to_r2(f.thumbnail_content, f.user_id, f.filename)
+                if tkey and file_exists_on_r2(f.user_id, f.filename, file_type='thumbnail'):
+                    f.r2_thumbnail_key = tkey
+                    f.thumbnail_content = None
+                    report['thumbs_migrated'] += 1
+            report['freed_bytes'] += len(blob)
+            f.file_content = None
+            db.session.commit()
+            report['migrated'] += 1
+        except Exception as e:
+            db.session.rollback()
+            report['errors'].append({'id': f.id, 'name': f.original_filename, 'error': str(e)})
+
+    return jsonify({'success': True, 'dry_run': dry_run, 'report': report})
+
 
 @file_manager_bp.route('/api/folder-contents/<int:folder_id>')
 @login_required

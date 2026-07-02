@@ -130,5 +130,61 @@
         <p>Aucun abonnement pour le moment</p>
     </div>
     {% endif %}
+
+    <div class="admin-section" style="margin-top: 2rem;">
+        <h2><i class="fas fa-cloud-upload-alt"></i> Maintenance — Stockage R2</h2>
+        <p style="color:#6B7280; margin:0.5rem 0 1rem;">
+            Migre les fichiers encore stockés en BLOB dans la base de données vers Cloudflare R2
+            (clé canonique, vérifiée avant de libérer le BLOB). Idempotent — sans risque à relancer.
+        </p>
+        <button id="backfillR2Btn" class="btn btn-primary" onclick="backfillR2()">
+            <i class="fas fa-cloud-upload-alt"></i> Migrer les fichiers restants vers R2
+        </button>
+        <pre id="backfillR2Result" style="display:none; margin-top:1rem; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:1rem; white-space:pre-wrap; font-size:0.85rem;"></pre>
+    </div>
 </div>
+
+<script>
+async function backfillR2() {
+    const btn = document.getElementById('backfillR2Btn');
+    const out = document.getElementById('backfillR2Result');
+    const url = "{{ url_for('file_manager.api_admin_backfill_r2') }}";
+    const post = async (dry) => (await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ dry_run: dry })
+    })).json();
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse…';
+    try {
+        const preview = await post(true);
+        if (!preview.success) { alert(preview.message || 'R2 non configuré'); return; }
+        const n = preview.report.candidates;
+        const mo = (preview.report.freed_bytes / 1048576).toFixed(2);
+        if (n === 0) { out.style.display = 'block'; out.textContent = 'Aucun fichier à migrer — tout est déjà sur R2. ✅'; return; }
+        if (!confirm(`${n} fichier(s) à migrer vers R2 (${mo} Mo libérés de la base). Lancer la migration ?`)) return;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Migration…';
+        const res = await post(false);
+        out.style.display = 'block';
+        if (res.success) {
+            const r = res.report;
+            out.textContent = `✅ Migration terminée\n`
+                + `Fichiers migrés : ${r.migrated}/${r.candidates}\n`
+                + `Miniatures migrées : ${r.thumbs_migrated}\n`
+                + `Espace DB libéré : ${(r.freed_bytes / 1048576).toFixed(2)} Mo\n`
+                + `Erreurs : ${r.errors.length}`
+                + (r.errors.length ? '\n' + JSON.stringify(r.errors, null, 2) : '');
+        } else {
+            out.textContent = '❌ ' + (res.message || 'Échec de la migration');
+        }
+    } catch (e) {
+        out.style.display = 'block';
+        out.textContent = '❌ Erreur : ' + e;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+}
+</script>
 {% endblock %}
