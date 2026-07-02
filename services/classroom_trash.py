@@ -81,6 +81,11 @@ def _archive_classroom_impl(classroom, actor_user_id, Student, Evaluation, Evalu
                     'points': g.points,
                 })
 
+    # Rien à archiver : classe vide (ou déliaison d'une classe dérivée sans élèves
+    # propres). On évite de créer une entrée corbeille inutile.
+    if not students_payload and not evals_payload:
+        return None
+
     payload = {
         'version': 1,
         'classroom': {

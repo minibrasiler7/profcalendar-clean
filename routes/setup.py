@@ -2693,12 +2693,22 @@ def delete_from_corbeille(entry_id):
 @login_required
 def delete_classroom(id):
     classroom = Classroom.query.filter_by(id=id, user_id=current_user.id).first_or_404()
-    
+
     from models.class_collaboration import ClassMaster, SharedClassroom
     from models.student import Student
     from models.parent import ClassCode
     from models.user_preferences import UserSanctionPreferences
-    
+
+    def _archive_before_purge():
+        # Corbeille : archiver la classe (élèves + évaluations + notes) AVANT la
+        # purge, pour une restauration 30 jours. Best-effort — ne lève jamais et
+        # ignore les classes sans contenu (0 élève et 0 évaluation).
+        try:
+            from services.classroom_trash import archive_classroom
+            archive_classroom(classroom, current_user.id)
+        except Exception as _arch_err:
+            print(f"DEBUG DELETE: archivage corbeille échoué (non bloquant): {_arch_err}")
+
     # Vérifier si l'utilisateur est le maître de cette classe
     is_class_master = ClassMaster.query.filter_by(
         classroom_id=classroom.id, 
@@ -2715,14 +2725,7 @@ def delete_classroom(id):
             flash(f'Impossible de supprimer la classe "{classroom.name}" car elle est partagée avec {shared_as_original} enseignant(s) spécialisé(s).', 'error')
             return redirect(url_for('setup.manage_classrooms'))
 
-        # Corbeille : archiver la classe (élèves + évaluations + notes) AVANT la
-        # purge, pour permettre une restauration pendant 30 jours. Best-effort —
-        # un échec d'archivage ne doit JAMAIS empêcher la suppression.
-        try:
-            from services.classroom_trash import archive_classroom
-            archive_classroom(classroom, current_user.id)
-        except Exception as _arch_err:
-            print(f"DEBUG DELETE: archivage corbeille échoué (non bloquant): {_arch_err}")
+        _archive_before_purge()  # corbeille (avant toute suppression, deletion garantie ici)
 
         # Supprimer tous les enregistrements liés à cette classe
         group_name = classroom.class_group or classroom.name
@@ -2792,7 +2795,9 @@ def delete_classroom(id):
     else:
         # CAS 2: L'utilisateur n'est pas le maître - DÉLIAISON SIMPLE
         print(f"DEBUG DELETE: User {current_user.id} is not class master - performing simple unlinking")
-        
+
+        _archive_before_purge()  # corbeille (classe possédée avec élèves propres -> archivée ; dérivée sans élèves -> ignorée)
+
         # Vider la session pour éviter les conflits avec les objets en mémoire
         db.session.expunge_all()
         
