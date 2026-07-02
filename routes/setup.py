@@ -2562,6 +2562,51 @@ def manage_classrooms_initial():
     classrooms = current_user.classrooms.all()
     return render_template('setup/manage_classrooms.html', classrooms=classrooms, form=form)
 
+def _purge_classroom_and_children(classroom_id):
+    """Supprime une classe ET tous ses enfants (élèves copiés, évaluations, notes,
+    fichiers, plans, sanctions, groupes, combats, etc.) dans un ordre respectant les
+    FK PostgreSQL. En base quasi aucune FK n'est ON DELETE CASCADE : suppression
+    explicite requise (SQLite en dev ne vérifiait pas les FK, d'où des 500 seulement
+    en prod). TOUT est borné à cette seule classe / ses élèves : aucune autre classe
+    ni élève n'est jamais touché. À appeler dans la transaction de l'appelant."""
+    p = {"cid": classroom_id}
+    ex = lambda sql: db.session.execute(db.text(sql), p)
+    # a) enfants des élèves de la classe
+    for t in ("absence_justifications", "attendance", "combat_participants",
+              "evaluation_grades", "grades", "mixed_group_students", "parent_children",
+              "student_access_codes", "student_accommodations", "student_badges",
+              "student_classroom_links", "student_exercise_attempts", "student_files",
+              "student_file_shares", "student_group_memberships", "student_info_history",
+              "student_items", "student_remarks", "student_rpg_profiles",
+              "student_sanction_counts", "student_sanction_records"):
+        ex(f"DELETE FROM {t} WHERE student_id IN (SELECT id FROM students WHERE classroom_id = :cid)")
+    # b) les élèves de la classe
+    ex("DELETE FROM students WHERE classroom_id = :cid")
+    # c) petits-enfants reliés via un parent intermédiaire
+    ex("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :cid)")
+    ex("DELETE FROM student_group_memberships WHERE group_id IN (SELECT id FROM student_groups WHERE classroom_id = :cid)")
+    ex("DELETE FROM combat_participants WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
+    ex("DELETE FROM combat_monsters WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
+    ex("DELETE FROM mixed_group_students WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
+    # d) enfants directs de la classe (colonne classroom_id)
+    for t in ("attendance", "class_codes", "class_files", "class_files_v2",
+              "class_folders", "classroom_access_codes", "classroom_chapters",
+              "classroom_sanction_imports", "combat_sessions", "decoupage_assignments",
+              "evaluations", "exercise_publications", "file_shares", "grades",
+              "lesson_blank_sheets", "lesson_memos", "plannings", "schedules",
+              "seating_plans", "student_classroom_links", "student_groups",
+              "user_sanction_preferences"):
+        ex(f"DELETE FROM {t} WHERE classroom_id = :cid")
+    # e) FK à colonnes non standard
+    ex("DELETE FROM shared_classrooms WHERE original_classroom_id = :cid OR derived_classroom_id = :cid")
+    ex("DELETE FROM mixed_groups WHERE auto_classroom_id = :cid")
+    ex("DELETE FROM invitation_classrooms WHERE target_classroom_id = :cid")
+    ex("DELETE FROM teacher_invitations WHERE target_classroom_id = :cid")
+    ex("UPDATE exercises SET classroom_id = NULL WHERE classroom_id = :cid")
+    # f) enfin la classe elle-même
+    ex("DELETE FROM classrooms WHERE id = :cid")
+
+
 @setup_bp.route('/classrooms/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_classroom(id):
@@ -2647,130 +2692,9 @@ def delete_classroom(id):
                 {"classroom_id": group_classroom.id}
             )
             
-            # Supprimer les étudiants
-            db.session.execute(
-                db.text("DELETE FROM students WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed all students for classroom {group_classroom.id}")
-            
-            # Supprimer les codes de classe
-            db.session.execute(
-                db.text("DELETE FROM class_codes WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed all class codes for classroom {group_classroom.id}")
-            
-            # NOUVEAU: Supprimer les groupes mixtes liés à cette classe auto-créée
-            # 1. Trouver tous les groupes mixtes qui utilisent cette classe comme auto_classroom
-            mixed_groups_to_delete = db.session.execute(
-                db.text("SELECT id FROM mixed_groups WHERE auto_classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            ).fetchall()
-            
-            for (mixed_group_id,) in mixed_groups_to_delete:
-                print(f"DEBUG DELETE: Found mixed group {mixed_group_id} linked to classroom {group_classroom.id}")
-                
-                # Supprimer les liens élèves-groupe mixte
-                db.session.execute(
-                    db.text("DELETE FROM mixed_group_students WHERE mixed_group_id = :mixed_group_id"),
-                    {"mixed_group_id": mixed_group_id}
-                )
-                print(f"DEBUG DELETE: Removed all mixed group students for mixed group {mixed_group_id}")
-                
-                # Supprimer les invitations liées à ce groupe mixte
-                db.session.execute(
-                    db.text("DELETE FROM teacher_invitations WHERE requesting_teacher_id = :user_id AND proposed_subject = 'Classe mixte'"),
-                    {"user_id": group_classroom.user_id}
-                )
-                print(f"DEBUG DELETE: Removed teacher invitations for mixed groups of user {group_classroom.user_id}")
-                
-                # Supprimer le groupe mixte lui-même
-                db.session.execute(
-                    db.text("DELETE FROM mixed_groups WHERE id = :mixed_group_id"),
-                    {"mixed_group_id": mixed_group_id}
-                )
-                print(f"DEBUG DELETE: Removed mixed group {mixed_group_id}")
-            
-            # Supprimer les codes d'accès de classe (classroom_access_codes)
-            db.session.execute(
-                db.text("DELETE FROM classroom_access_codes WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed classroom_access_codes for classroom {group_classroom.id}")
-
-            # Supprimer les fichiers de classe (class_files_v2)
-            db.session.execute(
-                db.text("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :classroom_id)"),
-                {"classroom_id": group_classroom.id}
-            )
-            db.session.execute(
-                db.text("DELETE FROM class_files_v2 WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed class_files_v2 for classroom {group_classroom.id}")
-
-            # Supprimer les fichiers de classe legacy (class_files)
-            db.session.execute(
-                db.text("DELETE FROM class_files WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed legacy class_files for classroom {group_classroom.id}")
-
-            # Supprimer les dossiers de classe
-            db.session.execute(
-                db.text("DELETE FROM class_folders WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-
-            # Supprimer les imports de sanctions
-            db.session.execute(
-                db.text("DELETE FROM classroom_sanction_imports WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-
-            # Supprimer les évaluations et notes liées
-            db.session.execute(
-                db.text("DELETE FROM grades WHERE evaluation_id IN (SELECT id FROM evaluations WHERE classroom_id = :classroom_id)"),
-                {"classroom_id": group_classroom.id}
-            )
-            db.session.execute(
-                db.text("DELETE FROM evaluations WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-
-            # Supprimer les exercices liés à cette classe
-            db.session.execute(
-                db.text("UPDATE exercises SET classroom_id = NULL WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-
-            # Supprimer les plans de classe (seating_plans)
-            db.session.execute(
-                db.text("DELETE FROM seating_plans WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-
-            # Supprimer les plannings/horaires
-            db.session.execute(
-                db.text("DELETE FROM schedules WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed all schedules for classroom {group_classroom.id}")
-
-            # Supprimer les plannings de cours
-            db.session.execute(
-                db.text("DELETE FROM plannings WHERE classroom_id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed all plannings for classroom {group_classroom.id}")
-
-            # Supprimer la classe elle-même
-            db.session.execute(
-                db.text("DELETE FROM classrooms WHERE id = :classroom_id"),
-                {"classroom_id": group_classroom.id}
-            )
-            print(f"DEBUG DELETE: Removed classroom {group_classroom.id}")
+            # Purge complète de la classe et de TOUS ses enfants (ordre FK correct).
+            _purge_classroom_and_children(group_classroom.id)
+            print(f"DEBUG DELETE: purged classroom {group_classroom.id} + all children")
         
         flash(f'Classe "{classroom.name}" et toutes ses données supprimées avec succès.', 'info')
         
@@ -2789,40 +2713,30 @@ def delete_classroom(id):
         )
         print(f"DEBUG DELETE: Removed student classroom links for classroom {classroom.id}")
         
-        # 2. Supprimer les SharedClassrooms où cette classe est dérivée
+        # 2. Récupérer la collaboration AVANT de supprimer le SharedClassroom
+        #    (sinon la requête ne trouve plus rien -> collaboration orpheline, et le
+        #    prof ne peut plus re-rejoindre ce maître de classe).
+        from models.class_collaboration import SharedClassroom, TeacherCollaboration
+        _shared = SharedClassroom.query.filter_by(derived_classroom_id=classroom.id).first()
+        _collab_id = _shared.collaboration_id if _shared else None
+
         db.session.execute(
             db.text("DELETE FROM shared_classrooms WHERE derived_classroom_id = :classroom_id"),
             {"classroom_id": classroom.id}
         )
         print(f"DEBUG DELETE: Removed SharedClassroom links for classroom {classroom.id}")
-        
-        # 3. Supprimer les TeacherCollaboration SEULEMENT si c'est la dernière classe dérivée
-        # Vérifier d'abord s'il reste d'autres classes dérivées pour cet utilisateur
-        from models.class_collaboration import SharedClassroom, TeacherCollaboration
-        
-        # Récupérer la collaboration liée à cette classe (avant suppression)
-        shared_classroom = SharedClassroom.query.filter_by(derived_classroom_id=classroom.id).first()
-        if shared_classroom:
-            collaboration_id = shared_classroom.collaboration_id
-            
-            # Compter les autres classes dérivées dans la même collaboration
-            other_derived_classes = SharedClassroom.query.filter_by(
-                collaboration_id=collaboration_id
-            ).filter(SharedClassroom.derived_classroom_id != classroom.id).count()
-            
-            print(f"DEBUG DELETE: Found {other_derived_classes} other derived classes in same collaboration")
-            
-            # Supprimer la collaboration SEULEMENT s'il n'y a pas d'autres classes dérivées
-            if other_derived_classes == 0:
+
+        # 3. Supprimer la collaboration SEULEMENT si c'était la dernière classe dérivée
+        if _collab_id is not None:
+            _remaining = SharedClassroom.query.filter_by(collaboration_id=_collab_id).count()
+            if _remaining == 0:
                 db.session.execute(
                     db.text("DELETE FROM teacher_collaborations WHERE id = :collaboration_id"),
-                    {"collaboration_id": collaboration_id}
+                    {"collaboration_id": _collab_id}
                 )
-                print(f"DEBUG DELETE: Removed teacher collaboration {collaboration_id} (last derived class)")
+                print(f"DEBUG DELETE: Removed teacher collaboration {_collab_id} (last derived class)")
             else:
-                print(f"DEBUG DELETE: Kept teacher collaboration {collaboration_id} (other derived classes exist)")
-        else:
-            print(f"DEBUG DELETE: No SharedClassroom found for classroom {classroom.id}")
+                print(f"DEBUG DELETE: Kept teacher collaboration {_collab_id} ({_remaining} remain)")
         
         # Supprimer les préférences de sanctions de l'utilisateur pour cette classe
         db.session.execute(
@@ -2875,50 +2789,9 @@ def delete_classroom(id):
             )
             print(f"DEBUG DELETE: Removed mixed group {mixed_group_id}")
         
-        # La classe dérivée possède ses PROPRES copies d'élèves, évaluations,
-        # notes, fichiers, etc. (create_shared_class les COPIE). En base PostgreSQL
-        # quasi aucune FK n'est ON DELETE CASCADE : il faut donc supprimer
-        # explicitement tous les enfants AVANT la classe, sinon ForeignKeyViolation
-        # -> 500 (SQLite en dev ne vérifiait pas les FK, d'où le bug invisible en
-        # local). Toutes les suppressions sont bornées à CETTE classe / SES élèves :
-        # les données du maître (autre classe, autres élèves) ne sont jamais touchées.
-        _cid = {"cid": classroom.id}
-        _ex = lambda sql: db.session.execute(db.text(sql), _cid)
-        # a) enfants des élèves (copies) de la classe dérivée
-        for _t in ("absence_justifications", "attendance", "combat_participants",
-                   "evaluation_grades", "grades", "mixed_group_students",
-                   "parent_children", "student_access_codes", "student_accommodations",
-                   "student_badges", "student_classroom_links", "student_exercise_attempts",
-                   "student_files", "student_file_shares", "student_group_memberships",
-                   "student_info_history", "student_items", "student_remarks",
-                   "student_rpg_profiles", "student_sanction_counts", "student_sanction_records"):
-            _ex(f"DELETE FROM {_t} WHERE student_id IN (SELECT id FROM students WHERE classroom_id = :cid)")
-        # b) les élèves (copies) de la classe dérivée
-        _ex("DELETE FROM students WHERE classroom_id = :cid")
-        # c) petits-enfants reliés à la classe via un parent intermédiaire
-        _ex("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :cid)")
-        _ex("DELETE FROM student_group_memberships WHERE group_id IN (SELECT id FROM student_groups WHERE classroom_id = :cid)")
-        _ex("DELETE FROM combat_participants WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
-        _ex("DELETE FROM combat_monsters WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
-        _ex("DELETE FROM mixed_group_students WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
-        # d) enfants directs de la classe (colonne classroom_id)
-        for _t in ("attendance", "class_codes", "class_files", "class_files_v2",
-                   "class_folders", "classroom_access_codes", "classroom_chapters",
-                   "classroom_sanction_imports", "combat_sessions", "decoupage_assignments",
-                   "evaluations", "exercise_publications", "file_shares", "grades",
-                   "lesson_blank_sheets", "lesson_memos", "plannings", "schedules",
-                   "seating_plans", "student_classroom_links", "student_groups",
-                   "user_sanction_preferences"):
-            _ex(f"DELETE FROM {_t} WHERE classroom_id = :cid")
-        # e) FK à colonnes non standard
-        _ex("DELETE FROM shared_classrooms WHERE original_classroom_id = :cid OR derived_classroom_id = :cid")
-        _ex("DELETE FROM mixed_groups WHERE auto_classroom_id = :cid")
-        _ex("DELETE FROM invitation_classrooms WHERE target_classroom_id = :cid")
-        _ex("DELETE FROM teacher_invitations WHERE target_classroom_id = :cid")
-        _ex("UPDATE exercises SET classroom_id = NULL WHERE classroom_id = :cid")
-        # f) enfin la classe dérivée elle-même
-        _ex("DELETE FROM classrooms WHERE id = :cid")
-        print(f"DEBUG DELETE: Removed derived classroom {classroom.id} + all children")
+        # Purge complète de la classe dérivée et de TOUS ses enfants (ordre FK correct).
+        _purge_classroom_and_children(classroom.id)
+        print(f"DEBUG DELETE: purged derived classroom {classroom.id} + all children")
         
         flash(f'Vous avez été délié de la classe "{classroom.name}" avec succès.', 'info')
     
