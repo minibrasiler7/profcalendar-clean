@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Corbeille - ProfCalendar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .corbeille-wrap { max-width: 900px; margin: 0 auto; padding: 1rem; }
+    .corbeille-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .corbeille-head h1 { display: flex; align-items: center; gap: 0.6rem; margin: 0; }
+    .corbeille-intro { color: #6B7280; margin: 0.25rem 0 1.5rem; }
+    .trash-card {
+        background: #fff; border: 1px solid #E5E7EB; border-left: 4px solid #6B7280;
+        border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.9rem;
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    }
+    .trash-card .info h3 { margin: 0 0 0.25rem; font-size: 1.1rem; color: #1F2937; }
+    .trash-card .meta { font-size: 0.85rem; color: #6B7280; }
+    .trash-card .meta .sep { margin: 0 0.4rem; }
+    .trash-card .expiry { color: #B45309; font-weight: 600; }
+    .trash-actions { display: flex; gap: 0.5rem; }
+    .corbeille-empty { text-align: center; color: #6B7280; padding: 3rem 1rem; }
+    .corbeille-empty i { font-size: 2.5rem; color: #D1D5DB; margin-bottom: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="corbeille-wrap">
+    <div class="corbeille-head">
+        <h1><i class="fas fa-trash-restore"></i> Corbeille</h1>
+        <a href="{{ url_for('setup.manage_classrooms') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour aux classes
+        </a>
+    </div>
+    <p class="corbeille-intro">
+        Les classes supprimées sont conservées {{ retention }} jours. Tu peux les restaurer
+        (élèves et notes inclus) ou les supprimer définitivement.
+    </p>
+
+    {% if entries %}
+        {% for e in entries %}
+        <div class="trash-card" style="border-left-color: {{ e.row.color or '#6B7280' }};">
+            <div class="info">
+                <h3>{{ e.row.name }}{% if e.row.subject %} · {{ e.row.subject }}{% endif %}</h3>
+                <div class="meta">
+                    <i class="fas fa-users"></i> {{ e.row.student_count }} élève(s)
+                    <span class="sep">•</span>
+                    <i class="fas fa-calendar"></i> supprimée le {{ e.row.deleted_at.strftime('%d/%m/%Y à %H:%M') }}
+                    <span class="sep">•</span>
+                    <span class="expiry">
+                        {% if e.days_left > 0 %}expire dans {{ e.days_left }} jour(s){% else %}expire aujourd'hui{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="trash-actions">
+                <form method="POST" action="{{ url_for('setup.restore_from_corbeille', entry_id=e.row.id) }}"
+                      onsubmit="return confirm('Restaurer la classe « {{ e.row.name }} » ?');">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-trash-restore"></i> Restaurer
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('setup.delete_from_corbeille', entry_id=e.row.id) }}"
+                      onsubmit="return confirm('Supprimer DÉFINITIVEMENT « {{ e.row.name }} » ? Cette action est irréversible.');">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="corbeille-empty">
+            <i class="fas fa-trash-alt"></i>
+            <p>La corbeille est vide.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

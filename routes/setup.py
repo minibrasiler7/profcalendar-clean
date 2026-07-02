@@ -2636,6 +2636,59 @@ def _purge_classroom_and_children(classroom_id):
     ex("DELETE FROM classrooms WHERE id = :cid")
 
 
+@setup_bp.route('/corbeille')
+@login_required
+def corbeille():
+    """Page Corbeille : classes supprimées récupérables (30 jours)."""
+    from datetime import timedelta
+    from models.deleted_classroom import DeletedClassroom
+    from services.classroom_trash import purge_expired_trash, TRASH_RETENTION_DAYS
+
+    purge_expired_trash()  # nettoie opportunément les entrées expirées
+
+    cutoff = datetime.utcnow() - timedelta(days=TRASH_RETENTION_DAYS)
+    items = (DeletedClassroom.query
+             .filter(DeletedClassroom.user_id == current_user.id,
+                     DeletedClassroom.deleted_at >= cutoff)
+             .order_by(DeletedClassroom.deleted_at.desc())
+             .all())
+    entries = []
+    for it in items:
+        expires = it.deleted_at + timedelta(days=TRASH_RETENTION_DAYS)
+        entries.append({'row': it, 'days_left': max(0, (expires - datetime.utcnow()).days)})
+    return render_template('setup/corbeille.html', entries=entries, retention=TRASH_RETENTION_DAYS)
+
+
+@setup_bp.route('/corbeille/<int:entry_id>/restore', methods=['POST'])
+@login_required
+def restore_from_corbeille(entry_id):
+    """Restaure une classe supprimée (élèves + évaluations + notes)."""
+    from models.deleted_classroom import DeletedClassroom
+    from services.classroom_trash import restore_classroom
+
+    entry = DeletedClassroom.query.filter_by(id=entry_id, user_id=current_user.id).first_or_404()
+    try:
+        classroom = restore_classroom(entry, current_user.id)
+        flash(f'Classe « {classroom.name} » restaurée avec ses élèves et ses notes.', 'info')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Échec de la restauration : {e}", 'error')
+    return redirect(url_for('setup.manage_classrooms'))
+
+
+@setup_bp.route('/corbeille/<int:entry_id>/delete', methods=['POST'])
+@login_required
+def delete_from_corbeille(entry_id):
+    """Supprime définitivement une entrée de la corbeille."""
+    from models.deleted_classroom import DeletedClassroom
+
+    entry = DeletedClassroom.query.filter_by(id=entry_id, user_id=current_user.id).first_or_404()
+    db.session.delete(entry)
+    db.session.commit()
+    flash('Classe supprimée définitivement de la corbeille.', 'info')
+    return redirect(url_for('setup.corbeille'))
+
+
 @setup_bp.route('/classrooms/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_classroom(id):
@@ -2661,7 +2714,16 @@ def delete_classroom(id):
         if shared_as_original > 0:
             flash(f'Impossible de supprimer la classe "{classroom.name}" car elle est partagée avec {shared_as_original} enseignant(s) spécialisé(s).', 'error')
             return redirect(url_for('setup.manage_classrooms'))
-        
+
+        # Corbeille : archiver la classe (élèves + évaluations + notes) AVANT la
+        # purge, pour permettre une restauration pendant 30 jours. Best-effort —
+        # un échec d'archivage ne doit JAMAIS empêcher la suppression.
+        try:
+            from services.classroom_trash import archive_classroom
+            archive_classroom(classroom, current_user.id)
+        except Exception as _arch_err:
+            print(f"DEBUG DELETE: archivage corbeille échoué (non bloquant): {_arch_err}")
+
         # Supprimer tous les enregistrements liés à cette classe
         group_name = classroom.class_group or classroom.name
         

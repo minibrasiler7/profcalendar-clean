@@ -521,6 +521,40 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table announcements échouée: {e}")
 
+        # Filet de sécurité : table deleted_classrooms (corbeille 30 jours).
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS deleted_classrooms (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    original_classroom_id INTEGER,
+                    name VARCHAR(100),
+                    subject VARCHAR(100),
+                    color VARCHAR(7),
+                    class_group VARCHAR(100),
+                    student_count INTEGER DEFAULT 0,
+                    payload TEXT,
+                    deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_deleted_classrooms_user_id "
+                "ON deleted_classrooms (user_id)"
+            ))
+            db.session.commit()
+            print("✅ Table deleted_classrooms vérifiée")
+            # Purge des entrées corbeille de plus de 30 jours (au démarrage).
+            try:
+                from services.classroom_trash import purge_expired_trash
+                _purged = purge_expired_trash()
+                if _purged:
+                    print(f"🗑️ Corbeille : {_purged} classe(s) expirée(s) purgée(s)")
+            except Exception as _e:
+                print(f"⚠️ Purge corbeille échouée: {_e}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification table deleted_classrooms échouée: {e}")
+
         # Table subscriptions
         try:
             db.session.execute(db.text("""
