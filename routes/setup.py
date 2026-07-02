@@ -2898,7 +2898,8 @@ def delete_classroom(id):
         # c) petits-enfants reliés à la classe via un parent intermédiaire
         _ex("DELETE FROM student_file_shares WHERE file_id IN (SELECT id FROM class_files_v2 WHERE classroom_id = :cid)")
         _ex("DELETE FROM student_group_memberships WHERE group_id IN (SELECT id FROM student_groups WHERE classroom_id = :cid)")
-        _ex("DELETE FROM combat_participants WHERE session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
+        _ex("DELETE FROM combat_participants WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
+        _ex("DELETE FROM combat_monsters WHERE combat_session_id IN (SELECT id FROM combat_sessions WHERE classroom_id = :cid)")
         _ex("DELETE FROM mixed_group_students WHERE mixed_group_id IN (SELECT id FROM mixed_groups WHERE auto_classroom_id = :cid)")
         # d) enfants directs de la classe (colonne classroom_id)
         for _t in ("attendance", "class_codes", "class_files", "class_files_v2",
