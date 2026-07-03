@@ -149,11 +149,28 @@ async function backfillR2() {
     const btn = document.getElementById('backfillR2Btn');
     const out = document.getElementById('backfillR2Result');
     const url = "{{ url_for('file_manager.api_admin_backfill_r2') }}";
-    const post = async (dry) => (await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ dry_run: dry })
-    })).json();
+    const post = async (dry) => {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ dry_run: dry }),
+            credentials: 'same-origin',
+            redirect: 'manual'
+        });
+        // Réponse non-JSON (redirection login, page d'erreur HTML…) : message clair.
+        if (r.type === 'opaqueredirect' || r.status === 0 || (r.status >= 300 && r.status < 400)) {
+            throw new Error('Session expirée ou accès non-admin (redirection HTTP ' + r.status + '). Reconnecte-toi en admin puis réessaie.');
+        }
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (_) {
+            const looksLogin = /login|connexion|<!doctype|<html/i.test(text);
+            throw new Error('Réponse non-JSON (HTTP ' + r.status + '). '
+                + (looksLogin ? 'Tu n\'es pas (ou plus) connecté en admin — reconnecte-toi puis réessaie.'
+                             : text.slice(0, 200)));
+        }
+    };
     btn.disabled = true;
     const orig = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyse…';

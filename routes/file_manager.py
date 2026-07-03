@@ -592,6 +592,15 @@ def api_admin_backfill_r2():
     if not is_r2_enabled():
         return jsonify({'success': False, 'message': 'R2 non configuré'}), 400
 
+    try:
+        return _backfill_r2_impl(UserFile, upload_file_to_r2, upload_thumbnail_to_r2, file_exists_on_r2)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'[BACKFILL-R2] Erreur globale: {e}')
+        return jsonify({'success': False, 'message': f'Erreur serveur : {e}'}), 500
+
+
+def _backfill_r2_impl(UserFile, upload_file_to_r2, upload_thumbnail_to_r2, file_exists_on_r2):
     dry_run = bool((request.get_json(silent=True) or {}).get('dry_run', False))
 
     files = UserFile.query.filter(UserFile.file_content.isnot(None)).all()
