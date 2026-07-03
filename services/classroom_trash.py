@@ -31,9 +31,10 @@ def archive_classroom(classroom, actor_user_id):
         return _archive_classroom_impl(classroom, actor_user_id,
                                        Student, Evaluation, EvaluationGrade, DeletedClassroom)
     except Exception:
-        # Ne JAMAIS laisser la session dans un état cassé : la suppression qui suit
-        # doit pouvoir s'exécuter même si l'archivage a échoué.
-        db.session.rollback()
+        # Best-effort : l'archivage ne lit que la session principale (les écritures
+        # passent par une session séparée), donc on ne touche JAMAIS à la session
+        # principale ici — pas de rollback qui expirerait `classroom` et ferait
+        # échouer la purge qui suit. La suppression continue quoi qu'il arrive.
         return None
 
 
@@ -112,9 +113,17 @@ def _archive_classroom_impl(classroom, actor_user_id, Student, Evaluation, Evalu
         payload=json.dumps(payload),
         deleted_at=datetime.utcnow(),
     )
-    db.session.add(entry)
-    db.session.commit()  # persiste tout de suite (avant l'expunge_all de la suppression)
-    return entry
+    # IMPORTANT : écrire via une session SÉPARÉE. Un db.session.commit() ici
+    # expirerait l'objet `classroom` de la session principale ; l'expunge_all()
+    # de la routine de suppression le détacherait alors, et le premier accès
+    # suivant à classroom.id lèverait DetachedInstanceError -> la purge échoue
+    # (classe non supprimée) alors que l'archive est déjà écrite. La session
+    # séparée persiste l'entrée sans jamais toucher la session principale.
+    from sqlalchemy.orm import Session as _SASession
+    with _SASession(bind=db.session.get_bind()) as _s2:
+        _s2.add(entry)
+        _s2.commit()
+    return None
 
 
 def restore_classroom(entry, user_id):
