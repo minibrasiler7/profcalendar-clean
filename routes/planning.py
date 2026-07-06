@@ -3649,35 +3649,66 @@ def add_student():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-def _parse_students_csv(raw_text):
+_CSV_FIELDS = ('first_name', 'last_name', 'email',
+               'parent_email_mother', 'parent_email_father')
+
+
+def _normalize_col_map(raw):
+    """Normalise un mappage de colonnes fourni par l'UI.
+
+    Accepte {"0": "first_name", "1": "last_name", ...} (clés str ou int,
+    la valeur "ignore"/"" écarte la colonne). Retourne {int: field} validé,
+    ou None si vide/invalide.
+    """
+    if not isinstance(raw, dict) or not raw:
+        return None
+    out = {}
+    for k, v in raw.items():
+        try:
+            idx = int(k)
+        except (ValueError, TypeError):
+            continue
+        if v in _CSV_FIELDS:
+            out[idx] = v
+    return out or None
+
+
+def _parse_students_csv(raw_text, col_map=None):
     """Parse un CSV/collage Excel d'élèves.
 
     Tolérant sur le format : séparateur ; , ou tabulation (collage Excel),
     ligne d'en-têtes optionnelle (détectée par les mots nom/prénom/email…),
-    colonnes attendues dans l'ordre : Nom ; Prénom ; Email élève ;
-    Email mère ; Email père (les 3 emails sont optionnels).
-    Retourne (rows, errors) où rows = liste de dicts prêts pour Student.
+    colonnes attendues par défaut dans l'ordre : Prénom ; Nom ; Email élève ;
+    Email mère ; Email père (les 3 emails sont optionnels) — cohérent avec le
+    formulaire « Ajouter un élève » (Prénom d'abord).
+
+    col_map (optionnel) : override explicite {int: field} fourni par l'UI de
+    mappage des colonnes. Prioritaire sur la détection automatique.
+
+    Retourne (rows, errors, meta) — meta décrit les colonnes détectées et le
+    mappage courant, pour permettre à l'UI de proposer un ré-agencement.
     """
     import csv as _csv
     import io as _io
     import re as _re
 
     text = (raw_text or '').replace('\r\n', '\n').replace('\r', '\n').strip()
+    empty_meta = {'has_header': False, 'n_columns': 0, 'columns': [], 'delimiter': ';'}
     if not text:
-        return [], [{'line': 0, 'reason': 'Aucune donnée fournie'}]
+        return [], [{'line': 0, 'reason': 'Aucune donnée fournie'}], empty_meta
 
     # Détection du séparateur sur les premières lignes non vides
     sample_lines = [l for l in text.split('\n') if l.strip()][:10]
     sample = '\n'.join(sample_lines)
     delimiter = max(';', ',', '\t', key=lambda d: sample.count(d))
     if sample.count(delimiter) == 0:
-        delimiter = ';'  # une seule colonne par ligne : "Nom" seul
+        delimiter = ';'  # une seule colonne par ligne : "Prénom Nom" seul
 
     reader = _csv.reader(_io.StringIO(text), delimiter=delimiter)
     all_rows = [[(c or '').strip() for c in row] for row in reader]
     all_rows = [r for r in all_rows if any(c for c in r)]
     if not all_rows:
-        return [], [{'line': 0, 'reason': 'Aucune ligne exploitable'}]
+        return [], [{'line': 0, 'reason': 'Aucune ligne exploitable'}], empty_meta
 
     # En-têtes ? (si la 1re ligne contient des mots-clés de colonnes)
     header_words = ('nom', 'prenom', 'prénom', 'first', 'last', 'email', 'mail',
@@ -3692,46 +3723,71 @@ def _parse_students_csv(raw_text):
     )
     has_header = ('@' not in first_lower) and header_cells >= 2
 
-    # Ordre des colonnes : par défaut Nom;Prénom;Email;Email mère;Email père.
-    # Si en-têtes présents, on mappe chaque colonne par son intitulé.
-    col_map = {0: 'last_name', 1: 'first_name', 2: 'email',
-               3: 'parent_email_mother', 4: 'parent_email_father'}
-    start_idx = 0
+    # Mappage automatique par défaut : Prénom ; Nom ; Email ; Email mère ; Email père.
+    auto_map = {0: 'first_name', 1: 'last_name', 2: 'email',
+                3: 'parent_email_mother', 4: 'parent_email_father'}
     if has_header:
-        start_idx = 1
-        col_map = {}
+        header_map = {}
         for i, h in enumerate(all_rows[0]):
             h_low = h.lower()
             if 'prén' in h_low or 'pren' in h_low or 'first' in h_low:
-                col_map[i] = 'first_name'
+                header_map[i] = 'first_name'
             elif 'nom' in h_low or 'last' in h_low:
-                col_map[i] = 'last_name'
+                header_map[i] = 'last_name'
             elif ('mère' in h_low or 'mere' in h_low or 'mother' in h_low):
-                col_map[i] = 'parent_email_mother'
+                header_map[i] = 'parent_email_mother'
             elif ('père' in h_low or 'pere' in h_low or 'father' in h_low):
-                col_map[i] = 'parent_email_father'
+                header_map[i] = 'parent_email_father'
             elif 'mail' in h_low:
-                col_map[i] = 'email'
-        if 'first_name' not in col_map.values():
-            return [], [{'line': 1, 'reason': "En-têtes détectés mais aucune colonne Prénom trouvée"}]
+                header_map[i] = 'email'
+        # Si les en-têtes donnent au moins un Prénom, on les utilise ; sinon on
+        # retombe sur l'ordre positionnel par défaut (l'UI permet de corriger).
+        auto_map = header_map if 'first_name' in header_map.values() else auto_map
+
+    start_idx = 1 if has_header else 0
+
+    # L'override explicite de l'UI est prioritaire ; sinon détection automatique.
+    effective_map = _normalize_col_map(col_map) or auto_map
+
+    # Métadonnées de colonnes (échantillons de valeurs) pour l'UI de mappage.
+    data_rows = all_rows[start_idx:]
+    n_columns = max((len(r) for r in all_rows), default=0)
+    columns_meta = []
+    for i in range(n_columns):
+        samples = []
+        for r in data_rows:
+            if i < len(r) and r[i]:
+                samples.append(r[i])
+            if len(samples) >= 3:
+                break
+        columns_meta.append({
+            'index': i,
+            'header': (all_rows[0][i] if has_header and i < len(all_rows[0]) else None),
+            'samples': samples,
+            'field': effective_map.get(i),
+        })
+    meta = {
+        'has_header': has_header,
+        'n_columns': n_columns,
+        'delimiter': {'\t': 'Tabulation', ';': 'point-virgule', ',': 'virgule'}.get(delimiter, delimiter),
+        'columns': columns_meta,
+    }
 
     email_re = _re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
     rows, errors = [], []
-    for n, raw in enumerate(all_rows[start_idx:], start=start_idx + 1):
+    for n, raw in enumerate(data_rows, start=start_idx + 1):
         entry = {'first_name': '', 'last_name': '', 'email': None,
                  'parent_email_mother': None, 'parent_email_father': None,
                  'line': n, 'warnings': []}
         for i, cell in enumerate(raw):
-            field = col_map.get(i)
+            field = effective_map.get(i)
             if field and cell:
                 entry[field] = cell
-        # Ligne à une seule colonne "Prénom Nom" ou "Nom Prénom" → au moins un prénom
-        if not entry['first_name'] and entry['last_name'] and delimiter not in ('\t',) and len(raw) == 1:
-            parts = entry['last_name'].split()
+        # Ligne à une seule colonne « Prénom Nom » → 1er mot = prénom, reste = nom.
+        if entry['first_name'] and not entry['last_name'] and len(raw) == 1:
+            parts = entry['first_name'].split()
             if len(parts) >= 2:
-                entry['last_name'], entry['first_name'] = parts[0], ' '.join(parts[1:])
-            else:
-                entry['first_name'], entry['last_name'] = parts[0], ''
+                entry['first_name'], entry['last_name'] = parts[0], ' '.join(parts[1:])
         if not entry['first_name']:
             errors.append({'line': n, 'reason': 'Prénom manquant'})
             continue
@@ -3742,7 +3798,7 @@ def _parse_students_csv(raw_text):
                 entry[f] = None
         rows.append(entry)
 
-    return rows, errors
+    return rows, errors, meta
 
 
 @planning_bp.route('/import-students', methods=['POST'])
@@ -3778,7 +3834,8 @@ def import_students():
         }), 400
 
     dry_run = bool(data.get('dry_run', True))
-    rows, errors = _parse_students_csv(data.get('csv_text', ''))
+    rows, errors, meta = _parse_students_csv(data.get('csv_text', ''),
+                                             col_map=data.get('col_map'))
 
     if len(rows) > 200:
         return jsonify({'success': False,
@@ -3811,7 +3868,7 @@ def import_students():
 
     if dry_run:
         return jsonify({'success': True, 'dry_run': True, 'to_create': preview,
-                        'skipped': skipped, 'errors': errors})
+                        'skipped': skipped, 'errors': errors, 'meta': meta})
 
     try:
         for r in to_create:

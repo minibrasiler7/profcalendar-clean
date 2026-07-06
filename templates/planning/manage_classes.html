@@ -3248,17 +3248,19 @@
                 <h3><i class="fas fa-file-import"></i> Importer des élèves</h3>
                 <p style="color: var(--gray-color); font-size: 0.85rem; margin: 0.25rem 0 0.75rem;">
                     Colle directement depuis Excel/Numbers (ou choisis un fichier CSV).
-                    Colonnes attendues&nbsp;: <strong>Nom&nbsp;; Prénom&nbsp;; Email élève&nbsp;; Email mère&nbsp;; Email père</strong>
-                    (seuls Nom et Prénom sont nécessaires — la 1<sup>re</sup> ligne d'en-têtes est détectée automatiquement).
+                    Colonnes attendues&nbsp;: <strong>Prénom&nbsp;; Nom&nbsp;; Email élève&nbsp;; Email mère&nbsp;; Email père</strong>
+                    (seuls le Prénom et le Nom sont nécessaires — la 1<sup>re</sup> ligne d'en-têtes est détectée automatiquement).
+                    Après « Analyser », tu pourras <strong>réassigner ou interchanger les colonnes</strong> avant de valider.
                 </p>
                 <div class="form-group">
                     <textarea class="form-control" id="importCsvText" rows="7"
-                              placeholder="Dupont&#9;Marie&#9;marie.dupont@eleves.ch&#9;maman@mail.ch&#9;papa@mail.ch&#10;Muller&#9;Théo&#10;Rochat&#9;Léa&#9;lea@eleves.ch"></textarea>
+                              placeholder="Marie&#9;Dupont&#9;marie.dupont@eleves.ch&#9;maman@mail.ch&#9;papa@mail.ch&#10;Théo&#9;Muller&#10;Léa&#9;Rochat&#9;lea@eleves.ch"></textarea>
                 </div>
                 <div class="form-group" style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
                     <input type="file" id="importCsvFile" accept=".csv,.txt,.tsv" style="max-width: 320px;">
                     <small style="color: var(--gray-color);">…ou choisis un fichier exporté de ton administration scolaire.</small>
                 </div>
+                <div id="importMappingZone" style="display:none; margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--border-color, #E5E7EB); border-radius: 8px; background: #F9FAFB;"></div>
                 <div id="importPreviewZone" style="display:none; margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--border-color, #E5E7EB); border-radius: 8px; max-height: 260px; overflow:auto;"></div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="analyzeStudentsImport()">
@@ -3284,32 +3286,81 @@
                 const file = this.files && this.files[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = e => { document.getElementById('importCsvText').value = e.target.result; };
+                reader.onload = e => {
+                    document.getElementById('importCsvText').value = e.target.result;
+                    importColMap = null;  // nouveau fichier -> re-détection auto
+                };
                 reader.readAsText(file, 'UTF-8');
             });
+            // Édition manuelle du collage -> on repart d'une détection automatique.
+            document.getElementById('importCsvText').addEventListener('input', function () {
+                importColMap = null;
+            });
+            // Mappage de colonnes courant {index: champ}, envoyé au serveur.
+            let importColMap = null;
+            const IMPORT_FIELDS = [
+                ['first_name', 'Prénom'],
+                ['last_name', 'Nom'],
+                ['email', 'Email élève'],
+                ['parent_email_mother', 'Email mère'],
+                ['parent_email_father', 'Email père'],
+                ['ignore', '— Ignorer —'],
+            ];
+            const _impEsc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
             async function _postImport(dryRun) {
                 const csvText = document.getElementById('importCsvText').value;
                 if (!csvText.trim()) { showNotification('error', 'Colle d\'abord ta liste d\'élèves.'); return null; }
+                const body = { classroom_id: "{{ primary_classroom.id }}", csv_text: csvText, dry_run: dryRun };
+                if (importColMap) body.col_map = importColMap;
                 const response = await fetch('{{ url_for("planning.import_students") }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    body: JSON.stringify({ classroom_id: "{{ primary_classroom.id }}", csv_text: csvText, dry_run: dryRun })
+                    body: JSON.stringify(body)
                 });
                 return response.json();
+            }
+            function renderImportMapping(meta) {
+                const zone = document.getElementById('importMappingZone');
+                if (!meta || !meta.n_columns) { zone.style.display = 'none'; return; }
+                let html = '<div style="font-weight:600; margin-bottom:0.5rem;"><i class="fas fa-random"></i> Associe tes colonnes '
+                         + '<span style="font-weight:400; color:var(--gray-color); font-size:0.8rem;">(change un menu pour interchanger)</span></div>'
+                         + '<div style="display:flex; gap:0.6rem; flex-wrap:wrap;">';
+                meta.columns.forEach(col => {
+                    const samples = (col.samples || []).slice(0, 3).map(_impEsc).join(', ') || '—';
+                    const opts = IMPORT_FIELDS.map(([val, label]) =>
+                        `<option value="${val}" ${((col.field || 'ignore') === val) ? 'selected' : ''}>${label}</option>`).join('');
+                    html += `<div style="min-width:150px; flex:1;">
+                        <div style="font-size:0.72rem; color:var(--gray-color); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${samples}">${col.header ? '<strong>' + _impEsc(col.header) + '</strong> · ' : 'Col. ' + (col.index + 1) + ' · '}${samples}</div>
+                        <select class="form-control importColSelect" data-col="${col.index}" style="padding:0.3rem; font-size:0.85rem;">${opts}</select>
+                    </div>`;
+                });
+                html += '</div>';
+                zone.innerHTML = html;
+                zone.style.display = 'block';
+                zone.querySelectorAll('.importColSelect').forEach(sel => {
+                    sel.addEventListener('change', () => {
+                        importColMap = {};
+                        zone.querySelectorAll('.importColSelect').forEach(s => {
+                            if (s.value && s.value !== 'ignore') importColMap[s.dataset.col] = s.value;
+                        });
+                        analyzeStudentsImport();  // ré-analyse avec le nouveau mappage
+                    });
+                });
             }
             async function analyzeStudentsImport() {
                 try {
                     const r = await _postImport(true);
                     if (!r) return;
                     if (!r.success) { showNotification('error', r.message || 'Analyse impossible'); return; }
+                    renderImportMapping(r.meta);
                     const zone = document.getElementById('importPreviewZone');
-                    const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+                    const esc = _impEsc;
                     let html = `<strong>${r.to_create.length} élève(s) prêt(s) à être importé(s)</strong>`;
                     if (r.to_create.length) {
                         html += '<table style="width:100%; font-size:0.85rem; margin-top:0.5rem; border-collapse:collapse;">'
-                              + '<tr style="text-align:left; color: var(--gray-color);"><th>Nom</th><th>Prénom</th><th>Email élève</th><th>Email mère</th><th>Email père</th></tr>'
+                              + '<tr style="text-align:left; color: var(--gray-color);"><th>Prénom</th><th>Nom</th><th>Email élève</th><th>Email mère</th><th>Email père</th></tr>'
                               + r.to_create.slice(0, 30).map(s =>
-                                    `<tr><td>${esc(s.last_name)}</td><td>${esc(s.first_name)}</td><td>${esc(s.email)}</td><td>${esc(s.parent_email_mother)}</td><td>${esc(s.parent_email_father)}</td></tr>`
+                                    `<tr><td>${esc(s.first_name)}</td><td>${esc(s.last_name)}</td><td>${esc(s.email)}</td><td>${esc(s.parent_email_mother)}</td><td>${esc(s.parent_email_father)}</td></tr>`
                                 ).join('')
                               + '</table>';
                         if (r.to_create.length > 30) html += `<div style="color:var(--gray-color);">… et ${r.to_create.length - 30} de plus</div>`;
