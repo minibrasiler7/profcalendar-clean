@@ -786,6 +786,7 @@ def dashboard():
                          schedules_count=schedules_count,
                          students_count=students_count,
                          has_any_planning=has_any_planning,
+                         onboarding_dismissed=getattr(current_user, 'onboarding_dismissed', False),
                          week_plannings_count=len(week_plannings),
                          today=today,
                          current_lesson=lesson if is_current_lesson else None,

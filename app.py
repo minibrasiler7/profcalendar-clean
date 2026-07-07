@@ -433,6 +433,10 @@ def create_app(config_name='development'):
             db.session.execute(db.text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminder_stage INTEGER DEFAULT 0"
             ))
+            # Checklist d'onboarding « 3 étapes » fermée manuellement par le prof.
+            db.session.execute(db.text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_dismissed BOOLEAN DEFAULT FALSE"
+            ))
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -1126,6 +1130,17 @@ def create_app(config_name='development'):
         from models.user import User
         if isinstance(current_user, User):
             current_user.has_seen_tour = False
+            db.session.commit()
+        return jsonify({'success': True})
+
+    @app.route('/api/onboarding/dismiss', methods=['POST'])
+    @login_required
+    def onboarding_dismiss():
+        """Ferme définitivement la checklist « 3 étapes » du tableau de bord."""
+        from flask import jsonify
+        from models.user import User
+        if isinstance(current_user, User):
+            current_user.onboarding_dismissed = True
             db.session.commit()
         return jsonify({'success': True})
 
