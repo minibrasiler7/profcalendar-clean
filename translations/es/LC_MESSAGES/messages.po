@@ -2,12 +2,18 @@
 # Générées par scripts/build_translations.py — modifier CE script, pas ce fichier.
 msgid ""
 msgstr ""
-"Project-Id-Version: ProfCalendar\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Project-Id-Version:  ProfCalendar\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-07-07 16:42+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
+"Language-Team: es <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid "ProfCalendar - Planification simplifiée"
 msgstr "ProfCalendar - Planificación simplificada"
@@ -252,6 +258,7 @@ msgstr "Este nombre de usuario ya está en uso."
 msgid "Cette adresse email est déjà enregistrée."
 msgstr "Esta dirección de correo ya está registrada."
 
+#, python-format
 msgid "Trop de tentatives. Réessayez dans %(min)d minute(s)."
 msgstr "Demasiados intentos. Inténtalo de nuevo en %(min)d minuto(s)."
 
@@ -267,6 +274,7 @@ msgstr "No se pudo enviar el código de verificación. Inténtalo de nuevo o con
 msgid "Trop de tentatives. Compte verrouillé pour 15 minutes."
 msgstr "Demasiados intentos. Cuenta bloqueada durante 15 minutos."
 
+#, python-format
 msgid "Email ou mot de passe incorrect. %(n)d tentative(s) restante(s)."
 msgstr "Correo o contraseña incorrectos. Queda(n) %(n)d intento(s)."
 
@@ -282,6 +290,7 @@ msgstr "¡Bienvenido a ProfCalendar! 🎉 Disfrutas de 30 días de Premium grati
 msgid "Code invalide ou expiré."
 msgstr "Código no válido o caducado."
 
+#, python-format
 msgid "Veuillez attendre %(sec)d secondes avant de renvoyer un code."
 msgstr "Espera %(sec)d segundos antes de reenviar un código."
 
@@ -504,6 +513,7 @@ msgstr "año"
 msgid "Tout du plan Premium"
 msgstr "Todo lo del plan Premium"
 
+#, python-format
 msgid "Économisez 32%%"
 msgstr "Ahorra un 32%%"
 
@@ -564,6 +574,7 @@ msgstr "Calculadora de media"
 msgid "Conditions générales"
 msgstr "Condiciones generales"
 
+#, python-format
 msgid "Bonjour, %(name)s !"
 msgstr "¡Hola, %(name)s!"
 
@@ -786,6 +797,7 @@ msgstr "Correo:"
 msgid "Reçu le :"
 msgstr "Recibido el:"
 
+#, python-format
 msgid "%(date)s à %(time)s"
 msgstr "%(date)s a las %(time)s"
 
@@ -984,6 +996,7 @@ msgstr "Premium anual"
 msgid "Tout du Premium mensuel"
 msgstr "Todo lo del Premium mensual"
 
+#, python-format
 msgid "Économisez 32 %%"
 msgstr "Ahorra un 32%%"
 
@@ -1122,12 +1135,14 @@ msgstr "Desbloquea todas las funciones para gestionar tus clases: notas, asisten
 msgid "Voir les abonnements"
 msgstr "Ver las suscripciones"
 
+#, python-format
 msgid "(Accès pour %(n)d jours)"
 msgstr "(Acceso durante %(n)d días)"
 
 msgid "Configuration de prix manquante côté serveur."
 msgstr "Falta la configuración de precios en el servidor."
 
+#, python-format
 msgid "Erreur de paiement : %(err)s"
 msgstr "Error de pago: %(err)s"
 
@@ -1575,6 +1590,7 @@ msgstr "El plan Premium da acceso a todas las funciones: gestión de clase, nota
 msgid "4.3 Disponibilité"
 msgstr "4.3 Disponibilidad"
 
+#, python-format
 msgid "ProfCalendar s'efforce de maintenir un accès continu à la plateforme. Toutefois, des interruptions temporaires peuvent survenir pour des raisons de maintenance, de mise à jour ou de force majeure. ProfCalendar ne garantit pas une disponibilité de 100 %%."
 msgstr "ProfCalendar se esfuerza por mantener un acceso continuo a la plataforma. No obstante, pueden producirse interrupciones temporales por motivos de mantenimiento, actualización o fuerza mayor. ProfCalendar no garantiza una disponibilidad del 100%%."
 
@@ -1806,17 +1822,57 @@ msgstr "Condiciones generales de uso"
 msgid "ProfCalendar est édité par Loïc Strauch, Suisse."
 msgstr "ProfCalendar es editado por Loïc Strauch, Suiza."
 
+#, python-format
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."
 msgstr[1] "Tu prueba Premium termina en %(num)d días."
 
+#, python-format
 msgid "%(num)d jour restant"
 msgid_plural "%(num)d jours restants"
 msgstr[0] "%(num)d día restante"
 msgstr[1] "%(num)d días restantes"
 
+#, python-format
 msgid "%(num)d planification cette semaine"
 msgid_plural "%(num)d planifications cette semaine"
 msgstr[0] "%(num)d planificación esta semana"
 msgstr[1] "%(num)d planificaciones esta semana"
+
+msgid "Ressources gratuites, sans inscription"
+msgstr "Recursos gratuitos, sin registro"
+
+msgid "Des outils en libre accès pour les enseignants romands — à utiliser tout de suite."
+msgstr "Herramientas de libre acceso para docentes, listas para usar de inmediato."
+
+msgid "Générateur d’exercices de maths"
+msgstr "Generador de ejercicios de matemáticas"
+
+msgid "Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives."
+msgstr "Ejercicios ilimitados del Ciclo 3 (9H–11H), clasificados por tema del PER, con corrección inmediata y figuras interactivas."
+
+msgid "Essayer"
+msgstr "Probar"
+
+msgid "Calendriers scolaires des cantons"
+msgstr "Calendarios escolares de los cantones"
+
+msgid "Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer."
+msgstr "Todas las fechas de vacaciones escolares y días festivos por cantón, para consultar e imprimir."
+
+msgid "Voir les calendriers"
+msgstr "Ver los calendarios"
+
+msgid "Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
+msgstr "Genera el baremo de una prueba (escala federal suiza): puntos &rarr; nota, listo para copiar y pegar."
+
+msgid "Créer un barème"
+msgstr "Crear un baremo"
+
+msgid "Calcule une moyenne pondérée en direct et trouve la note nécessaire au prochain test."
+msgstr "Calcula una media ponderada en directo y halla la nota necesaria en la próxima prueba."
+
+msgid "Calculer"
+msgstr "Calcular"
+

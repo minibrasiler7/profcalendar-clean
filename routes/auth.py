@@ -8,7 +8,7 @@ from models.email_verification import EmailVerification
 from services.email_service import send_verification_code
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Regexp
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Regexp, Optional
 from datetime import datetime, timedelta
 # i18n : _ traduit immédiatement (flash, à l'exécution d'une requête) ;
 # _l est "paresseux" (libellés de formulaires définis au niveau du module,
@@ -23,31 +23,43 @@ class LoginForm(FlaskForm):
     submit = SubmitField(_l('Se connecter'))
 
 class RegisterForm(FlaskForm):
+    # Email d'abord (c'est l'identifiant de connexion). Le nom d'utilisateur est
+    # facultatif : s'il est laissé vide, on en génère un depuis l'email. Plus de
+    # champ « Confirmer le mot de passe » (l'œil afficher/masquer suffit).
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
     username = StringField(_l("Nom d'utilisateur"), validators=[
-        DataRequired(),
+        Optional(),
         Length(min=3, max=80, message=_l("Le nom d'utilisateur doit contenir entre 3 et 80 caractères"))
     ])
-    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
     password = PasswordField(_l('Mot de passe'), validators=[
         DataRequired(),
         Length(min=8, message=_l("Le mot de passe doit contenir au moins 8 caractères")),
         Regexp(r'(?=.*[A-Z])(?=.*[0-9])', message=_l("Le mot de passe doit contenir au moins une majuscule et un chiffre"))
     ])
-    password_confirm = PasswordField(_l('Confirmer le mot de passe'), validators=[
-        DataRequired(),
-        EqualTo('password', message=_l('Les mots de passe doivent correspondre'))
-    ])
     submit = SubmitField(_l("S'inscrire"))
 
     def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
-        if user:
-            raise ValidationError(_("Ce nom d'utilisateur est déjà pris."))
+        if username.data:
+            user = User.query.filter_by(username=username.data).first()
+            if user:
+                raise ValidationError(_("Ce nom d'utilisateur est déjà pris."))
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError(_('Cette adresse email est déjà enregistrée.'))
+
+
+def _unique_username_from_email(email):
+    """Génère un nom d'utilisateur unique à partir de la partie locale de l'email,
+    quand l'utilisateur ne renseigne pas de nom à l'inscription."""
+    import re as _re
+    base = _re.sub(r'[^A-Za-z0-9._-]', '', (email or '').split('@')[0])[:70] or 'prof'
+    candidate, n = base, 1
+    while User.query.filter_by(username=candidate).first():
+        n += 1
+        candidate = f"{base}{n}"
+    return candidate
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -160,8 +172,11 @@ def register():
 
     form = RegisterForm()
     if form.validate_on_submit():
+        username = (form.username.data or '').strip()
+        if not username:
+            username = _unique_username_from_email(form.email.data)
         user = User(
-            username=form.username.data,
+            username=username,
             email=form.email.data
         )
         user.set_password(form.password.data)
