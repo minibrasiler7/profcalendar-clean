@@ -28,7 +28,7 @@
                 {{ form.email.label(class="form-label") }}
                 <div class="input-group">
                     <i class="fas fa-envelope input-icon"></i>
-                    {{ form.email(class="form-control", placeholder="votre@email.com", autofocus=true) }}
+                    {{ form.email(class="form-control", placeholder="votre@email.com", autofocus=true, autocomplete="email") }}
                 </div>
                 {% if form.email.errors %}
                     <div class="form-error">
@@ -43,7 +43,7 @@
                 {{ form.password.label(class="form-label") }}
                 <div class="input-group">
                     <i class="fas fa-lock input-icon"></i>
-                    {{ form.password(class="form-control", placeholder="••••••••") }}
+                    {{ form.password(class="form-control", placeholder="••••••••", autocomplete="new-password") }}
                     <button type="button" class="toggle-password" onclick="togglePassword(this)">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -65,7 +65,7 @@
                 </small>
                 <div class="input-group">
                     <i class="fas fa-user input-icon"></i>
-                    {{ form.username(class="form-control", placeholder=_("Ex. : Jean Dupont")) }}
+                    {{ form.username(class="form-control", placeholder=_("Ex. : Jean Dupont"), autocomplete="nickname") }}
                 </div>
                 {% if form.username.errors %}
                     <div class="form-error">

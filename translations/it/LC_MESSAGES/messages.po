@@ -1876,3 +1876,63 @@ msgstr "Calcola una media ponderata in tempo reale e trova il voto necessario al
 msgid "Calculer"
 msgstr "Calcola"
 
+msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
+msgstr "Facoltativo — il nome mostrato nell'app. Lascia vuoto per generarne uno dalla tua email."
+
+msgid "Ex. : Jean Dupont"
+msgstr "es. Mario Rossi"
+
+msgid "étapes"
+msgstr "passaggi"
+
+msgid "Créer ta première classe"
+msgstr "Crea la tua prima classe"
+
+msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
+msgstr "Dai un nome e una materia. Bastano 30 secondi."
+
+msgid "Créer ma classe"
+msgstr "Crea la mia classe"
+
+msgid "Ajouter tes élèves"
+msgstr "Aggiungi i tuoi studenti"
+
+msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
+msgstr "Uno a uno, o incollando la tua lista da Excel (import CSV)."
+
+msgid "Ajouter des élèves"
+msgstr "Aggiungi studenti"
+
+msgid "Planifier ton premier cours"
+msgstr "Pianifica la tua prima lezione"
+
+msgid "Ouvre le calendrier et clique sur une période pour la préparer."
+msgstr "Apri il calendario e clicca su un'ora per prepararla."
+
+msgid "Planifier un cours"
+msgstr "Pianifica una lezione"
+
+msgid "Voir toutes les fonctionnalités"
+msgstr "Mostra tutte le funzioni"
+
+msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
+msgstr "Facciamo un rapido tour per iniziare. Puoi saltarlo quando vuoi."
+
+msgid "Tes 3 étapes pour démarrer"
+msgstr "I tuoi 3 passaggi per iniziare"
+
+msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
+msgstr "Segui questa breve lista: crea la classe, aggiungi gli studenti, poi pianifica la prima lezione."
+
+msgid "Commence ici"
+msgstr "Inizia qui"
+
+msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
+msgstr "Clicca su questo pulsante per creare la tua prima classe — bastano 30 secondi."
+
+msgid "Besoin d'aide ?"
+msgstr "Hai bisogno di aiuto?"
+
+msgid "Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible."
+msgstr "Questo pulsante apre l'aiuto contestuale su ogni pagina. È sempre disponibile."
+

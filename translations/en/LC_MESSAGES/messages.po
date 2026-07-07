@@ -1876,3 +1876,63 @@ msgstr "Compute a weighted average live and find the grade you need on your next
 msgid "Calculer"
 msgstr "Calculate"
 
+msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
+msgstr "Optional — the name shown in the app. Leave blank to generate one from your email."
+
+msgid "Ex. : Jean Dupont"
+msgstr "e.g. Jane Smith"
+
+msgid "étapes"
+msgstr "steps"
+
+msgid "Créer ta première classe"
+msgstr "Create your first class"
+
+msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
+msgstr "Give it a name and a subject. Takes 30 seconds."
+
+msgid "Créer ma classe"
+msgstr "Create my class"
+
+msgid "Ajouter tes élèves"
+msgstr "Add your students"
+
+msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
+msgstr "One by one, or by pasting your list from Excel (CSV import)."
+
+msgid "Ajouter des élèves"
+msgstr "Add students"
+
+msgid "Planifier ton premier cours"
+msgstr "Plan your first lesson"
+
+msgid "Ouvre le calendrier et clique sur une période pour la préparer."
+msgstr "Open the calendar and click a period to prepare it."
+
+msgid "Planifier un cours"
+msgstr "Plan a lesson"
+
+msgid "Voir toutes les fonctionnalités"
+msgstr "Show all features"
+
+msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
+msgstr "Let's take a quick tour to get you started. You can skip it anytime."
+
+msgid "Tes 3 étapes pour démarrer"
+msgstr "Your 3 steps to get started"
+
+msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
+msgstr "Follow this short list: create your class, add your students, then plan your first lesson."
+
+msgid "Commence ici"
+msgstr "Start here"
+
+msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
+msgstr "Click this button to create your first class — it takes 30 seconds."
+
+msgid "Besoin d'aide ?"
+msgstr "Need help?"
+
+msgid "Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible."
+msgstr "This button opens contextual help on every page. It's always available."
+
