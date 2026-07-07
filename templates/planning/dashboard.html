@@ -304,23 +304,79 @@
        (horaire, année scolaire…) est déjà pré-rempli par apply_smart_defaults.
        Avant, ce geste était un mur de 6 écrans qui faisait fuir 100% des
        inscrits ; ici c'est une invitation, pas une obligation. --#}
-    {% if classrooms_count == 0 %}
-    <div class="onboarding-cta" style="background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.75rem 2rem; margin-bottom: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem;">
-        <div style="flex: 1; min-width: 260px;">
-            <h2 style="margin: 0 0 0.4rem 0; font-size: 1.25rem; color: #312E81;">
-                <i class="fas fa-rocket" style="color: var(--primary-color, #6366F1);"></i>
-                {{ _('Prêt à commencer ?') }}
-            </h2>
-            <p style="margin: 0; color: #4B5563; line-height: 1.5;">
-                {{ _('Ton espace est déjà configuré (horaire, année scolaire…).') }}
-                {{ _("Il ne reste qu'une chose à faire") }}&nbsp;: <strong>{{ _('créer ta première classe') }}</strong>.
-                {{ _('Ça prend 30 secondes, et tu pourras tout ajuster ensuite.') }}
-            </p>
+    {% set onb_step1 = classrooms_count > 0 %}
+    {% set onb_step2 = students_count > 0 %}
+    {% set onb_step3 = has_any_planning %}
+    {% set onb_done = (1 if onb_step1 else 0) + (1 if onb_step2 else 0) + (1 if onb_step3 else 0) %}
+    {% if onb_done < 3 %}
+    {% set onb_current = 1 if not onb_step1 else (2 if not onb_step2 else 3) %}
+    <style>
+        .onb-card { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); border: 1px solid var(--primary-color, #6366F1); border-radius: var(--border-radius, 0.75rem); padding: 1.5rem 1.75rem; margin-bottom: 2rem; }
+        .onb-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .onb-head h2 { margin: 0; font-size: 1.2rem; color: #312E81; }
+        .onb-progress { font-size: 0.8rem; font-weight: 600; color: #4F46E5; background: #fff; border-radius: 999px; padding: 0.25rem 0.7rem; white-space: nowrap; }
+        .onb-step { display: flex; align-items: flex-start; gap: 0.9rem; padding: 0.75rem 0; border-top: 1px solid rgba(99,102,241,0.15); }
+        .onb-step:first-of-type { border-top: none; }
+        .onb-num { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+        .onb-num.done { background: #10B981; color: #fff; }
+        .onb-num.current { background: #6366F1; color: #fff; box-shadow: 0 0 0 4px rgba(99,102,241,0.2); }
+        .onb-num.todo { background: #E5E7EB; color: #9CA3AF; }
+        .onb-body { flex: 1; min-width: 0; }
+        .onb-body h3 { margin: 0 0 0.15rem; font-size: 1rem; color: #1F2937; }
+        .onb-body h3.is-done { color: #6B7280; text-decoration: line-through; }
+        .onb-body p { margin: 0; font-size: 0.85rem; color: #6B7280; line-height: 1.4; }
+        .onb-cta { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; background: var(--primary-color, #6366F1); color: #fff; padding: 0.55rem 1.1rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(99,102,241,0.25); }
+    </style>
+    <div id="onboarding-steps" class="onb-card">
+        <div class="onb-head">
+            <h2><i class="fas fa-rocket" style="color: var(--primary-color, #6366F1);"></i> {{ _('Prêt à commencer ?') }}</h2>
+            <span class="onb-progress">{{ onb_done }}/3 {{ _('étapes') }}</span>
         </div>
-        <a href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1"
-           style="background: var(--primary-color, #6366F1); color: #fff; padding: 0.85rem 1.5rem; border-radius: 0.5rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; box-shadow: 0 4px 6px rgba(99,102,241,0.25);">
-            <i class="fas fa-plus"></i> {{ _('Créer ma première classe') }}
-        </a>
+
+        <div class="onb-step" id="onboarding-step-1">
+            <div class="onb-num {{ 'done' if onb_step1 else ('current' if onb_current == 1 else 'todo') }}">
+                {% if onb_step1 %}<i class="fas fa-check"></i>{% else %}1{% endif %}
+            </div>
+            <div class="onb-body">
+                <h3 class="{{ 'is-done' if onb_step1 else '' }}">{{ _('Créer ta première classe') }}</h3>
+                <p>{{ _('Donne-lui un nom et une discipline. Ça prend 30 secondes.') }}</p>
+                {% if onb_current == 1 %}
+                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('setup.manage_classrooms') }}?from_dashboard=1">
+                    <i class="fas fa-plus"></i> {{ _('Créer ma classe') }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="onb-step" id="onboarding-step-2">
+            <div class="onb-num {{ 'done' if onb_step2 else ('current' if onb_current == 2 else 'todo') }}">
+                {% if onb_step2 %}<i class="fas fa-check"></i>{% else %}2{% endif %}
+            </div>
+            <div class="onb-body">
+                <h3 class="{{ 'is-done' if onb_step2 else '' }}">{{ _('Ajouter tes élèves') }}</h3>
+                <p>{{ _('Un par un, ou en collant ta liste depuis Excel (import CSV).') }}</p>
+                {% if onb_current == 2 %}
+                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('planning.manage_classes') }}">
+                    <i class="fas fa-user-plus"></i> {{ _('Ajouter des élèves') }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="onb-step" id="onboarding-step-3">
+            <div class="onb-num {{ 'done' if onb_step3 else ('current' if onb_current == 3 else 'todo') }}">
+                {% if onb_step3 %}<i class="fas fa-check"></i>{% else %}3{% endif %}
+            </div>
+            <div class="onb-body">
+                <h3 class="{{ 'is-done' if onb_step3 else '' }}">{{ _('Planifier ton premier cours') }}</h3>
+                <p>{{ _('Ouvre le calendrier et clique sur une période pour la préparer.') }}</p>
+                {% if onb_current == 3 %}
+                <a class="onb-cta" id="onboarding-primary-cta" href="{{ url_for('planning.calendar_view') }}">
+                    <i class="fas fa-calendar-plus"></i> {{ _('Planifier un cours') }}
+                </a>
+                {% endif %}
+            </div>
+        </div>
     </div>
     {% endif %}
 
@@ -328,6 +384,12 @@
     <!-- Actions rapides -->
 
 <!-- Actions rapides -->
+{% if classrooms_count == 0 %}
+<details class="qa-collapse" style="margin-bottom: 2rem;">
+<summary style="cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 0.5rem; color: #6B7280; font-weight: 600; padding: 0.5rem 0;">
+    <i class="fas fa-chevron-right"></i> {{ _('Voir toutes les fonctionnalités') }}
+</summary>
+{% endif %}
 <div class="quick-actions">
     <h2><i class="fas fa-bolt"></i> {{ _('Actions rapides') }}</h2>
     <div class="action-buttons-grid">
@@ -522,6 +584,7 @@
 
     </div>
 </div>
+{% if classrooms_count == 0 %}</details>{% endif %}
 
     <!-- Section des mémos -->
     <div class="memos-section" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
@@ -1109,4 +1172,106 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// === Visite guidée d'onboarding (1er login, compte neuf) ===
+// Ne se déclenche que si : data-first-visit (has_seen_tour=False) ET la checklist
+// « 3 étapes » est présente. Le tour multi-pages de help-system.js est désactivé
+// dans ce cas (voir le garde-fou dans help-system.js).
+(function () {
+    if (document.body.dataset.firstVisit !== 'true') return;
+    if (!document.getElementById('onboarding-steps')) return;
+
+    var STEPS = [
+        { sel: null, title: {{ _("Bienvenue sur ProfCalendar !")|tojson }}, text: {{ _("Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment.")|tojson }} },
+        { sel: '#onboarding-steps', title: {{ _("Tes 3 étapes pour démarrer")|tojson }}, text: {{ _("Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours.")|tojson }} },
+        { sel: '#onboarding-primary-cta', title: {{ _("Commence ici")|tojson }}, text: {{ _("Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes.")|tojson }} },
+        { sel: '.help-fab', title: {{ _("Besoin d'aide ?")|tojson }}, text: {{ _("Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible.")|tojson }} }
+    ].filter(function (s) { return !s.sel || document.querySelector(s.sel); });
+    if (!STEPS.length) return;
+
+    var L = { skip: {{ _("Passer")|tojson }}, next: {{ _("Suivant")|tojson }}, done: {{ _("Terminer")|tojson }} };
+    var i = 0, overlay, hole, tip, seen = false;
+
+    function markSeen() {
+        if (seen) return; seen = true;
+        try { fetch('/api/help/tour-completed', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } }); } catch (e) {}
+    }
+    function cleanup() {
+        [overlay, tip].forEach(function (el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+        document.removeEventListener('keydown', onKey);
+        window.removeEventListener('resize', position);
+    }
+    function finish() { cleanup(); markSeen(); }
+    function onKey(e) { if (e.key === 'Escape') finish(); }
+
+    function build() {
+        overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;';
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) finish(); });
+        hole = document.createElement('div');
+        hole.style.cssText = 'position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(17,24,39,.62);transition:all .2s ease;pointer-events:none;';
+        overlay.appendChild(hole);
+        document.body.appendChild(overlay);
+        tip = document.createElement('div');
+        tip.style.cssText = 'position:fixed;z-index:99999;max-width:330px;background:#fff;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.30);padding:1.1rem 1.25rem;font-family:inherit;';
+        document.body.appendChild(tip);
+        document.addEventListener('keydown', onKey);
+        window.addEventListener('resize', position);
+    }
+
+    function position() {
+        var step = STEPS[i];
+        var t = step.sel ? document.querySelector(step.sel) : null;
+        if (t) {
+            var r = t.getBoundingClientRect(), pad = 8;
+            hole.style.display = 'block';
+            hole.style.left = (r.left - pad) + 'px';
+            hole.style.top = (r.top - pad) + 'px';
+            hole.style.width = (r.width + pad * 2) + 'px';
+            hole.style.height = (r.height + pad * 2) + 'px';
+            var tw = tip.offsetWidth || 330, th = tip.offsetHeight || 140;
+            tip.style.left = Math.min(Math.max(12, r.left), window.innerWidth - tw - 12) + 'px';
+            tip.style.top = (r.bottom + 12 + th < window.innerHeight)
+                ? (r.bottom + 12) + 'px'
+                : Math.max(12, r.top - th - 12) + 'px';
+        } else {
+            hole.style.display = 'none';
+            tip.style.left = Math.max(12, (window.innerWidth / 2 - 165)) + 'px';
+            tip.style.top = Math.max(12, (window.innerHeight / 2 - 90)) + 'px';
+        }
+    }
+
+    function render() {
+        var last = i === STEPS.length - 1, step = STEPS[i];
+        tip.innerHTML =
+            '<div style="font-weight:700;font-size:1.05rem;color:#1F2937;margin-bottom:.35rem;"></div>' +
+            '<div style="color:#4B5563;font-size:.92rem;line-height:1.5;"></div>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;">' +
+                '<span style="font-size:.8rem;color:#9CA3AF;">' + (i + 1) + ' / ' + STEPS.length + '</span>' +
+                '<span><button type="button" data-onb="skip" style="background:none;border:none;color:#6B7280;cursor:pointer;font-size:.85rem;margin-right:.5rem;"></button>' +
+                '<button type="button" data-onb="next" style="background:#6366F1;color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;cursor:pointer;font-weight:600;font-size:.85rem;"></button></span>' +
+            '</div>';
+        // Texte inséré via textContent (pas d'injection HTML).
+        tip.children[0].textContent = step.title;
+        tip.children[1].textContent = step.text;
+        var skipBtn = tip.querySelector('[data-onb="skip"]'), nextBtn = tip.querySelector('[data-onb="next"]');
+        skipBtn.textContent = L.skip;
+        nextBtn.textContent = last ? L.done : L.next;
+        skipBtn.onclick = finish;
+        nextBtn.onclick = function () { if (last) { finish(); } else { i++; show(); } };
+        show_position_after_scroll();
+    }
+    function show_position_after_scroll() {
+        var step = STEPS[i], t = step.sel ? document.querySelector(step.sel) : null;
+        if (t && t.scrollIntoView) { t.scrollIntoView({ block: 'center' }); }
+        position();
+    }
+    function show() { render(); }
+
+    setTimeout(function () { build(); render(); }, 900);
+})();
+</script>
 {% endblock %}

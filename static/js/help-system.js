@@ -1288,7 +1288,11 @@ class HelpSystem {
         if (tourState && tourState.active) {
             setTimeout(() => this.resumeTour(), 400);
         } else if (document.body.dataset.firstVisit === 'true'
-                   && this.currentPageKey() === 'planning.dashboard') {
+                   && this.currentPageKey() === 'planning.dashboard'
+                   && !document.getElementById('onboarding-steps')) {
+            // Si la checklist d'onboarding « 3 étapes » est présente (compte
+            // neuf), c'est la visite guidée d'onboarding du dashboard qui prend
+            // le relais — on ne lance pas le tour multi-pages des fonctions.
             // IMPORTANT : on ne déclenche le tour QUE sur le dashboard.
             // Sans ce garde-fou, le tour démarrait dès la page de choix
             // d'abonnement ou le setup initial — ce qui n'a pas de sens

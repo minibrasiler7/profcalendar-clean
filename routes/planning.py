@@ -684,6 +684,12 @@ def dashboard():
     classrooms_count = current_user.classrooms.filter_by(is_temporary=False).count()
     schedules_count = current_user.schedules.count()
 
+    # Progression d'onboarding (checklist « 3 étapes » du dashboard)
+    from models.student import Student as _OnbStudent
+    students_count = _OnbStudent.query.filter_by(user_id=current_user.id).count()
+    has_any_planning = db.session.query(Planning.id).filter_by(
+        user_id=current_user.id).first() is not None
+
     # Obtenir la semaine actuelle
     today = date_type.today()
     week_dates = get_week_dates(today)
@@ -778,6 +784,8 @@ def dashboard():
     return render_template('planning/dashboard.html',
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
+                         students_count=students_count,
+                         has_any_planning=has_any_planning,
                          week_plannings_count=len(week_plannings),
                          today=today,
                          current_lesson=lesson if is_current_lesson else None,
