@@ -2,18 +2,12 @@
 # Générées par scripts/build_translations.py — modifier CE script, pas ce fichier.
 msgid ""
 msgstr ""
-"Project-Id-Version:  ProfCalendar\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-07 16:42+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: it\n"
-"Language-Team: it <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Project-Id-Version: ProfCalendar\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Language: it\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgid "ProfCalendar - Planification simplifiée"
 msgstr "ProfCalendar - Pianificazione semplificata"
@@ -258,7 +252,6 @@ msgstr "Questo nome utente è già in uso."
 msgid "Cette adresse email est déjà enregistrée."
 msgstr "Questo indirizzo email è già registrato."
 
-#, python-format
 msgid "Trop de tentatives. Réessayez dans %(min)d minute(s)."
 msgstr "Troppi tentativi. Riprova tra %(min)d minuto/i."
 
@@ -274,7 +267,6 @@ msgstr "Impossibile inviare il codice di verifica. Riprova o contatta l'assisten
 msgid "Trop de tentatives. Compte verrouillé pour 15 minutes."
 msgstr "Troppi tentativi. Account bloccato per 15 minuti."
 
-#, python-format
 msgid "Email ou mot de passe incorrect. %(n)d tentative(s) restante(s)."
 msgstr "Email o password errati. %(n)d tentativo/i rimanente/i."
 
@@ -290,7 +282,6 @@ msgstr "Benvenuto su ProfCalendar! 🎉 Hai 30 giorni di Premium in regalo: tutt
 msgid "Code invalide ou expiré."
 msgstr "Codice non valido o scaduto."
 
-#, python-format
 msgid "Veuillez attendre %(sec)d secondes avant de renvoyer un code."
 msgstr "Attendi %(sec)d secondi prima di reinviare un codice."
 
@@ -513,7 +504,6 @@ msgstr "anno"
 msgid "Tout du plan Premium"
 msgstr "Tutto il piano Premium"
 
-#, python-format
 msgid "Économisez 32%%"
 msgstr "Risparmia il 32%%"
 
@@ -574,7 +564,6 @@ msgstr "Calcolatore di media"
 msgid "Conditions générales"
 msgstr "Termini e condizioni"
 
-#, python-format
 msgid "Bonjour, %(name)s !"
 msgstr "Ciao, %(name)s!"
 
@@ -797,7 +786,6 @@ msgstr "Email:"
 msgid "Reçu le :"
 msgstr "Ricevuto il:"
 
-#, python-format
 msgid "%(date)s à %(time)s"
 msgstr "%(date)s alle %(time)s"
 
@@ -996,7 +984,6 @@ msgstr "Premium annuale"
 msgid "Tout du Premium mensuel"
 msgstr "Tutto il Premium mensile"
 
-#, python-format
 msgid "Économisez 32 %%"
 msgstr "Risparmia il 32%%"
 
@@ -1135,14 +1122,12 @@ msgstr "Sblocca tutte le funzionalità per gestire le tue classi: voti, presenze
 msgid "Voir les abonnements"
 msgstr "Visualizza gli abbonamenti"
 
-#, python-format
 msgid "(Accès pour %(n)d jours)"
 msgstr "(Accesso per %(n)d giorni)"
 
 msgid "Configuration de prix manquante côté serveur."
 msgstr "Configurazione dei prezzi mancante sul server."
 
-#, python-format
 msgid "Erreur de paiement : %(err)s"
 msgstr "Errore di pagamento: %(err)s"
 
@@ -1590,7 +1575,6 @@ msgstr "Il piano Premium dà accesso a tutte le funzionalità: gestione della cl
 msgid "4.3 Disponibilité"
 msgstr "4.3 Disponibilità"
 
-#, python-format
 msgid "ProfCalendar s'efforce de maintenir un accès continu à la plateforme. Toutefois, des interruptions temporaires peuvent survenir pour des raisons de maintenance, de mise à jour ou de force majeure. ProfCalendar ne garantit pas une disponibilité de 100 %%."
 msgstr "ProfCalendar si impegna a mantenere un accesso continuo alla piattaforma. Tuttavia, possono verificarsi interruzioni temporanee per ragioni di manutenzione, aggiornamento o forza maggiore. ProfCalendar non garantisce una disponibilità del 100%%."
 
@@ -1822,53 +1806,14 @@ msgstr "Condizioni generali d'uso"
 msgid "ProfCalendar est édité par Loïc Strauch, Suisse."
 msgstr "ProfCalendar è pubblicato da Loïc Strauch, Svizzera."
 
-#, python-format
-msgid "Ton essai Premium se termine dans %(num)d jour."
-msgid_plural "Ton essai Premium se termine dans %(num)d jours."
-msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
-msgstr[1] "La tua prova Premium termina tra %(num)d giorni."
+msgid "Ajouter des élèves"
+msgstr "Aggiungi studenti"
 
-#, python-format
-msgid "%(num)d jour restant"
-msgid_plural "%(num)d jours restants"
-msgstr[0] "%(num)d giorno rimanente"
-msgstr[1] "%(num)d giorni rimanenti"
+msgid "Ajouter tes élèves"
+msgstr "Aggiungi i tuoi studenti"
 
-#, python-format
-msgid "%(num)d planification cette semaine"
-msgid_plural "%(num)d planifications cette semaine"
-msgstr[0] "%(num)d pianificazione questa settimana"
-msgstr[1] "%(num)d pianificazioni questa settimana"
-
-msgid "Ressources gratuites, sans inscription"
-msgstr "Risorse gratuite, senza registrazione"
-
-msgid "Des outils en libre accès pour les enseignants romands — à utiliser tout de suite."
-msgstr "Strumenti ad accesso libero per gli insegnanti, pronti all’uso."
-
-msgid "Générateur d’exercices de maths"
-msgstr "Generatore di esercizi di matematica"
-
-msgid "Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives."
-msgstr "Esercizi illimitati del Ciclo 3 (9H–11H), ordinati per tema del PER, con correzione immediata e figure interattive."
-
-msgid "Essayer"
-msgstr "Prova"
-
-msgid "Calendriers scolaires des cantons"
-msgstr "Calendari scolastici dei cantoni"
-
-msgid "Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer."
-msgstr "Tutte le date delle vacanze scolastiche e dei giorni festivi per cantone, da consultare e stampare."
-
-msgid "Voir les calendriers"
-msgstr "Vedi i calendari"
-
-msgid "Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
-msgstr "Genera la scala di valutazione di una verifica (scala federale svizzera): punti &rarr; voto, pronta da copiare."
-
-msgid "Créer un barème"
-msgstr "Crea una scala"
+msgid "Besoin d'aide ?"
+msgstr "Hai bisogno di aiuto?"
 
 msgid "Calcule une moyenne pondérée en direct et trouve la note nécessaire au prochain test."
 msgstr "Calcola una media ponderata in tempo reale e trova il voto necessario alla prossima verifica."
@@ -1876,63 +1821,98 @@ msgstr "Calcola una media ponderata in tempo reale e trova il voto necessario al
 msgid "Calculer"
 msgstr "Calcola"
 
-msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
-msgstr "Facoltativo — il nome mostrato nell'app. Lascia vuoto per generarne uno dalla tua email."
-
-msgid "Ex. : Jean Dupont"
-msgstr "es. Mario Rossi"
-
-msgid "étapes"
-msgstr "passaggi"
-
-msgid "Créer ta première classe"
-msgstr "Crea la tua prima classe"
-
-msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
-msgstr "Dai un nome e una materia. Bastano 30 secondi."
-
-msgid "Créer ma classe"
-msgstr "Crea la mia classe"
-
-msgid "Ajouter tes élèves"
-msgstr "Aggiungi i tuoi studenti"
-
-msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
-msgstr "Uno a uno, o incollando la tua lista da Excel (import CSV)."
-
-msgid "Ajouter des élèves"
-msgstr "Aggiungi studenti"
-
-msgid "Planifier ton premier cours"
-msgstr "Pianifica la tua prima lezione"
-
-msgid "Ouvre le calendrier et clique sur une période pour la préparer."
-msgstr "Apri il calendario e clicca su un'ora per prepararla."
-
-msgid "Planifier un cours"
-msgstr "Pianifica una lezione"
-
-msgid "Voir toutes les fonctionnalités"
-msgstr "Mostra tutte le funzioni"
-
-msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
-msgstr "Facciamo un rapido tour per iniziare. Puoi saltarlo quando vuoi."
-
-msgid "Tes 3 étapes pour démarrer"
-msgstr "I tuoi 3 passaggi per iniziare"
-
-msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
-msgstr "Segui questa breve lista: crea la classe, aggiungi gli studenti, poi pianifica la prima lezione."
-
-msgid "Commence ici"
-msgstr "Inizia qui"
-
-msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
-msgstr "Clicca su questo pulsante per creare la tua prima classe — bastano 30 secondi."
-
-msgid "Besoin d'aide ?"
-msgstr "Hai bisogno di aiuto?"
+msgid "Calendriers scolaires des cantons"
+msgstr "Calendari scolastici dei cantoni"
 
 msgid "Ce bouton ouvre l'aide contextuelle sur chaque page. Il est toujours disponible."
 msgstr "Questo pulsante apre l'aiuto contestuale su ogni pagina. È sempre disponibile."
 
+msgid "Clique sur ce bouton pour créer ta première classe — ça prend 30 secondes."
+msgstr "Clicca su questo pulsante per creare la tua prima classe — bastano 30 secondi."
+
+msgid "Commence ici"
+msgstr "Inizia qui"
+
+msgid "Créer ma classe"
+msgstr "Crea la mia classe"
+
+msgid "Créer ta première classe"
+msgstr "Crea la tua prima classe"
+
+msgid "Créer un barème"
+msgstr "Crea una scala"
+
+msgid "Des outils en libre accès pour les enseignants romands — à utiliser tout de suite."
+msgstr "Strumenti ad accesso libero per gli insegnanti, pronti all’uso."
+
+msgid "Donne-lui un nom et une discipline. Ça prend 30 secondes."
+msgstr "Dai un nome e una materia. Bastano 30 secondi."
+
+msgid "Essayer"
+msgstr "Prova"
+
+msgid "Ex. : Jean Dupont"
+msgstr "es. Mario Rossi"
+
+msgid "Exercices illimités du Cycle 3 (9H–11H), classés par thème du PER, avec correction immédiate et figures interactives."
+msgstr "Esercizi illimitati del Ciclo 3 (9H–11H), ordinati per tema del PER, con correzione immediata e figure interattive."
+
+msgid "Facultatif — c'est le nom affiché dans l'app. Laisse vide pour en générer un depuis ton email."
+msgstr "Facoltativo — il nome mostrato nell'app. Lascia vuoto per generarne uno dalla tua email."
+
+msgid "Faisons un tour rapide pour bien démarrer. Tu peux le passer à tout moment."
+msgstr "Facciamo un rapido tour per iniziare. Puoi saltarlo quando vuoi."
+
+msgid "Génère le barème d’un test (barème fédéral suisse) : points &rarr; note, prêt à copier-coller."
+msgstr "Genera la scala di valutazione di una verifica (scala federale svizzera): punti &rarr; voto, pronta da copiare."
+
+msgid "Générateur d’exercices de maths"
+msgstr "Generatore di esercizi di matematica"
+
+msgid "Ouvre le calendrier et clique sur une période pour la préparer."
+msgstr "Apri il calendario e clicca su un'ora per prepararla."
+
+msgid "Planifier ton premier cours"
+msgstr "Pianifica la tua prima lezione"
+
+msgid "Planifier un cours"
+msgstr "Pianifica una lezione"
+
+msgid "Ressources gratuites, sans inscription"
+msgstr "Risorse gratuite, senza registrazione"
+
+msgid "Suis cette petite liste : créer ta classe, ajouter tes élèves, puis planifier ton premier cours."
+msgstr "Segui questa breve lista: crea la classe, aggiungi gli studenti, poi pianifica la prima lezione."
+
+msgid "Tes 3 étapes pour démarrer"
+msgstr "I tuoi 3 passaggi per iniziare"
+
+msgid "Toutes les dates des vacances scolaires et jours fériés par canton romand, à consulter et à imprimer."
+msgstr "Tutte le date delle vacanze scolastiche e dei giorni festivi per cantone, da consultare e stampare."
+
+msgid "Un par un, ou en collant ta liste depuis Excel (import CSV)."
+msgstr "Uno a uno, o incollando la tua lista da Excel (import CSV)."
+
+msgid "Voir les calendriers"
+msgstr "Vedi i calendari"
+
+msgid "Voir toutes les fonctionnalités"
+msgstr "Mostra tutte le funzioni"
+
+msgid "étapes"
+msgstr "passaggi"
+
+msgid "Ton essai Premium se termine dans %(num)d jour."
+msgid_plural "Ton essai Premium se termine dans %(num)d jours."
+msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
+msgstr[1] "La tua prova Premium termina tra %(num)d giorni."
+
+msgid "%(num)d jour restant"
+msgid_plural "%(num)d jours restants"
+msgstr[0] "%(num)d giorno rimanente"
+msgstr[1] "%(num)d giorni rimanenti"
+
+msgid "%(num)d planification cette semaine"
+msgid_plural "%(num)d planifications cette semaine"
+msgstr[0] "%(num)d pianificazione questa settimana"
+msgstr[1] "%(num)d pianificazioni questa settimana"
