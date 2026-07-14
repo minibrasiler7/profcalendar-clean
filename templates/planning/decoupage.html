@@ -95,6 +95,14 @@
         gap: 0.25rem;
     }
 
+    .decoupage-assign-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+        font-size: 0.78rem;
+        padding: 0.3rem 0.6rem;
+        align-self: flex-start;
+    }
+
     /* Nouveau découpage card */
     .new-decoupage-card {
         background: var(--light-gray);
@@ -624,6 +632,11 @@
                         <div class="decoupage-card-title">{{ decoupage.name }}</div>
                         <div class="decoupage-card-subject">{{ decoupage.subject }}</div>
                     </div>
+                    <button class="btn-sm btn-primary decoupage-assign-btn"
+                            onclick="event.stopPropagation(); cancelEdit(); openAssignModalFor({{ decoupage.id }})"
+                            title="Assigner à une classe">
+                        <i class="fas fa-link"></i> Assigner
+                    </button>
                 </div>
                 <div class="decoupage-card-stats">
                     {# Pluralisation correcte : "1 thème", "2 thèmes", "1 classe", "2 classes". #}
@@ -689,6 +702,10 @@
                     <i class="fas fa-times"></i>
                     Annuler
                 </button>
+                <button class="btn-secondary" onclick="openAssignModalFor(currentDecoupageId)">
+                    <i class="fas fa-link"></i>
+                    Assigner à une classe
+                </button>
                 <button class="btn-primary" onclick="saveDecoupage()">
                     <i class="fas fa-save"></i>
                     Sauvegarder
@@ -696,12 +713,24 @@
             </div>
         </div>
 
-        <!-- Panel d'assignation aux classes -->
-        <div class="detail-panel">
-            <div class="panel-header">
-                <h2><i class="fas fa-link"></i> Assignation aux classes</h2>
-            </div>
+        <!-- L'assignation aux classes se fait désormais via une fenêtre modale
+             (#assignClassModal), ouverte à la sauvegarde et via le bouton
+             « Assigner » de chaque carte de découpage. -->
+    </div>
+</div>
 
+<!-- Modal d'assignation aux classes -->
+<div class="modal-overlay" id="assignClassModal">
+    <div class="modal" style="max-width: 680px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-link"></i> Assigner « <span id="assignModalTitle"></span> » à une classe</h3>
+            <button class="modal-close" onclick="closeAssignModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 62vh; overflow-y: auto;">
+            <p style="color: var(--gray-color, #6B7280); margin: 0 0 1rem;">
+                Choisis la ou les classes qui suivront ce découpage. La discipline de chaque classe est indiquée pour t'aider à choisir.
+            </p>
+            {% if classrooms %}
             <table class="assignments-table">
                 <thead>
                     <tr>
@@ -714,7 +743,14 @@
                 <tbody id="assignmentsTableBody">
                     {% for classroom in classrooms %}
                     <tr data-classroom-id="{{ classroom.id }}">
-                        <td>{{ classroom.name }}</td>
+                        <td>
+                            <div style="font-weight: 600;">{{ classroom.name }}</div>
+                            {% if classroom.subject %}
+                            <div style="font-size: 0.8rem; color: var(--gray-color, #6B7280);">
+                                <i class="fas fa-book" style="font-size: 0.72rem;"></i> {{ classroom.subject }}
+                            </div>
+                            {% endif %}
+                        </td>
                         <td>
                             <span class="assignment-status unassigned" id="status-{{ classroom.id }}">
                                 <i class="fas fa-minus-circle"></i> Non assigné
@@ -734,8 +770,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-
-            {% if not classrooms %}
+            {% else %}
             <div class="empty-state">
                 <i class="fas fa-chalkboard"></i>
                 <p>Aucune classe configurée</p>
@@ -745,6 +780,9 @@
                 </a>
             </div>
             {% endif %}
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" onclick="closeAssignModal()">Terminé</button>
         </div>
     </div>
 </div>
@@ -1287,8 +1325,11 @@ async function saveDecoupage() {
             updateDecoupageCard();
             showNotification('success', 'Découpage sauvegardé');
 
-            // Fermer le panneau après sauvegarde
+            // Fermer l'éditeur puis proposer d'assigner le découpage à une classe
+            // (fenêtre modale) — c'est l'étape que les profs oubliaient.
+            const savedId = currentDecoupageId;
             cancelEdit();
+            openAssignModalFor(savedId);
         } else {
             showNotification('error', data.message);
         }
@@ -1310,16 +1351,42 @@ function cancelEdit() {
 
 function updateDecoupageCard() {
     const card = document.querySelector(`.decoupage-card[data-id="${currentDecoupageId}"]`);
-    if (card) {
-        card.querySelector('.decoupage-card-title').textContent = currentDecoupage.name;
-        card.querySelector('.decoupage-card-subject').textContent = currentDecoupage.subject;
-        const stats = card.querySelector('.decoupage-card-stats');
-        const assignCount = Object.values(assignments).filter(a => a.assigned).length;
-        stats.innerHTML = `
-            <span><i class="fas fa-layer-group"></i> ${themes.length} thèmes</span>
-            <span><i class="fas fa-users"></i> ${assignCount} classes</span>
-        `;
+    if (!card) return;
+    // Nom/discipline : uniquement si le découpage est chargé dans l'éditeur
+    // (depuis la modale d'assignation, currentDecoupage peut être null).
+    if (currentDecoupage) {
+        const titleEl = card.querySelector('.decoupage-card-title');
+        const subjEl = card.querySelector('.decoupage-card-subject');
+        if (titleEl) titleEl.textContent = currentDecoupage.name;
+        if (subjEl) subjEl.textContent = currentDecoupage.subject;
     }
+    // Compteur de classes assignées : toujours mis à jour (2e <span> des stats),
+    // sans toucher au compteur de thèmes (1er <span>).
+    const assignCount = Object.values(assignments).filter(a => a && a.assigned).length;
+    const spans = card.querySelectorAll('.decoupage-card-stats span');
+    if (spans.length >= 2) {
+        spans[1].innerHTML = `<i class="fas fa-users"></i> ${assignCount} classe${assignCount !== 1 ? 's' : ''}`;
+    }
+}
+
+// Ouvre la fenêtre modale d'assignation aux classes pour un découpage donné.
+async function openAssignModalFor(decoupageId) {
+    if (!decoupageId) return;
+    currentDecoupageId = decoupageId;
+    const card = document.querySelector(`.decoupage-card[data-id="${decoupageId}"]`);
+    const titleEl = document.getElementById('assignModalTitle');
+    if (titleEl) {
+        const nameEl = card ? card.querySelector('.decoupage-card-title') : null;
+        titleEl.textContent = nameEl ? nameEl.textContent.trim() : (currentDecoupage ? currentDecoupage.name : '');
+    }
+    await loadAssignments();  // remplit statut / semaine / bouton pour ce découpage
+    const modal = document.getElementById('assignClassModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeAssignModal() {
+    const modal = document.getElementById('assignClassModal');
+    if (modal) modal.classList.remove('active');
 }
 
 // Suppression du découpage

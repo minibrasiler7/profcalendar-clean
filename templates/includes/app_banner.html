@@ -140,11 +140,31 @@
     }
     .app-promo-banner-close:hover { background: rgba(255, 255, 255, 0.2); }
     @media (max-width: 600px) {
+        /* Empilement propre : titre sur une ligne, puis les boutons côte à côte
+           (largeur égale) en dessous, et le × en coin haut-droit. Évite le
+           chevauchement titre/boutons observé quand tout était sur une ligne. */
+        .app-promo-banner { padding: 0.6rem 0.85rem; }
+        .app-promo-banner-content {
+            position: relative;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+            padding-right: 1.75rem;
+        }
+        .app-promo-banner-icon { display: none; }
+        .app-promo-banner-text { flex: none; }
         .app-promo-banner-text span { display: none; }
-        /* Le × en coin haut-droit pour ne pas occuper une ligne à part quand
-           le contenu passe à la ligne (variante 2 apps notamment). */
-        .app-promo-banner-content { position: relative; padding-right: 2rem; }
-        .app-promo-banner-close { position: absolute; top: 0; right: 0; }
+        .app-promo-banner-text strong { font-size: 0.9rem; }
+        .app-promo-banner-actions { width: 100%; gap: 0.5rem; }
+        .app-promo-banner-actions .app-promo-banner-cta {
+            flex: 1 1 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.55rem 0.4rem;
+        }
+        .app-promo-banner-close { position: absolute; top: 0.1rem; right: 0; }
     }
 </style>
 {% endif %}
