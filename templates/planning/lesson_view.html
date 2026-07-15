@@ -1664,6 +1664,12 @@ input, textarea, select {
                             </div>
                         </div>
 
+                        <button type="button" class="student-remark-btn"
+                                onclick="event.stopPropagation(); openQuickRemark({{ student.id }})"
+                                title="Ajouter une remarque">
+                            <i class="fas fa-comment-medical"></i>
+                        </button>
+
                         <div class="late-controls">
                             <button class="late-btn decrease"
                                     onclick="adjustLateMinutes({{ student.id }}, -1)"
@@ -1692,7 +1698,157 @@ input, textarea, select {
                     </div>
                     {% endfor %}
                 </div>
+
+                <!-- Panneau « remarque rapide » : déplacé sous l'élève cliqué par JS -->
+                <style>
+                    .student-remark-btn { flex-shrink: 0; background: #EEF2FF; border: 1px solid #C7D2FE; color: #4F46E5; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-left: 0.4rem; transition: background .15s, color .15s; }
+                    .student-remark-btn:hover { background: #4F46E5; color: #fff; }
+                    .student-attendance.has-remark .student-remark-btn { background: #4F46E5; color: #fff; }
+                    .quick-remark-panel { background: #F8FAFF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 0.8rem 0.9rem; margin: 0.35rem 0 0.85rem; }
+                    .quick-remark-panel .qr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem; }
+                    .quick-remark-panel .qr-title { font-size: 0.9rem; color: #312E81; }
+                    .quick-remark-panel .qr-close { background: none; border: none; font-size: 1.35rem; line-height: 1; color: #6B7280; cursor: pointer; padding: 0 0.25rem; }
+                    .quick-remark-panel textarea { width: 100%; font-size: 0.92rem; }
+                    .qr-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0; }
+                    .qr-chip { background: #fff; border: 1px solid #D1D5DB; border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.8rem; color: #374151; cursor: pointer; }
+                    .qr-chip:hover { background: #4F46E5; color: #fff; border-color: #4F46E5; }
+                    .qr-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+                    .qr-parent { font-size: 0.82rem; color: #4B5563; display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+                    .qr-actions { display: flex; gap: 0.5rem; align-items: center; }
+                    .qr-mic { background: #fff; border: 1px solid #D1D5DB; color: #374151; border-radius: 8px; padding: 0.4rem 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; }
+                    .qr-mic.recording { background: #DC2626; color: #fff; border-color: #DC2626; animation: qrpulse 1s infinite; }
+                    @keyframes qrpulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+                </style>
+                <div id="quickRemarkPanel" class="quick-remark-panel" style="display: none;">
+                    <div class="qr-header">
+                        <span class="qr-title"><i class="fas fa-comment-dots"></i> Remarque — <strong id="qrStudentName"></strong></span>
+                        <button type="button" class="qr-close" onclick="closeQuickRemark()" aria-label="Fermer">&times;</button>
+                    </div>
+                    <textarea id="qrContent" class="form-control" rows="2" placeholder="Note la remarque…"></textarea>
+                    <div class="qr-presets" id="qrPresets"></div>
+                    <div class="qr-footer">
+                        <label class="qr-parent"><input type="checkbox" id="qrSendParent"> <i class="fas fa-paper-plane"></i> Envoyer aux parents/élève</label>
+                        <div class="qr-actions">
+                            <button type="button" class="qr-mic" id="qrMic" onclick="qrDictate()" style="display: none;"><i class="fas fa-microphone"></i> Dicter</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="qrSaveBtn" onclick="saveQuickRemark()"><i class="fas fa-check"></i> Enregistrer</button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <script>
+            (function () {
+                const PRESET_REMARKS = [
+                    "Participation active et pertinente.",
+                    "Beaux progrès, bravo !",
+                    "Très bonne attitude en classe.",
+                    "A aidé un camarade.",
+                    "Excellent travail aujourd'hui.",
+                    "A oublié son matériel.",
+                    "Devoirs non faits.",
+                    "Bavardages répétés.",
+                    "Manque de concentration.",
+                    "Comportement perturbateur.",
+                    "Travail non rendu.",
+                    "Doit faire signer le carnet."
+                ];
+                let qrStudentId = null;
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+                window.openQuickRemark = function (studentId) {
+                    qrStudentId = studentId;
+                    const panel = document.getElementById('quickRemarkPanel');
+                    if (!panel) return;
+                    const row = document.getElementById('student-' + studentId);
+                    const nameEl = row ? row.querySelector('.student-name') : null;
+                    document.getElementById('qrStudentName').textContent = nameEl ? nameEl.textContent.trim() : '';
+                    document.getElementById('qrContent').value = '';
+                    const cb = document.getElementById('qrSendParent'); if (cb) cb.checked = false;
+                    if (row) row.insertAdjacentElement('afterend', panel);
+                    panel.style.display = 'block';
+                    try { panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+                    setTimeout(function () { document.getElementById('qrContent').focus(); }, 60);
+                };
+
+                window.closeQuickRemark = function () {
+                    const panel = document.getElementById('quickRemarkPanel');
+                    if (panel) panel.style.display = 'none';
+                    qrStudentId = null;
+                };
+
+                window.qrAddPreset = function (text) {
+                    const ta = document.getElementById('qrContent');
+                    const cur = ta.value.trim();
+                    ta.value = cur ? (cur + (/[.!?…]$/.test(cur) ? ' ' : '. ') + text) : text;
+                    ta.focus();
+                };
+
+                window.saveQuickRemark = async function () {
+                    const content = document.getElementById('qrContent').value.trim();
+                    if (!qrStudentId || !content) { showNotification('error', 'Écris une remarque.'); return; }
+                    const a = document.querySelector('.attendance-section');
+                    const btn = document.getElementById('qrSaveBtn');
+                    btn.disabled = true;
+                    try {
+                        const resp = await fetch('/planning/create_student_remark', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                student_id: qrStudentId,
+                                source_date: a.dataset.lessonDate,
+                                source_period: parseInt(a.dataset.periodNumber, 10),
+                                content: content,
+                                send_to_parent_and_student: document.getElementById('qrSendParent').checked
+                            })
+                        });
+                        const data = await resp.json();
+                        if (data.success) {
+                            showNotification('success', 'Remarque enregistrée');
+                            const row = document.getElementById('student-' + qrStudentId);
+                            if (row) row.classList.add('has-remark');
+                            closeQuickRemark();
+                        } else {
+                            showNotification('error', data.error || 'Erreur');
+                            btn.disabled = false;
+                        }
+                    } catch (e) { showNotification('error', 'Erreur réseau'); btn.disabled = false; }
+                };
+
+                // Dictée vocale : Web Speech API si dispo (Chrome, Safari) ; sinon, sur
+                // l'app iOS, on donne le focus au textarea pour que le micro du clavier
+                // système prenne le relais.
+                window.qrDictate = function () {
+                    const ta = document.getElementById('qrContent');
+                    const mic = document.getElementById('qrMic');
+                    if (SR) {
+                        try {
+                            const rec = new SR();
+                            rec.lang = 'fr-FR'; rec.interimResults = false; rec.continuous = false;
+                            if (mic) mic.classList.add('recording');
+                            rec.onresult = function (e) { const t = e.results[0][0].transcript; ta.value = ta.value.trim() ? (ta.value.trim() + ' ' + t) : t; };
+                            rec.onerror = function () { if (mic) mic.classList.remove('recording'); ta.focus(); showNotification('info', 'Utilise le micro 🎤 de ton clavier pour dicter.'); };
+                            rec.onend = function () { if (mic) mic.classList.remove('recording'); };
+                            rec.start();
+                        } catch (e) { ta.focus(); }
+                    } else {
+                        ta.focus();
+                        showNotification('info', 'Appuie sur le micro 🎤 de ton clavier pour dicter.');
+                    }
+                };
+
+                // Rendu des puces de remarques préfaites + visibilité du bouton micro
+                const wrap = document.getElementById('qrPresets');
+                if (wrap) {
+                    PRESET_REMARKS.forEach(function (txt) {
+                        const b = document.createElement('button');
+                        b.type = 'button'; b.className = 'qr-chip'; b.textContent = txt;
+                        b.addEventListener('click', function () { qrAddPreset(txt); });
+                        wrap.appendChild(b);
+                    });
+                }
+                const micBtn = document.getElementById('qrMic');
+                if (micBtn && (SR || window.IS_IOS_APP)) micBtn.style.display = 'inline-flex';
+            })();
+            </script>
 
             <!-- Section sanctions -->
             {% if imported_sanctions %}
