@@ -1819,12 +1819,23 @@ input, textarea, select {
                     } catch (e) { showNotification('error', 'Erreur réseau'); btn.disabled = false; }
                 };
 
-                // Dictée vocale : Web Speech API si dispo (Chrome, Safari) ; sinon, sur
-                // l'app iOS, on donne le focus au textarea pour que le micro du clavier
-                // système prenne le relais.
+                // Dictée vocale :
+                //  • Web (Chrome / Safari) : Web Speech API — reconnaissance intégrée au navigateur.
+                //  • App iOS / iPadOS (WKWebView) : l'API Web Speech y est PRÉSENTE
+                //    (webkitSpeechRecognition défini) mais NON fonctionnelle → .start() échoue
+                //    aussitôt (bouton rouge ¼ s puis rien). On la contourne : on donne le focus
+                //    au champ DANS LE GESTE du tap — indispensable pour qu'iOS ouvre le clavier —
+                //    puis l'utilisateur touche la touche micro 🎤 du clavier système et la dictée
+                //    iOS écrit toute seule dans le champ. (Le focus asynchrone d'un callback
+                //    n'ouvre PAS le clavier sur iOS : il DOIT être synchrone dans le tap.)
                 window.qrDictate = function () {
                     const ta = document.getElementById('qrContent');
                     const mic = document.getElementById('qrMic');
+                    if (window.IS_IOS_APP) {
+                        ta.focus();
+                        showNotification('info', 'Touche le micro 🎤 de ton clavier pour dicter.');
+                        return;
+                    }
                     if (SR) {
                         try {
                             const rec = new SR();
