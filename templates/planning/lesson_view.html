@@ -1805,6 +1805,12 @@ input, textarea, select {
                             showNotification('success', 'Remarque enregistrée');
                             const row = document.getElementById('student-' + qrStudentId);
                             if (row) row.classList.add('has-remark');
+                            // Rafraîchir la liste des mémos/remarques de la section planification
+                            // (à gauche) pour afficher la remarque immédiatement, sans recharger.
+                            if (typeof lessonMemosManager !== 'undefined' && lessonMemosManager &&
+                                typeof lessonMemosManager.loadExistingMemosAndRemarks === 'function') {
+                                lessonMemosManager.loadExistingMemosAndRemarks();
+                            }
                             closeQuickRemark();
                         } else {
                             showNotification('error', data.error || 'Erreur');
