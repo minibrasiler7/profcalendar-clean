@@ -53,6 +53,10 @@ class WebViewController: UIViewController {
     // page-relatives (aucune translation à corriger).
     private var pencilCanvasContainer: PassthroughContainerView!
     private var pencilKitMessageHandler: PencilKitMessageHandler!
+    // Dictée vocale native (SFSpeechRecognizer). L'API Web Speech
+    // (webkitSpeechRecognition) est présente mais NON fonctionnelle en WKWebView
+    // → on fournit une reconnaissance vocale native pilotée par le web.
+    private let speechRecognitionManager = SpeechRecognitionManager()
     // Gomme native "deux-en-un" : transmet la position de la gomme Pencil au web
     // (efface aussi les traits rechargés + persistance), sans bloquer l'effacement
     // natif PKEraserTool. Voir PencilEraserForwarder en bas de fichier.
@@ -190,6 +194,10 @@ class WebViewController: UIViewController {
             config.userContentController.add(IAPMessageHandler(controller: self), name: "iap")
         }
 
+        // Handler dictée vocale native : le web envoie
+        //   window.webkit.messageHandlers.speech.postMessage({action:'start'|'stop', lang})
+        config.userContentController.add(speechRecognitionManager, name: "speech")
+
         webView = WKWebView(frame: view.bounds, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -214,6 +222,7 @@ class WebViewController: UIViewController {
 
         // Stocker la reference dans le coordinator
         drawingCoordinator.webView = webView
+        speechRecognitionManager.webView = webView
 
         view.addSubview(webView)
     }
@@ -520,6 +529,35 @@ class WebViewController: UIViewController {
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
+    /// Injecte le pont JS de dictée vocale native. Le web teste
+    /// `window.nativeSpeech.available` : présent → il utilise la reconnaissance
+    /// native (SFSpeechRecognizer côté Swift) ; absent (build d'app ancien) → il
+    /// retombe sur le micro du clavier système. Les résultats arrivent via
+    /// `window.nativeSpeech._emit(type, payload)`, appelé depuis Swift.
+    private func injectSpeechBridge() {
+        let js = """
+        (function() {
+            if (window.__nativeSpeechSetup) return;
+            window.__nativeSpeechSetup = true;
+            window.nativeSpeech = window.nativeSpeech || {};
+            window.nativeSpeech.available = true;
+            window.nativeSpeech.start = function(lang) {
+                try { window.webkit.messageHandlers.speech.postMessage({ action: 'start', lang: lang || 'fr-FR' }); } catch (e) {}
+            };
+            window.nativeSpeech.stop = function() {
+                try { window.webkit.messageHandlers.speech.postMessage({ action: 'stop' }); } catch (e) {}
+            };
+            // Swift appelle window.nativeSpeech._emit('start'|'result'|'end'|'error', payload).
+            // La page s'abonne via window.nativeSpeech.on = { start, result, end, error }.
+            window.nativeSpeech._emit = function(type, payload) {
+                try { var h = (window.nativeSpeech.on || {})[type]; if (h) h(payload); } catch (e) {}
+            };
+            console.log('[ProfCalendar] Native speech bridge initialized');
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
     // MARK: - File Upload Helpers
 
     private func presentFileUploadOptions(completion: @escaping ([URL]?) -> Void) {
@@ -679,6 +717,7 @@ extension WebViewController: WKNavigationDelegate {
         offlineView.isHidden = true
         injectSafeAreaCSS()
         injectPencilKitBridge()
+        injectSpeechBridge()
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

@@ -74,7 +74,9 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Permet d'ajouter des images à vos cours</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Permet l'enregistrement audio pour les exercices</string>
+	<string>Le micro sert à dicter vocalement les remarques et notes des élèves.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>La reconnaissance vocale transcrit votre dictée en texte pour remplir les remarques des élèves.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>

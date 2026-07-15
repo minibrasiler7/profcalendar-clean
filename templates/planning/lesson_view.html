@@ -1832,6 +1832,29 @@ input, textarea, select {
                     const ta = document.getElementById('qrContent');
                     const mic = document.getElementById('qrMic');
                     if (window.IS_IOS_APP) {
+                        // Pont natif présent (build d'app récent) → reconnaissance vocale
+                        // NATIVE (SFSpeechRecognizer). 1er appui = démarrer, 2e = arrêter.
+                        if (window.nativeSpeech && window.nativeSpeech.available) {
+                            if (window.__qrDictating) { window.nativeSpeech.stop(); return; }
+                            const base = ta.value.trim();
+                            window.nativeSpeech.on = {
+                                start: function () { window.__qrDictating = true; if (mic) mic.classList.add('recording'); },
+                                result: function (p) {
+                                    const t = (p && p.text) ? p.text : '';
+                                    ta.value = base ? (base + ' ' + t) : t;
+                                },
+                                end: function () { window.__qrDictating = false; if (mic) mic.classList.remove('recording'); },
+                                error: function () {
+                                    window.__qrDictating = false;
+                                    if (mic) mic.classList.remove('recording');
+                                    ta.focus();
+                                    showNotification('info', 'Dictée indisponible — touche le micro 🎤 du clavier.');
+                                }
+                            };
+                            window.nativeSpeech.start('fr-FR');
+                            return;
+                        }
+                        // Sinon (ancien build sans pont natif) → clavier système.
                         ta.focus();
                         showNotification('info', 'Touche le micro 🎤 de ton clavier pour dicter.');
                         return;

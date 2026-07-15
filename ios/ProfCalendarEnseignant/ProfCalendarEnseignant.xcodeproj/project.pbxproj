@@ -10,6 +10,7 @@
 		144CE141F7EE28DB5BD77884 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */; };
 		24C032A16DF6EBA6C7B7BADB /* IAPMessageHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC31114D471F618B3152C21A /* IAPMessageHandler.swift */; };
 		442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */; };
+		5EEC4001B0DC7E4A5F3A9C01 /* SpeechRecognitionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEC4002B0DC7E4A5F3A9C02 /* SpeechRecognitionManager.swift */; };
 		7B0CA564CD073238D3204AE1 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png in Resources */ = {isa = PBXBuildFile; fileRef = 866FBD01CECA87E84AC421A8 /* ChatGPT Image 15 avr. 2026 à 20_40_56.png */; };
 		A8234C140678169FE8AB92D6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */; };
 		B06BD7080094D1411861CB97 /* PencilKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E5A03B9546255053474FE195 /* PencilKit.framework */; };
@@ -35,6 +36,7 @@
 		CB32DB85850AF8AAAFE6548E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		CDBD50147ABC1C311446DB8E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		CE0CFB3C096670F16D5349CD /* StrokeConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeConverter.swift; sourceTree = "<group>"; };
+		5EEC4002B0DC7E4A5F3A9C02 /* SpeechRecognitionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionManager.swift; sourceTree = "<group>"; };
 		DC31114D471F618B3152C21A /* IAPMessageHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IAPMessageHandler.swift; sourceTree = "<group>"; };
 		E5A03B9546255053474FE195 /* PencilKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PencilKit.framework; path = System/Library/Frameworks/PencilKit.framework; sourceTree = SDKROOT; };
 		E673B55260908774C9F53F1F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -79,6 +81,7 @@
 				11ED248BE5765C6192C65D2D /* Info.plist */,
 				E673B55260908774C9F53F1F /* SceneDelegate.swift */,
 				2E8C3921A2C7A1DD7123496C /* WebViewController.swift */,
+				5EEC4002B0DC7E4A5F3A9C02 /* SpeechRecognitionManager.swift */,
 				3BCB81DF90AABA640A8EB4A2 /* Drawing */,
 				F84C65FCFA2F8C01A4E13BF4 /* IAP */,
 				026668CDC9D0E52B8496450D /* LaunchScreen.storyboard */,
@@ -195,6 +198,7 @@
 				FA3FC373F60C5C54F12ECDF3 /* PencilKitMessageHandler.swift in Sources */,
 				FF5816557878A1BF0CAA2F36 /* SceneDelegate.swift in Sources */,
 				442D4B7AA1146E4ED6BC3EFA /* StrokeConverter.swift in Sources */,
+				5EEC4001B0DC7E4A5F3A9C01 /* SpeechRecognitionManager.swift in Sources */,
 				F65D215C6B18A879652B58E2 /* WebViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
