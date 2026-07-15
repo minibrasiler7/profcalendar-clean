@@ -193,9 +193,11 @@
 {% endblock %}
 
 {% block content %}
-{% if is_ios_native_app %}
-{# Dashboard simplifié pour l'app iOS : juste les actions rapides essentielles
-   (+ la nav bar de base.html). Pas de bienvenue, mémos, invitations, etc. #}
+{% if is_ios_native_app and not is_ios_native_ipad %}
+{# Dashboard simplifié pour l'app iOS SUR IPHONE uniquement : juste les actions
+   rapides essentielles (+ la nav bar de base.html). Pas de bienvenue, mémos,
+   invitations, etc. L'app iPad, elle, reçoit le tableau de bord COMPLET (branche
+   {% else %}) — même expérience que le web, car l'iPad en a la place à l'écran. #}
 {% set is_premium = current_user.has_premium_access() if current_user.has_premium_access is defined else false %}
 <div class="dashboard-container">
     <style>

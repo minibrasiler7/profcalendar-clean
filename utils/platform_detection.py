@@ -27,6 +27,26 @@ def is_ios_native_app() -> bool:
     return IOS_APP_UA_MARKER in ua
 
 
+def is_ios_native_ipad() -> bool:
+    """Retourne True si la requête vient de l'app iOS native ET tourne sur iPad.
+
+    L'app Enseignant est universelle (iPhone + iPad) et injecte le MÊME
+    marqueur ``ProfCalendarApp-iOS`` quel que soit l'appareil. Pour distinguer
+    l'iPad de l'iPhone côté serveur, on s'appuie sur le User-Agent WKWebView
+    sous-jacent : sur iPhone il contient toujours « iPhone » ; sur iPad il
+    contient « iPad » (et jamais « iPhone »). On teste donc l'ABSENCE de
+    « iPhone » plutôt que la présence de « iPad », ce qui reste correct même
+    si une version d'iPadOS présentait la WKWebView comme « Macintosh ».
+
+    Sert à donner à l'app iPad l'expérience COMPLÈTE (même tableau de bord que
+    le web) alors que l'app iPhone garde un tableau de bord simplifié.
+    """
+    if not is_ios_native_app():
+        return False
+    ua = request.headers.get("User-Agent", "") or ""
+    return "iPhone" not in ua
+
+
 def is_ipad_web_ua() -> bool:
     """Détection serveur grossière (User-Agent uniquement) d'un iPad sur
     le web.
@@ -48,5 +68,6 @@ def platform_context() -> dict:
     """Retourne un petit dict utilisable dans les templates Jinja."""
     return {
         "is_ios_native_app": is_ios_native_app(),
+        "is_ios_native_ipad": is_ios_native_ipad(),
         "is_ipad_web_ua": is_ipad_web_ua(),
     }
