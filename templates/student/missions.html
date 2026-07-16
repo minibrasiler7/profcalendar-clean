@@ -290,9 +290,7 @@
             <a href="{{ url_for('student_auth.missions') }}" class="active">
                 <i class="fas fa-scroll"></i> Missions
             </a>
-            <a href="{{ url_for('student_auth.rpg_dashboard') }}">
-                <i class="fas fa-gamepad"></i> RPG
-            </a>
+
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
             <i class="fas fa-sign-out-alt"></i> Déconnexion
@@ -311,13 +309,7 @@
             <h1><i class="fas fa-scroll"></i> Mes Missions</h1>
         </div>
         {% if rpg %}
-        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="rpg-mini" style="text-decoration:none;color:white;">
-            <div class="level-badge">{{ rpg.level }}</div>
-            <div class="rpg-mini-info">
-                <strong>Niveau {{ rpg.level }} — {{ rpg.xp_total }} XP</strong>
-                <div class="xp-bar"><div class="xp-bar-fill" style="width: {{ rpg.xp_progress }}%;"></div></div>
-            </div>
-        </a>
+
         {% endif %}
     </div>
 
@@ -325,16 +317,14 @@
         <button class="nav-tab active" onclick="filterMissions('all', this)">Toutes</button>
         <button class="nav-tab" onclick="filterMissions('todo', this)">À faire</button>
         <button class="nav-tab" onclick="filterMissions('completed', this)">Terminées</button>
-        <a href="{{ url_for('student_auth.rpg_dashboard') }}" class="nav-tab">
-            <i class="fas fa-gamepad"></i> Mon RPG
-        </a>
+
     </div>
 
     {% if rpg and not rpg.avatar_class %}
     <div class="no-character-banner">
         <h2><i class="fas fa-dog"></i> Choisis ton personnage !</h2>
         <p>Tu dois d'abord choisir ta classe de chihuahua avant de pouvoir lancer des missions.</p>
-        <a href="{{ url_for('student_auth.rpg_dashboard') }}"><i class="fas fa-gamepad"></i> Choisir mon personnage</a>
+
     </div>
     {% endif %}
 

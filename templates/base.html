@@ -71,6 +71,15 @@
     <meta property="og:image:alt" content="ProfCalendar — ressources gratuites pour enseignants romands">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="https://profcalendar.org/static/img/og-image.jpg">
+    <style>
+        /* Barre de navigation élève : responsive global (évite le débordement
+           horizontal sur mobile). S'applique à toutes les pages élève. */
+        @media (max-width: 768px) {
+            .navbar-student .navbar-content { flex-direction: column; gap: 0.75rem; padding: 0 1rem; }
+            .navbar-student .navbar-links { flex-wrap: wrap; justify-content: center; gap: 0.6rem 1.1rem; }
+            .navbar-student .navbar-links a { white-space: nowrap; }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
 </head>
