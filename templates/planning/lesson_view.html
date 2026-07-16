@@ -1487,6 +1487,8 @@ input, textarea, select {
                     .devoir-item-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
                     .devoir-item-title { font-size: 0.85rem; color: #111827; font-weight: 600; }
                     .devoir-item-meta { font-size: 0.72rem; color: #6B7280; }
+                    .devoir-item-view { background: none; border: none; color: #6366F1; cursor: pointer; padding: 0.25rem; flex-shrink: 0; text-decoration: none; display: inline-flex; }
+                    .devoir-item-view:hover { color: #4F46E5; }
                     .devoir-item-del { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 0.25rem; flex-shrink: 0; }
                     .devoir-item-del:hover { color: #DC2626; }
                     .devoir-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 3000; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 1rem 1rem; }
@@ -1601,6 +1603,7 @@ input, textarea, select {
                                         <span class="devoir-item-title">${esc(d.title)}</span>
                                         <span class="devoir-item-meta">${d.type === 'exercise' ? 'Exercice · ' : ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}</span>
                                     </div>
+                                    ${d.type === 'submission' ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>` : ''}
                                     <button type="button" class="devoir-item-del" title="Supprimer" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>
                                 </div>`;
                             }).join('');

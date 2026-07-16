@@ -1971,3 +1971,25 @@ def submit_devoir(devoir_id):
             page_count=len(images), status='submitted', submitted_at=datetime.utcnow()))
     db.session.commit()
     return jsonify({'success': True, 'page_count': len(images)})
+
+
+@student_auth_bp.route('/devoirs/submission/<int:submission_id>/corrected')
+@login_required
+def devoir_corrected(submission_id):
+    """Sert à l'élève SA correction (isolation stricte : uniquement la sienne)."""
+    from flask import Response
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import download_file_from_r2
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+    sub = DevoirSubmission.query.get(submission_id)
+    if not sub or sub.student_id != current_user.id or not sub.corrected_filename:
+        return "Accès refusé", 403
+    devoir = Devoir.query.get(sub.devoir_id)
+    if not devoir:
+        return "Introuvable", 404
+    data = download_file_from_r2(devoir.user_id, sub.corrected_filename)
+    if not data:
+        return "Introuvable", 404
+    return Response(data, mimetype='application/pdf',
+                    headers={'Content-Disposition': 'inline; filename="correction.pdf"'})

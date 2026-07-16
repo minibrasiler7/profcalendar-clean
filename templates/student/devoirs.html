@@ -105,6 +105,9 @@
                 {% else %}
                     {% if sub %}
                         <div class="dv-status ok"><i class="fas fa-check-circle"></i> Rendu le {{ sub.submitted_at.strftime('%d.%m.%Y') }} ({{ sub.page_count }} page{{ 's' if sub.page_count > 1 else '' }})</div>
+                        {% if sub.corrected_filename %}
+                        <div class="dv-status ok"><i class="fas fa-check-double"></i> Corrigé — <a href="/student/devoirs/submission/{{ sub.id }}/corrected" target="_blank" style="color:#4F46E5;font-weight:700;">voir la correction</a></div>
+                        {% endif %}
                     {% endif %}
                     <div class="dv-actions">
                         <button type="button" class="dv-btn secondary" onclick="dvPick({{ d.id }})">

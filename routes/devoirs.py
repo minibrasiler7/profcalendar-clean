@@ -185,3 +185,165 @@ def delete_devoir(devoir_id):
     db.session.delete(devoir)
     db.session.commit()
     return jsonify({'success': True})
+
+
+# ============================================================
+# PHASE 4 — Correction des rendus (côté enseignant)
+# ============================================================
+
+def _files_to_pdf_bytes(files):
+    """Uploads -> (pdf_bytes, page_count). Un PDF est gardé tel quel ; des
+    images sont fusionnées en un PDF. (None, 0) si rien d'exploitable."""
+    import io
+    from PIL import Image
+    files = [f for f in files if f and f.filename]
+    if not files:
+        return None, 0
+    if len(files) == 1 and (
+        (files[0].mimetype or '') == 'application/pdf' or files[0].filename.lower().endswith('.pdf')):
+        data = files[0].read()
+        return (data, 1) if data else (None, 0)
+    try:
+        imgs = [Image.open(f.stream).convert('RGB') for f in files[:30]]
+        if not imgs:
+            return None, 0
+        buf = io.BytesIO()
+        imgs[0].save(buf, format='PDF', save_all=True, append_images=imgs[1:])
+        return buf.getvalue(), len(imgs)
+    except Exception:
+        return None, 0
+
+
+@devoirs_bp.route('/<int:devoir_id>/submissions', methods=['GET'])
+@login_required
+@teacher_required
+def devoir_submissions(devoir_id):
+    """Liste (JSON) des rendus d'un devoir : tout le roster + état de chacun."""
+    from models.devoir import Devoir, DevoirSubmission
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir:
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    subs = {s.student_id: s for s in DevoirSubmission.query.filter_by(devoir_id=devoir_id).all()}
+    rows = []
+    for st in devoir.get_students():
+        sub = subs.get(st.id)
+        rows.append({
+            'student_id': st.id,
+            'student_name': st.full_name,
+            'submission_id': sub.id if sub else None,
+            'submitted': bool(sub and sub.pdf_filename),
+            'submitted_at': sub.submitted_at.strftime('%d.%m.%Y %H:%M') if (sub and sub.submitted_at) else None,
+            'page_count': sub.page_count if sub else 0,
+            'corrected': bool(sub and sub.corrected_filename),
+        })
+    rows.sort(key=lambda r: (not r['submitted'], r['student_name']))
+    return jsonify({'success': True, 'devoir': devoir.to_dict(), 'submissions': rows})
+
+
+def _serve_devoir_pdf(submission_id, which):
+    """Sert le PDF d'un rendu ('file') ou de la correction ('corrected') à
+    l'enseignant propriétaire du devoir."""
+    from flask import Response
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import download_file_from_r2
+    sub = DevoirSubmission.query.get(submission_id)
+    if not sub:
+        return "Introuvable", 404
+    devoir = Devoir.query.get(sub.devoir_id)
+    if not devoir or devoir.user_id != current_user.id:
+        return "Accès refusé", 403
+    fn = sub.pdf_filename if which == 'file' else sub.corrected_filename
+    if not fn:
+        return "Aucun fichier", 404
+    data = download_file_from_r2(devoir.user_id, fn)
+    if not data:
+        return "Fichier introuvable", 404
+    label = 'rendu.pdf' if which == 'file' else 'correction.pdf'
+    return Response(data, mimetype='application/pdf',
+                    headers={'Content-Disposition': f'inline; filename="{label}"'})
+
+
+@devoirs_bp.route('/submissions/<int:submission_id>/file', methods=['GET'])
+@login_required
+@teacher_required
+def submission_file(submission_id):
+    return _serve_devoir_pdf(submission_id, 'file')
+
+
+@devoirs_bp.route('/submissions/<int:submission_id>/corrected', methods=['GET'])
+@login_required
+@teacher_required
+def submission_corrected_teacher(submission_id):
+    return _serve_devoir_pdf(submission_id, 'corrected')
+
+
+@devoirs_bp.route('/submissions/<int:submission_id>/correct', methods=['POST'])
+@login_required
+@teacher_required
+def correct_submission(submission_id):
+    """L'enseignant renvoie la correction (PDF annoté ou photos) — stockée
+    individuellement pour CET élève uniquement."""
+    import uuid
+    from datetime import datetime as _dt
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
+    sub = DevoirSubmission.query.get(submission_id)
+    if not sub:
+        return jsonify({'success': False, 'error': 'Introuvable'}), 404
+    devoir = Devoir.query.get(sub.devoir_id)
+    if not devoir or devoir.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Accès refusé'}), 403
+    pdf_bytes, _pages = _files_to_pdf_bytes(request.files.getlist('correction'))
+    if not pdf_bytes:
+        return jsonify({'success': False, 'error': 'Aucun fichier de correction'}), 400
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+    teacher_id = devoir.user_id
+    filename = f"devoir{devoir.id}_eleve{sub.student_id}_corr_{uuid.uuid4().hex[:8]}.pdf"
+    if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
+        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+    if sub.corrected_filename:
+        try:
+            delete_file_from_r2(teacher_id, sub.corrected_filename)
+        except Exception:
+            pass
+    sub.corrected_filename = filename
+    sub.corrected_at = _dt.utcnow()
+    sub.status = 'corrected'
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+def purge_old_devoir_files(days=7):
+    """Supprime (R2 + DB) les rendus dont le devoir a une date de rendu de plus
+    de `days` jours. À planifier (cron Render : flask purge-devoir-files)."""
+    from datetime import date, timedelta
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import delete_file_from_r2
+    cutoff = date.today() - timedelta(days=days)
+    old = (DevoirSubmission.query.join(Devoir, DevoirSubmission.devoir_id == Devoir.id)
+           .filter(Devoir.due_date < cutoff).all())
+    n = 0
+    for sub in old:
+        devoir = Devoir.query.get(sub.devoir_id)
+        tid = devoir.user_id if devoir else None
+        if tid:
+            for fn in (sub.pdf_filename, sub.corrected_filename):
+                if fn:
+                    try:
+                        delete_file_from_r2(tid, fn)
+                    except Exception:
+                        pass
+        db.session.delete(sub)
+        n += 1
+    db.session.commit()
+    return n
+
+
+def register_devoir_commands(app):
+    """Commande CLI `flask purge-devoir-files` (à planifier via cron Render)."""
+    @app.cli.command('purge-devoir-files')
+    def _purge_cmd():
+        """Purge les rendus de devoirs > 7 jours après la date de rendu."""
+        n = purge_old_devoir_files(7)
+        print(f"✅ {n} rendu(s) purgé(s).")

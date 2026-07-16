@@ -1151,6 +1151,19 @@ def calendar_view():
                          memos_by_date_period=memos_by_date_period,  # Ajouter les mémos par date et période
                          devoirs_by_date=devoirs_by_date)  # Devoirs à rendre (badge en-tête de jour)
 
+@planning_bp.route('/devoir/<int:devoir_id>/submissions')
+@login_required
+@teacher_required
+def devoir_submissions_page(devoir_id):
+    """Page enseignant : rendus des élèves pour un devoir (voir + corriger)."""
+    from models.devoir import Devoir
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir:
+        flash("Devoir introuvable.", "error")
+        return redirect(url_for('planning.calendar_view'))
+    return render_template('planning/devoir_submissions.html', devoir=devoir)
+
+
 @planning_bp.route('/get_period_attendance', methods=['GET'])
 @login_required
 @teacher_required

@@ -347,6 +347,13 @@ def create_app(config_name='development'):
     except ImportError as _e:
         print(f"❌ Commande seed-demo-class non trouvée: {_e}")
 
+    try:
+        from routes.devoirs import register_devoir_commands
+        register_devoir_commands(app)
+        print("✅ Commande purge-devoir-files enregistrée")
+    except ImportError as _e:
+        print(f"❌ Commande purge-devoir-files non trouvée: {_e}")
+
     # Commande CLI pour inspecter le niveau d'engagement d'utilisateurs.
     # Usage : flask check-users <email1> <email2> ...
     try:
