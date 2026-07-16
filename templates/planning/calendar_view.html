@@ -969,6 +969,23 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 .devoir-day-badge i { font-size: 0.7rem; }
 
+/* Badge « devoir » dans la cellule de la période concernée */
+.schedule-cell { position: relative; }
+.devoir-cell-badge { position: absolute; bottom: 3px; right: 3px; z-index: 6; background: rgba(99,102,241,0.97); color: #fff; border-radius: 6px; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.devoir-cell-badge:hover { background: #4F46E5; }
+/* Modale « devoir donné » (clic sur le badge) */
+.devoir-cal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 4000; display: flex; align-items: flex-start; justify-content: center; padding: 8vh 1rem 1rem; }
+.devoir-cal-box { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; padding: 1.1rem 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+.devoir-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+.devoir-cal-head strong { font-size: 1rem; color: #312E81; }
+.devoir-cal-close { background: none; border: none; font-size: 1.5rem; line-height: 1; color: #6B7280; cursor: pointer; }
+.devoir-cal-item { border: 1px solid #E5E7EB; border-radius: 10px; padding: 0.7rem 0.8rem; margin-bottom: 0.6rem; }
+.devoir-cal-title { font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+.devoir-cal-title i { color: #6366F1; margin-right: 0.35rem; }
+.devoir-cal-btn { display: inline-flex; align-items: center; gap: 0.35rem; background: #6366F1; color: #fff; text-decoration: none; border-radius: 8px; padding: 0.45rem 0.8rem; font-size: 0.82rem; font-weight: 600; }
+.devoir-cal-btn:hover { background: #4F46E5; }
+.devoir-cal-note { font-size: 0.82rem; color: #6B7280; }
+
 /* Pour la vue annuelle */
 .annual-planning-checklist {
     display: flex;
@@ -1665,6 +1682,37 @@ if (typeof pdfjsLib !== 'undefined') {
 }
 {% endif %}
 </style>
+
+<!-- Modale « devoir donné » (clic sur le badge d'une cellule) -->
+<div id="devoirCalModal" class="devoir-cal-overlay" style="display:none;" onclick="if(event.target===this)closeDevoirCalModal()">
+    <div class="devoir-cal-box">
+        <div class="devoir-cal-head">
+            <strong><i class="fas fa-book"></i> Devoir(s) à rendre</strong>
+            <button type="button" class="devoir-cal-close" onclick="closeDevoirCalModal()" aria-label="Fermer">&times;</button>
+        </div>
+        <div id="devoirCalBody"></div>
+    </div>
+</div>
+<script>
+    function openDevoirCalendarModal(el) {
+        let items = [];
+        try { items = JSON.parse(el.getAttribute('data-devoirs') || '[]'); } catch (e) {}
+        const esc = s => (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+        document.getElementById('devoirCalBody').innerHTML = items.map(function (d) {
+            return '<div class="devoir-cal-item">' +
+                '<div class="devoir-cal-title"><i class="fas ' + (d.type === 'exercise' ? 'fa-gamepad' : 'fa-camera') + '"></i> ' + esc(d.title) + '</div>' +
+                (d.type === 'submission'
+                    ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/submissions"><i class="fas fa-inbox"></i> Voir les devoirs reçus</a>'
+                    : '<span class="devoir-cal-note">Exercice interactif</span>') +
+                '</div>';
+        }).join('');
+        const modal = document.getElementById('devoirCalModal');
+        // Re-parent sur <body> pour un positionnement fixe fiable (ancêtres transform).
+        if (modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal.style.display = 'flex';
+    }
+    function closeDevoirCalModal() { document.getElementById('devoirCalModal').style.display = 'none'; }
+</script>
 {% endblock %}
 
 {% block content %}

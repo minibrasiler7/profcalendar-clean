@@ -21,7 +21,7 @@
             <th class="day-header {% if date == today %}today{% endif %}">
                 <div class="day-name">{{ days[loop.index0] }}</div>
                 <div class="day-date">{{ date.strftime('%d/%m') }}</div>
-                {% set _dvs = devoirs_by_date.get(date.strftime('%Y-%m-%d')) if devoirs_by_date else None %}
+                {% set _dvs = devoirs_unplaced.get(date.strftime('%Y-%m-%d')) if devoirs_unplaced else None %}
                 {% if _dvs %}
                 <div class="devoir-day-badge" title="{{ _dvs|length }} devoir(s) à rendre : {{ _dvs|map(attribute='title')|join(', ') }}">
                     <i class="fas fa-book"></i> {{ _dvs|length }} devoir{{ 's' if _dvs|length > 1 else '' }}
@@ -78,6 +78,14 @@
                 data-debug-schedule-key="{{ schedule_key }}"
                 data-debug-has-schedule="{{ schedule_key in schedule_grid }}"
                 onclick="openPlanningModal(this)">
+                {% set _dvkey = date.strftime('%Y-%m-%d') ~ '_' ~ period_num %}
+                {% if devoir_cells and _dvkey in devoir_cells %}
+                <div class="devoir-cell-badge" title="Devoir(s) à rendre"
+                     onclick="event.stopPropagation(); openDevoirCalendarModal(this)"
+                     data-devoirs='{{ devoir_cells_data[_dvkey]|tojson }}'>
+                    <i class="fas fa-book"></i> {{ devoir_cells[_dvkey]|length }}
+                </div>
+                {% endif %}
                 {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
 
                 {# Si cette période est fusionnée avec la précédente, ne rien afficher #}

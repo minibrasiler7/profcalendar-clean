@@ -992,6 +992,30 @@ def calendar_view():
     for _dv in week_devoirs:
         devoirs_by_date.setdefault(_dv.due_date.strftime('%Y-%m-%d'), []).append(_dv)
 
+    # Placer chaque devoir dans la 1re période du jour où SA classe+discipline
+    # (classroom_id) est enseignée. Sinon repli dans l'en-tête du jour.
+    from models.schedule import Schedule as _Sch
+    _sched_min = {}  # (weekday, classroom_id) -> plus petite période
+    for _s in _Sch.query.filter(_Sch.user_id == current_user.id,
+                                _Sch.classroom_id.isnot(None)).all():
+        _k = (_s.weekday, _s.classroom_id)
+        if _k not in _sched_min or _s.period_number < _sched_min[_k]:
+            _sched_min[_k] = _s.period_number
+    devoir_cells = {}         # "YYYY-MM-DD_period" -> [devoirs]
+    devoir_cells_data = {}    # "YYYY-MM-DD_period" -> [{id,title,type}] (pour la modale)
+    devoirs_unplaced = {}     # "YYYY-MM-DD" -> [devoirs] (repli en-tête)
+    for _date_str, _dvs in devoirs_by_date.items():
+        _dd = datetime.strptime(_date_str, '%Y-%m-%d').date()
+        for _dv in _dvs:
+            _p = _sched_min.get((_dd.weekday(), _dv.classroom_id))
+            if _p:
+                _ck = f"{_date_str}_{_p}"
+                devoir_cells.setdefault(_ck, []).append(_dv)
+                devoir_cells_data.setdefault(_ck, []).append(
+                    {'id': _dv.id, 'title': _dv.title, 'type': _dv.devoir_type})
+            else:
+                devoirs_unplaced.setdefault(_date_str, []).append(_dv)
+
     # ============================================================
     # SHORTCUT pour le mode fragment (navigation client-side de semaine)
     # ============================================================
@@ -1016,6 +1040,9 @@ def calendar_view():
             merged_info=merged_info,
             memos_by_date_period=memos_by_date_period,
             devoirs_by_date=devoirs_by_date,
+            devoir_cells=devoir_cells,
+            devoir_cells_data=devoir_cells_data,
+            devoirs_unplaced=devoirs_unplaced,
         )
         return jsonify({
             'success': True,
@@ -1149,7 +1176,10 @@ def calendar_view():
                          needs_personalization=needs_personalization,
                          merged_info=merged_info,  # Passer les infos de fusion par jour
                          memos_by_date_period=memos_by_date_period,  # Ajouter les mémos par date et période
-                         devoirs_by_date=devoirs_by_date)  # Devoirs à rendre (badge en-tête de jour)
+                         devoirs_by_date=devoirs_by_date,
+                         devoir_cells=devoir_cells,
+                         devoir_cells_data=devoir_cells_data,
+                         devoirs_unplaced=devoirs_unplaced)  # Devoirs à rendre (badge dans la cellule)
 
 @planning_bp.route('/devoir/<int:devoir_id>/submissions')
 @login_required
