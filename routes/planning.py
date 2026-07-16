@@ -1174,7 +1174,9 @@ def get_period_attendance():
             else:
                 classroom = Classroom.query.get(classroom_id_int)
                 if classroom and classroom.user_id == current_user.id:
-                    students = classroom.students.all()
+                    # get_students() gère les classes à plusieurs disciplines
+                    # (liste d'élèves partagée entre matières du même groupe).
+                    students = classroom.get_students()
 
         if not students:
             return jsonify({'success': False, 'error': 'Aucun élève trouvé'}), 404

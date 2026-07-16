@@ -158,8 +158,11 @@ class Planning(db.Model):
             # Accéder aux étudiants via les memberships
             return [membership.student for membership in self.group.memberships.all()]
         elif self.classroom_id:
-            # Sinon, tous les élèves de la classe
-            return self.classroom.students.all()
+            # Sinon, tous les élèves de la classe. get_students() gère le cas des
+            # classes à plusieurs disciplines (liste d'élèves partagée entre les
+            # matières du même groupe), contrairement à students.all() qui se
+            # limite à ce classroom_id (2e discipline → liste vide).
+            return self.classroom.get_students()
         elif self.mixed_group_id:
             # Ou tous les élèves du groupe mixte
             return self.mixed_group.get_students()
