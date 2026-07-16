@@ -1181,6 +1181,29 @@ def calendar_view():
                          devoir_cells_data=devoir_cells_data,
                          devoirs_unplaced=devoirs_unplaced)  # Devoirs à rendre (badge dans la cellule)
 
+@planning_bp.route('/devoir/submission/<int:submission_id>/correct')
+@login_required
+@teacher_required
+def devoir_correct_page(submission_id):
+    """Page de correction d'un rendu : réutilise le lecteur PDF annotable de la
+    leçon (outils natifs iPad/PencilKit) ; on enregistre la version annotée
+    comme correction (renvoi individuel)."""
+    from models.devoir import Devoir, DevoirSubmission
+    sub = DevoirSubmission.query.get(submission_id)
+    if not sub:
+        flash("Rendu introuvable.", "error")
+        return redirect(url_for('planning.calendar_view'))
+    devoir = Devoir.query.get(sub.devoir_id)
+    if not devoir or devoir.user_id != current_user.id:
+        flash("Accès refusé.", "error")
+        return redirect(url_for('planning.calendar_view'))
+    if not sub.pdf_filename:
+        flash("Aucun rendu à corriger.", "error")
+        return redirect(url_for('planning.devoir_submissions_page', devoir_id=devoir.id))
+    return render_template('planning/devoir_correct.html', submission=sub, devoir=devoir,
+                           student=sub.student)
+
+
 @planning_bp.route('/devoir/<int:devoir_id>/submissions')
 @login_required
 @teacher_required

@@ -68,11 +68,7 @@
                     right = `
                         <a class="ds-btn view" target="_blank" href="/api/devoirs/submissions/${r.submission_id}/file"><i class="fas fa-eye"></i> Voir le rendu</a>
                         ${r.corrected ? `<a class="ds-btn corr-view" target="_blank" href="/api/devoirs/submissions/${r.submission_id}/corrected"><i class="fas fa-check"></i> Correction</a>` : ''}
-                        <label class="ds-btn correct" style="cursor:pointer;">
-                            <i class="fas fa-paper-plane"></i> ${r.corrected ? 'Remplacer' : 'Renvoyer corrigé'}
-                            <input type="file" accept="image/*,application/pdf" multiple style="display:none;"
-                                   onchange="sendCorrection(${r.submission_id}, this)">
-                        </label>`;
+                        <a class="ds-btn correct" href="/planning/devoir/submission/${r.submission_id}/correct"><i class="fas fa-pen-nib"></i> ${r.corrected ? 'Corriger à nouveau' : 'Corriger'}</a>`;
                 } else {
                     right = '<span class="ds-state"><i class="fas fa-hourglass-half"></i> Pas encore rendu</span>';
                 }

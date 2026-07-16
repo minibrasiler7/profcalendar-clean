@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Corriger — {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/unified-pdf-viewer.css') }}?v=1&cache_bust={{ range(1000000, 9999999) | random }}">
+<style>
+    .corr-toolbar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.6rem 1rem; background: #1a1a2e; color: #fff; position: sticky; top: 0; z-index: 50; }
+    .corr-toolbar .corr-title { font-weight: 600; margin-right: auto; font-size: 0.95rem; }
+    .corr-btn { border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; }
+    .corr-btn.back { background: rgba(255,255,255,0.15); color: #fff; }
+    .corr-btn.rotate { background: rgba(255,255,255,0.15); color: #fff; }
+    .corr-btn.save { background: #10B981; color: #fff; }
+    .corr-btn.save:disabled { opacity: 0.6; cursor: default; }
+    #unified-pdf-viewer-container { height: calc(100vh - 56px); width: 100%; overflow: hidden; background: #525659; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="corr-toolbar">
+    <a class="corr-btn back" href="{{ url_for('planning.devoir_submissions_page', devoir_id=devoir.id) }}"><i class="fas fa-arrow-left"></i> Retour</a>
+    <span class="corr-title"><i class="fas fa-user-edit"></i> {{ student.full_name }} — {{ devoir.title }}</span>
+    <button type="button" class="corr-btn rotate" onclick="corrRotate90()" title="Tourner 90° (avant d'annoter)"><i class="fas fa-rotate-right"></i> Tourner 90°</button>
+    <button type="button" class="corr-btn save" id="btnSaveCorr" onclick="corrSave()"><i class="fas fa-paper-plane"></i> Enregistrer et renvoyer</button>
+</div>
+<div id="unified-pdf-viewer-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+</script>
+<script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+<script>
+    const SUBMISSION_ID = {{ submission.id }};
+    const DEVOIR_ID = {{ devoir.id }};
+    const BASE_PDF_URL = '/api/devoirs/submissions/' + SUBMISSION_ID + '/file';
+    let corrViewer = null;
+    let corrOriginalBytes = null;   // octets du rendu original (pour la rotation cumulée)
+    let corrRotation = 0;
+    let corrCurrentUrl = BASE_PDF_URL;
+
+    function corrInit(url) {
+        const container = document.getElementById('unified-pdf-viewer-container');
+        container.innerHTML = '';
+        try {
+            corrViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
+                pdfUrl: url,
+                enableAnnotations: true,
+                showSidebar: false,
+                // Pas de fileId/blankSheetId -> saveAnnotations() est un no-op :
+                // aucune interférence avec le lecteur de /lesson.
+                autoSaveInterval: 999999999,
+                title: 'Correction'
+            });
+        } catch (e) {
+            alert('Impossible d\'ouvrir le lecteur : ' + e.message);
+        }
+    }
+
+    // Tourne toutes les pages de 90° (cumulatif) via pdf-lib, puis recharge le
+    // lecteur. À faire AVANT d'annoter (le rechargement repart d'une page vierge).
+    async function corrRotate90() {
+        try {
+            if (!corrOriginalBytes) corrOriginalBytes = await fetch(BASE_PDF_URL).then(r => r.arrayBuffer());
+            corrRotation = (corrRotation + 90) % 360;
+            const { PDFDocument, degrees } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+            const doc = await PDFDocument.load(corrOriginalBytes);
+            doc.getPages().forEach(p => p.setRotation(degrees(corrRotation)));
+            const bytes = await doc.save();
+            corrCurrentUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+            corrInit(corrCurrentUrl);
+            if (window.showNotification) showNotification('info', 'Pages tournées — tu peux annoter.');
+        } catch (e) {
+            alert('Rotation impossible : ' + e.message);
+        }
+    }
+
+    async function corrSave() {
+        const btn = document.getElementById('btnSaveCorr');
+        btn.disabled = true;
+        try {
+            const blob = await corrViewer.exportPDFWithAnnotations();
+            const fd = new FormData();
+            fd.append('correction', new File([blob], 'correction.pdf', { type: 'application/pdf' }));
+            const j = await (await fetch('/api/devoirs/submissions/' + SUBMISSION_ID + '/correct', { method: 'POST', body: fd })).json();
+            if (j.success) {
+                if (window.showNotification) showNotification('success', 'Correction renvoyée à l\'élève');
+                window.location.href = '/planning/devoir/' + DEVOIR_ID + '/submissions';
+            } else { alert(j.error || 'Erreur'); btn.disabled = false; }
+        } catch (e) { alert('Erreur : ' + e.message); btn.disabled = false; }
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => corrInit(corrCurrentUrl));
+    else corrInit(corrCurrentUrl);
+</script>
+{% endblock %}
