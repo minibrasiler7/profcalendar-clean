@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Mes devoirs - {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .student-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+    .student-info { display: flex; align-items: center; justify-content: space-between; max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+    .student-avatar { width: 80px; height: 80px; background-color: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; margin-right: 1.5rem; }
+    .student-details h1 { margin: 0; font-size: 2rem; font-weight: 700; }
+    .student-details p { margin: 0.25rem 0 0; opacity: 0.9; }
+    .nav-badge { background: #EF4444; color: #fff; border-radius: 999px; font-size: 0.65rem; padding: 0.05rem 0.4rem; margin-left: 0.15rem; font-weight: 700; }
+
+    .devoirs-wrap { max-width: 800px; margin: 0 auto; padding: 0 1rem 3rem; }
+    .devoirs-wrap h2 { font-size: 1.2rem; color: #374151; margin: 0 0 1rem; }
+    .dv-card { background: #fff; border: 1px solid #E5E7EB; border-left: 5px solid #6366F1; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .dv-card.done { border-left-color: #10B981; }
+    .dv-card.overdue { border-left-color: #EF4444; }
+    .dv-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+    .dv-title { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0; }
+    .dv-meta { font-size: 0.8rem; color: #6B7280; margin-top: 0.2rem; }
+    .dv-type { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+    .dv-type.submission { background: #EEF2FF; color: #4F46E5; }
+    .dv-type.exercise { background: #FEF3C7; color: #B45309; }
+    .dv-instructions { font-size: 0.88rem; color: #374151; margin: 0.6rem 0 0; white-space: pre-wrap; }
+    .dv-status { margin-top: 0.8rem; font-size: 0.85rem; }
+    .dv-status.ok { color: #059669; font-weight: 600; }
+    .dv-actions { margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .dv-btn { background: #6366F1; color: #fff; border: none; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .dv-btn:hover { background: #4F46E5; }
+    .dv-btn.secondary { background: #fff; color: #4F46E5; border: 1px solid #C7D2FE; }
+    .dv-btn:disabled { opacity: 0.6; cursor: default; }
+    .dv-file { font-size: 0.82rem; }
+    .dv-empty { text-align: center; color: #9CA3AF; padding: 2.5rem 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="navbar-student">
+    <div class="navbar-content">
+        <div class="navbar-links">
+            <a href="{{ url_for('student_auth.dashboard') }}"><i class="fas fa-home"></i> Accueil</a>
+            <a href="{{ url_for('student_auth.devoirs') }}" class="active"><i class="fas fa-book"></i> Devoirs</a>
+            <a href="{{ url_for('student_auth.grades') }}"><i class="fas fa-chart-line"></i> Notes</a>
+            <a href="{{ url_for('student_auth.files') }}"><i class="fas fa-folder"></i> Fichiers</a>
+            <a href="{{ url_for('student_auth.teachers') }}"><i class="fas fa-chalkboard-teacher"></i> Enseignants</a>
+            <a href="{{ url_for('student_auth.missions') }}"><i class="fas fa-scroll"></i> Missions</a>
+            <a href="{{ url_for('student_auth.rpg_dashboard') }}"><i class="fas fa-gamepad"></i> RPG</a>
+        </div>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+    </div>
+</nav>
+
+<div class="student-header">
+    <div class="student-info">
+        <div style="display: flex; align-items: center;">
+            <div class="student-avatar">{{ student.initials() }}</div>
+            <div class="student-details">
+                <h1>Mes devoirs</h1>
+                <p>{{ student.classroom.name }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="devoirs-wrap">
+    {% if not items %}
+        <div class="dv-empty"><i class="fas fa-book-open" style="font-size:2rem;opacity:0.4;"></i><p>Aucun devoir pour le moment 🎉</p></div>
+    {% else %}
+        {% for it in items %}
+            {% set d = it.devoir %}
+            {% set sub = it.submission %}
+            {% set overdue = (not sub) and d.devoir_type == 'submission' and d.due_date < today %}
+            <div class="dv-card {{ 'done' if sub else ('overdue' if overdue else '') }}">
+                <div class="dv-top">
+                    <div>
+                        <p class="dv-title">{{ d.title }}</p>
+                        <div class="dv-meta">{{ d.subject }} · à rendre le <strong>{{ d.due_date.strftime('%d.%m.%Y') }}</strong></div>
+                    </div>
+                    <span class="dv-type {{ d.devoir_type }}">
+                        {% if d.devoir_type == 'exercise' %}Exercice{% else %}À rendre{% endif %}
+                    </span>
+                </div>
+
+                {% if d.instructions %}<p class="dv-instructions">{{ d.instructions }}</p>{% endif %}
+
+                {% if d.devoir_type == 'exercise' %}
+                    <div class="dv-actions">
+                        <a class="dv-btn" href="/student/missions/{{ d.exercise_id }}"><i class="fas fa-play"></i> Faire l'exercice</a>
+                    </div>
+                {% else %}
+                    {% if sub %}
+                        <div class="dv-status ok"><i class="fas fa-check-circle"></i> Rendu le {{ sub.submitted_at.strftime('%d.%m.%Y') }} ({{ sub.page_count }} page{{ 's' if sub.page_count > 1 else '' }})</div>
+                        <div class="dv-actions">
+                            <label class="dv-btn secondary" style="cursor:pointer;">
+                                <i class="fas fa-camera-rotate"></i> Remplacer
+                                <input type="file" accept="image/*" capture="environment" multiple style="display:none;"
+                                       onchange="submitDevoirPhoto({{ d.id }}, this)">
+                            </label>
+                        </div>
+                    {% else %}
+                        <div class="dv-actions">
+                            <label class="dv-btn" style="cursor:pointer;">
+                                <i class="fas fa-camera"></i> Prendre / choisir une photo
+                                <input type="file" accept="image/*" capture="environment" multiple style="display:none;"
+                                       onchange="submitDevoirPhoto({{ d.id }}, this)">
+                            </label>
+                            <span class="dv-file" id="dv-hint-{{ d.id }}" style="color:#6B7280;"></span>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+<script>
+    async function submitDevoirPhoto(devoirId, input) {
+        if (!input.files || !input.files.length) return;
+        const hint = document.getElementById('dv-hint-' + devoirId);
+        if (hint) hint.textContent = 'Envoi en cours…';
+        const fd = new FormData();
+        for (const f of input.files) fd.append('photos', f);
+        try {
+            const resp = await fetch('/student/devoirs/' + devoirId + '/submit', { method: 'POST', body: fd });
+            const data = await resp.json();
+            if (data.success) {
+                if (window.showNotification) showNotification('success', 'Devoir envoyé !');
+                location.reload();
+            } else {
+                if (hint) hint.textContent = '';
+                alert(data.error || "Échec de l'envoi");
+            }
+        } catch (e) {
+            if (hint) hint.textContent = '';
+            alert('Erreur réseau');
+        }
+    }
+</script>
+{% endblock %}

@@ -254,6 +254,7 @@
             <a href="{{ url_for('student_auth.dashboard') }}">
                 <i class="fas fa-home"></i> Accueil
             </a>
+            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> Devoirs{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
             <a href="{{ url_for('student_auth.grades') }}">
                 <i class="fas fa-chart-line"></i> Notes
             </a>

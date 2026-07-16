@@ -568,6 +568,30 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : table devoir_submissions (rendus des élèves).
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS devoir_submissions (
+                    id SERIAL PRIMARY KEY,
+                    devoir_id INTEGER NOT NULL REFERENCES devoirs(id) ON DELETE CASCADE,
+                    student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+                    status VARCHAR(20) NOT NULL DEFAULT 'submitted',
+                    pdf_filename VARCHAR(255),
+                    page_count INTEGER DEFAULT 1,
+                    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    corrected_filename VARCHAR(255),
+                    corrected_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT _devoir_student_uc UNIQUE (devoir_id, student_id)
+                )
+            """))
+            db.session.commit()
+            print("✅ Table devoir_submissions vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification table devoir_submissions échouée: {e}")
+
         # Filet de sécurité : table deleted_classrooms (corbeille 30 jours).
         try:
             db.session.execute(db.text("""

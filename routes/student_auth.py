@@ -1847,3 +1847,127 @@ def check_badges(student, rpg):
         if should_earn:
             sb = StudentBadge(student_id=student.id, badge_id=badge.id)
             db.session.add(sb)
+
+# ============================================================
+# DEVOIRS (côté élève) — voir ses devoirs + rendre une photo
+# ============================================================
+
+def _student_group_classroom_ids(student):
+    """IDs des classes du groupe de l'élève (multi-disciplines) pour retrouver
+    tous les devoirs qui le concernent."""
+    if student.classroom:
+        return student.classroom.get_group_classroom_ids()
+    return [student.classroom_id]
+
+
+@student_auth_bp.context_processor
+def _inject_student_devoirs_pending():
+    """Pastille « devoirs à rendre » dans la nav élève (devoirs de type
+    submission non encore rendus, échéance récente/à venir)."""
+    try:
+        if isinstance(current_user, Student):
+            from models.devoir import Devoir, DevoirSubmission
+            group_ids = _student_group_classroom_ids(current_user)
+            done_ids = {s.devoir_id for s in DevoirSubmission.query.filter_by(
+                student_id=current_user.id).all()}
+            pending = Devoir.query.filter(
+                Devoir.classroom_id.in_(group_ids),
+                Devoir.devoir_type == 'submission',
+                Devoir.due_date >= (datetime.utcnow().date() - timedelta(days=1)),
+            ).all()
+            return {'student_devoirs_pending': sum(1 for d in pending if d.id not in done_ids)}
+    except Exception:
+        pass
+    return {'student_devoirs_pending': 0}
+
+
+@student_auth_bp.route('/devoirs')
+@login_required
+def devoirs():
+    """Page « Devoirs » de l'élève : liste des devoirs de sa classe + état."""
+    from models.devoir import Devoir, DevoirSubmission
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+    student = current_user
+    if not student.is_authenticated:
+        return redirect(url_for('student_auth.login'))
+
+    group_ids = _student_group_classroom_ids(student)
+    devoirs_list = Devoir.query.filter(
+        Devoir.classroom_id.in_(group_ids)
+    ).order_by(Devoir.due_date.asc()).all()
+
+    subs = {}
+    if devoirs_list:
+        for s in DevoirSubmission.query.filter(
+            DevoirSubmission.student_id == student.id,
+            DevoirSubmission.devoir_id.in_([d.id for d in devoirs_list]),
+        ).all():
+            subs[s.devoir_id] = s
+
+    items = [{'devoir': d, 'submission': subs.get(d.id)} for d in devoirs_list]
+    return render_template('student/devoirs.html', student=student, items=items,
+                           today=datetime.utcnow().date())
+
+
+@student_auth_bp.route('/devoirs/<int:devoir_id>/submit', methods=['POST'])
+@login_required
+def submit_devoir(devoir_id):
+    """L'élève rend son devoir : une ou plusieurs photos -> un seul PDF sur R2."""
+    import io
+    import uuid
+    from PIL import Image
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
+
+    if not isinstance(current_user, Student):
+        return jsonify({'success': False, 'error': 'Non autorisé'}), 403
+    student = current_user
+
+    devoir = Devoir.query.get(devoir_id)
+    if not devoir or devoir.devoir_type != 'submission':
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    if devoir.classroom_id not in _student_group_classroom_ids(student):
+        return jsonify({'success': False, 'error': 'Ce devoir ne vous concerne pas'}), 403
+
+    files = [f for f in request.files.getlist('photos') if f and f.filename]
+    if not files:
+        return jsonify({'success': False, 'error': 'Aucune photo envoyée'}), 400
+
+    # Photos -> un seul PDF (pour annotation par le prof au lecteur PDF)
+    try:
+        images = [Image.open(f.stream).convert('RGB') for f in files[:20]]
+        if not images:
+            return jsonify({'success': False, 'error': 'Images illisibles'}), 400
+        buf = io.BytesIO()
+        images[0].save(buf, format='PDF', save_all=True, append_images=images[1:])
+        pdf_bytes = buf.getvalue()
+    except Exception:
+        return jsonify({'success': False, 'error': "Impossible de traiter les photos"}), 400
+
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+
+    # Stocké sous l'espace de l'enseignant -> il pourra le récupérer/annoter.
+    teacher_id = devoir.user_id
+    filename = f"devoir{devoir_id}_eleve{student.id}_{uuid.uuid4().hex[:8]}.pdf"
+    if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
+        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+
+    sub = DevoirSubmission.query.filter_by(devoir_id=devoir_id, student_id=student.id).first()
+    if sub:
+        if sub.pdf_filename:
+            try:
+                delete_file_from_r2(teacher_id, sub.pdf_filename)
+            except Exception:
+                pass
+        sub.pdf_filename = filename
+        sub.page_count = len(images)
+        sub.submitted_at = datetime.utcnow()
+        sub.status = 'submitted'
+    else:
+        db.session.add(DevoirSubmission(
+            devoir_id=devoir_id, student_id=student.id, pdf_filename=filename,
+            page_count=len(images), status='submitted', submitted_at=datetime.utcnow()))
+    db.session.commit()
+    return jsonify({'success': True, 'page_count': len(images)})

@@ -66,3 +66,41 @@ class Devoir(db.Model):
 
     def __repr__(self):
         return f'<Devoir {self.id} {self.devoir_type} due={self.due_date}>'
+
+
+class DevoirSubmission(db.Model):
+    """Rendu d'un élève pour un devoir de type 'submission'.
+
+    Les photos rendues par l'élève sont fusionnées en UN PDF, stocké sur R2
+    sous l'espace de l'enseignant (pdf_filename), pour que le prof puisse
+    l'annoter avec le lecteur PDF. Un seul rendu par (devoir, élève) — un
+    nouvel envoi remplace le précédent. Les fichiers sont purgés 7 jours
+    après la date de rendu (tâche planifiée, phase suivante).
+    """
+    __tablename__ = 'devoir_submissions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    devoir_id = db.Column(db.Integer, db.ForeignKey('devoirs.id'), nullable=False, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False, index=True)
+
+    status = db.Column(db.String(20), nullable=False, default='submitted')  # submitted | corrected
+    pdf_filename = db.Column(db.String(255), nullable=True)   # fichier R2 (sous user_id du prof)
+    page_count = db.Column(db.Integer, default=1)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Correction renvoyée par le prof (phase suivante)
+    corrected_filename = db.Column(db.String(255), nullable=True)
+    corrected_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    devoir = db.relationship('Devoir', backref=db.backref('submissions', lazy='dynamic', cascade='all, delete-orphan'))
+    student = db.relationship('Student')
+
+    __table_args__ = (
+        db.UniqueConstraint('devoir_id', 'student_id', name='_devoir_student_uc'),
+    )
+
+    def __repr__(self):
+        return f'<DevoirSubmission devoir={self.devoir_id} student={self.student_id} {self.status}>'
