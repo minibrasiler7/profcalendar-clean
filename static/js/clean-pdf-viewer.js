@@ -366,6 +366,9 @@ class CleanPDFViewer {
                             <i class="fas fa-eye-slash"></i>
                         </button>
                         <div class="separator"></div>
+                        <button class="btn-action" id="btn-rotate-page" title="Tourner les pages de 90° (à faire avant d'annoter)">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
                             <i class="fas fa-users"></i>
                         </button>
@@ -1496,6 +1499,12 @@ class CleanPDFViewer {
             });
         });
 
+        // Bouton « tourner la page 90° » (action, pas un outil)
+        const rotateBtn = this.container.querySelector('#btn-rotate-page');
+        if (rotateBtn) {
+            rotateBtn.addEventListener('click', (e) => { e.stopPropagation(); this.rotatePages(); });
+        }
+
         // Boutons de couleur (fixes)
         this.container.querySelectorAll('.btn-color[data-color]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -2526,6 +2535,22 @@ class CleanPDFViewer {
     }
 
     /**
+     * Tourne toutes les pages de 90° dans le sens horaire (0→90→180→270) puis
+     * re-render. À faire AVANT d'annoter : les annotations déjà posées ne sont
+     * pas repositionnées. rotation vaut 0 par défaut → aucun effet sur /lesson.
+     */
+    async rotatePages() {
+        this.rotation = ((this.rotation || 0) + 90) % 360;
+        // Couper l'encre native le temps du re-render (les rects de page changent).
+        try { if (this.deactivatePencilKit) this.deactivatePencilKit(); } catch (e) {}
+        try {
+            await this.renderPages();
+        } catch (e) {
+            console.warn('[rotatePages] renderPages a échoué:', e && e.message);
+        }
+    }
+
+    /**
      * Rendre toutes les pages
      */
     async renderPages() {
@@ -2640,12 +2665,13 @@ class CleanPDFViewer {
         // Calculer le scale pour occuper 95% de la largeur du viewer
         const viewerWidth = this.elements.viewer.clientWidth;
         const targetWidth = viewerWidth * 0.95;
-        const baseViewport = page.getViewport({scale: 1});
+        const _rot = this.rotation || 0;  // rotation globale (0/90/180/270), 0 par défaut
+        const baseViewport = page.getViewport({scale: 1, rotation: _rot});
         const calculatedScale = targetWidth / baseViewport.width;
 
         // Utiliser le scale calculé ou le scale actuel (pour le zoom)
         const scale = this.scale === 1.0 ? calculatedScale : this.scale;
-        const viewport = page.getViewport({scale: scale});
+        const viewport = page.getViewport({scale: scale, rotation: _rot});
 
         // Stocker le scale actuel pour l'utiliser lors de la création d'annotations
         this.currentScale = scale;
