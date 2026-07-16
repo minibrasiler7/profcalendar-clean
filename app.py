@@ -340,6 +340,13 @@ def create_app(config_name='development'):
     except ImportError:
         print("❌ Commandes seed non trouvées")
 
+    try:
+        from scripts.seed_demo_class import register_demo_class_command
+        register_demo_class_command(app)
+        print("✅ Commande seed-demo-class enregistrée")
+    except ImportError as _e:
+        print(f"❌ Commande seed-demo-class non trouvée: {_e}")
+
     # Commande CLI pour inspecter le niveau d'engagement d'utilisateurs.
     # Usage : flask check-users <email1> <email2> ...
     try:
