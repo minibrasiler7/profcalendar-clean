@@ -81,6 +81,21 @@ def suggest_dates():
     })
 
 
+@devoirs_bp.route('/exercises', methods=['GET'])
+@login_required
+@teacher_required
+def list_exercises_for_picker():
+    """Exercices interactifs de l'enseignant — pour le sélecteur d'un devoir de
+    type 'exercise'. Les publiés d'abord."""
+    exs = Exercise.query.filter_by(user_id=current_user.id).order_by(
+        Exercise.is_published.desc(), Exercise.updated_at.desc()
+    ).all()
+    return jsonify({'success': True, 'exercises': [
+        {'id': e.id, 'title': e.title, 'subject': e.subject or '', 'published': bool(e.is_published)}
+        for e in exs
+    ]})
+
+
 @devoirs_bp.route('/create', methods=['POST'])
 @login_required
 @teacher_required
