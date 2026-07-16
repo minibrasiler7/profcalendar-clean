@@ -22,6 +22,7 @@ from models.mixed_group import MixedGroup, MixedGroupStudent
 from models.user_preferences import UserPreferences, UserSanctionPreferences
 from models.accommodation import AccommodationTemplate, StudentAccommodation
 from models.lesson_memo import LessonMemo, StudentRemark
+from models.devoir import Devoir
 from models.lesson_blank_sheet import LessonBlankSheet
 from models.decoupage import Decoupage, DecoupagePeriod, DecoupageAssignment
 
@@ -32,4 +33,4 @@ __all__ = ['User', 'Holiday', 'Break', 'Classroom', 'Schedule', 'Planning',
            'ClassMaster', 'TeacherAccessCode', 'TeacherCollaboration', 'SharedClassroom', 'StudentClassroomLink', 'TeacherInvitation', 'InvitationClassroom',
            'ClassroomAccessCode', 'StudentFileShare', 'MixedGroup', 'MixedGroupStudent', 'UserPreferences', 'UserSanctionPreferences',
            'AccommodationTemplate', 'StudentAccommodation', 'LessonMemo', 'StudentRemark', 'LessonBlankSheet',
-           'Decoupage', 'DecoupagePeriod', 'DecoupageAssignment']
+           'Decoupage', 'DecoupagePeriod', 'DecoupageAssignment', 'Devoir']

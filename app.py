@@ -180,6 +180,12 @@ def create_app(config_name='development'):
         print("announcements blueprint non trouvé")
 
     try:
+        from routes.devoirs import devoirs_bp
+        app.register_blueprint(devoirs_bp)
+    except ImportError as _e:
+        print(f"devoirs blueprint non trouvé: {_e}")
+
+    try:
         from routes.attendance import attendance_bp
         app.register_blueprint(attendance_bp)
     except ImportError:
@@ -524,6 +530,36 @@ def create_app(config_name='development'):
         except Exception as e:
             db.session.rollback()
             print(f"⚠️ Vérification table announcements échouée: {e}")
+
+        # Filet de sécurité : table devoirs (devoirs prof -> élèves).
+        # title/instructions sont chiffrés côté ORM -> stockés en TEXT.
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS devoirs (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    classroom_id INTEGER NOT NULL REFERENCES classrooms(id) ON DELETE CASCADE,
+                    devoir_type VARCHAR(20) NOT NULL DEFAULT 'submission',
+                    title TEXT NOT NULL,
+                    instructions TEXT,
+                    due_date DATE NOT NULL,
+                    due_period INTEGER,
+                    document_key VARCHAR(255),
+                    document_name VARCHAR(255),
+                    exercise_id INTEGER REFERENCES exercises(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_devoirs_user_due "
+                "ON devoirs (user_id, due_date)"
+            ))
+            db.session.commit()
+            print("✅ Table devoirs vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification table devoirs échouée: {e}")
 
         # Filet de sécurité : table deleted_classrooms (corbeille 30 jours).
         try:
