@@ -21,6 +21,12 @@
             <th class="day-header {% if date == today %}today{% endif %}">
                 <div class="day-name">{{ days[loop.index0] }}</div>
                 <div class="day-date">{{ date.strftime('%d/%m') }}</div>
+                {% set _dvs = devoirs_by_date.get(date.strftime('%Y-%m-%d')) if devoirs_by_date else None %}
+                {% if _dvs %}
+                <div class="devoir-day-badge" title="{{ _dvs|length }} devoir(s) à rendre : {{ _dvs|map(attribute='title')|join(', ') }}">
+                    <i class="fas fa-book"></i> {{ _dvs|length }} devoir{{ 's' if _dvs|length > 1 else '' }}
+                </div>
+                {% endif %}
             </th>
             {% endfor %}
         </tr>

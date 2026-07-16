@@ -1489,7 +1489,7 @@ input, textarea, select {
                     .devoir-item-meta { font-size: 0.72rem; color: #6B7280; }
                     .devoir-item-del { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 0.25rem; flex-shrink: 0; }
                     .devoir-item-del:hover { color: #DC2626; }
-                    .devoir-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+                    .devoir-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 3000; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 1rem 1rem; }
                     .devoir-modal { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; padding: 1.1rem 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; }
                     .devoir-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
                     .devoir-modal-head strong { font-size: 1rem; color: #312E81; }
@@ -1523,6 +1523,11 @@ input, textarea, select {
                     window.openDevoirModal = async function () {
                         const { cid } = ctx();
                         if (!cid) { showNotification('error', 'Aucune classe pour ce cours.'); return; }
+                        // Repositionner la modale au niveau du <body> : sinon un ancêtre
+                        // avec transform (planning-section en mode focus) piège le
+                        // position:fixed et la modale apparaît plus bas (il faut scroller).
+                        const modalEl = document.getElementById('devoirModal');
+                        if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
                         document.getElementById('devoirTitle').value = '';
                         document.getElementById('devoirInstructions').value = '';
                         document.querySelector('input[name="devoirType"][value="submission"]').checked = true;

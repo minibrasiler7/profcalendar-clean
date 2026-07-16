@@ -981,6 +981,17 @@ def calendar_view():
         key = f"{date_str}_{period}" if period else f"{date_str}_none"
         memos_by_date_period.setdefault(key, []).append(memo)
 
+    # Devoirs à rendre dans la semaine affichée -> badge dans l'en-tête du jour.
+    from models.devoir import Devoir
+    week_devoirs = Devoir.query.filter(
+        Devoir.user_id == current_user.id,
+        Devoir.due_date >= week_dates[0],
+        Devoir.due_date <= week_dates[4],
+    ).options(db.joinedload(Devoir.classroom)).all()
+    devoirs_by_date = {}
+    for _dv in week_devoirs:
+        devoirs_by_date.setdefault(_dv.due_date.strftime('%Y-%m-%d'), []).append(_dv)
+
     # ============================================================
     # SHORTCUT pour le mode fragment (navigation client-side de semaine)
     # ============================================================
@@ -1004,6 +1015,7 @@ def calendar_view():
             today=date_type.today(),
             merged_info=merged_info,
             memos_by_date_period=memos_by_date_period,
+            devoirs_by_date=devoirs_by_date,
         )
         return jsonify({
             'success': True,
@@ -1136,7 +1148,8 @@ def calendar_view():
                          today=date_type.today(),
                          needs_personalization=needs_personalization,
                          merged_info=merged_info,  # Passer les infos de fusion par jour
-                         memos_by_date_period=memos_by_date_period)  # Ajouter les mémos par date et période
+                         memos_by_date_period=memos_by_date_period,  # Ajouter les mémos par date et période
+                         devoirs_by_date=devoirs_by_date)  # Devoirs à rendre (badge en-tête de jour)
 
 @planning_bp.route('/get_period_attendance', methods=['GET'])
 @login_required
