@@ -1603,7 +1603,7 @@ input, textarea, select {
                                         <span class="devoir-item-title">${esc(d.title)}</span>
                                         <span class="devoir-item-meta">${d.type === 'exercise' ? 'Exercice · ' : ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}</span>
                                     </div>
-                                    ${d.type === 'submission' ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>` : ''}
+                                    ${d.type === 'submission' ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>` : `<a class="devoir-item-view" title="Voir les résultats" href="/planning/devoir/${d.id}/resultats"><i class="fas fa-chart-simple"></i></a>`}
                                     <button type="button" class="devoir-item-del" title="Supprimer" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>
                                 </div>`;
                             }).join('');

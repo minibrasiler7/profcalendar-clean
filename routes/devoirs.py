@@ -347,3 +347,74 @@ def register_devoir_commands(app):
         """Purge les rendus de devoirs > 7 jours après la date de rendu."""
         n = purge_old_devoir_files(7)
         print(f"✅ {n} rendu(s) purgé(s).")
+
+
+@devoirs_bp.route('/<int:devoir_id>/exercise-results', methods=['GET'])
+@login_required
+@teacher_required
+def devoir_exercise_results(devoir_id):
+    """Résultats d'un devoir de type 'exercise' : pour chaque élève du roster,
+    points de la meilleure tentative, badge (seuil atteint) et statut couleur :
+    vert = exercice terminé, orange = commencé mais pas terminé, rouge = rien.
+    """
+    from models.devoir import Devoir
+    from models.exercise_progress import StudentExerciseAttempt
+
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir:
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    if devoir.devoir_type != 'exercise' or not devoir.exercise_id:
+        return jsonify({'success': False, 'error': "Ce devoir n'est pas un exercice"}), 400
+    exercise = devoir.exercise
+    badge_threshold = exercise.badge_threshold if (exercise and exercise.badge_threshold is not None) else 100
+
+    students = devoir.get_students()
+    attempts = StudentExerciseAttempt.query.filter(
+        StudentExerciseAttempt.exercise_id == devoir.exercise_id,
+        StudentExerciseAttempt.student_id.in_([s.id for s in students] or [0]),
+    ).all()
+
+    # Par élève : meilleure tentative TERMINÉE (score % max), sinon la plus
+    # récente en cours (points partiels).
+    best = {}
+    for a in attempts:
+        cur = best.get(a.student_id)
+        if cur is None:
+            best[a.student_id] = a
+            continue
+        if a.is_completed and not cur.is_completed:
+            best[a.student_id] = a
+        elif a.is_completed == cur.is_completed and (a.score_percentage or 0) > (cur.score_percentage or 0):
+            best[a.student_id] = a
+
+    rows = []
+    for s in students:
+        a = best.get(s.id)
+        if a and a.is_completed:
+            status = 'done'          # vert : exercice terminé
+        elif a:
+            status = 'partial'       # orange : commencé, pas terminé
+        else:
+            status = 'none'          # rouge : rien fait
+        pct = (a.score_percentage or 0) if a else 0
+        rows.append({
+            'student_id': s.id,
+            'student_name': s.full_name,
+            'status': status,
+            'score': a.score if a else 0,
+            'max_score': a.max_score if a else 0,
+            'score_percentage': pct,
+            'badge': bool(a and a.is_completed and pct >= badge_threshold),
+            'completed_at': a.completed_at.strftime('%d.%m.%Y %H:%M') if (a and a.completed_at) else None,
+        })
+    # Vert d'abord (meilleur % en tête), puis orange, puis rouge ; alphabétique à égalité.
+    order = {'done': 0, 'partial': 1, 'none': 2}
+    rows.sort(key=lambda r: (order[r['status']], -r['score_percentage'], r['student_name']))
+
+    return jsonify({
+        'success': True,
+        'devoir': devoir.to_dict(),
+        'exercise_title': exercise.title if exercise else '',
+        'badge_threshold': badge_threshold,
+        'results': rows,
+    })

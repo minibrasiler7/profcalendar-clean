@@ -1703,7 +1703,7 @@ if (typeof pdfjsLib !== 'undefined') {
                 '<div class="devoir-cal-title"><i class="fas ' + (d.type === 'exercise' ? 'fa-gamepad' : 'fa-camera') + '"></i> ' + esc(d.title) + '</div>' +
                 (d.type === 'submission'
                     ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/submissions"><i class="fas fa-inbox"></i> Voir les devoirs reçus</a>'
-                    : '<span class="devoir-cal-note">Exercice interactif</span>') +
+                    : '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/resultats"><i class="fas fa-chart-simple"></i> Voir les résultats</a>') +
                 '</div>';
         }).join('');
         const modal = document.getElementById('devoirCalModal');

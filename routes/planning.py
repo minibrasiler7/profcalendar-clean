@@ -1204,6 +1204,20 @@ def devoir_correct_page(submission_id):
                            student=sub.student)
 
 
+@planning_bp.route('/devoir/<int:devoir_id>/resultats')
+@login_required
+@teacher_required
+def devoir_results_page(devoir_id):
+    """Page enseignant : résultats d'un devoir de type exercice interactif
+    (points, badges, code couleur vert/orange/rouge par élève)."""
+    from models.devoir import Devoir
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir or devoir.devoir_type != 'exercise':
+        flash("Devoir introuvable.", "error")
+        return redirect(url_for('planning.calendar_view'))
+    return render_template('planning/devoir_results.html', devoir=devoir)
+
+
 @planning_bp.route('/devoir/<int:devoir_id>/submissions')
 @login_required
 @teacher_required
