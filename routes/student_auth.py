@@ -924,11 +924,17 @@ def solve_exercise(exercise_id):
     from models.exercise_progress import ExercisePublication, StudentExerciseAttempt
     from models.rpg import StudentRPGProfile
 
-    # Vérifier que l'élève a choisi un personnage
+    # Profil RPG : le mode RPG a été retiré de la navigation — ne plus bloquer
+    # l'élève s'il n'a pas choisi de personnage (sinon un devoir-exercice mène
+    # à une impasse). On crée silencieusement un profil par défaut.
     rpg = StudentRPGProfile.query.filter_by(student_id=student.id).first()
-    if not rpg or not rpg.avatar_class:
-        flash('Tu dois d\'abord choisir ton personnage avant de lancer une mission !', 'warning')
-        return redirect(url_for('student_auth.rpg_dashboard'))
+    if not rpg:
+        rpg = StudentRPGProfile(student_id=student.id, avatar_class='guerrier')
+        db.session.add(rpg)
+        db.session.commit()
+    elif not rpg.avatar_class:
+        rpg.avatar_class = 'guerrier'
+        db.session.commit()
 
     exercise = Exercise.query.get_or_404(exercise_id)
 

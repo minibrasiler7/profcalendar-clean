@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/student/DashboardScreen';
+import DevoirsScreen from '../screens/student/DevoirsScreen';
 import GradesScreen from '../screens/student/GradesScreen';
 import FilesScreen from '../screens/student/FilesScreen';
 import TeachersScreen from '../screens/student/TeachersScreen';
@@ -51,6 +52,7 @@ export default function StudentNavigator() {
         tabBarIcon: ({ color, size }) => {
           const icons = {
             Dashboard: 'home',
+            Devoirs: 'book',
             Notes: 'school',
             Fichiers: 'document-text',
             Missions: 'game-controller',
@@ -61,6 +63,7 @@ export default function StudentNavigator() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Accueil' }} />
+      <Tab.Screen name="Devoirs" component={DevoirsScreen} />
       <Tab.Screen name="Notes" component={GradesScreen} />
       <Tab.Screen name="Fichiers" component={FilesScreen} />
       <Tab.Screen

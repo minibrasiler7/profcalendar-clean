@@ -2313,3 +2313,151 @@ def student_active_combat():
         'status': session.status,
         'participant_count': session.participants.count(),
     })
+
+
+# ─────────────────────────── Devoirs (élève, app mobile) ───────────────────────────
+
+@api_bp.route('/student/devoirs', methods=['GET'])
+@jwt_required(user_type='student')
+def student_list_devoirs():
+    """Devoirs de la classe de l'élève (groupe multi-disciplines inclus) + état
+    du rendu. Pour les devoirs-exercices, renvoie mission_id (= id de
+    publication) pour ouvrir l'écran de résolution de l'app."""
+    from models.devoir import Devoir, DevoirSubmission
+    from models.exercise_progress import ExercisePublication
+    from routes.student_auth import _student_group_classroom_ids
+
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+
+    group_ids = _student_group_classroom_ids(student)
+    devoirs = Devoir.query.filter(
+        Devoir.classroom_id.in_(group_ids)
+    ).order_by(Devoir.due_date.asc()).all()
+
+    subs = {}
+    if devoirs:
+        subs = {s.devoir_id: s for s in DevoirSubmission.query.filter(
+            DevoirSubmission.student_id == student.id,
+            DevoirSubmission.devoir_id.in_([d.id for d in devoirs]),
+        ).all()}
+
+    out = []
+    for d in devoirs:
+        sub = subs.get(d.id)
+        mission_id = None
+        if d.devoir_type == 'exercise' and d.exercise_id and student.classroom_id:
+            pub = ExercisePublication.query.filter_by(
+                exercise_id=d.exercise_id, classroom_id=student.classroom_id).first()
+            if not pub:
+                # Auto-réparation : devoirs créés avant l'auto-publication.
+                pub = ExercisePublication(
+                    exercise_id=d.exercise_id, classroom_id=student.classroom_id,
+                    published_by=d.user_id, mode='classique', is_active=False)
+                db.session.add(pub)
+                db.session.commit()
+            mission_id = pub.id
+        out.append({
+            'id': d.id,
+            'type': d.devoir_type,
+            'title': d.title,
+            'instructions': d.instructions,
+            'subject': d.classroom.subject if d.classroom else None,
+            'classroom_name': d.classroom.name if d.classroom else None,
+            'due_date': d.due_date.isoformat() if d.due_date else None,
+            'mission_id': mission_id,
+            'submission_id': sub.id if sub else None,
+            'submitted': bool(sub and sub.pdf_filename),
+            'submitted_at': sub.submitted_at.isoformat() if (sub and sub.submitted_at) else None,
+            'page_count': sub.page_count if sub else 0,
+            'corrected': bool(sub and sub.corrected_filename),
+        })
+    return jsonify({'devoirs': out})
+
+
+@api_bp.route('/student/devoirs/<int:devoir_id>/submit', methods=['POST'])
+@jwt_required(user_type='student')
+def student_submit_devoir(devoir_id):
+    """Rendre un devoir depuis l'app : photos (multipart 'photos') -> un PDF
+    sur R2 (même convention de nommage que le web ; renvoi = remplacement)."""
+    import io
+    import uuid
+    from PIL import Image
+    from models.devoir import Devoir, DevoirSubmission
+    from routes.student_auth import _student_group_classroom_ids
+    from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
+
+    student = _get_current_student()
+    if not student:
+        return jsonify({'success': False, 'error': 'Élève non trouvé'}), 404
+
+    devoir = Devoir.query.get(devoir_id)
+    if not devoir or devoir.devoir_type != 'submission':
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    if devoir.classroom_id not in _student_group_classroom_ids(student):
+        return jsonify({'success': False, 'error': 'Ce devoir ne vous concerne pas'}), 403
+
+    files = [f for f in request.files.getlist('photos') if f and f.filename]
+    if not files:
+        return jsonify({'success': False, 'error': 'Aucune photo envoyée'}), 400
+
+    try:
+        images = [Image.open(f.stream).convert('RGB') for f in files[:20]]
+        if not images:
+            return jsonify({'success': False, 'error': 'Images illisibles'}), 400
+        buf = io.BytesIO()
+        images[0].save(buf, format='PDF', save_all=True, append_images=images[1:])
+        pdf_bytes = buf.getvalue()
+    except Exception:
+        return jsonify({'success': False, 'error': "Impossible de traiter les photos"}), 400
+
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+
+    teacher_id = devoir.user_id
+    filename = f"devoir{devoir_id}_eleve{student.id}_{uuid.uuid4().hex[:8]}.pdf"
+    if not upload_file_to_r2(pdf_bytes, teacher_id, filename, 'application/pdf'):
+        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+
+    sub = DevoirSubmission.query.filter_by(devoir_id=devoir_id, student_id=student.id).first()
+    if sub:
+        if sub.pdf_filename:
+            try:
+                delete_file_from_r2(teacher_id, sub.pdf_filename)
+            except Exception:
+                pass
+        sub.pdf_filename = filename
+        sub.page_count = len(images)
+        sub.submitted_at = datetime.utcnow()
+        sub.status = 'submitted'
+    else:
+        db.session.add(DevoirSubmission(
+            devoir_id=devoir_id, student_id=student.id, pdf_filename=filename,
+            page_count=len(images), status='submitted', submitted_at=datetime.utcnow()))
+    db.session.commit()
+    return jsonify({'success': True, 'page_count': len(images)})
+
+
+@api_bp.route('/student/devoirs/submission/<int:submission_id>/corrected', methods=['GET'])
+@jwt_required(user_type='student')
+def student_devoir_corrected(submission_id):
+    """Sert à l'élève SA correction (PDF) — isolation stricte par student_id."""
+    from flask import Response
+    from models.devoir import Devoir, DevoirSubmission
+    from services.r2_storage import download_file_from_r2
+
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+    sub = DevoirSubmission.query.get(submission_id)
+    if not sub or sub.student_id != student.id or not sub.corrected_filename:
+        return jsonify({'error': 'Accès refusé'}), 403
+    devoir = Devoir.query.get(sub.devoir_id)
+    if not devoir:
+        return jsonify({'error': 'Introuvable'}), 404
+    data = download_file_from_r2(devoir.user_id, sub.corrected_filename)
+    if not data:
+        return jsonify({'error': 'Fichier introuvable'}), 404
+    return Response(data, mimetype='application/pdf',
+                    headers={'Content-Disposition': 'inline; filename="correction.pdf"'})

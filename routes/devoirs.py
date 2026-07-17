@@ -148,6 +148,20 @@ def create_devoir():
         exercise_id=exercise_id,
     )
     db.session.add(devoir)
+
+    # Devoir de type exercice : PUBLIER l'exercice pour toutes les classes du
+    # groupe (multi-disciplines). Sans publication, l'élève tombe sur
+    # « Exercice non disponible » (web) et l'app mobile n'a pas de mission_id.
+    if devoir_type == 'exercise' and exercise_id:
+        from models.exercise_progress import ExercisePublication
+        classroom = Classroom.query.get(classroom_id)
+        for cid in (classroom.get_group_classroom_ids() if classroom else [classroom_id]):
+            if not ExercisePublication.query.filter_by(
+                    exercise_id=exercise_id, classroom_id=cid).first():
+                db.session.add(ExercisePublication(
+                    exercise_id=exercise_id, classroom_id=cid,
+                    published_by=current_user.id, mode='classique', is_active=False))
+
     db.session.commit()
     return jsonify({'success': True, 'devoir': devoir.to_dict()})
 
