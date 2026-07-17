@@ -69,7 +69,12 @@
                 try { corrViewer.deactivatePencilKit(); } catch (e) {}
                 await new Promise(function (r) { setTimeout(r, 450); });
             }
-            const blob = await corrViewer.exportPDFWithAnnotations();
+            // exportFlattenedPDF = « ce que l'écran affiche » (rotation incluse,
+            // annotations redessinées depuis le store). L'ancien export repartait
+            // du PDF original → correction envoyée sans annotations ni rotation.
+            const blob = (typeof corrViewer.exportFlattenedPDF === 'function')
+                ? await corrViewer.exportFlattenedPDF()
+                : await corrViewer.exportPDFWithAnnotations();
             const fd = new FormData();
             fd.append('correction', new File([blob], 'correction.pdf', { type: 'application/pdf' }));
             const j = await (await fetch('/api/devoirs/submissions/' + SUBMISSION_ID + '/correct', { method: 'POST', body: fd })).json();

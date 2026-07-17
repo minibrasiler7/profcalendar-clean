@@ -11647,6 +11647,65 @@ class CleanPDFViewer {
     }
 
     /**
+     * Export « ce que l'écran affiche » : pour chaque page, composite du canvas
+     * PDF rendu (donc AVEC la rotation courante) + les annotations redessinées
+     * depuis le store this.annotations (indépendant de l'état de matérialisation
+     * de l'encre native), assemblés en un nouveau PDF image.
+     *
+     * Contrairement à exportPDFWithAnnotations() — qui re-télécharge le PDF
+     * ORIGINAL et tente d'y plaquer les canvas (rotation jamais appliquée, et
+     * un plaquage raté produit silencieusement l'original tel quel) — ici le
+     * fichier produit correspond garanti à l'affichage. Sortie rasterisée
+     * (images), ce qui convient aux corrections de devoirs (photos d'élèves).
+     * Méthode ADDITIVE : /lesson ne l'appelle pas.
+     */
+    async exportFlattenedPDF() {
+        const { PDFDocument } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+        const out = await PDFDocument.create();
+        let pagesDone = 0;
+        for (const pageId of this.pageOrder) {
+            const wrapper = this.container.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"]');
+            if (!wrapper) continue;
+            const pdfCanvas = wrapper.querySelector('.pdf-canvas');
+            const annCanvas = wrapper.querySelector('.annotation-canvas');
+            const base = (pdfCanvas && pdfCanvas.width > 0) ? pdfCanvas : annCanvas;
+            if (!base || !base.width || !base.height) continue;
+            const w = base.width, h = base.height;
+
+            const flat = document.createElement('canvas');
+            flat.width = w; flat.height = h;
+            const ctx = flat.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+            if (pdfCanvas && pdfCanvas.width > 0) ctx.drawImage(pdfCanvas, 0, 0, w, h);
+
+            // Annotations : redessin depuis le STORE sur un canvas temporaire aux
+            // mêmes dimensions que l'affichage (même échelle). Ne dépend PAS du
+            // flush de l'encre Pencil sur le canvas affiché. Repli : pixels du
+            // canvas d'annotation affiché.
+            try {
+                const tmp = document.createElement('canvas');
+                tmp.width = w; tmp.height = h;
+                this.redrawAnnotations(tmp, pageId);
+                ctx.drawImage(tmp, 0, 0, w, h);
+            } catch (e) {
+                if (annCanvas && annCanvas.width > 0) ctx.drawImage(annCanvas, 0, 0, w, h);
+            }
+
+            const jpegBytes = await fetch(flat.toDataURL('image/jpeg', 0.9)).then(r => r.arrayBuffer());
+            const img = await out.embedJpg(jpegBytes);
+            const page = out.addPage([w, h]);
+            page.drawImage(img, { x: 0, y: 0, width: w, height: h });
+            pagesDone++;
+        }
+        if (pagesDone === 0) {
+            throw new Error('Aucune page à exporter');
+        }
+        const bytes = await out.save();
+        return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    /**
      * Injecter les styles du menu de téléchargement
      */
     injectDownloadMenuStyles() {
