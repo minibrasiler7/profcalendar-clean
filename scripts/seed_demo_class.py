@@ -50,8 +50,17 @@ def seed_demo_class():
     from models.schedule import Schedule
     from models.parent import Parent, ParentChild
 
-    if User.query.filter_by(email=TEACHER_EMAIL).first():
-        print("⚠️  Le compte de démo existe déjà — rien à recréer.")
+    existing = User.query.filter_by(email=TEACHER_EMAIL).first()
+    if existing:
+        # Auto-réparation : les exercices interactifs sont Premium — s'assurer
+        # que le compte démo a bien l'accès (les 1ers seeds ne le posaient pas).
+        if existing.subscription_tier != 'premium':
+            existing.subscription_tier = 'premium'
+            existing.premium_until = None  # illimité (compte QA)
+            db.session.commit()
+            print("✅ Accès Premium (illimité) accordé au compte démo existant.")
+        else:
+            print("⚠️  Le compte de démo existe déjà — rien à recréer.")
         _print_credentials()
         return
 
@@ -70,6 +79,8 @@ def seed_demo_class():
         break_duration=5,
         setup_completed=True,
         schedule_completed=True,
+        subscription_tier='premium',   # les exercices interactifs sont Premium
+        premium_until=None,            # illimité (compte QA)
     )
     teacher.set_password(PASSWORD)
     db.session.add(teacher)
