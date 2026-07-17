@@ -11661,15 +11661,35 @@ class CleanPDFViewer {
      */
     async exportFlattenedPDF() {
         const { PDFDocument } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+
+        // Énumération ROBUSTE des pages : en ORDRE DOM, avec replis de scope
+        // successifs. On ne dépend NI de this.pageOrder NI du sélecteur
+        // [data-page-id] (sur certains états du viewer ils sont vides/absents,
+        // ce qui donnait « Aucune page à exporter » alors que les pages sont
+        // bien à l'écran). Même esprit que le repli document de deactivatePencilKit.
+        let wrappers = [];
+        const scopes = [this.elements && this.elements.pagesContainer, this.container, document];
+        for (const scope of scopes) {
+            if (!scope || !scope.querySelectorAll) continue;
+            const found = Array.from(scope.querySelectorAll('.pdf-page-wrapper'));
+            if (found.length) { wrappers = found; break; }
+        }
+        if (!wrappers.length) {
+            // Dernier repli : les conteneurs de canvas eux-mêmes.
+            wrappers = Array.from(document.querySelectorAll('.pdf-canvas-container'))
+                .map(c => c.parentElement || c);
+        }
+
         const out = await PDFDocument.create();
         let pagesDone = 0;
-        for (const pageId of this.pageOrder) {
-            const wrapper = this.container.querySelector('.pdf-page-wrapper[data-page-id="' + pageId + '"]');
-            if (!wrapper) continue;
+        const diag = [];
+        for (let i = 0; i < wrappers.length; i++) {
+            const wrapper = wrappers[i];
             const pdfCanvas = wrapper.querySelector('.pdf-canvas');
             const annCanvas = wrapper.querySelector('.annotation-canvas');
-            const base = (pdfCanvas && pdfCanvas.width > 0) ? pdfCanvas : annCanvas;
-            if (!base || !base.width || !base.height) continue;
+            const base = (pdfCanvas && pdfCanvas.width > 0) ? pdfCanvas
+                       : ((annCanvas && annCanvas.width > 0) ? annCanvas : null);
+            if (!base) { diag.push('p' + (i + 1) + ':canvas0'); continue; }
             const w = base.width, h = base.height;
 
             const flat = document.createElement('canvas');
@@ -11679,17 +11699,29 @@ class CleanPDFViewer {
             ctx.fillRect(0, 0, w, h);
             if (pdfCanvas && pdfCanvas.width > 0) ctx.drawImage(pdfCanvas, 0, 0, w, h);
 
-            // Annotations : redessin depuis le STORE sur un canvas temporaire aux
-            // mêmes dimensions que l'affichage (même échelle). Ne dépend PAS du
-            // flush de l'encre Pencil sur le canvas affiché. Repli : pixels du
-            // canvas d'annotation affiché.
-            try {
-                const tmp = document.createElement('canvas');
-                tmp.width = w; tmp.height = h;
-                this.redrawAnnotations(tmp, pageId);
-                ctx.drawImage(tmp, 0, 0, w, h);
-            } catch (e) {
-                if (annCanvas && annCanvas.width > 0) ctx.drawImage(annCanvas, 0, 0, w, h);
+            // Annotations : d'abord les PIXELS AFFICHÉS (l'encre Pencil
+            // matérialisée par le flush est dedans) ; si le canvas affiché est
+            // vide, redessin depuis le store (clé string OU number, repli i+1).
+            let annDrawn = false;
+            if (annCanvas && annCanvas.width > 0 && !this._canvasIsBlank(annCanvas)) {
+                ctx.drawImage(annCanvas, 0, 0, w, h);
+                annDrawn = true;
+            }
+            if (!annDrawn && this.annotations && typeof this.annotations.has === 'function') {
+                const raw = (wrapper.dataset && wrapper.dataset.pageId)
+                         || (annCanvas && annCanvas.dataset && annCanvas.dataset.pageId)
+                         || String(i + 1);
+                const num = parseInt(raw, 10);
+                const pid = this.annotations.has(raw) ? raw
+                          : (this.annotations.has(num) ? num : null);
+                if (pid !== null) {
+                    try {
+                        const tmp = document.createElement('canvas');
+                        tmp.width = w; tmp.height = h;
+                        this.redrawAnnotations(tmp, pid);
+                        ctx.drawImage(tmp, 0, 0, w, h);
+                    } catch (e) { /* pas de redraw possible : on garde le fond */ }
+                }
             }
 
             const jpegBytes = await fetch(flat.toDataURL('image/jpeg', 0.9)).then(r => r.arrayBuffer());
@@ -11698,11 +11730,35 @@ class CleanPDFViewer {
             page.drawImage(img, { x: 0, y: 0, width: w, height: h });
             pagesDone++;
         }
+
         if (pagesDone === 0) {
-            throw new Error('Aucune page à exporter');
+            // Message DIAGNOSTIQUE : indique ce que l'export a réellement vu.
+            throw new Error('Aucune page à exporter (wrappers=' + wrappers.length
+                + (diag.length ? ', ' + diag.join(' ') : '')
+                + ', pageOrder=' + ((this.pageOrder && this.pageOrder.length) || 0) + ')');
         }
         const bytes = await out.save();
         return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    /**
+     * Vrai si le canvas ne contient aucun pixel visible (échantillonné 96×96 —
+     * l'anticrénelage préserve un alpha non nul même pour un trait fin).
+     */
+    _canvasIsBlank(c) {
+        try {
+            const probe = document.createElement('canvas');
+            probe.width = 96; probe.height = 96;
+            const pctx = probe.getContext('2d');
+            pctx.drawImage(c, 0, 0, 96, 96);
+            const d = pctx.getImageData(0, 0, 96, 96).data;
+            for (let i = 3; i < d.length; i += 4) {
+                if (d[i] !== 0) return false;
+            }
+            return true;
+        } catch (e) {
+            return false; // dans le doute, considérer non vide (on dessinera les pixels)
+        }
     }
 
     /**
