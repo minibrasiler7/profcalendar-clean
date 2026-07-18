@@ -1757,9 +1757,7 @@ def student_submit_mission(mission_id):
         # Vérifier les badges RPG (achievements globaux)
         check_badges(student, rpg)
 
-        # Attribuer un objet RPG aléatoire
-        from models.rpg import award_random_item
-        item_won = award_random_item(student.id, score_pct)
+        # Mode RPG retiré : on n'attribue plus d'objet/équipement aléatoire.
 
     db.session.commit()
 
@@ -1792,8 +1790,6 @@ def student_submit_mission(mission_id):
         'badge_threshold': badge_threshold,
         'exercise_title': exercise.title,
     }
-    if rpg and item_won:
-        result['item_won'] = item_won.to_dict()
 
     return jsonify(result)
 
