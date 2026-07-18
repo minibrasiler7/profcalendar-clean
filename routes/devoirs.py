@@ -163,6 +163,21 @@ def create_devoir():
                     published_by=current_user.id, mode='classique', is_active=False))
 
     db.session.commit()
+
+    # Notification push aux élèves de la classe (app mobile) — best effort.
+    try:
+        from services.push_service import send_push_async
+        tokens = [s.expo_push_token for s in devoir.get_students()
+                  if getattr(s, 'expo_push_token', None)]
+        send_push_async(
+            tokens,
+            'Nouveau devoir 📚',
+            f"{title} — à rendre le {devoir.due_date.strftime('%d.%m.%Y')}",
+            {'kind': 'devoir_new', 'devoir_id': devoir.id},
+        )
+    except Exception:
+        pass
+
     return jsonify({'success': True, 'devoir': devoir.to_dict()})
 
 
@@ -179,6 +194,17 @@ def list_devoirs():
             q = q.filter(Devoir.due_date == datetime.strptime(date_str, '%Y-%m-%d').date())
         except ValueError:
             return jsonify({'success': False, 'error': 'date invalide'}), 400
+    # context_date : ne renvoyer que les devoirs pertinents pour CE jour —
+    # ceux donnés (créés) ce jour-là OU à rendre ce jour-là. Utilisé par la
+    # page Leçon pour ne pas afficher les devoirs des autres jours.
+    ctx_str = request.args.get('context_date')
+    if ctx_str:
+        try:
+            ctx = datetime.strptime(ctx_str, '%Y-%m-%d').date()
+            q = q.filter(db.or_(Devoir.due_date == ctx,
+                                db.func.date(Devoir.created_at) == ctx))
+        except ValueError:
+            pass
     cid = request.args.get('classroom_id')
     if cid:
         try:
@@ -196,6 +222,21 @@ def delete_devoir(devoir_id):
     devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
     if not devoir:
         return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    # Nettoyage R2 : document joint + fichiers des rendus (la cascade DB ne
+    # supprime que les lignes, pas les fichiers).
+    try:
+        from services.r2_storage import delete_file_from_r2
+        files = [devoir.document_key]
+        for sub in devoir.submissions.all():
+            files.extend([sub.pdf_filename, sub.corrected_filename])
+        for fn in files:
+            if fn:
+                try:
+                    delete_file_from_r2(devoir.user_id, fn)
+                except Exception:
+                    pass
+    except Exception:
+        pass
     db.session.delete(devoir)
     db.session.commit()
     return jsonify({'success': True})
@@ -325,6 +366,21 @@ def correct_submission(submission_id):
     sub.corrected_at = _dt.utcnow()
     sub.status = 'corrected'
     db.session.commit()
+
+    # Notifier l'élève que sa correction est disponible (app mobile).
+    try:
+        from services.push_service import send_push_async
+        token = getattr(sub.student, 'expo_push_token', None)
+        if token:
+            send_push_async(
+                [token],
+                'Correction reçue ✅',
+                f"Ton devoir « {devoir.title} » a été corrigé.",
+                {'kind': 'devoir_corrected', 'devoir_id': devoir.id},
+            )
+    except Exception:
+        pass
+
     return jsonify({'success': True})
 
 
@@ -432,3 +488,69 @@ def devoir_exercise_results(devoir_id):
         'badge_threshold': badge_threshold,
         'results': rows,
     })
+
+
+# ============================================================
+# Document joint au devoir (prof -> élèves)
+# ============================================================
+
+@devoirs_bp.route('/<int:devoir_id>/document', methods=['POST'])
+@login_required
+@teacher_required
+def upload_devoir_document(devoir_id):
+    """Joint un document au devoir (multipart 'document'). Remplace l'ancien."""
+    import uuid
+    import os as _os
+    from models.devoir import Devoir
+    from services.r2_storage import upload_file_to_r2, delete_file_from_r2, is_r2_enabled
+
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir:
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+    f = request.files.get('document')
+    if not f or not f.filename:
+        return jsonify({'success': False, 'error': 'Aucun fichier'}), 400
+    if not is_r2_enabled():
+        return jsonify({'success': False, 'error': 'Stockage indisponible'}), 503
+
+    data = f.read()
+    if not data:
+        return jsonify({'success': False, 'error': 'Fichier vide'}), 400
+    if len(data) > 25 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Fichier trop volumineux (max 25 Mo)'}), 400
+
+    ext = _os.path.splitext(f.filename)[1].lower()[:10] or ''
+    filename = f"devoir{devoir_id}_doc_{uuid.uuid4().hex[:8]}{ext}"
+    if not upload_file_to_r2(data, current_user.id, filename, f.mimetype or 'application/octet-stream'):
+        return jsonify({'success': False, 'error': "Échec de l'envoi"}), 500
+
+    if devoir.document_key:
+        try:
+            delete_file_from_r2(current_user.id, devoir.document_key)
+        except Exception:
+            pass
+    devoir.document_key = filename
+    devoir.document_name = f.filename[:250]
+    db.session.commit()
+    return jsonify({'success': True, 'document_name': devoir.document_name})
+
+
+@devoirs_bp.route('/<int:devoir_id>/document', methods=['GET'])
+@login_required
+@teacher_required
+def get_devoir_document(devoir_id):
+    """Sert le document joint (enseignant propriétaire)."""
+    import mimetypes
+    from flask import Response
+    from models.devoir import Devoir
+    from services.r2_storage import download_file_from_r2
+
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir or not devoir.document_key:
+        return "Aucun document", 404
+    data = download_file_from_r2(devoir.user_id, devoir.document_key)
+    if not data:
+        return "Fichier introuvable", 404
+    mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
+    return Response(data, mimetype=mt, headers={
+        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})

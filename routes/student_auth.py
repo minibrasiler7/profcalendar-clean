@@ -1995,3 +1995,26 @@ def devoir_corrected(submission_id):
         return "Introuvable", 404
     return Response(data, mimetype='application/pdf',
                     headers={'Content-Disposition': 'inline; filename="correction.pdf"'})
+
+
+@student_auth_bp.route('/devoirs/<int:devoir_id>/document')
+@login_required
+def devoir_document(devoir_id):
+    """Sert à l'élève le document joint au devoir (classe du groupe vérifiée)."""
+    import mimetypes
+    from flask import Response
+    from models.devoir import Devoir
+    from services.r2_storage import download_file_from_r2
+    if not isinstance(current_user, Student):
+        return redirect(url_for('student_auth.login'))
+    devoir = Devoir.query.get(devoir_id)
+    if not devoir or not devoir.document_key:
+        return "Aucun document", 404
+    if devoir.classroom_id not in _student_group_classroom_ids(current_user):
+        return "Accès refusé", 403
+    data = download_file_from_r2(devoir.user_id, devoir.document_key)
+    if not data:
+        return "Fichier introuvable", 404
+    mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
+    return Response(data, mimetype=mt, headers={
+        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})

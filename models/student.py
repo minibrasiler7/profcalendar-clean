@@ -29,6 +29,9 @@ class Student(UserMixin, db.Model):
     is_authenticated = db.Column(db.Boolean, default=False)
     last_login = db.Column(db.DateTime)
 
+    # Jeton de notifications push Expo (app mobile) — ExponentPushToken[...]
+    expo_push_token = db.Column(db.String(255))
+
     # Relations
     classroom = db.relationship('Classroom', backref=db.backref('students', lazy='dynamic'))
     user = db.relationship('User', backref=db.backref('students', lazy='dynamic'))

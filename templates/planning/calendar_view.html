@@ -1699,8 +1699,12 @@ if (typeof pdfjsLib !== 'undefined') {
         try { items = JSON.parse(el.getAttribute('data-devoirs') || '[]'); } catch (e) {}
         const esc = s => (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
         document.getElementById('devoirCalBody').innerHTML = items.map(function (d) {
+            var whenLine = d.when === 'given'
+                ? '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-share"></i> Donné ce jour · à rendre le ' + esc(d.due || '') + '</div>'
+                : '<div class="devoir-cal-note" style="margin-bottom:0.45rem;"><i class="fas fa-flag-checkered"></i> À rendre ce jour</div>';
             return '<div class="devoir-cal-item">' +
                 '<div class="devoir-cal-title"><i class="fas ' + (d.type === 'exercise' ? 'fa-gamepad' : 'fa-camera') + '"></i> ' + esc(d.title) + '</div>' +
+                whenLine +
                 (d.type === 'submission'
                     ? '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/submissions"><i class="fas fa-inbox"></i> Voir les devoirs reçus</a>'
                     : '<a class="devoir-cal-btn" href="/planning/devoir/' + d.id + '/resultats"><i class="fas fa-chart-simple"></i> Voir les résultats</a>') +

@@ -981,18 +981,29 @@ def calendar_view():
         key = f"{date_str}_{period}" if period else f"{date_str}_none"
         memos_by_date_period.setdefault(key, []).append(memo)
 
-    # Devoirs à rendre dans la semaine affichée -> badge dans l'en-tête du jour.
+    # Devoirs de la semaine affichée. Un devoir apparaît DEUX jours : le jour
+    # où il a été donné (créé) et le jour où il doit être rendu — pas les
+    # autres jours.
     from models.devoir import Devoir
     week_devoirs = Devoir.query.filter(
         Devoir.user_id == current_user.id,
-        Devoir.due_date >= week_dates[0],
-        Devoir.due_date <= week_dates[4],
+        db.or_(
+            db.and_(Devoir.due_date >= week_dates[0], Devoir.due_date <= week_dates[4]),
+            db.and_(db.func.date(Devoir.created_at) >= week_dates[0],
+                    db.func.date(Devoir.created_at) <= week_dates[4]),
+        ),
     ).options(db.joinedload(Devoir.classroom)).all()
-    devoirs_by_date = {}
-    for _dv in week_devoirs:
-        devoirs_by_date.setdefault(_dv.due_date.strftime('%Y-%m-%d'), []).append(_dv)
 
-    # Placer chaque devoir dans la 1re période du jour où SA classe+discipline
+    # Occurrences (date, devoir, kind) — kind: 'due' (à rendre) / 'given' (donné).
+    _occurrences = []
+    for _dv in week_devoirs:
+        if week_dates[0] <= _dv.due_date <= week_dates[4]:
+            _occurrences.append((_dv.due_date, _dv, 'due'))
+        _cd = _dv.created_at.date() if _dv.created_at else None
+        if _cd and week_dates[0] <= _cd <= week_dates[4] and _cd != _dv.due_date:
+            _occurrences.append((_cd, _dv, 'given'))
+
+    # Placer chaque occurrence dans la 1re période du jour où SA classe+discipline
     # (classroom_id) est enseignée. Sinon repli dans l'en-tête du jour.
     from models.schedule import Schedule as _Sch
     _sched_min = {}  # (weekday, classroom_id) -> plus petite période
@@ -1001,20 +1012,22 @@ def calendar_view():
         _k = (_s.weekday, _s.classroom_id)
         if _k not in _sched_min or _s.period_number < _sched_min[_k]:
             _sched_min[_k] = _s.period_number
+    devoirs_by_date = {}      # conservé pour compat (non utilisé par les gabarits)
     devoir_cells = {}         # "YYYY-MM-DD_period" -> [devoirs]
-    devoir_cells_data = {}    # "YYYY-MM-DD_period" -> [{id,title,type}] (pour la modale)
+    devoir_cells_data = {}    # "YYYY-MM-DD_period" -> [{id,title,type,when,due}]
     devoirs_unplaced = {}     # "YYYY-MM-DD" -> [devoirs] (repli en-tête)
-    for _date_str, _dvs in devoirs_by_date.items():
-        _dd = datetime.strptime(_date_str, '%Y-%m-%d').date()
-        for _dv in _dvs:
-            _p = _sched_min.get((_dd.weekday(), _dv.classroom_id))
-            if _p:
-                _ck = f"{_date_str}_{_p}"
-                devoir_cells.setdefault(_ck, []).append(_dv)
-                devoir_cells_data.setdefault(_ck, []).append(
-                    {'id': _dv.id, 'title': _dv.title, 'type': _dv.devoir_type})
-            else:
-                devoirs_unplaced.setdefault(_date_str, []).append(_dv)
+    for _dd, _dv, _kind in _occurrences:
+        _date_str = _dd.strftime('%Y-%m-%d')
+        devoirs_by_date.setdefault(_date_str, []).append(_dv)
+        _p = _sched_min.get((_dd.weekday(), _dv.classroom_id))
+        if _p:
+            _ck = f"{_date_str}_{_p}"
+            devoir_cells.setdefault(_ck, []).append(_dv)
+            devoir_cells_data.setdefault(_ck, []).append(
+                {'id': _dv.id, 'title': _dv.title, 'type': _dv.devoir_type,
+                 'when': _kind, 'due': _dv.due_date.strftime('%d.%m.%Y')})
+        else:
+            devoirs_unplaced.setdefault(_date_str, []).append(_dv)
 
     # ============================================================
     # SHORTCUT pour le mode fragment (navigation client-side de semaine)

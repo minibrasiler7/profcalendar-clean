@@ -1463,6 +1463,11 @@ input, textarea, select {
                             <span>Consignes (facultatif)</span>
                             <textarea id="devoirInstructions" rows="2" placeholder="Précisions pour les élèves…"></textarea>
                         </label>
+                        <label class="devoir-field">
+                            <span>Document pour les élèves (facultatif)</span>
+                            <input type="file" id="devoirDocument"
+                                   accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.ppt,.pptx,.xls,.xlsx">
+                        </label>
                         <div class="devoir-modal-actions">
                             <button type="button" class="btn-devoir-outline" onclick="closeDevoirModal()">Annuler</button>
                             <button type="button" class="btn-devoir-create" id="devoirSaveBtn" onclick="submitDevoir()"><i class="fas fa-check"></i> Créer</button>
@@ -1532,6 +1537,7 @@ input, textarea, select {
                         if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
                         document.getElementById('devoirTitle').value = '';
                         document.getElementById('devoirInstructions').value = '';
+                        const df0 = document.getElementById('devoirDocument'); if (df0) df0.value = '';
                         document.querySelector('input[name="devoirType"][value="submission"]').checked = true;
                         onDevoirTypeChange();
                         const dd = document.getElementById('devoirDueDate');
@@ -1572,7 +1578,21 @@ input, textarea, select {
                         try {
                             const j = await (await fetch('/api/devoirs/create', { method: 'POST',
                                 headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
-                            if (j.success) { showNotification('success', 'Devoir créé'); closeDevoirModal(); loadDevoirs(); }
+                            if (j.success) {
+                                // Document joint (facultatif) : uploadé après la création.
+                                const df = document.getElementById('devoirDocument');
+                                if (df && df.files && df.files.length) {
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append('document', df.files[0]);
+                                        const uj = await (await fetch('/api/devoirs/' + j.devoir.id + '/document',
+                                            { method: 'POST', body: fd })).json();
+                                        if (!uj.success) showNotification('error', 'Devoir créé, mais document non joint : ' + (uj.error || ''));
+                                    } catch (e2) { showNotification('error', 'Devoir créé, mais document non joint (réseau)'); }
+                                }
+                                showNotification('success', 'Devoir créé');
+                                closeDevoirModal(); loadDevoirs();
+                            }
                             else { showNotification('error', j.error || 'Erreur'); }
                         } catch (e) { showNotification('error', 'Erreur réseau'); }
                         finally { btn.disabled = false; }
@@ -1591,7 +1611,9 @@ input, textarea, select {
                         const list = document.getElementById('devoirsList');
                         if (!cid || !list) return;
                         try {
-                            const j = await (await fetch('/api/devoirs/list?classroom_id=' + cid)).json();
+                            // context_date : seuls les devoirs donnés CE jour ou à rendre CE jour
+                            const j = await (await fetch('/api/devoirs/list?classroom_id=' + cid
+                                + (date ? '&context_date=' + date : ''))).json();
                             if (!j.success) return;
                             const items = j.devoirs || [];
                             if (!items.length) { list.innerHTML = '<div class="devoirs-empty">Aucun devoir pour cette classe.</div>'; return; }
@@ -1601,7 +1623,7 @@ input, textarea, select {
                                     <i class="fas ${TYPE_ICON[d.type] || 'fa-book'}"></i>
                                     <div class="devoir-item-main">
                                         <span class="devoir-item-title">${esc(d.title)}</span>
-                                        <span class="devoir-item-meta">${d.type === 'exercise' ? 'Exercice · ' : ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}</span>
+                                        <span class="devoir-item-meta">${d.type === 'exercise' ? 'Exercice · ' : ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}${d.has_document ? ' · <i class="fas fa-paperclip" title="Document joint"></i>' : ''}</span>
                                     </div>
                                     ${d.type === 'submission' ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>` : `<a class="devoir-item-view" title="Voir les résultats" href="/planning/devoir/${d.id}/resultats"><i class="fas fa-chart-simple"></i></a>`}
                                     <button type="button" class="devoir-item-del" title="Supprimer" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>

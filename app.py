@@ -575,6 +575,17 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : jeton push Expo des élèves (app mobile).
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE students ADD COLUMN IF NOT EXISTS expo_push_token VARCHAR(255)"
+            ))
+            db.session.commit()
+            print("✅ Colonne students.expo_push_token vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification expo_push_token échouée: {e}")
+
         # Filet de sécurité : table devoir_submissions (rendus des élèves).
         try:
             db.session.execute(db.text("""

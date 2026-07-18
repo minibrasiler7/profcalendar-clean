@@ -98,6 +98,14 @@
 
                 {% if d.instructions %}<p class="dv-instructions">{{ d.instructions }}</p>{% endif %}
 
+                {% if d.document_key %}
+                <div class="dv-actions">
+                    <a class="dv-btn secondary" href="/student/devoirs/{{ d.id }}/document" target="_blank">
+                        <i class="fas fa-paperclip"></i> Voir le document{% if d.document_name %} ({{ d.document_name }}){% endif %}
+                    </a>
+                </div>
+                {% endif %}
+
                 {% if d.devoir_type == 'exercise' %}
                     <div class="dv-actions">
                         <a class="dv-btn" href="/student/missions/{{ d.exercise_id }}"><i class="fas fa-play"></i> Faire l'exercice</a>

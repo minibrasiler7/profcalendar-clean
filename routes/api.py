@@ -2368,6 +2368,8 @@ def student_list_devoirs():
             'submitted_at': sub.submitted_at.isoformat() if (sub and sub.submitted_at) else None,
             'page_count': sub.page_count if sub else 0,
             'corrected': bool(sub and sub.corrected_filename),
+            'has_document': bool(d.document_key),
+            'document_name': d.document_name,
         })
     return jsonify({'devoirs': out})
 
@@ -2457,3 +2459,45 @@ def student_devoir_corrected(submission_id):
         return jsonify({'error': 'Fichier introuvable'}), 404
     return Response(data, mimetype='application/pdf',
                     headers={'Content-Disposition': 'inline; filename="correction.pdf"'})
+
+
+@api_bp.route('/student/push-token', methods=['POST'])
+@jwt_required(user_type='student')
+def student_save_push_token():
+    """Enregistre le jeton de notifications push Expo de l'élève."""
+    student = _get_current_student()
+    if not student:
+        return jsonify({'success': False, 'error': 'Élève non trouvé'}), 404
+    data = request.get_json(silent=True) or {}
+    token = (data.get('token') or '').strip()
+    if not token.startswith('ExponentPushToken'):
+        return jsonify({'success': False, 'error': 'Jeton invalide'}), 400
+    student.expo_push_token = token[:255]
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@api_bp.route('/student/devoirs/<int:devoir_id>/document', methods=['GET'])
+@jwt_required(user_type='student')
+def student_devoir_document(devoir_id):
+    """Sert le document joint au devoir (app mobile, JWT)."""
+    import mimetypes
+    from flask import Response
+    from models.devoir import Devoir
+    from routes.student_auth import _student_group_classroom_ids
+    from services.r2_storage import download_file_from_r2
+
+    student = _get_current_student()
+    if not student:
+        return jsonify({'error': 'Élève non trouvé'}), 404
+    devoir = Devoir.query.get(devoir_id)
+    if not devoir or not devoir.document_key:
+        return jsonify({'error': 'Aucun document'}), 404
+    if devoir.classroom_id not in _student_group_classroom_ids(student):
+        return jsonify({'error': 'Accès refusé'}), 403
+    data = download_file_from_r2(devoir.user_id, devoir.document_key)
+    if not data:
+        return jsonify({'error': 'Fichier introuvable'}), 404
+    mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
+    return Response(data, mimetype=mt, headers={
+        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})
