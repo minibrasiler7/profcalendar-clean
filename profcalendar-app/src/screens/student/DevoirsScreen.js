@@ -153,6 +153,34 @@ export default function DevoirsScreen({ navigation }) {
     }
   };
 
+  // ─── Document joint par l'enseignant : téléchargement authentifié + aperçu ───
+  const viewDocument = async (devoir) => {
+    setDownloading('doc' + devoir.id);
+    try {
+      const token = await SecureStore.getItemAsync('token');
+      const url = `${api.defaults.baseURL}/student/devoirs/${devoir.id}/document`;
+      const safeName = (devoir.document_name || `document_${devoir.id}.pdf`).replace(/[^\w.\-]/g, '_');
+      const fileUri = FileSystem.documentDirectory + safeName;
+      const dl = await FileSystem.downloadAsync(url, fileUri, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (dl.status === 200) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(dl.uri);
+        } else {
+          Alert.alert('Téléchargé', 'Document enregistré dans les fichiers de l’app.');
+        }
+      } else {
+        Alert.alert('Erreur', 'Impossible de télécharger le document.');
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible de télécharger le document.');
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const openExercise = (devoir) => {
     if (!devoir.mission_id) {
       Alert.alert('Indisponible', "Cet exercice n'est pas encore accessible.");
@@ -198,6 +226,19 @@ export default function DevoirsScreen({ navigation }) {
         </View>
 
         {item.instructions ? <Text style={styles.instructions}>{item.instructions}</Text> : null}
+
+        {item.has_document ? (
+          <TouchableOpacity
+            style={[styles.outlineBtn, { alignSelf: 'flex-start' }]}
+            onPress={() => viewDocument(item)}
+            disabled={downloading === 'doc' + item.id}
+          >
+            {downloading === 'doc' + item.id
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Ionicons name="attach" size={16} color={colors.primary} />}
+            <Text style={styles.outlineBtnText}>Voir le document</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {item.type === 'exercise' ? (
           <TouchableOpacity style={styles.primaryBtn} onPress={() => openExercise(item)}>
