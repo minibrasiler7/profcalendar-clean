@@ -19,6 +19,14 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Callback enregistré par AuthContext : permet de déconnecter l'UI
+// immédiatement quand un 401 survient (avant, le stockage était vidé mais
+// l'app restait « connectée » avec des écrans en échec jusqu'au relancement).
+let onUnauthorized = null;
+export function setOnUnauthorized(cb) {
+  onUnauthorized = cb;
+}
+
 // Intercepteur : gérer les erreurs 401
 api.interceptors.response.use(
   (response) => response,
@@ -27,7 +35,7 @@ api.interceptors.response.use(
       await SecureStore.deleteItemAsync('token');
       await SecureStore.deleteItemAsync('user');
       await SecureStore.deleteItemAsync('userType');
-      // Le contexte Auth détectera le token manquant
+      try { if (onUnauthorized) onUnauthorized(); } catch (e) {}
     }
     return Promise.reject(error);
   }

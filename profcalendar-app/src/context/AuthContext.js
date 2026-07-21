@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import api from '../api/client';
+import api, { setOnUnauthorized } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -10,7 +10,21 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Restaurer la session au démarrage
+  // Déconnexion propre quand un appel renvoie 401 (jeton expiré/invalide) :
+  // l'intercepteur du client a déjà vidé le stockage, on nettoie l'état de
+  // l'UI pour revenir immédiatement à l'écran de connexion (avant, l'app
+  // restait « connectée » avec des écrans en échec jusqu'au relancement).
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setToken(null);
+      setUser(null);
+      setUserType(null);
+    });
+    return () => setOnUnauthorized(null);
+  }, []);
+
+  // Restaurer la session au démarrage — l'utilisateur reste connecté tant
+  // qu'il ne s'est pas déconnecté.
   useEffect(() => {
     (async () => {
       try {
@@ -21,6 +35,21 @@ export function AuthProvider({ children }) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
           setUserType(storedType);
+
+          // Rafraîchissement GLISSANT (non bloquant) : ré-émet un jeton neuf
+          // de 365 j à chaque démarrage. Si le jeton est mort (401),
+          // l'intercepteur vide le stockage et déconnecte l'UI ; toute autre
+          // erreur (hors-ligne, serveur indisponible…) est ignorée pour ne
+          // jamais déconnecter un utilisateur hors-ligne.
+          api.post('/auth/refresh')
+            .then(async (res) => {
+              const fresh = res.data && res.data.token;
+              if (fresh) {
+                await SecureStore.setItemAsync('token', fresh);
+                setToken(fresh);
+              }
+            })
+            .catch(() => {});
         }
       } catch (e) {
         console.log('Erreur restauration session:', e);
