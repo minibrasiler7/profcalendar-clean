@@ -14,8 +14,13 @@ api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
 # ─────────────────────────── helpers JWT ───────────────────────────
 
-def generate_token(user_type, user_id, expires_hours=720):
-    """Génère un JWT pour un élève ou un parent (30 jours par défaut)."""
+def generate_token(user_type, user_id, expires_hours=8760):
+    """Génère un JWT pour un élève ou un parent (365 jours par défaut).
+
+    Longue durée assumée : app grand public élèves/parents — l'utilisateur
+    reste connecté tant qu'il ne se déconnecte pas. Combiné au rafraîchissement
+    glissant (/auth/refresh appelé à chaque démarrage de l'app), la session ne
+    expire en pratique que après un an SANS ouvrir l'app."""
     payload = {
         'user_type': user_type,
         'user_id': user_id,
@@ -2501,3 +2506,29 @@ def student_devoir_document(devoir_id):
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
         'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})
+
+
+@api_bp.route('/auth/refresh', methods=['POST'])
+@jwt_required()
+def auth_refresh():
+    """Rafraîchissement glissant du JWT (élève OU parent).
+
+    Appelé par l'app à chaque démarrage quand une session existe : ré-émet un
+    jeton neuf (365 j) à partir du jeton courant encore valide. Ainsi la
+    session ne meurt que si l'app n'est pas ouverte pendant un an, ou après
+    une déconnexion volontaire."""
+    payload = request.jwt_payload
+    user_type = payload.get('user_type')
+    user_id = payload.get('user_id')
+    # Vérifier que le compte existe toujours.
+    if user_type == 'student':
+        from models.student import Student
+        if not Student.query.get(user_id):
+            return jsonify({'error': 'Compte introuvable'}), 401
+    elif user_type == 'parent':
+        from models.parent import Parent
+        if not Parent.query.get(user_id):
+            return jsonify({'error': 'Compte introuvable'}), 401
+    else:
+        return jsonify({'error': 'Type invalide'}), 401
+    return jsonify({'success': True, 'token': generate_token(user_type, user_id)})
