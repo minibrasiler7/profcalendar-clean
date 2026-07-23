@@ -1905,6 +1905,75 @@ msgstr "passaggi"
 msgid "Chargement du calendrier…"
 msgstr "Caricamento del calendario…"
 
+msgid "Accueil"
+msgstr "Home"
+
+msgid "Devoirs"
+msgstr "Compiti"
+
+msgid "Notes"
+msgstr "Voti"
+
+msgid "Fichiers"
+msgstr "File"
+
+msgid "Enseignants"
+msgstr "Insegnanti"
+
+msgid "Missions"
+msgstr "Missioni"
+
+msgid "Mes devoirs"
+msgstr "I miei compiti"
+
+msgid "Aucun devoir pour le moment 🎉"
+msgstr "Nessun compito per ora 🎉"
+
+msgid "à rendre le"
+msgstr "da consegnare entro il"
+
+msgid "Exercice"
+msgstr "Esercizio"
+
+msgid "À rendre"
+msgstr "Da consegnare"
+
+msgid "Voir le document"
+msgstr "Vedi il documento"
+
+msgid "Faire l'exercice"
+msgstr "Fai l'esercizio"
+
+msgid "Rendu le %(date)s"
+msgstr "Consegnato il %(date)s"
+
+msgid "Corrigé"
+msgstr "Corretto"
+
+msgid "voir la correction"
+msgstr "vedi la correzione"
+
+msgid "Remplacer — ajouter des photos"
+msgstr "Sostituisci — aggiungi foto"
+
+msgid "Ajouter une photo"
+msgstr "Aggiungi una foto"
+
+msgid "Envoyer"
+msgstr "Invia"
+
+msgid "Retirer"
+msgstr "Rimuovi"
+
+msgid "Devoir envoyé !"
+msgstr "Compito inviato!"
+
+msgid "Échec de l'envoi"
+msgstr "Invio non riuscito"
+
+msgid "Erreur réseau"
+msgstr "Errore di rete"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
@@ -1919,3 +1988,8 @@ msgid "%(num)d planification cette semaine"
 msgid_plural "%(num)d planifications cette semaine"
 msgstr[0] "%(num)d pianificazione questa settimana"
 msgstr[1] "%(num)d pianificazioni questa settimana"
+
+msgid "%(num)d page"
+msgid_plural "%(num)d pages"
+msgstr[0] "%(num)d pagina"
+msgstr[1] "%(num)d pagine"

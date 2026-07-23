@@ -1905,6 +1905,75 @@ msgstr "steps"
 msgid "Chargement du calendrier…"
 msgstr "Loading calendar…"
 
+msgid "Accueil"
+msgstr "Home"
+
+msgid "Devoirs"
+msgstr "Homework"
+
+msgid "Notes"
+msgstr "Grades"
+
+msgid "Fichiers"
+msgstr "Files"
+
+msgid "Enseignants"
+msgstr "Teachers"
+
+msgid "Missions"
+msgstr "Missions"
+
+msgid "Mes devoirs"
+msgstr "My homework"
+
+msgid "Aucun devoir pour le moment 🎉"
+msgstr "No homework for now 🎉"
+
+msgid "à rendre le"
+msgstr "due"
+
+msgid "Exercice"
+msgstr "Exercise"
+
+msgid "À rendre"
+msgstr "To submit"
+
+msgid "Voir le document"
+msgstr "View document"
+
+msgid "Faire l'exercice"
+msgstr "Do the exercise"
+
+msgid "Rendu le %(date)s"
+msgstr "Submitted on %(date)s"
+
+msgid "Corrigé"
+msgstr "Corrected"
+
+msgid "voir la correction"
+msgstr "view correction"
+
+msgid "Remplacer — ajouter des photos"
+msgstr "Replace — add photos"
+
+msgid "Ajouter une photo"
+msgstr "Add a photo"
+
+msgid "Envoyer"
+msgstr "Send"
+
+msgid "Retirer"
+msgstr "Remove"
+
+msgid "Devoir envoyé !"
+msgstr "Homework sent!"
+
+msgid "Échec de l'envoi"
+msgstr "Sending failed"
+
+msgid "Erreur réseau"
+msgstr "Network error"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."
@@ -1919,3 +1988,8 @@ msgid "%(num)d planification cette semaine"
 msgid_plural "%(num)d planifications cette semaine"
 msgstr[0] "%(num)d lesson plan this week"
 msgstr[1] "%(num)d lesson plans this week"
+
+msgid "%(num)d page"
+msgid_plural "%(num)d pages"
+msgstr[0] "%(num)d page"
+msgstr[1] "%(num)d pages"

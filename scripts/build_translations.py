@@ -3137,6 +3137,34 @@ ENTRIES = [
      "Cargando el calendario…",
      "Kalender wird geladen…",
      "Caricamento del calendario…"),
+
+    # ---- Espace élève : page « Mes devoirs » (nav + contenu + JS) ----
+    ("Accueil", "Home", "Inicio", "Startseite", "Home"),
+    ("Devoirs", "Homework", "Tareas", "Hausaufgaben", "Compiti"),
+    ("Notes", "Grades", "Notas", "Noten", "Voti"),
+    ("Fichiers", "Files", "Archivos", "Dateien", "File"),
+    ("Enseignants", "Teachers", "Profesores", "Lehrkräfte", "Insegnanti"),
+    ("Missions", "Missions", "Misiones", "Missionen", "Missioni"),
+    ("Mes devoirs", "My homework", "Mis tareas", "Meine Hausaufgaben", "I miei compiti"),
+    ("Aucun devoir pour le moment 🎉", "No homework for now 🎉",
+     "No hay tareas por ahora 🎉", "Momentan keine Hausaufgaben 🎉", "Nessun compito per ora 🎉"),
+    ("à rendre le", "due", "para el", "abzugeben bis", "da consegnare entro il"),
+    ("Exercice", "Exercise", "Ejercicio", "Übung", "Esercizio"),
+    ("À rendre", "To submit", "Para entregar", "Abzugeben", "Da consegnare"),
+    ("Voir le document", "View document", "Ver el documento", "Dokument ansehen", "Vedi il documento"),
+    ("Faire l'exercice", "Do the exercise", "Hacer el ejercicio", "Übung starten", "Fai l'esercizio"),
+    ("Rendu le %(date)s", "Submitted on %(date)s", "Entregado el %(date)s",
+     "Abgegeben am %(date)s", "Consegnato il %(date)s"),
+    ("Corrigé", "Corrected", "Corregido", "Korrigiert", "Corretto"),
+    ("voir la correction", "view correction", "ver la corrección", "Korrektur ansehen", "vedi la correzione"),
+    ("Remplacer — ajouter des photos", "Replace — add photos", "Reemplazar — añadir fotos",
+     "Ersetzen — Fotos hinzufügen", "Sostituisci — aggiungi foto"),
+    ("Ajouter une photo", "Add a photo", "Añadir una foto", "Foto hinzufügen", "Aggiungi una foto"),
+    ("Envoyer", "Send", "Enviar", "Senden", "Invia"),
+    ("Retirer", "Remove", "Quitar", "Entfernen", "Rimuovi"),
+    ("Devoir envoyé !", "Homework sent!", "¡Tarea enviada!", "Hausaufgabe gesendet!", "Compito inviato!"),
+    ("Échec de l'envoi", "Sending failed", "Error al enviar", "Senden fehlgeschlagen", "Invio non riuscito"),
+    ("Erreur réseau", "Network error", "Error de red", "Netzwerkfehler", "Errore di rete"),
 ]
 
 # Pluriels : (msgid_singulier, msgid_pluriel, {lang: (singulier, pluriel)})
@@ -3165,6 +3193,15 @@ PLURALS = [
          "es": ("%(num)d planificación esta semana", "%(num)d planificaciones esta semana"),
          "de": ("%(num)d Planung diese Woche", "%(num)d Planungen diese Woche"),
          "it": ("%(num)d pianificazione questa settimana", "%(num)d pianificazioni questa settimana"),
+     }),
+    # --- student/devoirs.html : nombre de pages d'un rendu ---
+    ("%(num)d page",
+     "%(num)d pages",
+     {
+         "en": ("%(num)d page", "%(num)d pages"),
+         "es": ("%(num)d página", "%(num)d páginas"),
+         "de": ("%(num)d Seite", "%(num)d Seiten"),
+         "it": ("%(num)d pagina", "%(num)d pagine"),
      }),
 ]
 

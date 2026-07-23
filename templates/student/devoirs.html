@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes devoirs - {{ student.full_name }}{% endblock %}
+{% block title %}{{ _('Mes devoirs') }} - {{ student.full_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -56,14 +56,14 @@
 <nav class="navbar-student">
     <div class="navbar-content">
         <div class="navbar-links">
-            <a href="{{ url_for('student_auth.dashboard') }}"><i class="fas fa-home"></i> Accueil</a>
-            <a href="{{ url_for('student_auth.devoirs') }}" class="active"><i class="fas fa-book"></i> Devoirs</a>
-            <a href="{{ url_for('student_auth.grades') }}"><i class="fas fa-chart-line"></i> Notes</a>
-            <a href="{{ url_for('student_auth.files') }}"><i class="fas fa-folder"></i> Fichiers</a>
-            <a href="{{ url_for('student_auth.teachers') }}"><i class="fas fa-chalkboard-teacher"></i> Enseignants</a>
-            <a href="{{ url_for('student_auth.missions') }}"><i class="fas fa-scroll"></i> Missions</a>
+            <a href="{{ url_for('student_auth.dashboard') }}"><i class="fas fa-home"></i> {{ _('Accueil') }}</a>
+            <a href="{{ url_for('student_auth.devoirs') }}" class="active"><i class="fas fa-book"></i> {{ _('Devoirs') }}</a>
+            <a href="{{ url_for('student_auth.grades') }}"><i class="fas fa-chart-line"></i> {{ _('Notes') }}</a>
+            <a href="{{ url_for('student_auth.files') }}"><i class="fas fa-folder"></i> {{ _('Fichiers') }}</a>
+            <a href="{{ url_for('student_auth.teachers') }}"><i class="fas fa-chalkboard-teacher"></i> {{ _('Enseignants') }}</a>
+            <a href="{{ url_for('student_auth.missions') }}"><i class="fas fa-scroll"></i> {{ _('Missions') }}</a>
         </div>
-        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+        <a href="{{ url_for('student_auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}</a>
     </div>
 </nav>
 
@@ -72,7 +72,7 @@
         <div style="display: flex; align-items: center;">
             <div class="student-avatar">{{ student.initials() }}</div>
             <div class="student-details">
-                <h1>Mes devoirs</h1>
+                <h1>{{ _('Mes devoirs') }}</h1>
                 <p>{{ student.classroom.name }}</p>
             </div>
         </div>
@@ -81,7 +81,7 @@
 
 <div class="devoirs-wrap">
     {% if not items %}
-        <div class="dv-empty"><i class="fas fa-book-open" style="font-size:2rem;opacity:0.4;"></i><p>Aucun devoir pour le moment 🎉</p></div>
+        <div class="dv-empty"><i class="fas fa-book-open" style="font-size:2rem;opacity:0.4;"></i><p>{{ _('Aucun devoir pour le moment 🎉') }}</p></div>
     {% else %}
         {% for it in items %}
             {% set d = it.devoir %}
@@ -91,9 +91,9 @@
                 <div class="dv-top">
                     <div>
                         <p class="dv-title">{{ d.title }}</p>
-                        <div class="dv-meta">{{ d.subject }} · à rendre le <strong>{{ d.due_date.strftime('%d.%m.%Y') }}</strong></div>
+                        <div class="dv-meta">{{ d.subject }} · {{ _('à rendre le') }} <strong>{{ d.due_date.strftime('%d.%m.%Y') }}</strong></div>
                     </div>
-                    <span class="dv-type {{ d.devoir_type }}">{% if d.devoir_type == 'exercise' %}Exercice{% else %}À rendre{% endif %}</span>
+                    <span class="dv-type {{ d.devoir_type }}">{% if d.devoir_type == 'exercise' %}{{ _('Exercice') }}{% else %}{{ _('À rendre') }}{% endif %}</span>
                 </div>
 
                 {% if d.instructions %}<p class="dv-instructions">{{ d.instructions }}</p>{% endif %}
@@ -101,28 +101,28 @@
                 {% if d.document_key %}
                 <div class="dv-actions">
                     <a class="dv-btn secondary" href="/student/devoirs/{{ d.id }}/document" target="_blank">
-                        <i class="fas fa-paperclip"></i> Voir le document{% if d.document_name %} ({{ d.document_name }}){% endif %}
+                        <i class="fas fa-paperclip"></i> {{ _('Voir le document') }}{% if d.document_name %} ({{ d.document_name }}){% endif %}
                     </a>
                 </div>
                 {% endif %}
 
                 {% if d.devoir_type == 'exercise' %}
                     <div class="dv-actions">
-                        <a class="dv-btn" href="/student/missions/{{ d.exercise_id }}"><i class="fas fa-play"></i> Faire l'exercice</a>
+                        <a class="dv-btn" href="/student/missions/{{ d.exercise_id }}"><i class="fas fa-play"></i> {{ _("Faire l'exercice") }}</a>
                     </div>
                 {% else %}
                     {% if sub %}
-                        <div class="dv-status ok"><i class="fas fa-check-circle"></i> Rendu le {{ sub.submitted_at.strftime('%d.%m.%Y') }} ({{ sub.page_count }} page{{ 's' if sub.page_count > 1 else '' }})</div>
+                        <div class="dv-status ok"><i class="fas fa-check-circle"></i> {{ _('Rendu le %(date)s', date=sub.submitted_at.strftime('%d.%m.%Y')) }} ({{ ngettext('%(num)d page', '%(num)d pages', sub.page_count) }})</div>
                         {% if sub.corrected_filename %}
-                        <div class="dv-status ok"><i class="fas fa-check-double"></i> Corrigé — <a href="/student/devoirs/submission/{{ sub.id }}/corrected" target="_blank" style="color:#4F46E5;font-weight:700;">voir la correction</a></div>
+                        <div class="dv-status ok"><i class="fas fa-check-double"></i> {{ _('Corrigé') }} — <a href="/student/devoirs/submission/{{ sub.id }}/corrected" target="_blank" style="color:#4F46E5;font-weight:700;">{{ _('voir la correction') }}</a></div>
                         {% endif %}
                     {% endif %}
                     <div class="dv-actions">
                         <button type="button" class="dv-btn secondary" onclick="dvPick({{ d.id }})">
-                            <i class="fas fa-camera"></i> {% if sub %}Remplacer — ajouter des photos{% else %}Ajouter une photo{% endif %}
+                            <i class="fas fa-camera"></i> {% if sub %}{{ _('Remplacer — ajouter des photos') }}{% else %}{{ _('Ajouter une photo') }}{% endif %}
                         </button>
                         <button type="button" class="dv-btn" id="dv-send-{{ d.id }}" style="display:none;" onclick="dvSend({{ d.id }})">
-                            <i class="fas fa-paper-plane"></i> Envoyer (<span id="dv-count-{{ d.id }}">0</span>)
+                            <i class="fas fa-paper-plane"></i> {{ _('Envoyer') }} (<span id="dv-count-{{ d.id }}">0</span>)
                         </button>
                     </div>
                     <div class="dv-thumbs" id="dv-thumbs-{{ d.id }}"></div>
@@ -134,6 +134,14 @@
 </div>
 
 <script>
+    // Chaînes traduites pour le JS (échappées proprement via |tojson).
+    const DV_I18N = {
+        remove: {{ _('Retirer')|tojson }},
+        sent: {{ _('Devoir envoyé !')|tojson }},
+        sendFail: {{ _("Échec de l'envoi")|tojson }},
+        netErr: {{ _('Erreur réseau')|tojson }}
+    };
+
     // Accumulateur de photos par devoir : l'élève peut ajouter plusieurs photos
     // (appareil ou galerie), les prévisualiser/supprimer, puis tout envoyer.
     const dvPhotos = {};
@@ -153,7 +161,7 @@
         const arr = dvPhotos[id] || [];
         const wrap = document.getElementById('dv-thumbs-' + id);
         wrap.innerHTML = arr.map((f, i) =>
-            `<div class="dv-thumb"><img src="${URL.createObjectURL(f)}"><button type="button" title="Retirer" onclick="dvRemove(${id},${i})">&times;</button></div>`
+            `<div class="dv-thumb"><img src="${URL.createObjectURL(f)}"><button type="button" title="${DV_I18N.remove}" onclick="dvRemove(${id},${i})">&times;</button></div>`
         ).join('');
         const cnt = document.getElementById('dv-count-' + id); if (cnt) cnt.textContent = arr.length;
         const send = document.getElementById('dv-send-' + id); if (send) send.style.display = arr.length ? 'inline-flex' : 'none';
@@ -168,10 +176,10 @@
         try {
             const data = await (await fetch('/student/devoirs/' + id + '/submit', { method: 'POST', body: fd })).json();
             if (data.success) {
-                if (window.showNotification) showNotification('success', 'Devoir envoyé !');
+                if (window.showNotification) showNotification('success', DV_I18N.sent);
                 location.reload();
-            } else { alert(data.error || "Échec de l'envoi"); send.disabled = false; }
-        } catch (e) { alert('Erreur réseau'); send.disabled = false; }
+            } else { alert(data.error || DV_I18N.sendFail); send.disabled = false; }
+        } catch (e) { alert(DV_I18N.netErr); send.disabled = false; }
     }
 </script>
 {% endblock %}
