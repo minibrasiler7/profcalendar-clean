@@ -82,8 +82,52 @@
     </style>
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
+    <style>
+        /* Overlay de chargement — pages lentes à répondre (ex. le calendrier,
+           qui recalcule l'année pour toutes les classes côté serveur). */
+        #page-loading-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.85);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+        #page-loading-overlay.visible { display: flex; }
+        #page-loading-overlay .plo-spinner {
+            width: 52px;
+            height: 52px;
+            border: 5px solid rgba(79, 70, 229, 0.18);
+            border-top-color: #4F46E5;
+            border-radius: 50%;
+            animation: plo-spin 0.8s linear infinite;
+        }
+        #page-loading-overlay .plo-text {
+            margin: 0;
+            color: #4F46E5;
+            font-weight: 700;
+            font-size: 0.98rem;
+        }
+        @keyframes plo-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            #page-loading-overlay .plo-spinner { animation-duration: 1.8s; }
+        }
+    </style>
 </head>
 <body{% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
+
+    {# Overlay de chargement. Pré-affiché ("visible") si on EST sur le
+       calendrier (couvre le rendu), sinon affiché au clic sur un lien vers le
+       calendrier (couvre l'attente serveur). Masqué par le script en bas de page. #}
+    <div id="page-loading-overlay"{% if request.endpoint == 'planning.calendar_view' %} class="visible"{% endif %} role="status" aria-live="polite">
+        <div class="plo-spinner"></div>
+        <p class="plo-text">{{ _('Chargement du calendrier…') }}</p>
+    </div>
 
     {% include 'includes/app_banner.html' %}
 
@@ -488,5 +532,41 @@
     <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>
     {% endif %}
     {% block extra_js %}{% endblock %}
+
+    <script>
+    // Overlay de chargement du calendrier (page lente à répondre côté serveur).
+    (function () {
+        var overlay = document.getElementById('page-loading-overlay');
+        if (!overlay) return;
+        var CAL_URL = "{{ url_for('planning.calendar_view') }}";
+        function show() { overlay.classList.add('visible'); }
+        function hide() { overlay.classList.remove('visible'); }
+
+        // 1) Clic sur un lien vers le calendrier depuis une autre page :
+        //    l'overlay apparaît tout de suite et couvre l'attente serveur.
+        document.addEventListener('click', function (e) {
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            var a = e.target.closest ? e.target.closest('a') : null;
+            if (!a || !a.href || a.target === '_blank' || a.hasAttribute('download')) return;
+            try {
+                var u = new URL(a.href, location.origin);
+                if (u.pathname === CAL_URL && u.search.indexOf('fragment') === -1) show();
+            } catch (_) {}
+        }, true);
+
+        // 2) Si on EST déjà sur le calendrier : l'overlay est pré-affiché par le
+        //    gabarit ; on le masque une fois la page prête.
+        if (location.pathname === CAL_URL) {
+            var done = false;
+            function finish() { if (!done) { done = true; hide(); } }
+            if (document.readyState === 'complete') finish();
+            else window.addEventListener('load', function () { setTimeout(finish, 120); });
+            setTimeout(finish, 7000); // filet de sécurité : ne jamais rester bloqué
+        }
+
+        // 3) Retour arrière / bfcache : ne jamais réafficher un overlay figé.
+        window.addEventListener('pageshow', function (e) { if (e.persisted) hide(); });
+    })();
+    </script>
 </body>
 </html>
