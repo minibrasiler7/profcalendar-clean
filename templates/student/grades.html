@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes Notes - {{ student.full_name }}{% endblock %}
+{% block title %}{{ _('Mes Notes') }} - {{ student.full_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -267,25 +267,25 @@
     <div class="navbar-content">
         <div class="navbar-links">
             <a href="{{ url_for('student_auth.dashboard') }}">
-                <i class="fas fa-home"></i> Accueil
+                <i class="fas fa-home"></i> {{ _('Accueil') }}
             </a>
-            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> Devoirs{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
+            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> {{ _('Devoirs') }}{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
             <a href="{{ url_for('student_auth.grades') }}" class="active">
-                <i class="fas fa-chart-line"></i> Notes
+                <i class="fas fa-chart-line"></i> {{ _('Notes') }}
             </a>
             <a href="{{ url_for('student_auth.files') }}">
-                <i class="fas fa-folder"></i> Fichiers
+                <i class="fas fa-folder"></i> {{ _('Fichiers') }}
             </a>
             <a href="{{ url_for('student_auth.teachers') }}">
-                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+                <i class="fas fa-chalkboard-teacher"></i> {{ _('Enseignants') }}
             </a>
             <a href="{{ url_for('student_auth.missions') }}">
-                <i class="fas fa-scroll"></i> Missions
+                <i class="fas fa-scroll"></i> {{ _('Missions') }}
             </a>
 
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
+            <i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}
         </a>
     </div>
 </nav>
@@ -298,7 +298,7 @@
                 {{ student.initials() }}
             </div>
             <div class="student-details">
-                <h1>Mes Notes</h1>
+                <h1>{{ _('Mes Notes') }}</h1>
                 <p>{{ student.classroom.name }} - {{ student.classroom.subject }}</p>
             </div>
         </div>
@@ -312,7 +312,7 @@
     <div class="stats-bar">
         <div class="stat-item">
             <div class="stat-value">{{ grades_by_subject|length }}</div>
-            <div class="stat-label">Matière{{ 's' if grades_by_subject|length > 1 else '' }}</div>
+            <div class="stat-label">{{ _('Matières') }}</div>
         </div>
         <div class="stat-item">
             {% set ns = namespace(total_grades=0) %}
@@ -320,7 +320,7 @@
                 {% set ns.total_grades = ns.total_grades + data.count %}
             {% endfor %}
             <div class="stat-value">{{ ns.total_grades }}</div>
-            <div class="stat-label">Note{{ 's' if ns.total_grades > 1 else '' }} totale{{ 's' if ns.total_grades > 1 else '' }}</div>
+            <div class="stat-label">{{ _('Notes totales') }}</div>
         </div>
         <div class="stat-item">
             {% set ns = namespace(total_average=0, subject_count=0) %}
@@ -337,7 +337,7 @@
                     -
                 {% endif %}
             </div>
-            <div class="stat-label">Moyenne générale</div>
+            <div class="stat-label">{{ _('Moyenne générale') }}</div>
         </div>
     </div>
     {% endif %}
@@ -354,7 +354,7 @@
                     {{ subject }}
                 </div>
                 <div class="subject-average">
-                    Moyenne : {{ "%.1f"|format(data.average) }}
+                    {{ _('Moyenne : %(val)s', val="%.1f"|format(data.average)) }}
                     {% if data.grades %}
                         /{{ data.grades[0].evaluation.max_points|int }}
                     {% endif %}
@@ -397,8 +397,8 @@
     {% else %}
         <div class="empty-state">
             <i class="fas fa-chart-line"></i>
-            <h3>Aucune note disponible</h3>
-            <p>Vos notes apparaîtront ici une fois que vos enseignants les auront saisies.</p>
+            <h3>{{ _('Aucune note disponible') }}</h3>
+            <p>{{ _('Vos notes apparaîtront ici une fois que vos enseignants les auront saisies.') }}</p>
         </div>
     {% endif %}
 </div>

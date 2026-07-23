@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes Fichiers - {{ student.full_name }}{% endblock %}
+{% block title %}{{ _('Mes Fichiers') }} - {{ student.full_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -252,25 +252,25 @@
     <div class="navbar-content">
         <div class="navbar-links">
             <a href="{{ url_for('student_auth.dashboard') }}">
-                <i class="fas fa-home"></i> Accueil
+                <i class="fas fa-home"></i> {{ _('Accueil') }}
             </a>
-            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> Devoirs{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
+            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> {{ _('Devoirs') }}{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
             <a href="{{ url_for('student_auth.grades') }}">
-                <i class="fas fa-chart-line"></i> Notes
+                <i class="fas fa-chart-line"></i> {{ _('Notes') }}
             </a>
             <a href="{{ url_for('student_auth.files') }}" class="active">
-                <i class="fas fa-folder"></i> Fichiers
+                <i class="fas fa-folder"></i> {{ _('Fichiers') }}
             </a>
             <a href="{{ url_for('student_auth.teachers') }}">
-                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+                <i class="fas fa-chalkboard-teacher"></i> {{ _('Enseignants') }}
             </a>
             <a href="{{ url_for('student_auth.missions') }}">
-                <i class="fas fa-scroll"></i> Missions
+                <i class="fas fa-scroll"></i> {{ _('Missions') }}
             </a>
 
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
+            <i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}
         </a>
     </div>
 </nav>
@@ -283,7 +283,7 @@
                 {{ student.initials() }}
             </div>
             <div class="student-details">
-                <h1>Mes Fichiers</h1>
+                <h1>{{ _('Mes Fichiers') }}</h1>
                 <p>{{ student.classroom.name }} - {{ student.classroom.subject }}</p>
             </div>
         </div>
@@ -302,7 +302,7 @@
                     </div>
                     <div class="file-info">
                         <h3>{{ file.original_filename }}</h3>
-                        <p>{{ file.file_size if file.file_size else 'Taille inconnue' }}</p>
+                        <p>{{ file.file_size if file.file_size else _('Taille inconnue') }}</p>
                     </div>
                 </div>
                 
@@ -310,13 +310,13 @@
                     <div class="file-meta">
                         <span><i class="fas fa-calendar"></i> {{ share.shared_at.strftime('%d/%m/%Y à %H:%M') }}</span>
                         <span class="shared-badge">
-                            <i class="fas fa-share"></i> Partagé par {{ share.teacher.username }}
+                            <i class="fas fa-share"></i> {{ _('Partagé par %(name)s', name=share.teacher.username) }}
                         </span>
                     </div>
                     
                     {% if share.message %}
                     <div class="teacher-message">
-                        <div class="teacher-message-label">Message de l'enseignant :</div>
+                        <div class="teacher-message-label">{{ _("Message de l'enseignant :") }}</div>
                         <div class="teacher-message-content">{{ share.message }}</div>
                     </div>
                     {% endif %}
@@ -324,7 +324,7 @@
                 
                 <div class="file-actions">
                     <a href="{{ url_for('student_auth.preview_file', file_id=file.id) }}" class="btn-preview" target="_blank" style="flex: 1; background-color: #667eea; color: white; padding: 0.75rem; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 500; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-right: 0.5rem;">
-                        <i class="fas fa-eye"></i> Ouvrir
+                        <i class="fas fa-eye"></i> {{ _('Ouvrir') }}
                     </a>
                     <a href="{{ url_for('student_auth.download_file', file_id=file.id) }}" class="btn-download" style="flex: 0 0 auto; background-color: #10b981; color: white; padding: 0.75rem; border-radius: 8px; text-decoration: none; text-align: center; font-weight: 500; transition: background-color 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                         <i class="fas fa-download"></i>
@@ -336,9 +336,9 @@
     {% else %}
         <div class="empty-state">
             <i class="fas fa-folder-open"></i>
-            <h3>Aucun fichier partagé</h3>
-            <p>Vos enseignants n'ont encore partagé aucun fichier avec vous.</p>
-            <p>Les fichiers qui vous seront spécifiquement attribués apparaîtront ici.</p>
+            <h3>{{ _('Aucun fichier partagé') }}</h3>
+            <p>{{ _("Vos enseignants n'ont encore partagé aucun fichier avec vous.") }}</p>
+            <p>{{ _('Les fichiers qui vous seront spécifiquement attribués apparaîtront ici.') }}</p>
         </div>
     {% endif %}
 </div>

@@ -1974,6 +1974,117 @@ msgstr "Invio non riuscito"
 msgid "Erreur réseau"
 msgstr "Errore di rete"
 
+msgid "Bonjour %(name)s !"
+msgstr "Ciao %(name)s!"
+
+msgid "Moyennes par matière"
+msgstr "Medie per materia"
+
+msgid "Aucune note disponible"
+msgstr "Nessun voto disponibile"
+
+msgid "Fichiers récents"
+msgstr "File recenti"
+
+msgid "Aucun fichier disponible"
+msgstr "Nessun file disponibile"
+
+msgid "Remarques"
+msgstr "Osservazioni"
+
+msgid "Nouveau"
+msgstr "Nuovo"
+
+msgid "Aucune remarque"
+msgstr "Nessuna osservazione"
+
+msgid "Mes Notes"
+msgstr "I miei voti"
+
+msgid "Moyenne générale"
+msgstr "Media generale"
+
+msgid "Moyenne : %(val)s"
+msgstr "Media: %(val)s"
+
+msgid "Matière"
+msgstr "Materia"
+
+msgid "Matières"
+msgstr "Materie"
+
+msgid "Notes totales"
+msgstr "Voti totali"
+
+msgid "Vos notes apparaîtront ici une fois que vos enseignants les auront saisies."
+msgstr "I tuoi voti appariranno qui una volta che i tuoi insegnanti li avranno inseriti."
+
+msgid "Mes Fichiers"
+msgstr "I miei file"
+
+msgid "Taille inconnue"
+msgstr "Dimensione sconosciuta"
+
+msgid "Partagé par %(name)s"
+msgstr "Condiviso da %(name)s"
+
+msgid "Message de l'enseignant :"
+msgstr "Messaggio dell'insegnante:"
+
+msgid "Ouvrir"
+msgstr "Apri"
+
+msgid "Aucun fichier partagé"
+msgstr "Nessun file condiviso"
+
+msgid "Vos enseignants n'ont encore partagé aucun fichier avec vous."
+msgstr "I tuoi insegnanti non hanno ancora condiviso alcun file con te."
+
+msgid "Les fichiers qui vous seront spécifiquement attribués apparaîtront ici."
+msgstr "I file assegnati specificamente a te appariranno qui."
+
+msgid "Mes Enseignants"
+msgstr "I miei insegnanti"
+
+msgid "Classe"
+msgstr "Classe"
+
+msgid "Aucun enseignant trouvé"
+msgstr "Nessun insegnante trovato"
+
+msgid "Aucune information d'enseignant n'est disponible pour votre classe."
+msgstr "Nessuna informazione sugli insegnanti è disponibile per la tua classe."
+
+msgid "Mes Missions"
+msgstr "Le mie missioni"
+
+msgid "Toutes"
+msgstr "Tutte"
+
+msgid "À faire"
+msgstr "Da fare"
+
+msgid "Terminées"
+msgstr "Completate"
+
+msgid "Mes badges"
+msgstr "I miei badge"
+
+msgid "Terminé"
+msgstr "Completato"
+
+msgid "En cours"
+msgstr "In corso"
+
+msgid "Aucune mission pour l'instant"
+msgstr "Nessuna missione per ora"
+
+msgid "Ton enseignant n'a pas encore publié d'exercices."
+msgstr "Il tuo insegnante non ha ancora pubblicato esercizi."
+
+msgid "Prêt !"
+msgstr "Pronto!"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
@@ -1993,3 +2104,8 @@ msgid "%(num)d page"
 msgid_plural "%(num)d pages"
 msgstr[0] "%(num)d pagina"
 msgstr[1] "%(num)d pagine"
+
+msgid "%(num)d note"
+msgid_plural "%(num)d notes"
+msgstr[0] "%(num)d voto"
+msgstr[1] "%(num)d voti"

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes Enseignants - {{ student.full_name }}{% endblock %}
+{% block title %}{{ _('Mes Enseignants') }} - {{ student.full_name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -231,25 +231,25 @@
     <div class="navbar-content">
         <div class="navbar-links">
             <a href="{{ url_for('student_auth.dashboard') }}">
-                <i class="fas fa-home"></i> Accueil
+                <i class="fas fa-home"></i> {{ _('Accueil') }}
             </a>
-            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> Devoirs{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
+            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> {{ _('Devoirs') }}{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
             <a href="{{ url_for('student_auth.grades') }}">
-                <i class="fas fa-chart-line"></i> Notes
+                <i class="fas fa-chart-line"></i> {{ _('Notes') }}
             </a>
             <a href="{{ url_for('student_auth.files') }}">
-                <i class="fas fa-folder"></i> Fichiers
+                <i class="fas fa-folder"></i> {{ _('Fichiers') }}
             </a>
             <a href="{{ url_for('student_auth.teachers') }}" class="active">
-                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+                <i class="fas fa-chalkboard-teacher"></i> {{ _('Enseignants') }}
             </a>
             <a href="{{ url_for('student_auth.missions') }}">
-                <i class="fas fa-scroll"></i> Missions
+                <i class="fas fa-scroll"></i> {{ _('Missions') }}
             </a>
 
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
+            <i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}
         </a>
     </div>
 </nav>
@@ -262,7 +262,7 @@
                 {{ student.initials() }}
             </div>
             <div class="student-details">
-                <h1>Mes Enseignants</h1>
+                <h1>{{ _('Mes Enseignants') }}</h1>
                 <p>{{ student.classroom.name }} - {{ student.classroom.subject }}</p>
             </div>
         </div>
@@ -298,7 +298,7 @@
                             <i class="fas fa-book"></i>
                         </div>
                         <div class="detail-content">
-                            <div class="detail-label">Matière</div>
+                            <div class="detail-label">{{ _('Matière') }}</div>
                             <div class="detail-value">{{ teacher.subject }}</div>
                         </div>
                     </div>
@@ -308,7 +308,7 @@
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="detail-content">
-                            <div class="detail-label">Classe</div>
+                            <div class="detail-label">{{ _('Classe') }}</div>
                             <div class="detail-value">{{ teacher.classroom_name }}</div>
                         </div>
                     </div>
@@ -318,7 +318,7 @@
                             <i class="fas fa-envelope"></i>
                         </div>
                         <div class="detail-content">
-                            <div class="detail-label">Email</div>
+                            <div class="detail-label">{{ _('Email') }}</div>
                             <div class="detail-value">
                                 <a href="mailto:{{ teacher.email }}" class="email-link">{{ teacher.email }}</a>
                             </div>
@@ -331,8 +331,8 @@
     {% else %}
         <div class="empty-state">
             <i class="fas fa-chalkboard-teacher"></i>
-            <h3>Aucun enseignant trouvé</h3>
-            <p>Aucune information d'enseignant n'est disponible pour votre classe.</p>
+            <h3>{{ _('Aucun enseignant trouvé') }}</h3>
+            <p>{{ _("Aucune information d'enseignant n'est disponible pour votre classe.") }}</p>
         </div>
     {% endif %}
 </div>

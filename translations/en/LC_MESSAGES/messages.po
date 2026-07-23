@@ -1974,6 +1974,117 @@ msgstr "Sending failed"
 msgid "Erreur réseau"
 msgstr "Network error"
 
+msgid "Bonjour %(name)s !"
+msgstr "Hello %(name)s!"
+
+msgid "Moyennes par matière"
+msgstr "Averages by subject"
+
+msgid "Aucune note disponible"
+msgstr "No grade available"
+
+msgid "Fichiers récents"
+msgstr "Recent files"
+
+msgid "Aucun fichier disponible"
+msgstr "No file available"
+
+msgid "Remarques"
+msgstr "Remarks"
+
+msgid "Nouveau"
+msgstr "New"
+
+msgid "Aucune remarque"
+msgstr "No remark"
+
+msgid "Mes Notes"
+msgstr "My Grades"
+
+msgid "Moyenne générale"
+msgstr "Overall average"
+
+msgid "Moyenne : %(val)s"
+msgstr "Average: %(val)s"
+
+msgid "Matière"
+msgstr "Subject"
+
+msgid "Matières"
+msgstr "Subjects"
+
+msgid "Notes totales"
+msgstr "Total grades"
+
+msgid "Vos notes apparaîtront ici une fois que vos enseignants les auront saisies."
+msgstr "Your grades will appear here once your teachers have entered them."
+
+msgid "Mes Fichiers"
+msgstr "My Files"
+
+msgid "Taille inconnue"
+msgstr "Unknown size"
+
+msgid "Partagé par %(name)s"
+msgstr "Shared by %(name)s"
+
+msgid "Message de l'enseignant :"
+msgstr "Teacher's message:"
+
+msgid "Ouvrir"
+msgstr "Open"
+
+msgid "Aucun fichier partagé"
+msgstr "No shared file"
+
+msgid "Vos enseignants n'ont encore partagé aucun fichier avec vous."
+msgstr "Your teachers haven't shared any files with you yet."
+
+msgid "Les fichiers qui vous seront spécifiquement attribués apparaîtront ici."
+msgstr "Files specifically assigned to you will appear here."
+
+msgid "Mes Enseignants"
+msgstr "My Teachers"
+
+msgid "Classe"
+msgstr "Class"
+
+msgid "Aucun enseignant trouvé"
+msgstr "No teacher found"
+
+msgid "Aucune information d'enseignant n'est disponible pour votre classe."
+msgstr "No teacher information is available for your class."
+
+msgid "Mes Missions"
+msgstr "My Missions"
+
+msgid "Toutes"
+msgstr "All"
+
+msgid "À faire"
+msgstr "To do"
+
+msgid "Terminées"
+msgstr "Completed"
+
+msgid "Mes badges"
+msgstr "My badges"
+
+msgid "Terminé"
+msgstr "Completed"
+
+msgid "En cours"
+msgstr "In progress"
+
+msgid "Aucune mission pour l'instant"
+msgstr "No missions yet"
+
+msgid "Ton enseignant n'a pas encore publié d'exercices."
+msgstr "Your teacher hasn't published any exercises yet."
+
+msgid "Prêt !"
+msgstr "Ready!"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."
@@ -1993,3 +2104,8 @@ msgid "%(num)d page"
 msgid_plural "%(num)d pages"
 msgstr[0] "%(num)d page"
 msgstr[1] "%(num)d pages"
+
+msgid "%(num)d note"
+msgid_plural "%(num)d notes"
+msgstr[0] "%(num)d grade"
+msgstr[1] "%(num)d grades"

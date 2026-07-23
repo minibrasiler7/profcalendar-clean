@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mes Missions - ProfCalendar{% endblock %}
+{% block title %}{{ _('Mes Missions') }} - ProfCalendar{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -275,25 +275,25 @@
     <div class="navbar-content">
         <div class="navbar-links">
             <a href="{{ url_for('student_auth.dashboard') }}">
-                <i class="fas fa-home"></i> Accueil
+                <i class="fas fa-home"></i> {{ _('Accueil') }}
             </a>
-            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> Devoirs{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
+            <a href="{{ url_for('student_auth.devoirs') }}"><i class="fas fa-book"></i> {{ _('Devoirs') }}{% if student_devoirs_pending and student_devoirs_pending > 0 %} <span style="background:#EF4444;color:#fff;border-radius:999px;font-size:0.6rem;padding:0.05rem 0.4rem;margin-left:0.15rem;font-weight:700;">{{ student_devoirs_pending }}</span>{% endif %}</a>
             <a href="{{ url_for('student_auth.grades') }}">
-                <i class="fas fa-chart-line"></i> Notes
+                <i class="fas fa-chart-line"></i> {{ _('Notes') }}
             </a>
             <a href="{{ url_for('student_auth.files') }}">
-                <i class="fas fa-folder"></i> Fichiers
+                <i class="fas fa-folder"></i> {{ _('Fichiers') }}
             </a>
             <a href="{{ url_for('student_auth.teachers') }}">
-                <i class="fas fa-chalkboard-teacher"></i> Enseignants
+                <i class="fas fa-chalkboard-teacher"></i> {{ _('Enseignants') }}
             </a>
             <a href="{{ url_for('student_auth.missions') }}" class="active">
-                <i class="fas fa-scroll"></i> Missions
+                <i class="fas fa-scroll"></i> {{ _('Missions') }}
             </a>
 
         </div>
         <a href="{{ url_for('student_auth.logout') }}" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
+            <i class="fas fa-sign-out-alt"></i> {{ _('Déconnexion') }}
         </a>
     </div>
 </nav>
@@ -301,13 +301,13 @@
 <div class="missions-container">
     <div class="missions-header">
         {# Mode RPG retiré : plus d'avatar ni de sélection de personnage. #}
-        <h1><i class="fas fa-scroll"></i> Mes Missions</h1>
+        <h1><i class="fas fa-scroll"></i> {{ _('Mes Missions') }}</h1>
     </div>
 
     <div class="nav-tabs">
-        <button class="nav-tab active" onclick="filterMissions('all', this)">Toutes</button>
-        <button class="nav-tab" onclick="filterMissions('todo', this)">À faire</button>
-        <button class="nav-tab" onclick="filterMissions('completed', this)">Terminées</button>
+        <button class="nav-tab active" onclick="filterMissions('all', this)">{{ _('Toutes') }}</button>
+        <button class="nav-tab" onclick="filterMissions('todo', this)">{{ _('À faire') }}</button>
+        <button class="nav-tab" onclick="filterMissions('completed', this)">{{ _('Terminées') }}</button>
 
     </div>
 
@@ -318,7 +318,7 @@
         {% if has_badges %}
         <div style="margin: 1.25rem 0; padding: 1rem; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <h2 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #1f2937; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-award" style="color: #f59e0b;"></i> Mes badges
+                <i class="fas fa-award" style="color: #f59e0b;"></i> {{ _('Mes badges') }}
             </h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.75rem;">
                 {% for m in has_badges %}
@@ -365,7 +365,7 @@
                     </span>
                     {% else %}
                     <span class="status-tag {{ m.status }}">
-                        {% if m.status == 'completed' %}Terminé{% elif m.status == 'in_progress' %}En cours{% else %}À faire{% endif %}
+                        {% if m.status == 'completed' %}{{ _('Terminé') }}{% elif m.status == 'in_progress' %}{{ _('En cours') }}{% else %}{{ _('À faire') }}{% endif %}
                     </span>
                     {% endif %}
                 </div>
@@ -387,13 +387,18 @@
     {% else %}
         <div class="empty-missions">
             <i class="fas fa-scroll"></i>
-            <h2>Aucune mission pour l'instant</h2>
-            <p>Ton enseignant n'a pas encore publié d'exercices.</p>
+            <h2>{{ _("Aucune mission pour l'instant") }}</h2>
+            <p>{{ _("Ton enseignant n'a pas encore publié d'exercices.") }}</p>
         </div>
     {% endif %}
 </div>
 
 <script>
+// Chaînes traduites pour le JS (échappées proprement via |tojson).
+const MISS_I18N = {
+    ready: {{ _('Prêt !')|tojson }}
+};
+
 function filterMissions(status, btn) {
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
@@ -407,7 +412,7 @@ function updateCooldownTimers() {
     document.querySelectorAll('.cooldown-timer').forEach(el => {
         let secs = parseInt(el.dataset.seconds);
         if (isNaN(secs) || secs <= 0) {
-            el.textContent = 'Prêt !';
+            el.textContent = MISS_I18N.ready;
             const card = el.closest('.mission-card');
             if (card) { card.classList.remove('cooldown'); card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
             return;
