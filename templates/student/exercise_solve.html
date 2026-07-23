@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ exercise.title }} - Mission{% endblock %}
+{% block title %}{{ exercise.title }} - {{ _('Mission') }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -526,7 +526,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 {% block content %}
 <div class="rpg-solve-container">
     <a href="#" class="back-link" onclick="confirmLeave(event)">
-        <i class="fas fa-arrow-left"></i> Retour aux missions
+        <i class="fas fa-arrow-left"></i> {{ _('Retour aux missions') }}
     </a>
 
     <!-- Top Bar -->
@@ -555,14 +555,14 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
     {% if already_completed %}
     <div class="completed-banner">
         <i class="fas fa-check-circle" style="font-size:1.3rem;color:#10b981;"></i>
-        <span><strong>Mission déjà complétée !</strong> Score : {{ previous_attempt.score_percentage }}% — {{ previous_attempt.xp_earned }} XP gagnés</span>
+        <span><strong>{{ _('Mission déjà complétée !') }}</strong> {{ _('Score : %(score)s%% — %(xp)s XP gagnés', score=previous_attempt.score_percentage, xp=previous_attempt.xp_earned) }}</span>
     </div>
     {% endif %}
 
     <!-- Progress -->
     <div class="progress-section">
         <div class="progress-label">
-            <span id="progress-text">Question 1 / {{ exercise.blocks.count() }}</span>
+            <span id="progress-text">{{ _('Question %(n)s / %(total)s', n=1, total=exercise.blocks.count()) }}</span>
             <span>{{ exercise.title }}</span>
         </div>
         <div class="progress-bar-track">
@@ -594,14 +594,14 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             <h3>
                 <span class="block-type-badge">
                     {% if block.block_type == 'qcm' %}QCM
-                    {% elif block.block_type == 'short_answer' %}Réponse
-                    {% elif block.block_type == 'fill_blank' %}Trou
-                    {% elif block.block_type == 'sorting' %}Tri
-                    {% elif block.block_type == 'image_position' %}Image
-                    {% elif block.block_type == 'graph' %}Graphique
+                    {% elif block.block_type == 'short_answer' %}{{ _('Réponse') }}
+                    {% elif block.block_type == 'fill_blank' %}{{ _('Trou') }}
+                    {% elif block.block_type == 'sorting' %}{{ _('Tri') }}
+                    {% elif block.block_type == 'image_position' %}{{ _('Image') }}
+                    {% elif block.block_type == 'graph' %}{{ _('Graphique') }}
                     {% endif %}
                 </span>
-                {{ block.title or 'Question ' ~ loop.index }}
+                {{ block.title or _('Question %(n)s', n=loop.index) }}
             </h3>
             <div class="question-points"><i class="fas fa-star"></i> {{ block.points }} XP</div>
         </div>
@@ -610,7 +610,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         {% if c.block_image_url %}
         <div style="margin-bottom:1rem;text-align:center;">
-            <img src="{{ c.block_image_url }}" alt="Illustration" style="max-width:100%;max-height:400px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);">
+            <img src="{{ c.block_image_url }}" alt="{{ _('Illustration') }}" style="max-width:100%;max-height:400px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);">
         </div>
         {% endif %}
 
@@ -636,7 +636,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         {% elif block.block_type == 'short_answer' %}
             {% if c.question %}<p class="question-text">{{ c.question }}</p>{% endif %}
             <input class="answer-input" type="{{ 'number' if c.get('answer_type') == 'number' else 'text' }}"
-                data-block="{{ block.id }}" placeholder="Ta réponse..."
+                data-block="{{ block.id }}" placeholder="{{ _('Ta réponse...') }}"
                 {{ 'step=any' if c.get('answer_type') == 'number' else '' }}
                 {{ 'disabled' if already_completed }}>
 
@@ -652,7 +652,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                         const i = blankIdx++;
                         const blank = blanks[i] || {};
                         if (mode === 'choices' && blank.choices && blank.choices.length > 0) {
-                            let options = '<option value="">— Choisir —</option>';
+                            let options = '<option value="">' + {{ _('— Choisir —')|tojson }} + '</option>';
                             const shuffled = [...blank.choices].sort(() => Math.random() - 0.5);
                             shuffled.forEach(w => {
                                 options += '<option value="' + w.replace(/"/g, '&quot;') + '">' + w + '</option>';
@@ -667,7 +667,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         {% elif block.block_type == 'sorting' %}
             {% if c.get('mode', 'order') == 'order' %}
-                <p class="question-text" style="color:#6b7280;">Remets ces éléments dans le bon ordre :</p>
+                <p class="question-text" style="color:#6b7280;">{{ _('Remets ces éléments dans le bon ordre :') }}</p>
                 <ul class="sorting-list" id="sorting-{{ block.id }}" data-block="{{ block.id }}" data-mode="order">
                     {# Les items seront mélangés par JavaScript #}
                     {% for item in c['items'] %}
@@ -680,7 +680,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="question-text" style="color:#6b7280;">Classe ces éléments dans les bonnes catégories :</p>
+                <p class="question-text" style="color:#6b7280;">{{ _('Classe ces éléments dans les bonnes catégories :') }}</p>
                 <div class="categories-wrapper" id="categories-{{ block.id }}" data-block="{{ block.id }}" data-mode="categories">
                     {% for cat in c.get('categories', []) %}
                     <div class="category-zone" data-category="{{ loop.index0 }}"
@@ -691,7 +691,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {% endfor %}
                 </div>
                 <div class="category-pool" id="pool-{{ block.id }}">
-                    <h4><i class="fas fa-hand-pointer"></i> Éléments à classer :</h4>
+                    <h4><i class="fas fa-hand-pointer"></i> {{ _('Éléments à classer :') }}</h4>
                     <div class="pool-items">
                         {# Les items seront mélangés par JavaScript #}
                         {% for item in c['items'] %}
@@ -709,7 +709,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% endif %}
 
         {% elif block.block_type == 'matching' %}
-            <p class="question-text" style="color:#6b7280;">Associe chaque élément de gauche avec son correspondant à droite :</p>
+            <p class="question-text" style="color:#6b7280;">{{ _('Associe chaque élément de gauche avec son correspondant à droite :') }}</p>
             <div class="matching-container" id="matching-{{ block.id }}" data-block="{{ block.id }}"
                  data-pairs='{{ c['pairs']|tojson }}'>
                 <div class="matching-left-col" id="matching-left-{{ block.id }}"></div>
@@ -761,12 +761,12 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% if c.get('interaction_type') == 'labels' %}
                 {# IMAGE LABELS MODE #}
                 {% if c.image_file_id or c.image_url %}
-                <p class="question-text" style="color:#6b7280;">Complète les labels sur l'image :</p>
+                <p class="question-text" style="color:#6b7280;">{{ _("Complète les labels sur l'image :") }}</p>
                 <div class="image-labels-container" id="img-labels-{{ block.id }}" data-block="{{ block.id }}" style="position:relative;display:inline-block;width:100%;">
                     {% if c.image_file_id %}
-                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image" style="width:100%;display:block;border-radius:8px;">
+                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="{{ _('Image') }}" style="width:100%;display:block;border-radius:8px;">
                     {% elif c.image_url %}
-                    <img src="{{ c.image_url }}" alt="Image" style="width:100%;display:block;border-radius:8px;">
+                    <img src="{{ c.image_url }}" alt="{{ _('Image') }}" style="width:100%;display:block;border-radius:8px;">
                     {% endif %}
                     {% for lbl in c.get('labels', []) %}
                     <input type="text" class="image-label-input" data-block="{{ block.id }}" data-label-index="{{ loop.index0 }}"
@@ -779,18 +779,18 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                     {% endfor %}
                 </div>
                 {% else %}
-                <p style="color:#ef4444;">Image non disponible.</p>
+                <p style="color:#ef4444;">{{ _('Image non disponible.') }}</p>
                 {% endif %}
             {% else %}
                 {# ZONES CLICKABLES MODE (original) #}
                 {% if c.image_file_id or c.image_url %}
                 <div class="image-zone-prompt" id="zone-prompt-{{ block.id }}" style="text-align:center;margin-bottom:1rem;">
-                    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 0.3rem;">Clique sur la zone :</p>
+                    <p style="color:#6b7280;font-size:0.85rem;margin:0 0 0.3rem;">{{ _('Clique sur la zone :') }}</p>
                     <div style="font-size:1.6rem;font-weight:900;color:#667eea;" id="zone-current-label-{{ block.id }}">
                         {{ c.zones[0].label if c.zones else '' }}
                     </div>
                     <p style="color:#9ca3af;font-size:0.8rem;margin:0.3rem 0 0;" id="zone-counter-{{ block.id }}">
-                        Zone 1 / {{ c.zones|length }}
+                        {{ _('Zone %(n)s / %(total)s', n=1, total=c.zones|length) }}
                     </p>
                 </div>
                 <div class="image-click-area" id="img-click-{{ block.id }}" data-block="{{ block.id }}"
@@ -798,18 +798,18 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                      data-zones='{{ c.zones|tojson }}'
                      onclick="handleImageClick(event, '{{ block.id }}')">
                     {% if c.image_file_id %}
-                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="Image">
+                    <img src="{{ url_for('exercises.exercise_block_image', file_id=c.image_file_id) }}" alt="{{ _('Image') }}">
                     {% elif c.image_url %}
-                    <img src="{{ c.image_url }}" alt="Image">
+                    <img src="{{ c.image_url }}" alt="{{ _('Image') }}">
                     {% endif %}
                 </div>
                 {% if not already_completed %}
                 <button type="button" class="btn-undo-image" id="btn-undo-{{ block.id }}" style="display:none;margin-top:0.5rem;" onclick="undoLastClick('{{ block.id }}')">
-                    <i class="fas fa-undo"></i> Annuler le dernier clic
+                    <i class="fas fa-undo"></i> {{ _('Annuler le dernier clic') }}
                 </button>
                 {% endif %}
                 {% else %}
-                <p style="color:#ef4444;">Image non disponible.</p>
+                <p style="color:#ef4444;">{{ _('Image non disponible.') }}</p>
                 {% endif %}
             {% endif %}
 
@@ -819,7 +819,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% if c.question_type == 'draw_quadratic' %}
                 {% if not c.question %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
-                    Trace la courbe : <span style="font-family:serif;font-style:italic;">f(x) =
+                    {{ _('Trace la courbe :') }} <span style="font-family:serif;font-style:italic;">f(x) =
                     {% if ca.a is defined and ca.a is not none %}
                         {% if ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}x²
                     {% endif %}
@@ -833,11 +833,11 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 </p>
                 {% endif %}
                 <p class="question-text" style="color:#6b7280;">
-                    Déplace les <strong>3 points</strong> pour tracer la courbe.
+                    {{ _('Déplace les <strong>3 points</strong> pour tracer la courbe.')|safe }}
                 </p>
             {% elif c.question_type == 'find_expression' %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
-                    Trouve l'expression de la fonction représentée sur le graphique.
+                    {{ _("Trouve l'expression de la fonction représentée sur le graphique.") }}
                 </p>
                 {% set ft = c.get('find_type', 'linear') %}
                 <div class="find-expression-inputs" data-find-type="{{ ft }}" style="margin:1rem 0;padding:1rem;background:#f0f4ff;border-radius:12px;border:2px solid #c7d2fe;">
@@ -859,7 +859,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
             {% else %}
                 {% if not c.question %}
                 <p class="question-text" style="font-size:1.1rem;font-weight:700;color:#1e1b4b;">
-                    Trace la droite : <span style="font-family:serif;font-style:italic;">f(x) =
+                    {{ _('Trace la droite :') }} <span style="font-family:serif;font-style:italic;">f(x) =
                     {% if ca.a is defined and ca.a is not none %}
                         {% if ca.a != 1 and ca.a != -1 %}{{ ca.a }}{% elif ca.a == -1 %}-{% endif %}x
                     {% endif %}
@@ -870,7 +870,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
                 </p>
                 {% endif %}
                 <p class="question-text" style="color:#6b7280;">
-                    Déplace les <strong>2 points</strong> pour tracer la droite.
+                    {{ _('Déplace les <strong>2 points</strong> pour tracer la droite.')|safe }}
                 </p>
             {% endif %}
             <div class="graph-wrapper" style="position:relative;display:inline-block;width:100%;">
@@ -880,12 +880,12 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 
         <!-- Feedback banner (hidden initially) -->
         <div class="feedback-banner feedback-correct-banner" id="feedback-correct-{{ block.id }}">
-            <span class="feedback-icon">🎉</span> <span>Bravo ! Bonne réponse !</span>
+            <span class="feedback-icon">🎉</span> <span>{{ _('Bravo ! Bonne réponse !') }}</span>
         </div>
         <div class="feedback-banner feedback-incorrect-banner" id="feedback-incorrect-{{ block.id }}">
             <span class="feedback-icon">😔</span>
             <div>
-                <span>Pas tout à fait... Essaie encore la prochaine fois !</span>
+                <span>{{ _('Pas tout à fait... Essaie encore la prochaine fois !') }}</span>
                 <div id="correct-answer-{{ block.id }}" style="margin-top:0.4rem;font-size:0.85rem;font-weight:600;color:#166534;background:#dcfce7;padding:0.4rem 0.6rem;border-radius:6px;display:none;">
                     <i class="fas fa-check-circle"></i> <span class="correct-text"></span>
                 </div>
@@ -895,7 +895,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <!-- Validate button (per question) -->
         {% if not already_completed %}
         <button type="button" class="btn-validate" id="btn-validate-{{ block.id }}" onclick="validateCurrentQuestion()">
-            <i class="fas fa-check"></i> Valider ma réponse
+            <i class="fas fa-check"></i> {{ _('Valider ma réponse') }}
         </button>
         {% endif %}
     </div>
@@ -909,7 +909,7 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
 <!-- Results overlay (hidden) -->
 <div class="results-overlay" id="results-overlay" style="display:none;">
     <div class="results-card">
-        <h2><i class="fas fa-trophy"></i> Mission terminée !</h2>
+        <h2><i class="fas fa-trophy"></i> {{ _('Mission terminée !') }}</h2>
         {% if rpg and rpg.avatar_class %}
         <div class="results-avatar">
             <img src="{{ url_for('static', filename=rpg.sprite_path) }}" alt="{{ rpg.avatar_class }}">
@@ -920,25 +920,58 @@ body { background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e) !important
         <div class="results-rewards">
             <div class="reward-item">
                 <div class="reward-value" style="color:#f59e0b;" id="results-xp">0</div>
-                <div class="reward-label">XP gagnés</div>
+                <div class="reward-label">{{ _('XP gagnés') }}</div>
             </div>
         </div>
         <!-- Badge gagné (si seuil atteint) -->
         <div id="results-badge" style="display:none;margin-top:1rem;padding:1rem;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;border:2px solid #fbbf24;text-align:center;">
             <p style="font-weight:800;color:#92400e;margin:0 0 0.5rem;font-size:1rem;">
-                <i class="fas fa-award"></i> Badge débloqué !
+                <i class="fas fa-award"></i> {{ _('Badge débloqué !') }}
             </p>
             <div id="results-badge-img" style="width:96px;height:96px;margin:0 auto 0.5rem;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.15);"></div>
             <p id="results-badge-title" style="font-weight:700;color:#92400e;margin:0;font-size:0.9rem;"></p>
         </div>
         <p class="results-level" id="results-level"></p>
         <a href="{{ url_for('student_auth.missions') }}" class="btn-back-missions">
-            <i class="fas fa-arrow-left"></i> Retour aux missions
+            <i class="fas fa-arrow-left"></i> {{ _('Retour aux missions') }}
         </a>
     </div>
 </div>
 
 <script>
+// ============================================================
+// Chaînes traduites pour le JS (échappées proprement via |tojson).
+// Les placeholders {n}/{total}/{score}/… sont remplacés en JS (pas de
+// formatage gettext côté JS : on utilise des accolades, pas de %(...)s).
+// ============================================================
+const SOLVE_I18N = {
+    confirmLeave: {{ _("Tu n'as pas terminé la mission !\n\nSi tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.\n\nEs-tu sûr de vouloir abandonner ?")|tojson }},
+    mustAnswer: {{ _('Tu dois répondre à la question avant de valider !')|tojson }},
+    checking: {{ _('Vérification...')|tojson }},
+    finishMission: {{ _('Terminer la mission')|tojson }},
+    nextQuestion: {{ _('Question suivante')|tojson }},
+    validateAnswer: {{ _('Valider ma réponse')|tojson }},
+    connectionError: {{ _('Erreur de connexion')|tojson }},
+    genericError: {{ _('Erreur')|tojson }},
+    sending: {{ _('Envoi...')|tojson }},
+    questionOf: {{ _('Question {n} / {total}')|tojson }},
+    correctAnswerLabel: {{ _('Bonne réponse :')|tojson }},
+    correctAnswerGraph: {{ _('Réponse correcte')|tojson }},
+    resultsDetail: {{ _('{score}/{max} points — {correct}/{total} bonnes réponses')|tojson }},
+    comboBonus: {{ _('Bonus combo : +{xp} XP')|tojson }},
+    zoneOf: {{ _('Zone {n} / {total}')|tojson }},
+    allZonesPlaced: {{ _('Toutes les zones placées !')|tojson }},
+    readyToValidate: {{ _('Prêt à valider')|tojson }},
+    comboDouble: {{ _('DOUBLE !')|tojson }},
+    comboTriple: {{ _('TRIPLE !')|tojson }},
+    comboIncredible: {{ _('INCROYABLE !')|tojson }},
+    comboLegendary: {{ _('LÉGENDAIRE !')|tojson }},
+    boomMissed: {{ _('RATÉ !')|tojson }},
+    boomOops: {{ _('OUPS !')|tojson }},
+    boomTooBad: {{ _('DOMMAGE !')|tojson }},
+    boomAlmost: {{ _('PRESQUE !')|tojson }}
+};
+
 // ============================================================
 // Construit le SVG du badge à partir d'un pattern + couleur.
 // Utilisé sur l'écran de résultats quand le seuil est atteint.
@@ -964,7 +997,7 @@ function buildBadgeSvg(pattern, color, size) {
 // ============================================================
 async function confirmLeave(event) {
     event.preventDefault();
-    if (confirm('Tu n\'as pas terminé la mission !\n\nSi tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.\n\nEs-tu sûr de vouloir abandonner ?')) {
+    if (confirm(SOLVE_I18N.confirmLeave)) {
         // Soumettre avec les réponses actuelles (partielles) pour créer la tentative + cooldown
         try {
             const answers = {};
@@ -1025,7 +1058,7 @@ function showQuestion(idx) {
     currentQuestion = idx;
     questionLocked = false;
 
-    document.getElementById('progress-text').textContent = `Question ${idx + 1} / ${totalQuestions}`;
+    document.getElementById('progress-text').textContent = SOLVE_I18N.questionOf.replace('{n}', idx + 1).replace('{total}', totalQuestions);
     document.getElementById('progress-fill').style.width = ((idx + 1) / totalQuestions * 100) + '%';
 
     // Init graph if needed
@@ -1050,13 +1083,13 @@ async function validateCurrentQuestion() {
 
     // Check if answered
     if (!hasAnswer(card, blockId, answer)) {
-        alert('Tu dois répondre à la question avant de valider !');
+        alert(SOLVE_I18N.mustAnswer);
         return;
     }
 
     const btn = document.getElementById('btn-validate-' + blockId);
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Vérification...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + SOLVE_I18N.checking;
 
     try {
         const res = await fetch(`/student/missions/{{ exercise.id }}/check-block`, {
@@ -1090,18 +1123,18 @@ async function validateCurrentQuestion() {
             btn.disabled = false;
             if (isLast) {
                 btn.className = 'btn-validate btn-finish';
-                btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission';
+                btn.innerHTML = '<i class="fas fa-flag-checkered"></i> ' + SOLVE_I18N.finishMission;
                 btn.onclick = submitExercise;
             } else {
                 btn.className = 'btn-validate btn-next-q';
-                btn.innerHTML = 'Question suivante <i class="fas fa-arrow-right"></i>';
+                btn.innerHTML = SOLVE_I18N.nextQuestion + ' <i class="fas fa-arrow-right"></i>';
                 btn.onclick = () => showQuestion(currentQuestion + 1);
             }
         }
     } catch(e) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check"></i> Valider ma réponse';
-        alert('Erreur de connexion');
+        btn.innerHTML = '<i class="fas fa-check"></i> ' + SOLVE_I18N.validateAnswer;
+        alert(SOLVE_I18N.connectionError);
     }
 }
 
@@ -1228,7 +1261,7 @@ function showFeedback(card, blockId, isCorrect, points, maxPoints, correctAnswer
         if (correctAnswer) {
             const caDiv = document.getElementById('correct-answer-' + blockId);
             if (caDiv) {
-                caDiv.querySelector('.correct-text').textContent = 'Bonne réponse : ' + correctAnswer;
+                caDiv.querySelector('.correct-text').textContent = SOLVE_I18N.correctAnswerLabel + ' ' + correctAnswer;
                 caDiv.style.display = 'block';
             }
         }
@@ -1342,7 +1375,7 @@ function spawnXPPopup(card, points, multiplier) {
 function spawnComboPopup(streak) {
     const popup = document.createElement('div');
     popup.className = 'combo-popup';
-    const labels = { 2: 'DOUBLE !', 3: 'TRIPLE !', 4: 'INCROYABLE !', 5: 'LÉGENDAIRE !' };
+    const labels = { 2: SOLVE_I18N.comboDouble, 3: SOLVE_I18N.comboTriple, 4: SOLVE_I18N.comboIncredible, 5: SOLVE_I18N.comboLegendary };
     popup.textContent = labels[Math.min(streak, 5)] || `x${streak} COMBO !`;
     document.body.appendChild(popup);
     setTimeout(() => popup.remove(), 1200);
@@ -1381,7 +1414,7 @@ function spawnSadParticles(card) {
 // Boom text for wrong answer
 // ============================================================
 function spawnBoomText() {
-    const texts = ['RATÉ !', 'OUPS !', 'DOMMAGE !', 'PRESQUE !'];
+    const texts = [SOLVE_I18N.boomMissed, SOLVE_I18N.boomOops, SOLVE_I18N.boomTooBad, SOLVE_I18N.boomAlmost];
     const boom = document.createElement('div');
     boom.className = 'boom-text';
     boom.textContent = texts[Math.floor(Math.random() * texts.length)];
@@ -1481,7 +1514,7 @@ function collectAnswer(card, blockId) {
 // ============================================================
 async function submitExercise() {
     const btn = allCards[currentQuestion].querySelector('.btn-validate, .btn-finish');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + SOLVE_I18N.sending; }
 
     // Collect all answers
     const answers = {};
@@ -1504,9 +1537,13 @@ async function submitExercise() {
             scoreEl.textContent = pct + '%';
             scoreEl.className = 'results-score ' + (pct >= 80 ? 'good' : pct >= 50 ? 'medium' : 'bad');
 
-            let detailText = `${data.score}/${data.max_score} points — ${totalCorrect}/${totalQuestions} bonnes réponses`;
+            let detailText = SOLVE_I18N.resultsDetail
+                .replace('{score}', data.score)
+                .replace('{max}', data.max_score)
+                .replace('{correct}', totalCorrect)
+                .replace('{total}', totalQuestions);
             if (data.combo_bonus_xp && data.combo_bonus_xp > 0) {
-                detailText += ` — Bonus combo : +${data.combo_bonus_xp} XP`;
+                detailText += ' — ' + SOLVE_I18N.comboBonus.replace('{xp}', data.combo_bonus_xp);
             }
             document.getElementById('results-detail').textContent = detailText;
             document.getElementById('results-xp').textContent = '+' + data.xp_earned;
@@ -1532,12 +1569,12 @@ async function submitExercise() {
                 spawnConfetti();
             }
         } else {
-            alert(data.message || 'Erreur');
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission'; }
+            alert(data.message || SOLVE_I18N.genericError);
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> ' + SOLVE_I18N.finishMission; }
         }
     } catch(e) {
-        alert('Erreur de connexion');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> Terminer la mission'; }
+        alert(SOLVE_I18N.connectionError);
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-flag-checkered"></i> ' + SOLVE_I18N.finishMission; }
     }
 }
 
@@ -1682,11 +1719,11 @@ function handleImageClick(event, blockId) {
     if (currentLabel && counter) {
         if (nextIdx < expected && zones[nextIdx]) {
             currentLabel.textContent = zones[nextIdx].label;
-            counter.textContent = `Zone ${nextIdx + 1} / ${expected}`;
+            counter.textContent = SOLVE_I18N.zoneOf.replace('{n}', nextIdx + 1).replace('{total}', expected);
         } else {
-            currentLabel.textContent = 'Toutes les zones placées !';
+            currentLabel.textContent = SOLVE_I18N.allZonesPlaced;
             currentLabel.style.color = '#10b981';
-            counter.textContent = `${expected} / ${expected} — Prêt à valider`;
+            counter.textContent = expected + ' / ' + expected + ' — ' + SOLVE_I18N.readyToValidate;
         }
     }
 
@@ -1792,13 +1829,13 @@ function undoLastClick(blockId) {
     if (currentLabel && counter) {
         if (nextIdx < expected && zones[nextIdx]) {
             currentLabel.textContent = zones[nextIdx].label;
-            counter.textContent = `Zone ${nextIdx + 1} / ${expected}`;
+            counter.textContent = SOLVE_I18N.zoneOf.replace('{n}', nextIdx + 1).replace('{total}', expected);
         } else if (nextIdx > 0) {
             currentLabel.textContent = zones[nextIdx - 1].label;
-            counter.textContent = `Zone ${nextIdx} / ${expected}`;
+            counter.textContent = SOLVE_I18N.zoneOf.replace('{n}', nextIdx).replace('{total}', expected);
         } else {
             currentLabel.textContent = zones[0] ? zones[0].label : '';
-            counter.textContent = `Zone 1 / ${expected}`;
+            counter.textContent = SOLVE_I18N.zoneOf.replace('{n}', 1).replace('{total}', expected);
         }
     }
 
@@ -2261,7 +2298,7 @@ function drawCorrectCurveOnGraph(blockId) {
         ctx.save();
         ctx.fillStyle = '#10b981';
         ctx.font = 'bold 12px Inter, system-ui, sans-serif';
-        ctx.fillText('Réponse correcte', labelP.px - 100, labelP.py - 10);
+        ctx.fillText(SOLVE_I18N.correctAnswerGraph, labelP.px - 100, labelP.py - 10);
         ctx.restore();
     }
 }

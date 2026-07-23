@@ -2154,6 +2154,180 @@ msgstr "Access code provided by your teacher"
 msgid "Le code doit contenir exactement 6 caractères"
 msgstr "The code must contain exactly 6 characters"
 
+msgid "Mission"
+msgstr "Mission"
+
+msgid "Retour aux missions"
+msgstr "Back to missions"
+
+msgid "Mission déjà complétée !"
+msgstr "Mission already completed!"
+
+msgid "Score : %(score)s%% — %(xp)s XP gagnés"
+msgstr "Score: %(score)s%% — %(xp)s XP earned"
+
+msgid "Question %(n)s / %(total)s"
+msgstr "Question %(n)s / %(total)s"
+
+msgid "Question %(n)s"
+msgstr "Question %(n)s"
+
+msgid "Réponse"
+msgstr "Answer"
+
+msgid "Trou"
+msgstr "Blank"
+
+msgid "Tri"
+msgstr "Sort"
+
+msgid "Image"
+msgstr "Image"
+
+msgid "Graphique"
+msgstr "Graph"
+
+msgid "Illustration"
+msgstr "Illustration"
+
+msgid "Ta réponse..."
+msgstr "Your answer..."
+
+msgid "— Choisir —"
+msgstr "— Choose —"
+
+msgid "Remets ces éléments dans le bon ordre :"
+msgstr "Put these items in the right order:"
+
+msgid "Classe ces éléments dans les bonnes catégories :"
+msgstr "Sort these items into the right categories:"
+
+msgid "Éléments à classer :"
+msgstr "Items to sort:"
+
+msgid "Associe chaque élément de gauche avec son correspondant à droite :"
+msgstr "Match each item on the left with its counterpart on the right:"
+
+msgid "Complète les labels sur l'image :"
+msgstr "Complete the labels on the image:"
+
+msgid "Image non disponible."
+msgstr "Image not available."
+
+msgid "Clique sur la zone :"
+msgstr "Click on the area:"
+
+msgid "Zone %(n)s / %(total)s"
+msgstr "Area %(n)s / %(total)s"
+
+msgid "Annuler le dernier clic"
+msgstr "Undo last click"
+
+msgid "Trace la courbe :"
+msgstr "Draw the curve:"
+
+msgid "Déplace les <strong>3 points</strong> pour tracer la courbe."
+msgstr "Move the <strong>3 points</strong> to draw the curve."
+
+msgid "Trouve l'expression de la fonction représentée sur le graphique."
+msgstr "Find the expression of the function shown on the graph."
+
+msgid "Trace la droite :"
+msgstr "Draw the line:"
+
+msgid "Déplace les <strong>2 points</strong> pour tracer la droite."
+msgstr "Move the <strong>2 points</strong> to draw the line."
+
+msgid "Bravo ! Bonne réponse !"
+msgstr "Well done! Correct answer!"
+
+msgid "Pas tout à fait... Essaie encore la prochaine fois !"
+msgstr "Not quite... Try again next time!"
+
+msgid "Valider ma réponse"
+msgstr "Submit my answer"
+
+msgid "Mission terminée !"
+msgstr "Mission complete!"
+
+msgid "XP gagnés"
+msgstr "XP earned"
+
+msgid "Badge débloqué !"
+msgstr "Badge unlocked!"
+
+msgid "Tu n'as pas terminé la mission !\n\nSi tu quittes maintenant, tu obtiendras 0 XP et tu devras attendre 24h avant de pouvoir la refaire.\n\nEs-tu sûr de vouloir abandonner ?"
+msgstr "You haven't finished the mission!\n\nIf you leave now, you'll get 0 XP and you'll have to wait 24h before you can retry.\n\nAre you sure you want to give up?"
+
+msgid "Tu dois répondre à la question avant de valider !"
+msgstr "You must answer the question before submitting!"
+
+msgid "Vérification..."
+msgstr "Checking..."
+
+msgid "Terminer la mission"
+msgstr "Finish the mission"
+
+msgid "Question suivante"
+msgstr "Next question"
+
+msgid "Erreur de connexion"
+msgstr "Connection error"
+
+msgid "Erreur"
+msgstr "Error"
+
+msgid "Envoi..."
+msgstr "Sending..."
+
+msgid "Question {n} / {total}"
+msgstr "Question {n} / {total}"
+
+msgid "Bonne réponse :"
+msgstr "Correct answer:"
+
+msgid "Réponse correcte"
+msgstr "Correct answer"
+
+msgid "{score}/{max} points — {correct}/{total} bonnes réponses"
+msgstr "{score}/{max} points — {correct}/{total} correct answers"
+
+msgid "Bonus combo : +{xp} XP"
+msgstr "Combo bonus: +{xp} XP"
+
+msgid "Zone {n} / {total}"
+msgstr "Area {n} / {total}"
+
+msgid "Toutes les zones placées !"
+msgstr "All areas placed!"
+
+msgid "Prêt à valider"
+msgstr "Ready to submit"
+
+msgid "DOUBLE !"
+msgstr "DOUBLE!"
+
+msgid "TRIPLE !"
+msgstr "TRIPLE!"
+
+msgid "INCROYABLE !"
+msgstr "INCREDIBLE!"
+
+msgid "LÉGENDAIRE !"
+msgstr "LEGENDARY!"
+
+msgid "RATÉ !"
+msgstr "MISSED!"
+
+msgid "OUPS !"
+msgstr "OOPS!"
+
+msgid "DOMMAGE !"
+msgstr "TOO BAD!"
+
+msgid "PRESQUE !"
+msgstr "ALMOST!"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."
