@@ -3132,6 +3132,11 @@ ENTRIES = [
      "pasos",
      "Schritte",
      "passaggi"),
+    ("Chargement du calendrier…",
+     "Loading calendar…",
+     "Cargando el calendario…",
+     "Kalender wird geladen…",
+     "Caricamento del calendario…"),
 ]
 
 # Pluriels : (msgid_singulier, msgid_pluriel, {lang: (singulier, pluriel)})

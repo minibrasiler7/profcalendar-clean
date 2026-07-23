@@ -1902,6 +1902,9 @@ msgstr "Mostra tutte le funzioni"
 msgid "étapes"
 msgstr "passaggi"
 
+msgid "Chargement du calendrier…"
+msgstr "Caricamento del calendario…"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
