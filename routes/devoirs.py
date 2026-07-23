@@ -242,6 +242,35 @@ def delete_devoir(devoir_id):
     return jsonify({'success': True})
 
 
+@devoirs_bp.route('/<int:devoir_id>', methods=['PUT'])
+@login_required
+@teacher_required
+def update_devoir(devoir_id):
+    """Modifie un devoir existant : titre, consignes, date de rendu.
+
+    Le type (à rendre / exercice) et l'exercice associé ne sont PAS modifiables :
+    cela impliquerait de recréer la publication et pourrait orpheliner les
+    rendus déjà déposés. Le document joint se remplace via l'endpoint dédié."""
+    devoir = Devoir.query.filter_by(id=devoir_id, user_id=current_user.id).first()
+    if not devoir:
+        return jsonify({'success': False, 'error': 'Devoir introuvable'}), 404
+
+    data = request.get_json(silent=True) or {}
+    title = (data.get('title') or '').strip()
+    if not title:
+        return jsonify({'success': False, 'error': 'Titre manquant'}), 400
+    try:
+        due_date = datetime.strptime(data.get('due_date'), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Date de rendu invalide'}), 400
+
+    devoir.title = title
+    devoir.instructions = ((data.get('instructions') or '').strip() or None)
+    devoir.due_date = due_date
+    db.session.commit()
+    return jsonify({'success': True, 'devoir': devoir.to_dict()})
+
+
 # ============================================================
 # PHASE 4 — Correction des rendus (côté enseignant)
 # ============================================================

@@ -1437,14 +1437,14 @@ input, textarea, select {
                      onclick="if (event.target === this) closeDevoirModal()">
                     <div class="devoir-modal">
                         <div class="devoir-modal-head">
-                            <strong><i class="fas fa-book"></i> Nouveau devoir</strong>
+                            <strong id="devoirModalTitle"><i class="fas fa-book"></i> Nouveau devoir</strong>
                             <button type="button" class="devoir-modal-close" onclick="closeDevoirModal()" aria-label="Fermer">&times;</button>
                         </div>
                         <label class="devoir-field">
                             <span>Titre</span>
                             <input type="text" id="devoirTitle" placeholder="Ex : Exercices p. 42 n° 1 à 5">
                         </label>
-                        <div class="devoir-field">
+                        <div class="devoir-field" id="devoirTypeField">
                             <span>Type de devoir</span>
                             <div class="devoir-types">
                                 <label><input type="radio" name="devoirType" value="submission" checked onchange="onDevoirTypeChange()"> À rendre (l'élève envoie une photo)</label>
@@ -1467,6 +1467,7 @@ input, textarea, select {
                             <span>Document pour les élèves (facultatif)</span>
                             <input type="file" id="devoirDocument"
                                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.ppt,.pptx,.xls,.xlsx">
+                            <small id="devoirDocHint" style="display:none; font-size:0.72rem; color:#6B7280; font-weight:normal;"></small>
                         </label>
                         <div class="devoir-modal-actions">
                             <button type="button" class="btn-devoir-outline" onclick="closeDevoirModal()">Annuler</button>
@@ -1494,6 +1495,8 @@ input, textarea, select {
                     .devoir-item-meta { font-size: 0.72rem; color: #6B7280; }
                     .devoir-item-view { background: none; border: none; color: #6366F1; cursor: pointer; padding: 0.25rem; flex-shrink: 0; text-decoration: none; display: inline-flex; }
                     .devoir-item-view:hover { color: #4F46E5; }
+                    .devoir-item-edit { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 0.25rem; flex-shrink: 0; }
+                    .devoir-item-edit:hover { color: #4F46E5; }
                     .devoir-item-del { background: none; border: none; color: #9CA3AF; cursor: pointer; padding: 0.25rem; flex-shrink: 0; }
                     .devoir-item-del:hover { color: #DC2626; }
                     .devoir-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 3000; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 1rem 1rem; }
@@ -1522,6 +1525,24 @@ input, textarea, select {
                     function fmtDate(iso) { if (!iso) return ''; const p = iso.split('-').map(Number); return `${p[2]} ${MONTHS[p[1]]}`; }
                     function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+                    // Mode de la modale : null = création, sinon id du devoir édité.
+                    let editingId = null;
+                    // Devoirs actuellement affichés, indexés par id (pour l'édition).
+                    let devoirsById = {};
+
+                    function updateDocHint(d) {
+                        const h = document.getElementById('devoirDocHint');
+                        if (!h) return;
+                        if (d && d.has_document) {
+                            h.textContent = 'Document actuel : ' + (d.document_name || 'fichier')
+                                + ' — en choisir un nouveau le remplacera.';
+                            h.style.display = 'block';
+                        } else {
+                            h.textContent = '';
+                            h.style.display = 'none';
+                        }
+                    }
+
                     window.onDevoirTypeChange = function () {
                         const t = document.querySelector('input[name="devoirType"]:checked').value;
                         document.getElementById('devoirExerciseField').style.display = (t === 'exercise') ? 'flex' : 'none';
@@ -1535,9 +1556,15 @@ input, textarea, select {
                         // position:fixed et la modale apparaît plus bas (il faut scroller).
                         const modalEl = document.getElementById('devoirModal');
                         if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
+                        // Mode création : réinitialiser l'UI (au cas où la modale a servi à éditer).
+                        editingId = null;
+                        document.getElementById('devoirModalTitle').innerHTML = '<i class="fas fa-book"></i> Nouveau devoir';
+                        document.getElementById('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> Créer';
+                        document.getElementById('devoirTypeField').style.display = '';
                         document.getElementById('devoirTitle').value = '';
                         document.getElementById('devoirInstructions').value = '';
                         const df0 = document.getElementById('devoirDocument'); if (df0) df0.value = '';
+                        updateDocHint(null);
                         document.querySelector('input[name="devoirType"][value="submission"]').checked = true;
                         onDevoirTypeChange();
                         const dd = document.getElementById('devoirDueDate');
@@ -1558,42 +1585,91 @@ input, textarea, select {
                         } catch (e) {}
                     };
 
+                    // Ouvre la modale en mode ÉDITION, pré-remplie avec le devoir choisi.
+                    // Type et exercice non modifiables (champs masqués) ; on édite
+                    // titre, date de rendu, consignes et éventuellement le document.
+                    window.openDevoirModalForEdit = async function (id) {
+                        const d = devoirsById[id];
+                        if (!d) return;
+                        const { cid } = ctx();
+                        if (!cid) { showNotification('error', 'Aucune classe pour ce cours.'); return; }
+                        const modalEl = document.getElementById('devoirModal');
+                        if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
+                        editingId = id;
+                        document.getElementById('devoirModalTitle').innerHTML = '<i class="fas fa-pen"></i> Modifier le devoir';
+                        document.getElementById('devoirSaveBtn').innerHTML = '<i class="fas fa-check"></i> Enregistrer';
+                        document.getElementById('devoirTypeField').style.display = 'none';
+                        document.getElementById('devoirExerciseField').style.display = 'none';
+                        document.getElementById('devoirTitle').value = d.title || '';
+                        document.getElementById('devoirInstructions').value = d.instructions || '';
+                        const df0 = document.getElementById('devoirDocument'); if (df0) df0.value = '';
+                        updateDocHint(d);
+                        const dd = document.getElementById('devoirDueDate');
+                        dd.innerHTML = '<option value="">Chargement…</option>';
+                        document.getElementById('devoirModal').style.display = 'flex';
+                        try {
+                            const j = await (await fetch('/api/devoirs/suggest-dates?classroom_id=' + cid)).json();
+                            const dates = (j.success && j.dates) ? j.dates.slice() : [];
+                            // Garantir que la date de rendu actuelle est présente et sélectionnée
+                            // (elle peut être passée, donc absente des prochains cours).
+                            if (d.due_date && !dates.some(x => x.date === d.due_date)) {
+                                dates.unshift({ date: d.due_date, label: fmtDate(d.due_date) + ' (date actuelle)' });
+                            }
+                            dd.innerHTML = dates.length
+                                ? dates.map(x => `<option value="${x.date}"${x.date === d.due_date ? ' selected' : ''}>${x.label}</option>`).join('')
+                                : '<option value="">Aucune date de cours à venir</option>';
+                        } catch (e) { dd.innerHTML = '<option value="">Erreur de chargement</option>'; }
+                    };
+
                     window.closeDevoirModal = function () { document.getElementById('devoirModal').style.display = 'none'; };
 
                     window.submitDevoir = async function () {
                         const { cid } = ctx();
                         const title = document.getElementById('devoirTitle').value.trim();
-                        const type = document.querySelector('input[name="devoirType"]:checked').value;
                         const due = document.getElementById('devoirDueDate').value;
+                        const instructions = document.getElementById('devoirInstructions').value.trim();
                         if (!title) { showNotification('error', 'Donne un titre au devoir.'); return; }
                         if (!due) { showNotification('error', 'Choisis une date de rendu.'); return; }
-                        const body = { classroom_id: cid, type: type, title: title, due_date: due,
-                                       instructions: document.getElementById('devoirInstructions').value.trim() };
-                        if (type === 'exercise') {
-                            const ev = document.getElementById('devoirExercise').value;
-                            if (!ev) { showNotification('error', 'Choisis un exercice interactif.'); return; }
-                            body.exercise_id = ev;
-                        }
+
                         const btn = document.getElementById('devoirSaveBtn'); btn.disabled = true;
                         try {
-                            const j = await (await fetch('/api/devoirs/create', { method: 'POST',
-                                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
-                            if (j.success) {
-                                // Document joint (facultatif) : uploadé après la création.
-                                const df = document.getElementById('devoirDocument');
-                                if (df && df.files && df.files.length) {
-                                    try {
-                                        const fd = new FormData();
-                                        fd.append('document', df.files[0]);
-                                        const uj = await (await fetch('/api/devoirs/' + j.devoir.id + '/document',
-                                            { method: 'POST', body: fd })).json();
-                                        if (!uj.success) showNotification('error', 'Devoir créé, mais document non joint : ' + (uj.error || ''));
-                                    } catch (e2) { showNotification('error', 'Devoir créé, mais document non joint (réseau)'); }
+                            let devoirId;
+                            if (editingId) {
+                                // ÉDITION : titre / date / consignes (type et exercice inchangés).
+                                const j = await (await fetch('/api/devoirs/' + editingId, { method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ title, due_date: due, instructions }) })).json();
+                                if (!j.success) { showNotification('error', j.error || 'Erreur'); return; }
+                                devoirId = editingId;
+                            } else {
+                                // CRÉATION.
+                                const type = document.querySelector('input[name="devoirType"]:checked').value;
+                                const body = { classroom_id: cid, type: type, title: title, due_date: due, instructions: instructions };
+                                if (type === 'exercise') {
+                                    const ev = document.getElementById('devoirExercise').value;
+                                    if (!ev) { showNotification('error', 'Choisis un exercice interactif.'); return; }
+                                    body.exercise_id = ev;
                                 }
-                                showNotification('success', 'Devoir créé');
-                                closeDevoirModal(); loadDevoirs();
+                                const j = await (await fetch('/api/devoirs/create', { method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+                                if (!j.success) { showNotification('error', j.error || 'Erreur'); return; }
+                                devoirId = j.devoir.id;
                             }
-                            else { showNotification('error', j.error || 'Erreur'); }
+
+                            // Document joint (création OU édition) : si un fichier est choisi,
+                            // on l'envoie (il remplace l'éventuel document existant).
+                            const df = document.getElementById('devoirDocument');
+                            if (df && df.files && df.files.length) {
+                                try {
+                                    const fd = new FormData();
+                                    fd.append('document', df.files[0]);
+                                    const uj = await (await fetch('/api/devoirs/' + devoirId + '/document',
+                                        { method: 'POST', body: fd })).json();
+                                    if (!uj.success) showNotification('error', 'Enregistré, mais document non joint : ' + (uj.error || ''));
+                                } catch (e2) { showNotification('error', 'Enregistré, mais document non joint (réseau)'); }
+                            }
+                            showNotification('success', editingId ? 'Devoir modifié' : 'Devoir créé');
+                            closeDevoirModal(); loadDevoirs();
                         } catch (e) { showNotification('error', 'Erreur réseau'); }
                         finally { btn.disabled = false; }
                     };
@@ -1616,6 +1692,8 @@ input, textarea, select {
                                 + (date ? '&context_date=' + date : ''))).json();
                             if (!j.success) return;
                             const items = j.devoirs || [];
+                            devoirsById = {};
+                            items.forEach(d => { devoirsById[d.id] = d; });
                             if (!items.length) { list.innerHTML = '<div class="devoirs-empty">Aucun devoir pour cette classe.</div>'; return; }
                             list.innerHTML = items.map(d => {
                                 const today = date && d.due_date === date;
@@ -1626,6 +1704,7 @@ input, textarea, select {
                                         <span class="devoir-item-meta">${d.type === 'exercise' ? 'Exercice · ' : ''}à rendre le ${fmtDate(d.due_date)}${today ? " · aujourd'hui" : ''}${d.has_document ? ' · <i class="fas fa-paperclip" title="Document joint"></i>' : ''}</span>
                                     </div>
                                     ${d.type === 'submission' ? `<a class="devoir-item-view" title="Voir les rendus" href="/planning/devoir/${d.id}/submissions"><i class="fas fa-inbox"></i></a>` : `<a class="devoir-item-view" title="Voir les résultats" href="/planning/devoir/${d.id}/resultats"><i class="fas fa-chart-simple"></i></a>`}
+                                    <button type="button" class="devoir-item-edit" title="Modifier" onclick="openDevoirModalForEdit(${d.id})"><i class="fas fa-pen"></i></button>
                                     <button type="button" class="devoir-item-del" title="Supprimer" onclick="deleteDevoirItem(${d.id})"><i class="fas fa-trash"></i></button>
                                 </div>`;
                             }).join('');
