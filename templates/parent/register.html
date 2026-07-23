@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription Parent - ProfCalendar</title>
+    <title>{{ _('Inscription Parent') }} - ProfCalendar</title>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,8 +19,8 @@
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-user-plus auth-icon"></i>
-            <h1 class="auth-title">Créer un compte</h1>
-            <p class="auth-subtitle">Rejoignez l'espace parents pour suivre vos enfants</p>
+            <h1 class="auth-title">{{ _('Créer un compte') }}</h1>
+            <p class="auth-subtitle">{{ _("Rejoignez l'espace parents pour suivre vos enfants") }}</p>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -35,32 +35,32 @@
         
         <form method="POST" action="{{ url_for('parent_auth.register') }}" class="auth-form">
             <div class="form-group">
-                <label for="first_name" class="form-label">Prénom</label>
+                <label for="first_name" class="form-label">{{ _('Prénom') }}</label>
                 <div class="input-group">
                     <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="first_name" name="first_name" class="form-control" placeholder="Votre prénom">
+                    <input type="text" id="first_name" name="first_name" class="form-control" placeholder="{{ _('Votre prénom') }}">
                 </div>
             </div>
             
             <div class="form-group">
-                <label for="last_name" class="form-label">Nom</label>
+                <label for="last_name" class="form-label">{{ _('Nom') }}</label>
                 <div class="input-group">
                     <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="last_name" name="last_name" class="form-control" placeholder="Votre nom">
+                    <input type="text" id="last_name" name="last_name" class="form-control" placeholder="{{ _('Votre nom') }}">
                 </div>
             </div>
             
             <div class="form-group">
-                <label for="email" class="form-label">Email</label>
+                <label for="email" class="form-label">{{ _('Email') }}</label>
                 <div class="input-group">
                     <i class="fas fa-envelope input-icon"></i>
-                    <input type="email" id="email" name="email" class="form-control" placeholder="votre@email.com" required>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="{{ _('votre@email.com') }}" required>
                 </div>
-                <small class="form-text text-muted">Utilisez l'email renseigné dans le dossier scolaire de votre enfant</small>
+                <small class="form-text text-muted">{{ _("Utilisez l'email renseigné dans le dossier scolaire de votre enfant") }}</small>
             </div>
             
             <div class="form-group">
-                <label for="password" class="form-label">Mot de passe</label>
+                <label for="password" class="form-label">{{ _('Mot de passe') }}</label>
                 <div class="input-group">
                     <i class="fas fa-lock input-icon"></i>
                     <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
@@ -68,17 +68,17 @@
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
-                <small class="form-text text-muted">Minimum 6 caractères</small>
+                <small class="form-text text-muted">{{ _('Minimum 6 caractères') }}</small>
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-block">Créer mon compte</button>
+                <button type="submit" class="btn btn-primary btn-block">{{ _('Créer mon compte') }}</button>
             </div>
         </form>
         
         <div class="auth-footer">
-            <p>Déjà un compte ? <a href="{{ url_for('parent_auth.login') }}">Se connecter</a></p>
-            <p><a href="{{ url_for('auth.login') }}">Vous êtes enseignant ?</a></p>
+            <p>{{ _('Déjà un compte ?') }} <a href="{{ url_for('parent_auth.login') }}">{{ _('Se connecter') }}</a></p>
+            <p><a href="{{ url_for('auth.login') }}">{{ _('Vous êtes enseignant ?') }}</a></p>
         </div>
     </div>
 </div>

@@ -1,6 +1,6 @@
 {% extends "parent/base.html" %}
 
-{% block title %}Ajouter un enfant - ProfCalendar{% endblock %}
+{% block title %}{{ _('Ajouter un enfant') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="add-child-container">
@@ -8,10 +8,10 @@
         <div class="header-content">
             <h1>
                 <i class="fas fa-user-plus"></i>
-                Ajouter un enfant
+                {{ _('Ajouter un enfant') }}
             </h1>
             <p class="subtitle">
-                Liez-vous à une autre classe pour accéder aux informations d'un enfant supplémentaire
+                {{ _("Liez-vous à une autre classe pour accéder aux informations d'un enfant supplémentaire") }}
             </p>
         </div>
     </div>
@@ -22,48 +22,48 @@
                 <div class="form-group">
                     <label for="teacher_name" class="form-label">
                         <i class="fas fa-chalkboard-teacher"></i>
-                        Nom de l'enseignant
+                        {{ _("Nom de l'enseignant") }}
                     </label>
                     <input 
                         type="text" 
                         id="teacher_name" 
                         name="teacher_name" 
                         class="form-control" 
-                        placeholder="Nom d'utilisateur ou email de l'enseignant"
+                        placeholder="{{ _("Nom d'utilisateur ou email de l'enseignant") }}"
                         required
                     >
                     <small class="form-text">
-                        Saisissez le nom d'utilisateur ou l'email de l'enseignant de votre enfant
+                        {{ _("Saisissez le nom d'utilisateur ou l'email de l'enseignant de votre enfant") }}
                     </small>
                 </div>
 
                 <div class="form-group">
                     <label for="class_code" class="form-label">
                         <i class="fas fa-key"></i>
-                        Code de classe
+                        {{ _('Code de classe') }}
                     </label>
                     <input 
                         type="text" 
                         id="class_code" 
                         name="class_code" 
                         class="form-control" 
-                        placeholder="Ex: ABC123"
+                        placeholder="{{ _('Ex: ABC123') }}"
                         required
                         style="text-transform: uppercase;"
                     >
                     <small class="form-text">
-                        Demandez le code de classe à l'enseignant de votre enfant
+                        {{ _("Demandez le code de classe à l'enseignant de votre enfant") }}
                     </small>
                 </div>
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-link"></i>
-                        Ajouter l'enfant
+                        {{ _("Ajouter l'enfant") }}
                     </button>
                     <a href="{{ url_for('parent_auth.dashboard') }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i>
-                        Retour au tableau de bord
+                        {{ _('Retour au tableau de bord') }}
                     </a>
                 </div>
             </form>
@@ -73,13 +73,13 @@
             <div class="info-card">
                 <h3>
                     <i class="fas fa-info-circle"></i>
-                    Comment ça fonctionne ?
+                    {{ _('Comment ça fonctionne ?') }}
                 </h3>
                 <ul>
-                    <li>Chaque enseignant possède un code de classe unique</li>
-                    <li>Votre email doit figurer dans le dossier de l'élève</li>
-                    <li>Une fois lié, vous pourrez voir les informations de tous vos enfants depuis un seul compte</li>
-                    <li>Chaque enfant peut être dans une classe différente avec un enseignant différent</li>
+                    <li>{{ _('Chaque enseignant possède un code de classe unique') }}</li>
+                    <li>{{ _("Votre email doit figurer dans le dossier de l'élève") }}</li>
+                    <li>{{ _('Une fois lié, vous pourrez voir les informations de tous vos enfants depuis un seul compte') }}</li>
+                    <li>{{ _('Chaque enfant peut être dans une classe différente avec un enseignant différent') }}</li>
                 </ul>
             </div>
         </div>

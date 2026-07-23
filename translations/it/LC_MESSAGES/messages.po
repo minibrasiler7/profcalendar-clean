@@ -2328,6 +2328,123 @@ msgstr "PECCATO!"
 msgid "PRESQUE !"
 msgstr "QUASI!"
 
+msgid "Connexion Parent"
+msgstr "Accesso genitore"
+
+msgid "Connectez-vous pour suivre la scolarité de vos enfants"
+msgstr "Accedi per seguire il percorso scolastico dei tuoi figli"
+
+msgid "votre@email.com"
+msgstr "tua@email.com"
+
+msgid "Vous êtes enseignant ?"
+msgstr "Sei un insegnante?"
+
+msgid "Inscription Parent"
+msgstr "Registrazione genitore"
+
+msgid "Rejoignez l'espace parents pour suivre vos enfants"
+msgstr "Unisciti all'area genitori per seguire i tuoi figli"
+
+msgid "Prénom"
+msgstr "Nome"
+
+msgid "Votre prénom"
+msgstr "Il tuo nome"
+
+msgid "Nom"
+msgstr "Cognome"
+
+msgid "Votre nom"
+msgstr "Il tuo cognome"
+
+msgid "Utilisez l'email renseigné dans le dossier scolaire de votre enfant"
+msgstr "Usa l'email indicata nel fascicolo scolastico di tuo figlio"
+
+msgid "Minimum 6 caractères"
+msgstr "Minimo 6 caratteri"
+
+msgid "Lier à un enseignant"
+msgstr "Collega a un insegnante"
+
+msgid "Liaison avec l'enseignant"
+msgstr "Collegamento con l'insegnante"
+
+msgid "Entrez les informations de l'enseignant de votre enfant"
+msgstr "Inserisci le informazioni dell'insegnante di tuo figlio"
+
+msgid "Informations nécessaires :"
+msgstr "Informazioni necessarie:"
+
+msgid "Le nom d'utilisateur ou l'email de l'enseignant"
+msgstr "Il nome utente o l'email dell'insegnante"
+
+msgid "Le code de classe fourni par l'enseignant"
+msgstr "Il codice classe fornito dall'insegnante"
+
+msgid "Votre email doit correspondre à celui du dossier scolaire"
+msgstr "La tua email deve corrispondere a quella del fascicolo scolastico"
+
+msgid "Nom d'utilisateur de l'enseignant"
+msgstr "Nome utente dell'insegnante"
+
+msgid "Nom d'utilisateur ou email"
+msgstr "Nome utente o email"
+
+msgid "Entrez le nom d'utilisateur ou l'email de l'enseignant"
+msgstr "Inserisci il nome utente o l'email dell'insegnante"
+
+msgid "Code de classe"
+msgstr "Codice classe"
+
+msgid "Code fourni par l'enseignant"
+msgstr "Codice fornito dall'insegnante"
+
+msgid "Code unique fourni par l'enseignant (ex: ABC123)"
+msgstr "Codice unico fornito dall'insegnante (es: ABC123)"
+
+msgid "Valider la liaison"
+msgstr "Conferma il collegamento"
+
+msgid "Ajouter un enfant"
+msgstr "Aggiungi un bambino"
+
+msgid "Liez-vous à une autre classe pour accéder aux informations d'un enfant supplémentaire"
+msgstr "Collegati a un'altra classe per accedere alle informazioni di un altro figlio"
+
+msgid "Nom de l'enseignant"
+msgstr "Nome dell'insegnante"
+
+msgid "Nom d'utilisateur ou email de l'enseignant"
+msgstr "Nome utente o email dell'insegnante"
+
+msgid "Saisissez le nom d'utilisateur ou l'email de l'enseignant de votre enfant"
+msgstr "Inserisci il nome utente o l'email dell'insegnante di tuo figlio"
+
+msgid "Ex: ABC123"
+msgstr "es: ABC123"
+
+msgid "Demandez le code de classe à l'enseignant de votre enfant"
+msgstr "Chiedi il codice classe all'insegnante di tuo figlio"
+
+msgid "Ajouter l'enfant"
+msgstr "Aggiungi il bambino"
+
+msgid "Comment ça fonctionne ?"
+msgstr "Come funziona?"
+
+msgid "Chaque enseignant possède un code de classe unique"
+msgstr "Ogni insegnante ha un codice classe unico"
+
+msgid "Votre email doit figurer dans le dossier de l'élève"
+msgstr "La tua email deve figurare nel fascicolo dell'alunno"
+
+msgid "Une fois lié, vous pourrez voir les informations de tous vos enfants depuis un seul compte"
+msgstr "Una volta collegato, potrai vedere le informazioni di tutti i tuoi figli da un unico account"
+
+msgid "Chaque enfant peut être dans une classe différente avec un enseignant différent"
+msgstr "Ogni bambino può essere in una classe diversa con un insegnante diverso"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

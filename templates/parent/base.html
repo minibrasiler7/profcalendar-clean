@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Espace Parents - ProfCalendar{% endblock %}</title>
+    <title>{% block title %}{{ _('Espace Parents') }} - ProfCalendar{% endblock %}</title>
 
     {% include 'includes/favicon.html' %}
 
@@ -93,13 +93,13 @@
         <div class="nav-container">
             <div class="nav-brand">
                 <i class="fas fa-users"></i>
-                <span>Espace Parents</span>
+                <span>{{ _('Espace Parents') }}</span>
             </div>
 
             {% if current_user.is_authenticated %}
             <div class="nav-menu">
                 <a href="{{ url_for('parent_auth.dashboard') }}" class="nav-link {% if request.endpoint == 'parent_auth.dashboard' %}active{% endif %}">
-                    <i class="fas fa-home"></i> Tableau de bord
+                    <i class="fas fa-home"></i> {{ _('Tableau de bord') }}
                 </a>
             </div>
 
@@ -113,7 +113,7 @@
                     <div class="user-menu">
                         <a href="{{ url_for('parent_auth.logout') }}" class="user-menu-item">
                             <i class="fas fa-sign-out-alt"></i>
-                            Déconnexion
+                            {{ _('Déconnexion') }}
                         </a>
                     </div>
                 </div>

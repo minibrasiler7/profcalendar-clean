@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion Parent - ProfCalendar</title>
+    <title>{{ _('Connexion Parent') }} - ProfCalendar</title>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,8 +20,8 @@
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-users auth-icon"></i>
-            <h1 class="auth-title">Espace Parents</h1>
-            <p class="auth-subtitle">Connectez-vous pour suivre la scolarité de vos enfants</p>
+            <h1 class="auth-title">{{ _('Espace Parents') }}</h1>
+            <p class="auth-subtitle">{{ _('Connectez-vous pour suivre la scolarité de vos enfants') }}</p>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -36,15 +36,15 @@
         
         <form method="POST" action="{{ url_for('parent_auth.login') }}" class="auth-form">
             <div class="form-group">
-                <label for="email" class="form-label">Email</label>
+                <label for="email" class="form-label">{{ _('Email') }}</label>
                 <div class="input-group">
                     <i class="fas fa-envelope input-icon"></i>
-                    <input type="email" id="email" name="email" class="form-control" placeholder="votre@email.com" required>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="{{ _('votre@email.com') }}" required>
                 </div>
             </div>
             
             <div class="form-group">
-                <label for="password" class="form-label">Mot de passe</label>
+                <label for="password" class="form-label">{{ _('Mot de passe') }}</label>
                 <div class="input-group">
                     <i class="fas fa-lock input-icon"></i>
                     <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
@@ -55,19 +55,19 @@
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+                <button type="submit" class="btn btn-primary btn-block">{{ _('Se connecter') }}</button>
             </div>
         </form>
         
         <div class="auth-footer">
-            <p>Pas encore de compte ? <a href="{{ url_for('parent_auth.register') }}">Créer un compte</a></p>
+            <p>{{ _('Pas encore de compte ?') }} <a href="{{ url_for('parent_auth.register') }}">{{ _('Créer un compte') }}</a></p>
             <div class="platform-links">
-                <p>Autres plateformes :</p>
+                <p>{{ _('Autres plateformes :') }}</p>
                 <a href="{{ url_for('auth.login') }}" class="platform-link">
-                    <i class="fas fa-chalkboard-teacher"></i> Espace Enseignant
+                    <i class="fas fa-chalkboard-teacher"></i> {{ _('Espace Enseignant') }}
                 </a>
                 <a href="{{ url_for('student_auth.login') }}" class="platform-link">
-                    <i class="fas fa-graduation-cap"></i> Espace Élève
+                    <i class="fas fa-graduation-cap"></i> {{ _('Espace Élève') }}
                 </a>
             </div>
         </div>

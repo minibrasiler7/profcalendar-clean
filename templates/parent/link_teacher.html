@@ -1,14 +1,14 @@
 {% extends "parent/base.html" %}
 
-{% block title %}Lier à un enseignant - ProfCalendar{% endblock %}
+{% block title %}{{ _('Lier à un enseignant') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
             <i class="fas fa-link auth-icon"></i>
-            <h1 class="auth-title">Liaison avec l'enseignant</h1>
-            <p class="auth-subtitle">Entrez les informations de l'enseignant de votre enfant</p>
+            <h1 class="auth-title">{{ _("Liaison avec l'enseignant") }}</h1>
+            <p class="auth-subtitle">{{ _("Entrez les informations de l'enseignant de votre enfant") }}</p>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -24,43 +24,43 @@
         <div class="info-box">
             <i class="fas fa-info-circle"></i>
             <div>
-                <strong>Informations nécessaires :</strong>
+                <strong>{{ _('Informations nécessaires :') }}</strong>
                 <ul>
-                    <li>Le nom d'utilisateur ou l'email de l'enseignant</li>
-                    <li>Le code de classe fourni par l'enseignant</li>
-                    <li>Votre email doit correspondre à celui du dossier scolaire</li>
+                    <li>{{ _("Le nom d'utilisateur ou l'email de l'enseignant") }}</li>
+                    <li>{{ _("Le code de classe fourni par l'enseignant") }}</li>
+                    <li>{{ _('Votre email doit correspondre à celui du dossier scolaire') }}</li>
                 </ul>
             </div>
         </div>
         
         <form method="POST" action="{{ url_for('parent_auth.link_teacher') }}" class="auth-form">
             <div class="form-group">
-                <label for="teacher_name" class="form-label">Nom d'utilisateur de l'enseignant</label>
+                <label for="teacher_name" class="form-label">{{ _("Nom d'utilisateur de l'enseignant") }}</label>
                 <div class="input-group">
                     <i class="fas fa-chalkboard-teacher input-icon"></i>
                     <input type="text" id="teacher_name" name="teacher_name" class="form-control" 
-                           placeholder="Nom d'utilisateur ou email" required>
+                           placeholder="{{ _("Nom d'utilisateur ou email") }}" required>
                 </div>
-                <small class="form-text text-muted">Entrez le nom d'utilisateur ou l'email de l'enseignant</small>
+                <small class="form-text text-muted">{{ _("Entrez le nom d'utilisateur ou l'email de l'enseignant") }}</small>
             </div>
             
             <div class="form-group">
-                <label for="class_code" class="form-label">Code de classe</label>
+                <label for="class_code" class="form-label">{{ _('Code de classe') }}</label>
                 <div class="input-group">
                     <i class="fas fa-key input-icon"></i>
                     <input type="text" id="class_code" name="class_code" class="form-control" 
-                           placeholder="Code fourni par l'enseignant" required style="text-transform: uppercase;">
+                           placeholder="{{ _("Code fourni par l'enseignant") }}" required style="text-transform: uppercase;">
                 </div>
-                <small class="form-text text-muted">Code unique fourni par l'enseignant (ex: ABC123)</small>
+                <small class="form-text text-muted">{{ _("Code unique fourni par l'enseignant (ex: ABC123)") }}</small>
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-block">Valider la liaison</button>
+                <button type="submit" class="btn btn-primary btn-block">{{ _('Valider la liaison') }}</button>
             </div>
         </form>
         
         <div class="auth-footer">
-            <p><a href="{{ url_for('parent_auth.logout') }}">Se déconnecter</a></p>
+            <p><a href="{{ url_for('parent_auth.logout') }}">{{ _('Se déconnecter') }}</a></p>
         </div>
     </div>
 </div>
