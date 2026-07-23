@@ -2085,6 +2085,75 @@ msgstr "Your teacher hasn't published any exercises yet."
 msgid "Prêt !"
 msgstr "Ready!"
 
+msgid "Connexion Élève"
+msgstr "Student Login"
+
+msgid "Connectez-vous pour accéder à vos notes"
+msgstr "Log in to access your grades"
+
+msgid "votre.email@exemple.com"
+msgstr "your.email@example.com"
+
+msgid "Autres plateformes"
+msgstr "Other platforms"
+
+msgid "Espace Parents"
+msgstr "Parents area"
+
+msgid "Espace Enseignants"
+msgstr "Teachers area"
+
+msgid "Inscription Élève"
+msgstr "Student Registration"
+
+msgid "Créer mon compte"
+msgstr "Create my account"
+
+msgid "Inscription pour les élèves"
+msgstr "Registration for students"
+
+msgid "Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "You must have received a class access code from your teacher. Use the email your teacher registered for you."
+
+msgid "Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Use the email your teacher registered for you."
+
+msgid "Déjà un compte ?"
+msgstr "Already have an account?"
+
+msgid "Vérification du code"
+msgstr "Code verification"
+
+msgid "Vérification requise"
+msgstr "Verification required"
+
+msgid "Entrez votre code d'accès élève"
+msgstr "Enter your student access code"
+
+msgid "Pour des raisons de sécurité, vous devez entrer le code d'accès fourni par votre enseignant."
+msgstr "For security reasons, you must enter the access code provided by your teacher."
+
+msgid "Se déconnecter"
+msgstr "Log out"
+
+msgid "Expiré"
+msgstr "Expired"
+
+msgid "Code d'accès"
+msgstr "Access code"
+
+msgid "Valider"
+msgstr "Confirm"
+
+msgid "Email élève (celui donné à votre enseignant)"
+msgstr "Student email (the one given to your teacher)"
+
+msgid "Code d'accès fourni par votre enseignant"
+msgstr "Access code provided by your teacher"
+
+msgid "Le code doit contenir exactement 6 caractères"
+msgstr "The code must contain exactly 6 characters"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

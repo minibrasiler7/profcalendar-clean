@@ -2085,6 +2085,75 @@ msgstr "Il tuo insegnante non ha ancora pubblicato esercizi."
 msgid "Prêt !"
 msgstr "Pronto!"
 
+msgid "Connexion Élève"
+msgstr "Accesso studente"
+
+msgid "Connectez-vous pour accéder à vos notes"
+msgstr "Accedi per vedere i tuoi voti"
+
+msgid "votre.email@exemple.com"
+msgstr "tua.email@esempio.com"
+
+msgid "Autres plateformes"
+msgstr "Altre piattaforme"
+
+msgid "Espace Parents"
+msgstr "Area genitori"
+
+msgid "Espace Enseignants"
+msgstr "Area insegnanti"
+
+msgid "Inscription Élève"
+msgstr "Registrazione studente"
+
+msgid "Créer mon compte"
+msgstr "Crea il mio account"
+
+msgid "Inscription pour les élèves"
+msgstr "Registrazione per studenti"
+
+msgid "Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Devi aver ricevuto un codice d'accesso della classe dal tuo insegnante. Usa l'email che il tuo insegnante ha registrato per te."
+
+msgid "Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Usa l'email che il tuo insegnante ha registrato per te."
+
+msgid "Déjà un compte ?"
+msgstr "Hai già un account?"
+
+msgid "Vérification du code"
+msgstr "Verifica del codice"
+
+msgid "Vérification requise"
+msgstr "Verifica richiesta"
+
+msgid "Entrez votre code d'accès élève"
+msgstr "Inserisci il tuo codice d'accesso studente"
+
+msgid "Pour des raisons de sécurité, vous devez entrer le code d'accès fourni par votre enseignant."
+msgstr "Per motivi di sicurezza, devi inserire il codice d'accesso fornito dal tuo insegnante."
+
+msgid "Se déconnecter"
+msgstr "Disconnetti"
+
+msgid "Expiré"
+msgstr "Scaduto"
+
+msgid "Code d'accès"
+msgstr "Codice d'accesso"
+
+msgid "Valider"
+msgstr "Conferma"
+
+msgid "Email élève (celui donné à votre enseignant)"
+msgstr "Email studente (quella data al tuo insegnante)"
+
+msgid "Code d'accès fourni par votre enseignant"
+msgstr "Codice d'accesso fornito dal tuo insegnante"
+
+msgid "Le code doit contenir exactement 6 caractères"
+msgstr "Il codice deve contenere esattamente 6 caratteri"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

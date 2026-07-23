@@ -2085,6 +2085,75 @@ msgstr "Deine Lehrkraft hat noch keine Übungen veröffentlicht."
 msgid "Prêt !"
 msgstr "Bereit!"
 
+msgid "Connexion Élève"
+msgstr "Schüler-Login"
+
+msgid "Connectez-vous pour accéder à vos notes"
+msgstr "Melde dich an, um deine Noten zu sehen"
+
+msgid "votre.email@exemple.com"
+msgstr "deine.email@beispiel.com"
+
+msgid "Autres plateformes"
+msgstr "Andere Plattformen"
+
+msgid "Espace Parents"
+msgstr "Elternbereich"
+
+msgid "Espace Enseignants"
+msgstr "Lehrerbereich"
+
+msgid "Inscription Élève"
+msgstr "Schüler-Registrierung"
+
+msgid "Créer mon compte"
+msgstr "Konto erstellen"
+
+msgid "Inscription pour les élèves"
+msgstr "Registrierung für Schüler"
+
+msgid "Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Du musst einen Klassen-Zugangscode von deiner Lehrkraft erhalten haben. Verwende die E-Mail, die deine Lehrkraft für dich hinterlegt hat."
+
+msgid "Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Verwende die E-Mail, die deine Lehrkraft für dich hinterlegt hat."
+
+msgid "Déjà un compte ?"
+msgstr "Schon ein Konto?"
+
+msgid "Vérification du code"
+msgstr "Code-Überprüfung"
+
+msgid "Vérification requise"
+msgstr "Überprüfung erforderlich"
+
+msgid "Entrez votre code d'accès élève"
+msgstr "Gib deinen Schüler-Zugangscode ein"
+
+msgid "Pour des raisons de sécurité, vous devez entrer le code d'accès fourni par votre enseignant."
+msgstr "Aus Sicherheitsgründen musst du den von deiner Lehrkraft bereitgestellten Zugangscode eingeben."
+
+msgid "Se déconnecter"
+msgstr "Abmelden"
+
+msgid "Expiré"
+msgstr "Abgelaufen"
+
+msgid "Code d'accès"
+msgstr "Zugangscode"
+
+msgid "Valider"
+msgstr "Bestätigen"
+
+msgid "Email élève (celui donné à votre enseignant)"
+msgstr "Schüler-E-Mail (die du deiner Lehrkraft gegeben hast)"
+
+msgid "Code d'accès fourni par votre enseignant"
+msgstr "Von deiner Lehrkraft bereitgestellter Zugangscode"
+
+msgid "Le code doit contenir exactement 6 caractères"
+msgstr "Der Code muss genau 6 Zeichen enthalten"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

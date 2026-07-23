@@ -14,6 +14,7 @@ import logging
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from flask_babel import lazy_gettext as _l
 
 logger = logging.getLogger(__name__)
 
@@ -81,29 +82,29 @@ def check_student_email_verified():
     return None
 
 class StudentLoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Mot de passe', validators=[DataRequired()])
-    submit = SubmitField('Se connecter')
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
+    password = PasswordField(_l('Mot de passe'), validators=[DataRequired()])
+    submit = SubmitField(_l('Se connecter'))
 
 class StudentAccessCodeForm(FlaskForm):
-    code = StringField('Code d\'accès', validators=[DataRequired(), Length(min=6, max=6)])
-    submit = SubmitField('Valider')
+    code = StringField(_l("Code d'accès"), validators=[DataRequired(), Length(min=6, max=6)])
+    submit = SubmitField(_l('Valider'))
 
 class StudentRegisterForm(FlaskForm):
-    student_email = StringField('Email élève (celui donné à votre enseignant)', validators=[DataRequired(), Email()])
-    password = PasswordField('Mot de passe', validators=[
+    student_email = StringField(_l('Email élève (celui donné à votre enseignant)'), validators=[DataRequired(), Email()])
+    password = PasswordField(_l('Mot de passe'), validators=[
         DataRequired(),
-        Length(min=8, message='Le mot de passe doit contenir au moins 8 caractères')
+        Length(min=8, message=_l('Le mot de passe doit contenir au moins 8 caractères'))
     ])
-    confirm_password = PasswordField('Confirmer le mot de passe', validators=[
+    confirm_password = PasswordField(_l('Confirmer le mot de passe'), validators=[
         DataRequired(),
-        EqualTo('password', message='Les mots de passe doivent correspondre')
+        EqualTo('password', message=_l('Les mots de passe doivent correspondre'))
     ])
-    access_code = StringField('Code d\'accès fourni par votre enseignant', validators=[
+    access_code = StringField(_l("Code d'accès fourni par votre enseignant"), validators=[
         DataRequired(),
-        Length(min=6, max=6, message='Le code doit contenir exactement 6 caractères')
+        Length(min=6, max=6, message=_l('Le code doit contenir exactement 6 caractères'))
     ])
-    submit = SubmitField('Créer mon compte')
+    submit = SubmitField(_l('Créer mon compte'))
 
 @student_auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

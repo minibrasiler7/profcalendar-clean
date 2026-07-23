@@ -2085,6 +2085,75 @@ msgstr "Tu profesor aún no ha publicado ejercicios."
 msgid "Prêt !"
 msgstr "¡Listo!"
 
+msgid "Connexion Élève"
+msgstr "Acceso alumno"
+
+msgid "Connectez-vous pour accéder à vos notes"
+msgstr "Inicia sesión para acceder a tus notas"
+
+msgid "votre.email@exemple.com"
+msgstr "tu.email@ejemplo.com"
+
+msgid "Autres plateformes"
+msgstr "Otras plataformas"
+
+msgid "Espace Parents"
+msgstr "Espacio padres"
+
+msgid "Espace Enseignants"
+msgstr "Espacio profesores"
+
+msgid "Inscription Élève"
+msgstr "Registro de alumno"
+
+msgid "Créer mon compte"
+msgstr "Crear mi cuenta"
+
+msgid "Inscription pour les élèves"
+msgstr "Registro para alumnos"
+
+msgid "Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Debes haber recibido un código de acceso de clase de tu profesor. Usa el email que tu profesor registró para ti."
+
+msgid "Utilisez l'email que votre enseignant a enregistré pour vous."
+msgstr "Usa el email que tu profesor registró para ti."
+
+msgid "Déjà un compte ?"
+msgstr "¿Ya tienes una cuenta?"
+
+msgid "Vérification du code"
+msgstr "Verificación del código"
+
+msgid "Vérification requise"
+msgstr "Verificación requerida"
+
+msgid "Entrez votre code d'accès élève"
+msgstr "Introduce tu código de acceso de alumno"
+
+msgid "Pour des raisons de sécurité, vous devez entrer le code d'accès fourni par votre enseignant."
+msgstr "Por razones de seguridad, debes introducir el código de acceso proporcionado por tu profesor."
+
+msgid "Se déconnecter"
+msgstr "Cerrar sesión"
+
+msgid "Expiré"
+msgstr "Caducado"
+
+msgid "Code d'accès"
+msgstr "Código de acceso"
+
+msgid "Valider"
+msgstr "Validar"
+
+msgid "Email élève (celui donné à votre enseignant)"
+msgstr "Email del alumno (el que diste a tu profesor)"
+
+msgid "Code d'accès fourni par votre enseignant"
+msgstr "Código de acceso proporcionado por tu profesor"
+
+msgid "Le code doit contenir exactement 6 caractères"
+msgstr "El código debe contener exactamente 6 caracteres"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."

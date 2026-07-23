@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription Élève - ProfCalendar</title>
+    <title>{{ _('Inscription Élève') }} - ProfCalendar</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -198,13 +198,13 @@
             <div class="register-icon">
                 <i class="fas fa-user-plus"></i>
             </div>
-            <h1 class="register-title">Créer mon compte</h1>
-            <p class="register-subtitle">Inscription pour les élèves</p>
+            <h1 class="register-title">{{ _('Créer mon compte') }}</h1>
+            <p class="register-subtitle">{{ _('Inscription pour les élèves') }}</p>
         </div>
 
         <div class="code-info">
             <i class="fas fa-info-circle"></i>
-            Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous.
+            {{ _("Vous devez avoir reçu un code d'accès de classe de votre enseignant. Utilisez l'email que votre enseignant a enregistré pour vous.") }}
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -234,9 +234,9 @@
 
             <div class="form-group">
                 {{ form.student_email.label(class="form-label") }}
-                {{ form.student_email(class="form-control", placeholder="votre.email@exemple.com") }}
+                {{ form.student_email(class="form-control", placeholder=_('votre.email@exemple.com')) }}
                 <div class="form-help">
-                    Utilisez l'email que votre enseignant a enregistré pour vous.
+                    {{ _("Utilisez l'email que votre enseignant a enregistré pour vous.") }}
                 </div>
                 {% if form.student_email.errors %}
                     <div class="form-error">
@@ -251,7 +251,7 @@
                 {{ form.password.label(class="form-label") }}
                 {{ form.password(class="form-control", placeholder="••••••••") }}
                 <div class="password-requirements">
-                    Le mot de passe doit contenir au moins 8 caractères.
+                    {{ _('Le mot de passe doit contenir au moins 8 caractères') }}
                 </div>
                 {% if form.password.errors %}
                     <div class="form-error">
@@ -278,7 +278,7 @@
         </form>
 
         <div class="register-links">
-            <p>Déjà un compte ? <a href="{{ url_for('student_auth.login') }}">Se connecter</a></p>
+            <p>{{ _('Déjà un compte ?') }} <a href="{{ url_for('student_auth.login') }}">{{ _('Se connecter') }}</a></p>
         </div>
     </div>
 {% include 'includes/cookie_banner.html' %}
