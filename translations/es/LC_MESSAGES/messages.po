@@ -2445,6 +2445,282 @@ msgstr "Una vez vinculado, podrás ver la información de todos tus hijos desde 
 msgid "Chaque enfant peut être dans une classe différente avec un enseignant différent"
 msgstr "Cada niño puede estar en una clase diferente con un profesor diferente"
 
+msgid "Tableau de bord Parent"
+msgstr "Panel de padres"
+
+msgid "Bonjour %(name)s"
+msgstr "Hola %(name)s"
+
+msgid "Mes enfants (%(count)s)"
+msgstr "Mis hijos (%(count)s)"
+
+msgid "Classe non définie"
+msgstr "Clase no definida"
+
+msgid "Enseignant :"
+msgstr "Profesor:"
+
+msgid "Mère"
+msgstr "Madre"
+
+msgid "Père"
+msgstr "Padre"
+
+msgid "Parent"
+msgstr "Padre/Madre"
+
+msgid "Présences"
+msgstr "Asistencia"
+
+msgid "Coches"
+msgstr "Marcas"
+
+msgid "Justifier une absence"
+msgstr "Justificar una ausencia"
+
+msgid "Aucun enfant trouvé"
+msgstr "Ningún niño encontrado"
+
+msgid "Aucun enfant n'a été automatiquement lié à votre compte."
+msgstr "Ningún niño se vinculó automáticamente a tu cuenta."
+
+msgid "Veuillez vérifier que votre email correspond à celui du dossier scolaire,"
+msgstr "Por favor, verifica que tu email coincide con el del expediente escolar,"
+
+msgid "ou contactez l'enseignant pour résoudre ce problème."
+msgstr "o contacta con el profesor para resolver este problema."
+
+msgid "Réessayer la liaison"
+msgstr "Reintentar la vinculación"
+
+msgid "Annonces de classe"
+msgstr "Anuncios de clase"
+
+msgid "Enseignant"
+msgstr "Profesor"
+
+msgid "Remarques des enseignants"
+msgstr "Observaciones de los profesores"
+
+msgid "Mes justifications d'absence"
+msgstr "Mis justificaciones de ausencia"
+
+msgid "Approuvée"
+msgstr "Aprobada"
+
+msgid "Refusée"
+msgstr "Rechazada"
+
+msgid "Périodes :"
+msgstr "Periodos:"
+
+msgid "Motif :"
+msgstr "Motivo:"
+
+msgid "Maladie/Accident"
+msgstr "Enfermedad/Accidente"
+
+msgid "Rendez-vous de médecin"
+msgstr "Cita médica"
+
+msgid "Problème de transport"
+msgstr "Problema de transporte"
+
+msgid "Congé joker"
+msgstr "Día joker"
+
+msgid "Dispense"
+msgstr "Dispensa"
+
+msgid "Autre"
+msgstr "Otro"
+
+msgid "Note de l'enseignant :"
+msgstr "Nota del profesor:"
+
+msgid "Soumis le %(date)s"
+msgstr "Enviado el %(date)s"
+
+msgid "Informations importantes"
+msgstr "Información importante"
+
+msgid "Les données sont mises à jour en temps réel par l'enseignant"
+msgstr "Los datos son actualizados en tiempo real por el profesor"
+
+msgid "Vous recevrez des notifications pour les événements importants"
+msgstr "Recibirás notificaciones para los eventos importantes"
+
+msgid "En cas de problème, contactez directement l'enseignant"
+msgstr "Si hay un problema, contacta directamente con el profesor"
+
+msgid "Informations"
+msgstr "Información"
+
+msgid "Absences et Retards"
+msgstr "Ausencias y retrasos"
+
+msgid "Notes et Évaluations"
+msgstr "Notas y evaluaciones"
+
+msgid "Coches par matière"
+msgstr "Marcas por asignatura"
+
+msgid "Enseignants de {name}"
+msgstr "Profesores de {name}"
+
+msgid "Chargement..."
+msgstr "Cargando..."
+
+msgid "Chargement des périodes..."
+msgstr "Cargando periodos..."
+
+msgid "Chargement des enseignants..."
+msgstr "Cargando profesores..."
+
+msgid "Erreur lors du chargement des données"
+msgstr "Error al cargar los datos"
+
+msgid "Erreur lors du chargement des enseignants"
+msgstr "Error al cargar los profesores"
+
+msgid "Erreur lors du chargement des périodes : {error}"
+msgstr "Error al cargar los periodos: {error}"
+
+msgid "Session expirée. Veuillez vous reconnecter."
+msgstr "Sesión caducada. Por favor, vuelve a iniciar sesión."
+
+msgid "Erreur : {error}"
+msgstr "Error: {error}"
+
+msgid "Erreur lors de l'envoi de la justification"
+msgstr "Error al enviar la justificación"
+
+msgid "Date de l'absence"
+msgstr "Fecha de la ausencia"
+
+msgid "Périodes concernées"
+msgstr "Periodos afectados"
+
+msgid "Toute la journée"
+msgstr "Todo el día"
+
+msgid "Tout le matin"
+msgstr "Toda la mañana"
+
+msgid "Tout l'après-midi"
+msgstr "Toda la tarde"
+
+msgid "Période {n} ({start}-{end})"
+msgstr "Periodo {n} ({start}-{end})"
+
+msgid "Motif de l'absence"
+msgstr "Motivo de la ausencia"
+
+msgid "-- Sélectionner un motif --"
+msgstr "-- Seleccionar un motivo --"
+
+msgid "Discipline dispensée"
+msgstr "Asignatura dispensada"
+
+msgid "Ex : Sport, Musique..."
+msgstr "ej: Deporte, Música..."
+
+msgid "Date de début de dispense"
+msgstr "Fecha de inicio de la dispensa"
+
+msgid "Date de fin de dispense"
+msgstr "Fecha de fin de la dispensa"
+
+msgid "Préciser le motif"
+msgstr "Especificar el motivo"
+
+msgid "Veuillez préciser le motif de l'absence..."
+msgstr "Por favor, especifica el motivo de la ausencia..."
+
+msgid "Justificatif (optionnel)"
+msgstr "Justificante (opcional)"
+
+msgid "Formats acceptés : PDF, JPG, PNG"
+msgstr "Formatos aceptados: PDF, JPG, PNG"
+
+msgid "Envoyer la justification"
+msgstr "Enviar la justificación"
+
+msgid "Veuillez sélectionner au moins une période"
+msgstr "Por favor, selecciona al menos un periodo"
+
+msgid "Justification envoyée avec succès !"
+msgstr "¡Justificación enviada con éxito!"
+
+msgid "Élève"
+msgstr "Alumno"
+
+msgid "Type de données non reconnu : {type}"
+msgstr "Tipo de datos no reconocido: {type}"
+
+msgid "Aucune absence ou retard enregistré"
+msgstr "Ninguna ausencia o retraso registrado"
+
+msgid "Présent"
+msgstr "Presente"
+
+msgid "Retard"
+msgstr "Retraso"
+
+msgid "Période {n}"
+msgstr "Periodo {n}"
+
+msgid "Retard : {n} min"
+msgstr "Retraso: {n} min"
+
+msgid "Aucune donnée de période"
+msgstr "Sin datos de periodo"
+
+msgid "Note :"
+msgstr "Nota:"
+
+msgid "Discipline"
+msgstr "Asignatura"
+
+msgid "Note {n}"
+msgstr "Nota {n}"
+
+msgid "Moyenne"
+msgstr "Promedio"
+
+msgid "Moyennes"
+msgstr "Promedios"
+
+msgid "Gén : {v}"
+msgstr "General: {v}"
+
+msgid "Sig : {v}"
+msgstr "Sig: {v}"
+
+msgid "Aucune coche enregistrée"
+msgstr "Ninguna marca registrada"
+
+msgid "Coches au total"
+msgstr "Marcas en total"
+
+msgid "Coches par discipline"
+msgstr "Marcas por asignatura"
+
+msgid "<strong>{n} coches</strong> en {subject}"
+msgstr "<strong>{n} marcas</strong> en {subject}"
+
+msgid "coche"
+msgstr "marca"
+
+msgid "coches"
+msgstr "marcas"
+
+msgid "Matière : {subject}"
+msgstr "Asignatura: {subject}"
+
+msgid "Classe : {classroom}"
+msgstr "Clase: {classroom}"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."

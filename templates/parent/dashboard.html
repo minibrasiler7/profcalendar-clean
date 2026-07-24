@@ -1,6 +1,6 @@
 {% extends "parent/base.html" %}
 
-{% block title %}Tableau de bord Parent - ProfCalendar{% endblock %}
+{% block title %}{{ _('Tableau de bord Parent') }} - ProfCalendar{% endblock %}
 
 {% block content %}
 <div class="parent-dashboard">
@@ -9,10 +9,10 @@
         <div class="header-content">
             <h1>
                 <i class="fas fa-home"></i>
-                Tableau de bord
+                {{ _('Tableau de bord') }}
             </h1>
             <p class="welcome-text">
-                Bonjour {{ current_user.full_name }}
+                {{ _('Bonjour %(name)s', name=current_user.full_name) }}
             </p>
         </div>
     </div>
@@ -23,13 +23,13 @@
             <div class="section-title">
                 <h2>
                     <i class="fas fa-users"></i>
-                    Mes enfants ({{ children|length }})
+                    {{ _('Mes enfants (%(count)s)', count=children|length) }}
                 </h2>
             </div>
             <div class="section-actions">
                 <a href="{{ url_for('parent_auth.add_child') }}" class="btn btn-outline-primary">
                     <i class="fas fa-user-plus"></i>
-                    Ajouter un enfant
+                    {{ _('Ajouter un enfant') }}
                 </a>
             </div>
         </div>
@@ -45,18 +45,18 @@
                             <div class="child-info">
                                 <h3>{{ student.first_name }} {{ student.last_name }}</h3>
                                 <span class="child-class">
-                                    {{ student.classroom.name if student.classroom else 'Classe non définie' }}
+                                    {{ student.classroom.name if student.classroom else _('Classe non définie') }}
                                     {% if student.classroom and student.classroom.teacher %}
-                                        <br><small>Enseignant : {{ student.classroom.teacher.username }}</small>
+                                        <br><small>{{ _('Enseignant :') }} {{ student.classroom.teacher.username }}</small>
                                     {% endif %}
                                 </span>
                                 <span class="relationship-badge relationship-{{ parent_child.relationship }}">
                                     {% if parent_child.relationship == 'mother' %}
-                                        <i class="fas fa-heart"></i> Mère
+                                        <i class="fas fa-heart"></i> {{ _('Mère') }}
                                     {% elif parent_child.relationship == 'father' %}
-                                        <i class="fas fa-heart"></i> Père
+                                        <i class="fas fa-heart"></i> {{ _('Père') }}
                                     {% else %}
-                                        <i class="fas fa-heart"></i> Parent
+                                        <i class="fas fa-heart"></i> {{ _('Parent') }}
                                     {% endif %}
                                 </span>
                             </div>
@@ -65,26 +65,26 @@
                         <div class="child-quick-stats">
                             <button class="stat-button" onclick="showChildInfo({{ student.id }}, 'attendance')">
                                 <i class="fas fa-calendar-check text-success"></i>
-                                <span>Présences</span>
+                                <span>{{ _('Présences') }}</span>
                             </button>
                             <button class="stat-button" onclick="showChildInfo({{ student.id }}, 'grades')">
                                 <i class="fas fa-star text-warning"></i>
-                                <span>Notes</span>
+                                <span>{{ _('Notes') }}</span>
                             </button>
                             <button class="stat-button" onclick="showChildInfo({{ student.id }}, 'sanctions')">
                                 <i class="fas fa-exclamation-triangle text-danger"></i>
-                                <span>Coches</span>
+                                <span>{{ _('Coches') }}</span>
                             </button>
                             <button class="stat-button" onclick="showChildTeachers({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')">
                                 <i class="fas fa-chalkboard-teacher text-info"></i>
-                                <span>Enseignants</span>
+                                <span>{{ _('Enseignants') }}</span>
                             </button>
                         </div>
-                        
+
                         <div class="child-actions">
                             <button class="btn btn-primary btn-sm" onclick="showJustifyAbsence({{ student.id }})">
                                 <i class="fas fa-file-medical"></i>
-                                Justifier une absence
+                                {{ _('Justifier une absence') }}
                             </button>
                         </div>
                     </div>
@@ -95,20 +95,20 @@
                 <div class="empty-icon">
                     <i class="fas fa-user-friends"></i>
                 </div>
-                <h3>Aucun enfant trouvé</h3>
+                <h3>{{ _('Aucun enfant trouvé') }}</h3>
                 <p>
-                    Aucun enfant n'a été automatiquement lié à votre compte.<br>
-                    Veuillez vérifier que votre email correspond à celui du dossier scolaire,<br>
-                    ou contactez l'enseignant pour résoudre ce problème.
+                    {{ _("Aucun enfant n'a été automatiquement lié à votre compte.") }}<br>
+                    {{ _('Veuillez vérifier que votre email correspond à celui du dossier scolaire,') }}<br>
+                    {{ _("ou contactez l'enseignant pour résoudre ce problème.") }}
                 </p>
                 <div class="empty-actions">
                     <a href="{{ url_for('parent_auth.link_teacher') }}" class="btn btn-primary">
                         <i class="fas fa-link"></i>
-                        Réessayer la liaison
+                        {{ _('Réessayer la liaison') }}
                     </a>
                     <a href="{{ url_for('parent_auth.add_child') }}" class="btn btn-outline-primary">
                         <i class="fas fa-user-plus"></i>
-                        Ajouter un enfant
+                        {{ _('Ajouter un enfant') }}
                     </a>
                 </div>
             </div>
@@ -148,7 +148,7 @@
         <div class="section-header">
             <h2>
                 <i class="fas fa-bullhorn"></i>
-                Annonces de classe
+                {{ _('Annonces de classe') }}
             </h2>
         </div>
         <div class="announcements-list">
@@ -158,7 +158,7 @@
                         <div>
                             <h4>{{ announcement.title }}</h4>
                             <span class="announcement-meta">
-                                <i class="fas fa-user"></i> {{ announcement.user.username if announcement.user else 'Enseignant' }}
+                                <i class="fas fa-user"></i> {{ announcement.user.username if announcement.user else _('Enseignant') }}
                                 <span class="separator">•</span>
                                 <i class="fas fa-calendar"></i> {{ announcement.created_at.strftime('%d/%m/%Y à %H:%M') }}
                             </span>
@@ -180,7 +180,7 @@
         <div class="section-header">
             <h2>
                 <i class="fas fa-comment-dots"></i>
-                Remarques des enseignants
+                {{ _('Remarques des enseignants') }}
                 {% if unread_remarks_count > 0 %}
                 <span class="unread-badge">{{ unread_remarks_count }}</span>
                 {% endif %}
@@ -203,7 +203,7 @@
                         </div>
                         {% if not remark.is_viewed_by_parent %}
                         <span class="new-badge">
-                            <i class="fas fa-circle"></i> Nouveau
+                            <i class="fas fa-circle"></i> {{ _('Nouveau') }}
                         </span>
                         {% endif %}
                     </div>
@@ -223,7 +223,7 @@
         <div class="section-header">
             <h2>
                 <i class="fas fa-file-medical"></i>
-                Mes justifications d'absence
+                {{ _("Mes justifications d'absence") }}
             </h2>
         </div>
         
@@ -238,11 +238,11 @@
                         <div class="justification-status">
                             <span class="status-badge status-{{ justification.status }}">
                                 {% if justification.status == 'pending' %}
-                                    <i class="fas fa-clock"></i> En attente
+                                    <i class="fas fa-clock"></i> {{ _('En attente') }}
                                 {% elif justification.status == 'approved' %}
-                                    <i class="fas fa-check"></i> Approuvée
+                                    <i class="fas fa-check"></i> {{ _('Approuvée') }}
                                 {% elif justification.status == 'rejected' %}
-                                    <i class="fas fa-times"></i> Refusée
+                                    <i class="fas fa-times"></i> {{ _('Refusée') }}
                                 {% endif %}
                             </span>
                         </div>
@@ -250,7 +250,7 @@
                     
                     <div class="justification-details">
                         <div class="justification-periods">
-                            <strong>Périodes :</strong>
+                            <strong>{{ _('Périodes :') }}</strong>
                             {% set periods = justification.get_periods_list() %}
                             {% if periods %}
                                 {% for period in periods %}
@@ -260,32 +260,32 @@
                         </div>
                         
                         <div class="justification-reason">
-                            <strong>Motif :</strong>
+                            <strong>{{ _('Motif :') }}</strong>
                             {% if justification.reason_type == 'maladie' %}
-                                Maladie/Accident
+                                {{ _('Maladie/Accident') }}
                             {% elif justification.reason_type == 'medecin' %}
-                                Rendez-vous de médecin
+                                {{ _('Rendez-vous de médecin') }}
                             {% elif justification.reason_type == 'transport' %}
-                                Problème de transport
+                                {{ _('Problème de transport') }}
                             {% elif justification.reason_type == 'conge_joker' %}
-                                Congé joker
+                                {{ _('Congé joker') }}
                             {% elif justification.reason_type == 'dispense' %}
-                                Dispense - {{ justification.dispense_subject }}
+                                {{ _('Dispense') }} - {{ justification.dispense_subject }}
                             {% elif justification.reason_type == 'autre' %}
-                                Autre - {{ justification.other_reason_text }}
+                                {{ _('Autre') }} - {{ justification.other_reason_text }}
                             {% endif %}
                         </div>
-                        
+
                         {% if justification.teacher_response %}
                         <div class="teacher-note">
-                            <strong>Note de l'enseignant :</strong>
+                            <strong>{{ _("Note de l'enseignant :") }}</strong>
                             <p>{{ justification.teacher_response }}</p>
                         </div>
                         {% endif %}
-                        
+
                         <div class="justification-meta">
                             <small class="text-muted">
-                                Soumis le {{ justification.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                                {{ _('Soumis le %(date)s', date=justification.created_at.strftime('%d/%m/%Y à %H:%M')) }}
                             </small>
                         </div>
                     </div>
@@ -300,12 +300,12 @@
         <div class="info-card">
             <h3>
                 <i class="fas fa-info-circle"></i>
-                Informations importantes
+                {{ _('Informations importantes') }}
             </h3>
             <ul>
-                <li>Les données sont mises à jour en temps réel par l'enseignant</li>
-                <li>Vous recevrez des notifications pour les événements importants</li>
-                <li>En cas de problème, contactez directement l'enseignant</li>
+                <li>{{ _("Les données sont mises à jour en temps réel par l'enseignant") }}</li>
+                <li>{{ _('Vous recevrez des notifications pour les événements importants') }}</li>
+                <li>{{ _("En cas de problème, contactez directement l'enseignant") }}</li>
             </ul>
         </div>
     </div>
@@ -313,7 +313,7 @@
     <!-- Panel d'information détaillée -->
     <div id="info-panel" class="info-panel">
         <div class="info-panel-header">
-            <h3 id="info-panel-title">Informations</h3>
+            <h3 id="info-panel-title">{{ _('Informations') }}</h3>
             <button class="btn-close-panel" onclick="closeInfoPanel()">
                 <i class="fas fa-times"></i>
             </button>
@@ -326,7 +326,7 @@
     <!-- Panel des enseignants -->
     <div id="teachers-panel" class="info-panel">
         <div class="info-panel-header">
-            <h3 id="teachers-panel-title">Enseignants</h3>
+            <h3 id="teachers-panel-title">{{ _('Enseignants') }}</h3>
             <button class="btn-close-panel" onclick="closeTeachersPanel()">
                 <i class="fas fa-times"></i>
             </button>
@@ -1857,6 +1857,91 @@
 </style>
 
 <script>
+// ============================================================
+// Chaînes traduites pour le JS (échappées proprement via |tojson).
+// Les jetons {n}/{start}/{error}/… sont remplacés en JS via .replace()
+// (pas de formatage gettext côté JS : on utilise des accolades, pas de %).
+// ============================================================
+const DASH_I18N = {
+    // Titres des panneaux
+    attendanceTitle: {{ _('Absences et Retards')|tojson }},
+    gradesTitle: {{ _('Notes et Évaluations')|tojson }},
+    sanctionsTitle: {{ _('Coches par matière')|tojson }},
+    info: {{ _('Informations')|tojson }},
+    teachers: {{ _('Enseignants')|tojson }},
+    justifyAbsence: {{ _('Justifier une absence')|tojson }},
+    teachersOf: {{ _('Enseignants de {name}')|tojson }},
+    // Chargement
+    loading: {{ _('Chargement...')|tojson }},
+    loadingPeriods: {{ _('Chargement des périodes...')|tojson }},
+    loadingTeachers: {{ _('Chargement des enseignants...')|tojson }},
+    // Erreurs
+    loadDataError: {{ _('Erreur lors du chargement des données')|tojson }},
+    loadTeachersError: {{ _('Erreur lors du chargement des enseignants')|tojson }},
+    loadPeriodsError: {{ _('Erreur lors du chargement des périodes : {error}')|tojson }},
+    sessionExpired: {{ _('Session expirée. Veuillez vous reconnecter.')|tojson }},
+    errorWithMsg: {{ _('Erreur : {error}')|tojson }},
+    sendJustifError: {{ _("Erreur lors de l'envoi de la justification")|tojson }},
+    // Formulaire de justification
+    absenceDate: {{ _("Date de l'absence")|tojson }},
+    periodsConcerned: {{ _('Périodes concernées')|tojson }},
+    allDay: {{ _('Toute la journée')|tojson }},
+    allMorning: {{ _('Tout le matin')|tojson }},
+    allAfternoon: {{ _("Tout l'après-midi")|tojson }},
+    periodLabel: {{ _('Période {n} ({start}-{end})')|tojson }},
+    absenceReason: {{ _("Motif de l'absence")|tojson }},
+    selectReason: {{ _('-- Sélectionner un motif --')|tojson }},
+    reasonIllness: {{ _('Maladie/Accident')|tojson }},
+    reasonDoctor: {{ _('Rendez-vous de médecin')|tojson }},
+    reasonTransport: {{ _('Problème de transport')|tojson }},
+    reasonJoker: {{ _('Congé joker')|tojson }},
+    reasonDispense: {{ _('Dispense')|tojson }},
+    reasonOther: {{ _('Autre')|tojson }},
+    dispenseSubject: {{ _('Discipline dispensée')|tojson }},
+    dispensePlaceholder: {{ _('Ex : Sport, Musique...')|tojson }},
+    dispenseStart: {{ _('Date de début de dispense')|tojson }},
+    dispenseEnd: {{ _('Date de fin de dispense')|tojson }},
+    specifyReason: {{ _('Préciser le motif')|tojson }},
+    specifyReasonPlaceholder: {{ _("Veuillez préciser le motif de l'absence...")|tojson }},
+    justificationFile: {{ _('Justificatif (optionnel)')|tojson }},
+    acceptedFormats: {{ _('Formats acceptés : PDF, JPG, PNG')|tojson }},
+    sendJustification: {{ _('Envoyer la justification')|tojson }},
+    cancel: {{ _('Annuler')|tojson }},
+    selectAtLeastOnePeriod: {{ _('Veuillez sélectionner au moins une période')|tojson }},
+    justificationSent: {{ _('Justification envoyée avec succès !')|tojson }},
+    // Élève / données
+    studentFallback: {{ _('Élève')|tojson }},
+    unknownDataType: {{ _('Type de données non reconnu : {type}')|tojson }},
+    // Présences
+    noAbsence: {{ _('Aucune absence ou retard enregistré')|tojson }},
+    statusPresent: {{ _('Présent')|tojson }},
+    statusAbsent: {{ _('Absent')|tojson }},
+    statusLate: {{ _('Retard')|tojson }},
+    periodN: {{ _('Période {n}')|tojson }},
+    lateMin: {{ _('Retard : {n} min')|tojson }},
+    noPeriodData: {{ _('Aucune donnée de période')|tojson }},
+    noteLabel: {{ _('Note :')|tojson }},
+    // Notes
+    noGrades: {{ _('Aucune note disponible')|tojson }},
+    discipline: {{ _('Discipline')|tojson }},
+    noteN: {{ _('Note {n}')|tojson }},
+    average: {{ _('Moyenne')|tojson }},
+    averages: {{ _('Moyennes')|tojson }},
+    avgGeneral: {{ _('Gén : {v}')|tojson }},
+    avgSig: {{ _('Sig : {v}')|tojson }},
+    // Coches
+    noSanction: {{ _('Aucune coche enregistrée')|tojson }},
+    totalChecks: {{ _('Coches au total')|tojson }},
+    checksBySubject: {{ _('Coches par discipline')|tojson }},
+    subjectTotalChecks: {{ _('<strong>{n} coches</strong> en {subject}')|tojson }},
+    checkSingular: {{ _('coche')|tojson }},
+    checkPlural: {{ _('coches')|tojson }},
+    // Enseignants
+    noTeacher: {{ _('Aucun enseignant trouvé')|tojson }},
+    teacherSubject: {{ _('Matière : {subject}')|tojson }},
+    teacherClassroom: {{ _('Classe : {classroom}')|tojson }}
+};
+
 let currentStudentId = null;
 
 function showChildInfo(studentId, type) {
@@ -1872,12 +1957,12 @@ function showChildInfo(studentId, type) {
     
     // Définir le titre selon le type
     const titles = {
-        'attendance': 'Absences et Retards',
-        'grades': 'Notes et Évaluations',
-        'sanctions': 'Coches par matière'
+        'attendance': DASH_I18N.attendanceTitle,
+        'grades': DASH_I18N.gradesTitle,
+        'sanctions': DASH_I18N.sanctionsTitle
     };
-    
-    title.textContent = titles[type] || 'Informations';
+
+    title.textContent = titles[type] || DASH_I18N.info;
     
     // Afficher le panel
     console.log('Adding show class to panel');
@@ -1886,8 +1971,8 @@ function showChildInfo(studentId, type) {
     console.log('Panel classes after adding show:', panel.className);
     
     // Charger le contenu
-    content.innerHTML = '<div class="loading">Chargement...</div>';
-    
+    content.innerHTML = `<div class="loading">${DASH_I18N.loading}</div>`;
+
     // Fetch des données (à implémenter côté serveur)
     fetch(`/parent/student/${studentId}/${type}`, {
         method: 'GET',
@@ -1904,7 +1989,7 @@ function showChildInfo(studentId, type) {
         })
         .catch(error => {
             console.error('Error fetching data:', error);
-            content.innerHTML = '<div class="error">Erreur lors du chargement des données</div>';
+            content.innerHTML = `<div class="error">${DASH_I18N.loadDataError}</div>`;
         });
 }
 
@@ -1917,10 +2002,10 @@ function showJustifyAbsence(studentId) {
     
     console.log('Panel element for justification:', panel);
     
-    title.textContent = 'Justifier une absence';
-    
+    title.textContent = DASH_I18N.justifyAbsence;
+
     // Afficher un loader pendant le chargement des périodes
-    content.innerHTML = '<div class="loading">Chargement des périodes...</div>';
+    content.innerHTML = `<div class="loading">${DASH_I18N.loadingPeriods}</div>`;
     panel.classList.add('show');
     panel.style.display = 'block';
     
@@ -1940,7 +2025,7 @@ function showJustifyAbsence(studentId) {
             
             // Si c'est une redirection vers login, c'est un problème de session
             if (response.status === 302 || response.url.includes('/auth/login')) {
-                throw new Error('Session expirée. Veuillez vous reconnecter.');
+                throw new Error(DASH_I18N.sessionExpired);
             }
             
             if (!response.ok) {
@@ -1956,7 +2041,7 @@ function showJustifyAbsence(studentId) {
             console.log('Periods data received:', data);
             
             if (data.error) {
-                content.innerHTML = `<div class="error">Erreur: ${data.error}</div>`;
+                content.innerHTML = `<div class="error">${DASH_I18N.errorWithMsg.replace('{error}', data.error)}</div>`;
                 return;
             }
             
@@ -1965,7 +2050,7 @@ function showJustifyAbsence(studentId) {
         })
         .catch(error => {
             console.error('Error fetching periods:', error);
-            content.innerHTML = `<div class="error">Erreur lors du chargement des périodes: ${error.message}</div>`;
+            content.innerHTML = `<div class="error">${DASH_I18N.loadPeriodsError.replace('{error}', error.message)}</div>`;
         });
 }
 
@@ -1982,7 +2067,7 @@ function renderJustifyAbsenceForm(content, periods) {
                 <input type="checkbox" name="periods[]" value="${period.period_number}" 
                        data-time="${period.start_time}-${period.end_time}" 
                        class="period-checkbox ${periodClass}">
-                <span>Période ${period.period_number} (${period.start_time}-${period.end_time})</span>
+                <span>${DASH_I18N.periodLabel.replace('{n}', period.period_number).replace('{start}', period.start_time).replace('{end}', period.end_time)}</span>
             </label>
         `;
     });
@@ -1990,28 +2075,28 @@ function renderJustifyAbsenceForm(content, periods) {
     content.innerHTML = `
         <form class="justify-form" onsubmit="submitJustification(event)">
             <div class="form-group">
-                <label class="form-label">Date de l'absence</label>
+                <label class="form-label">${DASH_I18N.absenceDate}</label>
                 <input type="date" name="absence_date" class="form-control" required>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label">Périodes concernées</label>
+                <label class="form-label">${DASH_I18N.periodsConcerned}</label>
                 <div class="periods-container">
                     <div class="quick-select-options">
                         <label class="checkbox-label">
                             <input type="checkbox" name="all_day" id="all_day" onchange="toggleAllPeriods(this)">
-                            <span>Toute la journée</span>
+                            <span>${DASH_I18N.allDay}</span>
                         </label>
                         ${morningPeriods.length > 0 ? `
                         <label class="checkbox-label">
                             <input type="checkbox" name="all_morning" id="all_morning" onchange="toggleMorningPeriods(this)">
-                            <span>Tout le matin</span>
+                            <span>${DASH_I18N.allMorning}</span>
                         </label>
                         ` : ''}
                         ${afternoonPeriods.length > 0 ? `
                         <label class="checkbox-label">
                             <input type="checkbox" name="all_afternoon" id="all_afternoon" onchange="toggleAfternoonPeriods(this)">
-                            <span>Tout l'après-midi</span>
+                            <span>${DASH_I18N.allAfternoon}</span>
                         </label>
                         ` : ''}
                     </div>
@@ -2020,54 +2105,54 @@ function renderJustifyAbsenceForm(content, periods) {
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label">Motif de l'absence</label>
+                <label class="form-label">${DASH_I18N.absenceReason}</label>
                 <select name="reason" class="form-control" onchange="handleReasonChange(this)" required>
-                    <option value="">-- Sélectionner un motif --</option>
-                    <option value="maladie">Maladie/Accident</option>
-                    <option value="medecin">Rendez-vous de médecin</option>
-                    <option value="transport">Problème de transport</option>
-                    <option value="conge_joker">Congé joker</option>
-                    <option value="dispense">Dispense</option>
-                    <option value="autre">Autre</option>
+                    <option value="">${DASH_I18N.selectReason}</option>
+                    <option value="maladie">${DASH_I18N.reasonIllness}</option>
+                    <option value="medecin">${DASH_I18N.reasonDoctor}</option>
+                    <option value="transport">${DASH_I18N.reasonTransport}</option>
+                    <option value="conge_joker">${DASH_I18N.reasonJoker}</option>
+                    <option value="dispense">${DASH_I18N.reasonDispense}</option>
+                    <option value="autre">${DASH_I18N.reasonOther}</option>
                 </select>
             </div>
-            
+
             <div id="dispense-fields" class="form-group" style="display: none;">
-                <label class="form-label">Discipline dispensée</label>
-                <input type="text" name="dispense_subject" class="form-control" placeholder="Ex: Sport, Musique...">
-                
+                <label class="form-label">${DASH_I18N.dispenseSubject}</label>
+                <input type="text" name="dispense_subject" class="form-control" placeholder="${DASH_I18N.dispensePlaceholder}">
+
                 <div class="form-row" style="margin-top: 1rem;">
                     <div>
-                        <label class="form-label">Date de début de dispense</label>
+                        <label class="form-label">${DASH_I18N.dispenseStart}</label>
                         <input type="date" name="dispense_start" class="form-control">
                     </div>
                     <div>
-                        <label class="form-label">Date de fin de dispense</label>
+                        <label class="form-label">${DASH_I18N.dispenseEnd}</label>
                         <input type="date" name="dispense_end" class="form-control">
                     </div>
                 </div>
             </div>
-            
+
             <div id="other-reason" class="form-group" style="display: none;">
-                <label class="form-label">Préciser le motif</label>
-                <textarea name="other_reason_text" class="form-control" rows="3" placeholder="Veuillez préciser le motif de l'absence..."></textarea>
+                <label class="form-label">${DASH_I18N.specifyReason}</label>
+                <textarea name="other_reason_text" class="form-control" rows="3" placeholder="${DASH_I18N.specifyReasonPlaceholder}"></textarea>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label">Justificatif (optionnel)</label>
+                <label class="form-label">${DASH_I18N.justificationFile}</label>
                 <input type="file" name="justification_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                <small class="form-text text-muted">Formats acceptés : PDF, JPG, PNG</small>
+                <small class="form-text text-muted">${DASH_I18N.acceptedFormats}</small>
             </div>
-            
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-paper-plane"></i>
-                    Envoyer la justification
+                    ${DASH_I18N.sendJustification}
                 </button>
                 <button type="button" class="btn btn-secondary" onclick="closeInfoPanel()">
-                    Annuler
+                    ${DASH_I18N.cancel}
                 </button>
             </div>
         </form>
@@ -2155,7 +2240,7 @@ function submitJustification(event) {
     // Vérifier qu'au moins une période est sélectionnée
     const checkedPeriods = document.querySelectorAll('input[name="periods[]"]:checked');
     if (checkedPeriods.length === 0) {
-        alert('Veuillez sélectionner au moins une période');
+        alert(DASH_I18N.selectAtLeastOnePeriod);
         return;
     }
     
@@ -2167,14 +2252,14 @@ function submitJustification(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Justification envoyée avec succès !');
+            alert(DASH_I18N.justificationSent);
             closeInfoPanel();
         } else {
-            alert('Erreur : ' + data.message);
+            alert(DASH_I18N.errorWithMsg.replace('{error}', data.message));
         }
     })
     .catch(error => {
-        alert('Erreur lors de l\'envoi de la justification');
+        alert(DASH_I18N.sendJustifError);
     });
 }
 
@@ -2183,7 +2268,7 @@ function renderChildInfo(data, type) {
         return `<div class="error">${data.error}</div>`;
     }
     
-    const studentName = data.student_name || 'Élève';
+    const studentName = data.student_name || DASH_I18N.studentFallback;
     
     switch (type) {
         case 'attendance':
@@ -2193,7 +2278,7 @@ function renderChildInfo(data, type) {
         case 'sanctions':
             return renderSanctionsInfo(data, studentName);
         default:
-            return `<div>Type de données non reconnu: ${type}</div>`;
+            return `<div>${DASH_I18N.unknownDataType.replace('{type}', type)}</div>`;
     }
 }
 
@@ -2206,15 +2291,15 @@ function renderAttendanceInfo(data, studentName) {
                 <h4>${studentName}</h4>
                 <div class="empty-state-small">
                     <i class="fas fa-calendar-check"></i>
-                    <p>Aucune absence ou retard enregistré</p>
+                    <p>${DASH_I18N.noAbsence}</p>
                 </div>
             </div>
         `;
     }
-    
+
     let html = `
         <div class="info-content">
-            <h4>${studentName} - Absences et Retards</h4>
+            <h4>${studentName} - ${DASH_I18N.attendanceTitle}</h4>
             <div class="attendance-list">
     `;
     
@@ -2233,27 +2318,27 @@ function renderAttendanceInfo(data, studentName) {
                 const statusIcon = period.status === 'present' ? 'fas fa-check text-success' : 
                                  period.status === 'absent' ? 'fas fa-times text-danger' : 
                                  'fas fa-clock text-warning';
-                const statusText = period.status === 'present' ? 'Présent' : 
-                                 period.status === 'absent' ? 'Absent' : 'Retard';
-                
+                const statusText = period.status === 'present' ? DASH_I18N.statusPresent :
+                                 period.status === 'absent' ? DASH_I18N.statusAbsent : DASH_I18N.statusLate;
+
                 html += `
                     <div class="period-status">
-                        <span class="period-info">Période ${period.period}</span>
+                        <span class="period-info">${DASH_I18N.periodN.replace('{n}', period.period)}</span>
                         <span class="status-badge ${period.status}">
                             <i class="${statusIcon}"></i> ${statusText}
                         </span>
-                        ${period.late_minutes ? `<small>Retard: ${period.late_minutes} min</small>` : ''}
+                        ${period.late_minutes ? `<small>${DASH_I18N.lateMin.replace('{n}', period.late_minutes)}</small>` : ''}
                         ${period.note ? `<div class="period-note">${period.note}</div>` : ''}
                     </div>
                 `;
             });
         } else {
-            html += '<div class="no-periods">Aucune donnée de période</div>';
+            html += `<div class="no-periods">${DASH_I18N.noPeriodData}</div>`;
         }
-        
+
         html += `
                 </div>
-                ${attendance.general_note ? `<div class="general-note"><strong>Note:</strong> ${attendance.general_note}</div>` : ''}
+                ${attendance.general_note ? `<div class="general-note"><strong>${DASH_I18N.noteLabel}</strong> ${attendance.general_note}</div>` : ''}
             </div>
         `;
     });
@@ -2274,18 +2359,18 @@ function renderGradesInfo(data, studentName) {
     if (!hasGrades) {
         return `
             <div class="info-content">
-                <h4>${studentName} - Notes et Évaluations</h4>
+                <h4>${studentName} - ${DASH_I18N.gradesTitle}</h4>
                 <div class="empty-state-small">
                     <i class="fas fa-chart-line"></i>
-                    <p>Aucune note disponible</p>
+                    <p>${DASH_I18N.noGrades}</p>
                 </div>
             </div>
         `;
     }
-    
+
     return `
         <div class="info-content">
-            <h4>${studentName} - Notes et Évaluations</h4>
+            <h4>${studentName} - ${DASH_I18N.gradesTitle}</h4>
             <div class="grades-table-container">
                 ${renderUnifiedGradesTable(subjectsData, allEvaluations)}
             </div>
@@ -2297,7 +2382,7 @@ function renderUnifiedGradesTable(subjectsData, allEvaluations) {
     const subjects = Object.keys(subjectsData);
     
     if (subjects.length === 0) {
-        return '<p>Aucune note disponible</p>';
+        return `<p>${DASH_I18N.noGrades}</p>`;
     }
     
     // Organiser les notes par discipline et par ordre chronologique
@@ -2329,16 +2414,16 @@ function renderUnifiedGradesTable(subjectsData, allEvaluations) {
         <table class="unified-grades-table">
             <thead>
                 <tr>
-                    <th class="subject-column">Discipline</th>
+                    <th class="subject-column">${DASH_I18N.discipline}</th>
     `;
-    
+
     // Ajouter les colonnes de notes (Note 1, Note 2, etc.)
     for (let i = 1; i <= maxGrades; i++) {
-        html += `<th class="grade-column">Note ${i}</th>`;
+        html += `<th class="grade-column">${DASH_I18N.noteN.replace('{n}', i)}</th>`;
     }
-    
+
     // Ajouter la colonne moyenne
-    html += `<th class="average-column">Moyenne</th></tr></thead><tbody>`;
+    html += `<th class="average-column">${DASH_I18N.average}</th></tr></thead><tbody>`;
     
     // Ajouter une ligne pour chaque discipline
     subjects.forEach(subject => {
@@ -2391,7 +2476,7 @@ function renderSubjectGradesTable(subjectData) {
             <table class="evaluations-table">
                 <thead>
                     <tr>
-                        <th class="student-column">Discipline</th>
+                        <th class="student-column">${DASH_I18N.discipline}</th>
     `;
     
     // En-têtes des colonnes d'évaluations
@@ -2412,7 +2497,7 @@ function renderSubjectGradesTable(subjectData) {
     
     // Colonne moyennes
     html += `
-                        <th class="average-column">Moyennes</th>
+                        <th class="average-column">${DASH_I18N.averages}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2449,8 +2534,8 @@ function renderSubjectGradesTable(subjectData) {
     html += `
                         <td class="average-cell">
                             <div class="averages-display">
-                                ${averages.general ? `<div class="avg-general">Gén: ${averages.general}</div>` : ''}
-                                ${averages.significatif ? `<div class="avg-sig">Sig: ${averages.significatif}</div>` : ''}
+                                ${averages.general ? `<div class="avg-general">${DASH_I18N.avgGeneral.replace('{v}', averages.general)}</div>` : ''}
+                                ${averages.significatif ? `<div class="avg-sig">${DASH_I18N.avgSig.replace('{v}', averages.significatif)}</div>` : ''}
                                 ${averages.ta ? `<div class="avg-ta">TA: ${averages.ta}</div>` : ''}
                             </div>
                         </td>
@@ -2534,24 +2619,24 @@ function renderSanctionsInfo(data, studentName) {
     if (!hasSanctions) {
         return `
             <div class="info-content">
-                <h4>${studentName} - Coches par matière</h4>
+                <h4>${studentName} - ${DASH_I18N.sanctionsTitle}</h4>
                 <div class="empty-state-small">
                     <i class="fas fa-smile text-success"></i>
-                    <p>Aucune coche enregistrée</p>
+                    <p>${DASH_I18N.noSanction}</p>
                 </div>
             </div>
         `;
     }
-    
+
     let html = `
         <div class="info-content">
-            <h4>${studentName} - Coches par matière</h4>
-            
+            <h4>${studentName} - ${DASH_I18N.sanctionsTitle}</h4>
+
             <!-- Résumé global -->
             <div class="sanctions-summary">
                 <div class="total-checks-card">
                     <div class="checks-number">${totalChecks}</div>
-                    <div class="checks-label">Coches au total</div>
+                    <div class="checks-label">${DASH_I18N.totalChecks}</div>
                 </div>
             </div>
     `;
@@ -2562,7 +2647,7 @@ function renderSanctionsInfo(data, studentName) {
         
         html += `
             <div class="sanctions-by-subject">
-                <h5>Coches par discipline</h5>
+                <h5>${DASH_I18N.checksBySubject}</h5>
         `;
         
         // Onglets si plusieurs disciplines
@@ -2626,7 +2711,7 @@ function renderSubjectSanctions(subjectData) {
     let html = `
         <div class="subject-sanctions">
             <div class="subject-total">
-                <strong>${subjectData.total_checks} coches</strong> en ${subjectData.subject_name}
+                ${DASH_I18N.subjectTotalChecks.replace('{n}', subjectData.total_checks).replace('{subject}', subjectData.subject_name)}
             </div>
             <div class="templates-list">
     `;
@@ -2637,7 +2722,7 @@ function renderSubjectSanctions(subjectData) {
                 <div class="template-name">${template.template_name}</div>
                 <div class="template-count">
                     <span class="check-count">${template.check_count}</span>
-                    <span class="check-label">coche${template.check_count > 1 ? 's' : ''}</span>
+                    <span class="check-label">${template.check_count > 1 ? DASH_I18N.checkPlural : DASH_I18N.checkSingular}</span>
                 </div>
             </div>
         `;
@@ -2659,7 +2744,7 @@ function showChildTeachers(studentId, studentName) {
     
     console.log('Teachers panel element:', panel);
     
-    title.textContent = `Enseignants de ${studentName}`;
+    title.textContent = DASH_I18N.teachersOf.replace('{name}', studentName);
     
     // Afficher le panel
     console.log('Adding show class to teachers panel');
@@ -2667,7 +2752,7 @@ function showChildTeachers(studentId, studentName) {
     panel.style.display = 'block';
     
     // Charger le contenu
-    content.innerHTML = '<div class="loading">Chargement des enseignants...</div>';
+    content.innerHTML = `<div class="loading">${DASH_I18N.loadingTeachers}</div>`;
     
     // Fetch des données des enseignants
     fetch(`/parent/student/${studentId}/teachers`, {
@@ -2694,7 +2779,7 @@ function showChildTeachers(studentId, studentName) {
         })
         .catch(error => {
             console.error('Error fetching teachers:', error);
-            content.innerHTML = '<div class="error">Erreur lors du chargement des enseignants</div>';
+            content.innerHTML = `<div class="error">${DASH_I18N.loadTeachersError}</div>`;
         });
 }
 
@@ -2716,18 +2801,18 @@ function renderTeachersInfo(data, studentName) {
     if (teachers.length === 0) {
         return `
             <div class="info-content">
-                <h4>${studentName} - Enseignants</h4>
+                <h4>${studentName} - ${DASH_I18N.teachers}</h4>
                 <div class="empty-state-small">
                     <i class="fas fa-chalkboard-teacher"></i>
-                    <p>Aucun enseignant trouvé</p>
+                    <p>${DASH_I18N.noTeacher}</p>
                 </div>
             </div>
         `;
     }
-    
+
     let html = `
         <div class="info-content">
-            <h4>${studentName} - Enseignants</h4>
+            <h4>${studentName} - ${DASH_I18N.teachers}</h4>
             <div class="teachers-list">
     `;
     
@@ -2752,11 +2837,11 @@ function renderTeachersInfo(data, studentName) {
                 <div class="teacher-details">
                     <div class="teacher-detail">
                         <i class="fas fa-book"></i>
-                        <span>Matière: ${teacher.subject}</span>
+                        <span>${DASH_I18N.teacherSubject.replace('{subject}', teacher.subject)}</span>
                     </div>
                     <div class="teacher-detail">
                         <i class="fas fa-users"></i>
-                        <span>Classe: ${teacher.classroom_name}</span>
+                        <span>${DASH_I18N.teacherClassroom.replace('{classroom}', teacher.classroom_name)}</span>
                     </div>
                     <div class="teacher-detail">
                         <i class="fas fa-envelope"></i>

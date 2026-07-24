@@ -2445,6 +2445,282 @@ msgstr "Once linked, you'll be able to see all your children's information from 
 msgid "Chaque enfant peut être dans une classe différente avec un enseignant différent"
 msgstr "Each child can be in a different class with a different teacher"
 
+msgid "Tableau de bord Parent"
+msgstr "Parent Dashboard"
+
+msgid "Bonjour %(name)s"
+msgstr "Hello %(name)s"
+
+msgid "Mes enfants (%(count)s)"
+msgstr "My children (%(count)s)"
+
+msgid "Classe non définie"
+msgstr "Class not defined"
+
+msgid "Enseignant :"
+msgstr "Teacher:"
+
+msgid "Mère"
+msgstr "Mother"
+
+msgid "Père"
+msgstr "Father"
+
+msgid "Parent"
+msgstr "Parent"
+
+msgid "Présences"
+msgstr "Attendance"
+
+msgid "Coches"
+msgstr "Checks"
+
+msgid "Justifier une absence"
+msgstr "Justify an absence"
+
+msgid "Aucun enfant trouvé"
+msgstr "No child found"
+
+msgid "Aucun enfant n'a été automatiquement lié à votre compte."
+msgstr "No child was automatically linked to your account."
+
+msgid "Veuillez vérifier que votre email correspond à celui du dossier scolaire,"
+msgstr "Please check that your email matches the one in the school file,"
+
+msgid "ou contactez l'enseignant pour résoudre ce problème."
+msgstr "or contact the teacher to resolve this issue."
+
+msgid "Réessayer la liaison"
+msgstr "Retry the link"
+
+msgid "Annonces de classe"
+msgstr "Class announcements"
+
+msgid "Enseignant"
+msgstr "Teacher"
+
+msgid "Remarques des enseignants"
+msgstr "Teachers' remarks"
+
+msgid "Mes justifications d'absence"
+msgstr "My absence justifications"
+
+msgid "Approuvée"
+msgstr "Approved"
+
+msgid "Refusée"
+msgstr "Rejected"
+
+msgid "Périodes :"
+msgstr "Periods:"
+
+msgid "Motif :"
+msgstr "Reason:"
+
+msgid "Maladie/Accident"
+msgstr "Illness/Accident"
+
+msgid "Rendez-vous de médecin"
+msgstr "Doctor's appointment"
+
+msgid "Problème de transport"
+msgstr "Transport problem"
+
+msgid "Congé joker"
+msgstr "Joker day"
+
+msgid "Dispense"
+msgstr "Exemption"
+
+msgid "Autre"
+msgstr "Other"
+
+msgid "Note de l'enseignant :"
+msgstr "Teacher's note:"
+
+msgid "Soumis le %(date)s"
+msgstr "Submitted on %(date)s"
+
+msgid "Informations importantes"
+msgstr "Important information"
+
+msgid "Les données sont mises à jour en temps réel par l'enseignant"
+msgstr "Data is updated in real time by the teacher"
+
+msgid "Vous recevrez des notifications pour les événements importants"
+msgstr "You'll receive notifications for important events"
+
+msgid "En cas de problème, contactez directement l'enseignant"
+msgstr "If there's a problem, contact the teacher directly"
+
+msgid "Informations"
+msgstr "Information"
+
+msgid "Absences et Retards"
+msgstr "Absences and Lateness"
+
+msgid "Notes et Évaluations"
+msgstr "Grades and Assessments"
+
+msgid "Coches par matière"
+msgstr "Checks by subject"
+
+msgid "Enseignants de {name}"
+msgstr "{name}'s teachers"
+
+msgid "Chargement..."
+msgstr "Loading..."
+
+msgid "Chargement des périodes..."
+msgstr "Loading periods..."
+
+msgid "Chargement des enseignants..."
+msgstr "Loading teachers..."
+
+msgid "Erreur lors du chargement des données"
+msgstr "Error loading data"
+
+msgid "Erreur lors du chargement des enseignants"
+msgstr "Error loading teachers"
+
+msgid "Erreur lors du chargement des périodes : {error}"
+msgstr "Error loading periods: {error}"
+
+msgid "Session expirée. Veuillez vous reconnecter."
+msgstr "Session expired. Please log in again."
+
+msgid "Erreur : {error}"
+msgstr "Error: {error}"
+
+msgid "Erreur lors de l'envoi de la justification"
+msgstr "Error sending the justification"
+
+msgid "Date de l'absence"
+msgstr "Date of absence"
+
+msgid "Périodes concernées"
+msgstr "Periods concerned"
+
+msgid "Toute la journée"
+msgstr "All day"
+
+msgid "Tout le matin"
+msgstr "All morning"
+
+msgid "Tout l'après-midi"
+msgstr "All afternoon"
+
+msgid "Période {n} ({start}-{end})"
+msgstr "Period {n} ({start}-{end})"
+
+msgid "Motif de l'absence"
+msgstr "Reason for the absence"
+
+msgid "-- Sélectionner un motif --"
+msgstr "-- Select a reason --"
+
+msgid "Discipline dispensée"
+msgstr "Exempted subject"
+
+msgid "Ex : Sport, Musique..."
+msgstr "e.g. Sports, Music..."
+
+msgid "Date de début de dispense"
+msgstr "Exemption start date"
+
+msgid "Date de fin de dispense"
+msgstr "Exemption end date"
+
+msgid "Préciser le motif"
+msgstr "Specify the reason"
+
+msgid "Veuillez préciser le motif de l'absence..."
+msgstr "Please specify the reason for the absence..."
+
+msgid "Justificatif (optionnel)"
+msgstr "Supporting document (optional)"
+
+msgid "Formats acceptés : PDF, JPG, PNG"
+msgstr "Accepted formats: PDF, JPG, PNG"
+
+msgid "Envoyer la justification"
+msgstr "Send the justification"
+
+msgid "Veuillez sélectionner au moins une période"
+msgstr "Please select at least one period"
+
+msgid "Justification envoyée avec succès !"
+msgstr "Justification sent successfully!"
+
+msgid "Élève"
+msgstr "Student"
+
+msgid "Type de données non reconnu : {type}"
+msgstr "Unrecognized data type: {type}"
+
+msgid "Aucune absence ou retard enregistré"
+msgstr "No absence or lateness recorded"
+
+msgid "Présent"
+msgstr "Present"
+
+msgid "Retard"
+msgstr "Lateness"
+
+msgid "Période {n}"
+msgstr "Period {n}"
+
+msgid "Retard : {n} min"
+msgstr "Late: {n} min"
+
+msgid "Aucune donnée de période"
+msgstr "No period data"
+
+msgid "Note :"
+msgstr "Grade:"
+
+msgid "Discipline"
+msgstr "Subject"
+
+msgid "Note {n}"
+msgstr "Grade {n}"
+
+msgid "Moyenne"
+msgstr "Average"
+
+msgid "Moyennes"
+msgstr "Averages"
+
+msgid "Gén : {v}"
+msgstr "General: {v}"
+
+msgid "Sig : {v}"
+msgstr "Sig: {v}"
+
+msgid "Aucune coche enregistrée"
+msgstr "No check recorded"
+
+msgid "Coches au total"
+msgstr "Total checks"
+
+msgid "Coches par discipline"
+msgstr "Checks by subject"
+
+msgid "<strong>{n} coches</strong> en {subject}"
+msgstr "<strong>{n} checks</strong> in {subject}"
+
+msgid "coche"
+msgstr "check"
+
+msgid "coches"
+msgstr "checks"
+
+msgid "Matière : {subject}"
+msgstr "Subject: {subject}"
+
+msgid "Classe : {classroom}"
+msgstr "Class: {classroom}"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

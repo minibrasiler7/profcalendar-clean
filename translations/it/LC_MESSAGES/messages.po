@@ -2445,6 +2445,282 @@ msgstr "Una volta collegato, potrai vedere le informazioni di tutti i tuoi figli
 msgid "Chaque enfant peut être dans une classe différente avec un enseignant différent"
 msgstr "Ogni bambino può essere in una classe diversa con un insegnante diverso"
 
+msgid "Tableau de bord Parent"
+msgstr "Dashboard genitore"
+
+msgid "Bonjour %(name)s"
+msgstr "Ciao %(name)s"
+
+msgid "Mes enfants (%(count)s)"
+msgstr "I miei figli (%(count)s)"
+
+msgid "Classe non définie"
+msgstr "Classe non definita"
+
+msgid "Enseignant :"
+msgstr "Insegnante:"
+
+msgid "Mère"
+msgstr "Madre"
+
+msgid "Père"
+msgstr "Padre"
+
+msgid "Parent"
+msgstr "Genitore"
+
+msgid "Présences"
+msgstr "Presenze"
+
+msgid "Coches"
+msgstr "Spunte"
+
+msgid "Justifier une absence"
+msgstr "Giustifica un'assenza"
+
+msgid "Aucun enfant trouvé"
+msgstr "Nessun bambino trovato"
+
+msgid "Aucun enfant n'a été automatiquement lié à votre compte."
+msgstr "Nessun bambino è stato collegato automaticamente al tuo account."
+
+msgid "Veuillez vérifier que votre email correspond à celui du dossier scolaire,"
+msgstr "Verifica che la tua email corrisponda a quella del fascicolo scolastico,"
+
+msgid "ou contactez l'enseignant pour résoudre ce problème."
+msgstr "o contatta l'insegnante per risolvere questo problema."
+
+msgid "Réessayer la liaison"
+msgstr "Riprova il collegamento"
+
+msgid "Annonces de classe"
+msgstr "Annunci della classe"
+
+msgid "Enseignant"
+msgstr "Insegnante"
+
+msgid "Remarques des enseignants"
+msgstr "Osservazioni degli insegnanti"
+
+msgid "Mes justifications d'absence"
+msgstr "Le mie giustificazioni di assenza"
+
+msgid "Approuvée"
+msgstr "Approvata"
+
+msgid "Refusée"
+msgstr "Rifiutata"
+
+msgid "Périodes :"
+msgstr "Periodi:"
+
+msgid "Motif :"
+msgstr "Motivo:"
+
+msgid "Maladie/Accident"
+msgstr "Malattia/Incidente"
+
+msgid "Rendez-vous de médecin"
+msgstr "Appuntamento dal medico"
+
+msgid "Problème de transport"
+msgstr "Problema di trasporto"
+
+msgid "Congé joker"
+msgstr "Giorno jolly"
+
+msgid "Dispense"
+msgstr "Esenzione"
+
+msgid "Autre"
+msgstr "Altro"
+
+msgid "Note de l'enseignant :"
+msgstr "Nota dell'insegnante:"
+
+msgid "Soumis le %(date)s"
+msgstr "Inviato il %(date)s"
+
+msgid "Informations importantes"
+msgstr "Informazioni importanti"
+
+msgid "Les données sont mises à jour en temps réel par l'enseignant"
+msgstr "I dati sono aggiornati in tempo reale dall'insegnante"
+
+msgid "Vous recevrez des notifications pour les événements importants"
+msgstr "Riceverai notifiche per gli eventi importanti"
+
+msgid "En cas de problème, contactez directement l'enseignant"
+msgstr "In caso di problemi, contatta direttamente l'insegnante"
+
+msgid "Informations"
+msgstr "Informazioni"
+
+msgid "Absences et Retards"
+msgstr "Assenze e ritardi"
+
+msgid "Notes et Évaluations"
+msgstr "Voti e valutazioni"
+
+msgid "Coches par matière"
+msgstr "Spunte per materia"
+
+msgid "Enseignants de {name}"
+msgstr "Insegnanti di {name}"
+
+msgid "Chargement..."
+msgstr "Caricamento..."
+
+msgid "Chargement des périodes..."
+msgstr "Caricamento periodi..."
+
+msgid "Chargement des enseignants..."
+msgstr "Caricamento insegnanti..."
+
+msgid "Erreur lors du chargement des données"
+msgstr "Errore durante il caricamento dei dati"
+
+msgid "Erreur lors du chargement des enseignants"
+msgstr "Errore durante il caricamento degli insegnanti"
+
+msgid "Erreur lors du chargement des périodes : {error}"
+msgstr "Errore durante il caricamento dei periodi: {error}"
+
+msgid "Session expirée. Veuillez vous reconnecter."
+msgstr "Sessione scaduta. Effettua di nuovo l'accesso."
+
+msgid "Erreur : {error}"
+msgstr "Errore: {error}"
+
+msgid "Erreur lors de l'envoi de la justification"
+msgstr "Errore durante l'invio della giustificazione"
+
+msgid "Date de l'absence"
+msgstr "Data dell'assenza"
+
+msgid "Périodes concernées"
+msgstr "Periodi interessati"
+
+msgid "Toute la journée"
+msgstr "Tutto il giorno"
+
+msgid "Tout le matin"
+msgstr "Tutta la mattina"
+
+msgid "Tout l'après-midi"
+msgstr "Tutto il pomeriggio"
+
+msgid "Période {n} ({start}-{end})"
+msgstr "Periodo {n} ({start}-{end})"
+
+msgid "Motif de l'absence"
+msgstr "Motivo dell'assenza"
+
+msgid "-- Sélectionner un motif --"
+msgstr "-- Seleziona un motivo --"
+
+msgid "Discipline dispensée"
+msgstr "Materia esentata"
+
+msgid "Ex : Sport, Musique..."
+msgstr "es: Sport, Musica..."
+
+msgid "Date de début de dispense"
+msgstr "Data di inizio dell'esenzione"
+
+msgid "Date de fin de dispense"
+msgstr "Data di fine dell'esenzione"
+
+msgid "Préciser le motif"
+msgstr "Specifica il motivo"
+
+msgid "Veuillez préciser le motif de l'absence..."
+msgstr "Specifica il motivo dell'assenza..."
+
+msgid "Justificatif (optionnel)"
+msgstr "Giustificativo (facoltativo)"
+
+msgid "Formats acceptés : PDF, JPG, PNG"
+msgstr "Formati accettati: PDF, JPG, PNG"
+
+msgid "Envoyer la justification"
+msgstr "Invia la giustificazione"
+
+msgid "Veuillez sélectionner au moins une période"
+msgstr "Seleziona almeno un periodo"
+
+msgid "Justification envoyée avec succès !"
+msgstr "Giustificazione inviata con successo!"
+
+msgid "Élève"
+msgstr "Studente"
+
+msgid "Type de données non reconnu : {type}"
+msgstr "Tipo di dati non riconosciuto: {type}"
+
+msgid "Aucune absence ou retard enregistré"
+msgstr "Nessuna assenza o ritardo registrato"
+
+msgid "Présent"
+msgstr "Presente"
+
+msgid "Retard"
+msgstr "Ritardo"
+
+msgid "Période {n}"
+msgstr "Periodo {n}"
+
+msgid "Retard : {n} min"
+msgstr "Ritardo: {n} min"
+
+msgid "Aucune donnée de période"
+msgstr "Nessun dato di periodo"
+
+msgid "Note :"
+msgstr "Voto:"
+
+msgid "Discipline"
+msgstr "Materia"
+
+msgid "Note {n}"
+msgstr "Voto {n}"
+
+msgid "Moyenne"
+msgstr "Media"
+
+msgid "Moyennes"
+msgstr "Medie"
+
+msgid "Gén : {v}"
+msgstr "Generale: {v}"
+
+msgid "Sig : {v}"
+msgstr "Sig: {v}"
+
+msgid "Aucune coche enregistrée"
+msgstr "Nessuna spunta registrata"
+
+msgid "Coches au total"
+msgstr "Spunte totali"
+
+msgid "Coches par discipline"
+msgstr "Spunte per materia"
+
+msgid "<strong>{n} coches</strong> en {subject}"
+msgstr "<strong>{n} spunte</strong> in {subject}"
+
+msgid "coche"
+msgstr "spunta"
+
+msgid "coches"
+msgstr "spunte"
+
+msgid "Matière : {subject}"
+msgstr "Materia: {subject}"
+
+msgid "Classe : {classroom}"
+msgstr "Classe: {classroom}"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."
