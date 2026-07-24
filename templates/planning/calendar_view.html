@@ -2566,6 +2566,11 @@ async function fetchWeekFragment(weekStartDate, opts = {}) {
         const container = document.getElementById('weeklyScheduleContainer');
         if (container) container.innerHTML = data.grid_html;
 
+        // La grille a été remplacée : recalculer la hauteur des blocs des
+        // périodes fusionnées, sinon le bloc de la 1re période ne s'étend plus
+        // sur la 2e (qui apparaît alors transparente au lieu de la couleur).
+        if (typeof calculateMergedBlockHeights === 'function') calculateMergedBlockHeights();
+
         // Mettre à jour l'URL pour cohérence (back-button, refresh).
         currentDisplayedWeek = data.week;
         const params = new URLSearchParams(window.location.search);

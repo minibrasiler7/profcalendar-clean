@@ -121,10 +121,13 @@
 </head>
 <body{% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' and not current_user.has_seen_tour %} data-first-visit="true"{% endif %}>
 
-    {# Overlay de chargement. Pré-affiché ("visible") si on EST sur le
-       calendrier (couvre le rendu), sinon affiché au clic sur un lien vers le
-       calendrier (couvre l'attente serveur). Masqué par le script en bas de page. #}
-    <div id="page-loading-overlay"{% if request.endpoint == 'planning.calendar_view' %} class="visible"{% endif %} role="status" aria-live="polite">
+    {# Overlay de chargement affiché AU CLIC sur un lien vers le calendrier
+       (couvre l'attente serveur de ~3 s pendant la navigation depuis une autre
+       page). Sur /calendar même, c'est #calendarPageLoader (barre de
+       progression, dans calendar_view.html) qui prend le relais — on ne
+       pré-affiche donc PAS cet overlay-ci sur le calendrier, sinon il masque
+       le loader de la page (z-index supérieur). #}
+    <div id="page-loading-overlay" role="status" aria-live="polite">
         <div class="plo-spinner"></div>
         <p class="plo-text">{{ _('Chargement du calendrier…') }}</p>
     </div>
@@ -534,38 +537,38 @@
     {% block extra_js %}{% endblock %}
 
     <script>
-    // Overlay de chargement du calendrier (page lente à répondre côté serveur).
+    // Overlay de chargement affiché au clic sur un lien vers le calendrier
+    // (couvre l'attente serveur pendant la navigation depuis une autre page).
+    // Sur /calendar, c'est #calendarPageLoader qui prend le relais.
     (function () {
         var overlay = document.getElementById('page-loading-overlay');
         if (!overlay) return;
         var CAL_URL = "{{ url_for('planning.calendar_view') }}";
-        function show() { overlay.classList.add('visible'); }
-        function hide() { overlay.classList.remove('visible'); }
+        var safety = null;
+        function show() {
+            overlay.classList.add('visible');
+            clearTimeout(safety);
+            // Sécurité : si la navigation n'aboutit pas (clic annulé, lien
+            // bloqué…), ne jamais laisser l'overlay figé.
+            safety = setTimeout(hide, 12000);
+        }
+        function hide() { overlay.classList.remove('visible'); clearTimeout(safety); }
 
-        // 1) Clic sur un lien vers le calendrier depuis une autre page :
-        //    l'overlay apparaît tout de suite et couvre l'attente serveur.
+        // Clic sur un lien vers le calendrier DEPUIS UNE AUTRE PAGE : l'overlay
+        // apparaît tout de suite et couvre l'attente serveur (~3 s).
         document.addEventListener('click', function (e) {
             if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
             var a = e.target.closest ? e.target.closest('a') : null;
             if (!a || !a.href || a.target === '_blank' || a.hasAttribute('download')) return;
             try {
                 var u = new URL(a.href, location.origin);
-                if (u.pathname === CAL_URL && u.search.indexOf('fragment') === -1) show();
+                if (u.pathname === CAL_URL && location.pathname !== CAL_URL
+                    && u.search.indexOf('fragment') === -1) show();
             } catch (_) {}
         }, true);
 
-        // 2) Si on EST déjà sur le calendrier : l'overlay est pré-affiché par le
-        //    gabarit ; on le masque une fois la page prête.
-        if (location.pathname === CAL_URL) {
-            var done = false;
-            function finish() { if (!done) { done = true; hide(); } }
-            if (document.readyState === 'complete') finish();
-            else window.addEventListener('load', function () { setTimeout(finish, 120); });
-            setTimeout(finish, 7000); // filet de sécurité : ne jamais rester bloqué
-        }
-
-        // 3) Retour arrière / bfcache : ne jamais réafficher un overlay figé.
-        window.addEventListener('pageshow', function (e) { if (e.persisted) hide(); });
+        // Retour arrière / bfcache / affichage d'une page : jamais figé.
+        window.addEventListener('pageshow', function () { hide(); });
     })();
     </script>
 </body>
