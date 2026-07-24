@@ -2342,6 +2342,19 @@ if (typeof pdfjsLib !== 'undefined') {
                     </div>
                 </div>
 
+                <!-- Devoirs : donnés ce jour (annotation) + bouton créer -->
+                <div id="periodDevoirsSection" style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span><i class="fas fa-book" style="margin-right: 0.5rem;"></i> Devoirs</span>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openCalDevoirModal()" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
+                            <i class="fas fa-plus"></i> Créer un devoir
+                        </button>
+                    </h4>
+                    <div id="periodDevoirsGiven" style="display: grid; gap: 0.5rem;">
+                        <!-- Devoir(s) donné(s) ce jour, injectés par showPeriodAttendance -->
+                    </div>
+                </div>
+
                 <!-- Tâches complétées -->
                 <div id="completedTasksSection" style="display: none; margin-bottom: 1.5rem;">
                     <h4 style="color: #16a34a; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center;">
@@ -7217,12 +7230,16 @@ async function showPeriodAttendance(date, periodNumber, classroomId, isMixedGrou
     });
     modalTitle.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
 
-    // Stocker les informations pour les feuilles blanches
+    // Stocker les informations pour les feuilles blanches ET les devoirs
     window.currentAttendanceContext = {
         date: date,
         periodNumber: periodNumber,
-        classroomId: classroomId
+        classroomId: classroomId,
+        isMixedGroup: isMixedGroup
     };
+
+    // Devoirs donnés ce jour pour cette classe (annotation dans la modale).
+    loadPeriodDevoirs(date, classroomId);
 
     // Afficher le modal avec l'état de chargement
     document.getElementById('attendanceLoadingState').style.display = 'block';
@@ -7394,5 +7411,159 @@ function showAttendanceError(message) {
 
 <!-- Nouveau lecteur PDF Clean -->
 <script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9&cache_bust={{ range(1000000, 9999999) | random }}"></script>
+
+<!-- ================= Devoirs depuis le calendrier (modale de période) ================= -->
+<style>
+    #calDevoirModal { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 20000; align-items: flex-start; justify-content: center; padding: 6vh 1rem 1rem; }
+    #calDevoirModal .devoir-modal { background:#fff; border-radius:14px; width:100%; max-width:420px; padding:1.1rem 1.2rem; box-shadow:0 20px 50px rgba(0,0,0,0.25); max-height:90vh; overflow-y:auto; }
+    #calDevoirModal .devoir-modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.8rem; }
+    #calDevoirModal .devoir-modal-head strong { font-size:1rem; color:#312E81; }
+    #calDevoirModal .devoir-modal-close { background:none; border:none; font-size:1.5rem; line-height:1; color:#6B7280; cursor:pointer; padding:0 0.25rem; }
+    #calDevoirModal .devoir-field { display:flex; flex-direction:column; gap:0.3rem; margin-bottom:0.7rem; }
+    #calDevoirModal .devoir-field > span { font-size:0.78rem; font-weight:600; color:#374151; }
+    #calDevoirModal .devoir-field input[type=text], #calDevoirModal .devoir-field select,
+    #calDevoirModal .devoir-field textarea, #calDevoirModal .devoir-field input[type=file] {
+        width:100%; border:1px solid #D1D5DB; border-radius:8px; padding:0.5rem 0.6rem; font-size:0.85rem; font-family:inherit; box-sizing:border-box; }
+    #calDevoirModal .devoir-types { display:flex; flex-direction:column; gap:0.3rem; }
+    #calDevoirModal .devoir-types label { display:flex; align-items:center; gap:0.4rem; font-size:0.83rem; color:#374151; font-weight:normal; cursor:pointer; }
+    #calDevoirModal .devoir-modal-actions { display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.4rem; }
+    #calDevoirModal .btn-devoir-create { background:#6366F1; color:#fff; border:none; border-radius:8px; padding:0.45rem 0.8rem; font-size:0.82rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem; }
+    #calDevoirModal .btn-devoir-create:hover { background:#4F46E5; }
+    #calDevoirModal .btn-devoir-create:disabled { opacity:0.6; cursor:default; }
+    #calDevoirModal .btn-devoir-outline { background:#fff; border:1px solid #D1D5DB; color:#374151; border-radius:8px; padding:0.45rem 0.9rem; font-size:0.82rem; cursor:pointer; }
+</style>
+
+<div id="calDevoirModal" style="display:none;" onclick="if (event.target === this) closeCalDevoirModal()">
+    <div class="devoir-modal">
+        <div class="devoir-modal-head">
+            <strong><i class="fas fa-book"></i> Nouveau devoir</strong>
+            <button type="button" class="devoir-modal-close" onclick="closeCalDevoirModal()" aria-label="Fermer">&times;</button>
+        </div>
+        <label class="devoir-field"><span>Titre</span>
+            <input type="text" id="calDevoirTitle" placeholder="Ex : Exercices p. 42 n° 1 à 5"></label>
+        <div class="devoir-field" id="calDevoirTypeField"><span>Type de devoir</span>
+            <div class="devoir-types">
+                <label><input type="radio" name="calDevoirType" value="submission" checked onchange="onCalDevoirTypeChange()"> À rendre (l'élève envoie une photo)</label>
+                <label><input type="radio" name="calDevoirType" value="exercise" onchange="onCalDevoirTypeChange()"> Exercice interactif</label>
+            </div>
+        </div>
+        <label class="devoir-field" id="calDevoirExerciseField" style="display:none;"><span>Exercice interactif</span>
+            <select id="calDevoirExercise"></select></label>
+        <label class="devoir-field"><span>Date de rendu (prochains cours de la classe)</span>
+            <select id="calDevoirDueDate"></select></label>
+        <label class="devoir-field"><span>Consignes (facultatif)</span>
+            <textarea id="calDevoirInstructions" rows="2" placeholder="Précisions pour les élèves…"></textarea></label>
+        <label class="devoir-field"><span>Document pour les élèves (facultatif)</span>
+            <input type="file" id="calDevoirDocument" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.ppt,.pptx,.xls,.xlsx"></label>
+        <div class="devoir-modal-actions">
+            <button type="button" class="btn-devoir-outline" onclick="closeCalDevoirModal()">Annuler</button>
+            <button type="button" class="btn-devoir-create" id="calDevoirSaveBtn" onclick="submitCalDevoir()"><i class="fas fa-check"></i> Créer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    var MONTHS = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    function fmtDate(iso) { if (!iso) return ''; var p = iso.split('-').map(Number); return p[2] + ' ' + MONTHS[p[1]]; }
+
+    window.onCalDevoirTypeChange = function () {
+        var t = document.querySelector('input[name="calDevoirType"]:checked').value;
+        document.getElementById('calDevoirExerciseField').style.display = (t === 'exercise') ? 'flex' : 'none';
+    };
+
+    // Annotation : liste les devoirs DONNÉS ce jour pour cette classe.
+    window.loadPeriodDevoirs = async function (date, classroomId) {
+        var box = document.getElementById('periodDevoirsGiven');
+        if (!box) return;
+        box.innerHTML = '';
+        if (!classroomId) return;
+        try {
+            var j = await (await fetch('/api/devoirs/list?classroom_id=' + classroomId + '&context_date=' + date)).json();
+            if (!j.success) return;
+            var given = (j.devoirs || []).filter(function (d) { return (d.created_at || '').slice(0, 10) === date; });
+            if (!given.length) {
+                box.innerHTML = '<div style="font-size:0.82rem;color:#9CA3AF;font-style:italic;">Aucun devoir donné ce jour.</div>';
+                return;
+            }
+            box.innerHTML = given.map(function (d) {
+                var link = d.type === 'submission' ? ('/planning/devoir/' + d.id + '/submissions') : ('/planning/devoir/' + d.id + '/resultats');
+                var icon = d.type === 'exercise' ? 'fa-gamepad' : 'fa-camera';
+                var viewIcon = d.type === 'submission' ? 'fa-inbox' : 'fa-chart-simple';
+                return '<div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:0.5rem 0.7rem;display:flex;align-items:center;gap:0.5rem;">'
+                    + '<i class="fas ' + icon + '" style="color:#6366F1;"></i>'
+                    + '<div style="flex:1;min-width:0;"><div style="font-size:0.85rem;font-weight:600;color:#312E81;">' + esc(d.title) + '</div>'
+                    + '<div style="font-size:0.72rem;color:#6B7280;">Donné ce jour · à rendre le ' + fmtDate(d.due_date) + '</div></div>'
+                    + '<a href="' + link + '" style="color:#6366F1;text-decoration:none;" title="Voir"><i class="fas ' + viewIcon + '"></i></a></div>';
+            }).join('');
+        } catch (e) {}
+    };
+
+    window.openCalDevoirModal = async function () {
+        var ctx = window.currentAttendanceContext || {};
+        var cid = ctx.classroomId;
+        if (!cid) { alert('Aucune classe pour cette période.'); return; }
+        document.getElementById('calDevoirTitle').value = '';
+        document.getElementById('calDevoirInstructions').value = '';
+        var df = document.getElementById('calDevoirDocument'); if (df) df.value = '';
+        document.querySelector('input[name="calDevoirType"][value="submission"]').checked = true;
+        onCalDevoirTypeChange();
+        var dd = document.getElementById('calDevoirDueDate');
+        dd.innerHTML = '<option value="">Chargement…</option>';
+        document.getElementById('calDevoirModal').style.display = 'flex';
+        try {
+            var j = await (await fetch('/api/devoirs/suggest-dates?classroom_id=' + cid)).json();
+            dd.innerHTML = (j.success && j.dates.length)
+                ? j.dates.map(function (x) { return '<option value="' + x.date + '">' + x.label + '</option>'; }).join('')
+                : '<option value="">Aucune date de cours à venir</option>';
+        } catch (e) { dd.innerHTML = '<option value="">Erreur de chargement</option>'; }
+        try {
+            var j2 = await (await fetch('/api/devoirs/exercises')).json();
+            var ex = document.getElementById('calDevoirExercise');
+            ex.innerHTML = (j2.success && j2.exercises.length)
+                ? j2.exercises.map(function (e) { return '<option value="' + e.id + '">' + esc(e.title) + (e.published ? '' : ' (brouillon)') + '</option>'; }).join('')
+                : '<option value="">Aucun exercice — crées-en un d\'abord</option>';
+        } catch (e) {}
+    };
+
+    window.closeCalDevoirModal = function () { document.getElementById('calDevoirModal').style.display = 'none'; };
+
+    window.submitCalDevoir = async function () {
+        var ctx = window.currentAttendanceContext || {};
+        var cid = ctx.classroomId;
+        var title = document.getElementById('calDevoirTitle').value.trim();
+        var type = document.querySelector('input[name="calDevoirType"]:checked').value;
+        var due = document.getElementById('calDevoirDueDate').value;
+        if (!title) { alert('Donne un titre au devoir.'); return; }
+        if (!due) { alert('Choisis une date de rendu.'); return; }
+        var body = { classroom_id: cid, type: type, title: title, due_date: due,
+                     instructions: document.getElementById('calDevoirInstructions').value.trim() };
+        if (type === 'exercise') {
+            var ev = document.getElementById('calDevoirExercise').value;
+            if (!ev) { alert('Choisis un exercice interactif.'); return; }
+            body.exercise_id = ev;
+        }
+        var btn = document.getElementById('calDevoirSaveBtn'); btn.disabled = true;
+        try {
+            var j = await (await fetch('/api/devoirs/create', { method: 'POST',
+                headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+            if (j.success) {
+                var df = document.getElementById('calDevoirDocument');
+                if (df && df.files && df.files.length) {
+                    try {
+                        var fd = new FormData(); fd.append('document', df.files[0]);
+                        var uj = await (await fetch('/api/devoirs/' + j.devoir.id + '/document', { method: 'POST', body: fd })).json();
+                        if (!uj.success) alert('Devoir créé, mais document non joint : ' + (uj.error || ''));
+                    } catch (e2) { alert('Devoir créé, mais document non joint (réseau)'); }
+                }
+                closeCalDevoirModal();
+                if (ctx.date && cid) loadPeriodDevoirs(ctx.date, cid);
+            } else { alert(j.error || 'Erreur'); }
+        } catch (e) { alert('Erreur réseau'); }
+        finally { btn.disabled = false; }
+    };
+})();
+</script>
 
 {% endblock %}

@@ -994,14 +994,14 @@ def calendar_view():
         ),
     ).options(db.joinedload(Devoir.classroom)).all()
 
-    # Occurrences (date, devoir, kind) — kind: 'due' (à rendre) / 'given' (donné).
+    # Badge cliquable : UNIQUEMENT sur le jour où le devoir est à rendre.
+    # Le jour où le devoir a été DONNÉ n'a plus de badge — l'info apparaît
+    # désormais dans la modale de la période (voir showPeriodAttendance :
+    # elle récupère les devoirs donnés ce jour-là via l'API).
     _occurrences = []
     for _dv in week_devoirs:
         if week_dates[0] <= _dv.due_date <= week_dates[4]:
             _occurrences.append((_dv.due_date, _dv, 'due'))
-        _cd = _dv.created_at.date() if _dv.created_at else None
-        if _cd and week_dates[0] <= _cd <= week_dates[4] and _cd != _dv.due_date:
-            _occurrences.append((_cd, _dv, 'given'))
 
     # Placer chaque occurrence dans la 1re période du jour où SA classe+discipline
     # (classroom_id) est enseignée. Sinon repli dans l'en-tête du jour.
