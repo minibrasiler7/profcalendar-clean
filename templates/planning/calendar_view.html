@@ -991,6 +991,14 @@ if (typeof pdfjsLib !== 'undefined') {
 .class-block.custom-task-block { background: #FFFBEB !important; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; color: #78350F; border-radius: 8px; }
 .custom-task-block .task-title { font-weight: 700; font-size: 0.78rem; color: #78350F; display: flex; align-items: center; gap: 0.3rem; line-height: 1.25; }
 .custom-task-block .task-time { font-size: 0.72rem; color: #B45309; margin-top: 2px; display: flex; align-items: center; gap: 0.3rem; font-variant-numeric: tabular-nums; }
+/* Lignes de pause : rendent visibles les trous horaires de la grille */
+.break-row { height: 18px; }
+.break-row td { background: repeating-linear-gradient(135deg, #F8FAFC, #F8FAFC 6px, #F1F5F9 6px, #F1F5F9 12px); border-top: 1px dashed #E2E8F0 !important; border-bottom: 1px dashed #E2E8F0 !important; padding: 0 !important; }
+.break-label { display: block; text-align: center; font-size: 0.62rem; color: #94A3B8; line-height: 18px; white-space: nowrap; }
+.break-label i { margin-right: 0.25rem; }
+/* Tâche horodatée : positionnée en absolu selon ses heures (peut traverser
+   périodes et pauses). La classe .positioned est posée par le JS. */
+.custom-task-timed.positioned { position: absolute; left: 3px; right: 3px; margin: 0; z-index: 5; overflow: hidden; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35); }
 
 /* Numéro de semaine scolaire (même numérotation S0/S1... que la vue annuelle) */
 .week-number-badge { display: inline-flex; align-items: center; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; border-radius: 999px; font-size: 0.85rem; font-weight: 700; padding: 0.15rem 0.7rem; margin-left: 0.6rem; vertical-align: middle; }
@@ -2645,6 +2653,7 @@ async function fetchWeekFragment(weekStartDate, opts = {}) {
         // périodes fusionnées, sinon le bloc de la 1re période ne s'étend plus
         // sur la 2e (qui apparaît alors transparente au lieu de la couleur).
         if (typeof calculateMergedBlockHeights === 'function') calculateMergedBlockHeights();
+        if (typeof positionTimedTasks === 'function') positionTimedTasks();
 
         // Mettre à jour l'URL pour cohérence (back-button, refresh).
         currentDisplayedWeek = data.week;
@@ -2895,17 +2904,23 @@ function calculateMergedBlockHeights() {
                     return;
                 }
                 
-                // Trouver la ligne suivante (celle qui contient la période fusionnée)
-                const nextRow = parentRow.nextElementSibling;
+                // Trouver la ligne suivante (celle qui contient la période
+                // fusionnée), en ENJAMBANT les lignes de pause intercalées.
+                let nextRow = parentRow.nextElementSibling;
+                let breakRowsHeight = 0;
+                while (nextRow && nextRow.classList.contains('break-row')) {
+                    breakRowsHeight += nextRow.getBoundingClientRect().height;
+                    nextRow = nextRow.nextElementSibling;
+                }
                 if (!nextRow) {
                     console.warn('No next row found');
                     return;
                 }
                 
-                // Calculer la hauteur totale des deux lignes
+                // Hauteur totale : les deux périodes + les pauses entre elles
                 const parentRowHeight = parentRow.getBoundingClientRect().height;
                 const nextRowHeight = nextRow.getBoundingClientRect().height;
-                const totalHeight = parentRowHeight + nextRowHeight;
+                const totalHeight = parentRowHeight + breakRowsHeight + nextRowHeight;
                 
                 console.log(`Setting merged block height: ${totalHeight}px (${parentRowHeight}px + ${nextRowHeight}px)`);
                 
@@ -2919,11 +2934,63 @@ function calculateMergedBlockHeights() {
     }, 500); // Délai pour laisser le temps au CSS de se charger
 }
 
+// Positionne les tâches horodatées (task_start/task_end) proportionnellement
+// au temps : la carte occupe l'espace vertical de ses heures, en traversant
+// périodes ET pauses (interpolation par ligne via data-row-start/end).
+function positionTimedTasks() {
+    setTimeout(() => {
+        const rows = Array.from(document.querySelectorAll('#weeklyScheduleContainer tr[data-row-start]'));
+        if (!rows.length) return;
+        const toMin = s => { const p = (s || '').split(':').map(Number); return p[0] * 60 + (p[1] || 0); };
+        const segs = rows.map(r => {
+            const rect = r.getBoundingClientRect();
+            return { start: toMin(r.dataset.rowStart), end: toMin(r.dataset.rowEnd), top: rect.top, height: rect.height };
+        }).filter(s => s.end > s.start && s.height > 0);
+        if (!segs.length) return;
+        const yAt = (m) => {
+            if (m <= segs[0].start) return segs[0].top;
+            for (const s of segs) {
+                if (m >= s.start && m <= s.end) return s.top + (m - s.start) / (s.end - s.start) * s.height;
+            }
+            // Instant dans un trou non représenté : se coller à la fin du segment précédent
+            for (let i = 0; i < segs.length - 1; i++) {
+                if (m > segs[i].end && m < segs[i + 1].start) return segs[i].top + segs[i].height;
+            }
+            const last = segs[segs.length - 1];
+            return last.top + last.height;
+        };
+        document.querySelectorAll('.custom-task-timed').forEach(block => {
+            const cell = block.closest('.schedule-cell');
+            if (!cell) return;
+            const s = toMin(block.dataset.taskStart), e = toMin(block.dataset.taskEnd);
+            if (!(e > s)) return;
+            const cellTop = cell.getBoundingClientRect().top;
+            const top = yAt(s) - cellTop;
+            const height = Math.max(24, yAt(e) - yAt(s) - 2);
+            block.classList.add('positioned');
+            block.style.top = top + 'px';
+            block.style.height = height + 'px';
+        });
+    }, 560);
+}
+
+// Repositionner au redimensionnement (les hauteurs de lignes changent)
+let _timedTasksResizeTimer = null;
+window.addEventListener('resize', function () {
+    clearTimeout(_timedTasksResizeTimer);
+    _timedTasksResizeTimer = setTimeout(() => {
+        document.querySelectorAll('.custom-task-timed.positioned').forEach(b => b.classList.remove('positioned'));
+        positionTimedTasks();
+    }, 200);
+});
+window.addEventListener('load', function () { positionTimedTasks(); });
+
 // Initialiser les données de planification au chargement
 document.addEventListener('DOMContentLoaded', function() {
     loadWeeklyPlannings();
     applyClassroomColor();
     calculateMergedBlockHeights();
+    positionTimedTasks();
 
     // Restaurer la préférence de vue
     const savedViewMode = localStorage.getItem('calendarViewMode');

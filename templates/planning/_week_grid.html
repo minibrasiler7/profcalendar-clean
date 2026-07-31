@@ -44,7 +44,7 @@
         {% endfor %}
 
         {% if not should_skip %}
-        <tr>
+        <tr data-row-start="{{ period.start.strftime('%H:%M') }}" data-row-end="{{ period.end.strftime('%H:%M') }}">
             <td class="time-slot">
                 <div class="period-number">P{{ period_num }}</div>
                 <div class="period-time">
@@ -109,7 +109,8 @@
                             <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
                             <div class="class-subject">{{ planning.mixed_group.subject }}</div>
                         {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
-                        <div class="class-block planned custom-task-block {% if is_merged_for_day %}merged-block{% endif %}">
+                        <div class="class-block planned custom-task-block {% if planning.task_start and planning.task_end %}custom-task-timed{% endif %} {% if is_merged_for_day %}merged-block{% endif %}"
+                             {% if planning.task_start and planning.task_end %}data-task-start="{{ planning.task_start.strftime('%H:%M') }}" data-task-end="{{ planning.task_end.strftime('%H:%M') }}"{% endif %}>
                             <div class="task-title"><i class="far fa-calendar-check"></i> {{ planning.title }}</div>
                             {% if planning.task_start %}
                             <div class="task-time"><i class="far fa-clock"></i> {{ planning.task_start.strftime('%H:%M') }}{% if planning.task_end %}–{{ planning.task_end.strftime('%H:%M') }}{% endif %}</div>
@@ -193,6 +194,20 @@
             </td>
             {% endfor %}
         </tr>
+        {# Pause visible entre cette période et la suivante (trou horaire) :
+           donne une ligne réelle à la grille pour que les tâches horodatées
+           puissent occuper cet espace. #}
+        {% if not loop.last %}
+        {% set next_p = periods[loop.index] %}
+        {% if next_p.start > period.end %}
+        <tr class="break-row" data-row-start="{{ period.end.strftime('%H:%M') }}" data-row-end="{{ next_p.start.strftime('%H:%M') }}">
+            <td class="time-slot break-slot"></td>
+            <td class="break-cell" colspan="5">
+                <span class="break-label"><i class="fas fa-mug-hot"></i> {{ period.end.strftime('%H:%M') }}–{{ next_p.start.strftime('%H:%M') }}</span>
+            </td>
+        </tr>
+        {% endif %}
+        {% endif %}
         {% endif %}
         {% endfor %}
     </tbody>
