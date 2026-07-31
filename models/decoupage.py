@@ -50,6 +50,7 @@ class DecoupagePeriod(db.Model):
     duration = db.Column(db.Float, nullable=False)        # 3.0 = 3 semaines, 2.5 = 2.5 sem
     color = db.Column(db.String(7), nullable=False)       # "#FF5733"
     order = db.Column(db.Integer, nullable=False)         # Position dans le découpage
+    objectives = db.Column(db.Text, nullable=True)        # Objectifs pédagogiques (facultatif)
 
     def to_dict(self):
         """Convertit la période en dictionnaire pour l'API"""
@@ -59,7 +60,8 @@ class DecoupagePeriod(db.Model):
             'name': self.name,
             'duration': self.duration,
             'color': self.color,
-            'order': self.order
+            'order': self.order,
+            'objectives': self.objectives or ''
         }
 
     def __repr__(self):

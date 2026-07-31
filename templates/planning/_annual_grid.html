@@ -91,7 +91,7 @@
                 {% if week.decoupage_ribbon.type == 'full' %}
                 <div class="decoupage-ribbon full"
                      style="background-color: {{ week.decoupage_ribbon.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.color }};"
-                     title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }})">
+                     title="{{ week.decoupage_ribbon.name }} ({{ week.decoupage_ribbon.subject }}){% if week.decoupage_ribbon.objectives %}&#10;&#10;Objectifs :&#10;{{ week.decoupage_ribbon.objectives }}{% endif %}">
                     <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.color }};">
                         {{ week.decoupage_ribbon.name }}
                     </span>
@@ -101,7 +101,7 @@
                     {% if week.decoupage_ribbon.first_half %}
                     <div class="decoupage-ribbon half first-half"
                          style="background-color: {{ week.decoupage_ribbon.first_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.first_half.color }};"
-                         title="{{ week.decoupage_ribbon.first_half.name }}">
+                         title="{{ week.decoupage_ribbon.first_half.name }}{% if week.decoupage_ribbon.first_half.objectives %}&#10;&#10;Objectifs :&#10;{{ week.decoupage_ribbon.first_half.objectives }}{% endif %}">
                         <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.first_half.color }};">
                             {{ week.decoupage_ribbon.first_half.name }}
                         </span>
@@ -112,7 +112,7 @@
                     {% if week.decoupage_ribbon.second_half %}
                     <div class="decoupage-ribbon half second-half"
                          style="background-color: {{ week.decoupage_ribbon.second_half.color }}25; border-bottom: 2px solid {{ week.decoupage_ribbon.second_half.color }};"
-                         title="{{ week.decoupage_ribbon.second_half.name }}">
+                         title="{{ week.decoupage_ribbon.second_half.name }}{% if week.decoupage_ribbon.second_half.objectives %}&#10;&#10;Objectifs :&#10;{{ week.decoupage_ribbon.second_half.objectives }}{% endif %}">
                         <span class="ribbon-label" style="color: {{ week.decoupage_ribbon.second_half.color }};">
                             {{ week.decoupage_ribbon.second_half.name }}
                         </span>

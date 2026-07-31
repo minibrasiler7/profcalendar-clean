@@ -575,6 +575,15 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : objectifs facultatifs des thèmes de découpage.
+        try:
+            db.session.execute(db.text("ALTER TABLE decoupage_periods ADD COLUMN IF NOT EXISTS objectives TEXT"))
+            db.session.commit()
+            print("✅ Colonne decoupage_periods.objectives vérifiée")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification objectives échouée: {e}")
+
         # Filet de sécurité : horaire facultatif des tâches personnalisées.
         try:
             db.session.execute(db.text("ALTER TABLE plannings ADD COLUMN IF NOT EXISTS task_start TIME"))

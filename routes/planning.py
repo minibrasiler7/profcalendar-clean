@@ -1499,7 +1499,8 @@ def get_decoupage_for_week(classroom_id, week_number):
                 return {
                     'name': period.name,
                     'color': period.color,
-                    'subject': decoupage.subject
+                    'subject': decoupage.subject,
+                    'objectives': period.objectives or ''
                 }
             cumulative = period_end
         return None  # Position après la fin du découpage
@@ -8772,6 +8773,7 @@ def add_period(decoupage_id):
     name = data.get('name', '').strip()
     duration = data.get('duration')
     color = data.get('color', '#3B82F6')
+    objectives = (data.get('objectives') or '').strip() or None
 
     if not name or duration is None:
         return jsonify({'success': False, 'message': 'Nom et durée requis'}), 400
@@ -8792,7 +8794,8 @@ def add_period(decoupage_id):
             name=name,
             duration=duration,
             color=color,
-            order=max_order + 1
+            order=max_order + 1,
+            objectives=objectives
         )
         db.session.add(period)
         db.session.commit()
@@ -8838,6 +8841,8 @@ def update_period(decoupage_id, period_id):
             return jsonify({'success': False, 'message': 'Durée invalide'}), 400
     if 'color' in data:
         period.color = data['color']
+    if 'objectives' in data:
+        period.objectives = (data['objectives'] or '').strip() or None
     if 'order' in data:
         period.order = int(data['order'])
 
