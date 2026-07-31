@@ -840,7 +840,9 @@
     width: 40px;
     height: 40px;
     border: none;
-    background-color: var(--light-gray);
+    /* Bleu foncé + croix blanche : lisible sur fond clair comme sur l'en-tête dégradé. */
+    background-color: #312E81;
+    color: #fff;
     border-radius: var(--border-radius);
     cursor: pointer;
     display: flex;
@@ -850,7 +852,7 @@
 }
 
 .modal-close:hover {
-    background-color: #E5E7EB;
+    background-color: #4338CA;
 }
 
 .modal-body {
