@@ -2328,6 +2328,36 @@ msgstr "SCHADE!"
 msgid "PRESQUE !"
 msgstr "FAST!"
 
+msgid "Mot de passe oublié ?"
+msgstr "Passwort vergessen?"
+
+msgid "Saisissez votre email, nous vous enverrons un lien de réinitialisation."
+msgstr "Gib deine E-Mail ein und wir senden dir einen Link zum Zurücksetzen."
+
+msgid "Envoyer le lien de réinitialisation"
+msgstr "Link zum Zurücksetzen senden"
+
+msgid "Nouveau mot de passe"
+msgstr "Neues Passwort"
+
+msgid "Choisissez votre nouveau mot de passe."
+msgstr "Wähle dein neues Passwort."
+
+msgid "Réinitialiser le mot de passe"
+msgstr "Passwort zurücksetzen"
+
+msgid "Merci de patienter une minute avant de redemander un email."
+msgstr "Bitte warte eine Minute, bevor du eine weitere E-Mail anforderst."
+
+msgid "Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé."
+msgstr "Falls ein Konto mit dieser Adresse existiert, wurde eine E-Mail zum Zurücksetzen gesendet."
+
+msgid "Ce lien de réinitialisation est invalide ou a expiré. Redemandez-en un nouveau."
+msgstr "Dieser Link zum Zurücksetzen ist ungültig oder abgelaufen. Fordere einen neuen an."
+
+msgid "Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter."
+msgstr "Passwort zurückgesetzt! Du kannst dich jetzt anmelden."
+
 msgid "Connexion Parent"
 msgstr "Eltern-Login"
 

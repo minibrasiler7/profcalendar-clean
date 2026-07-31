@@ -387,3 +387,123 @@ def logout():
     logout_user()
     flash(_('Vous avez été déconnecté avec succès.'), 'info')
     return redirect(url_for('auth.login'))
+
+
+# ============================================================
+# Mot de passe oublié (enseignants)
+# ============================================================
+# Jeton signé itsdangerous (aucune table nécessaire) : contient l'id de
+# l'utilisateur + un fragment du hash du mot de passe actuel. Dès que le mot
+# de passe change, le fragment ne correspond plus → le lien est à usage
+# unique. Expiration : 1 heure.
+
+class ForgotPasswordForm(FlaskForm):
+    email = StringField(_l('Email'), validators=[DataRequired(), Email()])
+    submit = SubmitField(_l('Envoyer le lien de réinitialisation'))
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField(_l('Nouveau mot de passe'), validators=[
+        DataRequired(),
+        Length(min=8, message=_l('Le mot de passe doit contenir au moins 8 caractères'))
+    ])
+    confirm_password = PasswordField(_l('Confirmer le mot de passe'), validators=[
+        DataRequired(),
+        EqualTo('password', message=_l('Les mots de passe doivent correspondre'))
+    ])
+    submit = SubmitField(_l('Réinitialiser le mot de passe'))
+
+
+def _reset_serializer():
+    from itsdangerous import URLSafeTimedSerializer
+    from flask import current_app
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='password-reset')
+
+
+def _make_reset_token(user):
+    return _reset_serializer().dumps({'uid': user.id, 'ph': (user.password_hash or '')[-12:]})
+
+
+def _load_reset_user(token, max_age=3600):
+    """Retourne l'utilisateur si le jeton est valide, non expiré et non déjà
+    utilisé (fragment de hash encore identique) ; sinon None."""
+    from itsdangerous import BadSignature, SignatureExpired
+    try:
+        data = _reset_serializer().loads(token, max_age=max_age)
+    except (SignatureExpired, BadSignature):
+        return None
+    user = db.session.get(User, data.get('uid'))
+    if not user or (user.password_hash or '')[-12:] != data.get('ph'):
+        return None
+    return user
+
+
+def _send_reset_email(user, link):
+    """E-mail de réinitialisation (français, comme les autres transactionnels)."""
+    from services.email_service import send_email
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+        <h2 style="color: #4F46E5;">Réinitialisation de votre mot de passe</h2>
+        <p>Bonjour {user.username},</p>
+        <p>Vous avez demandé à réinitialiser le mot de passe de votre compte
+           ProfCalendar. Cliquez sur le bouton ci-dessous pour en choisir un
+           nouveau&nbsp;:</p>
+        <p style="text-align: center; margin: 28px 0;">
+            <a href="{link}" style="background: #4F46E5; color: #fff; text-decoration: none;
+               padding: 12px 24px; border-radius: 8px; font-weight: 600; display: inline-block;">
+               Choisir un nouveau mot de passe</a>
+        </p>
+        <p style="color: #6B7280; font-size: 14px;">Ce lien est valable
+           <strong>1&nbsp;heure</strong> et ne peut être utilisé qu'une seule fois.</p>
+        <p style="color: #6B7280; font-size: 14px;">Si vous n'êtes pas à l'origine
+           de cette demande, ignorez simplement cet e-mail — votre mot de passe
+           restera inchangé.</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;">
+        <p style="color: #9CA3AF; font-size: 12px;">ProfCalendar — profcalendar.org</p>
+    </div>
+    """
+    return send_email(user.email, 'Réinitialisation de votre mot de passe — ProfCalendar', html)
+
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect(url_for('planning.dashboard'))
+    form = ForgotPasswordForm()
+    if form.validate_on_submit():
+        # Anti-abus léger : 60 s entre deux demandes pour une même session.
+        now_ts = datetime.utcnow().timestamp()
+        last = session.get('pwd_reset_last')
+        if last and now_ts - float(last) < 60:
+            flash(_('Merci de patienter une minute avant de redemander un email.'), 'info')
+            return redirect(url_for('auth.forgot_password'))
+        session['pwd_reset_last'] = now_ts
+
+        user = User.query.filter_by(email=form.email.data.strip()).first()
+        if user:
+            token = _make_reset_token(user)
+            base = os.environ.get('APP_BASE_URL', 'https://profcalendar.org').rstrip('/')
+            link = base + url_for('auth.reset_password', token=token)
+            try:
+                _send_reset_email(user, link)
+            except Exception:
+                pass
+        # Toujours le même message, que l'adresse existe ou non (pas d'énumération).
+        flash(_('Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé.'), 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/forgot_password.html', form=form)
+
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user = _load_reset_user(token)
+    if not user:
+        flash(_('Ce lien de réinitialisation est invalide ou a expiré. Redemandez-en un nouveau.'), 'error')
+        return redirect(url_for('auth.forgot_password'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        user.set_password(form.password.data)
+        db.session.commit()
+        flash(_('Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter.'), 'success')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html', form=form, token=token)

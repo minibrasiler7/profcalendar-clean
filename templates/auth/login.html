@@ -57,6 +57,13 @@
                 {% endif %}
             </div>
             
+            <div style="text-align: right; margin: -0.4rem 0 1rem;">
+                <a href="{{ url_for('auth.forgot_password') }}"
+                   style="font-size: 0.85rem; color: var(--primary-color); text-decoration: none;">
+                    {{ _('Mot de passe oublié ?') }}
+                </a>
+            </div>
+
             <div class="form-actions">
                 {{ form.submit(class="btn btn-primary btn-block") }}
             </div>

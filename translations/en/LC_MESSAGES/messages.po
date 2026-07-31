@@ -2328,6 +2328,36 @@ msgstr "TOO BAD!"
 msgid "PRESQUE !"
 msgstr "ALMOST!"
 
+msgid "Mot de passe oublié ?"
+msgstr "Forgot your password?"
+
+msgid "Saisissez votre email, nous vous enverrons un lien de réinitialisation."
+msgstr "Enter your email and we'll send you a reset link."
+
+msgid "Envoyer le lien de réinitialisation"
+msgstr "Send reset link"
+
+msgid "Nouveau mot de passe"
+msgstr "New password"
+
+msgid "Choisissez votre nouveau mot de passe."
+msgstr "Choose your new password."
+
+msgid "Réinitialiser le mot de passe"
+msgstr "Reset password"
+
+msgid "Merci de patienter une minute avant de redemander un email."
+msgstr "Please wait a minute before requesting another email."
+
+msgid "Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé."
+msgstr "If an account exists with this address, a reset email has been sent."
+
+msgid "Ce lien de réinitialisation est invalide ou a expiré. Redemandez-en un nouveau."
+msgstr "This reset link is invalid or has expired. Request a new one."
+
+msgid "Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter."
+msgstr "Password reset! You can now log in."
+
 msgid "Connexion Parent"
 msgstr "Parent Login"
 

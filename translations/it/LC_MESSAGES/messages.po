@@ -2328,6 +2328,36 @@ msgstr "PECCATO!"
 msgid "PRESQUE !"
 msgstr "QUASI!"
 
+msgid "Mot de passe oublié ?"
+msgstr "Password dimenticata?"
+
+msgid "Saisissez votre email, nous vous enverrons un lien de réinitialisation."
+msgstr "Inserisci la tua email e ti invieremo un link di reimpostazione."
+
+msgid "Envoyer le lien de réinitialisation"
+msgstr "Invia il link di reimpostazione"
+
+msgid "Nouveau mot de passe"
+msgstr "Nuova password"
+
+msgid "Choisissez votre nouveau mot de passe."
+msgstr "Scegli la tua nuova password."
+
+msgid "Réinitialiser le mot de passe"
+msgstr "Reimposta la password"
+
+msgid "Merci de patienter une minute avant de redemander un email."
+msgstr "Attendi un minuto prima di richiedere un'altra email."
+
+msgid "Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé."
+msgstr "Se esiste un account con questo indirizzo, è stata inviata un'email di reimpostazione."
+
+msgid "Ce lien de réinitialisation est invalide ou a expiré. Redemandez-en un nouveau."
+msgstr "Questo link di reimpostazione non è valido o è scaduto. Richiedine uno nuovo."
+
+msgid "Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter."
+msgstr "Password reimpostata! Ora puoi accedere."
+
 msgid "Connexion Parent"
 msgstr "Accesso genitore"
 

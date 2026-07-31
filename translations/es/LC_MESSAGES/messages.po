@@ -2328,6 +2328,36 @@ msgstr "¡QUÉ LÁSTIMA!"
 msgid "PRESQUE !"
 msgstr "¡CASI!"
 
+msgid "Mot de passe oublié ?"
+msgstr "¿Olvidaste tu contraseña?"
+
+msgid "Saisissez votre email, nous vous enverrons un lien de réinitialisation."
+msgstr "Introduce tu email y te enviaremos un enlace de restablecimiento."
+
+msgid "Envoyer le lien de réinitialisation"
+msgstr "Enviar el enlace de restablecimiento"
+
+msgid "Nouveau mot de passe"
+msgstr "Nueva contraseña"
+
+msgid "Choisissez votre nouveau mot de passe."
+msgstr "Elige tu nueva contraseña."
+
+msgid "Réinitialiser le mot de passe"
+msgstr "Restablecer la contraseña"
+
+msgid "Merci de patienter une minute avant de redemander un email."
+msgstr "Espera un minuto antes de solicitar otro email."
+
+msgid "Si un compte existe avec cette adresse, un email de réinitialisation a été envoyé."
+msgstr "Si existe una cuenta con esta dirección, se ha enviado un email de restablecimiento."
+
+msgid "Ce lien de réinitialisation est invalide ou a expiré. Redemandez-en un nouveau."
+msgstr "Este enlace de restablecimiento no es válido o ha caducado. Solicita uno nuevo."
+
+msgid "Mot de passe réinitialisé ! Vous pouvez maintenant vous connecter."
+msgstr "¡Contraseña restablecida! Ya puedes iniciar sesión."
+
 msgid "Connexion Parent"
 msgstr "Acceso padres"
 
