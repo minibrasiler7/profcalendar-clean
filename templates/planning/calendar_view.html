@@ -991,11 +991,14 @@ if (typeof pdfjsLib !== 'undefined') {
 .class-block.custom-task-block { background: #FFFBEB !important; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; color: #78350F; border-radius: 8px; }
 .custom-task-block .task-title { font-weight: 700; font-size: 0.78rem; color: #78350F; display: flex; align-items: center; gap: 0.3rem; line-height: 1.25; }
 .custom-task-block .task-time { font-size: 0.72rem; color: #B45309; margin-top: 2px; display: flex; align-items: center; gap: 0.3rem; font-variant-numeric: tabular-nums; }
-/* Lignes de pause : rendent visibles les trous horaires de la grille */
-.break-row { height: 18px; }
+/* Lignes de pause : rendent visibles les trous horaires de la grille.
+   Intercours (< 10 min) = fine, sans icône ; grande pause = plus haute + café. */
+.break-row { height: 12px; }
 .break-row td { background: repeating-linear-gradient(135deg, #F8FAFC, #F8FAFC 6px, #F1F5F9 6px, #F1F5F9 12px); border-top: 1px dashed #E2E8F0 !important; border-bottom: 1px dashed #E2E8F0 !important; padding: 0 !important; }
-.break-label { display: block; text-align: center; font-size: 0.62rem; color: #94A3B8; line-height: 18px; white-space: nowrap; }
+.break-label { display: block; text-align: center; font-size: 0.58rem; color: #94A3B8; line-height: 12px; white-space: nowrap; }
 .break-label i { margin-right: 0.25rem; }
+.break-row-long { height: 30px; }
+.break-row-long .break-label { line-height: 30px; font-size: 0.68rem; color: #64748B; }
 /* Tâche horodatée : positionnée en absolu selon ses heures (peut traverser
    périodes et pauses). La classe .positioned est posée par le JS. */
 .custom-task-timed.positioned { position: absolute; left: 3px; right: 3px; margin: 0; z-index: 5; overflow: hidden; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35); }
