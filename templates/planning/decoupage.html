@@ -245,6 +245,15 @@
         color: var(--dark-color);
     }
 
+    .week-chip { border: 2px solid; background: #fff; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .week-cell { border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; background: #fff; }
+    .week-cell-num { font-size: 0.72rem; font-weight: 700; color: #374151; text-align: center; padding: 2px 0; cursor: pointer; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; user-select: none; }
+    .week-cell-num:hover { background: #EEF2FF; color: #4F46E5; }
+    .week-cell-halves { display: flex; height: 22px; }
+    .week-half { flex: 1; cursor: pointer; }
+    .week-half + .week-half { border-left: 1px solid #fff; }
+    .week-half:hover { filter: brightness(0.9); }
+
     .theme-duration {
         color: var(--gray-color);
         font-size: 0.9rem;
@@ -696,6 +705,20 @@
                 <div class="timeline-bar" id="timelineBar"></div>
             </div>
 
+            <!-- Sélection des semaines (mode « weeks ») -->
+            <div id="weeksPaintSection" class="hidden" style="margin-top: 1.5rem;">
+                <h3><i class="fas fa-paint-roller"></i> Semaines par thème</h3>
+                <p style="font-size: 0.82rem; color: #6B7280; margin: 0.3rem 0 0.8rem;">
+                    Choisissez un thème, puis cliquez : le numéro <strong>S…</strong> = semaine entière,
+                    chaque moitié = demi-semaine (lun-mer / jeu-ven). Re-cliquer avec le même thème efface.
+                </p>
+                <div id="weeksPalette" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem;"></div>
+                <div id="weeksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px;"></div>
+                <div style="margin-top: 0.9rem; text-align: right;">
+                    <button class="btn-primary" onclick="saveWeeksAssignments()"><i class="fas fa-save"></i> Enregistrer les semaines</button>
+                </div>
+            </div>
+
             <!-- Actions -->
             <div class="actions-row">
                 <button class="btn-secondary" onclick="cancelEdit()">
@@ -802,6 +825,21 @@
             <div class="form-group" style="margin-top: 1rem;">
                 <label for="newDecoupageSubject">Discipline</label>
                 <input type="text" id="newDecoupageSubject" placeholder="Ex: Mathématiques">
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Mode de découpage</label>
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                    <label style="flex: 1; min-width: 200px; border: 1px solid #C7D2FE; background: #EEF2FF; border-radius: 10px; padding: 0.65rem 0.75rem; cursor: pointer;">
+                        <input type="radio" name="newDecoupageMode" value="duration" checked>
+                        <strong style="margin-left: 0.25rem;">Par durées</strong>
+                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">Chaque thème dure X semaines, l'un après l'autre.</div>
+                    </label>
+                    <label style="flex: 1; min-width: 200px; border: 1px solid #E5E7EB; border-radius: 10px; padding: 0.65rem 0.75rem; cursor: pointer;">
+                        <input type="radio" name="newDecoupageMode" value="weeks">
+                        <strong style="margin-left: 0.25rem;">Par sélection de semaines</strong>
+                        <div style="font-size: 0.78rem; color: #6B7280; margin-top: 0.2rem;">Choisissez les semaines de l'année pour chaque thème (demi-semaines possibles).</div>
+                    </label>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -1028,6 +1066,7 @@ async function selectDecoupage(id) {
             document.getElementById('detailTitle').textContent = currentDecoupage.name;
 
             renderThemes();
+            if (typeof setupWeeksUI === 'function') setupWeeksUI();
             loadAssignments();
         }
     } catch (error) {
@@ -1152,7 +1191,8 @@ async function createDecoupage() {
         const response = await fetch('/planning/api/decoupage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, subject })
+            body: JSON.stringify({ name, subject,
+                mode: (document.querySelector('input[name="newDecoupageMode"]:checked') || { value: 'duration' }).value })
         });
 
         const data = await response.json();
@@ -1207,6 +1247,7 @@ function openThemeModal(themeId = null) {
             document.getElementById('themeDuration').value = theme.duration;
             document.getElementById('themeObjectives').value = theme.objectives || '';
             setSelectedColor(theme.color);
+            document.getElementById('themeDuration').closest('.form-group').style.display = isWeeksMode() ? 'none' : '';
         }
     } else {
         title.textContent = 'Ajouter un thème';
@@ -1216,6 +1257,7 @@ function openThemeModal(themeId = null) {
         document.getElementById('themeDuration').value = 1;
         document.getElementById('themeObjectives').value = '';
         setSelectedColor(COLORS[0]);
+        document.getElementById('themeDuration').closest('.form-group').style.display = isWeeksMode() ? 'none' : '';
     }
 
     modal.classList.add('active');
@@ -1232,9 +1274,10 @@ function editTheme(themeId) {
 async function saveTheme() {
     const editingId = document.getElementById('editingThemeId').value;
     const name = document.getElementById('themeName').value.trim();
-    const duration = parseFloat(document.getElementById('themeDuration').value);
+    let duration = parseFloat(document.getElementById('themeDuration').value);
     const color = getSelectedColor();
     const objectives = document.getElementById('themeObjectives').value.trim();
+    if (isWeeksMode() && (isNaN(duration) || duration <= 0)) duration = 1;
 
     if (!name || isNaN(duration) || duration <= 0) {
         showNotification('error', 'Veuillez remplir tous les champs correctement');
@@ -1274,6 +1317,7 @@ async function saveTheme() {
             }
 
             renderThemes();
+            if (typeof setupWeeksUI === 'function') setupWeeksUI();
             updateDecoupageCard();
         } else {
             showNotification('error', data.message);
@@ -1297,6 +1341,7 @@ async function confirmDeleteTheme(themeId) {
         if (data.success) {
             themes = themes.filter(t => t.id !== themeId);
             renderThemes();
+            if (typeof setupWeeksUI === 'function') setupWeeksUI();
             updateDecoupageCard();
             showNotification('success', 'Thème supprimé');
         } else {
@@ -1629,5 +1674,114 @@ function createFlashContainer() {
     document.body.insertBefore(container, document.body.firstChild.nextSibling);
     return container;
 }
+
+// ============================================================
+// Mode « sélection de semaines » : peinture des semaines par thème
+// ============================================================
+const TOTAL_SCHOOL_WEEKS = {{ total_school_weeks|default(38) }};
+let weeksBrush = null;   // id de thème sélectionné, ou 'erase'
+let weeksAssign = {};    // "week" -> { first: periodId|null, second: periodId|null }
+
+function _wEsc(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isWeeksMode() { return !!(currentDecoupage && currentDecoupage.mode === 'weeks'); }
+function _themeById(id) { return themes.find(t => t.id === id); }
+
+function setupWeeksUI() {
+    const sec = document.getElementById('weeksPaintSection');
+    const tl = document.getElementById('timelineBar');
+    if (!sec) return;
+    if (!isWeeksMode()) {
+        sec.classList.add('hidden');
+        if (tl && tl.parentElement) tl.parentElement.style.display = '';
+        return;
+    }
+    sec.classList.remove('hidden');
+    if (tl && tl.parentElement) tl.parentElement.style.display = 'none';
+    // Reconstruire l'état depuis themes[].weeks
+    weeksAssign = {};
+    themes.forEach(t => (t.weeks || []).forEach(a => {
+        const w = String(a.week);
+        weeksAssign[w] = weeksAssign[w] || { first: null, second: null };
+        if (a.part === 'full' || a.part === 'first') weeksAssign[w].first = t.id;
+        if (a.part === 'full' || a.part === 'second') weeksAssign[w].second = t.id;
+    }));
+    if (weeksBrush !== 'erase' && !_themeById(weeksBrush)) weeksBrush = null;
+    renderWeeksPalette();
+    renderWeeksGrid();
+}
+
+function renderWeeksPalette() {
+    const pal = document.getElementById('weeksPalette');
+    if (!pal) return;
+    pal.innerHTML = themes.map(t =>
+        `<button type="button" class="week-chip" style="border-color:${t.color}; ${weeksBrush === t.id ? `background:${t.color}; color:#fff;` : `color:${t.color};`}" onclick="selectWeeksBrush(${t.id})">${_wEsc(t.name)}</button>`
+    ).join('') +
+    `<button type="button" class="week-chip" style="border-color:#9CA3AF; ${weeksBrush === 'erase' ? 'background:#6B7280; color:#fff;' : 'color:#6B7280;'}" onclick="selectWeeksBrush('erase')"><i class="fas fa-eraser"></i> Gomme</button>`;
+}
+window.selectWeeksBrush = function (id) { weeksBrush = id; renderWeeksPalette(); };
+
+function renderWeeksGrid() {
+    const grid = document.getElementById('weeksGrid');
+    if (!grid) return;
+    let html = '';
+    for (let w = 1; w <= TOTAL_SCHOOL_WEEKS; w++) {
+        const a = weeksAssign[String(w)] || { first: null, second: null };
+        const tf = _themeById(a.first), ts = _themeById(a.second);
+        html += `<div class="week-cell">
+            <div class="week-cell-num" onclick="paintWeek(${w}, 'both')">S${w}</div>
+            <div class="week-cell-halves">
+                <div class="week-half" style="background:${tf ? tf.color : '#F3F4F6'};" title="${tf ? _wEsc(tf.name) + ' (lun-mer)' : 'S' + w + ' lun-mer'}" onclick="paintWeek(${w}, 'first')"></div>
+                <div class="week-half" style="background:${ts ? ts.color : '#F3F4F6'};" title="${ts ? _wEsc(ts.name) + ' (jeu-ven)' : 'S' + w + ' jeu-ven'}" onclick="paintWeek(${w}, 'second')"></div>
+            </div>
+        </div>`;
+    }
+    grid.innerHTML = html;
+}
+
+window.paintWeek = function (w, part) {
+    if (weeksBrush === null) {
+        showNotification('error', 'Choisissez d\'abord un thème (ou la gomme) dans la palette.');
+        return;
+    }
+    const key = String(w);
+    weeksAssign[key] = weeksAssign[key] || { first: null, second: null };
+    const val = (weeksBrush === 'erase') ? null : weeksBrush;
+    const halves = (part === 'both') ? ['first', 'second'] : [part];
+    halves.forEach(h => {
+        weeksAssign[key][h] = (weeksAssign[key][h] === val) ? null : val;
+    });
+    renderWeeksGrid();
+};
+
+window.saveWeeksAssignments = async function () {
+    const per = {};
+    themes.forEach(t => per[t.id] = []);
+    Object.entries(weeksAssign).forEach(([w, a]) => {
+        const week = parseInt(w);
+        if (a.first && a.first === a.second) {
+            per[a.first].push({ week, part: 'full' });
+        } else {
+            if (a.first) per[a.first].push({ week, part: 'first' });
+            if (a.second) per[a.second].push({ week, part: 'second' });
+        }
+    });
+    try {
+        const r = await (await fetch(`/planning/api/decoupage/${currentDecoupageId}/weeks`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignments: per })
+        })).json();
+        if (r.success) {
+            currentDecoupage = r.data;
+            themes = r.data.periods;
+            showNotification('success', 'Semaines enregistrées');
+            setupWeeksUI();
+            if (typeof updateDecoupageCard === 'function') updateDecoupageCard();
+        } else {
+            showNotification('error', r.message || 'Erreur');
+        }
+    } catch (e) {
+        showNotification('error', 'Erreur réseau');
+    }
+};
 </script>
 {% endblock %}

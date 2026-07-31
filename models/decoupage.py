@@ -10,6 +10,9 @@ class Decoupage(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)      # "Découpage Maths 2024"
     subject = db.Column(db.String(100), nullable=False)   # "Mathématiques"
+    # Mode : 'duration' (X semaines par thème, séquentiel) ou 'weeks'
+    # (sélection explicite des semaines de l'année, demi-semaines possibles).
+    mode = db.Column(db.String(10), default='duration')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
@@ -21,6 +24,12 @@ class Decoupage(db.Model):
 
     def get_total_weeks(self):
         """Calcule la durée totale du découpage en semaines"""
+        if (self.mode or 'duration') == 'weeks':
+            total = 0.0
+            for p in self.periods:
+                for a in p.get_weeks():
+                    total += 1.0 if a.get('part', 'full') == 'full' else 0.5
+            return total
         return sum(p.duration for p in self.periods)
 
     def to_dict(self):
@@ -29,6 +38,7 @@ class Decoupage(db.Model):
             'id': self.id,
             'name': self.name,
             'subject': self.subject,
+            'mode': self.mode or 'duration',
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'periods': [p.to_dict() for p in self.periods.order_by(DecoupagePeriod.order)],
@@ -51,6 +61,19 @@ class DecoupagePeriod(db.Model):
     color = db.Column(db.String(7), nullable=False)       # "#FF5733"
     order = db.Column(db.Integer, nullable=False)         # Position dans le découpage
     objectives = db.Column(db.Text, nullable=True)        # Objectifs pédagogiques (facultatif)
+    # Mode 'weeks' : liste JSON d'affectations [{"week": 12, "part": "full"|"first"|"second"}]
+    weeks_json = db.Column(db.Text, nullable=True)
+
+    def get_weeks(self):
+        import json
+        try:
+            return json.loads(self.weeks_json) if self.weeks_json else []
+        except (ValueError, TypeError):
+            return []
+
+    def set_weeks(self, weeks):
+        import json
+        self.weeks_json = json.dumps(weeks) if weeks else None
 
     def to_dict(self):
         """Convertit la période en dictionnaire pour l'API"""
@@ -61,7 +84,8 @@ class DecoupagePeriod(db.Model):
             'duration': self.duration,
             'color': self.color,
             'order': self.order,
-            'objectives': self.objectives or ''
+            'objectives': self.objectives or '',
+            'weeks': self.get_weeks()
         }
 
     def __repr__(self):

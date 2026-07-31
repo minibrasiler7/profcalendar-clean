@@ -575,6 +575,16 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : mode de découpage + semaines sélectionnées.
+        try:
+            db.session.execute(db.text("ALTER TABLE decoupages ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'duration'"))
+            db.session.execute(db.text("ALTER TABLE decoupage_periods ADD COLUMN IF NOT EXISTS weeks_json TEXT"))
+            db.session.commit()
+            print("✅ Colonnes decoupages.mode / decoupage_periods.weeks_json vérifiées")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification mode/weeks_json échouée: {e}")
+
         # Filet de sécurité : objectifs facultatifs des thèmes de découpage.
         try:
             db.session.execute(db.text("ALTER TABLE decoupage_periods ADD COLUMN IF NOT EXISTS objectives TEXT"))

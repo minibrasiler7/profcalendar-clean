@@ -1475,6 +1475,29 @@ def get_decoupage_for_week(classroom_id, week_number):
     if not periods:
         return None
 
+    # Mode « sélection de semaines » : les thèmes portent directement les
+    # numéros de semaine (S) choisis, demi-semaines comprises. start_week ne
+    # s'applique pas (les numéros sont absolus).
+    if getattr(decoupage, 'mode', 'duration') == 'weeks':
+        def _theme_dict(p):
+            return {'name': p.name, 'color': p.color,
+                    'subject': decoupage.subject, 'objectives': p.objectives or ''}
+        fh = sh = None
+        fh_id = sh_id = None
+        for p in periods:
+            for a in p.get_weeks():
+                if a.get('week') == week_number:
+                    part = a.get('part', 'full')
+                    if part in ('full', 'first') and fh is None:
+                        fh, fh_id = _theme_dict(p), p.id
+                    if part in ('full', 'second') and sh is None:
+                        sh, sh_id = _theme_dict(p), p.id
+        if not fh and not sh:
+            return None
+        if fh_id is not None and fh_id == sh_id:
+            return {'type': 'full', **fh}
+        return {'type': 'split', 'first_half': fh, 'second_half': sh}
+
     # Calculer l'offset depuis le début du découpage (en semaines)
     # week_offset = 0 pour la première semaine du découpage
     week_offset = week_number - start_week
@@ -8640,9 +8663,24 @@ def decoupage():
     # Récupérer toutes les classes de l'utilisateur
     classrooms = Classroom.query.filter_by(user_id=current_user.id, is_temporary=False).order_by(Classroom.name).all()
 
+    # Nombre de semaines scolaires de l'année (hors vacances, même règle que
+    # la vue annuelle) — borne de la grille du mode « sélection de semaines ».
+    total_school_weeks = 0
+    if current_user.school_year_start and current_user.school_year_end:
+        _hols = current_user.holidays.all()
+        _cur = current_user.school_year_start - timedelta(days=current_user.school_year_start.weekday())
+        while _cur <= current_user.school_year_end:
+            _wd = [_cur + timedelta(days=i) for i in range(5)]
+            _wh = any(sum(1 for d in _wd if h.start_date <= d <= h.end_date) >= 3 for h in _hols)
+            if not _wh and _cur >= current_user.school_year_start:
+                total_school_weeks += 1
+            _cur += timedelta(days=7)
+    total_school_weeks = total_school_weeks or 38
+
     return render_template('planning/decoupage.html',
                           decoupages=decoupages,
-                          classrooms=classrooms)
+                          classrooms=classrooms,
+                          total_school_weeks=total_school_weeks)
 
 
 @planning_bp.route('/api/decoupage', methods=['POST'])
@@ -8660,11 +8698,14 @@ def create_decoupage():
     if not name or not subject:
         return jsonify({'success': False, 'message': 'Nom et discipline requis'}), 400
 
+    mode = data.get('mode') if data.get('mode') in ('duration', 'weeks') else 'duration'
+
     try:
         decoupage = Decoupage(
             user_id=current_user.id,
             name=name,
-            subject=subject
+            subject=subject,
+            mode=mode
         )
         db.session.add(decoupage)
         db.session.commit()
@@ -8774,6 +8815,10 @@ def add_period(decoupage_id):
     duration = data.get('duration')
     color = data.get('color', '#3B82F6')
     objectives = (data.get('objectives') or '').strip() or None
+    # En mode « sélection de semaines », la durée n'est pas saisie : la grille
+    # des semaines fait foi. On stocke 1 par défaut (champ non-null).
+    if getattr(decoupage, 'mode', 'duration') == 'weeks' and duration in (None, ''):
+        duration = 1
 
     if not name or duration is None:
         return jsonify({'success': False, 'message': 'Nom et durée requis'}), 400
@@ -9261,3 +9306,48 @@ def delete_resource():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@planning_bp.route('/api/decoupage/<int:decoupage_id>/weeks', methods=['PUT'])
+@login_required
+@teacher_required
+def update_decoupage_weeks(decoupage_id):
+    """Mode « sélection de semaines » : enregistre, pour chaque thème, la liste
+    des semaines affectées. Corps : {assignments: {"<period_id>": [{"week": n,
+    "part": "full"|"first"|"second"}, ...]}}. La grille cliente étant
+    exclusive (une demi-semaine = un seul thème), on écrit tel quel."""
+    from models.decoupage import Decoupage, DecoupagePeriod
+
+    decoupage = Decoupage.query.filter_by(id=decoupage_id, user_id=current_user.id).first()
+    if not decoupage:
+        return jsonify({'success': False, 'message': 'Découpage non trouvé'}), 404
+
+    data = request.get_json(silent=True) or {}
+    assignments = data.get('assignments') or {}
+
+    periods = {p.id: p for p in DecoupagePeriod.query.filter_by(decoupage_id=decoupage_id).all()}
+    try:
+        for pid_str, weeks in assignments.items():
+            try:
+                pid = int(pid_str)
+            except (TypeError, ValueError):
+                continue
+            period = periods.get(pid)
+            if not period:
+                continue
+            clean = []
+            for a in (weeks or []):
+                try:
+                    w = int(a.get('week'))
+                except (TypeError, ValueError, AttributeError):
+                    continue
+                part = a.get('part') if a.get('part') in ('full', 'first', 'second') else 'full'
+                if w >= 1:
+                    clean.append({'week': w, 'part': part})
+            period.set_weeks(clean)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Semaines enregistrées',
+                        'data': decoupage.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
