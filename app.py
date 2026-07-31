@@ -575,6 +575,16 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification table devoirs échouée: {e}")
 
+        # Filet de sécurité : horaire facultatif des tâches personnalisées.
+        try:
+            db.session.execute(db.text("ALTER TABLE plannings ADD COLUMN IF NOT EXISTS task_start TIME"))
+            db.session.execute(db.text("ALTER TABLE plannings ADD COLUMN IF NOT EXISTS task_end TIME"))
+            db.session.commit()
+            print("✅ Colonnes plannings.task_start/task_end vérifiées")
+        except Exception as e:
+            db.session.rollback()
+            print(f"⚠️ Vérification task_start/task_end échouée: {e}")
+
         # Filet de sécurité : jeton push Expo des élèves (app mobile).
         try:
             db.session.execute(db.text(

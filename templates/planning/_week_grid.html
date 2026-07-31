@@ -109,11 +109,13 @@
                             <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
                             <div class="class-subject">{{ planning.mixed_group.subject }}</div>
                         {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
-                        <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280;">
-                            <div class="class-name"><i class="fas fa-tasks"></i> Tâche personnalisée</div>
-                            <div class="class-subject">Autre</div>
+                        <div class="class-block planned custom-task-block {% if is_merged_for_day %}merged-block{% endif %}">
+                            <div class="task-title"><i class="far fa-calendar-check"></i> {{ planning.title }}</div>
+                            {% if planning.task_start %}
+                            <div class="task-time"><i class="far fa-clock"></i> {{ planning.task_start.strftime('%H:%M') }}{% if planning.task_end %}–{{ planning.task_end.strftime('%H:%M') }}{% endif %}</div>
+                            {% endif %}
                         {% endif %}
-                            {% if planning.title %}
+                            {% if planning.title and (planning.classroom_id or planning.mixed_group_id) %}
                             <div class="planning-title">
                                 {{ planning.title }}
                             </div>
@@ -174,9 +176,8 @@
                                 {% endif %}
                             </div>
                         {% elif schedule.custom_task_title %}
-                            <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: #6B7280; opacity: 0.7;">
-                                <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
-                                <div class="class-subject">Autre</div>
+                            <div class="class-block custom-task-block {% if is_merged_for_day %}merged-block{% endif %}" style="opacity: 0.85;">
+                                <div class="task-title"><i class="far fa-calendar-check"></i> {{ schedule.custom_task_title }}</div>
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}

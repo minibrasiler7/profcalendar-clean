@@ -30,6 +30,10 @@ class Planning(db.Model):
     # Nouveau champ pour stocker l'état des checkboxes (JSON)
     checklist_states = db.Column(db.Text)  # Stocké comme JSON
 
+    # Tâche personnalisée : horaire facultatif (affichage façon agenda)
+    task_start = db.Column(db.Time, nullable=True)
+    task_end = db.Column(db.Time, nullable=True)
+
     # Métadonnées
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
