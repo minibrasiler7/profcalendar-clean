@@ -123,6 +123,31 @@
     font-weight: 500;
 }
 
+.schedule-cell { position: relative; }
+/* Bouton chaîne entre deux périodes consécutives de même classe */
+.merge-connector {
+    position: absolute;
+    left: 50%;
+    bottom: -12px;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: #6366F1;
+    color: #fff;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.merge-connector:hover { background: #4F46E5; }
+.merge-connector.merged { background: #10B981; }
+.merge-connector.merged:hover { background: #059669; }
+
 .schedule-cell {
     position: relative;
     height: 60px;
@@ -390,13 +415,15 @@
                         {{ period.start.strftime('%H:%M') }} - {{ period.end.strftime('%H:%M') }}
                     </td>
                     {% for day_index in range(5) %}
+                    {% set key = day_index|string + '_' + period.number|string %}
+                    {% set schedule = schedule_grid.get(key) %}
                     <td class="schedule-cell"
                         data-weekday="{{ day_index }}"
                         data-period="{{ period.number }}"
+                        data-item="{% if schedule and schedule.classroom_id %}c{{ schedule.classroom_id }}{% elif schedule and schedule.mixed_group_id %}m{{ schedule.mixed_group_id }}{% elif schedule and schedule.custom_task_title %}t:{{ schedule.custom_task_title|e }}{% endif %}"
+                        data-merged-next="{{ 1 if schedule and schedule.has_merged_next else 0 }}"
                         onclick="openClassSelector(this, event)">
-                        {% set key = day_index|string + '_' + period.number|string %}
-                        {% if key in schedule_grid %}
-                            {% set schedule = schedule_grid[key] %}
+                        {% if schedule %}
                             {% if schedule.classroom_id %}
                                 <div class="class-block" style="background-color: {{ schedule.classroom.color }};">
                                     <div class="class-name">{{ schedule.classroom.name }}</div>
@@ -563,6 +590,8 @@ function selectClass(itemId, itemType = 'classroom') {
                     <div class="class-subject">${item.subject}</div>
                 </div>
             `;
+            currentCell.dataset.item = (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+            refreshMergeConnectors();
             closeClassSelector();
         }
     });
@@ -578,6 +607,8 @@ function removeClass() {
     saveSchedule(weekday, period, null, 'classroom').then(result => {
         if (result.success) {
             currentCell.innerHTML = '';
+            currentCell.dataset.item = '';
+            refreshMergeConnectors();
             closeClassSelector();
         }
     });
@@ -703,6 +734,8 @@ function saveCustomTask() {
                     <div class="class-subject">Autre</div>
                 </div>
             `;
+            targetCell.dataset.item = 't:' + title;
+            refreshMergeConnectors();
             closeCustomTaskModal();
         } else {
             console.error('Erreur lors de la sauvegarde:', result.message);
@@ -740,5 +773,70 @@ document.addEventListener('click', (e) => {
     }
 });
 
+
+// ============================================================
+// Liaison de périodes consécutives (même classe) — comme /schedule/view
+// ============================================================
+const mergedState = {};   // "weekday_period" -> true si fusionnée avec la suivante
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.schedule-cell[data-merged-next="1"]').forEach(td => {
+        mergedState[td.dataset.weekday + '_' + td.dataset.period] = true;
+    });
+    refreshMergeConnectors();
+});
+
+function refreshMergeConnectors() {
+    document.querySelectorAll('.merge-connector').forEach(el => el.remove());
+    const rows = Array.from(document.querySelectorAll('.schedule-table tbody tr'));
+    for (let i = 0; i < rows.length - 1; i++) {
+        const cells = rows[i].querySelectorAll('.schedule-cell');
+        const nextCells = rows[i + 1].querySelectorAll('.schedule-cell');
+        cells.forEach((td, col) => {
+            const nextTd = nextCells[col];
+            if (!nextTd) return;
+            const a = td.dataset.item || '';
+            const b = nextTd.dataset.item || '';
+            const p1 = parseInt(td.dataset.period), p2 = parseInt(nextTd.dataset.period);
+            if (!a || a !== b || p2 !== p1 + 1) return;
+            const key = td.dataset.weekday + '_' + td.dataset.period;
+            const merged = !!mergedState[key];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'merge-connector' + (merged ? ' merged' : '');
+            btn.title = merged ? 'Cliquez pour séparer ces périodes' : 'Cliquez pour lier ces périodes';
+            btn.innerHTML = '<i class="fas ' + (merged ? 'fa-unlink' : 'fa-link') + '"></i>';
+            btn.onclick = function (e) {
+                e.stopPropagation();
+                toggleMergePair(td.dataset.weekday, p1, p2);
+            };
+            td.appendChild(btn);
+        });
+    }
+}
+
+async function toggleMergePair(weekday, periodStart, periodEnd) {
+    const key = weekday + '_' + periodStart;
+    const merged = !!mergedState[key];
+    const url = merged ? '/schedule/separate-periods' : '/schedule/merge-periods';
+    try {
+        const r = await (await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                weekday: parseInt(weekday),
+                period_start: parseInt(periodStart),
+                period_end: parseInt(periodEnd)
+            })
+        })).json();
+        if (r.success) {
+            mergedState[key] = !merged;
+            refreshMergeConnectors();
+        } else {
+            alert('Erreur : ' + (r.message || 'impossible de modifier la liaison'));
+        }
+    } catch (e) {
+        alert('Erreur de connexion');
+    }
+}
 </script>
 {% endblock %}
