@@ -799,6 +799,39 @@ def dashboard():
                          user_mixed_groups=mixed_groups,
                          backup_reports=backup_reports)
 
+def _school_week_number(user, week_monday):
+    """Numéro de semaine scolaire pour la semaine commençant le lundi donné.
+
+    MÊME règle que generate_annual_calendar : on compte les semaines depuis la
+    rentrée, en sautant les semaines de vacances (>= 3 jours ouvrés en
+    vacances). Retourne None hors année scolaire ou pour une semaine de
+    vacances — la vue annuelle affiche S0, S1, ... avec cette numérotation.
+    """
+    start = user.school_year_start
+    end = user.school_year_end
+    if not start or not end or week_monday > end:
+        return None
+    holidays = user.holidays.all()
+    cur = start - timedelta(days=start.weekday())
+    if week_monday < cur:
+        return None
+    num = 0
+    while cur <= week_monday:
+        week_days = [cur + timedelta(days=i) for i in range(5)]
+        week_holiday = False
+        for h in holidays:
+            days_in = sum(1 for d in week_days if h.start_date <= d <= h.end_date)
+            if days_in >= 3:
+                week_holiday = True
+                break
+        if not week_holiday and cur >= start:
+            num += 1
+        if cur == week_monday:
+            return None if week_holiday else num
+        cur += timedelta(days=7)
+    return None
+
+
 @planning_bp.route('/calendar')
 @login_required
 @teacher_required
@@ -1061,6 +1094,7 @@ def calendar_view():
             'success': True,
             'week': current_week.isoformat(),
             'title': f"Semaine du {format_date_full(week_dates[0])} au {format_date(week_dates[4])}",
+            'week_number': _school_week_number(current_user, week_dates[0]),
             'grid_html': grid_html,
         })
 
@@ -1106,15 +1140,23 @@ def calendar_view():
             'grid_html': grid_html,
         })
 
-    # Sinon : page complète → on calcule l'annual_data pour TOUTES les
-    # classes (utilisé par le rendu initial + la légende + la cohérence
-    # du <select>).
+    # Page complète : on ne calcule l'annual_data QUE pour la classe
+    # sélectionnée. C'est l'opération la plus coûteuse de la route (balayage
+    # de toute l'année), et _annual_grid.html comme le JS (annualDataForClass)
+    # n'utilisent que l'entrée sélectionnée — les autres onglets se chargent
+    # via le fragment 'annual'. Gain : TTFB divisé par le nombre de classes.
     annual_data = {}
-    for classroom in classrooms:
-        annual_data[f"classroom_{classroom.id}"] = generate_annual_calendar(classroom, 'classroom')
-
-    for group in mixed_groups:
-        annual_data[f"mixed_group_{group.id}"] = generate_annual_calendar(group, 'mixed_group')
+    _t_classroom = _t_group = None
+    if selected_classroom_id and selected_classroom_id.startswith('classroom_'):
+        _tid = int(selected_classroom_id.split('_')[1])
+        _t_classroom = next((c for c in classrooms if c.id == _tid), None)
+    elif selected_classroom_id and selected_classroom_id.startswith('mixed_group_'):
+        _tid = int(selected_classroom_id.split('_')[2])
+        _t_group = next((g for g in mixed_groups if g.id == _tid), None)
+    if _t_classroom:
+        annual_data[selected_classroom_id] = generate_annual_calendar(_t_classroom, 'classroom')
+    elif _t_group:
+        annual_data[selected_classroom_id] = generate_annual_calendar(_t_group, 'mixed_group')
 
     # Créer une version JSON-serializable de schedule_grid
     schedule_grid_json = {}
@@ -1172,6 +1214,7 @@ def calendar_view():
     )
 
     return render_template('planning/calendar_view.html',
+                         school_week_number=_school_week_number(current_user, week_dates[0]),
                          week_dates=week_dates,
                          current_week=current_week,
                          classrooms=classrooms,
@@ -1645,6 +1688,16 @@ def save_planning():
         group_id = extract_numeric_id(group_id)
         period_number = extract_numeric_id(period_number)
 
+        # Horaire facultatif d'une tâche personnalisée (mode agenda)
+        def _parse_hhmm(v):
+            try:
+                return datetime.strptime(v, '%H:%M').time() if v else None
+            except (TypeError, ValueError):
+                return None
+        _is_custom = not classroom_id and not mixed_group_id
+        task_start = _parse_hhmm(data.get('task_start')) if _is_custom else None
+        task_end = _parse_hhmm(data.get('task_end')) if _is_custom else None
+
         # Convertir la date
         planning_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
@@ -1688,6 +1741,8 @@ def save_planning():
                 existing.title = title
                 existing.description = description
                 existing.group_id = group_id
+                existing.task_start = task_start
+                existing.task_end = task_end
                 existing.set_checklist_states(checklist_states)
             else:
                 # Créer nouveau
@@ -1698,6 +1753,8 @@ def save_planning():
                     date=planning_date,
                     period_number=period_number,
                     title=title,
+                    task_start=task_start,
+                    task_end=task_end,
                     description=description,
                     group_id=group_id
                 )
@@ -6319,10 +6376,13 @@ def get_slot_data(date_str, period):
         if planning:
             result.update({
                 'classroom_id': planning.classroom_id,
+                'mixed_group_id': planning.mixed_group_id,
                 'title': planning.title or '',
                 'description': planning.description or '',
                 'group_id': planning.group_id,
-                'checklist_states': planning.get_checklist_states()
+                'checklist_states': planning.get_checklist_states(),
+                'task_start': planning.task_start.strftime('%H:%M') if planning.task_start else '',
+                'task_end': planning.task_end.strftime('%H:%M') if planning.task_end else ''
             })
         elif schedule:
             result.update({

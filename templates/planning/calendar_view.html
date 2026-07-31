@@ -33,7 +33,8 @@ if (typeof pdfjsLib !== 'undefined') {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
+    /* Au-dessus de la navbar (z-index 1050) — sinon le modal passe derrière. */
+    z-index: 2100;
     overflow-y: auto;
     padding: 2rem 0;
 }
@@ -898,7 +899,7 @@ if (typeof pdfjsLib !== 'undefined') {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 2050; /* au-dessus de la navbar (1050), sous le modal (2100) */
 }
 
 /* Styles additionnels pour les indicateurs de checklist */
@@ -973,6 +974,26 @@ if (typeof pdfjsLib !== 'undefined') {
 .schedule-cell { position: relative; }
 .devoir-cell-badge { position: absolute; bottom: 3px; right: 3px; z-index: 6; background: rgba(99,102,241,0.97); color: #fff; border-radius: 6px; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .devoir-cell-badge:hover { background: #4F46E5; }
+/* ── Refonte visuelle du modal de planification (esprit /lesson) ── */
+#planningModal .modal-content { border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(17,24,39,0.35); padding: 0; }
+.planning-modal-header { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #fff; padding: 1.1rem 1.4rem; display: flex; align-items: center; justify-content: space-between; border-bottom: none; }
+.planning-modal-header h3 { color: #fff; margin: 0; font-size: 1.15rem; }
+.pm-kicker { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; margin-bottom: 0.15rem; }
+.planning-modal-header .btn-icon, .planning-modal-header .modal-close { color: #fff; }
+#planningModal .modal-body { padding: 1.25rem 1.4rem; }
+#planningModal .modal-footer { padding: 0.9rem 1.4rem; background: #F9FAFB; border-top: 1px solid #E5E7EB; }
+#planningModal .form-label { font-weight: 600; color: #374151; font-size: 0.85rem; }
+#planningModal .form-control:focus { border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+.ptype-toggle { display: flex; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 10px; padding: 3px; gap: 3px; }
+.ptype-btn { flex: 1; border: none; background: transparent; padding: 0.5rem 0.75rem; border-radius: 8px; font-weight: 600; color: #4338CA; cursor: pointer; font-size: 0.9rem; }
+.ptype-btn.active { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: #312E81; }
+/* Tâches personnalisées : style agenda dans la grille */
+.class-block.custom-task-block { background: #FFFBEB !important; border: 1px solid #FDE68A; border-left: 4px solid #F59E0B; color: #78350F; border-radius: 8px; }
+.custom-task-block .task-title { font-weight: 700; font-size: 0.78rem; color: #78350F; display: flex; align-items: center; gap: 0.3rem; line-height: 1.25; }
+.custom-task-block .task-time { font-size: 0.72rem; color: #B45309; margin-top: 2px; display: flex; align-items: center; gap: 0.3rem; font-variant-numeric: tabular-nums; }
+
+/* Numéro de semaine scolaire (même numérotation S0/S1... que la vue annuelle) */
+.week-number-badge { display: inline-flex; align-items: center; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; border-radius: 999px; font-size: 0.85rem; font-weight: 700; padding: 0.15rem 0.7rem; margin-left: 0.6rem; vertical-align: middle; }
 /* Modale « devoir donné » (clic sur le badge) */
 .devoir-cal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 4000; display: flex; align-items: flex-start; justify-content: center; padding: 8vh 1rem 1rem; }
 .devoir-cal-box { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; padding: 1.1rem 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
@@ -1930,7 +1951,12 @@ if (typeof pdfjsLib !== 'undefined') {
             </button>
 
             <h2 class="current-week-title">
-                Semaine du {{ week_dates[0] | format_date_full }} au {{ week_dates[4] | format_date }}
+                <span id="weekTitleText">Semaine du {{ week_dates[0] | format_date_full }} au {{ week_dates[4] | format_date }}</span>
+                {% if school_week_number is not none %}
+                <span class="week-number-badge" id="weekNumberBadge">S{{ school_week_number }}</span>
+                {% else %}
+                <span class="week-number-badge" id="weekNumberBadge" style="display:none;"></span>
+                {% endif %}
             </h2>
 
             <button class="nav-btn" onclick="navigateWeek('next')">
@@ -2031,8 +2057,11 @@ if (typeof pdfjsLib !== 'undefined') {
 <!-- Modal de planification -->
 <div class="planning-modal" id="planningModal">
     <div class="modal-content" id="planningModalContent">
-        <div class="modal-header">
-            <h3 id="modalTitle">Planifier le cours</h3>
+        <div class="modal-header planning-modal-header">
+            <div>
+                <div class="pm-kicker"><i class="fas fa-calendar-day"></i> Planification</div>
+                <h3 id="modalTitle">Planifier le cours</h3>
+            </div>
             <div class="modal-header-actions">
                 <button class="btn-icon" onclick="toggleSplitView()" title="Afficher/Masquer les fichiers">
                     <i class="fas fa-folder-open"></i>
@@ -2061,6 +2090,17 @@ if (typeof pdfjsLib !== 'undefined') {
             </div>
 
             <div class="form-group">
+                <div class="ptype-toggle">
+                    <button type="button" class="ptype-btn active" id="ptypeCoursBtn" onclick="setPlanningType('cours')">
+                        <i class="fas fa-book-open"></i> Cours
+                    </button>
+                    <button type="button" class="ptype-btn" id="ptypeTacheBtn" onclick="setPlanningType('tache')">
+                        <i class="far fa-calendar-check"></i> Tâche perso
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group" id="classSelectGroup">
                 <label class="form-label">Classe</label>
                 <select id="modalClassroom" class="form-control" onchange="loadGroupsForClass(this.value)">
                     <option value="">-- Sélectionner une classe --</option>
@@ -2069,8 +2109,10 @@ if (typeof pdfjsLib !== 'undefined') {
                         {% if item.type == 'mixed_group' %}👥 {% endif %}{{ item.name }} - {{ item.subject }}
                     </option>
                     {% endfor %}
-                    <!-- Option pour les tâches personnalisées -->
-                    <option value="custom_task" data-color="#6B7280" data-type="custom">
+                    {# Option héritée : la création passe désormais par le
+                       bouton « Tâche perso » (setPlanningType). Gardée pour
+                       compatibilité, masquée. #}
+                    <option value="custom_task" data-color="#6B7280" data-type="custom" style="display:none;">
                         📝 Autre
                     </option>
                 </select>
@@ -2109,10 +2151,21 @@ if (typeof pdfjsLib !== 'undefined') {
                        placeholder="Ex: Introduction aux fractions">
             </div>
 
+            <div class="form-group" id="taskTimeFields" style="display: none;">
+                <label class="form-label">Horaire (facultatif)</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="time" id="taskStartTime" class="form-control" style="max-width: 150px;">
+                    <span style="color: var(--gray-color);">–</span>
+                    <input type="time" id="taskEndTime" class="form-control" style="max-width: 150px;">
+                </div>
+                <small class="form-text text-muted">Ex : une réunion de 14h00 à 15h30 — affiché sur le calendrier.</small>
+            </div>
+
             <div class="form-group" id="modalDescriptionContainer">
                 <label class="form-label">Description</label>
                 <textarea id="modalDescription" class="form-control" rows="3"
                           placeholder="Détails du cours, exercices prévus..."></textarea>
+                <small class="form-text text-muted"><i class="far fa-lightbulb"></i> Astuce : commencez une ligne par « - [ ] » pour créer une case à cocher.</small>
             </div>
 
             <!-- Section mémos -->
@@ -2570,9 +2623,18 @@ async function fetchWeekFragment(weekStartDate, opts = {}) {
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Erreur fragment');
 
-        // Mettre à jour le titre "Semaine du X au Y"
-        const titleEl = document.querySelector('.current-week-title');
-        if (titleEl) titleEl.textContent = data.title;
+        // Mettre à jour le titre "Semaine du X au Y" (+ badge du n° de semaine)
+        const titleTextEl = document.getElementById('weekTitleText') || document.querySelector('.current-week-title');
+        if (titleTextEl) titleTextEl.textContent = data.title;
+        const weekBadge = document.getElementById('weekNumberBadge');
+        if (weekBadge) {
+            if (data.week_number !== null && data.week_number !== undefined) {
+                weekBadge.textContent = 'S' + data.week_number;
+                weekBadge.style.display = '';
+            } else {
+                weekBadge.style.display = 'none';
+            }
+        }
 
         // Remplacer le contenu de la grille (les data-attributes onclick
         // sont conservés car ils sont dans le HTML inline rendu par Jinja).
@@ -4479,6 +4541,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (typeof originalOpenPlanningModal2 === 'function') {
                     originalOpenPlanningModal2(cell, fromAnnualView);
                 }
+                // Cellule « Autre » : basculer en mode Tâche perso une fois le modal peuplé.
+                setTimeout(function () {
+                    if (typeof setPlanningType === 'function') setPlanningType('tache');
+                }, 250);
                 return;
             }
 
@@ -6743,6 +6809,11 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     });
     modalTitleElem.textContent = `${periodTitle || 'Période ' + periodNumber} - ${formattedDate}`;
 
+    // Réinitialiser le mode + les heures (le slot chargé ci-dessous ajustera)
+    if (typeof setPlanningType === 'function') setPlanningType('cours');
+    var _tsReset = document.getElementById('taskStartTime'); if (_tsReset) _tsReset.value = '';
+    var _teReset = document.getElementById('taskEndTime'); if (_teReset) _teReset.value = '';
+
     // Stocker le contexte pour la sauvegarde
     window.currentPlanningContext = {
         date: date,
@@ -6768,6 +6839,14 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
             document.getElementById('modalPlanningTitle').value = data.slot.title || '';
             document.getElementById('modalDescription').value = data.slot.description || '';
             existingGroupId = data.slot.group_id;
+
+            // Tâche perso existante → basculer le modal en mode « Tâche »
+            const _isCustomSlot = !!(data.slot.has_planning && !data.slot.classroom_id && !data.slot.mixed_group_id && (data.slot.title || data.slot.description));
+            if (typeof setPlanningType === 'function') setPlanningType(_isCustomSlot ? 'tache' : 'cours');
+            if (_isCustomSlot) {
+                const _ts = document.getElementById('taskStartTime'); if (_ts) _ts.value = data.slot.task_start || '';
+                const _te = document.getElementById('taskEndTime'); if (_te) _te.value = data.slot.task_end || '';
+            }
             hasExistingPlanning = !!(data.slot.has_planning ||
                                       data.slot.title ||
                                       data.slot.description);
@@ -6981,6 +7060,32 @@ function updateCellAfterSave(dateStr, periodNumber, planning, opts = {}) {
 /**
  * Sauvegarde la planification (surcharge la fonction de planning.js pour gérer les périodes)
  */
+// Type de planification du modal : 'cours' (classe) ou 'tache' (perso).
+window.planningType = 'cours';
+window.setPlanningType = function(t) {
+    window.planningType = t;
+    const bC = document.getElementById('ptypeCoursBtn');
+    const bT = document.getElementById('ptypeTacheBtn');
+    if (bC && bT) {
+        bC.classList.toggle('active', t === 'cours');
+        bT.classList.toggle('active', t === 'tache');
+    }
+    const classGroup = document.getElementById('classSelectGroup');
+    const groupDiv = document.getElementById('groupSelectionDiv');
+    const timeFields = document.getElementById('taskTimeFields');
+    const select = document.getElementById('modalClassroom');
+    if (t === 'tache') {
+        if (classGroup) classGroup.style.display = 'none';
+        if (groupDiv) groupDiv.style.display = 'none';
+        if (timeFields) timeFields.style.display = '';
+        if (select) select.value = 'custom_task';
+    } else {
+        if (classGroup) classGroup.style.display = '';
+        if (timeFields) timeFields.style.display = 'none';
+        if (select && select.value === 'custom_task') select.value = '';
+    }
+};
+
 async function savePlanning() {
     // Si on a un contexte de période (modal ouvert via showPeriodAttendance), utiliser ce contexte
     if (window.currentPlanningContext) {
@@ -7025,7 +7130,9 @@ async function savePlanning() {
                     classroom_id: finalClassroomId,
                     title: title,
                     description: description,
-                    group_id: finalGroupId
+                    group_id: finalGroupId,
+                    task_start: (window.planningType === 'tache' && document.getElementById('taskStartTime')) ? (document.getElementById('taskStartTime').value || null) : null,
+                    task_end: (window.planningType === 'tache' && document.getElementById('taskEndTime')) ? (document.getElementById('taskEndTime').value || null) : null
                 })
             });
 
@@ -7035,7 +7142,8 @@ async function savePlanning() {
                 console.log('✅ Planification sauvegardée avec succès');
 
                 // Pattern de répétition : touche plusieurs semaines → reload nécessaire.
-                let needsFullReload = false;
+                // Tâche perso : reload pour afficher la carte agenda rendue serveur.
+                let needsFullReload = (window.planningType === 'tache');
                 if (shouldApplyPattern) {
                     console.log(`🔄 Applying pattern: type=${groupRepeatOption.value}, groupId=${finalGroupId}, classroomId=${finalClassroomId}`);
                     const patternResponse = await fetch('/planning/apply-group-pattern', {
@@ -7130,13 +7238,17 @@ async function savePlanning() {
                 classroom_id: finalClassroomId,
                 title: title,
                 description: description,
-                group_id: finalGroupId
+                group_id: finalGroupId,
+                task_start: (window.planningType === 'tache' && document.getElementById('taskStartTime')) ? (document.getElementById('taskStartTime').value || null) : null,
+                task_end: (window.planningType === 'tache' && document.getElementById('taskEndTime')) ? (document.getElementById('taskEndTime').value || null) : null
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
+            // Tâche perso : reload pour afficher la carte agenda rendue serveur.
+            if (window.planningType === 'tache') { location.reload(); return; }
             console.log('✅ Planification sauvegardée avec succès');
             closePlanningModal();
             // Mise à jour locale de la cellule (pas de reload)
