@@ -1541,7 +1541,8 @@ def get_decoupage_for_week(classroom_id, week_number):
             'type': 'full',
             'name': first_half_theme['name'],
             'color': first_half_theme['color'],
-            'subject': first_half_theme['subject']
+            'subject': first_half_theme['subject'],
+            'objectives': first_half_theme.get('objectives', '')
         }
 
     # Sinon, retourner les deux moitiés séparément
