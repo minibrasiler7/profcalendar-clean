@@ -2123,7 +2123,11 @@ if (typeof pdfjsLib !== 'undefined') {
                     {# Option héritée : la création passe désormais par le
                        bouton « Tâche perso » (setPlanningType). Gardée pour
                        compatibilité, masquée. #}
-                    <option value="custom_task" data-color="#6B7280" data-type="custom" style="display:none;">
+                    {# disabled+hidden : display:none est ignoré par les
+                       menus natifs macOS/iOS — seuls ces attributs empêchent
+                       vraiment la sélection. La valeur reste réglable en JS
+                       (setPlanningType). #}
+                    <option value="custom_task" data-color="#6B7280" data-type="custom" disabled hidden>
                         📝 Autre
                     </option>
                 </select>
