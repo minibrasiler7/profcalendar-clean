@@ -57,10 +57,16 @@
             {% set planning_key = date.strftime('%Y-%m-%d') + '_' + period_num|string %}
             {% set schedule_key = i|string + '_' + period_num|string %}
 
-            {# Vérifier si cette période est fusionnée pour ce jour spécifique #}
+            {# Vérifier si cette période est fusionnée pour ce jour spécifique.
+               Les liaisons ne s'affichent QUE pendant l'année scolaire et hors
+               vacances — sinon la teinte bleue des cours liés apparaît sur des
+               semaines sans cours. #}
             {% set day_merged_info = merged_info.get(i, {}).get(period_num, {}) %}
-            {% set is_merged_for_day = day_merged_info.get('has_merged_next', false) %}
-            {% set is_merged_with_previous = day_merged_info.get('merged_with_previous', false) %}
+            {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
+            {% set in_year = date >= current_user.school_year_start and date <= current_user.school_year_end %}
+            {% set show_merge = in_year and not holiday_info.is_holiday %}
+            {% set is_merged_for_day = show_merge and day_merged_info.get('has_merged_next', false) %}
+            {% set is_merged_with_previous = show_merge and day_merged_info.get('merged_with_previous', false) %}
 
             <td class="schedule-cell {% if date == today %}today{% endif %}{% if is_merged_for_day %} merged-period{% endif %}{% if is_merged_with_previous %} merged-continuation{% endif %}"
                 data-date="{{ date.strftime('%Y-%m-%d') }}"
@@ -86,7 +92,6 @@
                     <i class="fas fa-book"></i> {{ devoir_cells[_dvkey]|length }}
                 </div>
                 {% endif %}
-                {% set holiday_info = holidays_info[date.strftime('%Y-%m-%d')] %}
 
                 {# Si cette période est fusionnée avec la précédente, ne rien afficher #}
                 {% if is_merged_with_previous %}
@@ -96,7 +101,7 @@
                     <div class="holiday-block">
                         <div class="holiday-day-name">{{ holiday_info.name }}</div>
                     </div>
-                {% elif date >= current_user.school_year_start and date <= current_user.school_year_end %}
+                {% elif in_year or planning_key in planning_grid %}
                     {% if planning_key in planning_grid %}
                         <!-- Planification spécifique -->
                         {% set planning = planning_grid[planning_key] %}
