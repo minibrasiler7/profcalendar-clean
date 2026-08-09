@@ -7591,6 +7591,46 @@ function showAttendanceError(message) {
 
 </script>
 
+<style>
+    /* Bulle des objectifs de découpage (survol du bandeau, vue annuelle) */
+    #decoupageTip {
+        position: fixed; z-index: 30000; max-width: 340px; display: none;
+        background: #1E1B4B; color: #fff; border-radius: 10px;
+        padding: 0.65rem 0.85rem; font-size: 0.8rem; line-height: 1.5;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        pointer-events: none; white-space: pre-line;
+    }
+</style>
+<script>
+(function () {
+    var tip = document.createElement('div');
+    tip.id = 'decoupageTip';
+    document.body.appendChild(tip);
+    function showTip(el) {
+        var txt = el.getAttribute('data-tip');
+        if (!txt || !txt.trim()) return;
+        tip.textContent = txt;
+        tip.style.display = 'block';
+        var r = el.getBoundingClientRect();
+        var tr = tip.getBoundingClientRect();
+        var left = Math.min(Math.max(8, r.left + r.width / 2 - tr.width / 2), window.innerWidth - tr.width - 8);
+        var top = r.top - tr.height - 8;
+        if (top < 8) top = r.bottom + 8;
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+    }
+    // Délégué : fonctionne aussi après rechargement de la grille (fragment annual)
+    document.addEventListener('mouseover', function (e) {
+        var el = e.target.closest && e.target.closest('.decoupage-ribbon[data-tip]');
+        if (el) showTip(el);
+    });
+    document.addEventListener('mouseout', function (e) {
+        if (e.target.closest && e.target.closest('.decoupage-ribbon[data-tip]')) tip.style.display = 'none';
+    });
+    window.addEventListener('scroll', function () { tip.style.display = 'none'; }, true);
+})();
+</script>
+
 <!-- Nouveau lecteur PDF Clean -->
 <script src="{{ url_for('static', filename='js/clean-pdf-viewer.js') }}?v=5.5.9&cache_bust={{ range(1000000, 9999999) | random }}"></script>
 
