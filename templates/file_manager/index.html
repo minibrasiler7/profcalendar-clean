@@ -87,6 +87,20 @@
         </div>
     </div>
 
+    <!-- Barre d'actions de la sélection (façon OS) -->
+    <div class="fm-selection-bar" id="fmSelectionBar" style="display: none;">
+        <span class="fm-selection-count" id="fmSelectionCount">0 élément</span>
+        <button class="btn btn-primary btn-sm" onclick="openMoveModal('selection')">
+            <i class="fas fa-arrows-alt"></i> Déplacer vers…
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="fmDeleteSelection()">
+            <i class="fas fa-trash"></i> Supprimer
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="fmClearSelection()">
+            <i class="fas fa-times"></i> Annuler
+        </button>
+    </div>
+
     <!-- Boutons de suppression multiple -->
     <div class="delete-actions" id="deleteActions" style="display: none;">
         <div class="delete-actions-content">
@@ -284,6 +298,46 @@ body.fm-dragging .fm-root-drop { display: flex; }
     transform: translateX(12px);
 }
 .context-menu-item i { width: 1.1rem; text-align: center; }
+
+/* ==== Sélection multiple façon OS ==== */
+#fileGrid .file-item { user-select: none; -webkit-user-select: none; }
+#fileGrid .file-item.selected {
+    background: #EEF2FF;
+    box-shadow: inset 3px 0 0 #6366F1;
+}
+#fileGrid .file-item.selected .item-name { color: #312E81; font-weight: 500; }
+.fm-selection-bar {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #1F2937;
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    z-index: 1002;
+}
+.fm-selection-bar .fm-selection-count { font-size: 0.9rem; font-weight: 600; margin-right: 0.25rem; }
+.fm-selection-bar .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
+.fm-selection-bar .btn-outline { background: transparent; color: #E5E7EB; border-color: #4B5563; }
+.fm-drag-ghost {
+    position: fixed;
+    top: -1000px;
+    left: -1000px;
+    background: #312E81;
+    color: white;
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 4000;
+}
 </style>
 {% endblock %}
 
@@ -310,6 +364,9 @@ const FM = {
     expanded: new Set(JSON.parse(localStorage.getItem('fm_expanded') || '[]')),
     loaded: false,
     refreshSeq: 0,
+    selection: new Set(),   // clés « file:12 » / « folder:5 »
+    lastAnchor: null,       // ancre pour Shift+clic
+    visibleOrder: [],       // clés dans l'ordre visuel (pour les plages)
 };
 
 let fmDragged = null;           // { type: 'file'|'folder', id } pendant un glisser interne
@@ -375,6 +432,15 @@ function fmIndex() {
         if (!FM.folderById.has(id)) FM.expanded.delete(id);
     }
     fmSaveExpanded();
+    // Purger la sélection des éléments disparus
+    const fileIds = new Set(FM.files.map(f => f.id));
+    for (const key of Array.from(FM.selection)) {
+        const [t, rawId] = key.split(':');
+        const id = parseInt(rawId);
+        if ((t === 'file' && !fileIds.has(id)) || (t === 'folder' && !FM.folderById.has(id))) {
+            FM.selection.delete(key);
+        }
+    }
 }
 
 function fmCountFiles(folderId) {
@@ -389,10 +455,12 @@ function fmRender() {
     const grid = document.getElementById('fileGrid');
     if (!grid) return;
 
+    FM.visibleOrder = [];
     const frag = document.createDocumentFragment();
     fmRenderLevel(null, 0, frag);
     grid.innerHTML = '';
     grid.appendChild(frag);
+    fmApplySelection();
 
     const empty = document.getElementById('fmEmptyState');
     if (empty) empty.style.display = (FM.folders.length || FM.files.length) ? 'none' : 'block';
@@ -408,9 +476,12 @@ function fmRender() {
 
 function fmRenderLevel(parentId, depth, container) {
     for (const folder of (FM.byParent.get(parentId) || [])) {
-        container.appendChild(fmFolderNode(folder, depth));
+        FM.visibleOrder.push('folder:' + folder.id);
+        const node = fmFolderNode(folder, depth);
+        container.appendChild(node);
     }
     for (const file of (FM.filesByFolder.get(parentId) || [])) {
+        FM.visibleOrder.push('file:' + file.id);
         container.appendChild(fmFileRow(file, depth));
     }
 }
@@ -459,9 +530,15 @@ function fmFolderNode(folder, depth) {
         else if (action === 'rename') renameItem('folder', folder.id, folder.name);
         else if (action === 'delete') deleteFolder(folder.id);
     });
-    row.addEventListener('click', () => {
-        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { fmToggleCheckbox(row); return; }
+    const chevron = row.querySelector('.folder-toggle');
+    chevron.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) return;
         fmToggleFolder(folder.id);
+    });
+    row.addEventListener('click', (e) => {
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { fmToggleCheckbox(row); return; }
+        fmHandleRowClick(e, 'folder', folder.id);
     });
     row.addEventListener('dragstart', handleFolderDragStart);
     row.addEventListener('dragend', handleFileDragEnd);
@@ -512,9 +589,9 @@ function fmFileRow(file, depth) {
         else if (action === 'rename') renameItem('file', file.id, file.name);
         else if (action === 'delete') deleteFile(file.id);
     });
-    row.addEventListener('click', () => {
+    row.addEventListener('click', (e) => {
         if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { fmToggleCheckbox(row); return; }
-        previewFile(file.id, file.type);
+        fmHandleRowClick(e, 'file', file.id);
     });
     row.addEventListener('dragstart', handleFileDragStart);
     row.addEventListener('dragend', handleFileDragEnd);
@@ -753,19 +830,23 @@ async function createFolder(e) {
 let moveTarget = null; // { type, id }
 
 function openMoveModal(itemType, itemId) {
-    moveTarget = { type: itemType, id: parseInt(itemId) };
-    const list = document.getElementById('moveModalList');
-    list.innerHTML = '';
+    const collectDescendants = (id, into) => {
+        into.add(id);
+        (FM.byParent.get(id) || []).forEach(sub => collectDescendants(sub.id, into));
+    };
 
     const forbidden = new Set();
-    if (itemType === 'folder') {
-        // Interdire soi-même + tous ses descendants
-        const collect = (id) => {
-            forbidden.add(id);
-            (FM.byParent.get(id) || []).forEach(sub => collect(sub.id));
-        };
-        collect(moveTarget.id);
+    if (itemType === 'selection') {
+        const items = fmSelectionItems();
+        if (!items.length) return;
+        moveTarget = { selection: true };
+        items.filter(it => it.type === 'folder').forEach(it => collectDescendants(it.id, forbidden));
+    } else {
+        moveTarget = { type: itemType, id: parseInt(itemId) };
+        if (itemType === 'folder') collectDescendants(moveTarget.id, forbidden);
     }
+    const list = document.getElementById('moveModalList');
+    list.innerHTML = '';
 
     const mkOption = (label, iconHtml, folderId, depth) => {
         const opt = document.createElement('div');
@@ -810,67 +891,115 @@ async function doMove(folderId) {
     if (!moveTarget) return;
     const target = { ...moveTarget };
     closeMoveModal();
-    await fmMove(target.type, target.id, folderId);
+    if (target.selection) {
+        await fmMoveItems(fmSelectionItems(), folderId);
+    } else {
+        await fmMoveItems([{ type: target.type, id: target.id }], folderId);
+    }
 }
 
-async function fmMove(itemType, itemId, folderId) {
-    try {
-        const data = await moveItemRequest(itemType, itemId, folderId);
-        if (!data.success) {
-            showNotification('error', data.error || 'Erreur lors du déplacement');
-            return;
-        }
-        // Mise à jour locale immédiate (déplacement instantané à l'écran)
-        if (itemType === 'file') {
-            const f = FM.files.find(x => x.id === itemId);
-            if (f) f.folder_id = folderId;
-        } else {
-            const f = FM.folderById.get(itemId);
-            if (f) f.parent_id = folderId;
-        }
-        if (folderId) FM.expanded.add(folderId);
-        fmIndex();
-        fmRender();
-        fmSaveExpanded();
-        const destName = folderId ? `« ${(FM.folderById.get(folderId) || {}).name} »` : 'la racine';
-        showNotification('success', `Déplacé vers ${destName}`);
-        // Mettre en évidence l'élément déplacé
-        const moved = document.querySelector(`#fileGrid .file-item[data-type="${itemType === 'file' ? 'file' : 'folder'}"][data-id="${itemId}"]`);
-        if (moved) {
-            moved.classList.add('fm-flash');
-            setTimeout(() => moved.classList.remove('fm-flash'), 1300);
-        }
-    } catch (e) {
-        showNotification('error', 'Erreur de connexion');
+function fmIsDescendantOf(folderId, ancestorId) {
+    let f = FM.folderById.get(folderId);
+    while (f) {
+        if (f.id === ancestorId) return true;
+        f = f.parent_id ? FM.folderById.get(f.parent_id) : null;
     }
+    return false;
+}
+
+async function fmMoveItems(items, folderId) {
+    if (!items || !items.length) return;
+    // Filtrer les déplacements impossibles (dossier dans lui-même / un descendant)
+    const valid = items.filter(it =>
+        !(it.type === 'folder' && folderId && (it.id === folderId || fmIsDescendantOf(folderId, it.id)))
+    );
+    if (!valid.length) {
+        showNotification('error', 'Déplacement impossible (un dossier ne peut pas aller dans lui-même)');
+        return;
+    }
+    let ok = 0;
+    let firstError = null;
+    for (const it of valid) {
+        try {
+            const data = await moveItemRequest(it.type, it.id, folderId);
+            if (data.success) {
+                ok++;
+                if (it.type === 'file') {
+                    const f = FM.files.find(x => x.id === it.id);
+                    if (f) f.folder_id = folderId;
+                } else {
+                    const f = FM.folderById.get(it.id);
+                    if (f) f.parent_id = folderId;
+                }
+            } else if (!firstError) {
+                firstError = data.error;
+            }
+        } catch (e) {
+            if (!firstError) firstError = 'Erreur de connexion';
+        }
+    }
+    if (folderId) FM.expanded.add(folderId);
+    fmIndex();
+    fmRender();
+    fmSaveExpanded();
+    if (ok) {
+        const destName = folderId ? `« ${(FM.folderById.get(folderId) || {}).name} »` : 'la racine';
+        showNotification('success', ok === 1 ? `Déplacé vers ${destName}` : `${ok} éléments déplacés vers ${destName}`);
+        for (const it of valid) {
+            const moved = document.querySelector(`#fileGrid .file-item[data-type="${it.type}"][data-id="${it.id}"]`);
+            if (moved) {
+                moved.classList.add('fm-flash');
+                setTimeout(() => moved.classList.remove('fm-flash'), 1300);
+            }
+        }
+    }
+    if (firstError) showNotification('error', firstError);
 }
 
 // ------------------------------------------- drag & drop interne + upload OS
 // Format du dataTransfer : « file:<id> » / « folder:<id> » — le même que celui
 // attendu par le panneau des classes (copie vers une classe).
-function handleFileDragStart(e) {
+function fmDragStartCommon(e, type, id) {
     if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
     const el = e.currentTarget;
-    fmDragged = { type: 'file', id: parseInt(el.dataset.id) };
-    e.dataTransfer.setData('text/plain', `file:${el.dataset.id}`);
+    const key = type + ':' + id;
+    // Glisser un élément non sélectionné : il devient LA sélection (comme un OS)
+    if (!FM.selection.has(key)) {
+        FM.selection = new Set([key]);
+        FM.lastAnchor = key;
+        fmApplySelection();
+    }
+    const items = fmSelectionItems();
+    fmDragged = { items };
+    e.dataTransfer.setData('text/plain', `${type}:${id}`); // compat pane classes
     e.dataTransfer.effectAllowed = 'copyMove';
-    el.classList.add('dragging');
+    // Ghost avec compteur pour un glisser multiple
+    if (items.length > 1) {
+        const ghost = document.createElement('div');
+        ghost.className = 'fm-drag-ghost';
+        ghost.textContent = `${items.length} éléments`;
+        document.body.appendChild(ghost);
+        try { e.dataTransfer.setDragImage(ghost, 20, 15); } catch (err) {}
+        setTimeout(() => ghost.remove(), 0);
+    }
+    for (const it of items) {
+        const r = document.querySelector(`#fileGrid .file-item[data-type="${it.type}"][data-id="${it.id}"]`);
+        if (r) r.classList.add('dragging');
+    }
     document.body.classList.add('fm-dragging');
+}
+
+function handleFileDragStart(e) {
+    fmDragStartCommon(e, 'file', parseInt(e.currentTarget.dataset.id));
 }
 
 function handleFolderDragStart(e) {
-    if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
-    const el = e.currentTarget;
-    fmDragged = { type: 'folder', id: parseInt(el.dataset.id) };
-    e.dataTransfer.setData('text/plain', `folder:${el.dataset.id}`);
-    e.dataTransfer.effectAllowed = 'copyMove';
-    el.classList.add('dragging');
-    document.body.classList.add('fm-dragging');
+    fmDragStartCommon(e, 'folder', parseInt(e.currentTarget.dataset.id));
 }
 
 function handleFileDragEnd(e) {
-    e.currentTarget.classList.remove('dragging');
     document.body.classList.remove('fm-dragging');
+    document.querySelectorAll('#fileGrid .file-item.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
     setTimeout(() => { fmDragged = null; }, 150);
 }
@@ -893,7 +1022,7 @@ function fmInitDropTargets() {
         const targetId = parseInt(folderEl.dataset.id);
         const isOsFiles = e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
         if (!fmDragged && !isOsFiles) return;
-        if (fmDragged && fmDragged.type === 'folder' && targetId === fmDragged.id) return;
+        if (fmDragged && fmDragged.items.every(it => it.type === 'folder' && (it.id === targetId || fmIsDescendantOf(targetId, it.id)))) return;
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = fmDragged ? 'move' : 'copy';
@@ -932,10 +1061,9 @@ function fmInitDropTargets() {
             return;
         }
         if (!fmDragged) return;
-        if (fmDragged.type === 'folder' && targetId === fmDragged.id) return;
         e.preventDefault();
         e.stopPropagation();
-        await fmMove(fmDragged.type, fmDragged.id, targetId);
+        await fmMoveItems(fmDragged.items, targetId);
     });
 
     if (rootDrop) {
@@ -952,7 +1080,7 @@ function fmInitDropTargets() {
             if (!fmDragged) return;
             e.preventDefault();
             e.stopPropagation();
-            await fmMove(fmDragged.type, fmDragged.id, null);
+            await fmMoveItems(fmDragged.items, null);
         });
     }
 }
@@ -1052,6 +1180,179 @@ async function uploadFilesWithStructure(filesData) {
     await refreshTree();
 }
 
+// ------------------------------------------------------- sélection façon OS
+function fmSelectionItems() {
+    return Array.from(FM.selection).map(k => {
+        const idx = k.indexOf(':');
+        return { type: k.slice(0, idx), id: parseInt(k.slice(idx + 1)) };
+    });
+}
+
+function fmHandleRowClick(e, type, id) {
+    const key = type + ':' + id;
+    if (e.shiftKey && FM.lastAnchor && FM.visibleOrder.includes(FM.lastAnchor)) {
+        // Plage entre l'ancre et l'élément cliqué (ordre visuel)
+        const a = FM.visibleOrder.indexOf(FM.lastAnchor);
+        const b = FM.visibleOrder.indexOf(key);
+        if (b !== -1) {
+            const [from, to] = a < b ? [a, b] : [b, a];
+            if (!(e.metaKey || e.ctrlKey)) FM.selection = new Set();
+            for (let i = from; i <= to; i++) FM.selection.add(FM.visibleOrder[i]);
+        }
+    } else if (e.metaKey || e.ctrlKey) {
+        if (FM.selection.has(key)) FM.selection.delete(key);
+        else FM.selection.add(key);
+        FM.lastAnchor = key;
+    } else {
+        FM.selection = new Set([key]);
+        FM.lastAnchor = key;
+    }
+    fmApplySelection();
+}
+
+function fmApplySelection() {
+    document.querySelectorAll('#fileGrid .file-item[data-type]').forEach(row => {
+        const key = row.dataset.type + ':' + row.dataset.id;
+        row.classList.toggle('selected', FM.selection.has(key));
+    });
+    fmUpdateSelectionBar();
+}
+
+function fmClearSelection() {
+    FM.selection = new Set();
+    FM.lastAnchor = null;
+    fmApplySelection();
+}
+
+function fmUpdateSelectionBar() {
+    const bar = document.getElementById('fmSelectionBar');
+    const count = document.getElementById('fmSelectionCount');
+    if (!bar || !count) return;
+    const n = FM.selection.size;
+    if (n === 0) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    count.textContent = n === 1 ? '1 élément' : `${n} éléments`;
+}
+
+function fmSelectAllVisible() {
+    FM.selection = new Set(FM.visibleOrder);
+    fmApplySelection();
+}
+
+function fmDeleteSelection() {
+    const items = fmSelectionItems();
+    if (!items.length) return;
+    const nFiles = items.filter(i => i.type === 'file').length;
+    const nFolders = items.length - nFiles;
+    const parts = [];
+    if (nFiles) parts.push(`${nFiles} fichier(s)`);
+    if (nFolders) parts.push(`${nFolders} dossier(s) et leur contenu`);
+    fmConfirm(`Supprimer ${parts.join(' et ')} ? Cette action est définitive.`, async () => {
+        try {
+            const response = await fetch('/file_manager/delete-multiple', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: items.map(i => ({ id: i.id, type: i.type })) })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showNotification('success', `${items.length} élément(s) supprimé(s)`);
+                fmClearSelection();
+                await refreshTree();
+            } else {
+                showNotification('error', result.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            showNotification('error', 'Erreur lors de la suppression');
+        }
+    });
+}
+
+// Dépôt d'une sélection sur une classe : copier chaque élément (surcharge)
+async function handleClassDrop(e) {
+    e.preventDefault();
+    const classHeader = e.target.closest('.class-header');
+    if (classHeader) classHeader.classList.remove('drag-over');
+    const classItem = e.target.closest('.class-item');
+    const classId = classItem ? classItem.dataset.classId : null;
+    if (!classId) return;
+
+    if (fmDragged && fmDragged.items && fmDragged.items.length) {
+        for (const it of fmDragged.items) {
+            if (it.type === 'file') await copyFileToClass(it.id, classId);
+            else if (it.type === 'folder') await copyFolderToClass(it.id, classId);
+        }
+        return;
+    }
+    // Repli : exercices glissés depuis un arbre de classe (format texte d'origine)
+    const dragData = e.dataTransfer.getData('text/plain');
+    if (dragData && dragData.startsWith('exercise:')) {
+        await publishExerciseToClass(dragData.replace('exercise:', ''), classId);
+    }
+}
+
+// Double-clic : fichier → aperçu, dossier → plier/déplier (surcharge)
+function initDoubleClickHandler() {
+    const fileGrid = document.getElementById('fileGrid');
+    if (!fileGrid) return;
+    fileGrid.addEventListener('dblclick', (e) => {
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) return;
+        const fileItem = e.target.closest('.file-item.file');
+        if (fileItem) {
+            e.preventDefault();
+            const file = FM.files.find(f => f.id === parseInt(fileItem.dataset.id));
+            if (file) previewFile(file.id, file.type);
+            return;
+        }
+        const folderItem = e.target.closest('.file-item.folder');
+        if (folderItem) {
+            e.preventDefault();
+            fmToggleFolder(parseInt(folderItem.dataset.id));
+        }
+    });
+}
+
+// Raccourcis clavier (surcharge) : Échap, Cmd/Ctrl+A, Suppr, Cmd+N / Cmd+U
+function initKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        const modalOpen = document.querySelector('.modal.show') !== null;
+        const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target || {}).tagName) || (e.target && e.target.isContentEditable);
+
+        if (e.key === 'Escape') {
+            const modals = document.querySelectorAll('.modal.show');
+            if (modals.length) { modals.forEach(m => m.classList.remove('show')); return; }
+            if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { cancelDeleteMode(); return; }
+            if (FM.selection.size) fmClearSelection();
+            return;
+        }
+        if (modalOpen || typing) return;
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+            e.preventDefault();
+            fmSelectAllVisible();
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            showNewFolderModal();
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+            e.preventDefault();
+            document.getElementById('fileInputSingle').click();
+            return;
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            if (typeof selectedClassFile !== 'undefined' && selectedClassFile && selectedClassFile.element) {
+                deleteSelectedClassItem();
+            } else if (FM.selection.size) {
+                fmDeleteSelection();
+            }
+        }
+    });
+}
+
 // ------------------------------------------------------------ menu contextuel
 // Reconstruit en DOM (plus d'onclick inline : les noms avec apostrophes
 // cassaient l'ancien menu) et enrichi : Ouvrir, Nouveau dossier ici, Couleur,
@@ -1094,7 +1395,27 @@ function showContextMenu(e, item) {
     if (typeof isDeleteMode !== 'undefined' && isDeleteMode) return;
     const type = item.dataset.type;
     const id = parseInt(item.dataset.id);
+    const key = type + ':' + id;
+
+    // Comme un OS : clic droit sur un élément hors sélection → il devient la sélection
+    if (!FM.selection.has(key)) {
+        FM.selection = new Set([key]);
+        FM.lastAnchor = key;
+        fmApplySelection();
+    }
+
     const menu = fmShowMenu(e);
+
+    // Sélection multiple : menu groupé
+    if (FM.selection.size > 1) {
+        const n = FM.selection.size;
+        fmMenuItem(menu, 'fas fa-arrows-alt', `Déplacer les ${n} éléments vers…`, () => openMoveModal('selection'));
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-trash', `Supprimer les ${n} éléments`, () => fmDeleteSelection(), true);
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-times', 'Tout désélectionner', () => fmClearSelection());
+        return;
+    }
 
     if (type === 'folder') {
         const folder = FM.folderById.get(id) || { name: '' };
@@ -1131,6 +1452,15 @@ function showEmptySpaceContextMenu(e) {
 document.addEventListener('DOMContentLoaded', function () {
     fmInitDropTargets();
     refreshTree();
+
+    // Clic dans le vide de l'explorateur → désélectionner (comme un OS)
+    const explorer = document.getElementById('fileExplorer');
+    if (explorer) {
+        explorer.addEventListener('click', (e) => {
+            if (e.target.closest('.file-item') || e.target.closest('.context-menu')) return;
+            if (FM.selection.size) fmClearSelection();
+        });
+    }
 
     // Fermer les modals custom avec Échap
     document.addEventListener('keydown', (e) => {
