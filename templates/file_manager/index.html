@@ -386,7 +386,8 @@ const FM = {
     visibleOrder: [],       // clés dans l'ordre visuel (pour les plages)
 };
 
-let fmDragged = null;           // { type: 'file'|'folder', id } pendant un glisser interne
+let fmDragged = null;           // { items: [...] } pendant un glisser interne
+let fmDragSeq = 0;              // jeton : un dragend ne nettoie que SON drag
 let uploadTargetFolderId = null; // dossier cible des uploads en cours (null = racine)
 
 // ---------------------------------------------------------------- utilitaires
@@ -622,6 +623,30 @@ function fmToggleCheckbox(row) {
         cb.checked = !cb.checked;
         if (typeof updateDeleteButton === 'function') updateDeleteButton();
     }
+}
+
+// Déplie un dossier SANS reconstruire l'arbre — indispensable pendant un
+// glisser : re-rendre détruirait l'élément source et Safari annulerait le drag.
+function fmExpandInPlace(folderId) {
+    if (FM.expanded.has(folderId)) return;
+    const node = document.querySelector(`#fileGrid .tree-node[data-folder-id="${folderId}"]`);
+    const row = node ? node.querySelector(':scope > .file-item.folder') : null;
+    const children = node ? node.querySelector(':scope > .tree-children') : null;
+    FM.expanded.add(folderId);
+    fmSaveExpanded();
+    if (!row || !children) { fmRender(); return; }
+    const depth = Math.max(0, Math.round((parseFloat(row.style.paddingLeft || '0.75') - 0.75) / 1.5));
+    const savedOrder = FM.visibleOrder;
+    FM.visibleOrder = [];
+    children.innerHTML = '';
+    fmRenderLevel(folderId, depth + 1, children);
+    FM.visibleOrder = savedOrder; // reconstruit proprement au prochain rendu complet
+    children.style.display = 'block';
+    const chev = row.querySelector('.folder-toggle');
+    if (chev) chev.classList.add('expanded');
+    const icon = row.querySelector('.item-icon i');
+    if (icon) icon.className = 'fas fa-folder-open';
+    fmApplySelection();
 }
 
 function fmToggleFolder(folderId) {
@@ -978,6 +1003,7 @@ async function fmMoveItems(items, folderId) {
 // attendu par le panneau des classes (copie vers une classe).
 function fmDragStartCommon(e, type, id) {
     if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
+    fmDragSeq++;
     const key = type + ':' + id;
 
     // IMPORTANT (Safari/WebKit) : toute mutation du DOM pendant dragstart
@@ -1031,7 +1057,10 @@ function handleFileDragEnd(e) {
     document.body.classList.remove('fm-dragging');
     document.querySelectorAll('#fileGrid .file-item.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
-    setTimeout(() => { fmDragged = null; }, 150);
+    // Ne nettoyer QUE si aucun nouveau drag n'a commencé entre-temps
+    // (sinon un 2e essai rapproché perdait son état → dépôt refusé)
+    const seq = fmDragSeq;
+    setTimeout(() => { if (seq === fmDragSeq) fmDragged = null; }, 150);
 }
 
 const fmHoverTimers = new Map(); // folderId -> timer d'auto-expansion
@@ -1057,12 +1086,11 @@ function fmInitDropTargets() {
         e.stopPropagation();
         e.dataTransfer.dropEffect = fmDragged ? 'move' : 'copy';
         folderEl.classList.add('drop-target');
-        // Auto-déplier le dossier survolé pendant un glisser (comme un OS)
+        // Auto-déplier le dossier survolé pendant un glisser (comme un OS),
+        // EN PLACE : surtout ne pas reconstruire l'arbre en plein drag
         if (!FM.expanded.has(targetId) && !fmHoverTimers.has(targetId)) {
             fmHoverTimers.set(targetId, setTimeout(() => {
-                FM.expanded.add(targetId);
-                fmSaveExpanded();
-                fmRender();
+                fmExpandInPlace(targetId);
                 fmHoverTimers.delete(targetId);
             }, 650));
         }
