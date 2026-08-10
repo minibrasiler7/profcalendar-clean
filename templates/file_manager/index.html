@@ -87,20 +87,6 @@
         </div>
     </div>
 
-    <!-- Barre d'actions de la sélection (façon OS) -->
-    <div class="fm-selection-bar" id="fmSelectionBar" style="display: none;">
-        <span class="fm-selection-count" id="fmSelectionCount">0 élément</span>
-        <button class="btn btn-primary btn-sm" onclick="openMoveModal('selection')">
-            <i class="fas fa-arrows-alt"></i> Déplacer vers…
-        </button>
-        <button class="btn btn-danger btn-sm" onclick="fmDeleteSelection()">
-            <i class="fas fa-trash"></i> Supprimer
-        </button>
-        <button class="btn btn-outline btn-sm" onclick="fmClearSelection()">
-            <i class="fas fa-times"></i> Annuler
-        </button>
-    </div>
-
     <!-- Boutons de suppression multiple -->
     <div class="delete-actions" id="deleteActions" style="display: none;">
         <div class="delete-actions-content">
@@ -306,24 +292,28 @@ body.fm-dragging .fm-root-drop { display: flex; }
     box-shadow: inset 3px 0 0 #6366F1;
 }
 #fileGrid .file-item.selected .item-name { color: #312E81; font-weight: 500; }
-.fm-selection-bar {
+/* Rectangle de sélection (marquee) */
+.fm-marquee {
     position: fixed;
-    bottom: 1.25rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: #1F2937;
-    color: white;
-    padding: 0.6rem 1rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    z-index: 1002;
+    border: 1px solid #6366F1;
+    background: rgba(99, 102, 241, 0.12);
+    z-index: 3000;
+    pointer-events: none;
 }
-.fm-selection-bar .fm-selection-count { font-size: 0.9rem; font-weight: 600; margin-right: 0.25rem; }
-.fm-selection-bar .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
-.fm-selection-bar .btn-outline { background: transparent; color: #E5E7EB; border-color: #4B5563; }
+body.fm-marquee-active { user-select: none; -webkit-user-select: none; cursor: default; }
+
+/* Dépôt sur les classes : toute la carte est une cible, avec indice visuel */
+body.fm-dragging .class-item {
+    outline: 2px dashed #C7D2FE;
+    outline-offset: -2px;
+    border-radius: 0.5rem;
+    transition: outline-color 0.12s, background 0.12s;
+}
+.class-item.drag-over-card {
+    outline: 2px dashed #6366F1 !important;
+    outline-offset: -2px;
+    background: #EEF2FF;
+}
 /* iPad / tactile : pas de survol → boutons d'action toujours visibles */
 @media (pointer: coarse) {
     #fileGrid .item-actions { display: flex !important; }
@@ -1280,13 +1270,8 @@ function fmClearSelection() {
 }
 
 function fmUpdateSelectionBar() {
-    const bar = document.getElementById('fmSelectionBar');
-    const count = document.getElementById('fmSelectionCount');
-    if (!bar || !count) return;
-    const n = FM.selection.size;
-    if (n === 0) { bar.style.display = 'none'; return; }
-    bar.style.display = 'flex';
-    count.textContent = n === 1 ? '1 élément' : `${n} éléments`;
+    // Plus de barre flottante (retour utilisateur : pas naturel façon Mac).
+    // Les actions groupées passent par le clic droit, la touche Suppr et le glisser.
 }
 
 function fmSelectAllVisible() {
@@ -1324,19 +1309,25 @@ function fmDeleteSelection() {
 }
 
 // Dépôt d'une sélection sur une classe : copier chaque élément (surcharge)
+async function fmDropItemsOnClass(items, classId) {
+    for (const it of items) {
+        if (it.type === 'file') await copyFileToClass(it.id, classId);
+        else if (it.type === 'folder') await copyFolderToClass(it.id, classId);
+    }
+}
+
 async function handleClassDrop(e) {
     e.preventDefault();
+    e.stopPropagation();
     const classHeader = e.target.closest('.class-header');
     if (classHeader) classHeader.classList.remove('drag-over');
     const classItem = e.target.closest('.class-item');
+    if (classItem) classItem.classList.remove('drag-over-card');
     const classId = classItem ? classItem.dataset.classId : null;
     if (!classId) return;
 
     if (fmDragged && fmDragged.items && fmDragged.items.length) {
-        for (const it of fmDragged.items) {
-            if (it.type === 'file') await copyFileToClass(it.id, classId);
-            else if (it.type === 'folder') await copyFolderToClass(it.id, classId);
-        }
+        await fmDropItemsOnClass(fmDragged.items, classId);
         return;
     }
     // Repli : exercices glissés depuis un arbre de classe (format texte d'origine)
@@ -1405,6 +1396,116 @@ function initKeyboardShortcuts() {
                 fmDeleteSelection();
             }
         }
+    });
+}
+
+// ------------------------------------------- sélection au rectangle (marquee)
+function fmInitMarquee() {
+    const explorer = document.getElementById('fileExplorer');
+    if (!explorer) return;
+    let startX = 0, startY = 0;
+    let active = false;
+    let started = false;
+    let baseSelection = null;
+    let marqueeEl = null;
+
+    explorer.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) return;
+        // Uniquement depuis le vide (pas un item, pas un bouton/lien/champ)
+        if (e.target.closest('.file-item') || e.target.closest('button') ||
+            e.target.closest('a') || e.target.closest('input') ||
+            e.target.closest('.fm-root-drop') || e.target.closest('.context-menu')) return;
+        started = true;
+        active = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        baseSelection = (e.metaKey || e.ctrlKey || e.shiftKey) ? new Set(FM.selection) : new Set();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!started) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (!active) {
+            if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+            active = true;
+            document.body.classList.add('fm-marquee-active');
+            marqueeEl = document.createElement('div');
+            marqueeEl.className = 'fm-marquee';
+            document.body.appendChild(marqueeEl);
+        }
+        e.preventDefault();
+        const left = Math.min(startX, e.clientX);
+        const top = Math.min(startY, e.clientY);
+        const width = Math.abs(dx);
+        const height = Math.abs(dy);
+        marqueeEl.style.left = left + 'px';
+        marqueeEl.style.top = top + 'px';
+        marqueeEl.style.width = width + 'px';
+        marqueeEl.style.height = height + 'px';
+        // Sélection en direct : lignes qui croisent le rectangle
+        const sel = new Set(baseSelection);
+        document.querySelectorAll('#fileGrid .file-item[data-type]').forEach(row => {
+            const b = row.getBoundingClientRect();
+            const hit = !(b.right < left || b.left > left + width || b.bottom < top || b.top > top + height);
+            if (hit) sel.add(row.dataset.type + ':' + row.dataset.id);
+        });
+        FM.selection = sel;
+        fmApplySelection();
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!started) return;
+        started = false;
+        if (active) {
+            active = false;
+            document.body.classList.remove('fm-marquee-active');
+            if (marqueeEl) { marqueeEl.remove(); marqueeEl = null; }
+            if (FM.selection.size) FM.lastAnchor = Array.from(FM.selection).pop();
+            // Empêcher le clic de fin de geste de vider la sélection
+            suppressNextExplorerClick = true;
+            setTimeout(() => { suppressNextExplorerClick = false; }, 50);
+        }
+    });
+}
+
+let suppressNextExplorerClick = false;
+
+// ------------------------- dépôt sur les classes : toute la carte est cible
+function fmInitClassCardDrops() {
+    const list = document.getElementById('classesList');
+    if (!list) return;
+
+    const cardOf = (e) => e.target.closest('.class-item');
+
+    list.addEventListener('dragenter', (e) => {
+        if (!fmDragged) return;
+        const card = cardOf(e);
+        if (!card) return;
+        e.preventDefault();
+    });
+    list.addEventListener('dragover', (e) => {
+        if (!fmDragged) return;
+        const card = cardOf(e);
+        if (!card) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        card.classList.add('drag-over-card');
+    });
+    list.addEventListener('dragleave', (e) => {
+        const card = cardOf(e);
+        if (card && !card.contains(e.relatedTarget)) card.classList.remove('drag-over-card');
+    });
+    list.addEventListener('drop', async (e) => {
+        const card = cardOf(e);
+        if (!card) return;
+        card.classList.remove('drag-over-card');
+        if (e.defaultPrevented) return; // déjà traité par le handler de l'en-tête
+        if (!fmDragged || !fmDragged.items || !fmDragged.items.length) return;
+        e.preventDefault();
+        e.stopPropagation();
+        await fmDropItemsOnClass(fmDragged.items, card.dataset.classId);
     });
 }
 
@@ -1508,10 +1609,14 @@ document.addEventListener('DOMContentLoaded', function () {
     fmInitDropTargets();
     refreshTree();
 
+    fmInitMarquee();
+    fmInitClassCardDrops();
+
     // Clic dans le vide de l'explorateur → désélectionner (comme un OS)
     const explorer = document.getElementById('fileExplorer');
     if (explorer) {
         explorer.addEventListener('click', (e) => {
+            if (suppressNextExplorerClick) return;
             if (e.target.closest('.file-item') || e.target.closest('.context-menu')) return;
             if (FM.selection.size) fmClearSelection();
         });
