@@ -770,7 +770,13 @@ def dashboard():
     ).first()
     backup_reports = []
     if archive_folder:
-        backup_reports = UserFile.query.filter_by(
+        # load_only : ne pas hydrater file_content/thumbnail_content (LargeBinary)
+        # — le tableau de bord n'affiche que des métadonnées.
+        from sqlalchemy.orm import load_only
+        backup_reports = UserFile.query.options(load_only(
+            UserFile.id, UserFile.original_filename, UserFile.uploaded_at,
+            UserFile.file_size, UserFile.description
+        )).filter_by(
             user_id=current_user.id,
             folder_id=archive_folder.id
         ).order_by(UserFile.uploaded_at.desc()).limit(5).all()
