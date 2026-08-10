@@ -758,13 +758,23 @@ def upload_block_image():
         return jsonify({'success': False, 'message': 'Type de fichier non supporté'}), 400
 
     try:
-        from models.file_manager import UserFile
+        from models.file_manager import UserFile, FileFolder
         import os
+
+        # Dossier dédié « Images exercices » (créé à la première image)
+        folder = FileFolder.query.filter_by(
+            user_id=current_user.id, name='Images exercices', parent_id=None
+        ).first()
+        if not folder:
+            folder = FileFolder(user_id=current_user.id, name='Images exercices', color='#F59E0B')
+            db.session.add(folder)
+            db.session.flush()
 
         # Stocker dans le système UserFile existant
         file_data = file.read()
         user_file = UserFile(
             user_id=current_user.id,
+            folder_id=folder.id,
             filename=f"exercise_block_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.{ext}",
             original_filename=file.filename,
             file_content=file_data,

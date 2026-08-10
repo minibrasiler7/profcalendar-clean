@@ -369,6 +369,9 @@ class CleanPDFViewer {
                         <button class="btn-action" id="btn-rotate-page" title="Tourner les pages de 90° (à faire avant d'annoter)">
                             <i class="fas fa-rotate-right"></i>
                         </button>
+                        <button class="btn-action" id="btn-print-pdf" title="Imprimer / photocopier le PDF">
+                            <i class="fas fa-print"></i>
+                        </button>
                         <button class="btn-tool" data-tool="student-tracking" title="Suivi des élèves">
                             <i class="fas fa-users"></i>
                         </button>
@@ -1505,6 +1508,12 @@ class CleanPDFViewer {
             rotateBtn.addEventListener('click', (e) => { e.stopPropagation(); this.rotatePages(); });
         }
 
+        // Bouton « imprimer » : ouvre le PDF dans un onglet et lance l'impression
+        const printBtn = this.container.querySelector('#btn-print-pdf');
+        if (printBtn) {
+            printBtn.addEventListener('click', (e) => { e.stopPropagation(); this.printPdf(); });
+        }
+
         // Boutons de couleur (fixes)
         this.container.querySelectorAll('.btn-color[data-color]').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -2539,6 +2548,16 @@ class CleanPDFViewer {
      * re-render. À faire AVANT d'annoter : les annotations déjà posées ne sont
      * pas repositionnées. rotation vaut 0 par défaut → aucun effet sur /lesson.
      */
+    // Ouvre le PDF source dans un nouvel onglet et déclenche le dialogue d'impression
+    printPdf() {
+        const url = this.options.pdfUrl;
+        if (!url) { alert('Aucun PDF à imprimer.'); return; }
+        const win = window.open(url, '_blank');
+        if (!win) { alert('Autorisez les fenêtres pop-up pour imprimer le PDF.'); return; }
+        // Laisser le visualiseur du navigateur charger le document avant d'imprimer
+        setTimeout(() => { try { win.print(); } catch (e) { /* Cmd/Ctrl+P reste possible */ } }, 1500);
+    }
+
     async rotatePages() {
         this.rotation = ((this.rotation || 0) + 90) % 360;
         // Couper l'encre native le temps du re-render (les rects de page changent).

@@ -26,6 +26,16 @@ if (typeof pdfjsLib !== 'undefined') {
 </script>
 <style>
 /* Styles pour le modal de planification avec gestionnaire de fichiers */
+/* Modal de planification ouvert : verrouiller le défilement de la page derrière */
+body:has(.planning-modal.show),
+body:has(#attendanceModal[style*="block"]) {
+    overflow: hidden;
+}
+
+/* Tâches personnalisées : toujours cliquables au premier plan */
+.custom-task-block { z-index: 5; }
+.custom-task-block:not(.custom-task-timed) { position: relative; }
+
 .planning-modal {
     display: none;
     position: fixed;
@@ -4615,9 +4625,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (typeof originalOpenPlanningModal2 === 'function') {
                     originalOpenPlanningModal2(cell, fromAnnualView);
                 }
-                // Cellule « Autre » : basculer en mode Tâche perso une fois le modal peuplé.
+                // Cellule « Autre » : basculer en mode Tâche perso une fois le modal peuplé,
+                // puis pré-remplir avec la tâche existante s'il y en a une.
+                window.currentPlanningContext = null;
                 setTimeout(function () {
                     if (typeof setPlanningType === 'function') setPlanningType('tache');
+                    prefillPlanningModalFromSlot(date, period ? String(period).split('-')[0] : period);
                 }, 250);
                 return;
             }
@@ -4667,12 +4680,66 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Sinon, continuer avec le modal de planification normal
+            window.currentPlanningContext = null;
             if (typeof originalOpenPlanningModal2 === 'function') {
                 originalOpenPlanningModal2(cell, fromAnnualView);
             }
+            // Pré-remplir depuis l'API slot (tâche perso ou planification existante)
+            setTimeout(function () {
+                prefillPlanningModalFromSlot(date, period ? String(period).split('-')[0] : period);
+            }, 250);
         };
     }, 200);
 });
+
+// ============================================
+// TÂCHES PERSONNALISÉES : CLIC DIRECT + PRÉREMPLISSAGE
+// ============================================
+
+// Pré-remplit le modal de planification depuis l'API slot (utilisé quand la
+// cellule cliquée n'a pas de classe par défaut : période libre ou tâche perso).
+async function prefillPlanningModalFromSlot(date, periodNumber) {
+    if (!date || !periodNumber) return;
+    try {
+        const response = await fetch(`/planning/api/slot/${date}/${periodNumber}`);
+        const data = await response.json();
+        if (!data.success || !data.slot) return;
+        const slot = data.slot;
+        const titleInput = document.getElementById('modalPlanningTitle');
+        const descInput = document.getElementById('modalDescription');
+        if (titleInput && !titleInput.value && slot.title) titleInput.value = slot.title;
+        if (descInput && !descInput.value && slot.description) descInput.value = slot.description;
+        // Tâche perso existante → basculer en mode « Tâche » avec ses horaires
+        const isCustomSlot = !!(slot.has_planning && !slot.classroom_id && !slot.mixed_group_id && (slot.title || slot.description));
+        if (isCustomSlot) {
+            if (typeof setPlanningType === 'function') setPlanningType('tache');
+            const ts = document.getElementById('taskStartTime'); if (ts) ts.value = slot.task_start || '';
+            const te = document.getElementById('taskEndTime'); if (te) te.value = slot.task_end || '';
+        }
+        // Bouton « Effacer » visible si une planification existe déjà
+        if (slot.has_planning || slot.title || slot.description) {
+            const clearBtn = document.getElementById('planningClearBtn');
+            if (clearBtn) clearBtn.style.display = '';
+        }
+    } catch (e) {
+        console.warn('Préremplissage du slot impossible:', e);
+    }
+}
+
+// Clic direct sur un bloc de tâche perso : ouvrir le modal de SA cellule
+// d'ancrage (le bloc horodaté peut déborder visuellement sur d'autres lignes).
+document.addEventListener('click', function (e) {
+    if (!e.target || !e.target.closest) return;
+    const block = e.target.closest('.custom-task-block');
+    if (!block) return;
+    const cell = block.closest('td');
+    if (!cell || !cell.dataset || !cell.dataset.date) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof window.openPlanningModal === 'function') {
+        window.openPlanningModal(cell, false);
+    }
+}, true);
 
 // ============================================
 // FONCTIONS POUR LE MODAL DE VUE JOURNALIÈRE
