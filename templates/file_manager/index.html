@@ -286,7 +286,11 @@ body.fm-dragging .fm-root-drop { display: flex; }
 .context-menu-item i { width: 1.1rem; text-align: center; }
 
 /* ==== Sélection multiple façon OS ==== */
-#fileGrid .file-item { user-select: none; -webkit-user-select: none; }
+#fileGrid .file-item {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: element; /* Safari : force l'élément à être glissable */
+}
 #fileGrid .file-item.selected {
     background: #EEF2FF;
     box-shadow: inset 3px 0 0 #6366F1;
@@ -974,32 +978,45 @@ async function fmMoveItems(items, folderId) {
 // attendu par le panneau des classes (copie vers une classe).
 function fmDragStartCommon(e, type, id) {
     if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
-    const el = e.currentTarget;
     const key = type + ':' + id;
-    // Glisser un élément non sélectionné : il devient LA sélection (comme un OS)
-    if (!FM.selection.has(key)) {
-        FM.selection = new Set([key]);
-        FM.lastAnchor = key;
-        fmApplySelection();
-    }
-    const items = fmSelectionItems();
-    fmDragged = { items };
+
+    // IMPORTANT (Safari/WebKit) : toute mutation du DOM pendant dragstart
+    // (classes, insertion d'éléments, reflow) ANNULE le glisser natif.
+    // Ici : uniquement le dataTransfer, tout le reste est différé.
     e.dataTransfer.setData('text/plain', `${type}:${id}`); // compat pane classes
     e.dataTransfer.effectAllowed = 'copyMove';
-    // Ghost avec compteur pour un glisser multiple
+
+    // Glisser un élément non sélectionné : il devient LA sélection (comme un OS)
+    const selectionWillBe = FM.selection.has(key) ? new Set(FM.selection) : new Set([key]);
+    const items = Array.from(selectionWillBe).map(k => {
+        const i = k.indexOf(':');
+        return { type: k.slice(0, i), id: parseInt(k.slice(i + 1)) };
+    });
+    fmDragged = { items };
+
+    // Badge compteur (élément pré-créé au chargement — pas d'insertion ici)
     if (items.length > 1) {
-        const ghost = document.createElement('div');
-        ghost.className = 'fm-drag-ghost';
-        ghost.textContent = `${items.length} éléments`;
-        document.body.appendChild(ghost);
-        try { e.dataTransfer.setDragImage(ghost, 20, 15); } catch (err) {}
-        setTimeout(() => ghost.remove(), 0);
+        const ghost = document.getElementById('fmDragGhost');
+        if (ghost) {
+            ghost.textContent = `${items.length} éléments`;
+            try { e.dataTransfer.setDragImage(ghost, 20, 15); } catch (err) {}
+        }
     }
-    for (const it of items) {
-        const r = document.querySelector(`#fileGrid .file-item[data-type="${it.type}"][data-id="${it.id}"]`);
-        if (r) r.classList.add('dragging');
-    }
-    document.body.classList.add('fm-dragging');
+
+    // Mutations visuelles différées après le tick du dragstart
+    setTimeout(() => {
+        if (!fmDragged) return; // le drag a déjà pu se terminer
+        if (!FM.selection.has(key)) {
+            FM.selection = selectionWillBe;
+            FM.lastAnchor = key;
+            fmApplySelection();
+        }
+        for (const it of items) {
+            const r = document.querySelector(`#fileGrid .file-item[data-type="${it.type}"][data-id="${it.id}"]`);
+            if (r) r.classList.add('dragging');
+        }
+        document.body.classList.add('fm-dragging');
+    }, 0);
 }
 
 function handleFileDragStart(e) {
@@ -1606,6 +1623,13 @@ function showEmptySpaceContextMenu(e) {
 
 // ---------------------------------------------------------------- démarrage
 document.addEventListener('DOMContentLoaded', function () {
+    // Badge de glisser multiple, pré-créé (Safari interdit d'insérer des
+    // éléments pendant dragstart)
+    const ghost = document.createElement('div');
+    ghost.id = 'fmDragGhost';
+    ghost.className = 'fm-drag-ghost';
+    document.body.appendChild(ghost);
+
     fmInitDropTargets();
     refreshTree();
 
