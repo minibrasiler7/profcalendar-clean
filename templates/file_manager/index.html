@@ -324,6 +324,29 @@ body.fm-dragging .fm-root-drop { display: flex; }
 .fm-selection-bar .fm-selection-count { font-size: 0.9rem; font-weight: 600; margin-right: 0.25rem; }
 .fm-selection-bar .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
 .fm-selection-bar .btn-outline { background: transparent; color: #E5E7EB; border-color: #4B5563; }
+/* iPad / tactile : pas de survol → boutons d'action toujours visibles */
+@media (pointer: coarse) {
+    #fileGrid .item-actions { display: flex !important; }
+    .file-item.delete-mode .item-actions { display: none !important; }
+}
+
+/* Notifications : sous la barre de navigation et au-dessus de tout */
+.fm-notification {
+    position: fixed;
+    top: 88px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 5000;
+    animation: slideInRight 0.3s ease;
+    max-width: 400px;
+    font-weight: 500;
+}
+
 .fm-drag-ghost {
     position: fixed;
     top: -1000px;
@@ -1178,6 +1201,38 @@ async function uploadFilesWithStructure(filesData) {
     hideUploadProgress();
     showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
     await refreshTree();
+}
+
+// -------------------------------------------------- notifications visibles
+// (surcharge : la version de file_manager.js s'affichait à top:20px avec un
+// z-index inférieur à la navbar → messages invisibles)
+function showNotification(type, message) {
+    const colors = {
+        success: ['#D1FAE5', '#065F46', 'check-circle'],
+        error: ['#FEE2E2', '#991B1B', 'exclamation-circle'],
+        info: ['#DBEAFE', '#1E40AF', 'info-circle'],
+    };
+    const [bg, fg, icon] = colors[type] || colors.info;
+    const notification = document.createElement('div');
+    notification.className = 'fm-notification';
+    notification.style.backgroundColor = bg;
+    notification.style.color = fg;
+    notification.innerHTML = `<i class="fas fa-${icon}"></i> `;
+    const span = document.createElement('span');
+    span.textContent = message;
+    notification.appendChild(span);
+
+    // Empiler sous les notifications déjà affichées
+    const existing = document.querySelectorAll('.fm-notification');
+    let offset = 88;
+    existing.forEach(n => { offset = Math.max(offset, n.getBoundingClientRect().bottom + 10); });
+    notification.style.top = offset + 'px';
+
+    document.body.appendChild(notification);
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
 }
 
 // ------------------------------------------------------- sélection façon OS
