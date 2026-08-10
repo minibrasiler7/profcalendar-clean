@@ -1465,7 +1465,7 @@ function fmInitMarquee() {
             if (FM.selection.size) FM.lastAnchor = Array.from(FM.selection).pop();
             // Empêcher le clic de fin de geste de vider la sélection
             suppressNextExplorerClick = true;
-            setTimeout(() => { suppressNextExplorerClick = false; }, 50);
+            setTimeout(() => { suppressNextExplorerClick = false; }, 250);
         }
     });
 }
@@ -1616,7 +1616,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const explorer = document.getElementById('fileExplorer');
     if (explorer) {
         explorer.addEventListener('click', (e) => {
-            if (suppressNextExplorerClick) return;
+            if (suppressNextExplorerClick) { suppressNextExplorerClick = false; return; }
             if (e.target.closest('.file-item') || e.target.closest('.context-menu')) return;
             if (FM.selection.size) fmClearSelection();
         });
