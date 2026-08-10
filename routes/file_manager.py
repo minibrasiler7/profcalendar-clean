@@ -2522,3 +2522,72 @@ def cleanup_all_files():
         import traceback
         print(f"❌ Traceback: {traceback.format_exc()}")
         return jsonify({'success': False, 'message': f'Erreur lors du nettoyage: {str(e)}'}), 500
+
+
+@file_manager_bp.route('/api/list-folders')
+@login_required
+def api_list_folders():
+    """Liste plate des dossiers de l'utilisateur (ordre arborescent, avec profondeur)."""
+    folders = FileFolder.query.filter_by(user_id=current_user.id).order_by(FileFolder.name).all()
+    by_parent = {}
+    for f in folders:
+        by_parent.setdefault(f.parent_id, []).append(f)
+
+    result = []
+
+    def walk(parent_id, depth):
+        for f in by_parent.get(parent_id, []):
+            result.append({'id': f.id, 'name': f.name, 'depth': depth, 'color': f.color})
+            walk(f.id, depth + 1)
+
+    walk(None, 0)
+    return jsonify({'success': True, 'folders': result})
+
+
+@file_manager_bp.route('/api/move-item', methods=['POST'])
+@login_required
+def api_move_item():
+    """Déplace un fichier ou un dossier vers un dossier cible (None = racine)."""
+    data = request.get_json() or {}
+    item_type = data.get('item_type', 'file')
+    try:
+        item_id = int(data.get('item_id') or 0)
+    except (TypeError, ValueError):
+        item_id = 0
+    raw_target = data.get('folder_id')
+    target_id = None
+    if raw_target not in (None, '', 'root'):
+        try:
+            target_id = int(raw_target)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Dossier cible invalide'}), 400
+
+    target = None
+    if target_id is not None:
+        target = FileFolder.query.filter_by(id=target_id, user_id=current_user.id).first()
+        if not target:
+            return jsonify({'success': False, 'error': 'Dossier cible introuvable'}), 404
+
+    if item_type == 'file':
+        user_file = UserFile.query.filter_by(id=item_id, user_id=current_user.id).first()
+        if not user_file:
+            return jsonify({'success': False, 'error': 'Fichier introuvable'}), 404
+        user_file.folder_id = target_id
+    elif item_type == 'folder':
+        folder = FileFolder.query.filter_by(id=item_id, user_id=current_user.id).first()
+        if not folder:
+            return jsonify({'success': False, 'error': 'Dossier introuvable'}), 404
+        if target_id == folder.id:
+            return jsonify({'success': False, 'error': 'Impossible de déplacer un dossier dans lui-même'}), 400
+        # Empêcher un cycle : interdire le déplacement dans un de ses descendants
+        cursor = target
+        while cursor is not None:
+            if cursor.id == folder.id:
+                return jsonify({'success': False, 'error': 'Impossible de déplacer un dossier dans un de ses sous-dossiers'}), 400
+            cursor = FileFolder.query.filter_by(id=cursor.parent_id, user_id=current_user.id).first() if cursor.parent_id else None
+        folder.parent_id = target_id
+    else:
+        return jsonify({'success': False, 'error': 'Type invalide'}), 400
+
+    db.session.commit()
+    return jsonify({'success': True})

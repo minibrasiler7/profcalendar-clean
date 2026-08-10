@@ -95,6 +95,9 @@
                             <button class="action-btn" onclick="showColorPicker({{ folder.id }})" title="Couleur">
                                 <i class="fas fa-palette"></i>
                             </button>
+                            <button class="action-btn" onclick="openMoveModal('folder', {{ folder.id }})" title="Déplacer vers…">
+                                <i class="fas fa-folder-open"></i>
+                            </button>
                             <button class="action-btn" onclick="renameItem('folder', {{ folder.id }}, '{{ folder.name }}')" title="Renommer">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -131,6 +134,9 @@
                            class="action-btn" title="Télécharger">
                             <i class="fas fa-download"></i>
                         </a>
+                        <button class="action-btn" onclick="openMoveModal('file', {{ file.id }})" title="Déplacer vers…">
+                            <i class="fas fa-folder-open"></i>
+                        </button>
                         <button class="action-btn" onclick="renameItem('file', {{ file.id }}, '{{ file.original_filename }}')" title="Renommer">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -370,6 +376,9 @@ async function toggleFolder(folderId, rowEl) {
                         <button class="action-btn" onclick="showColorPicker(${folder.id})" title="Couleur">
                             <i class="fas fa-palette"></i>
                         </button>
+                        <button class="action-btn" onclick="openMoveModal('folder', ${folder.id})" title="Déplacer vers…">
+                            <i class="fas fa-folder-open"></i>
+                        </button>
                         <button class="action-btn" onclick="renameItem('folder', ${folder.id}, '${folder.name.replace(/'/g, "\\'")}')" title="Renommer">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -395,6 +404,9 @@ async function toggleFolder(folderId, rowEl) {
                     <a href="/file_manager/download-file/${file.id}" class="action-btn" title="Télécharger">
                         <i class="fas fa-download"></i>
                     </a>
+                    <button class="action-btn" onclick="openMoveModal('file', ${file.id})" title="Déplacer vers…">
+                        <i class="fas fa-folder-open"></i>
+                    </button>
                     <button class="action-btn" onclick="renameItem('file', ${file.id}, '${file.original_filename.replace(/'/g, "\\'")}')" title="Renommer">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -425,5 +437,162 @@ async function toggleFolder(folderId, rowEl) {
         console.error('Erreur toggleFolder:', e);
     }
 }
+</script>
+
+<!-- Modal « Déplacer vers… » -->
+<div id="moveModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3000;">
+  <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:.5rem; width:min(420px, 92vw); max-height:70vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.25);">
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.05rem;"><i class="fas fa-folder-open" style="color:#6366F1;"></i> Déplacer vers…</h3>
+      <button onclick="closeMoveModal()" style="border:none; background:#312E81; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="moveModalList" style="padding:.5rem; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<style>
+.file-item.dragging { opacity: 0.45; }
+.file-item.folder.drop-target { outline: 2px dashed #6366F1; outline-offset: -2px; background: #EEF2FF; }
+.move-option:hover { background: #EEF2FF; }
+</style>
+
+<script>
+// ==================== Déplacement de fichiers / dossiers ====================
+let moveTarget = null; // { type, id }
+
+function openMoveModal(itemType, itemId) {
+    moveTarget = { type: itemType, id: itemId };
+    const modal = document.getElementById('moveModal');
+    const list = document.getElementById('moveModalList');
+    list.innerHTML = '<div style="padding:1rem; color:#6B7280;">Chargement…</div>';
+    modal.style.display = 'block';
+
+    fetch('/file_manager/api/list-folders')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) throw new Error('load');
+            list.innerHTML = '';
+            const mkOption = (label, iconHtml, folderId, depth) => {
+                const opt = document.createElement('div');
+                opt.className = 'move-option';
+                opt.style.cssText = 'padding:.6rem .9rem; cursor:pointer; border-radius:.375rem; display:flex; align-items:center; gap:.5rem; padding-left:' + (0.9 + depth * 1.1) + 'rem;';
+                opt.innerHTML = iconHtml + ' ';
+                const span = document.createElement('span');
+                span.textContent = label;
+                opt.appendChild(span);
+                opt.onclick = () => doMove(folderId);
+                list.appendChild(opt);
+            };
+            mkOption('Racine', '<i class="fas fa-home" style="color:#6B7280;"></i>', null, 0);
+            data.folders.forEach(f => {
+                if (moveTarget && moveTarget.type === 'folder' && f.id === moveTarget.id) return;
+                mkOption(f.name, '<i class="fas fa-folder" style="color:' + (f.color || '#F59E0B') + ';"></i>', f.id, f.depth + 1);
+            });
+        })
+        .catch(() => { list.innerHTML = '<div style="padding:1rem; color:#DC2626;">Erreur de chargement des dossiers.</div>'; });
+}
+
+function closeMoveModal() {
+    document.getElementById('moveModal').style.display = 'none';
+    moveTarget = null;
+}
+
+async function moveItemRequest(itemType, itemId, folderId) {
+    const res = await fetch('/file_manager/api/move-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_type: itemType, item_id: itemId, folder_id: folderId })
+    });
+    return res.json();
+}
+
+async function doMove(folderId) {
+    if (!moveTarget) return;
+    try {
+        const data = await moveItemRequest(moveTarget.type, moveTarget.id, folderId);
+        if (data.success) { window.location.reload(); }
+        else { alert(data.error || 'Erreur lors du déplacement'); }
+    } catch (e) { alert('Erreur de connexion'); }
+}
+
+// Fermer le modal en cliquant sur le fond
+document.getElementById('moveModal').addEventListener('click', function (e) {
+    if (e.target === this) closeMoveModal();
+});
+
+// ==================== Drag & drop : déposer sur un dossier ====================
+let draggedItem = null; // { type, id }
+
+function handleFileDragStart(e) {
+    const el = e.currentTarget;
+    draggedItem = { type: 'file', id: parseInt(el.dataset.id) };
+    el.classList.add('dragging');
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', 'move'); } catch (err) {}
+    }
+}
+
+function handleFolderDragStart(e) {
+    const el = e.currentTarget;
+    draggedItem = { type: 'folder', id: parseInt(el.dataset.id) };
+    el.classList.add('dragging');
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', 'move'); } catch (err) {}
+    }
+}
+
+function handleFileDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+    // Laisser le temps au drop de se traiter avant d'oublier l'élément traîné
+    setTimeout(() => { draggedItem = null; }, 150);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Items rendus côté serveur (racine) — ceux chargés en AJAX sont gérés dans toggleFolder
+    document.querySelectorAll('#fileGrid .file-item.folder').forEach(el => {
+        el.addEventListener('dragstart', handleFolderDragStart);
+        el.addEventListener('dragend', handleFileDragEnd);
+    });
+    document.querySelectorAll('#fileGrid .file-item.file').forEach(el => {
+        el.addEventListener('dragstart', handleFileDragStart);
+        el.addEventListener('dragend', handleFileDragEnd);
+    });
+
+    const grid = document.getElementById('fileGrid');
+    if (!grid) return;
+
+    // Délégation : fonctionne aussi pour les dossiers chargés dynamiquement
+    grid.addEventListener('dragover', function (e) {
+        const folderEl = e.target.closest('.file-item.folder');
+        if (!folderEl || !draggedItem) return;
+        if (draggedItem.type === 'folder' && parseInt(folderEl.dataset.id) === draggedItem.id) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        folderEl.classList.add('drop-target');
+    });
+
+    grid.addEventListener('dragleave', function (e) {
+        const folderEl = e.target.closest('.file-item.folder');
+        if (folderEl && !folderEl.contains(e.relatedTarget)) folderEl.classList.remove('drop-target');
+    });
+
+    grid.addEventListener('drop', async function (e) {
+        const folderEl = e.target.closest('.file-item.folder');
+        if (!folderEl || !draggedItem) return;
+        e.preventDefault();
+        e.stopPropagation();
+        folderEl.classList.remove('drop-target');
+        const targetId = parseInt(folderEl.dataset.id);
+        if (draggedItem.type === 'folder' && targetId === draggedItem.id) return;
+        try {
+            const data = await moveItemRequest(draggedItem.type, draggedItem.id, targetId);
+            if (data.success) { window.location.reload(); }
+            else { alert(data.error || 'Erreur lors du déplacement'); }
+        } catch (err) { alert('Erreur de connexion'); }
+    });
+});
 </script>
 {% endblock %}

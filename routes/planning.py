@@ -6409,6 +6409,21 @@ def get_slot_data(date_str, period):
                 'task_start': planning.task_start.strftime('%H:%M') if planning.task_start else '',
                 'task_end': planning.task_end.strftime('%H:%M') if planning.task_end else ''
             })
+            result['planning_id'] = planning.id
+            try:
+                from models.planning import PlanningResource
+                result['resources'] = [
+                    {
+                        'id': r.id,
+                        'resource_type': r.resource_type,
+                        'resource_id': r.resource_id,
+                        'display_name': r.display_name,
+                        'display_icon': r.display_icon,
+                    }
+                    for r in planning.resources.order_by(PlanningResource.position).all()
+                ]
+            except Exception:
+                result['resources'] = []
         elif schedule:
             result.update({
                 'classroom_id': schedule.classroom_id,
@@ -9150,8 +9165,40 @@ def add_resource():
     display_name = data.get('display_name')
     file_type = data.get('file_type')  # Pour les fichiers
 
-    # Vérifier que la planification existe et appartient à l'utilisateur
-    planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
+    # Sans planning_id : retrouver ou créer la planification du créneau
+    # (ajout d'un fichier directement depuis le modal du calendrier)
+    if not planning_id and data.get('date') and data.get('period_number'):
+        try:
+            slot_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+        slot_period = extract_numeric_id(data.get('period_number'))
+        slot_classroom_id = extract_numeric_id(data.get('classroom_id'))
+        slot_mixed_group_id = extract_numeric_id(data.get('mixed_group_id'))
+        if not slot_period:
+            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+        query = Planning.query.filter_by(
+            user_id=current_user.id, date=slot_date, period_number=slot_period)
+        if slot_classroom_id:
+            query = query.filter_by(classroom_id=slot_classroom_id)
+        elif slot_mixed_group_id:
+            query = query.filter_by(mixed_group_id=slot_mixed_group_id)
+        planning = query.first()
+        if not planning:
+            planning = Planning(
+                user_id=current_user.id,
+                date=slot_date,
+                period_number=slot_period,
+                classroom_id=slot_classroom_id,
+                mixed_group_id=slot_mixed_group_id,
+                title='',
+                description=''
+            )
+            db.session.add(planning)
+            db.session.flush()
+        planning_id = planning.id
+    else:
+        planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
     if not planning:
         return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
 
@@ -9185,7 +9232,8 @@ def add_resource():
         return jsonify({
             'success': True,
             'message': f'Ressource "{display_name}" ajoutée',
-            'resource_id': resource.id
+            'resource_id': resource.id,
+            'planning_id': planning_id
         })
     except Exception as e:
         db.session.rollback()

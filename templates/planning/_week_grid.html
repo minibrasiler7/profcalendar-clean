@@ -109,10 +109,12 @@
                         <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.classroom.color }};">
                             <div class="class-name">{{ planning.classroom.name }}</div>
                             <div class="class-subject">{{ planning.classroom.subject }}</div>
+                            {% if schedule_key in schedule_grid and schedule_grid[schedule_key].room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule_grid[schedule_key].room }}</div>{% endif %}
                         {% elif planning.mixed_group_id %}
                         <div class="class-block planned {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ planning.mixed_group.color }};">
                             <div class="class-name"><i class="fas fa-users"></i> {{ planning.mixed_group.name }}</div>
                             <div class="class-subject">{{ planning.mixed_group.subject }}</div>
+                            {% if schedule_key in schedule_grid and schedule_grid[schedule_key].room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule_grid[schedule_key].room }}</div>{% endif %}
                         {% elif not planning.classroom_id and not planning.mixed_group_id and planning.title %}
                         <div class="class-block planned custom-task-block {% if planning.task_start and planning.task_end %}custom-task-timed{% endif %} {% if is_merged_for_day %}merged-block{% endif %}"
                              {% if planning.task_start and planning.task_end %}data-task-start="{{ planning.task_start.strftime('%H:%M') }}" data-task-end="{{ planning.task_end.strftime('%H:%M') }}"{% endif %}>
@@ -159,6 +161,7 @@
                             <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.classroom.color }}; opacity: 0.7;">
                                 <div class="class-name">{{ schedule.classroom.name }}</div>
                                 <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}
@@ -172,6 +175,7 @@
                             <div class="class-block {% if is_merged_for_day %}merged-block{% endif %}" style="background-color: {{ schedule.mixed_group.color }}; opacity: 0.7;">
                                 <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
                                 <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}
@@ -184,6 +188,7 @@
                         {% elif schedule.custom_task_title %}
                             <div class="class-block custom-task-block {% if is_merged_for_day %}merged-block{% endif %}" style="opacity: 0.85;">
                                 <div class="task-title"><i class="far fa-calendar-check"></i> {{ schedule.custom_task_title }}</div>
+                                {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
                                 {% if memos_by_date_period and memo_key in memos_by_date_period %}

@@ -421,6 +421,7 @@
                         data-weekday="{{ day_index }}"
                         data-period="{{ period.number }}"
                         data-item="{% if schedule and schedule.classroom_id %}c{{ schedule.classroom_id }}{% elif schedule and schedule.mixed_group_id %}m{{ schedule.mixed_group_id }}{% elif schedule and schedule.custom_task_title %}t:{{ schedule.custom_task_title|e }}{% endif %}"
+                        data-room="{{ schedule.room if schedule and schedule.room else '' }}"
                         data-merged-next="{{ 1 if schedule and schedule.has_merged_next else 0 }}"
                         onclick="openClassSelector(this, event)">
                         {% if schedule %}
@@ -428,16 +429,19 @@
                                 <div class="class-block" style="background-color: {{ schedule.classroom.color }};">
                                     <div class="class-name">{{ schedule.classroom.name }}</div>
                                     <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                    {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 </div>
                             {% elif schedule.mixed_group_id %}
                                 <div class="class-block" style="background-color: {{ schedule.mixed_group.color }};">
                                     <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
                                     <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                    {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 </div>
                             {% elif schedule.custom_task_title %}
                                 <div class="class-block" style="background-color: #6B7280;">
                                     <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
                                     <div class="class-subject">Autre</div>
+                                    {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 </div>
                             {% endif %}
                         {% endif %}
@@ -463,6 +467,10 @@
     </div>
 </div>
 
+<style>
+.class-room { font-size: 0.7rem; opacity: 0.9; margin-top: 2px; }
+</style>
+
 <!-- Sélecteur de classe -->
 <div class="class-selector" id="classSelector">
     <div class="class-selector-header">
@@ -472,6 +480,13 @@
         </button>
     </div>
     <div class="class-options-container" id="classOptions"></div>
+    <div style="padding: 0.5rem 0.75rem; border-top: 1px solid #E5E7EB;" onclick="event.stopPropagation()">
+        <label style="display:block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem;">
+            <i class="fas fa-door-open"></i> Salle (optionnel)
+        </label>
+        <input type="text" id="scheduleRoomInput" maxlength="50" placeholder="Ex : B204"
+               style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;">
+    </div>
     <div class="remove-option" onclick="removeClass()">
         <i class="fas fa-times"></i> Retirer la classe
     </div>
@@ -484,6 +499,10 @@
         <div style="margin-bottom: 1rem;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Titre de la tâche :</label>
             <input type="text" id="customTaskTitle" placeholder="Ex: Surveillance, Réunion, etc." style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Salle (optionnel) :</label>
+            <input type="text" id="customTaskRoom" maxlength="50" placeholder="Ex : B204" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
         </div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
             <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">Annuler</button>
@@ -506,6 +525,8 @@ function openClassSelector(cell, event) {
 
     const selector = document.getElementById('classSelector');
     const optionsContainer = document.getElementById('classOptions');
+    const roomPrefill = document.getElementById('scheduleRoomInput');
+    if (roomPrefill) roomPrefill.value = cell.dataset.room || '';
 
     // Vider et remplir les options
     optionsContainer.innerHTML = '';
@@ -578,19 +599,24 @@ function selectClass(itemId, itemType = 'classroom') {
     const weekday = currentCell.dataset.weekday;
     const period = currentCell.dataset.period;
     const item = classrooms.find(c => c.id === itemId && c.type === itemType);
+    const roomInputSel = document.getElementById('scheduleRoomInput');
+    const room = roomInputSel ? roomInputSel.value.trim().slice(0, 50) : '';
 
     // Sauvegarder via AJAX
-    saveSchedule(weekday, period, itemId, itemType).then(result => {
+    saveSchedule(weekday, period, itemId, itemType, null, room).then(result => {
         if (result.success) {
             // Mettre à jour l'affichage
             const iconHtml = item.type === 'mixed_group' ? '<i class="fas fa-users"></i> ' : '';
+            const roomHtml = room ? '<div class="class-room"><i class="fas fa-door-open"></i> ' + room.replace(/</g, '&lt;') + '</div>' : '';
             currentCell.innerHTML = `
                 <div class="class-block" style="background-color: ${item.color};">
                     <div class="class-name">${iconHtml}${item.name}</div>
                     <div class="class-subject">${item.subject}</div>
+                    ${roomHtml}
                 </div>
             `;
             currentCell.dataset.item = (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+            currentCell.dataset.room = room;
             refreshMergeConnectors();
             closeClassSelector();
         }
@@ -608,6 +634,7 @@ function removeClass() {
         if (result.success) {
             currentCell.innerHTML = '';
             currentCell.dataset.item = '';
+            currentCell.dataset.room = '';
             refreshMergeConnectors();
             closeClassSelector();
         }
@@ -619,7 +646,7 @@ function closeClassSelector() {
     currentCell = null;
 }
 
-async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom', customTitle = null) {
+async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom', customTitle = null, room = null) {
     try {
         const requestData = {
             weekday: parseInt(weekday),
@@ -627,6 +654,7 @@ async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom
             classroom_id: itemId && itemType === 'classroom' ? parseInt(itemId) : null,
             mixed_group_id: itemId && itemType === 'mixed_group' ? parseInt(itemId) : null,
             custom_task_title: itemType === 'custom' ? customTitle : null,
+            room: room || null,
             type: itemType
         };
         
@@ -723,18 +751,23 @@ function saveCustomTask() {
     
     // Sauvegarder la tâche personnalisée
     console.log('Appel saveSchedule...');
-    saveSchedule(weekday, period, null, 'custom', title).then(result => {
+    const roomInputCT = document.getElementById('customTaskRoom');
+    const room = roomInputCT ? roomInputCT.value.trim().slice(0, 50) : '';
+    saveSchedule(weekday, period, null, 'custom', title, room).then(result => {
         console.log('Résultat saveSchedule:', result);
         if (result.success) {
             console.log('Succès - mise à jour de l\'affichage');
             // Mettre à jour l'affichage de la cellule
+            const roomHtmlCT = room ? '<div class="class-room"><i class="fas fa-door-open"></i> ' + room.replace(/</g, '&lt;') + '</div>' : '';
             targetCell.innerHTML = `
                 <div class="class-block" style="background-color: #6B7280;">
                     <div class="class-name"><i class="fas fa-tasks"></i> ${title}</div>
                     <div class="class-subject">Autre</div>
+                    ${roomHtmlCT}
                 </div>
             `;
             targetCell.dataset.item = 't:' + title;
+            targetCell.dataset.room = room;
             refreshMergeConnectors();
             closeCustomTaskModal();
         } else {

@@ -149,6 +149,8 @@ def save_schedule():
         custom_task_title_raw = data.get('custom_task_title', '')
         custom_task_title = custom_task_title_raw.strip() if custom_task_title_raw else ''
         item_type = data.get('type', 'classroom')  # 'classroom', 'mixed_group' ou 'custom'
+        room_raw = data.get('room')
+        room = room_raw.strip()[:50] if isinstance(room_raw, str) and room_raw.strip() else None
         
         # Initialiser les variables
         classroom_id = None
@@ -198,6 +200,7 @@ def save_schedule():
                 existing.classroom_id = classroom_id
                 existing.mixed_group_id = mixed_group_id
                 existing.custom_task_title = custom_task_title
+                existing.room = room
                 existing.start_time = period['start']
                 existing.end_time = period['end']
             else:
@@ -207,6 +210,7 @@ def save_schedule():
                     classroom_id=classroom_id,
                     mixed_group_id=mixed_group_id,
                     custom_task_title=custom_task_title,
+                    room=room,
                     weekday=weekday,
                     period_number=period_number,
                     start_time=period['start'],

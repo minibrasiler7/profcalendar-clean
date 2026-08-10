@@ -36,6 +36,16 @@ body:has(#attendanceModal[style*="block"]) {
 .custom-task-block { z-index: 5; }
 .custom-task-block:not(.custom-task-timed) { position: relative; }
 
+/* Salle de classe (horaire type) affichée sous la matière */
+.class-room {
+    font-size: 0.68rem;
+    opacity: 0.9;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .planning-modal {
     display: none;
     position: fixed;
@@ -2110,6 +2120,15 @@ body:has(#attendanceModal[style*="block"]) {
                 </div>
             </div>
 
+            <!-- Fichiers joints à cette période -->
+            <div class="form-group" id="modalAttachedSection" style="display: none; margin-bottom: 1.5rem;">
+                <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem;">
+                    <i class="fas fa-paperclip" style="margin-right: 0.5rem;"></i>
+                    Fichiers joints (<span id="modalAttachedCount">0</span>)
+                </h4>
+                <div id="modalAttachedList" style="display: grid; gap: 0.5rem;"></div>
+            </div>
+
             <div class="form-group">
                 <div class="ptype-toggle">
                     <button type="button" class="ptype-btn active" id="ptypeCoursBtn" onclick="setPlanningType('cours')">
@@ -3425,6 +3444,11 @@ function renderFileTree(files, currentPath = '') {
                 </div>
             </div>
             <div class="file-actions">
+                <button class="file-action-btn"
+                        onclick="event.stopPropagation(); attachFileToSlot(${file.id}, '${(file.original_filename || '').replace(/'/g, "\\'")}', '${file.file_type}')"
+                        title="Joindre à cette période">
+                    <i class="fas fa-paperclip"></i>
+                </button>
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
                         onclick="event.stopPropagation(); togglePinFile(${file.id})"
                         title="${file.is_pinned ? 'Désépingler' : 'Épingler'}">
@@ -4628,6 +4652,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Cellule « Autre » : basculer en mode Tâche perso une fois le modal peuplé,
                 // puis pré-remplir avec la tâche existante s'il y en a une.
                 window.currentPlanningContext = null;
+                window.currentSlotPlanningId = null;
+                if (typeof renderAttachedResources === 'function') renderAttachedResources([]);
                 setTimeout(function () {
                     if (typeof setPlanningType === 'function') setPlanningType('tache');
                     prefillPlanningModalFromSlot(date, period ? String(period).split('-')[0] : period);
@@ -4681,6 +4707,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Sinon, continuer avec le modal de planification normal
             window.currentPlanningContext = null;
+            window.currentSlotPlanningId = null;
+            if (typeof renderAttachedResources === 'function') renderAttachedResources([]);
             if (typeof originalOpenPlanningModal2 === 'function') {
                 originalOpenPlanningModal2(cell, fromAnnualView);
             }
@@ -4705,6 +4733,8 @@ async function prefillPlanningModalFromSlot(date, periodNumber) {
         const data = await response.json();
         if (!data.success || !data.slot) return;
         const slot = data.slot;
+        if (slot.planning_id) window.currentSlotPlanningId = slot.planning_id;
+        if (typeof renderAttachedResources === 'function') renderAttachedResources(slot.resources || []);
         const titleInput = document.getElementById('modalPlanningTitle');
         const descInput = document.getElementById('modalDescription');
         if (titleInput && !titleInput.value && slot.title) titleInput.value = slot.title;
@@ -4724,6 +4754,117 @@ async function prefillPlanningModalFromSlot(date, periodNumber) {
     } catch (e) {
         console.warn('Préremplissage du slot impossible:', e);
     }
+}
+
+// ==================== Fichiers joints à une période ====================
+window.currentSlotPlanningId = null;
+
+// Affiche la liste des fichiers joints dans le modal de planification
+function renderAttachedResources(resources) {
+    const section = document.getElementById('modalAttachedSection');
+    const list = document.getElementById('modalAttachedList');
+    const count = document.getElementById('modalAttachedCount');
+    if (!section || !list || !count) return;
+    const items = (resources || []).filter(r => r.resource_type === 'file');
+    list.innerHTML = '';
+    count.textContent = items.length;
+    if (!items.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    items.forEach(r => {
+        const row = document.createElement('div');
+        row.style.cssText = 'padding: 0.6rem 0.9rem; background: #EEF2FF; border-left: 4px solid #6366F1; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;';
+        const left = document.createElement('div');
+        left.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; flex: 1; cursor: pointer; min-width: 0;';
+        left.innerHTML = '<i class="fas fa-' + (r.display_icon || 'file') + '" style="color:#6366F1;"></i>';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = r.display_name || 'Fichier';
+        nameSpan.style.cssText = 'font-weight:500; color:#312E81; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+        left.appendChild(nameSpan);
+        left.onclick = function () {
+            if (r.display_icon === 'file-pdf' && typeof openPdfInViewer === 'function') {
+                openPdfInViewer(r.resource_id, r.display_name);
+            } else {
+                window.open('/file_manager/preview/' + r.resource_id, '_blank');
+            }
+        };
+        const del = document.createElement('button');
+        del.innerHTML = '<i class="fas fa-times"></i>';
+        del.title = 'Retirer de cette période';
+        del.style.cssText = 'border:none; background:#312E81; color:white; width:24px; height:24px; border-radius:50%; cursor:pointer; flex:none;';
+        del.onclick = async function (e) {
+            e.stopPropagation();
+            try {
+                const res = await fetch('/planning/delete-resource', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resource_id: r.id })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    row.remove();
+                    const remaining = list.children.length;
+                    count.textContent = remaining;
+                    if (!remaining) section.style.display = 'none';
+                } else {
+                    alert(d.error || 'Erreur lors de la suppression');
+                }
+            } catch (err) { alert('Erreur de connexion'); }
+        };
+        row.appendChild(left);
+        row.appendChild(del);
+        list.appendChild(row);
+    });
+}
+
+// Joint un fichier du panneau au créneau ouvert (crée la planification si besoin)
+async function attachFileToSlot(fileId, displayName, fileType) {
+    const payload = {
+        planning_id: window.currentSlotPlanningId || null,
+        resource_type: 'file',
+        resource_id: fileId,
+        display_name: displayName,
+        file_type: fileType
+    };
+    if (!payload.planning_id) {
+        payload.date = currentModalDate;
+        payload.period_number = currentModalPeriod;
+        const sel = document.getElementById('modalClassroom');
+        const v = sel ? sel.value : '';
+        if (v && v.indexOf('classroom_') === 0) payload.classroom_id = v;
+        else if (v && v.indexOf('mixed_group_') === 0) payload.mixed_group_id = v;
+        if (!payload.date || !payload.period_number) {
+            alert("Enregistrez d'abord la planification, puis joignez le fichier.");
+            return;
+        }
+    }
+    try {
+        const res = await fetch('/planning/add-resource', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (!d.success) { alert(d.error || 'Erreur lors de l\'ajout'); return; }
+        if (d.planning_id) window.currentSlotPlanningId = d.planning_id;
+        refreshAttachedFromSlot();
+    } catch (e) { alert('Erreur de connexion'); }
+}
+
+// Recharge la liste des fichiers joints depuis l'API slot
+async function refreshAttachedFromSlot() {
+    if (!currentModalDate || !currentModalPeriod) return;
+    try {
+        let url = `/planning/api/slot/${currentModalDate}/${currentModalPeriod}`;
+        if (window.currentPlanningContext && window.currentPlanningContext.classroomId) {
+            url += `?classroom_id=${window.currentPlanningContext.classroomId}`;
+        }
+        const resp = await fetch(url);
+        const d = await resp.json();
+        if (d.success && d.slot) {
+            if (d.slot.planning_id) window.currentSlotPlanningId = d.slot.planning_id;
+            renderAttachedResources(d.slot.resources || []);
+        }
+    } catch (e) {}
 }
 
 // Clic direct sur un bloc de tâche perso : ouvrir le modal de SA cellule
@@ -6954,6 +7095,8 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     if (typeof setPlanningType === 'function') setPlanningType('cours');
     var _tsReset = document.getElementById('taskStartTime'); if (_tsReset) _tsReset.value = '';
     var _teReset = document.getElementById('taskEndTime'); if (_teReset) _teReset.value = '';
+    window.currentSlotPlanningId = null;
+    if (typeof renderAttachedResources === 'function') renderAttachedResources([]);
 
     // Stocker le contexte pour la sauvegarde
     window.currentPlanningContext = {
@@ -6980,6 +7123,8 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
             document.getElementById('modalPlanningTitle').value = data.slot.title || '';
             document.getElementById('modalDescription').value = data.slot.description || '';
             existingGroupId = data.slot.group_id;
+            window.currentSlotPlanningId = data.slot.planning_id || null;
+            if (typeof renderAttachedResources === 'function') renderAttachedResources(data.slot.resources || []);
 
             // Tâche perso existante → basculer le modal en mode « Tâche »
             const _isCustomSlot = !!(data.slot.has_planning && !data.slot.classroom_id && !data.slot.mixed_group_id && (data.slot.title || data.slot.description));

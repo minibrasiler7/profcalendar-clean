@@ -604,6 +604,21 @@ def create_app(config_name='development'):
             db.session.rollback()
             print(f"⚠️ Vérification task_start/task_end échouée: {e}")
 
+        # Filet de sécurité : salle de classe optionnelle de l'horaire type.
+        try:
+            db.session.execute(db.text("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS room VARCHAR(50)"))
+            db.session.commit()
+            print("✅ Colonne schedules.room vérifiée")
+        except Exception as _e_room:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text("ALTER TABLE schedules ADD COLUMN room VARCHAR(50)"))
+                db.session.commit()
+                print("✅ Colonne schedules.room ajoutée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification schedules.room échouée: {_e_room}")
+
         # Filet de sécurité : jeton push Expo des élèves (app mobile).
         try:
             db.session.execute(db.text(

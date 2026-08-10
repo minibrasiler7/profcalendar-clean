@@ -15,6 +15,9 @@ class Schedule(db.Model):
     # Tâche personnalisée (titre libre)
     custom_task_title = db.Column(db.String(255), nullable=True)
 
+    # Salle de classe (optionnelle)
+    room = db.Column(db.String(50), nullable=True)
+
     # Jour de la semaine (0=Lundi, 1=Mardi, ..., 4=Vendredi)
     weekday = db.Column(db.Integer, nullable=False)
 
