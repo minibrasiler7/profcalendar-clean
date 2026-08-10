@@ -30,23 +30,7 @@
             </div>
         </div>
 
-        <!-- Fil d'ariane -->
-        <div class="breadcrumb">
-            <a href="{{ url_for('file_manager.index') }}" class="breadcrumb-item">
-                <i class="fas fa-home"></i> Racine
-            </a>
-            {% for folder in breadcrumb %}
-            <span class="breadcrumb-separator">/</span>
-            <a href="{{ url_for('file_manager.index', folder=folder.id) }}" class="breadcrumb-item">
-                {{ folder.name }}
-            </a>
-            {% endfor %}
-        </div>
-
         <!-- Informations d'utilisation -->
-        {# On affiche maintenant utilisé / total + pourcentage, et on colore
-           la barre selon le niveau d'occupation (vert / orange / rouge)
-           pour que l'utilisateur sache où il en est. #}
         {% set _max_gb = (max_storage or 1) / (1024*1024*1024) %}
         {% set _used_gb = total_size / (1024*1024*1024) %}
         {% set _used_mb = total_size / (1024*1024) %}
@@ -67,96 +51,29 @@
     <div class="file-manager-layout">
         <!-- Zone principale -->
         <div class="file-explorer" id="fileExplorer">
-            <!-- Zone de drop -->
+            <!-- Zone de drop (upload depuis l'ordinateur) -->
             <div class="drop-zone" id="dropZone">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <p>Glissez vos fichiers ou dossiers ici</p>
                 <p class="text-muted" style="font-size: 0.875rem;">Les dossiers seront importés avec leur structure complète</p>
             </div>
 
-            <!-- Liste arborescente des éléments -->
+            <!-- Cible « déplacer à la racine » (visible pendant un glisser interne) -->
+            <div id="fmRootDrop" class="fm-root-drop">
+                <i class="fas fa-home"></i> Déposer ici pour déplacer à la racine
+            </div>
+
+            <!-- Arborescence (rendue côté client) -->
             <div class="file-tree" id="fileGrid">
-                <!-- Dossiers -->
-                {% for folder in folders %}
-                <div class="tree-node" data-folder-id="{{ folder.id }}">
-                    <div class="file-item folder" data-id="{{ folder.id }}" data-type="folder" draggable="true" onclick="toggleFolder({{ folder.id }}, this)" style="padding-left: 0.75rem;">
-                        <div class="item-checkbox" style="display: none;">
-                            <input type="checkbox" class="delete-checkbox" data-id="{{ folder.id }}" data-type="folder" onclick="event.stopPropagation()">
-                        </div>
-                        <i class="fas fa-chevron-right folder-toggle"></i>
-                        <div class="item-icon" style="color: {{ folder.color }}">
-                            <i class="fas fa-folder"></i>
-                        </div>
-                        <div class="item-name" title="{{ folder.name }}">{{ folder.name }}</div>
-                        <div class="item-info">
-                            {{ folder.get_file_count() }} fichier(s)
-                        </div>
-                        <div class="item-actions" onclick="event.stopPropagation()">
-                            <button class="action-btn" onclick="showColorPicker({{ folder.id }})" title="Couleur">
-                                <i class="fas fa-palette"></i>
-                            </button>
-                            <button class="action-btn" onclick="openMoveModal('folder', {{ folder.id }})" title="Déplacer vers…">
-                                <i class="fas fa-folder-open"></i>
-                            </button>
-                            <button class="action-btn" onclick="renameItem('folder', {{ folder.id }}, '{{ folder.name }}')" title="Renommer">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="action-btn danger" onclick="deleteFolder({{ folder.id }})" title="Supprimer">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="tree-children" id="children-{{ folder.id }}" style="display: none;"></div>
-                </div>
-                {% endfor %}
-
-                <!-- Fichiers à la racine -->
-                {% for file in files %}
-                <div class="file-item file" data-id="{{ file.id }}" data-type="file" draggable="true" onclick="previewFile({{ file.id }}, '{{ file.file_type }}')" style="padding-left: 2.25rem;">
-                    <div class="item-checkbox" style="display: none;">
-                        <input type="checkbox" class="delete-checkbox" data-id="{{ file.id }}" data-type="file" onclick="event.stopPropagation()">
-                    </div>
-                    <div class="item-icon">
-                        {% if file.file_type == 'pdf' %}
-                            <i class="fas fa-file-pdf" style="color: #DC2626;"></i>
-                        {% elif file.file_type in ['png', 'jpg', 'jpeg'] %}
-                            <i class="fas fa-file-image" style="color: #059669;"></i>
-                        {% else %}
-                            <i class="fas fa-file" style="color: #6B7280;"></i>
-                        {% endif %}
-                    </div>
-                    <div class="item-name" title="{{ file.original_filename }}">
-                        {{ file.original_filename }}
-                    </div>
-                    <div class="item-info">{{ file.format_size() }}</div>
-                    <div class="item-actions" onclick="event.stopPropagation()">
-                        <a href="{{ url_for('file_manager.download_file', file_id=file.id) }}"
-                           class="action-btn" title="Télécharger">
-                            <i class="fas fa-download"></i>
-                        </a>
-                        <button class="action-btn" onclick="openMoveModal('file', {{ file.id }})" title="Déplacer vers…">
-                            <i class="fas fa-folder-open"></i>
-                        </button>
-                        <button class="action-btn" onclick="renameItem('file', {{ file.id }}, '{{ file.original_filename }}')" title="Renommer">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn danger" onclick="deleteFile({{ file.id }})" title="Supprimer">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                {% endfor %}
-
+                <div class="tree-loading"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>
             </div>
 
             <!-- État vide -->
-            {% if not folders and not files %}
-            <div class="empty-state">
+            <div class="empty-state" id="fmEmptyState" style="display: none;">
                 <i class="fas fa-folder-open"></i>
-                <p>Ce dossier est vide</p>
-                <p class="text-muted">Créez un dossier ou uploadez des fichiers pour commencer</p>
+                <p>Aucun fichier pour le moment</p>
+                <p class="text-muted">Créez un dossier ou glissez des fichiers ici pour commencer</p>
             </div>
-            {% endif %}
         </div>
 
         <!-- Section des classes -->
@@ -194,6 +111,8 @@
         </div>
         <div class="modal-body">
             <form id="newFolderForm" onsubmit="createFolder(event)">
+                <input type="hidden" id="newFolderParent" value="">
+                <p id="newFolderLocation" style="font-size: 0.85rem; color: #6B7280; margin-bottom: 0.75rem;"></p>
                 <div class="form-group">
                     <label class="form-label">Nom du dossier</label>
                     <input type="text" id="folderName" class="form-control" required
@@ -285,6 +204,37 @@
     </div>
 </div>
 
+<!-- Modal couleur de dossier -->
+<div class="modal" id="colorModal">
+    <div class="modal-content" style="max-width: 340px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-palette"></i> Couleur du dossier</h3>
+            <button class="modal-close" onclick="closeModal('colorModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="colorFolderId">
+            <div class="color-picker-grid" id="colorModalGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal « Déplacer vers… » -->
+<div class="modal" id="moveModal">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-folder-open" style="color:#6366F1;"></i> Déplacer vers…</h3>
+            <button class="modal-close" onclick="closeMoveModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" style="max-height: 55vh; overflow-y: auto; padding: 0.5rem;">
+            <div id="moveModalList"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Indicateur de progression -->
 <div class="upload-progress" id="uploadProgress">
     <div class="progress-header">
@@ -297,203 +247,553 @@
     <div class="progress-info" id="progressInfo"></div>
 </div>
 
+<style>
+/* ==== Refonte explorateur : styles complémentaires ==== */
+.file-item.dragging { opacity: 0.45; }
+.file-item.folder.drop-target,
+.fm-root-drop.drop-target {
+    outline: 2px dashed #6366F1;
+    outline-offset: -2px;
+    background: #EEF2FF;
+}
+.fm-root-drop {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem;
+    padding: 0.6rem 0.9rem;
+    border: 2px dashed #C7D2FE;
+    border-radius: 0.5rem;
+    color: #6366F1;
+    font-size: 0.875rem;
+    background: #F8FAFF;
+}
+body.fm-dragging .fm-root-drop { display: flex; }
+.fm-flash {
+    animation: fmFlash 1.2s ease;
+}
+@keyframes fmFlash {
+    0% { background: #C7D2FE; }
+    100% { background: transparent; }
+}
+.move-option { transition: background 0.12s; }
+.move-option:hover { background: #EEF2FF; }
+.fm-removing {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    opacity: 0;
+    transform: translateX(12px);
+}
+.context-menu-item i { width: 1.1rem; text-align: center; }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/file_manager.js') }}"></script>
 <script>
-const currentFolderId = {{ current_folder.id if current_folder else 'null' }};
+// ============================================================================
+// EXPLORATEUR DE FICHIERS — arbre rendu côté client, actions sans rechargement
+// ----------------------------------------------------------------------------
+// Ce script surcharge volontairement plusieurs fonctions de file_manager.js
+// (deleteFile, saveRename, uploads, menu contextuel…) : celles-ci faisaient
+// location.reload() après chaque action, ce qui re-déclenchait le chargement
+// complet de la page. Ici, tout passe par l'état local + /api/tree.
+// ============================================================================
 
-// Cache pour les dossiers déjà chargés
-const folderCache = {};
+const currentFolderId = null; // compat file_manager.js (uploads « racine »)
 
-function getFileIconHtml(fileType) {
+const FM = {
+    folders: [],
+    files: [],
+    byParent: new Map(),      // parent_id (null = racine) -> [dossiers]
+    filesByFolder: new Map(), // folder_id (null = racine) -> [fichiers]
+    folderById: new Map(),
+    expanded: new Set(JSON.parse(localStorage.getItem('fm_expanded') || '[]')),
+    loaded: false,
+    refreshSeq: 0,
+};
+
+let fmDragged = null;           // { type: 'file'|'folder', id } pendant un glisser interne
+let uploadTargetFolderId = null; // dossier cible des uploads en cours (null = racine)
+
+// ---------------------------------------------------------------- utilitaires
+function fmHumanSize(bytes) {
+    let size = Number(bytes) || 0;
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+    return size.toFixed(size >= 100 || i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+function fmIconHtml(fileType) {
     if (fileType === 'pdf') return '<i class="fas fa-file-pdf" style="color: #DC2626;"></i>';
-    if (['png', 'jpg', 'jpeg'].includes(fileType)) return '<i class="fas fa-file-image" style="color: #059669;"></i>';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileType)) return '<i class="fas fa-file-image" style="color: #059669;"></i>';
     return '<i class="fas fa-file" style="color: #6B7280;"></i>';
 }
 
-async function toggleFolder(folderId, rowEl) {
-    const node = rowEl.closest('.tree-node');
-    const childrenDiv = document.getElementById('children-' + folderId);
-    const toggle = rowEl.querySelector('.folder-toggle');
-    const folderIcon = rowEl.querySelector('.item-icon i');
+function fmSaveExpanded() {
+    localStorage.setItem('fm_expanded', JSON.stringify(Array.from(FM.expanded)));
+}
 
-    // Si déjà ouvert → fermer
-    if (childrenDiv.style.display !== 'none') {
-        childrenDiv.style.display = 'none';
-        toggle.classList.remove('expanded');
-        folderIcon.className = 'fas fa-folder';
-        return;
-    }
-
-    // Ouvrir
-    toggle.classList.add('expanded');
-    folderIcon.className = 'fas fa-folder-open';
-    childrenDiv.style.display = 'block';
-
-    // Si déjà chargé, ne pas recharger
-    if (folderCache[folderId]) return;
-
-    // Charger le contenu
-    childrenDiv.innerHTML = '<div class="tree-loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>';
-
+// ------------------------------------------------------------ état + rendu
+async function refreshTree() {
+    const seq = ++FM.refreshSeq;
     try {
-        const resp = await fetch('/file_manager/api/folder-contents/' + folderId);
+        const resp = await fetch('/file_manager/api/tree');
         const data = await resp.json();
-
-        if (!data.success) {
-            childrenDiv.innerHTML = '<div class="tree-loading">Erreur de chargement</div>';
-            return;
-        }
-
-        folderCache[folderId] = true;
-
-        // Calculer le niveau d'indentation
-        let depth = 1;
-        let parent = node.parentElement;
-        while (parent && parent.classList.contains('tree-children')) {
-            depth++;
-            parent = parent.parentElement.parentElement; // tree-node -> tree-children
-        }
-        const indent = 0.75 + depth * 1.5;
-
-        let html = '';
-
-        // Sous-dossiers
-        for (const folder of data.folders) {
-            html += `
-            <div class="tree-node" data-folder-id="${folder.id}">
-                <div class="file-item folder" data-id="${folder.id}" data-type="folder" draggable="true"
-                     onclick="toggleFolder(${folder.id}, this)" style="padding-left: ${indent}rem;">
-                    <i class="fas fa-chevron-right folder-toggle"></i>
-                    <div class="item-icon" style="color: ${folder.color}">
-                        <i class="fas fa-folder"></i>
-                    </div>
-                    <div class="item-name" title="${folder.name}">${folder.name}</div>
-                    <div class="item-info">${folder.file_count} fichier(s)</div>
-                    <div class="item-actions" onclick="event.stopPropagation()">
-                        <button class="action-btn" onclick="showColorPicker(${folder.id})" title="Couleur">
-                            <i class="fas fa-palette"></i>
-                        </button>
-                        <button class="action-btn" onclick="openMoveModal('folder', ${folder.id})" title="Déplacer vers…">
-                            <i class="fas fa-folder-open"></i>
-                        </button>
-                        <button class="action-btn" onclick="renameItem('folder', ${folder.id}, '${folder.name.replace(/'/g, "\\'")}')" title="Renommer">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn danger" onclick="deleteFolder(${folder.id})" title="Supprimer">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="tree-children" id="children-${folder.id}" style="display: none;"></div>
-            </div>`;
-        }
-
-        // Fichiers
-        const fileIndent = indent + 1.5;
-        for (const file of data.files) {
-            html += `
-            <div class="file-item file" data-id="${file.id}" data-type="file" draggable="true"
-                 onclick="previewFile(${file.id}, '${file.file_type}')" style="padding-left: ${fileIndent}rem;">
-                <div class="item-icon">${getFileIconHtml(file.file_type)}</div>
-                <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
-                <div class="item-info">${file.size}</div>
-                <div class="item-actions" onclick="event.stopPropagation()">
-                    <a href="/file_manager/download-file/${file.id}" class="action-btn" title="Télécharger">
-                        <i class="fas fa-download"></i>
-                    </a>
-                    <button class="action-btn" onclick="openMoveModal('file', ${file.id})" title="Déplacer vers…">
-                        <i class="fas fa-folder-open"></i>
-                    </button>
-                    <button class="action-btn" onclick="renameItem('file', ${file.id}, '${file.original_filename.replace(/'/g, "\\'")}')" title="Renommer">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="action-btn danger" onclick="deleteFile(${file.id})" title="Supprimer">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>`;
-        }
-
-        if (!data.folders.length && !data.files.length) {
-            html = `<div class="tree-loading" style="padding-left: ${indent}rem;">Dossier vide</div>`;
-        }
-
-        childrenDiv.innerHTML = html;
-
-        // Réattacher les listeners de drag & drop sur les nouveaux éléments
-        childrenDiv.querySelectorAll('.file-item.folder').forEach(folderItem => {
-            folderItem.addEventListener('dragstart', handleFolderDragStart);
-            folderItem.addEventListener('dragend', handleFileDragEnd);
-        });
-        childrenDiv.querySelectorAll('.file-item.file').forEach(fileItem => {
-            fileItem.addEventListener('dragstart', handleFileDragStart);
-            fileItem.addEventListener('dragend', handleFileDragEnd);
-        });
+        if (!data.success || seq !== FM.refreshSeq) return;
+        FM.folders = data.folders;
+        FM.files = data.files;
+        FM.loaded = true;
+        fmIndex();
+        fmRender();
     } catch (e) {
-        childrenDiv.innerHTML = '<div class="tree-loading">Erreur de chargement</div>';
-        console.error('Erreur toggleFolder:', e);
+        console.error('Erreur chargement arborescence:', e);
+        const grid = document.getElementById('fileGrid');
+        if (!FM.loaded && grid) {
+            grid.innerHTML = '<div class="tree-loading">Erreur de chargement — <a href="#" onclick="refreshTree(); return false;">réessayer</a></div>';
+        }
     }
 }
-</script>
 
-<!-- Modal « Déplacer vers… » -->
-<div id="moveModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3000;">
-  <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:.5rem; width:min(420px, 92vw); max-height:70vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,.25);">
-    <div style="padding:1rem 1.25rem; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0; font-size:1.05rem;"><i class="fas fa-folder-open" style="color:#6366F1;"></i> Déplacer vers…</h3>
-      <button onclick="closeMoveModal()" style="border:none; background:#312E81; color:#fff; width:28px; height:28px; border-radius:50%; cursor:pointer;"><i class="fas fa-times"></i></button>
-    </div>
-    <div id="moveModalList" style="padding:.5rem; overflow-y:auto;"></div>
-  </div>
-</div>
+function fmIndex() {
+    FM.byParent = new Map();
+    FM.filesByFolder = new Map();
+    FM.folderById = new Map();
+    for (const f of FM.folders) {
+        FM.folderById.set(f.id, f);
+        const key = f.parent_id ?? null;
+        if (!FM.byParent.has(key)) FM.byParent.set(key, []);
+        FM.byParent.get(key).push(f);
+    }
+    for (const file of FM.files) {
+        const key = file.folder_id ?? null;
+        if (!FM.filesByFolder.has(key)) FM.filesByFolder.set(key, []);
+        FM.filesByFolder.get(key).push(file);
+    }
+    // Nettoyer les ids « ouverts » qui n'existent plus
+    for (const id of Array.from(FM.expanded)) {
+        if (!FM.folderById.has(id)) FM.expanded.delete(id);
+    }
+    fmSaveExpanded();
+}
 
-<style>
-.file-item.dragging { opacity: 0.45; }
-.file-item.folder.drop-target { outline: 2px dashed #6366F1; outline-offset: -2px; background: #EEF2FF; }
-.move-option:hover { background: #EEF2FF; }
-</style>
+function fmCountFiles(folderId) {
+    let count = (FM.filesByFolder.get(folderId) || []).length;
+    for (const sub of (FM.byParent.get(folderId) || [])) {
+        count += fmCountFiles(sub.id);
+    }
+    return count;
+}
 
-<script>
-// ==================== Déplacement de fichiers / dossiers ====================
+function fmRender() {
+    const grid = document.getElementById('fileGrid');
+    if (!grid) return;
+
+    const frag = document.createDocumentFragment();
+    fmRenderLevel(null, 0, frag);
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+
+    const empty = document.getElementById('fmEmptyState');
+    if (empty) empty.style.display = (FM.folders.length || FM.files.length) ? 'none' : 'block';
+
+    // Ré-appliquer le mode suppression si actif
+    if (typeof isDeleteMode !== 'undefined' && isDeleteMode) {
+        document.querySelectorAll('#fileGrid .item-checkbox').forEach(cb => { cb.style.display = 'block'; });
+        document.querySelectorAll('#fileGrid .file-item').forEach(item => item.classList.add('delete-mode'));
+        if (typeof initCheckboxEvents === 'function') initCheckboxEvents();
+        if (typeof updateDeleteButton === 'function') updateDeleteButton();
+    }
+}
+
+function fmRenderLevel(parentId, depth, container) {
+    for (const folder of (FM.byParent.get(parentId) || [])) {
+        container.appendChild(fmFolderNode(folder, depth));
+    }
+    for (const file of (FM.filesByFolder.get(parentId) || [])) {
+        container.appendChild(fmFileRow(file, depth));
+    }
+}
+
+function fmFolderNode(folder, depth) {
+    const isOpen = FM.expanded.has(folder.id);
+    const node = document.createElement('div');
+    node.className = 'tree-node';
+    node.dataset.folderId = folder.id;
+
+    const row = document.createElement('div');
+    row.className = 'file-item folder';
+    row.dataset.id = folder.id;
+    row.dataset.type = 'folder';
+    row.draggable = true;
+    row.style.paddingLeft = (0.75 + depth * 1.5) + 'rem';
+
+    row.innerHTML = `
+        <div class="item-checkbox" style="display: none;">
+            <input type="checkbox" class="delete-checkbox" data-id="${folder.id}" data-type="folder">
+        </div>
+        <i class="fas fa-chevron-right folder-toggle${isOpen ? ' expanded' : ''}"></i>
+        <div class="item-icon" style="color: ${folder.color || '#4F46E5'}">
+            <i class="fas fa-folder${isOpen ? '-open' : ''}"></i>
+        </div>
+        <div class="item-name"></div>
+        <div class="item-info">${fmCountFiles(folder.id)} fichier(s)</div>
+        <div class="item-actions">
+            <button class="action-btn" data-action="color" title="Couleur"><i class="fas fa-palette"></i></button>
+            <button class="action-btn" data-action="move" title="Déplacer vers…"><i class="fas fa-folder-open"></i></button>
+            <button class="action-btn" data-action="rename" title="Renommer"><i class="fas fa-edit"></i></button>
+            <button class="action-btn danger" data-action="delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+        </div>`;
+    const nameEl = row.querySelector('.item-name');
+    nameEl.textContent = folder.name;
+    nameEl.title = folder.name;
+
+    row.querySelector('.item-checkbox').addEventListener('click', e => e.stopPropagation());
+    row.querySelector('.item-actions').addEventListener('click', e => {
+        e.stopPropagation();
+        const btn = e.target.closest('.action-btn');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'color') showColorPicker(folder.id);
+        else if (action === 'move') openMoveModal('folder', folder.id);
+        else if (action === 'rename') renameItem('folder', folder.id, folder.name);
+        else if (action === 'delete') deleteFolder(folder.id);
+    });
+    row.addEventListener('click', () => {
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { fmToggleCheckbox(row); return; }
+        fmToggleFolder(folder.id);
+    });
+    row.addEventListener('dragstart', handleFolderDragStart);
+    row.addEventListener('dragend', handleFileDragEnd);
+
+    node.appendChild(row);
+
+    const children = document.createElement('div');
+    children.className = 'tree-children';
+    children.style.display = isOpen ? 'block' : 'none';
+    if (isOpen) fmRenderLevel(folder.id, depth + 1, children);
+    node.appendChild(children);
+
+    return node;
+}
+
+function fmFileRow(file, depth) {
+    const row = document.createElement('div');
+    row.className = 'file-item file';
+    row.dataset.id = file.id;
+    row.dataset.type = 'file';
+    row.draggable = true;
+    row.style.paddingLeft = (2.25 + depth * 1.5) + 'rem';
+
+    row.innerHTML = `
+        <div class="item-checkbox" style="display: none;">
+            <input type="checkbox" class="delete-checkbox" data-id="${file.id}" data-type="file">
+        </div>
+        <div class="item-icon">${fmIconHtml(file.type)}</div>
+        <div class="item-name"></div>
+        <div class="item-info">${fmHumanSize(file.size)}</div>
+        <div class="item-actions">
+            <a href="/file_manager/download-file/${file.id}" class="action-btn" title="Télécharger"><i class="fas fa-download"></i></a>
+            <button class="action-btn" data-action="move" title="Déplacer vers…"><i class="fas fa-folder-open"></i></button>
+            <button class="action-btn" data-action="rename" title="Renommer"><i class="fas fa-edit"></i></button>
+            <button class="action-btn danger" data-action="delete" title="Supprimer"><i class="fas fa-trash"></i></button>
+        </div>`;
+    const nameEl = row.querySelector('.item-name');
+    nameEl.textContent = file.name;
+    nameEl.title = file.name;
+
+    row.querySelector('.item-checkbox').addEventListener('click', e => e.stopPropagation());
+    row.querySelector('.item-actions').addEventListener('click', e => {
+        e.stopPropagation();
+        const btn = e.target.closest('.action-btn');
+        if (!btn || btn.tagName === 'A') return;
+        const action = btn.dataset.action;
+        if (action === 'move') openMoveModal('file', file.id);
+        else if (action === 'rename') renameItem('file', file.id, file.name);
+        else if (action === 'delete') deleteFile(file.id);
+    });
+    row.addEventListener('click', () => {
+        if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { fmToggleCheckbox(row); return; }
+        previewFile(file.id, file.type);
+    });
+    row.addEventListener('dragstart', handleFileDragStart);
+    row.addEventListener('dragend', handleFileDragEnd);
+
+    return row;
+}
+
+function fmToggleCheckbox(row) {
+    const cb = row.querySelector('.delete-checkbox');
+    if (cb) {
+        cb.checked = !cb.checked;
+        if (typeof updateDeleteButton === 'function') updateDeleteButton();
+    }
+}
+
+function fmToggleFolder(folderId) {
+    if (FM.expanded.has(folderId)) FM.expanded.delete(folderId);
+    else FM.expanded.add(folderId);
+    fmSaveExpanded();
+    fmRender();
+}
+
+// Ouvrir un dossier = déplier ses parents + lui-même et le mettre en évidence
+function openFolder(folderId) {
+    folderId = parseInt(folderId);
+    let f = FM.folderById.get(folderId);
+    while (f) {
+        FM.expanded.add(f.id);
+        f = f.parent_id ? FM.folderById.get(f.parent_id) : null;
+    }
+    fmSaveExpanded();
+    fmRender();
+    const row = document.querySelector(`#fileGrid .file-item.folder[data-id="${folderId}"]`);
+    if (row) {
+        row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        row.classList.add('fm-flash');
+        setTimeout(() => row.classList.remove('fm-flash'), 1300);
+    }
+}
+
+// ------------------------------------------------------- confirmation custom
+function fmConfirm(message, onOk, okLabel) {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.style.zIndex = '1004';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle" style="color: #F59E0B;"></i> Confirmation</h3>
+            </div>
+            <div class="modal-body"><p></p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-role="cancel"><i class="fas fa-times"></i> Annuler</button>
+                <button type="button" class="btn btn-danger" data-role="ok"><i class="fas fa-trash"></i> ${okLabel || 'Supprimer'}</button>
+            </div>
+        </div>`;
+    modal.querySelector('.modal-body p').textContent = message;
+    modal.querySelector('[data-role="cancel"]').onclick = () => modal.remove();
+    modal.querySelector('[data-role="ok"]').onclick = () => { modal.remove(); onOk(); };
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
+// --------------------------------------------------- actions (sans reload !)
+async function deleteFile(fileId) {
+    fileId = parseInt(fileId);
+    const file = FM.files.find(f => f.id === fileId);
+    const label = file ? `« ${file.name} »` : 'ce fichier';
+    fmConfirm(`Supprimer ${label} ? Cette action est définitive.`, async () => {
+        const row = document.querySelector(`#fileGrid .file-item.file[data-id="${fileId}"]`);
+        if (row) row.classList.add('fm-removing');
+        try {
+            const response = await fetch(`/file_manager/delete-file/${fileId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                FM.files = FM.files.filter(f => f.id !== fileId);
+                fmIndex();
+                fmRender();
+                showNotification('success', 'Fichier supprimé');
+            } else {
+                if (row) row.classList.remove('fm-removing');
+                showNotification('error', result.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            if (row) row.classList.remove('fm-removing');
+            showNotification('error', 'Erreur de connexion');
+        }
+    });
+}
+
+async function deleteFolder(folderId) {
+    folderId = parseInt(folderId);
+    const folder = FM.folderById.get(folderId);
+    const label = folder ? `le dossier « ${folder.name} »` : 'ce dossier';
+    const n = fmCountFiles(folderId);
+    fmConfirm(`Supprimer ${label}${n ? ` et ses ${n} fichier(s)` : ''} ? Cette action est définitive.`, async () => {
+        try {
+            const response = await fetch(`/file_manager/delete-folder/${folderId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                showNotification('success', 'Dossier supprimé');
+                await refreshTree();
+            } else {
+                showNotification('error', result.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            showNotification('error', 'Erreur de connexion');
+        }
+    });
+}
+
+async function saveRename(e) {
+    e.preventDefault();
+    const type = document.getElementById('renameType').value;
+    const id = document.getElementById('renameId').value;
+    const name = document.getElementById('renameName').value;
+    try {
+        const response = await fetch('/file_manager/rename', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, id, name })
+        });
+        const result = await response.json();
+        if (result.success) {
+            closeModal('renameModal');
+            showNotification('success', 'Renommé avec succès');
+            await refreshTree();
+        } else {
+            showNotification('error', result.message || 'Erreur lors du renommage');
+        }
+    } catch (err) {
+        showNotification('error', 'Erreur de connexion');
+    }
+}
+
+function showColorPicker(folderId) {
+    const colors = ['#4F46E5', '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#6B7280', '#EF4444'];
+    document.getElementById('colorFolderId').value = folderId;
+    const grid = document.getElementById('colorModalGrid');
+    grid.innerHTML = '';
+    const current = (FM.folderById.get(parseInt(folderId)) || {}).color;
+    colors.forEach(c => {
+        const sw = document.createElement('label');
+        sw.style.cssText = `background-color: ${c}; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: inline-block; border: 3px solid ${c === current ? '#111827' : 'transparent'};`;
+        sw.onclick = () => updateFolderColor(folderId, c);
+        grid.appendChild(sw);
+    });
+    document.getElementById('colorModal').classList.add('show');
+}
+
+async function updateFolderColor(folderId, color) {
+    try {
+        const response = await fetch('/file_manager/update-folder-color', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: folderId, color })
+        });
+        const result = await response.json();
+        if (result.success) {
+            const folder = FM.folderById.get(parseInt(folderId));
+            if (folder) folder.color = color;
+            closeModal('colorModal');
+            fmRender();
+            showNotification('success', 'Couleur mise à jour');
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la mise à jour');
+        }
+    } catch (e) {
+        showNotification('error', 'Erreur de connexion');
+    }
+}
+
+async function deleteSelectedItems() {
+    const selectedCheckboxes = document.querySelectorAll('.delete-checkbox:checked');
+    if (selectedCheckboxes.length === 0) return;
+    const items = Array.from(selectedCheckboxes).map(cb => ({ id: cb.dataset.id, type: cb.dataset.type }));
+    fmConfirm(`Supprimer ${items.length} élément(s) ? Cette action est définitive.`, async () => {
+        try {
+            const response = await fetch('/file_manager/delete-multiple', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items })
+            });
+            const result = await response.json();
+            if (result.success) {
+                showNotification('success', `${items.length} élément(s) supprimé(s)`);
+                cancelDeleteMode();
+                await refreshTree();
+            } else {
+                showNotification('error', result.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            showNotification('error', 'Erreur lors de la suppression');
+        }
+    });
+}
+
+// ------------------------------------------------------------ nouveau dossier
+function showNewFolderModal(parentId = null) {
+    document.getElementById('newFolderParent').value = parentId || '';
+    const parent = parentId ? FM.folderById.get(parseInt(parentId)) : null;
+    document.getElementById('newFolderLocation').textContent =
+        parent ? `Sera créé dans « ${parent.name} »` : 'Sera créé à la racine';
+    document.getElementById('newFolderModal').classList.add('show');
+    document.getElementById('folderName').value = '';
+    document.getElementById('folderName').focus();
+}
+
+async function createFolder(e) {
+    e.preventDefault();
+    const name = document.getElementById('folderName').value;
+    const color = document.querySelector('input[name="folderColor"]:checked').value;
+    const parentRaw = document.getElementById('newFolderParent').value;
+    const parent_id = parentRaw ? parseInt(parentRaw) : null;
+    try {
+        const response = await fetch('/file_manager/create-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, color, parent_id })
+        });
+        const result = await response.json();
+        if (result.success) {
+            closeModal('newFolderModal');
+            if (parent_id) FM.expanded.add(parent_id);
+            showNotification('success', 'Dossier créé');
+            await refreshTree();
+        } else {
+            showNotification('error', result.message || 'Erreur lors de la création du dossier');
+        }
+    } catch (err) {
+        showNotification('error', 'Erreur lors de la création du dossier');
+    }
+}
+
+// ------------------------------------------------------------- déplacements
 let moveTarget = null; // { type, id }
 
 function openMoveModal(itemType, itemId) {
-    moveTarget = { type: itemType, id: itemId };
-    const modal = document.getElementById('moveModal');
+    moveTarget = { type: itemType, id: parseInt(itemId) };
     const list = document.getElementById('moveModalList');
-    list.innerHTML = '<div style="padding:1rem; color:#6B7280;">Chargement…</div>';
-    modal.style.display = 'block';
+    list.innerHTML = '';
 
-    fetch('/file_manager/api/list-folders')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) throw new Error('load');
-            list.innerHTML = '';
-            const mkOption = (label, iconHtml, folderId, depth) => {
-                const opt = document.createElement('div');
-                opt.className = 'move-option';
-                opt.style.cssText = 'padding:.6rem .9rem; cursor:pointer; border-radius:.375rem; display:flex; align-items:center; gap:.5rem; padding-left:' + (0.9 + depth * 1.1) + 'rem;';
-                opt.innerHTML = iconHtml + ' ';
-                const span = document.createElement('span');
-                span.textContent = label;
-                opt.appendChild(span);
-                opt.onclick = () => doMove(folderId);
-                list.appendChild(opt);
-            };
-            mkOption('Racine', '<i class="fas fa-home" style="color:#6B7280;"></i>', null, 0);
-            data.folders.forEach(f => {
-                if (moveTarget && moveTarget.type === 'folder' && f.id === moveTarget.id) return;
-                mkOption(f.name, '<i class="fas fa-folder" style="color:' + (f.color || '#F59E0B') + ';"></i>', f.id, f.depth + 1);
-            });
-        })
-        .catch(() => { list.innerHTML = '<div style="padding:1rem; color:#DC2626;">Erreur de chargement des dossiers.</div>'; });
+    const forbidden = new Set();
+    if (itemType === 'folder') {
+        // Interdire soi-même + tous ses descendants
+        const collect = (id) => {
+            forbidden.add(id);
+            (FM.byParent.get(id) || []).forEach(sub => collect(sub.id));
+        };
+        collect(moveTarget.id);
+    }
+
+    const mkOption = (label, iconHtml, folderId, depth) => {
+        const opt = document.createElement('div');
+        opt.className = 'move-option';
+        opt.style.cssText = `padding: 0.6rem 0.9rem 0.6rem ${0.9 + depth * 1.1}rem; cursor: pointer; border-radius: 0.375rem; display: flex; align-items: center; gap: 0.5rem;`;
+        opt.innerHTML = iconHtml;
+        const span = document.createElement('span');
+        span.textContent = label;
+        opt.appendChild(span);
+        opt.onclick = () => doMove(folderId);
+        list.appendChild(opt);
+    };
+
+    mkOption('Racine', '<i class="fas fa-home" style="color:#6B7280;"></i>', null, 0);
+    const walk = (parentId, depth) => {
+        for (const f of (FM.byParent.get(parentId) || [])) {
+            if (forbidden.has(f.id)) continue;
+            mkOption(f.name, `<i class="fas fa-folder" style="color:${f.color || '#F59E0B'};"></i>`, f.id, depth + 1);
+            walk(f.id, depth + 1);
+        }
+    };
+    walk(null, 0);
+
+    document.getElementById('moveModal').classList.add('show');
 }
 
 function closeMoveModal() {
-    document.getElementById('moveModal').style.display = 'none';
+    document.getElementById('moveModal').classList.remove('show');
     moveTarget = null;
 }
 
@@ -508,90 +808,342 @@ async function moveItemRequest(itemType, itemId, folderId) {
 
 async function doMove(folderId) {
     if (!moveTarget) return;
-    try {
-        const data = await moveItemRequest(moveTarget.type, moveTarget.id, folderId);
-        if (data.success) { window.location.reload(); }
-        else { alert(data.error || 'Erreur lors du déplacement'); }
-    } catch (e) { alert('Erreur de connexion'); }
+    const target = { ...moveTarget };
+    closeMoveModal();
+    await fmMove(target.type, target.id, folderId);
 }
 
-// Fermer le modal en cliquant sur le fond
-document.getElementById('moveModal').addEventListener('click', function (e) {
-    if (e.target === this) closeMoveModal();
-});
-
-// ==================== Drag & drop : déposer sur un dossier ====================
-let draggedItem = null; // { type, id }
-
-function handleFileDragStart(e) {
-    const el = e.currentTarget;
-    draggedItem = { type: 'file', id: parseInt(el.dataset.id) };
-    el.classList.add('dragging');
-    if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', 'move'); } catch (err) {}
+async function fmMove(itemType, itemId, folderId) {
+    try {
+        const data = await moveItemRequest(itemType, itemId, folderId);
+        if (!data.success) {
+            showNotification('error', data.error || 'Erreur lors du déplacement');
+            return;
+        }
+        // Mise à jour locale immédiate (déplacement instantané à l'écran)
+        if (itemType === 'file') {
+            const f = FM.files.find(x => x.id === itemId);
+            if (f) f.folder_id = folderId;
+        } else {
+            const f = FM.folderById.get(itemId);
+            if (f) f.parent_id = folderId;
+        }
+        if (folderId) FM.expanded.add(folderId);
+        fmIndex();
+        fmRender();
+        fmSaveExpanded();
+        const destName = folderId ? `« ${(FM.folderById.get(folderId) || {}).name} »` : 'la racine';
+        showNotification('success', `Déplacé vers ${destName}`);
+        // Mettre en évidence l'élément déplacé
+        const moved = document.querySelector(`#fileGrid .file-item[data-type="${itemType === 'file' ? 'file' : 'folder'}"][data-id="${itemId}"]`);
+        if (moved) {
+            moved.classList.add('fm-flash');
+            setTimeout(() => moved.classList.remove('fm-flash'), 1300);
+        }
+    } catch (e) {
+        showNotification('error', 'Erreur de connexion');
     }
+}
+
+// ------------------------------------------- drag & drop interne + upload OS
+// Format du dataTransfer : « file:<id> » / « folder:<id> » — le même que celui
+// attendu par le panneau des classes (copie vers une classe).
+function handleFileDragStart(e) {
+    if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
+    const el = e.currentTarget;
+    fmDragged = { type: 'file', id: parseInt(el.dataset.id) };
+    e.dataTransfer.setData('text/plain', `file:${el.dataset.id}`);
+    e.dataTransfer.effectAllowed = 'copyMove';
+    el.classList.add('dragging');
+    document.body.classList.add('fm-dragging');
 }
 
 function handleFolderDragStart(e) {
+    if (typeof isDeleteMode !== 'undefined' && isDeleteMode) { e.preventDefault(); return; }
     const el = e.currentTarget;
-    draggedItem = { type: 'folder', id: parseInt(el.dataset.id) };
+    fmDragged = { type: 'folder', id: parseInt(el.dataset.id) };
+    e.dataTransfer.setData('text/plain', `folder:${el.dataset.id}`);
+    e.dataTransfer.effectAllowed = 'copyMove';
     el.classList.add('dragging');
-    if (e.dataTransfer) {
-        e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', 'move'); } catch (err) {}
-    }
+    document.body.classList.add('fm-dragging');
 }
 
 function handleFileDragEnd(e) {
     e.currentTarget.classList.remove('dragging');
+    document.body.classList.remove('fm-dragging');
     document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
-    // Laisser le temps au drop de se traiter avant d'oublier l'élément traîné
-    setTimeout(() => { draggedItem = null; }, 150);
+    setTimeout(() => { fmDragged = null; }, 150);
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Items rendus côté serveur (racine) — ceux chargés en AJAX sont gérés dans toggleFolder
-    document.querySelectorAll('#fileGrid .file-item.folder').forEach(el => {
-        el.addEventListener('dragstart', handleFolderDragStart);
-        el.addEventListener('dragend', handleFileDragEnd);
-    });
-    document.querySelectorAll('#fileGrid .file-item.file').forEach(el => {
-        el.addEventListener('dragstart', handleFileDragStart);
-        el.addEventListener('dragend', handleFileDragEnd);
-    });
+const fmHoverTimers = new Map(); // folderId -> timer d'auto-expansion
 
+function fmClearHoverTimer(folderId) {
+    const t = fmHoverTimers.get(folderId);
+    if (t) { clearTimeout(t); fmHoverTimers.delete(folderId); }
+}
+
+function fmInitDropTargets() {
     const grid = document.getElementById('fileGrid');
+    const rootDrop = document.getElementById('fmRootDrop');
     if (!grid) return;
 
-    // Délégation : fonctionne aussi pour les dossiers chargés dynamiquement
-    grid.addEventListener('dragover', function (e) {
+    grid.addEventListener('dragover', (e) => {
         const folderEl = e.target.closest('.file-item.folder');
-        if (!folderEl || !draggedItem) return;
-        if (draggedItem.type === 'folder' && parseInt(folderEl.dataset.id) === draggedItem.id) return;
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        folderEl.classList.add('drop-target');
-    });
-
-    grid.addEventListener('dragleave', function (e) {
-        const folderEl = e.target.closest('.file-item.folder');
-        if (folderEl && !folderEl.contains(e.relatedTarget)) folderEl.classList.remove('drop-target');
-    });
-
-    grid.addEventListener('drop', async function (e) {
-        const folderEl = e.target.closest('.file-item.folder');
-        if (!folderEl || !draggedItem) return;
+        if (!folderEl) return;
+        const targetId = parseInt(folderEl.dataset.id);
+        const isOsFiles = e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+        if (!fmDragged && !isOsFiles) return;
+        if (fmDragged && fmDragged.type === 'folder' && targetId === fmDragged.id) return;
         e.preventDefault();
         e.stopPropagation();
-        folderEl.classList.remove('drop-target');
+        e.dataTransfer.dropEffect = fmDragged ? 'move' : 'copy';
+        folderEl.classList.add('drop-target');
+        // Auto-déplier le dossier survolé pendant un glisser (comme un OS)
+        if (!FM.expanded.has(targetId) && !fmHoverTimers.has(targetId)) {
+            fmHoverTimers.set(targetId, setTimeout(() => {
+                FM.expanded.add(targetId);
+                fmSaveExpanded();
+                fmRender();
+                fmHoverTimers.delete(targetId);
+            }, 650));
+        }
+    });
+
+    grid.addEventListener('dragleave', (e) => {
+        const folderEl = e.target.closest('.file-item.folder');
+        if (folderEl && !folderEl.contains(e.relatedTarget)) {
+            folderEl.classList.remove('drop-target');
+            fmClearHoverTimer(parseInt(folderEl.dataset.id));
+        }
+    });
+
+    grid.addEventListener('drop', async (e) => {
+        const folderEl = e.target.closest('.file-item.folder');
+        if (!folderEl) return;
         const targetId = parseInt(folderEl.dataset.id);
-        if (draggedItem.type === 'folder' && targetId === draggedItem.id) return;
+        folderEl.classList.remove('drop-target');
+        fmClearHoverTimer(targetId);
+
+        // Fichiers venant de l'ordinateur → upload dans CE dossier
+        if (!fmDragged && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            e.preventDefault();
+            e.stopPropagation();
+            fmUploadTo(targetId, e.dataTransfer.files);
+            return;
+        }
+        if (!fmDragged) return;
+        if (fmDragged.type === 'folder' && targetId === fmDragged.id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        await fmMove(fmDragged.type, fmDragged.id, targetId);
+    });
+
+    if (rootDrop) {
+        rootDrop.addEventListener('dragover', (e) => {
+            if (!fmDragged) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+            rootDrop.classList.add('drop-target');
+        });
+        rootDrop.addEventListener('dragleave', () => rootDrop.classList.remove('drop-target'));
+        rootDrop.addEventListener('drop', async (e) => {
+            rootDrop.classList.remove('drop-target');
+            if (!fmDragged) return;
+            e.preventDefault();
+            e.stopPropagation();
+            await fmMove(fmDragged.type, fmDragged.id, null);
+        });
+    }
+}
+
+// ------------------------------------------------------------------- uploads
+// Les fonctions de file_manager.js terminaient par location.reload() ;
+// on les remplace pour rafraîchir l'arbre sans recharger la page.
+function fmUploadTo(folderId, fileList) {
+    uploadTargetFolderId = folderId || null;
+    const filesArray = Array.from(fileList);
+    filesArray.forEach(file => {
+        if (validateFile(file)) uploadQueue.push(file);
+    });
+    if (uploadQueue.length > 0) processUploadQueue();
+}
+
+async function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (uploadTargetFolderId) formData.append('folder_id', uploadTargetFolderId);
+
+    try {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                updateUploadProgress((e.loaded / e.total) * 100, file.name);
+            }
+        });
+        const response = await new Promise((resolve, reject) => {
+            xhr.onload = () => {
+                if (xhr.status === 200) resolve(JSON.parse(xhr.responseText));
+                else reject(new Error(`Upload failed: ${xhr.status}`));
+            };
+            xhr.onerror = reject;
+            xhr.open('POST', '/file_manager/upload');
+            xhr.send(formData);
+        });
+        if (response.success) {
+            showNotification('success', `${file.name} uploadé avec succès`);
+        } else {
+            showNotification('error', response.message || `Erreur lors de l'upload de ${file.name}`);
+        }
+    } catch (error) {
+        console.error('Erreur upload:', error);
+        showNotification('error', `Erreur lors de l'upload de ${file.name}`);
+    }
+}
+
+async function processUploadQueue() {
+    if (isUploading || uploadQueue.length === 0) return;
+    isUploading = true;
+    showUploadProgress();
+    while (uploadQueue.length > 0) {
+        const file = uploadQueue.shift();
+        await uploadFile(file);
+    }
+    isUploading = false;
+    hideUploadProgress();
+    const dest = uploadTargetFolderId;
+    uploadTargetFolderId = null;
+    if (dest) FM.expanded.add(dest);
+    await refreshTree();
+}
+
+async function uploadFilesWithStructure(filesData) {
+    const totalFiles = filesData.length;
+    let uploadedCount = 0;
+    showUploadProgress();
+    for (const fileData of filesData) {
+        const formData = new FormData();
+        formData.append('file', fileData.file);
+        formData.append('folder_path', fileData.path);
         try {
-            const data = await moveItemRequest(draggedItem.type, draggedItem.id, targetId);
-            if (data.success) { window.location.reload(); }
-            else { alert(data.error || 'Erreur lors du déplacement'); }
-        } catch (err) { alert('Erreur de connexion'); }
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const fileProgress = (e.loaded / e.total) * 100;
+                    const totalProgress = ((uploadedCount + fileProgress / 100) / totalFiles) * 100;
+                    updateUploadProgress(totalProgress, `${fileData.file.name} (${uploadedCount + 1}/${totalFiles})`);
+                }
+            });
+            await new Promise((resolve, reject) => {
+                xhr.onload = () => {
+                    if (xhr.status === 200) { uploadedCount++; resolve(JSON.parse(xhr.responseText)); }
+                    else reject(new Error(`Upload failed: ${xhr.status}`));
+                };
+                xhr.onerror = reject;
+                xhr.open('POST', '/file_manager/upload-with-structure');
+                xhr.send(formData);
+            });
+        } catch (error) {
+            console.error(`Erreur lors de l'upload de ${fileData.file.name}:`, error);
+        }
+    }
+    hideUploadProgress();
+    showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    await refreshTree();
+}
+
+// ------------------------------------------------------------ menu contextuel
+// Reconstruit en DOM (plus d'onclick inline : les noms avec apostrophes
+// cassaient l'ancien menu) et enrichi : Ouvrir, Nouveau dossier ici, Couleur,
+// Déplacer vers…, Renommer, Supprimer.
+function fmMenuItem(menu, iconClass, label, onClick, danger) {
+    const item = document.createElement('div');
+    item.className = 'context-menu-item' + (danger ? ' danger' : '');
+    item.innerHTML = `<i class="${iconClass}"></i> `;
+    const span = document.createElement('span');
+    span.textContent = label;
+    item.appendChild(span);
+    item.onclick = () => { menu.remove(); onClick(); };
+    menu.appendChild(item);
+}
+
+function fmMenuSeparator(menu) {
+    const sep = document.createElement('div');
+    sep.className = 'context-menu-separator';
+    menu.appendChild(sep);
+}
+
+function fmShowMenu(e) {
+    const existing = document.querySelector('.context-menu');
+    if (existing) existing.remove();
+    const menu = document.createElement('div');
+    menu.className = 'context-menu show';
+    menu.style.left = e.pageX + 'px';
+    menu.style.top = e.pageY + 'px';
+    document.body.appendChild(menu);
+    // Ne pas sortir de l'écran
+    requestAnimationFrame(() => {
+        const r = menu.getBoundingClientRect();
+        if (r.right > window.innerWidth) menu.style.left = (e.pageX - r.width) + 'px';
+        if (r.bottom > window.innerHeight) menu.style.top = (e.pageY - r.height) + 'px';
+    });
+    return menu;
+}
+
+function showContextMenu(e, item) {
+    if (typeof isDeleteMode !== 'undefined' && isDeleteMode) return;
+    const type = item.dataset.type;
+    const id = parseInt(item.dataset.id);
+    const menu = fmShowMenu(e);
+
+    if (type === 'folder') {
+        const folder = FM.folderById.get(id) || { name: '' };
+        const isOpen = FM.expanded.has(id);
+        fmMenuItem(menu, 'fas fa-folder-open', isOpen ? 'Réduire' : 'Ouvrir', () => fmToggleFolder(id));
+        fmMenuItem(menu, 'fas fa-folder-plus', 'Nouveau dossier ici', () => showNewFolderModal(id));
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-palette', 'Couleur', () => showColorPicker(id));
+        fmMenuItem(menu, 'fas fa-arrows-alt', 'Déplacer vers…', () => openMoveModal('folder', id));
+        fmMenuItem(menu, 'fas fa-edit', 'Renommer', () => renameItem('folder', id, folder.name));
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-trash', 'Supprimer', () => deleteFolder(id), true);
+    } else {
+        const file = FM.files.find(f => f.id === id) || { name: '', type: '' };
+        fmMenuItem(menu, 'fas fa-eye', 'Aperçu', () => previewFile(id, file.type));
+        fmMenuItem(menu, 'fas fa-external-link-alt', 'Ouvrir dans un onglet', () => window.open(`/file_manager/preview/${id}`, '_blank'));
+        fmMenuItem(menu, 'fas fa-download', 'Télécharger', () => { window.location.href = `/file_manager/download-file/${id}`; });
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-arrows-alt', 'Déplacer vers…', () => openMoveModal('file', id));
+        fmMenuItem(menu, 'fas fa-edit', 'Renommer', () => renameItem('file', id, file.name));
+        fmMenuSeparator(menu);
+        fmMenuItem(menu, 'fas fa-trash', 'Supprimer', () => deleteFile(id), true);
+    }
+}
+
+function showEmptySpaceContextMenu(e) {
+    const menu = fmShowMenu(e);
+    fmMenuItem(menu, 'fas fa-folder-plus', 'Nouveau dossier', () => showNewFolderModal());
+    fmMenuItem(menu, 'fas fa-upload', 'Uploader des fichiers', () => document.getElementById('fileInputSingle').click());
+    fmMenuItem(menu, 'fas fa-folder-open', 'Uploader un dossier', () => document.getElementById('fileInput').click());
+}
+
+// ---------------------------------------------------------------- démarrage
+document.addEventListener('DOMContentLoaded', function () {
+    fmInitDropTargets();
+    refreshTree();
+
+    // Fermer les modals custom avec Échap
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            ['moveModal', 'colorModal'].forEach(mid => {
+                const m = document.getElementById(mid);
+                if (m && m.classList.contains('show')) m.classList.remove('show');
+            });
+        }
+    });
+    ['moveModal', 'colorModal'].forEach(mid => {
+        const m = document.getElementById(mid);
+        if (m) m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
     });
 });
 </script>

@@ -288,19 +288,33 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
 
 
 def get_user_total_storage(user):
-    """Calcule l'utilisation totale de stockage d'un utilisateur"""
+    """Calcule l'utilisation totale de stockage d'un utilisateur.
+
+    IMPORTANT : agrégats SQL uniquement. L'ancienne version chargeait chaque
+    UserFile (avec ses colonnes LargeBinary file_content/thumbnail_content) en
+    mémoire juste pour sommer file_size → explosion RAM → worker tué → 502.
+    """
     from models.file_manager import UserFile
     from models.class_file import ClassFile
     from models.classroom import Classroom
 
-    # Calculer la taille des UserFiles
-    user_files_size = sum(f.file_size or 0 for f in user.files.all())
+    user_files_size = db.session.query(
+        db.func.coalesce(db.func.sum(UserFile.file_size), 0)
+    ).filter(UserFile.user_id == user.id).scalar() or 0
 
-    # Calculer la taille des ClassFiles (via les classes de l'utilisateur)
-    class_files = ClassFile.query.join(Classroom).filter(Classroom.user_id == user.id).all()
-    class_files_size = sum(cf.file_size or 0 for cf in class_files)
+    # ClassFile.file_size est une propriété avec fallback vers le UserFile
+    # source : on reproduit ce fallback en SQL (outerjoin) sans rien charger.
+    class_files_size = db.session.query(
+        db.func.coalesce(
+            db.func.sum(db.func.coalesce(ClassFile.own_file_size, UserFile.file_size, 0)), 0
+        )
+    ).select_from(ClassFile).join(
+        Classroom, ClassFile.classroom_id == Classroom.id
+    ).outerjoin(
+        UserFile, ClassFile.user_file_id == UserFile.id
+    ).filter(Classroom.user_id == user.id).scalar() or 0
 
-    return user_files_size + class_files_size
+    return int(user_files_size) + int(class_files_size)
 
 def create_thumbnail(image_path, thumbnail_path):
     """Crée une miniature pour une image"""
@@ -328,47 +342,15 @@ def create_thumbnail(image_path, thumbnail_path):
 @file_manager_bp.route('/')
 @login_required
 def index():
-    """Page principale de gestion des fichiers"""
-    from models.file_manager import FileFolder, UserFile
+    """Page principale de gestion des fichiers.
 
-    # Récupérer le dossier actuel
-    folder_id = request.args.get('folder', type=int)
-    current_folder = None
-
-    if folder_id:
-        current_folder = FileFolder.query.filter_by(
-            id=folder_id,
-            user_id=current_user.id
-        ).first_or_404()
-
-    # Récupérer les dossiers et fichiers
-    folders = FileFolder.query.filter_by(
-        user_id=current_user.id,
-        parent_id=folder_id
-    ).order_by(FileFolder.name).all()
-
-    files = UserFile.query.filter_by(
-        user_id=current_user.id,
-        folder_id=folder_id
-    ).order_by(UserFile.original_filename).all()
-
-    # Construire le fil d'ariane
-    breadcrumb = []
-    if current_folder:
-        folder = current_folder
-        while folder:
-            breadcrumb.insert(0, folder)
-            folder = folder.parent
-
-    # Calculer l'espace utilisé (UserFiles + copies dans les classes)
+    La page est une coquille : l'arborescence est chargée côté client via
+    /api/tree (métadonnées seulement) — plus aucun modèle UserFile complet
+    (donc aucun blob) n'est chargé ici.
+    """
     total_size = get_user_total_storage(current_user)
 
     return render_template('file_manager/index.html',
-                         folders=folders,
-                         files=files,
-                         exercises=[],
-                         current_folder=current_folder,
-                         breadcrumb=breadcrumb,
                          total_size=total_size,
                          max_storage=MAX_TOTAL_STORAGE)
 
@@ -650,13 +632,22 @@ def api_folder_contents(folder_id):
     if not folder:
         return jsonify({'success': False, 'message': 'Dossier introuvable'}), 404
 
-    subfolders = FileFolder.query.filter_by(
-        user_id=current_user.id, parent_id=folder_id
+    subfolders = db.session.query(
+        FileFolder.id, FileFolder.name, FileFolder.color
+    ).filter_by(user_id=current_user.id, parent_id=folder_id
     ).order_by(FileFolder.name).all()
 
-    files = UserFile.query.filter_by(
-        user_id=current_user.id, folder_id=folder_id
+    files = db.session.query(
+        UserFile.id, UserFile.original_filename, UserFile.file_type, UserFile.file_size
+    ).filter_by(user_id=current_user.id, folder_id=folder_id
     ).order_by(UserFile.original_filename).all()
+
+    def _fmt(size):
+        size = float(size or 0)
+        for unit in ('B', 'KB', 'MB', 'GB'):
+            if size < 1024 or unit == 'GB':
+                return f"{size:.1f} {unit}"
+            size /= 1024
 
     return jsonify({
         'success': True,
@@ -664,13 +655,13 @@ def api_folder_contents(folder_id):
             'id': f.id,
             'name': f.name,
             'color': f.color,
-            'file_count': f.get_file_count()
+            'file_count': 0
         } for f in subfolders],
         'files': [{
             'id': f.id,
             'original_filename': f.original_filename,
             'file_type': f.file_type,
-            'size': f.format_size()
+            'size': _fmt(f.file_size)
         } for f in files]
     })
 
@@ -2591,3 +2582,32 @@ def api_move_item():
 
     db.session.commit()
     return jsonify({'success': True})
+
+
+@file_manager_bp.route('/api/tree')
+@login_required
+def api_tree():
+    """Arborescence complète de l'utilisateur (métadonnées seulement, jamais les blobs)."""
+    from models.file_manager import FileFolder, UserFile
+
+    folders = db.session.query(
+        FileFolder.id, FileFolder.parent_id, FileFolder.name, FileFolder.color
+    ).filter(FileFolder.user_id == current_user.id).order_by(FileFolder.name).all()
+
+    files = db.session.query(
+        UserFile.id, UserFile.folder_id, UserFile.original_filename,
+        UserFile.file_type, UserFile.file_size
+    ).filter(UserFile.user_id == current_user.id).order_by(UserFile.original_filename).all()
+
+    return jsonify({
+        'success': True,
+        'folders': [
+            {'id': f.id, 'parent_id': f.parent_id, 'name': f.name, 'color': f.color}
+            for f in folders
+        ],
+        'files': [
+            {'id': f.id, 'folder_id': f.folder_id, 'name': f.original_filename,
+             'type': f.file_type, 'size': f.file_size or 0}
+            for f in files
+        ],
+    })
