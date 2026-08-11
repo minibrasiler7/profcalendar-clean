@@ -406,6 +406,10 @@ def delete_class_file(file_id):
                 db.session.commit()
                 return jsonify({'success': True, 'message': 'Fichier retiré de la classe'})
             if source == 'v2':
+                if request.args.get('diag'):
+                    total = db.session.query(ClassFileV2).filter(ClassFileV2.id == file_id).count()
+                    return jsonify({'success': False, 'message': 'Fichier introuvable',
+                                    'diag': {'branch': 'v2', 'exists_any_owner': total}}), 404
                 return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
 
         # 2. Legacy (ancien système)

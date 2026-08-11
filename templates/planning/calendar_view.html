@@ -26,10 +26,19 @@ if (typeof pdfjsLib !== 'undefined') {
 </script>
 <style>
 /* Styles pour le modal de planification avec gestionnaire de fichiers */
-/* Modal de planification ouvert : verrouiller le défilement de la page derrière */
+/* Modal de planification ouvert : verrouiller le défilement de la page derrière.
+   Sur Safari/Chrome le scrolleur de la page est l'élément html, pas body :
+   on verrouille les deux, et le modal contient son propre défilement. */
+html:has(.planning-modal.show),
+html:has(#attendanceModal[style*="block"]),
 body:has(.planning-modal.show),
 body:has(#attendanceModal[style*="block"]) {
-    overflow: hidden;
+    overflow: hidden !important;
+    height: 100%;
+}
+.planning-modal .modal-content,
+.planning-modal {
+    overscroll-behavior: contain;
 }
 
 /* Tâches personnalisées : toujours cliquables au premier plan */
