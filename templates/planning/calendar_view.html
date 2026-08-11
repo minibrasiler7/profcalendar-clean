@@ -41,6 +41,17 @@ body:has(#attendanceModal[style*="block"]) {
     overscroll-behavior: contain;
 }
 
+/* Verrou JS : html.fm-modal-lock posé pendant qu'un modal est ouvert —
+   fige aussi les conteneurs à défilement interne (vue annuelle, etc.) */
+html.fm-modal-lock,
+html.fm-modal-lock body {
+    overflow: hidden !important;
+}
+html.fm-modal-lock .annual-calendar,
+html.fm-modal-lock #annualCalendarContainer {
+    overflow: hidden !important;
+}
+
 /* Tâches personnalisées : toujours cliquables au premier plan */
 .custom-task-block { z-index: 5; }
 .custom-task-block:not(.custom-task-timed) { position: relative; }
@@ -4813,6 +4824,7 @@ function fmApplyBodyScrollLock() {
     const locked = fmScrollLockY !== null;
     if (shouldLock && !locked) {
         fmScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add('fm-modal-lock');
         document.body.style.position = 'fixed';
         document.body.style.top = `-${fmScrollLockY}px`;
         document.body.style.left = '0';
@@ -4821,6 +4833,7 @@ function fmApplyBodyScrollLock() {
     } else if (!shouldLock && locked) {
         const y = fmScrollLockY;
         fmScrollLockY = null;
+        document.documentElement.classList.remove('fm-modal-lock');
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.left = '';
