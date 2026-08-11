@@ -636,6 +636,43 @@ def create_app(config_name='development'):
                 db.session.rollback()
                 print(f"⚠️ Vérification schedules.task_start/task_end échouée: {_e_stt}")
 
+        # Filet de sécurité : table des fichiers éphémères (purgés au lendemain).
+        try:
+            db.session.execute(db.text(
+                "CREATE TABLE IF NOT EXISTS ephemeral_files ("
+                "id SERIAL PRIMARY KEY, "
+                "user_id INTEGER NOT NULL REFERENCES users(id), "
+                "planning_id INTEGER REFERENCES plannings(id), "
+                "original_filename VARCHAR(255) NOT NULL, "
+                "file_type VARCHAR(10), mime_type VARCHAR(100), file_size INTEGER, "
+                "r2_key VARCHAR(500), file_content BYTEA, "
+                "expires_on DATE NOT NULL, uploaded_at TIMESTAMP)"))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_ephemeral_files_expires_on "
+                "ON ephemeral_files (expires_on)"))
+            db.session.commit()
+            print("✅ Table ephemeral_files vérifiée")
+        except Exception as _e_eph:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "CREATE TABLE IF NOT EXISTS ephemeral_files ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "user_id INTEGER NOT NULL REFERENCES users(id), "
+                    "planning_id INTEGER REFERENCES plannings(id), "
+                    "original_filename VARCHAR(255) NOT NULL, "
+                    "file_type VARCHAR(10), mime_type VARCHAR(100), file_size INTEGER, "
+                    "r2_key VARCHAR(500), file_content BLOB, "
+                    "expires_on DATE NOT NULL, uploaded_at TIMESTAMP)"))
+                db.session.execute(db.text(
+                    "CREATE INDEX IF NOT EXISTS ix_ephemeral_files_expires_on "
+                    "ON ephemeral_files (expires_on)"))
+                db.session.commit()
+                print("✅ Table ephemeral_files créée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification ephemeral_files échouée: {_e_eph}")
+
         # Filet de sécurité : jeton push Expo des élèves (app mobile).
         try:
             db.session.execute(db.text(

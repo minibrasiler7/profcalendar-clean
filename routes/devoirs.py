@@ -439,13 +439,48 @@ def purge_old_devoir_files(days=7):
     return n
 
 
+def purge_expired_ephemeral_files():
+    """Supprime (R2 + DB) les fichiers éphémères arrivés à expiration
+    (lendemain du cours), ainsi que leurs liens PlanningResource.
+    Itération par ids + blobs différés (jamais tous les blobs en RAM)."""
+    from datetime import date
+    from sqlalchemy.orm import defer
+    from models.planning import EphemeralFile, PlanningResource
+    today = date.today()
+    ids = [row.id for row in db.session.query(EphemeralFile.id)
+           .filter(EphemeralFile.expires_on <= today).all()]
+    n = 0
+    for eid in ids:
+        eph = db.session.query(EphemeralFile).options(
+            defer(EphemeralFile.file_content)
+        ).get(eid)
+        if not eph:
+            continue
+        if eph.r2_key:
+            try:
+                from services.r2_storage import delete_r2_key
+                delete_r2_key(eph.r2_key)
+            except Exception:
+                pass
+        PlanningResource.query.filter_by(
+            resource_type='ephemeral', resource_id=eph.id
+        ).delete()
+        db.session.delete(eph)
+        n += 1
+    db.session.commit()
+    return n
+
+
 def register_devoir_commands(app):
-    """Commande CLI `flask purge-devoir-files` (à planifier via cron Render)."""
+    """Commande CLI `flask purge-devoir-files` (à planifier via cron Render).
+    Purge aussi les fichiers éphémères — même cron, aucune config en plus."""
     @app.cli.command('purge-devoir-files')
     def _purge_cmd():
-        """Purge les rendus de devoirs > 7 jours après la date de rendu."""
+        """Purge les rendus de devoirs > 7 jours et les fichiers éphémères expirés."""
         n = purge_old_devoir_files(7)
         print(f"✅ {n} rendu(s) purgé(s).")
+        m = purge_expired_ephemeral_files()
+        print(f"✅ {m} fichier(s) éphémère(s) purgé(s).")
 
 
 @devoirs_bp.route('/<int:devoir_id>/exercise-results', methods=['GET'])

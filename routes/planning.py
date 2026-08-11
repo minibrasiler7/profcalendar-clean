@@ -9355,6 +9355,20 @@ def delete_resource():
         return jsonify({'success': False, 'error': 'Accès non autorisé'}), 403
 
     try:
+        # Fichier éphémère : supprimer aussi le fichier lui-même (R2 + base)
+        if resource.resource_type == 'ephemeral':
+            from models.planning import EphemeralFile
+            eph = EphemeralFile.query.filter_by(
+                id=resource.resource_id, user_id=current_user.id
+            ).first()
+            if eph:
+                if eph.r2_key:
+                    try:
+                        from services.r2_storage import delete_r2_key
+                        delete_r2_key(eph.r2_key)
+                    except Exception:
+                        pass
+                db.session.delete(eph)
         db.session.delete(resource)
         db.session.commit()
         return jsonify({'success': True})
@@ -9406,3 +9420,131 @@ def update_decoupage_weeks(decoupage_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@planning_bp.route('/ephemeral/upload', methods=['POST'])
+@login_required
+def upload_ephemeral_file():
+    """Fichier éphémère joint à une planification (supprimé le lendemain du cours).
+
+    Accepte soit planning_id, soit (date, period_number, classroom_id/
+    mixed_group_id) — dans ce cas la planification du créneau est créée si
+    besoin, comme pour add-resource.
+    """
+    from datetime import timedelta
+    from models.planning import PlanningResource, EphemeralFile
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'Aucun fichier'}), 400
+    up = request.files['file']
+    if not up.filename:
+        return jsonify({'success': False, 'error': 'Nom de fichier vide'}), 400
+
+    planning = None
+    planning_id = extract_numeric_id(request.form.get('planning_id'))
+    if planning_id:
+        planning = Planning.query.filter_by(id=planning_id, user_id=current_user.id).first()
+    if not planning and request.form.get('date') and request.form.get('period_number'):
+        try:
+            slot_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+        slot_period = extract_numeric_id(request.form.get('period_number'))
+        slot_classroom_id = extract_numeric_id(request.form.get('classroom_id'))
+        slot_mixed_group_id = extract_numeric_id(request.form.get('mixed_group_id'))
+        if not slot_period:
+            return jsonify({'success': False, 'error': 'Créneau invalide'}), 400
+        query = Planning.query.filter_by(
+            user_id=current_user.id, date=slot_date, period_number=slot_period)
+        if slot_classroom_id:
+            query = query.filter_by(classroom_id=slot_classroom_id)
+        elif slot_mixed_group_id:
+            query = query.filter_by(mixed_group_id=slot_mixed_group_id)
+        planning = query.first()
+        if not planning:
+            planning = Planning(
+                user_id=current_user.id, date=slot_date, period_number=slot_period,
+                classroom_id=slot_classroom_id, mixed_group_id=slot_mixed_group_id,
+                title='', description='')
+            db.session.add(planning)
+            db.session.flush()
+    if not planning:
+        return jsonify({'success': False, 'error': 'Planification introuvable'}), 404
+
+    ext = up.filename.rsplit('.', 1)[-1].lower() if '.' in up.filename else ''
+    if ext not in {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'}:
+        return jsonify({'success': False, 'error': 'Type de fichier non autorisé (PDF ou image)'}), 400
+    data_bytes = up.read()
+    if len(data_bytes) > 50 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'Fichier trop volumineux (max 50 MB)'}), 400
+
+    expires_on = planning.date + timedelta(days=1)
+    eph = EphemeralFile(
+        user_id=current_user.id, planning_id=planning.id,
+        original_filename=up.filename, file_type=ext,
+        mime_type=up.content_type or ('application/pdf' if ext == 'pdf' else f'image/{ext}'),
+        file_size=len(data_bytes), expires_on=expires_on,
+    )
+    try:
+        from services.r2_storage import upload_to_r2_key, is_r2_enabled
+        import uuid as _uuid
+        if is_r2_enabled():
+            key = f"ephemeral/{current_user.id}/{_uuid.uuid4()}.{ext}"
+            if upload_to_r2_key(data_bytes, key, eph.mime_type):
+                eph.r2_key = key
+    except Exception as e:
+        current_app.logger.warning(f"Upload R2 éphémère: {e}")
+    if not eph.r2_key:
+        eph.file_content = data_bytes
+
+    db.session.add(eph)
+    db.session.flush()
+
+    resource = PlanningResource(
+        planning_id=planning.id,
+        resource_type='ephemeral',
+        resource_id=eph.id,
+        display_name=up.filename,
+        display_icon='hourglass-half',
+        status='linked',
+        position=planning.resources.count(),
+    )
+    db.session.add(resource)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'planning_id': planning.id,
+        'resource_id': resource.id,
+        'ephemeral_id': eph.id,
+        'expires_on': expires_on.strftime('%d.%m.%Y'),
+    })
+
+
+@planning_bp.route('/ephemeral/<int:eph_id>')
+@login_required
+def serve_ephemeral_file(eph_id):
+    """Servir un fichier éphémère (propriétaire uniquement)."""
+    from flask import Response, abort
+    from models.planning import EphemeralFile
+
+    eph = EphemeralFile.query.filter_by(id=eph_id, user_id=current_user.id).first_or_404()
+
+    data = None
+    if eph.r2_key:
+        try:
+            from services.r2_storage import get_s3_client, get_bucket_name
+            obj = get_s3_client().get_object(Bucket=get_bucket_name(), Key=eph.r2_key)
+            data = obj['Body'].read()
+        except Exception as e:
+            current_app.logger.warning(f"Lecture R2 éphémère: {e}")
+    if data is None and eph.file_content:
+        data = eph.file_content
+    if data is None:
+        abort(404)
+
+    return Response(
+        data,
+        mimetype=eph.mime_type or 'application/octet-stream',
+        headers={'Content-Disposition': f'inline; filename="{eph.original_filename}"'},
+    )

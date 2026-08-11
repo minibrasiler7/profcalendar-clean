@@ -2131,10 +2131,18 @@ body:has(#attendanceModal[style*="block"]) {
 
             <!-- Fichiers joints à cette période -->
             <div class="form-group" id="modalAttachedSection" style="display: none; margin-bottom: 1.5rem;">
-                <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem;">
-                    <i class="fas fa-paperclip" style="margin-right: 0.5rem;"></i>
-                    Fichiers joints (<span id="modalAttachedCount">0</span>)
+                <h4 style="color: #6366F1; margin-bottom: 0.75rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>
+                        <i class="fas fa-paperclip" style="margin-right: 0.5rem;"></i>
+                        Fichiers joints (<span id="modalAttachedCount">0</span>)
+                    </span>
+                    <button type="button" class="btn btn-sm" onclick="document.getElementById('ephemeralFileInput').click()"
+                            title="Ajouter un fichier depuis votre ordinateur, supprimé automatiquement le lendemain du cours"
+                            style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; border-radius: 0.375rem; cursor: pointer;">
+                        <i class="fas fa-hourglass-half"></i> Fichier éphémère
+                    </button>
                 </h4>
+                <input type="file" id="ephemeralFileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display: none;" onchange="uploadEphemeralFromModal(event)">
                 <div id="modalAttachedList" style="display: grid; gap: 0.5rem;"></div>
             </div>
 
@@ -4780,10 +4788,11 @@ function renderAttachedResources(resources) {
     const list = document.getElementById('modalAttachedList');
     const count = document.getElementById('modalAttachedCount');
     if (!section || !list || !count) return;
-    const items = (resources || []).filter(r => r.resource_type === 'file');
+    const items = (resources || []).filter(r => r.resource_type === 'file' || r.resource_type === 'ephemeral');
     list.innerHTML = '';
     count.textContent = items.length;
-    if (!items.length) { section.style.display = 'none'; return; }
+    // Section toujours visible quand le modal est ouvert : le bouton
+    // « Fichier éphémère » doit rester accessible même sans pièce jointe.
     section.style.display = 'block';
     items.forEach(r => {
         const row = document.createElement('div');
@@ -4795,8 +4804,19 @@ function renderAttachedResources(resources) {
         nameSpan.textContent = r.display_name || 'Fichier';
         nameSpan.style.cssText = 'font-weight:500; color:#312E81; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
         left.appendChild(nameSpan);
+        if (r.resource_type === 'ephemeral') {
+            const badge = document.createElement('span');
+            badge.textContent = 'éphémère';
+            badge.title = 'Supprimé automatiquement le lendemain du cours';
+            badge.style.cssText = 'background:#FEF3C7; color:#92400E; font-size:0.68rem; font-weight:700; padding:0.1rem 0.45rem; border-radius:999px; flex:none;';
+            left.appendChild(badge);
+            row.style.background = '#FFFBEB';
+            row.style.borderLeftColor = '#F59E0B';
+        }
         left.onclick = function () {
-            if (r.display_icon === 'file-pdf' && typeof openPdfInViewer === 'function') {
+            if (r.resource_type === 'ephemeral') {
+                window.open('/planning/ephemeral/' + r.resource_id, '_blank');
+            } else if (r.display_icon === 'file-pdf' && typeof openPdfInViewer === 'function') {
                 openPdfInViewer(r.resource_id, r.display_name);
             } else {
                 window.open('/file_manager/preview/' + r.resource_id, '_blank');
@@ -4860,6 +4880,37 @@ async function attachFileToSlot(fileId, displayName, fileType) {
         });
         const d = await res.json();
         if (!d.success) { alert(d.error || 'Erreur lors de l\'ajout'); return; }
+        if (d.planning_id) window.currentSlotPlanningId = d.planning_id;
+        refreshAttachedFromSlot();
+    } catch (e) { alert('Erreur de connexion'); }
+}
+
+// Upload d'un fichier éphémère depuis le modal (créneau courant)
+async function uploadEphemeralFromModal(ev) {
+    const input = ev.target;
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    const fd = new FormData();
+    fd.append('file', f);
+    if (window.currentSlotPlanningId) {
+        fd.append('planning_id', window.currentSlotPlanningId);
+    } else {
+        fd.append('date', currentModalDate);
+        fd.append('period_number', currentModalPeriod);
+        const sel = document.getElementById('modalClassroom');
+        const v = sel ? sel.value : '';
+        if (v && v.indexOf('classroom_') === 0) fd.append('classroom_id', v);
+        else if (v && v.indexOf('mixed_group_') === 0) fd.append('mixed_group_id', v);
+        if (!currentModalDate || !currentModalPeriod) {
+            alert("Enregistrez d'abord la planification, puis ajoutez le fichier.");
+            return;
+        }
+    }
+    try {
+        const res = await fetch('/planning/ephemeral/upload', { method: 'POST', body: fd });
+        const d = await res.json();
+        if (!d.success) { alert(d.error || "Erreur lors de l'ajout"); return; }
         if (d.planning_id) window.currentSlotPlanningId = d.planning_id;
         refreshAttachedFromSlot();
     } catch (e) { alert('Erreur de connexion'); }

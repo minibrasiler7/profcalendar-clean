@@ -226,3 +226,28 @@ class PlanningResource(db.Model):
 
     def __repr__(self):
         return f'<PlanningResource {self.resource_type}:{self.resource_id} - {self.display_name}>'
+
+
+class EphemeralFile(db.Model):
+    """Fichier éphémère joint à une planification.
+
+    Ajouté depuis la page lesson ou le modal du calendrier, il est supprimé
+    automatiquement (R2 + base) le lendemain du cours par le cron
+    `flask purge-devoir-files` (voir routes/devoirs.py).
+    """
+    __tablename__ = 'ephemeral_files'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    planning_id = db.Column(db.Integer, db.ForeignKey('plannings.id'), nullable=True)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(10))
+    mime_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
+    r2_key = db.Column(db.String(500), nullable=True)
+    file_content = db.Column(db.LargeBinary, nullable=True)  # repli si R2 indisponible
+    expires_on = db.Column(db.Date, nullable=False, index=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<EphemeralFile {self.original_filename} (expire {self.expires_on})>'
