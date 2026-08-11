@@ -1000,8 +1000,10 @@ def copy_folder_to_class_folder():
         })
 
     except Exception as e:
-        print(f"Erreur lors de la copie: {e}")
-        return jsonify({'success': False, 'message': 'Erreur lors de la copie du dossier'}), 500
+        import traceback
+        current_app.logger.error(f"copy-folder-to-class-folder: {e}\n{traceback.format_exc()}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Erreur lors de la copie du dossier: {str(e)}'}), 500
 
 def copy_single_file_to_class(user_file, class_id, folder_path=None):
     """Fonction utilitaire pour copier un fichier vers une classe (duplication réelle dans R2)"""
