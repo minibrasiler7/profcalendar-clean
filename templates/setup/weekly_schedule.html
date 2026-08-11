@@ -504,6 +504,15 @@
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Salle (optionnel) :</label>
             <input type="text" id="customTaskRoom" maxlength="50" placeholder="Ex : B204" style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
         </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Horaire exact (optionnel) :</label>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <input type="time" id="customTaskStart" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+                <span style="color: #6B7280;">→</span>
+                <input type="time" id="customTaskEnd" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+            </div>
+            <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">Sans horaire, la tâche occupe toute la période. Avec, elle s'affichera chaque semaine à ces heures précises dans le calendrier.</p>
+        </div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
             <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">Annuler</button>
             <button onclick="saveCustomTask()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 0.25rem; cursor: pointer;">Ajouter</button>
@@ -646,7 +655,7 @@ function closeClassSelector() {
     currentCell = null;
 }
 
-async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom', customTitle = null, room = null) {
+async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom', customTitle = null, room = null, taskStart = null, taskEnd = null) {
     try {
         const requestData = {
             weekday: parseInt(weekday),
@@ -655,6 +664,8 @@ async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom
             mixed_group_id: itemId && itemType === 'mixed_group' ? parseInt(itemId) : null,
             custom_task_title: itemType === 'custom' ? customTitle : null,
             room: room || null,
+            task_start: itemType === 'custom' ? (taskStart || null) : null,
+            task_end: itemType === 'custom' ? (taskEnd || null) : null,
             type: itemType
         };
         
@@ -753,16 +764,20 @@ function saveCustomTask() {
     console.log('Appel saveSchedule...');
     const roomInputCT = document.getElementById('customTaskRoom');
     const room = roomInputCT ? roomInputCT.value.trim().slice(0, 50) : '';
-    saveSchedule(weekday, period, null, 'custom', title, room).then(result => {
+    const ctStart = (document.getElementById('customTaskStart') || {}).value || '';
+    const ctEnd = (document.getElementById('customTaskEnd') || {}).value || '';
+    saveSchedule(weekday, period, null, 'custom', title, room, ctStart, ctEnd).then(result => {
         console.log('Résultat saveSchedule:', result);
         if (result.success) {
             console.log('Succès - mise à jour de l\'affichage');
             // Mettre à jour l'affichage de la cellule
             const roomHtmlCT = room ? '<div class="class-room"><i class="fas fa-door-open"></i> ' + room.replace(/</g, '&lt;') + '</div>' : '';
+            const timeHtmlCT = (ctStart && ctEnd) ? '<div class="class-room"><i class="far fa-clock"></i> ' + ctStart + '–' + ctEnd + '</div>' : '';
             targetCell.innerHTML = `
                 <div class="class-block" style="background-color: #6B7280;">
                     <div class="class-name"><i class="fas fa-tasks"></i> ${title}</div>
                     <div class="class-subject">Autre</div>
+                    ${timeHtmlCT}
                     ${roomHtmlCT}
                 </div>
             `;

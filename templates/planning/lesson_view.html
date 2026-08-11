@@ -10694,6 +10694,7 @@ function switchResourceTab(tabName) {
 
 {% if lesson_classroom %}
 async function loadClassFilesTree(classroomId) {
+    window.__lessonPanelClassId = classroomId;
     const container = document.getElementById('class-files-tree-container');
     try {
         const res = await fetch(`/planning/get-class-resources/${classroomId}`);
@@ -10742,6 +10743,9 @@ async function loadClassFilesTree(classroomId) {
                                 <div style="flex:1;min-width:0;">
                                     <div style="font-weight:500;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${file.original_filename}</div>
                                 </div>
+                                <button onclick="event.stopPropagation(); deleteLessonClassFile(${file.id}, '${file.source || ''}', '${file.original_filename.replace(/'/g, "\\'")}')" title="Supprimer de la classe" style="border:none;background:transparent;color:#DC2626;cursor:pointer;padding:0.25rem;flex-shrink:0;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                                 <i class="fas fa-plus-circle" style="color:#10b981;font-size:1rem;flex-shrink:0;"></i>
                             </div>`;
                         }
@@ -11131,6 +11135,38 @@ async function launchExercise() {
 function openResourceFile(fileId, fileName) {
     // Ouvrir le fichier dans le visualiseur PDF intégré ou dans un nouvel onglet
     window.open(`/file_manager/preview/${fileId}`, '_blank');
+}
+
+// Supprimer un fichier de la classe directement depuis le panneau
+function deleteLessonClassFile(fileId, source, name) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:25000;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+        <div style="background:#fff;border-radius:.6rem;max-width:420px;width:92%;padding:1.25rem 1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+            <p style="margin:0 0 1rem;color:#111827;"></p>
+            <div style="display:flex;justify-content:flex-end;gap:.6rem;">
+                <button data-role="cancel" style="padding:.5rem 1rem;border:1px solid #D1D5DB;background:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-times"></i> Annuler</button>
+                <button data-role="ok" style="padding:.5rem 1rem;border:none;background:#DC2626;color:#fff;border-radius:.4rem;cursor:pointer;"><i class="fas fa-trash"></i> Supprimer</button>
+            </div>
+        </div>`;
+    overlay.querySelector('p').textContent = `Supprimer « ${name} » de cette classe ?`;
+    overlay.querySelector('[data-role="cancel"]').onclick = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('[data-role="ok"]').onclick = async () => {
+        overlay.remove();
+        try {
+            const res = await fetch(`/api/class-files/delete/${fileId}` + (source ? `?source=${source}` : ''), { method: 'DELETE' });
+            const d = await res.json();
+            if (d.success) {
+                if (window.__lessonPanelClassId) loadClassFilesTree(window.__lessonPanelClassId);
+            } else {
+                alert(d.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            alert('Erreur de connexion');
+        }
+    };
+    document.body.appendChild(overlay);
 }
 
 async function deleteResource(resourceId, btn) {

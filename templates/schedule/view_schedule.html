@@ -573,6 +573,15 @@
         <div style="margin-bottom: 1rem;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Titre de la tâche :</label>
             <input type="text" id="customTaskTitle" placeholder="Ex: Surveillance, Réunion, etc." style="width: 100%; padding: 0.75rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+            <div style="margin-top: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Horaire exact (optionnel) :</label>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <input type="time" id="customTaskStart" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+                    <span style="color: #6B7280;">→</span>
+                    <input type="time" id="customTaskEnd" style="padding: 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem;">
+                </div>
+                <p style="font-size: 0.78rem; color: #6B7280; margin-top: 0.35rem;">Sans horaire, la tâche occupe toute la période.</p>
+            </div>
         </div>
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
             <button onclick="closeCustomTaskModal()" style="padding: 0.75rem 1.5rem; border: 1px solid #D1D5DB; background: white; border-radius: 0.25rem; cursor: pointer;">Annuler</button>
@@ -783,8 +792,11 @@ async function saveScheduleSlot(weekday, period, itemId, itemType = 'classroom',
             classroom_id: itemId && itemType === 'classroom' ? parseInt(itemId) : null,
             mixed_group_id: itemId && itemType === 'mixed_group' ? parseInt(itemId) : null,
             custom_task_title: itemType === 'custom' ? customTitle : null,
+            task_start: (itemType === 'custom' && window.__customTaskTimes) ? (window.__customTaskTimes.start || null) : null,
+            task_end: (itemType === 'custom' && window.__customTaskTimes) ? (window.__customTaskTimes.end || null) : null,
             type: itemType
         };
+        if (itemType === 'custom') window.__customTaskTimes = null;
         
         const response = await fetch('/schedule/save', {
             method: 'POST',
@@ -838,6 +850,8 @@ function showCustomTaskModal(element) {
     
     document.getElementById('customTaskModal').style.display = 'block';
     document.getElementById('customTaskTitle').value = '';
+    var _cts = document.getElementById('customTaskStart'); if (_cts) _cts.value = '';
+    var _cte = document.getElementById('customTaskEnd'); if (_cte) _cte.value = '';
     document.getElementById('customTaskTitle').focus();
     
     hideAllSelectors();
@@ -854,7 +868,13 @@ function saveCustomTask() {
         alert('Veuillez saisir un titre pour la tâche');
         return;
     }
-    
+
+    // Horaire exact transmis à saveScheduleSlot via un global (le trajet passe par selectClass)
+    window.__customTaskTimes = {
+        start: (document.getElementById('customTaskStart') || {}).value || '',
+        end: (document.getElementById('customTaskEnd') || {}).value || ''
+    };
+
     if (currentSlotForCustomTask) {
         selectClass(currentSlotForCustomTask.weekday, currentSlotForCustomTask.period, title, 'custom');
         closeCustomTaskModal();

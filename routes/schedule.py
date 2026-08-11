@@ -151,6 +151,16 @@ def save_schedule():
         item_type = data.get('type', 'classroom')  # 'classroom', 'mixed_group' ou 'custom'
         room_raw = data.get('room')
         room = room_raw.strip()[:50] if isinstance(room_raw, str) and room_raw.strip() else None
+
+        # Horaire exact optionnel des tâches personnalisées
+        from datetime import datetime as _dt
+        def _parse_hhmm_sched(v):
+            try:
+                return _dt.strptime(v, '%H:%M').time() if v else None
+            except (TypeError, ValueError):
+                return None
+        sched_task_start = _parse_hhmm_sched(data.get('task_start')) if item_type == 'custom' else None
+        sched_task_end = _parse_hhmm_sched(data.get('task_end')) if item_type == 'custom' else None
         
         # Initialiser les variables
         classroom_id = None
@@ -201,6 +211,8 @@ def save_schedule():
                 existing.mixed_group_id = mixed_group_id
                 existing.custom_task_title = custom_task_title
                 existing.room = room
+                existing.task_start = sched_task_start
+                existing.task_end = sched_task_end
                 existing.start_time = period['start']
                 existing.end_time = period['end']
             else:
@@ -211,6 +223,8 @@ def save_schedule():
                     mixed_group_id=mixed_group_id,
                     custom_task_title=custom_task_title,
                     room=room,
+                    task_start=sched_task_start,
+                    task_end=sched_task_end,
                     weekday=weekday,
                     period_number=period_number,
                     start_time=period['start'],

@@ -3186,6 +3186,7 @@ function toggleSplitView() {
 
 // Charger les fichiers d'une classe
 async function loadClassFiles(classroomId) {
+    window.currentPanelClassId = classroomId;
     const fileLoading = document.getElementById('fileLoading');
     const fileNavigation = document.getElementById('fileNavigation');
     const fileTree = document.getElementById('fileTree');
@@ -3457,6 +3458,11 @@ function renderFileTree(files, currentPath = '') {
                         onclick="event.stopPropagation(); attachFileToSlot(${file.id}, '${(file.original_filename || '').replace(/'/g, "\\'")}', '${file.file_type}')"
                         title="Joindre à cette période">
                     <i class="fas fa-paperclip"></i>
+                </button>
+                <button class="file-action-btn"
+                        onclick="event.stopPropagation(); deleteClassPanelFile(${file.id}, '${file.source || ''}', '${(file.original_filename || '').replace(/'/g, "\\'")}')"
+                        title="Supprimer de la classe" style="color: #DC2626;">
+                    <i class="fas fa-trash"></i>
                 </button>
                 <button class="file-action-btn ${file.is_pinned ? 'pinned' : ''}"
                         onclick="event.stopPropagation(); togglePinFile(${file.id})"
@@ -4874,6 +4880,48 @@ async function refreshAttachedFromSlot() {
             renderAttachedResources(d.slot.resources || []);
         }
     } catch (e) {}
+}
+
+// ==================== Suppression d'un fichier de classe (panneau) ====================
+function calConfirm(message, onOk) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:25000;display:flex;align-items:center;justify-content:center;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:.6rem;max-width:420px;width:92%;padding:1.25rem 1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.3);';
+    const p = document.createElement('p');
+    p.textContent = message;
+    p.style.cssText = 'margin:0 0 1rem;color:#111827;';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:flex-end;gap:.6rem;';
+    const cancel = document.createElement('button');
+    cancel.innerHTML = '<i class="fas fa-times"></i> Annuler';
+    cancel.style.cssText = 'padding:.5rem 1rem;border:1px solid #D1D5DB;background:#fff;border-radius:.4rem;cursor:pointer;';
+    cancel.onclick = () => overlay.remove();
+    const ok = document.createElement('button');
+    ok.innerHTML = '<i class="fas fa-trash"></i> Supprimer';
+    ok.style.cssText = 'padding:.5rem 1rem;border:none;background:#DC2626;color:#fff;border-radius:.4rem;cursor:pointer;';
+    ok.onclick = () => { overlay.remove(); onOk(); };
+    row.appendChild(cancel); row.appendChild(ok);
+    box.appendChild(p); box.appendChild(row);
+    overlay.appendChild(box);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+}
+
+function deleteClassPanelFile(fileId, source, name) {
+    calConfirm(`Supprimer « ${name} » de cette classe ? (le fichier reste dans votre gestionnaire personnel s'il en vient)`, async () => {
+        try {
+            const res = await fetch(`/api/class-files/delete/${fileId}` + (source ? `?source=${source}` : ''), { method: 'DELETE' });
+            const d = await res.json();
+            if (d.success) {
+                if (window.currentPanelClassId) loadClassFiles(window.currentPanelClassId);
+            } else {
+                alert(d.message || 'Erreur lors de la suppression');
+            }
+        } catch (e) {
+            alert('Erreur de connexion');
+        }
+    });
 }
 
 // Clic direct sur un bloc de tâche perso : ouvrir le modal de SA cellule

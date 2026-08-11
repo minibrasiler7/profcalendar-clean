@@ -18,6 +18,10 @@ class Schedule(db.Model):
     # Salle de classe (optionnelle)
     room = db.Column(db.String(50), nullable=True)
 
+    # Horaire exact optionnel d'une tâche personnalisée (sinon toute la période)
+    task_start = db.Column(db.Time, nullable=True)
+    task_end = db.Column(db.Time, nullable=True)
+
     # Jour de la semaine (0=Lundi, 1=Mardi, ..., 4=Vendredi)
     weekday = db.Column(db.Integer, nullable=False)
 

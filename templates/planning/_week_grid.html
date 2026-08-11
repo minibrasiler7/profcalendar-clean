@@ -186,8 +186,12 @@
                                 {% endif %}
                             </div>
                         {% elif schedule.custom_task_title %}
-                            <div class="class-block custom-task-block {% if is_merged_for_day %}merged-block{% endif %}" style="opacity: 0.85;">
+                            <div class="class-block custom-task-block {% if schedule.task_start and schedule.task_end %}custom-task-timed{% endif %} {% if is_merged_for_day %}merged-block{% endif %}"
+                                 {% if schedule.task_start and schedule.task_end %}data-task-start="{{ schedule.task_start.strftime('%H:%M') }}" data-task-end="{{ schedule.task_end.strftime('%H:%M') }}"{% endif %}>
                                 <div class="task-title"><i class="far fa-calendar-check"></i> {{ schedule.custom_task_title }}</div>
+                                {% if schedule.task_start %}
+                                <div class="task-time"><i class="far fa-clock"></i> {{ schedule.task_start.strftime('%H:%M') }}{% if schedule.task_end %}–{{ schedule.task_end.strftime('%H:%M') }}{% endif %}</div>
+                                {% endif %}
                                 {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set memo_key = date_str ~ '_' ~ period.number %}
