@@ -9368,6 +9368,10 @@ def delete_resource():
                         delete_r2_key(eph.r2_key)
                     except Exception:
                         pass
+                from models.file_manager import FileAnnotation
+                FileAnnotation.query.filter_by(
+                    file_type='ephemeral_file', file_id=eph.id
+                ).delete()
                 db.session.delete(eph)
         db.session.delete(resource)
         db.session.commit()

@@ -2363,19 +2363,32 @@ def save_annotations():
         custom_pages_data = data.get('custom_pages', [])
         file_id_raw = data.get('file_id')
 
-        # Extraire l'ID du fichier depuis les données
-        file_id = int(file_id_raw) if str(file_id_raw).isdigit() else None
-        if not file_id:
-            return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
+        # Fichiers éphémères : id de la forme « eph<id> », namespace dédié
+        # (file_type='ephemeral_file') pour ne pas entrer en collision avec
+        # les ids des fichiers de classe / personnels.
+        raw_str = str(file_id_raw or '')
+        if raw_str.startswith('eph') and raw_str[3:].isdigit():
+            from models.planning import EphemeralFile
+            eph = EphemeralFile.query.filter_by(
+                id=int(raw_str[3:]), user_id=current_user.id
+            ).first()
+            if not eph:
+                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            file_id, file_type = eph.id, 'ephemeral_file'
+        else:
+            # Extraire l'ID du fichier depuis les données
+            file_id = int(file_id_raw) if str(file_id_raw).isdigit() else None
+            if not file_id:
+                return jsonify({'success': False, 'message': 'ID de fichier invalide'}), 400
 
-        # Accepter les 3 systèmes de fichiers (v2 / legacy / userfile), comme
-        # serve_file. Avant, on ne regardait que la table v2 → un fichier legacy
-        # ou un UserFile (ex. .docx converti en PDF) s'affichait mais renvoyait
-        # 404 ici → annotations jamais sauvegardées.
-        target = _resolve_annotation_target(file_id, current_user)
-        if not target:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-        file_id, file_type = target
+            # Accepter les 3 systèmes de fichiers (v2 / legacy / userfile), comme
+            # serve_file. Avant, on ne regardait que la table v2 → un fichier legacy
+            # ou un UserFile (ex. .docx converti en PDF) s'affichait mais renvoyait
+            # 404 ici → annotations jamais sauvegardées.
+            target = _resolve_annotation_target(file_id, current_user)
+            if not target:
+                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+            file_id, file_type = target
 
         # Chercher une annotation existante
         annotation = FileAnnotation.query.filter_by(
@@ -2411,6 +2424,32 @@ def save_annotations():
         db.session.rollback()
         print(f"Erreur lors de la sauvegarde des annotations: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@file_manager_bp.route('/api/load-annotations/eph<int:eph_id>', methods=['GET'])
+@login_required
+def load_annotations_ephemeral(eph_id):
+    """Annotations d'un fichier éphémère (namespace 'ephemeral_file')."""
+    try:
+        from models.file_manager import FileAnnotation
+        from models.planning import EphemeralFile
+
+        eph = EphemeralFile.query.filter_by(id=eph_id, user_id=current_user.id).first()
+        if not eph:
+            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+
+        annotation = FileAnnotation.query.filter_by(
+            file_id=eph_id, file_type='ephemeral_file', user_id=current_user.id
+        ).first()
+        if annotation:
+            return jsonify({
+                'success': True,
+                'annotations': annotation.annotations_data,
+                'custom_pages': annotation.custom_pages_data or []
+            })
+        return jsonify({'success': True, 'annotations': {}})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @file_manager_bp.route('/api/load-annotations/<int:file_id>', methods=['GET'])
 @login_required

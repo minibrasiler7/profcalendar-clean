@@ -465,6 +465,10 @@ def purge_expired_ephemeral_files():
         PlanningResource.query.filter_by(
             resource_type='ephemeral', resource_id=eph.id
         ).delete()
+        from models.file_manager import FileAnnotation
+        FileAnnotation.query.filter_by(
+            file_type='ephemeral_file', file_id=eph.id
+        ).delete()
         db.session.delete(eph)
         n += 1
     db.session.commit()

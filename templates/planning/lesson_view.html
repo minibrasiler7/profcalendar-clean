@@ -1356,6 +1356,14 @@ input, textarea, select {
             </div>
 
             <div class="planning-content">
+                <div style="display:flex;justify-content:flex-end;margin-bottom:0.6rem;">
+                    <button type="button" id="uploadEphemeralBtn" class="add-resource-btn" onclick="document.getElementById('lessonEphemeralInput').click()"
+                            title="Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
+                            style="background: #FEF3C7; color: #92400E;">
+                        <i class="fas fa-hourglass-half"></i> Fichier éphémère
+                    </button>
+                    <input type="file" id="lessonEphemeralInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="uploadEphemeralFromLesson(this)">
+                </div>
                 <!-- Vue de lecture -->
                 <div id="planningView" {% if not planning %}style="display: none;"{% endif %}>
                     <div class="planning-item">
@@ -1381,7 +1389,11 @@ input, textarea, select {
                                      {% if resource.resource_type == 'file' %}
                                      onclick="openResourceFile({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
                                      {% elif resource.resource_type == 'ephemeral' %}
+                                     {% if resource.display_name and resource.display_name.lower().endswith('.pdf') %}
+                                     onclick="openEphemeralInViewer({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
+                                     {% else %}
                                      onclick="window.open('/planning/ephemeral/{{ resource.resource_id }}', '_blank')"
+                                     {% endif %}
                                      {% elif resource.resource_type == 'exercise' %}
                                      onclick="showModeModal({{ resource.resource_id }}, '{{ resource.display_name|e }}', 'publish', {{ resource.id }})"
                                      {% endif %}>
@@ -2271,13 +2283,7 @@ input, textarea, select {
                     <button type="button" id="uploadClassFileBtn" class="add-resource-btn" onclick="triggerClassFileUpload()" title="Ajouter un fichier depuis votre ordinateur">
                         <i class="fas fa-plus"></i> Fichier
                     </button>
-                    <button type="button" id="uploadEphemeralBtn" class="add-resource-btn" onclick="document.getElementById('lessonEphemeralInput').click()"
-                            title="Fichier éphémère : joint à ce cours et supprimé automatiquement le lendemain"
-                            style="margin-left: 0.5rem; background: #FEF3C7; color: #92400E;">
-                        <i class="fas fa-hourglass-half"></i> Éphémère
-                    </button>
                     <input type="file" id="classFileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" style="display:none;" onchange="uploadClassFileFromComputer(this)">
-                    <input type="file" id="lessonEphemeralInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="uploadEphemeralFromLesson(this)">
                 </div>
             </div>
 
@@ -9824,7 +9830,7 @@ let studentsData = [
 ];
 
 // Fonction pour ouvrir un fichier avec le nouveau lecteur unifié
-function openFileWithUnifiedViewer(filePath, fileName) {
+function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
     console.log('🎯 Ouverture avec le lecteur unifié:', fileName);
 
     // Vérifier et obtenir la modal parente d'abord
@@ -9919,7 +9925,7 @@ function openFileWithUnifiedViewer(filePath, fileName) {
     if (!cleanPDFViewer) {
         try {
             // Préparer l'URL du PDF
-            const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+            const pdfUrl = pdfUrlOverride || `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
             currentPDFUrl = pdfUrl;
 
             cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
@@ -10802,13 +10808,24 @@ async function uploadEphemeralFromLesson(input) {
     input.value = '';
     if (!f) return;
     const planningId = {{ planning.id if planning else 'null' }};
-    if (!planningId) {
-        alert('Veuillez d\'abord créer une planification');
-        return;
-    }
+    const lessonDate = '{{ lesson_date.strftime("%Y-%m-%d") if lesson_date else "" }}';
+    const lessonPeriod = {{ lesson.period_number if lesson else 'null' }};
+    const lessonClassroom = {{ lesson.classroom_id if lesson and lesson.classroom_id else 'null' }};
+    const lessonMixedGroup = {{ lesson.mixed_group_id if lesson and lesson.mixed_group_id else 'null' }};
     const fd = new FormData();
     fd.append('file', f);
-    fd.append('planning_id', planningId);
+    if (planningId) {
+        fd.append('planning_id', planningId);
+    } else if (lessonDate && lessonPeriod) {
+        // Pas encore de planification : le serveur la crée pour ce créneau
+        fd.append('date', lessonDate);
+        fd.append('period_number', lessonPeriod);
+        if (lessonClassroom) fd.append('classroom_id', lessonClassroom);
+        else if (lessonMixedGroup) fd.append('mixed_group_id', lessonMixedGroup);
+    } else {
+        alert('Impossible de déterminer le cours courant');
+        return;
+    }
     try {
         const res = await fetch('/planning/ephemeral/upload', { method: 'POST', body: fd });
         const d = await res.json();
@@ -11173,6 +11190,12 @@ async function launchExercise() {
 // ============================================================
 // Ouverture des ressources de fichier
 // ============================================================
+// Ouvrir un fichier éphémère PDF dans le lecteur annotable (annotations
+// conservées jusqu'à la purge, namespace « eph<id> »)
+function openEphemeralInViewer(ephId, name) {
+    openFileWithUnifiedViewer('eph' + ephId, name, '/planning/ephemeral/' + ephId);
+}
+
 function openResourceFile(fileId, fileName) {
     // Ouvrir le fichier dans le visualiseur PDF intégré ou dans un nouvel onglet
     window.open(`/file_manager/preview/${fileId}`, '_blank');

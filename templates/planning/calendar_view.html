@@ -3581,7 +3581,7 @@ let pdfCanvas = null;
 let pdfCtx = null;
 
 // Ouvrir un PDF avec le nouveau lecteur CleanPDFViewer en mode split 50%
-async function openPdfInViewer(fileId, fileName) {
+async function openPdfInViewer(fileId, fileName, pdfUrlOverride) {
     console.log('📄 Ouverture du PDF avec CleanPDFViewer:', fileName);
 
     try {
@@ -3606,7 +3606,7 @@ async function openPdfInViewer(fileId, fileName) {
         container.innerHTML = '';
 
         // Préparer l'URL du PDF
-        const pdfUrl = `/file_manager/serve_file/${fileId}`;
+        const pdfUrl = pdfUrlOverride || `/file_manager/serve_file/${fileId}`;
 
         // Récupérer les étudiants de la classe actuelle si disponible
         let studentsData = [];
@@ -4815,7 +4815,12 @@ function renderAttachedResources(resources) {
         }
         left.onclick = function () {
             if (r.resource_type === 'ephemeral') {
-                window.open('/planning/ephemeral/' + r.resource_id, '_blank');
+                if ((r.display_name || '').toLowerCase().endsWith('.pdf') && typeof openPdfInViewer === 'function') {
+                    // PDF éphémère → lecteur annotable (annotations conservées jusqu'à la purge)
+                    openPdfInViewer('eph' + r.resource_id, r.display_name, '/planning/ephemeral/' + r.resource_id);
+                } else {
+                    window.open('/planning/ephemeral/' + r.resource_id, '_blank');
+                }
             } else if (r.display_icon === 'file-pdf' && typeof openPdfInViewer === 'function') {
                 openPdfInViewer(r.resource_id, r.display_name);
             } else {
