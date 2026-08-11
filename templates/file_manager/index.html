@@ -1359,6 +1359,15 @@ async function fmDropItemsOnClass(items, classId) {
         if (it.type === 'file') await copyFileToClass(it.id, classId);
         else if (it.type === 'folder') await copyFolderToClass(it.id, classId);
     }
+    // Montrer immédiatement le résultat : recharger ET ouvrir l'arbre de la classe
+    try {
+        await loadClassTree(parseInt(classId));
+        const tree = document.getElementById('classTree-' + classId);
+        const toggle = document.getElementById('toggle-' + classId);
+        if (tree) tree.style.display = 'block';
+        if (toggle) toggle.classList.add('expanded');
+        if (typeof saveTreeStates === 'function') saveTreeStates();
+    } catch (e) {}
 }
 
 async function handleClassDrop(e) {
@@ -1650,6 +1659,27 @@ function showEmptySpaceContextMenu(e) {
 }
 
 // ---------------------------------------------------------------- démarrage
+// Déplier automatiquement l'arborescence de TOUTES les classes au chargement
+// (les classes arrivent en AJAX : on attend leur rendu, avec un plafond).
+document.addEventListener('DOMContentLoaded', function () {
+    let tries = 0;
+    const openAll = async () => {
+        const items = document.querySelectorAll('.class-item');
+        if (!items.length) {
+            if (tries++ < 30) setTimeout(openAll, 350);
+            return;
+        }
+        for (const item of items) {
+            const id = item.dataset.classId;
+            const tree = document.getElementById('classTree-' + id);
+            if (tree && tree.style.display === 'none') {
+                try { await toggleClassTree(parseInt(id)); } catch (e) {}
+            }
+        }
+    };
+    setTimeout(openAll, 400);
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     // Badge de glisser multiple, pré-créé (Safari interdit d'insérer des
     // éléments pendant dragstart)

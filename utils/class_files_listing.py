@@ -71,7 +71,15 @@ def list_classroom_files(classroom_id: int,
         broken = False
 
         if not filename:
-            uf = f.user_file  # propriété, retourne None si introuvable
+            # Colonnes seulement : le UserFile source porte des blobs BYTEA
+            # qu'il ne faut jamais hydrater pour un simple listing.
+            uf = None
+            if f.user_file_id:
+                from extensions import db as _db
+                from models.file_manager import UserFile as _UF
+                uf = _db.session.query(
+                    _UF.original_filename, _UF.file_type, _UF.file_size
+                ).filter(_UF.id == f.user_file_id).first()
             if uf:
                 filename = uf.original_filename
                 filetype = filetype or uf.file_type
@@ -107,7 +115,22 @@ def list_classroom_files(classroom_id: int,
             files.append(entry)
 
     # ----- Legacy -----
-    legacy_files = LegacyClassFile.query.filter_by(classroom_id=classroom_id).all()
+    # IMPORTANT : requête en COLONNES uniquement. La table legacy stocke le
+    # contenu des fichiers en BYTEA (file_content) ; un .all() sur le modèle
+    # hydratait ces blobs (113 MB pour 11VG2 !) → le backend Postgres cassait
+    # (« unexpected eof while reading », voire base « in recovery mode ») et
+    # le listing renvoyait vide alors que les fichiers existent.
+    from extensions import db
+    legacy_files = db.session.query(
+        LegacyClassFile.id,
+        LegacyClassFile.original_filename,
+        LegacyClassFile.file_type,
+        LegacyClassFile.file_size,
+        LegacyClassFile.description,
+        LegacyClassFile.uploaded_at,
+        LegacyClassFile.is_pinned,
+        LegacyClassFile.pin_order,
+    ).filter(LegacyClassFile.classroom_id == classroom_id).all()
     legacy_count_total = len(legacy_files)
 
     for f in legacy_files:
