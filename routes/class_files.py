@@ -8,46 +8,16 @@ from services.document_conversion import convert_if_needed, ConversionError
 from datetime import datetime
 import os
 import uuid
-import shutil
 
-# Import des limites depuis file_manager
-from routes.file_manager import MAX_FILE_SIZE, MAX_TOTAL_STORAGE, get_user_total_storage
+# Import des limites + de la copie moderne (duplication R2 + class_files_v2)
+from routes.file_manager import (
+    MAX_FILE_SIZE,
+    MAX_TOTAL_STORAGE,
+    get_user_total_storage,
+    copy_single_file_to_class,
+)
 
 class_files_bp = Blueprint('class_files', __name__, url_prefix='/api/class-files')
-
-def copy_file_physically(user_file, class_id):
-    """Copier un fichier physiquement vers le dossier de la classe"""
-    try:
-        from flask import current_app
-        
-        # Chemin source avec UPLOAD_FOLDER configuré
-        rel_path = user_file.get_file_path()  # 'uploads/files/user_id/filename'
-        if rel_path.startswith('uploads/'):
-            rel_path = rel_path[8:]  # Enlever 'uploads/'
-        source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
-        
-        if not os.path.exists(source_path):
-            print(f"❌ Fichier source introuvable: {source_path}")
-            return False, None
-        
-        # Créer le dossier de destination
-        class_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(class_id))
-        os.makedirs(class_folder, exist_ok=True)
-        
-        # Générer un nom unique
-        file_ext = user_file.file_type
-        unique_filename = f"{uuid.uuid4()}.{file_ext}"
-        dest_path = os.path.join(class_folder, unique_filename)
-        
-        # Copier le fichier
-        shutil.copy2(source_path, dest_path)
-        print(f"✅ Fichier copié: {source_path} -> {dest_path}")
-        
-        return True, unique_filename
-        
-    except Exception as e:
-        print(f"❌ Erreur lors de la copie physique: {e}")
-        return False, None
 
 @class_files_bp.route('/copy-file', methods=['POST'])
 @login_required
@@ -234,23 +204,35 @@ def copy_folder_to_class():
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
 
-        # Copier le dossier récursivement
-        copied_count = copy_folder_recursive(folder, class_id, target_path)
-        
-        # Commit les changements en base de données
+        # Copier le dossier récursivement (duplication R2 + class_files_v2)
+        copied_count, already_exists_count, failed_count = copy_folder_recursive(
+            folder, class_id, target_path
+        )
+
         db.session.commit()
-        
-        print(f"✅ Copie terminée: {copied_count} fichier(s) copiés pour le dossier '{folder.name}' vers la classe {class_id}")
-        
-        if copied_count > 0:
+
+        print(f"✅ Copie terminée: {copied_count} copiés, {already_exists_count} déjà existants, "
+              f"{failed_count} échoués pour '{folder.name}' vers la classe {class_id}")
+
+        if copied_count == 0 and already_exists_count == 0 and failed_count == 0:
             return jsonify({
                 'success': True,
-                'message': f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+                'message': f'Dossier vide "{folder.name}" copié'
+            })
+        elif copied_count > 0:
+            msg = f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
+            if already_exists_count > 0:
+                msg += f' ({already_exists_count} déjà présent(s))'
+            return jsonify({'success': True, 'message': msg})
+        elif already_exists_count > 0:
+            return jsonify({
+                'success': True,
+                'message': f'Tous les fichiers du dossier "{folder.name}" sont déjà présents dans cette classe'
             })
         else:
             return jsonify({
                 'success': False,
-                'message': f'Aucun fichier trouvé dans le dossier "{folder.name}" ou fichiers déjà existants'
+                'message': f'Aucun fichier n\'a pu être copié depuis "{folder.name}" ({failed_count} en erreur)'
             })
         
     except Exception as e:
@@ -261,79 +243,61 @@ def copy_folder_to_class():
         return jsonify({'success': False, 'message': f'Erreur lors de la copie du dossier: {str(e)}'}), 500
 
 def copy_folder_recursive(folder, class_id, base_path):
-    """Fonction récursive pour copier un dossier et son contenu"""
+    """Copie récursive d'un dossier vers une classe, via le système moderne.
+
+    Alignée sur routes/file_manager.py copy_folder_to_class (commit 479403f).
+    L'ancienne version avait deux défauts :
+      1. `for file in folder.files:` hydratait les colonnes BYTEA
+         (file_content/thumbnail_content) de chaque UserFile → gros dossier =
+         OOM du worker → 502.
+      2. Elle dupliquait le blob EN BASE dans la table legacy `class_files`,
+         alors que le reste de l'app duplique sur R2 et écrit `class_files_v2`
+         (métadonnées own_* + r2_key).
+
+    Ici : itération sur les ids, chargement à la demande avec defer() des
+    blobs, expunge après chaque fichier (mémoire bornée à UN fichier), et
+    copy_single_file_to_class fait la duplication R2 (server-side si la
+    source y est déjà) + la ligne class_files_v2.
+
+    Retourne (copied_count, already_exists_count, failed_count).
+    """
+    from sqlalchemy.orm import defer
+
     copied_count = 0
-    
+    already_exists_count = 0
+    failed_count = 0
+
     # Construire le chemin de destination
     if base_path:
         current_path = f"{base_path}/{folder.name}"
     else:
         current_path = folder.name
-    
-    # Copier tous les fichiers du dossier
-    for file in folder.files:
-        # Vérifier si le fichier n'existe pas déjà
-        existing = ClassFile.query.filter_by(
-            classroom_id=class_id,
-            original_filename=file.original_filename
-        ).first()
-        
-        if not existing:
-            # Copier le fichier physiquement
-            success, new_filename = copy_file_physically(file, class_id)
-            
-            # Lire le contenu du fichier pour le stockage BLOB
-            file_content = None
-            mime_type = file.mime_type
-            
-            if file.file_content:
-                file_content = file.file_content
-            else:
-                try:
-                    from flask import current_app
-                    # Construire le chemin avec UPLOAD_FOLDER configuré  
-                    rel_path = file.get_file_path()  # 'uploads/files/user_id/filename'
-                    if rel_path.startswith('uploads/'):
-                        rel_path = rel_path[8:]  # Enlever 'uploads/'
-                    source_path = os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
-                    if os.path.exists(source_path):
-                        with open(source_path, 'rb') as f:
-                            file_content = f.read()
-                except Exception as e:
-                    print(f"⚠️  Erreur lecture fichier {file.original_filename}: {e}")
-            
-            if file_content:
-                # Déterminer le type MIME si pas défini
-                if not mime_type:
-                    if file.file_type == 'pdf':
-                        mime_type = 'application/pdf'
-                    elif file.file_type in ['jpg', 'jpeg']:
-                        mime_type = 'image/jpeg'
-                    elif file.file_type == 'png':
-                        mime_type = 'image/png'
-                    else:
-                        mime_type = 'application/octet-stream'
-                
-                # Créer l'entrée en base avec BLOB
-                description = f"Copié dans le dossier: {current_path}"
-                class_file = ClassFile(
-                    classroom_id=class_id,
-                    filename=f"{uuid.uuid4()}.{file.file_type}",
-                    original_filename=file.original_filename,
-                    file_type=file.file_type,
-                    file_size=file.file_size,
-                    description=description,
-                    file_content=file_content,
-                    mime_type=mime_type
-                )
-                db.session.add(class_file)
-                copied_count += 1
-    
+
+    file_ids = [row.id for row in folder.files.with_entities(UserFile.id).all()]
+    for fid in file_ids:
+        user_file = db.session.query(UserFile).options(
+            defer(UserFile.file_content), defer(UserFile.thumbnail_content)
+        ).get(fid)
+        if not user_file:
+            failed_count += 1
+            continue
+        result = copy_single_file_to_class(user_file, class_id, current_path)
+        db.session.expunge(user_file)
+        if result is True:
+            copied_count += 1
+        elif result == 'exists':
+            already_exists_count += 1
+        else:
+            failed_count += 1
+
     # Copier récursivement les sous-dossiers
     for subfolder in folder.subfolders:
-        copied_count += copy_folder_recursive(subfolder, class_id, current_path)
-    
-    return copied_count
+        sub_copied, sub_exists, sub_failed = copy_folder_recursive(subfolder, class_id, current_path)
+        copied_count += sub_copied
+        already_exists_count += sub_exists
+        failed_count += sub_failed
+
+    return copied_count, already_exists_count, failed_count
 
 @class_files_bp.route('/list/<int:class_id>')
 @login_required
