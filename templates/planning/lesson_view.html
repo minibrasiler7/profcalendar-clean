@@ -3453,6 +3453,11 @@ function renderResourceTree(files) {
                                 title="${isPinned ? 'Désépingler' : 'Épingler'}">
                             <i class="fas fa-thumbtack"></i>
                         </button>
+                        <button class="resource-action-btn" style="color:#DC2626;"
+                                onclick="deleteLessonClassFile(${file.id}, '${file.source || ''}', '${(file.original_filename || '').replace(/'/g, "\\'")}')"
+                                title="Supprimer de la classe">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -10488,6 +10493,13 @@ document.addEventListener('DOMContentLoaded', function() {
     {% for student in students %}
     updateAttendanceButtons({{ student.id }});
     {% endfor %}
+
+    {% if lesson and not is_current %}
+    // Cours pas encore commencé : ouvrir directement la planification en mode édition
+    if (typeof isEditingPlanning !== 'undefined' && !isEditingPlanning && document.getElementById('planningEdit')) {
+        try { togglePlanningEdit(); } catch (e) { console.warn('Auto-édition de la planification:', e); }
+    }
+    {% endif %}
 });
 </script>
 {% endif %}
@@ -11222,7 +11234,13 @@ function deleteLessonClassFile(fileId, source, name) {
             const res = await fetch(`/api/class-files/delete/${fileId}` + (source ? `?source=${source}` : ''), { method: 'DELETE' });
             const d = await res.json();
             if (d.success) {
-                if (window.__lessonPanelClassId) loadClassFilesTree(window.__lessonPanelClassId);
+                document.querySelectorAll('.resource-item[data-file-id="' + fileId + '"]').forEach(el => el.remove());
+                if (document.getElementById('class-files-tree-container') && window.__lessonPanelClassId) {
+                    loadClassFilesTree(window.__lessonPanelClassId);
+                }
+                if (typeof loadClassResources === 'function') {
+                    try { loadClassResources(); } catch (e) {}
+                }
             } else {
                 alert(d.message || 'Erreur lors de la suppression');
             }

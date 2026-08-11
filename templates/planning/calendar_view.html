@@ -45,6 +45,26 @@ body:has(#attendanceModal[style*="block"]) {
 .custom-task-block { z-index: 5; }
 .custom-task-block:not(.custom-task-timed) { position: relative; }
 
+/* Panneau fichiers du modal : le nom tronque, les boutons d'action restent visibles */
+.file-manager-content .file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.file-manager-content .file-clickable-area { min-width: 0; }
+.file-manager-content .file-clickable-area .file-info { min-width: 0; }
+.file-manager-content .file-clickable-area .file-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.file-manager-content .file-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 0.2rem;
+}
+
 /* Salle de classe (horaire type) affichée sous la matière */
 .class-room {
     font-size: 0.68rem;
@@ -4778,6 +4798,45 @@ async function prefillPlanningModalFromSlot(date, periodNumber) {
         console.warn('Préremplissage du slot impossible:', e);
     }
 }
+
+// ==================== Verrou de scroll (Safari/iPad) ====================
+// Safari ignore overflow:hidden au toucher : on fige le body pendant qu'un
+// modal est ouvert, en préservant la position de défilement de la page.
+let fmScrollLockY = null;
+
+function fmApplyBodyScrollLock() {
+    const pm = document.getElementById('planningModal');
+    const am = document.getElementById('attendanceModal');
+    const planningOpen = !!(pm && pm.classList.contains('show'));
+    const attOpen = !!(am && am.style.display === 'block');
+    const shouldLock = planningOpen || attOpen;
+    const locked = fmScrollLockY !== null;
+    if (shouldLock && !locked) {
+        fmScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${fmScrollLockY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+    } else if (!shouldLock && locked) {
+        const y = fmScrollLockY;
+        fmScrollLockY = null;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo(0, y);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const pm = document.getElementById('planningModal');
+    const am = document.getElementById('attendanceModal');
+    const obs = new MutationObserver(fmApplyBodyScrollLock);
+    if (pm) obs.observe(pm, { attributes: true, attributeFilter: ['class'] });
+    if (am) obs.observe(am, { attributes: true, attributeFilter: ['style'] });
+});
 
 // ==================== Fichiers joints à une période ====================
 window.currentSlotPlanningId = null;
