@@ -359,7 +359,7 @@ body.fm-dragging .class-item {
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/file_manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/file_manager.js') }}?v={{ range(100000, 999999) | random }}"></script>
 <script>
 // ============================================================================
 // EXPLORATEUR DE FICHIERS — arbre rendu côté client, actions sans rechargement

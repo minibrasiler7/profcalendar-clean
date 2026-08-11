@@ -271,6 +271,19 @@ def upload_to_r2_key(file_data, key, mime_type=None):
         return False
 
 
+def delete_r2_key(key):
+    """Supprime un objet R2 par sa clé brute (ex. copies de classe class_files/...)."""
+    if not is_r2_enabled() or not key:
+        return False
+    try:
+        client = get_s3_client()
+        client.delete_object(Bucket=get_bucket_name(), Key=key)
+        return True
+    except Exception as e:
+        print(f"⚠️ Erreur suppression R2 (clé {key}): {e}")
+        return False
+
+
 def delete_file_from_r2(user_id, filename, file_type='file'):
     """
     Supprime un fichier de R2.

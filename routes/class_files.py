@@ -376,9 +376,39 @@ def list_class_files(class_id):
 @class_files_bp.route('/delete/<int:file_id>', methods=['DELETE'])
 @login_required
 def delete_class_file(file_id):
-    """Supprimer un fichier d'une classe"""
+    """Supprimer un fichier d'une classe.
+
+    Cherche d'abord dans le système actuel (class_files_v2, copies R2) puis
+    dans la table legacy : la route ne regardait que le legacy, donc TOUT
+    fichier copié depuis la migration R2 renvoyait « Fichier introuvable ».
+    ?source=legacy force l'ancien système en cas de collision d'ids.
+    """
     try:
-        # Vérifier que le fichier appartient à une classe de l'utilisateur
+        source = request.args.get('source', '')
+
+        # 1. Système actuel (class_files_v2)
+        if source != 'legacy':
+            from models.class_file import ClassFile as ClassFileV2
+            v2 = db.session.query(ClassFileV2).join(
+                Classroom, ClassFileV2.classroom_id == Classroom.id
+            ).filter(
+                ClassFileV2.id == file_id,
+                Classroom.user_id == current_user.id
+            ).first()
+            if v2:
+                if v2.r2_key:
+                    try:
+                        from services.r2_storage import delete_r2_key
+                        delete_r2_key(v2.r2_key)
+                    except Exception as e:
+                        print(f"⚠️ Erreur suppression copie R2: {e}")
+                db.session.delete(v2)
+                db.session.commit()
+                return jsonify({'success': True, 'message': 'Fichier retiré de la classe'})
+            if source == 'v2':
+                return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+
+        # 2. Legacy (ancien système)
         class_file = db.session.query(ClassFile).join(
             Classroom, ClassFile.classroom_id == Classroom.id
         ).filter(

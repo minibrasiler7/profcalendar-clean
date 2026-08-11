@@ -296,7 +296,7 @@ function renderFileStructure(structure, classId, level = 0) {
                 <div class="tree-file" style="${indent}" data-file-id="${file.id}" data-class-id="${classId}">
                     <i class="${icon} tree-item-icon"></i>
                     <span class="tree-item-name">${file.original_filename}</span>
-                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId})" title="Supprimer">
+                    <button class="tree-file-delete" onclick="deleteClassFile(${file.id}, ${classId}, '${file.source || ''}')" title="Supprimer">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -435,11 +435,11 @@ function initClassFileSelection(classId) {
 }
 
 // Fonction pour supprimer un fichier de classe
-async function deleteClassFile(fileId, classId) {
-    console.log(`🔍 deleteClassFile appelée avec fileId=${fileId}, classId=${classId}`);
+async function deleteClassFile(fileId, classId, source) {
+    console.log(`🔍 deleteClassFile appelée avec fileId=${fileId}, classId=${classId}, source=${source}`);
 
     try {
-        const url = `/api/class-files/delete/${fileId}`;
+        const url = `/api/class-files/delete/${fileId}` + (source ? `?source=${source}` : '');
         console.log(`🔍 Envoi requête DELETE vers: ${url}`);
         
         const response = await fetch(url, {
