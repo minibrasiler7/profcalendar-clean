@@ -787,10 +787,25 @@ def copy_folder_to_class():
             failed_count = 0
             current_folder_path = parent_folder_path + "/" + source_folder.name if parent_folder_path else source_folder.name
 
-            # Copier tous les fichiers du dossier
-            files_in_folder = list(source_folder.files)
-            for file in files_in_folder:
-                result = copy_single_file_to_class(file, class_id, current_folder_path)
+            # Copier tous les fichiers du dossier — SANS hydrater les blobs.
+            # list(source_folder.files) chargeait chaque UserFile avec ses
+            # colonnes BYTEA (file_content/thumbnail_content) : un dossier de
+            # vrais PDF explosait la RAM du worker → 502. En plus, le commit
+            # par fichier expire les instances : tout accès suivant rechargeait
+            # la ligne ENTIÈRE (blob compris). On itère donc sur les ids et on
+            # charge chaque fichier à la demande, blobs différés, puis on
+            # l'expulse de la session pour libérer la mémoire.
+            from sqlalchemy.orm import defer
+            file_ids = [row.id for row in source_folder.files.with_entities(UserFile.id).all()]
+            for fid in file_ids:
+                user_file = db.session.query(UserFile).options(
+                    defer(UserFile.file_content), defer(UserFile.thumbnail_content)
+                ).get(fid)
+                if not user_file:
+                    failed_count += 1
+                    continue
+                result = copy_single_file_to_class(user_file, class_id, current_folder_path)
+                db.session.expunge(user_file)
                 if result is True:
                     copied_count += 1
                 elif result == 'exists':
@@ -954,10 +969,20 @@ def copy_folder_to_class_folder():
             copied_count = 0
             current_target_path = target_folder_base + "/" + source_folder.name
 
-            # Copier tous les fichiers du dossier
-            for file in source_folder.files:
-                if copy_single_file_to_class(file, class_id, current_target_path):
+            # Copier tous les fichiers du dossier (ids seulement, blobs différés
+            # — voir copy_folder_to_class pour l'explication mémoire)
+            from sqlalchemy.orm import defer
+            from models.file_manager import UserFile
+            file_ids = [row.id for row in source_folder.files.with_entities(UserFile.id).all()]
+            for fid in file_ids:
+                user_file = db.session.query(UserFile).options(
+                    defer(UserFile.file_content), defer(UserFile.thumbnail_content)
+                ).get(fid)
+                if not user_file:
+                    continue
+                if copy_single_file_to_class(user_file, class_id, current_target_path) is True:
                     copied_count += 1
+                db.session.expunge(user_file)
 
             # Copier récursivement les sous-dossiers
             for subfolder in source_folder.subfolders:
@@ -967,6 +992,7 @@ def copy_folder_to_class_folder():
 
         # Copier le dossier
         copied_count = copy_folder_to_target(folder, class_id, target_folder_path)
+        db.session.commit()
 
         return jsonify({
             'success': True,
