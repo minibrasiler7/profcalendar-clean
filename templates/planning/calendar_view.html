@@ -26,15 +26,15 @@ if (typeof pdfjsLib !== 'undefined') {
 </script>
 <style>
 /* Styles pour le modal de planification avec gestionnaire de fichiers */
-/* Modal de planification ouvert : verrouiller le défilement de la page derrière.
-   Sur Safari/Chrome le scrolleur de la page est l'élément html, pas body :
-   on verrouille les deux, et le modal contient son propre défilement. */
-html:has(.planning-modal.show),
-html:has(#attendanceModal[style*="block"]),
-body:has(.planning-modal.show),
-body:has(#attendanceModal[style*="block"]) {
-    overflow: hidden !important;
-    height: 100%;
+/* Le verrouillage du défilement pendant les modals est fait en JS
+   (fmApplyBodyScrollLock) : body figé en position:fixed + classe
+   html.fm-modal-lock. PAS de règle html:has(...){overflow:hidden} ici :
+   elle s'appliquait AVANT que le JS lise la position de défilement et la
+   remettait brutalement à zéro (page « téléportée » en haut à la fermeture).
+   Le modal, lui, garde son propre défilement interne. */
+.planning-modal.show .modal-content {
+    max-height: 88vh;
+    overflow-y: auto !important;
 }
 .planning-modal .modal-content,
 .planning-modal {
