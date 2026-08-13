@@ -42,9 +42,16 @@ def _beacon(tag, text):
 def write_report(body):
     """Écrit le rapport dans une table lisible via psql, avec double repli
     (psycopg direct puis SQLAlchemy) + balise HTTP systématique."""
+    import re as _re
+
+    def _scrub(t):
+        # Ne jamais laisser fuiter des identifiants dans les rapports
+        return _re.sub(r'://[^\s@]+@', '://***@', str(t))
+
     url = os.environ.get('DATABASE_URL', '')
     if url.startswith('postgres://'):
         url = url.replace('postgres://', 'postgresql://', 1)
+    url = url.replace('postgresql+psycopg://', 'postgresql://')
     ok = False
     try:
         import psycopg
@@ -57,7 +64,7 @@ def write_report(body):
             conn.commit()
         ok = True
     except Exception as e:
-        body = f"[write psycopg KO: {e}]\n" + body
+        body = f"[write psycopg KO: {_scrub(e)}]\n" + body
         try:
             from sqlalchemy import create_engine, text as _sqltext
             eng = create_engine(url)
@@ -68,7 +75,7 @@ def write_report(body):
                 conn.execute(_sqltext("INSERT INTO oneoff_reports (body) VALUES (:b)"), {"b": body})
             ok = True
         except Exception as e2:
-            body = f"[write sqlalchemy KO: {e2}]\n" + body
+            body = f"[write sqlalchemy KO: {_scrub(e2)}]\n" + body
     _beacon('rapport-ok' if ok else 'rapport-ko', body)
 
 
@@ -90,10 +97,12 @@ def run():
     data = json.loads(base64.b64decode(sys.argv[2]).decode('utf-8'))
     lines = []
 
-    from app import app
+    from app import create_app
     from extensions import db
     from models.student import Student
     from models.classroom import Classroom
+
+    app = create_app('production')
 
     with app.app_context():
         for cid_str, entries in data.items():
