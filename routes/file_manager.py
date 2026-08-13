@@ -2205,42 +2205,24 @@ def delete_class_folder():
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
         
-        # Trouver tous les fichiers dans ce dossier ET ses sous-dossiers
-        folder_description_exact = f"Copié dans le dossier: {folder_path}"
-        folder_description_prefix = f"Copié dans le dossier: {folder_path}/"
-        
-        print(f"🔍 Recherche des fichiers avec description exacte: '{folder_description_exact}'")
-        print(f"🔍 Recherche des fichiers avec préfixe: '{folder_description_prefix}'")
-        
-        # Debug: Montrer tous les fichiers de cette classe pour comprendre la structure
+        # L'arbre affiché vient du listing UNIFIÉ (class_files_v2 + legacy) :
+        # il faut purger les DEUX familles, sinon le dossier « supprimé »
+        # réapparaît tant qu'il reste une ligne legacy dedans.
+        folder_path = folder_path.rstrip('/')
+
+        # ----- V2 : folder_path exact ou sous-dossier -----
         from models.class_file import ClassFile as NewClassFile
-        all_files_debug = NewClassFile.query.filter_by(classroom_id=class_id).limit(10).all()
-        print(f"🔍 DEBUG - Exemples de fichiers dans classe {class_id}:")
-        for f in all_files_debug:
-            filename = f.original_filename or 'Fichier supprimé'
-            print(f"🔍   - {filename} | FolderPath: '{f.folder_path}'")
-        
-        # Chercher les fichiers dans le dossier exact ET dans tous ses sous-dossiers
-        # Utiliser le nouveau système ClassFile car les logs montrent que les fichiers utilisent folder_path
         class_files = NewClassFile.query.filter(
             NewClassFile.classroom_id == class_id,
             db.or_(
                 NewClassFile.folder_path == folder_path,
+                NewClassFile.folder_path == f"{folder_path}/",
                 NewClassFile.folder_path.like(f"{folder_path}/%")
             )
         ).all()
-        
-        print(f"🔍 Fichiers trouvés: {len(class_files)}")
-        for cf in class_files:
-            filename = cf.original_filename or 'Fichier supprimé'
-            print(f"🔍   - {filename} (ID: {cf.id}) | FolderPath: '{cf.folder_path}'")
 
-        # Supprimer tous les fichiers du dossier
         deleted_count = 0
         for class_file in class_files:
-            filename = class_file.original_filename or 'Fichier supprimé'
-            print(f"🔍 Suppression fichier: {filename}")
-
             # Supprimer la copie R2 si elle existe
             if class_file.r2_key:
                 try:
@@ -2248,18 +2230,55 @@ def delete_class_folder():
                     client = get_s3_client()
                     if client:
                         client.delete_object(Bucket=get_bucket_name(), Key=class_file.r2_key)
-                        print(f"✅ Copie R2 supprimée: {class_file.r2_key}")
                 except Exception as e:
                     print(f"⚠️  Erreur suppression R2: {e}")
-            
-            # Supprimer l'entrée de la base de données
+
             db.session.delete(class_file)
             deleted_count += 1
-        
-        print(f"🔍 Commit de la suppression de {deleted_count} fichier(s)")
+
+        # ----- Legacy : le dossier est encodé dans description -----
+        # Requête en COLONNES uniquement : file_content est un BYTEA qu'il ne
+        # faut jamais hydrater (cf. incidents 502/OOM).
+        from models.student import LegacyClassFile
+        legacy_rows = db.session.query(
+            LegacyClassFile.id, LegacyClassFile.filename
+        ).filter(
+            LegacyClassFile.classroom_id == class_id,
+            db.or_(
+                LegacyClassFile.description == f"Copié dans le dossier: {folder_path}",
+                LegacyClassFile.description.like(f"Copié dans le dossier: {folder_path}/%"),
+            )
+        ).all()
+
+        for row in legacy_rows:
+            if row.filename:
+                try:
+                    disk_path = os.path.join(current_app.config['UPLOAD_FOLDER'],
+                                             'class_files', str(class_id), row.filename)
+                    if os.path.exists(disk_path):
+                        os.remove(disk_path)
+                except Exception as e:
+                    print(f"⚠️  Erreur suppression fichier disque legacy: {e}")
+
+        if legacy_rows:
+            legacy_ids = [r.id for r in legacy_rows]
+            db.session.query(LegacyClassFile).filter(
+                LegacyClassFile.id.in_(legacy_ids)
+            ).delete(synchronize_session=False)
+            deleted_count += len(legacy_ids)
+
+        print(f"🔍 delete-class-folder '{folder_path}' classe {class_id}: "
+              f"{len(class_files)} v2 + {len(legacy_rows)} legacy supprimés")
         db.session.commit()
-        print("✅ Suppression terminée")
-        
+
+        if deleted_count == 0:
+            # Rien trouvé dans aucune des deux familles : le prétendu succès
+            # silencieux est exactement le bug qu'on corrige — être honnête.
+            return jsonify({
+                'success': False,
+                'message': f'Aucun fichier trouvé dans le dossier "{folder_path}"'
+            }), 404
+
         return jsonify({
             'success': True,
             'message': f'Dossier "{folder_path}" supprimé avec {deleted_count} fichier(s)'
