@@ -1512,6 +1512,27 @@ def upload_with_structure():
         file_ext = original_filename.rsplit('.', 1)[1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
+        # --- Idempotence du re-drop d'un dossier ---
+        # Même nom (après conversion éventuelle en .pdf) déjà présent dans le
+        # dossier cible → on n'empile pas un doublon, on répond « déjà
+        # présent ». Permet de re-glisser tout un dossier pour ne compléter
+        # que les manquants (mêmes sémantiques que la copie vers une classe).
+        effective_name = original_filename
+        if is_convertible_filename(original_filename):
+            # même règle de nommage que convert_if_needed
+            effective_name = original_filename.rsplit('.', 1)[0] + '.pdf'
+        deja = db.session.query(UserFile.id).filter_by(
+            user_id=current_user.id,
+            folder_id=target_folder_id,
+            original_filename=effective_name
+        ).first()
+        if deja:
+            return jsonify({
+                'success': True,
+                'skipped': True,
+                'message': f'« {effective_name} » déjà présent — ignoré'
+            })
+
         # Lire le contenu du fichier en mémoire
         file_data = file.read()
         file.seek(0)

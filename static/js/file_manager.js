@@ -1260,6 +1260,10 @@ function isAppleBundleName(name) {
 
 // Parcourir récursivement le système de fichiers
 async function traverseFileSystem(entry, path, fileStructure) {
+    // Fichiers cachés macOS (.DS_Store, ._xxx) : du bruit, jamais du contenu
+    if (entry.name && entry.name.startsWith('.')) {
+        return;
+    }
     if (entry.isFile) {
         // entry.file() peut échouer (fichier iCloud non téléchargé sur le Mac,
         // fichier verrouillé…) : sans callback d'erreur, la promesse ne se
@@ -1438,6 +1442,10 @@ function handleFiles(files) {
         const bundlesVus = new Set();
 
         filesArray.forEach(file => {
+            // Fichiers cachés macOS (.DS_Store, ._xxx) : ignorés sans bruit
+            if (file.name.startsWith('.')) {
+                return;
+            }
             // Fichier situé DANS un paquet Apple (doc.pages/index.zip…) :
             // on signale le paquet une seule fois au lieu d'uploader ses entrailles.
             const rel = file.webkitRelativePath || '';

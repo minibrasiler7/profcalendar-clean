@@ -1213,6 +1213,8 @@ async function processUploadQueue() {
 async function uploadFilesWithStructure(filesData, preErrors = []) {
     const totalFiles = filesData.length;
     let uploadedCount = 0;
+    let skippedCount = 0;   // « déjà présent » : re-drop idempotent d'un dossier
+    let done = 0;
     const failures = [...preErrors];
     showUploadProgress();
     for (const fileData of filesData) {
@@ -1224,13 +1226,18 @@ async function uploadFilesWithStructure(filesData, preErrors = []) {
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const fileProgress = (e.loaded / e.total) * 100;
-                    const totalProgress = ((uploadedCount + fileProgress / 100) / totalFiles) * 100;
-                    updateUploadProgress(totalProgress, `${fileData.file.name} (${uploadedCount + 1}/${totalFiles})`);
+                    const totalProgress = ((done + fileProgress / 100) / totalFiles) * 100;
+                    updateUploadProgress(totalProgress, `${fileData.file.name} (${done + 1}/${totalFiles})`);
                 }
             });
             await new Promise((resolve, reject) => {
                 xhr.onload = () => {
-                    if (xhr.status === 200) { uploadedCount++; resolve(); }
+                    if (xhr.status === 200) {
+                        let rep = {};
+                        try { rep = JSON.parse(xhr.responseText); } catch (e) {}
+                        if (rep.skipped) skippedCount++; else uploadedCount++;
+                        resolve();
+                    }
                     else {
                         let msg = `erreur serveur (${xhr.status})`;
                         try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
@@ -1245,10 +1252,14 @@ async function uploadFilesWithStructure(filesData, preErrors = []) {
             console.error(`Erreur lors de l'upload de ${fileData.file.name}:`, error);
             failures.push({ name: fileData.file.name, reason: error.message });
         }
+        done++;
     }
     hideUploadProgress();
-    if (uploadedCount > 0) {
-        showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    if (uploadedCount > 0 || skippedCount > 0) {
+        const parts = [];
+        if (uploadedCount > 0) parts.push(`${uploadedCount} fichier(s) uploadé(s)`);
+        if (skippedCount > 0) parts.push(`${skippedCount} déjà présent(s), ignoré(s)`);
+        showNotification('success', parts.join(' — '));
     }
     reportUploadFailures(failures);
     await refreshTree();
