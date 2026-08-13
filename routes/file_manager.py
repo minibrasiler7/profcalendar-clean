@@ -707,7 +707,10 @@ def get_classes():
                 'id': classroom.id,
                 'name': classroom.name,
                 'subject': classroom.subject,
-                'student_count': classroom.students.count()
+                # Union du groupe multi-disciplines (même class_group/nom) :
+                # la 2e discipline d'une classe partage la liste d'élèves de la
+                # 1re — students.count() affichait « 0 élève » à tort.
+                'student_count': len(classroom.get_students())
             })
 
         return jsonify({
