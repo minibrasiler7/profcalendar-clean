@@ -848,10 +848,11 @@ def list_students_for_sharing(classroom_id):
             return jsonify({'success': False, 'message': 'Classe introuvable'}), 404
         
         print(f"✅ Classe trouvée: {classroom.name}")
-        
-        # Récupérer tous les élèves de cette classe
-        from models.student import Student
-        students = Student.query.filter_by(classroom_id=classroom_id).order_by(Student.last_name, Student.first_name).all()
+
+        # Union du groupe multi-disciplines : la 2e discipline d'une classe
+        # partage la liste d'élèves de la 1re (sinon « Aucun élève » à tort).
+        students = sorted(classroom.get_students(),
+                          key=lambda s: (s.last_name or '', s.first_name or ''))
         
         print(f"📋 {len(students)} élèves trouvés")
         
@@ -896,28 +897,50 @@ def share_file_with_students():
         if not file_id or not student_ids:
             print(f"❌ Paramètres manquants: file_id={file_id}, student_ids={student_ids}")
             return jsonify({'success': False, 'message': 'Paramètres manquants'}), 400
-        
-        # Vérifier que le fichier appartient à une classe de l'utilisateur
-        class_file = db.session.query(ClassFile).join(
-            Classroom, ClassFile.classroom_id == Classroom.id
+
+        # Le fichier partagé DOIT être une entrée class_files_v2 :
+        # StudentFileShare.file_id référence cette table (FK). L'ancienne
+        # implémentation cherchait dans la table legacy → tout fichier moderne
+        # renvoyait « Fichier introuvable » et rien n'était partagé.
+        from models.class_file import ClassFile as ClassFileV2
+        class_file = db.session.query(ClassFileV2).join(
+            Classroom, ClassFileV2.classroom_id == Classroom.id
         ).filter(
-            ClassFile.id == file_id,
+            ClassFileV2.id == file_id,
             Classroom.user_id == current_user.id
         ).first()
-        
+
         if not class_file:
+            # Distinguer le vrai « introuvable » d'un fichier de l'ancien
+            # système (non partageable tel quel, la FK exige une entrée v2).
+            legacy = db.session.query(ClassFile.id).join(
+                Classroom, ClassFile.classroom_id == Classroom.id
+            ).filter(
+                ClassFile.id == file_id,
+                Classroom.user_id == current_user.id
+            ).first()
+            if legacy:
+                return jsonify({
+                    'success': False,
+                    'message': 'Ce fichier date de l\'ancien stockage et ne peut pas être partagé tel quel. '
+                               'Recopiez-le dans la classe depuis le gestionnaire, puis partagez la nouvelle copie.'
+                }), 400
             print(f"❌ Fichier {file_id} introuvable pour l'utilisateur {current_user.id}")
             return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-        
-        # Vérifier que tous les élèves appartiennent à la classe du fichier
+
+        # Vérifier que tous les élèves appartiennent au GROUPE de la classe du
+        # fichier : une classe suivie dans deux disciplines partage sa liste
+        # d'élèves (Classroom.get_students → union par class_group/nom), les
+        # élèves peuvent donc être rattachés à la classe jumelle.
         from models.student import Student
+        group_ids = class_file.classroom.get_group_classroom_ids() if class_file.classroom else [class_file.classroom_id]
         students = Student.query.filter(
             Student.id.in_(student_ids),
-            Student.classroom_id == class_file.classroom_id
+            Student.classroom_id.in_(group_ids)
         ).all()
-        
+
         if len(students) != len(student_ids):
-            print(f"❌ Certains élèves ne sont pas dans la classe {class_file.classroom_id}")
+            print(f"❌ Certains élèves ne sont pas dans le groupe de la classe {class_file.classroom_id}")
             return jsonify({'success': False, 'message': 'Certains élèves ne sont pas dans cette classe'}), 400
         
         # Créer les partages (en évitant les doublons)
