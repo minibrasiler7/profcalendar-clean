@@ -8896,21 +8896,24 @@ function renderClassFiles(currentPath, classroomId = null) {
             const icon = getFileIcon(file.file_type);
             const iconColor = getFileIconColor(file.file_type);
 
+            // Les ids de class_files (legacy) et class_files_v2 peuvent entrer en
+            // collision : on transmet la source pour servir le bon fichier.
+            const srcParam = file.source ? `source=${file.source}` : '';
             html += `
-                <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}')">
+                <div class="file-item file" data-id="${file.id}" data-type="file" ondblclick="previewClassFile(${file.id}, '${file.file_type}', '${file.source || ''}')">
                     <div class="item-icon">
                         ${file.thumbnail
-                            ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1" alt="${file.original_filename}" class="thumbnail">`
+                            ? `<img src="/api/class-files/preview/${file.id}?thumbnail=1&${srcParam}" alt="${file.original_filename}" class="thumbnail">`
                             : `<i class="${icon}" style="color: ${iconColor};"></i>`
                         }
                     </div>
                     <div class="item-name" title="${file.original_filename}">${file.original_filename}</div>
                     <div class="item-info">${formatFileSize(file.file_size)}</div>
                     <div class="item-actions">
-                        <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}')" title="Aperçu">
+                        <button class="action-btn" onclick="previewClassFile(${file.id}, '${file.file_type}', '${file.source || ''}')" title="Aperçu">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <a href="/api/class-files/download/${file.id}" class="action-btn" title="Télécharger">
+                        <a href="/api/class-files/download/${file.id}?${srcParam}" class="action-btn" title="Télécharger">
                             <i class="fas fa-download"></i>
                         </a>
                         <button class="action-btn" onclick="shareFileWithStudents(${file.id}, '${file.original_filename}')" title="Partager avec des élèves" style="color: #10B981;">
@@ -8919,7 +8922,7 @@ function renderClassFiles(currentPath, classroomId = null) {
                         <button class="action-btn" onclick="renameClassItem('file', ${file.id}, '${file.original_filename}', ${classroomId})" title="Renommer">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId})" title="Supprimer">
+                        <button class="action-btn danger" onclick="deleteClassFile(${file.id}, ${classroomId}, '${file.source || ''}')" title="Supprimer">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -9582,19 +9585,20 @@ async function createKeepFile(folderName, parentPath, classroomId) {
 }
 
 // Aperçu fichier
-function previewClassFile(fileId, fileType) {
+function previewClassFile(fileId, fileType, source = '') {
     const modal = document.getElementById('classPreviewModal');
     const content = document.getElementById('classPreviewContent');
     const title = document.getElementById('classPreviewTitle');
-    
+
     title.textContent = 'Aperçu';
-    
+
+    const url = `/api/class-files/preview/${fileId}${source ? `?source=${source}` : ''}`;
     if (fileType === 'pdf') {
-        content.innerHTML = `<iframe src="/api/class-files/preview/${fileId}"></iframe>`;
+        content.innerHTML = `<iframe src="${url}"></iframe>`;
     } else {
-        content.innerHTML = `<img src="/api/class-files/preview/${fileId}" alt="Aperçu">`;
+        content.innerHTML = `<img src="${url}" alt="Aperçu">`;
     }
-    
+
     modal.classList.add('show');
 }
 
@@ -9647,11 +9651,11 @@ async function saveClassRename(e) {
 }
 
 // Suppression
-async function deleteClassFile(fileId, classroomId = null) {
+async function deleteClassFile(fileId, classroomId = null, source = '') {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) return;
-    
+
     try {
-        const response = await fetch(`/api/class-files/delete/${fileId}`, {
+        const response = await fetch(`/api/class-files/delete/${fileId}${source ? `?source=${source}` : ''}`, {
             method: 'DELETE'
         });
         

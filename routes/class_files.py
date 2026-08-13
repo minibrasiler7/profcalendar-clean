@@ -15,6 +15,8 @@ from routes.file_manager import (
     MAX_TOTAL_STORAGE,
     get_user_total_storage,
     copy_single_file_to_class,
+    _find_class_file_candidates,
+    _serve_class_file_candidate,
 )
 
 class_files_bp = Blueprint('class_files', __name__, url_prefix='/api/class-files')
@@ -631,81 +633,46 @@ def create_folder_structure():
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
 
 
+def _serve_class_file_any(file_id, as_attachment):
+    """Sert un fichier de classe quel que soit son système de stockage.
+
+    L'ancienne implémentation ne cherchait que la table legacy `class_files`
+    (blob en base) → toute copie moderne (class_files_v2, R2/UserFile)
+    renvoyait « Fichier introuvable » (aperçus/téléchargements de
+    manage-classes). ?source=legacy|v2 force une table quand les ids
+    entrent en collision entre les deux systèmes.
+    """
+    try:
+        from flask import current_app
+        source = request.args.get('source', '')
+        candidates = _find_class_file_candidates(file_id, current_user)
+        if source in ('v2', 'legacy'):
+            candidates = [c for c in candidates if c[0] == source]
+        for kind, obj in candidates:
+            try:
+                response = _serve_class_file_candidate(kind, obj, as_attachment=as_attachment)
+                if response is not None:
+                    return response
+            except Exception as e:
+                current_app.logger.warning(
+                    f"class_files serve: candidat {kind} échoué pour id={file_id}: {e}")
+        if candidates:
+            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
+        return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+
 @class_files_bp.route('/preview/<int:file_id>')
 @login_required
 def preview_class_file(file_id):
-    """Aperçu d'un fichier de classe"""
-    try:
-        from flask import Response
-        import io
-        
-        # Vérifier que le fichier appartient à une classe de l'utilisateur
-        class_file = db.session.query(ClassFile).join(
-            Classroom, ClassFile.classroom_id == Classroom.id
-        ).filter(
-            ClassFile.id == file_id,
-            Classroom.user_id == current_user.id
-        ).first()
-        
-        if not class_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-        
-        # Vérifier que le contenu BLOB existe
-        if not class_file.file_content:
-            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
-        
-        # Déterminer le type MIME
-        mimetype = class_file.mime_type or 'application/octet-stream'
-        
-        # Créer une réponse avec le contenu BLOB
-        return Response(
-            class_file.file_content,
-            mimetype=mimetype,
-            headers={
-                'Content-Disposition': f'inline; filename="{class_file.original_filename}"'
-            }
-        )
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+    """Aperçu d'un fichier de classe (v2 + legacy)"""
+    return _serve_class_file_any(file_id, as_attachment=False)
 
 @class_files_bp.route('/download/<int:file_id>')
 @login_required
 def download_class_file(file_id):
-    """Télécharger un fichier de classe"""
-    try:
-        from flask import Response
-        import io
-        
-        # Vérifier que le fichier appartient à une classe de l'utilisateur
-        class_file = db.session.query(ClassFile).join(
-            Classroom, ClassFile.classroom_id == Classroom.id
-        ).filter(
-            ClassFile.id == file_id,
-            Classroom.user_id == current_user.id
-        ).first()
-        
-        if not class_file:
-            return jsonify({'success': False, 'message': 'Fichier introuvable'}), 404
-        
-        # Vérifier que le contenu BLOB existe
-        if not class_file.file_content:
-            return jsonify({'success': False, 'message': 'Contenu du fichier manquant'}), 404
-        
-        # Déterminer le type MIME
-        mimetype = class_file.mime_type or 'application/octet-stream'
-        
-        # Créer une réponse de téléchargement avec le contenu BLOB
-        return Response(
-            class_file.file_content,
-            mimetype=mimetype,
-            headers={
-                'Content-Disposition': f'attachment; filename="{class_file.original_filename}"'
-            }
-        )
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+    """Télécharger un fichier de classe (v2 + legacy)"""
+    return _serve_class_file_any(file_id, as_attachment=True)
 
 @class_files_bp.route('/rename', methods=['PUT'])
 @login_required
