@@ -79,6 +79,16 @@ def get_absolute_file_path(user_file):
         rel_path = rel_path[8:]  # Enlever 'uploads/'
     return os.path.join(current_app.config['UPLOAD_FOLDER'], rel_path)
 
+def _content_disposition(disposition, filename):
+    """Content-Disposition sûr : repli ASCII + RFC 5987 pour l'UTF-8.
+    Un nom contenant p.ex. un tiret cadratin « — » (hors latin-1) faisait
+    échouer l'encodage de l'en-tête à l'envoi de la réponse."""
+    from urllib.parse import quote
+    name = filename or 'fichier'
+    fallback = name.encode('ascii', 'ignore').decode().replace('"', '') or 'fichier'
+    return f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"
+
+
 def serve_user_file_content(user_file, as_attachment=False):
     """
     Sert le contenu d'un UserFile en essayant R2 > BLOB > disque.
@@ -93,16 +103,18 @@ def serve_user_file_content(user_file, as_attachment=False):
     filename = user_file.original_filename
     disposition = 'attachment' if as_attachment else 'inline'
 
-    # 1. R2 (nouveaux fichiers)
+    # 1. R2 (nouveaux fichiers) — STREAMÉ par morceaux : ne jamais charger
+    # un fichier entier en RAM (170+ MB → worker tué → 502).
     if user_file.r2_key:
         try:
-            from services.r2_storage import download_file_from_r2
-            r2_data = download_file_from_r2(user_file.user_id, user_file.filename)
-            if r2_data:
-                return Response(
-                    r2_data, mimetype=mimetype,
-                    headers={'Content-Disposition': f'{disposition}; filename="{filename}"'}
-                )
+            from services.r2_storage import stream_file_from_r2
+            streamed = stream_file_from_r2(user_file.user_id, user_file.filename)
+            if streamed:
+                chunks, length = streamed
+                headers = {'Content-Disposition': _content_disposition(disposition, filename)}
+                if length:
+                    headers['Content-Length'] = str(length)
+                return Response(chunks, mimetype=mimetype, headers=headers)
         except Exception as e:
             current_app.logger.warning(f"Erreur R2 pour {filename}, fallback: {e}")
 
@@ -110,7 +122,7 @@ def serve_user_file_content(user_file, as_attachment=False):
     if user_file.file_content:
         return Response(
             user_file.file_content, mimetype=mimetype,
-            headers={'Content-Disposition': f'{disposition}; filename="{filename}"'}
+            headers={'Content-Disposition': _content_disposition(disposition, filename)}
         )
 
     # 3. Disque local
@@ -151,7 +163,10 @@ def _find_class_file_candidates(file_id, user):
         if owner_ok:
             candidates.append(('v2', v2))
 
-    legacy = LegacyClassFile.query.filter_by(id=file_id).first()
+    from sqlalchemy.orm import defer as _defer
+    legacy = LegacyClassFile.query.options(
+        _defer(LegacyClassFile.file_content)
+    ).filter_by(id=file_id).first()
     if legacy:
         owner_ok = bool(legacy.classroom and legacy.classroom.user_id == user.id)
         current_app.logger.debug(
@@ -162,7 +177,9 @@ def _find_class_file_candidates(file_id, user):
         if owner_ok:
             candidates.append(('legacy', legacy))
 
-    own = UserFile.query.filter_by(id=file_id, user_id=user.id).first()
+    own = UserFile.query.options(
+        _defer(UserFile.file_content), _defer(UserFile.thumbnail_content)
+    ).filter_by(id=file_id, user_id=user.id).first()
     if own:
         candidates.append(('userfile', own))
 
@@ -216,14 +233,23 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
 
     if kind == 'v2':
         # 1. Servir via le UserFile source si disponible (R2/BLOB/disque).
-        if obj.user_file:
-            response = serve_user_file_content(obj.user_file, as_attachment=as_attachment)
+        # Blobs différés : ils ne sont chargés que si la branche BLOB sert
+        # réellement ce fichier.
+        source_uf = None
+        if obj.user_file_id:
+            from sqlalchemy.orm import defer as _defer
+            from models.file_manager import UserFile as _UF
+            source_uf = db.session.query(_UF).options(
+                _defer(_UF.file_content), _defer(_UF.thumbnail_content)
+            ).get(obj.user_file_id)
+        if source_uf:
+            response = serve_user_file_content(source_uf, as_attachment=as_attachment)
             if response is not None:
                 return response
             current_app.logger.debug(
-                f"=== SERVE DEBUG === v2 id={obj.id} via user_file id={obj.user_file.id} "
-                f"({obj.user_file.original_filename!r}) introuvable partout : "
-                f"r2_key={bool(obj.user_file.r2_key)} blob={bool(obj.user_file.file_content)}"
+                f"=== SERVE DEBUG === v2 id={obj.id} via user_file id={source_uf.id} "
+                f"({source_uf.original_filename!r}) introuvable partout : "
+                f"r2_key={bool(source_uf.r2_key)}"
             )
         else:
             current_app.logger.debug(
@@ -236,20 +262,20 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
         # R2 dans la classe est encore là).
         if obj.r2_key and obj.own_filename and obj.classroom:
             try:
-                from services.r2_storage import download_file_from_r2
+                from services.r2_storage import stream_file_from_r2
                 owner_id = obj.classroom.user_id
-                r2_data = download_file_from_r2(owner_id, obj.own_filename)
-                if r2_data:
+                streamed = stream_file_from_r2(owner_id, obj.own_filename)
+                if streamed:
+                    chunks, length = streamed
                     mimetype = obj.own_mime_type or obj.mime_type or 'application/pdf'
                     disposition = 'attachment' if as_attachment else 'inline'
                     current_app.logger.debug(
-                        f"=== SERVE DEBUG === v2 id={obj.id} servi via own r2_key={obj.r2_key}"
+                        f"=== SERVE DEBUG === v2 id={obj.id} servi (streaming) via own r2_key={obj.r2_key}"
                     )
-                    return Response(
-                        r2_data,
-                        mimetype=mimetype,
-                        headers={'Content-Disposition': f'{disposition}; filename="{obj.original_filename}"'}
-                    )
+                    headers = {'Content-Disposition': _content_disposition(disposition, obj.original_filename)}
+                    if length:
+                        headers['Content-Length'] = str(length)
+                    return Response(chunks, mimetype=mimetype, headers=headers)
                 current_app.logger.debug(
                     f"=== SERVE DEBUG === v2 id={obj.id} own r2_key={obj.r2_key!r} "
                     f"introuvable sur R2 (owner={owner_id}, file={obj.own_filename!r})"
@@ -268,7 +294,7 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
             return Response(
                 obj.file_content,
                 mimetype=mimetype,
-                headers={'Content-Disposition': f'{disposition}; filename="{obj.original_filename}"'}
+                headers={'Content-Disposition': _content_disposition(disposition, obj.original_filename)}
             )
         # 2. Fichier disque (compat héritée)
         if obj.is_student_shared:

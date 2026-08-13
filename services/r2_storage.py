@@ -271,6 +271,39 @@ def upload_to_r2_key(file_data, key, mime_type=None):
         return False
 
 
+def stream_r2_key(key):
+    """Retourne (générateur de chunks, taille) pour un objet R2, sans jamais
+    charger le fichier entier en mémoire — indispensable pour les gros PDF
+    (des fichiers de 170-217 MB tuaient le worker → 502)."""
+    if not is_r2_enabled() or not key:
+        return None
+    try:
+        client = get_s3_client()
+        obj = client.get_object(Bucket=get_bucket_name(), Key=key)
+        length = obj.get('ContentLength')
+        body = obj['Body']
+
+        def _chunks():
+            try:
+                for chunk in iter(lambda: body.read(64 * 1024), b''):
+                    yield chunk
+            finally:
+                try:
+                    body.close()
+                except Exception:
+                    pass
+
+        return _chunks(), length
+    except Exception as e:
+        print(f"⚠️ Erreur streaming R2 (clé {key}): {e}")
+        return None
+
+
+def stream_file_from_r2(user_id, filename, file_type='file'):
+    """Variante de download_file_from_r2 qui streame au lieu de matérialiser."""
+    return stream_r2_key(_get_r2_key(user_id, filename, file_type))
+
+
 def delete_r2_key(key):
     """Supprime un objet R2 par sa clé brute (ex. copies de classe class_files/...)."""
     if not is_r2_enabled() or not key:
