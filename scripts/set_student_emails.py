@@ -13,10 +13,34 @@ neutralisés), avec repli sur le nom de famille seul s'il est unique
 (prénoms composés). Les élèves de la liste absents de la classe sont créés ;
 les élèves de la classe absents de la liste sont signalés, jamais supprimés.
 """
+import os
 import sys
 import json
 import base64
 import unicodedata
+
+# Lancé via « python scripts/set_student_emails.py », sys.path contient
+# scripts/ mais pas la racine du projet → l'import de app échouerait.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def write_report(body):
+    """Écrit le rapport (ou le traceback) dans une table lisible ensuite via
+    psql — la sortie stdout des jobs Render n'est pas consultable par l'API."""
+    try:
+        import psycopg
+        url = os.environ.get('DATABASE_URL', '')
+        if url.startswith('postgres://'):
+            url = url.replace('postgres://', 'postgresql://', 1)
+        with psycopg.connect(url) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "CREATE TABLE IF NOT EXISTS oneoff_reports ("
+                    "id SERIAL PRIMARY KEY, created_at TIMESTAMP DEFAULT now(), body TEXT)")
+                cur.execute("INSERT INTO oneoff_reports (body) VALUES (%s)", (body,))
+            conn.commit()
+    except Exception as e:
+        print(f"write_report impossible: {e}")
 
 
 def norm(s):
@@ -29,12 +53,13 @@ def norm(s):
     return ' '.join(s.split())
 
 
-def main():
+def run():
     if len(sys.argv) != 3:
         print("Usage: set_student_emails.py <user_id> <base64 JSON>")
         sys.exit(2)
     user_id = int(sys.argv[1])
     data = json.loads(base64.b64decode(sys.argv[2]).decode('utf-8'))
+    lines = []
 
     from app import app
     from extensions import db
@@ -46,7 +71,7 @@ def main():
             cid = int(cid_str)
             classroom = Classroom.query.filter_by(id=cid, user_id=user_id).first()
             if not classroom:
-                print(f"[classe {cid}] introuvable pour user {user_id} — ignorée")
+                lines.append(f"[classe {cid}] introuvable pour user {user_id} — ignorée")
                 continue
 
             students = Student.query.filter_by(classroom_id=cid, user_id=user_id).all()
@@ -83,10 +108,22 @@ def main():
                     created += 1
 
             db.session.commit()
-            print(f"[{classroom.name}] emails mis à jour: {updated} | déjà corrects: {already} | "
-                  f"élèves créés: {created} | en base sans correspondance: {len(unmatched_db)}")
+            lines.append(f"[{classroom.name}] emails mis à jour: {updated} | déjà corrects: {already} | "
+                         f"élèves créés: {created} | en base sans correspondance: {len(unmatched_db)}")
             for k in sorted(unmatched_db):
-                print(f"    ⚠︎ dans ProfCalendar mais absent de la liste: {k[1].title()} {k[0].title()}")
+                lines.append(f"    ⚠︎ dans ProfCalendar mais absent de la liste: {k[1].title()} {k[0].title()}")
+    return lines
+
+
+def main():
+    try:
+        lines = run()
+        report = 'OK\n' + '\n'.join(lines)
+    except Exception:
+        import traceback
+        report = 'ÉCHEC\n' + traceback.format_exc()
+    print(report)
+    write_report(report)
 
 
 if __name__ == '__main__':
