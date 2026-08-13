@@ -1441,16 +1441,20 @@ function handleFiles(files) {
                 return;
             }
 
-            if (validateFile(file)) {
-                // Extraire le chemin du dossier (sans le nom du fichier)
-                const path = file.webkitRelativePath;
-                const folderPath = path.substring(0, path.lastIndexOf('/')) || '';
-
-                filesData.push({
-                    file: file,
-                    path: folderPath
-                });
+            const invalidReason = fileValidationError(file);
+            if (invalidReason) {
+                // Dans le récapitulatif final plutôt qu'en toast fugace
+                preErrors.push({ name: rel || file.name, reason: invalidReason });
+                return;
             }
+            // Extraire le chemin du dossier (sans le nom du fichier)
+            const path = file.webkitRelativePath;
+            const folderPath = path.substring(0, path.lastIndexOf('/')) || '';
+
+            filesData.push({
+                file: file,
+                path: folderPath
+            });
         });
 
         if (filesData.length > 0) {
@@ -1475,8 +1479,8 @@ function handleFiles(files) {
     }
 }
 
-// Valider un fichier
-function validateFile(file) {
+// Raison d'invalidité d'un fichier, ou null s'il est acceptable (sans toast)
+function fileValidationError(file) {
     const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
     // doc/docx/pages : convertis automatiquement en PDF côté serveur (CloudConvert)
     const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'pages'];
@@ -1486,15 +1490,21 @@ function validateFile(file) {
     // (browsers may return empty or non-standard MIME types for files with special characters)
     const ext = file.name.split('.').pop().toLowerCase();
     if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext)) {
-        showNotification('error', `Type de fichier non autorisé: ${file.name}`);
-        return false;
+        return 'type de fichier non autorisé';
     }
-
     if (file.size > maxSize) {
-        showNotification('error', `Fichier trop volumineux: ${file.name} (max 200 MB)`);
+        return 'fichier trop volumineux (max 250 MB)';
+    }
+    return null;
+}
+
+// Valider un fichier (avec notification immédiate — parcours fichier par fichier)
+function validateFile(file) {
+    const reason = fileValidationError(file);
+    if (reason) {
+        showNotification('error', `${file.name} : ${reason}`);
         return false;
     }
-
     return true;
 }
 
