@@ -25,7 +25,10 @@
                 <button class="btn btn-outline delete-mode-btn" onclick="toggleDeleteMode()" id="deleteModeBtn">
                     <i class="fas fa-trash"></i> Supprimer
                 </button>
-                <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" webkitdirectory directory style="display: none;" onchange="handleFileSelect(event)">
+                {# Pas d'accept ici : combiné à webkitdirectory, Safari peut renvoyer
+                   une sélection VIDE (« Transférer » ne fait alors rien). Le tri par
+                   type est fait par validateFile + le serveur. #}
+                <input type="file" id="fileInput" multiple webkitdirectory directory style="display: none;" onchange="handleFileSelect(event)">
                 <input type="file" id="fileInputSingle" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.pages" style="display: none;" onchange="handleFileSelect(event)">
             </div>
         </div>
@@ -1203,9 +1206,14 @@ async function processUploadQueue() {
     await refreshTree();
 }
 
-async function uploadFilesWithStructure(filesData) {
+// preErrors : échecs déjà connus AVANT l'upload (paquets Apple, fichiers
+// iCloud illisibles) transmis par handleFiles/handleFileSystemEntries.
+// Chaque échec serveur est collecté avec son message exact — plus jamais de
+// « N uploadés avec succès » qui masque des fichiers manquants.
+async function uploadFilesWithStructure(filesData, preErrors = []) {
     const totalFiles = filesData.length;
     let uploadedCount = 0;
+    const failures = [...preErrors];
     showUploadProgress();
     for (const fileData of filesData) {
         const formData = new FormData();
@@ -1222,26 +1230,46 @@ async function uploadFilesWithStructure(filesData) {
             });
             await new Promise((resolve, reject) => {
                 xhr.onload = () => {
-                    if (xhr.status === 200) { uploadedCount++; resolve(JSON.parse(xhr.responseText)); }
-                    else reject(new Error(`Upload failed: ${xhr.status}`));
+                    if (xhr.status === 200) { uploadedCount++; resolve(); }
+                    else {
+                        let msg = `erreur serveur (${xhr.status})`;
+                        try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) {}
+                        reject(new Error(msg));
+                    }
                 };
-                xhr.onerror = reject;
+                xhr.onerror = () => reject(new Error('connexion interrompue — réessayez'));
                 xhr.open('POST', '/file_manager/upload-with-structure');
                 xhr.send(formData);
             });
         } catch (error) {
             console.error(`Erreur lors de l'upload de ${fileData.file.name}:`, error);
+            failures.push({ name: fileData.file.name, reason: error.message });
         }
     }
     hideUploadProgress();
-    showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    if (uploadedCount > 0) {
+        showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
+    }
+    reportUploadFailures(failures);
     await refreshTree();
+}
+
+// Affiche la liste des fichiers NON copiés avec leur raison (notification
+// longue durée) — un upload partiel ne doit jamais ressembler à un succès.
+function reportUploadFailures(failures) {
+    if (!failures || failures.length === 0) return;
+    const details = failures.slice(0, 6)
+        .map(f => `• ${f.name} : ${f.reason}`)
+        .join('\n');
+    const extra = failures.length > 6 ? `\n… et ${failures.length - 6} autre(s)` : '';
+    showNotification('error',
+        `${failures.length} fichier(s) NON copié(s) :\n${details}${extra}`, 15000);
 }
 
 // -------------------------------------------------- notifications visibles
 // (surcharge : la version de file_manager.js s'affichait à top:20px avec un
 // z-index inférieur à la navbar → messages invisibles)
-function showNotification(type, message) {
+function showNotification(type, message, durationMs = 4000) {
     const colors = {
         success: ['#D1FAE5', '#065F46', 'check-circle'],
         error: ['#FEE2E2', '#991B1B', 'exclamation-circle'],
@@ -1252,6 +1280,7 @@ function showNotification(type, message) {
     notification.className = 'fm-notification';
     notification.style.backgroundColor = bg;
     notification.style.color = fg;
+    notification.style.whiteSpace = 'pre-line'; // listes multi-lignes lisibles
     notification.innerHTML = `<i class="fas fa-${icon}"></i> `;
     const span = document.createElement('span');
     span.textContent = message;
@@ -1267,7 +1296,7 @@ function showNotification(type, message) {
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease';
         setTimeout(() => notification.remove(), 300);
-    }, 4000);
+    }, durationMs);
 }
 
 // ------------------------------------------------------- sélection façon OS

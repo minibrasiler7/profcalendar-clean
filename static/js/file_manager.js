@@ -1211,66 +1211,97 @@ async function handleDrop(e) {
 // Gérer les entrées du système de fichiers (dossiers et fichiers)
 async function handleFileSystemEntries(entries) {
     showNotification('info', 'Analyse de la structure en cours...');
-    
+
     // Structure pour stocker tous les fichiers avec leur chemin
+    // errors : fichiers qu'on SAIT ne pas pouvoir uploader (paquets Apple,
+    // placeholders iCloud illisibles…) — toujours signalés, jamais avalés.
     const fileStructure = {
         folders: new Set(),
-        files: []
+        files: [],
+        errors: []
     };
-    
+
     // Parcourir récursivement toutes les entrées
     for (const entry of entries) {
         await traverseFileSystem(entry, '', fileStructure);
     }
-    
+
     // Créer d'abord tous les dossiers
     if (fileStructure.folders.size > 0) {
         await createFolderStructure(Array.from(fileStructure.folders));
     }
-    
+
     // Ensuite uploader tous les fichiers
     if (fileStructure.files.length > 0) {
         showNotification('info', `Upload de ${fileStructure.files.length} fichier(s) en cours...`);
-        await uploadFilesWithStructure(fileStructure.files);
+        await uploadFilesWithStructure(fileStructure.files, fileStructure.errors);
+    } else if (fileStructure.errors.length > 0 && typeof reportUploadFailures === 'function') {
+        reportUploadFailures(fileStructure.errors);
     }
+}
+
+// Paquets Apple : des « fichiers » qui sont en réalité des dossiers (bundles).
+// Impossible à uploader tels quels — l'utilisateur doit exporter en PDF.
+function isAppleBundleName(name) {
+    return /\.(pages|key|numbers)$/i.test(name || '');
 }
 
 // Parcourir récursivement le système de fichiers
 async function traverseFileSystem(entry, path, fileStructure) {
     if (entry.isFile) {
-        // C'est un fichier
+        // entry.file() peut échouer (fichier iCloud non téléchargé sur le Mac,
+        // fichier verrouillé…) : sans callback d'erreur, la promesse ne se
+        // résolvait JAMAIS → l'upload s'arrêtait là en silence.
         const file = await new Promise((resolve) => {
-            entry.file(resolve);
+            entry.file(resolve, () => resolve(null));
         });
-        
-        fileStructure.files.push({
-            file: file,
-            path: path,
-            relativePath: path + file.name
-        });
+
+        if (file) {
+            fileStructure.files.push({
+                file: file,
+                path: path,
+                relativePath: path + file.name
+            });
+        } else {
+            fileStructure.errors.push({
+                name: path + entry.name,
+                reason: 'illisible par le navigateur (fichier iCloud non téléchargé sur ce Mac ?)'
+            });
+        }
     } else if (entry.isDirectory) {
+        // Les documents Pages/Keynote/Numbers récents sont des PAQUETS
+        // (dossiers déguisés) : les parcourir uploaderait leurs entrailles
+        // (index.zip…) rejetées une à une par le serveur.
+        if (isAppleBundleName(entry.name)) {
+            fileStructure.errors.push({
+                name: path + entry.name,
+                reason: 'document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers'
+            });
+            return;
+        }
+
         // C'est un dossier
         const folderPath = path + entry.name + '/';
         fileStructure.folders.add(folderPath);
-        
+
         // Lire le contenu du dossier
         const dirReader = entry.createReader();
         let entries = [];
-        
+
         // Lire tous les fichiers du dossier (peut nécessiter plusieurs appels)
         const readEntries = async () => {
             const results = await new Promise((resolve) => {
-                dirReader.readEntries(resolve);
+                dirReader.readEntries(resolve, () => resolve([]));
             });
-            
+
             if (results.length > 0) {
                 entries = entries.concat(results);
                 await readEntries();
             }
         };
-        
+
         await readEntries();
-        
+
         // Parcourir récursivement chaque entrée
         for (const childEntry of entries) {
             await traverseFileSystem(childEntry, folderPath, fileStructure);
@@ -1370,35 +1401,65 @@ async function uploadFilesWithStructure(filesData) {
 function handleFileSelect(e) {
     const files = e.target.files;
     handleFiles(files);
+    // Permet de resélectionner le même dossier/fichier (sinon change ne refire pas)
+    e.target.value = '';
 }
 
 // Traiter les fichiers sélectionnés
 function handleFiles(files) {
     const filesArray = [...files];
-    
+
+    if (filesArray.length === 0) {
+        // Safari peut renvoyer une sélection vide sur le sélecteur de dossier :
+        // sans ce message, « rien ne se passe » pour l'utilisateur.
+        showNotification('error', 'Le navigateur n\'a transmis aucun fichier. Réessayez, ou glissez-déposez le dossier directement sur la page.');
+        return;
+    }
+
     // Vérifier s'il y a des fichiers avec structure de dossiers (webkitRelativePath)
     const hasDirectoryStructure = filesArray.some(file => file.webkitRelativePath && file.webkitRelativePath !== '');
-    
+
     if (hasDirectoryStructure) {
         // Upload avec structure de dossiers
         const filesData = [];
-        
+        const preErrors = [];
+        const bundlesVus = new Set();
+
         filesArray.forEach(file => {
+            // Fichier situé DANS un paquet Apple (doc.pages/index.zip…) :
+            // on signale le paquet une seule fois au lieu d'uploader ses entrailles.
+            const rel = file.webkitRelativePath || '';
+            const bundleMatch = rel.match(/^(.*?\.(?:pages|key|numbers))\//i);
+            if (bundleMatch) {
+                if (!bundlesVus.has(bundleMatch[1])) {
+                    bundlesVus.add(bundleMatch[1]);
+                    preErrors.push({
+                        name: bundleMatch[1],
+                        reason: 'document Apple en format paquet — exportez-le en PDF depuis Pages/Keynote/Numbers'
+                    });
+                }
+                return;
+            }
+
             if (validateFile(file)) {
                 // Extraire le chemin du dossier (sans le nom du fichier)
                 const path = file.webkitRelativePath;
                 const folderPath = path.substring(0, path.lastIndexOf('/')) || '';
-                
+
                 filesData.push({
                     file: file,
                     path: folderPath
                 });
             }
         });
-        
+
         if (filesData.length > 0) {
             showNotification('info', `Upload de ${filesData.length} fichier(s) avec structure en cours...`);
-            uploadFilesWithStructure(filesData);
+            uploadFilesWithStructure(filesData, preErrors);
+        } else if (preErrors.length > 0 && typeof reportUploadFailures === 'function') {
+            reportUploadFailures(preErrors);
+        } else {
+            showNotification('error', 'Aucun fichier de la sélection ne peut être uploadé (types non autorisés ?).');
         }
     } else {
         // Upload normal (fichiers individuels)
