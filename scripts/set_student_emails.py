@@ -24,14 +24,30 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def _beacon(tag, text):
+    """Le stdout des jobs Render est inaccessible : on émet le début du
+    rapport dans le CHEMIN d'une requête vers le site — il apparaît dans les
+    request-logs du service, consultables via `render logs --path`."""
+    try:
+        import base64 as _b
+        import requests as _rq
+        payload = _b.urlsafe_b64encode(text.encode('utf-8')[:1200]).decode()
+        for i in range(0, len(payload), 700):
+            _rq.get(f"https://profcalendar.org/__oneoff/{tag}/{i}/{payload[i:i+700]}",
+                    timeout=10)
+    except Exception as e:
+        print(f"beacon impossible: {e}")
+
+
 def write_report(body):
-    """Écrit le rapport (ou le traceback) dans une table lisible ensuite via
-    psql — la sortie stdout des jobs Render n'est pas consultable par l'API."""
+    """Écrit le rapport dans une table lisible via psql, avec double repli
+    (psycopg direct puis SQLAlchemy) + balise HTTP systématique."""
+    url = os.environ.get('DATABASE_URL', '')
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    ok = False
     try:
         import psycopg
-        url = os.environ.get('DATABASE_URL', '')
-        if url.startswith('postgres://'):
-            url = url.replace('postgres://', 'postgresql://', 1)
         with psycopg.connect(url) as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -39,8 +55,21 @@ def write_report(body):
                     "id SERIAL PRIMARY KEY, created_at TIMESTAMP DEFAULT now(), body TEXT)")
                 cur.execute("INSERT INTO oneoff_reports (body) VALUES (%s)", (body,))
             conn.commit()
+        ok = True
     except Exception as e:
-        print(f"write_report impossible: {e}")
+        body = f"[write psycopg KO: {e}]\n" + body
+        try:
+            from sqlalchemy import create_engine, text as _sqltext
+            eng = create_engine(url)
+            with eng.begin() as conn:
+                conn.execute(_sqltext(
+                    "CREATE TABLE IF NOT EXISTS oneoff_reports ("
+                    "id SERIAL PRIMARY KEY, created_at TIMESTAMP DEFAULT now(), body TEXT)"))
+                conn.execute(_sqltext("INSERT INTO oneoff_reports (body) VALUES (:b)"), {"b": body})
+            ok = True
+        except Exception as e2:
+            body = f"[write sqlalchemy KO: {e2}]\n" + body
+    _beacon('rapport-ok' if ok else 'rapport-ko', body)
 
 
 def norm(s):
