@@ -759,6 +759,36 @@ def get_class_files(class_id):
             'files': []
         })
 
+def _fileless_subtree_roots(folder_obj, base_path=''):
+    """Racines des sous-arborescences SANS AUCUN fichier.
+
+    Un dossier de classe n'existe qu'à travers le folder_path de ses
+    fichiers : une branche entièrement vide ne peut donc PAS être recréée
+    côté classe. On la signale à l'utilisateur au lieu de la taire (sinon
+    « seulement une partie des dossiers s'est dupliquée » sans explication).
+    """
+    def subtree_count(f):
+        n = f.files.count()
+        for sub in f.subfolders:
+            n += subtree_count(sub)
+        return n
+
+    current = f"{base_path}/{folder_obj.name}" if base_path else folder_obj.name
+    if subtree_count(folder_obj) == 0:
+        return [current]
+    roots = []
+    for sub in folder_obj.subfolders:
+        roots.extend(_fileless_subtree_roots(sub, current))
+    return roots
+
+
+def _fileless_warnings(fileless):
+    """Avertissements listant les branches vides ignorées (affichés côté
+    client dans le récapitulatif persistant des uploads/copies)."""
+    return [f'« {p} » : sous-dossier sans aucun fichier — non recréé dans la classe'
+            for p in fileless]
+
+
 @file_manager_bp.route('/copy-folder-to-class', methods=['POST'])
 @login_required
 def copy_folder_to_class():
@@ -867,21 +897,33 @@ def copy_folder_to_class():
         # COMMIT IMMÉDIAT avant la vérification
         db.session.commit()
 
+        # Branches vides de la source : impossibles à recréer côté classe,
+        # on les liste pour que la copie « partielle » soit explicable.
+        fileless = _fileless_subtree_roots(folder)
+
         # Construire le message de résultat
         if total_files_in_folder == 0:
+            # Avant : faux succès « structure de dossiers créée » alors que
+            # RIEN n'existe côté classe sans fichiers.
             return jsonify({
-                'success': True,
-                'message': f'Dossier vide "{folder.name}" copié (structure de dossiers créée)'
+                'success': False,
+                'message': f'Le dossier « {folder.name} » ne contient aucun fichier — rien à copier. '
+                           f'Vérifiez dans le gestionnaire que les fichiers attendus y sont bien.'
             })
         elif copied_count > 0:
             msg = f'Dossier "{folder.name}" copié avec {copied_count} fichier(s)'
             if already_exists_count > 0:
                 msg += f' ({already_exists_count} déjà présent(s))'
-            return jsonify({'success': True, 'message': msg})
+            if failed_count > 0:
+                msg += f' — ⚠︎ {failed_count} fichier(s) en échec'
+            return jsonify({'success': True, 'message': msg,
+                            'warnings': _fileless_warnings(fileless)})
         elif already_exists_count > 0:
             return jsonify({
                 'success': True,
-                'message': f'Tous les fichiers du dossier "{folder.name}" sont déjà présents dans cette classe ({already_exists_count} fichier(s))'
+                'message': f'Tous les fichiers du dossier "{folder.name}" sont déjà présents dans cette classe '
+                           f'({already_exists_count} fichier(s))',
+                'warnings': _fileless_warnings(fileless)
             })
         else:
             return jsonify({
@@ -1022,7 +1064,8 @@ def copy_folder_to_class_folder():
 
         return jsonify({
             'success': True,
-            'message': f'Dossier "{folder.name}" copié dans {target_folder_path} avec {copied_count} fichier(s)'
+            'message': f'Dossier "{folder.name}" copié dans {target_folder_path} avec {copied_count} fichier(s)',
+            'warnings': _fileless_warnings(_fileless_subtree_roots(folder))
         })
 
     except Exception as e:

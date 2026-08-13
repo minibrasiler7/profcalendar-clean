@@ -875,15 +875,17 @@ async function copyFolderToClass(folderId, classId) {
 
         if (result.success) {
             const className = classes.find(c => c.id == classId)?.name || 'la classe';
-            showNotification('success', `Dossier copié dans ${className}`);
+            // Le message serveur porte le décompte réel (copiés/déjà présents/échecs)
+            showNotification('success', `${result.message || 'Dossier copié'} → ${className}`);
+            showCopyWarnings(result.warnings);
 
             // Ouvrir et recharger l'arborescence de la classe
             const tree = document.getElementById(`classTree-${classId}`);
             const toggle = document.getElementById(`toggle-${classId}`);
-            
+
             // Recharger l'arborescence
             await loadClassTree(classId);
-            
+
             // S'assurer que l'arborescence est visible
             if (tree && tree.style.display === 'none') {
                 tree.style.display = 'block';
@@ -900,6 +902,15 @@ async function copyFolderToClass(folderId, classId) {
         console.error('Erreur:', error);
         showNotification('error', 'Erreur lors de la copie du dossier');
     }
+}
+
+// Avertissements de copie (ex : sous-dossiers vides impossibles à recréer) —
+// notification longue durée pour qu'une copie « partielle » soit expliquée.
+function showCopyWarnings(warnings) {
+    if (!warnings || warnings.length === 0) return;
+    const details = warnings.slice(0, 6).map(w => `• ${w}`).join('\n');
+    const extra = warnings.length > 6 ? `\n… et ${warnings.length - 6} autre(s)` : '';
+    showNotification('error', `À savoir :\n${details}${extra}`, 15000);
 }
 
 // Copier un fichier vers un dossier spécifique d'une classe
@@ -951,7 +962,8 @@ async function copyFolderToClassFolder(folderId, classId, folderName) {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('success', `Dossier copié dans ${folderName}`);
+            showNotification('success', result.message || `Dossier copié dans ${folderName}`);
+            showCopyWarnings(result.warnings);
 
             // Recharger l'arborescence
             await loadClassTree(classId);
@@ -1971,7 +1983,7 @@ function initKeyboardShortcuts() {
 }
 
 // Notifications
-function showNotification(type, message) {
+function showNotification(type, message, durationMs = 5000) {
     // Utiliser la fonction existante ou en créer une simple
     const notification = document.createElement('div');
     notification.style.cssText = `
@@ -1989,19 +2001,20 @@ function showNotification(type, message) {
         z-index: 1003;
         animation: slideInRight 0.3s ease;
         max-width: 400px;
+        white-space: pre-line;
     `;
 
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        <span>${message}</span>
-    `;
+    notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>`;
+    const span = document.createElement('span');
+    span.textContent = message;
+    notification.appendChild(span);
 
     document.body.appendChild(notification);
 
     setTimeout(() => {
         notification.style.animation = 'slideOutRight 0.3s ease';
         setTimeout(() => notification.remove(), 300);
-    }, 5000);
+    }, durationMs);
 }
 
 // Animations CSS
