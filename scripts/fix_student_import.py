@@ -80,6 +80,7 @@ def run():
     from app import create_app
     from extensions import db
     from models.student import Student
+    from services.year_end_cleanup import _delete_student_dependencies
 
     app = create_app('production')
 
@@ -88,6 +89,9 @@ def run():
         created17 = Student.query.filter(
             Student.user_id == user_id, Student.classroom_id == 17,
             Student.created_at >= cutoff).all()
+        # Des dépendances (student_sanction_counts…) apparaissent dès qu'une
+        # page de classe est consultée → nettoyage FK complet avant delete.
+        _delete_student_dependencies([st.id for st in created17])
         for st in created17:
             db.session.delete(st)
         db.session.commit()
@@ -108,6 +112,7 @@ def run():
             if len(cand) == 1:
                 o = cand[0]
                 o.email = c.email
+                _delete_student_dependencies([c.id])
                 db.session.delete(c)
                 originals.remove(o)
                 lines.append(f"[classe 1] fusion: « {c.first_name} {c.last_name} » (créé) → "
