@@ -8876,7 +8876,7 @@ function renderClassFiles(currentPath, classroomId = null) {
         if (file.is_exercise) {
             // Afficher les exercices avec un style spécial
             html += `
-                <div class="file-item file" data-id="${file.exercise_id}" data-type="exercise" ondblclick="window.location.href='/exercises/edit/${file.exercise_id}'" style="border-left:3px solid #667eea;">
+                <div class="file-item file" data-id="${file.exercise_id}" data-type="exercise" ondblclick="window.location.href='/exercises/${file.exercise_id}/edit'" style="border-left:3px solid #667eea;">
                     <div class="item-icon">
                         <i class="fas fa-gamepad" style="color: #667eea;"></i>
                     </div>
@@ -8886,7 +8886,7 @@ function renderClassFiles(currentPath, classroomId = null) {
                     </div>
                     <div class="item-info">${file.total_points || 0} XP — ${file.block_count || 0} questions</div>
                     <div class="item-actions">
-                        <a href="/exercises/edit/${file.exercise_id}" class="action-btn" title="Modifier">
+                        <a href="/exercises/${file.exercise_id}/edit" class="action-btn" title="Modifier">
                             <i class="fas fa-edit"></i>
                         </a>
                     </div>
