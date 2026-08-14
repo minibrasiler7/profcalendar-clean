@@ -480,12 +480,27 @@
         </button>
     </div>
     <div class="class-options-container" id="classOptions"></div>
-    <div style="padding: 0.5rem 0.75rem; border-top: 1px solid #E5E7EB;" onclick="event.stopPropagation()">
+    {# Étape 2 : après le clic sur une classe, saisie optionnelle de la salle
+       (pré-remplie avec la dernière salle utilisée pour CETTE classe) puis
+       validation explicite. #}
+    <div id="roomConfirmStep" style="display:none; padding: 0.75rem;" onclick="event.stopPropagation()">
+        <div id="roomConfirmClassName" style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;"></div>
         <label style="display:block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem;">
             <i class="fas fa-door-open"></i> Salle (optionnel)
         </label>
         <input type="text" id="scheduleRoomInput" maxlength="50" placeholder="Ex : B204"
-               style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;">
+               style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;"
+               onkeydown="if (event.key === 'Enter') { event.preventDefault(); confirmClassSelection(); }">
+        <div style="display:flex; gap: 0.5rem; margin-top: 0.6rem;">
+            <button type="button" onclick="confirmClassSelection()"
+                    style="flex:1; background:#4F46E5; color:white; border:none; padding:0.45rem 0.6rem; border-radius:0.3rem; font-weight:600; cursor:pointer;">
+                <i class="fas fa-check"></i> Valider
+            </button>
+            <button type="button" onclick="backToClassList()"
+                    style="background:#F3F4F6; color:#374151; border:1px solid #D1D5DB; padding:0.45rem 0.6rem; border-radius:0.3rem; cursor:pointer;">
+                Retour
+            </button>
+        </div>
     </div>
     <div class="remove-option" onclick="removeClass()">
         <i class="fas fa-times"></i> Retirer la classe
@@ -527,15 +542,30 @@
 <script>
 const classrooms = {{ classrooms_json | tojson }};
 let currentCell = null;
+let pendingItem = null;   // classe cliquée, en attente de validation (étape 2)
+
+// Dernière salle saisie PAR CLASSE : initialisée depuis la grille existante,
+// mise à jour à chaque validation → re-sélectionner une classe pré-remplit
+// automatiquement sa dernière salle.
+const lastRoomByItem = {};
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-item]').forEach(cell => {
+        if (cell.dataset.item && cell.dataset.room) {
+            lastRoomByItem[cell.dataset.item] = cell.dataset.room;
+        }
+    });
+});
 
 function openClassSelector(cell, event) {
     event.stopPropagation();
     currentCell = cell;
+    pendingItem = null;
 
     const selector = document.getElementById('classSelector');
     const optionsContainer = document.getElementById('classOptions');
-    const roomPrefill = document.getElementById('scheduleRoomInput');
-    if (roomPrefill) roomPrefill.value = cell.dataset.room || '';
+    // Étape 1 : liste des classes visible, confirmation de salle cachée
+    document.getElementById('roomConfirmStep').style.display = 'none';
+    optionsContainer.style.display = '';
 
     // Vider et remplir les options
     optionsContainer.innerHTML = '';
@@ -602,17 +632,44 @@ function openClassSelector(cell, event) {
     selector.classList.add('show');
 }
 
+// Étape 2 : la classe est choisie, on propose la salle (pré-remplie avec la
+// dernière salle utilisée pour cette classe) et on attend le clic « Valider ».
 function selectClass(itemId, itemType = 'classroom') {
     if (!currentCell) return;
 
+    const item = classrooms.find(c => c.id === itemId && c.type === itemType);
+    if (!item) return;
+    pendingItem = item;
+
+    const itemKey = (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+    const roomInput = document.getElementById('scheduleRoomInput');
+    // Priorité : dernière salle validée pour cette classe, sinon celle déjà
+    // affichée sur ce créneau (modifiable dans tous les cas).
+    roomInput.value = lastRoomByItem[itemKey] || currentCell.dataset.room || '';
+
+    document.getElementById('roomConfirmClassName').textContent = `${item.name} — ${item.subject}`;
+    document.getElementById('classOptions').style.display = 'none';
+    document.getElementById('roomConfirmStep').style.display = 'block';
+    roomInput.focus();
+}
+
+function backToClassList() {
+    pendingItem = null;
+    document.getElementById('roomConfirmStep').style.display = 'none';
+    document.getElementById('classOptions').style.display = '';
+}
+
+function confirmClassSelection() {
+    if (!currentCell || !pendingItem) return;
+
+    const item = pendingItem;
     const weekday = currentCell.dataset.weekday;
     const period = currentCell.dataset.period;
-    const item = classrooms.find(c => c.id === itemId && c.type === itemType);
     const roomInputSel = document.getElementById('scheduleRoomInput');
     const room = roomInputSel ? roomInputSel.value.trim().slice(0, 50) : '';
 
     // Sauvegarder via AJAX
-    saveSchedule(weekday, period, itemId, itemType, null, room).then(result => {
+    saveSchedule(weekday, period, item.id, item.type, null, room).then(result => {
         if (result.success) {
             // Mettre à jour l'affichage
             const iconHtml = item.type === 'mixed_group' ? '<i class="fas fa-users"></i> ' : '';
@@ -624,8 +681,10 @@ function selectClass(itemId, itemType = 'classroom') {
                     ${roomHtml}
                 </div>
             `;
-            currentCell.dataset.item = (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+            const itemKey = (item.type === 'mixed_group' ? 'm' : 'c') + item.id;
+            currentCell.dataset.item = itemKey;
             currentCell.dataset.room = room;
+            lastRoomByItem[itemKey] = room;
             refreshMergeConnectors();
             closeClassSelector();
         }
@@ -653,6 +712,9 @@ function removeClass() {
 function closeClassSelector() {
     document.getElementById('classSelector').classList.remove('show');
     currentCell = null;
+    pendingItem = null;
+    document.getElementById('roomConfirmStep').style.display = 'none';
+    document.getElementById('classOptions').style.display = '';
 }
 
 async function saveSchedule(weekday, periodNumber, itemId, itemType = 'classroom', customTitle = null, room = null, taskStart = null, taskEnd = null) {

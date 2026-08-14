@@ -1346,9 +1346,6 @@ input, textarea, select {
                     <i class="fas fa-clipboard-list"></i> Planification du cours
                 </h2>
                 <div style="display:flex;gap:0.5rem;">
-                    <button class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un exercice interactif" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
-                        <i class="fas fa-gamepad"></i> + exercice interactif
-                    </button>
                     <button class="edit-planning-btn" onclick="togglePlanningEdit()">
                         <i class="fas fa-edit"></i> <span id="editBtnText">Modifier</span>
                     </button>
@@ -1356,14 +1353,6 @@ input, textarea, select {
             </div>
 
             <div class="planning-content">
-                <div style="display:flex;justify-content:flex-end;margin-bottom:0.6rem;">
-                    <button type="button" id="uploadEphemeralBtn" class="add-resource-btn" onclick="document.getElementById('lessonEphemeralInput').click()"
-                            title="Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
-                            style="background: #FEF3C7; color: #92400E;">
-                        <i class="fas fa-hourglass-half"></i> Fichier éphémère
-                    </button>
-                    <input type="file" id="lessonEphemeralInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="uploadEphemeralFromLesson(this)">
-                </div>
                 <!-- Vue de lecture -->
                 <div id="planningView" {% if not planning %}style="display: none;"{% endif %}>
                     <div class="planning-item">
@@ -1451,6 +1440,14 @@ input, textarea, select {
                         <button type="button" class="btn-devoir-create" onclick="openDevoirModal()">
                             <i class="fas fa-plus"></i> Créer un devoir
                         </button>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:0.5rem;">
+                        <button type="button" id="uploadEphemeralBtn" class="add-resource-btn" onclick="document.getElementById('lessonEphemeralInput').click()"
+                                title="Fichier éphémère : joint à ce cours (créé au besoin) et supprimé automatiquement le lendemain"
+                                style="background: #FEF3C7; color: #92400E;">
+                            <i class="fas fa-hourglass-half"></i> Fichier éphémère
+                        </button>
+                        <input type="file" id="lessonEphemeralInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" style="display:none;" onchange="uploadEphemeralFromLesson(this)">
                     </div>
                     <div id="devoirsList" class="devoirs-list"></div>
                 </div>
@@ -1761,16 +1758,20 @@ input, textarea, select {
                             </div>
                         </div>
 
-                        <!-- Mémos et remarques - Nouveau design -->
+                        <!-- Exercices interactifs : juste avant les mémos -->
+                        <div style="margin-bottom:0.75rem;">
+                            <button type="button" class="edit-planning-btn" onclick="showAddResourceModal()" title="Ajouter un exercice interactif" style="background:#10b981;color:white;border:none;padding:0.4rem 0.8rem;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">
+                                <i class="fas fa-gamepad"></i> + exercice interactif
+                            </button>
+                        </div>
+
+                        <!-- Mémos (les remarques élèves se font depuis la liste de présence) -->
                         <div class="form-group">
-                            <label class="form-label">Mémos et remarques</label>
+                            <label class="form-label">Mémos</label>
 
                             <div class="memos-actions">
                                 <button type="button" class="btn btn-memo" onclick="openMemoCreation()">
                                     <i class="fas fa-sticky-note"></i> Enregistrer mémo
-                                </button>
-                                <button type="button" class="btn btn-remark" onclick="openRemarkCreation()">
-                                    <i class="fas fa-user-edit"></i> Enregistrer remarque élève
                                 </button>
                             </div>
 
@@ -2540,7 +2541,7 @@ function togglePlanningEdit() {
         if (emptyPlanning) emptyPlanning.style.display = 'none';
         if (memosViewContainer) memosViewContainer.style.display = 'none';
         planningEdit.style.display = 'block';
-        editBtnText.textContent = 'Fermer';
+        editBtnText.textContent = 'Lecture planification';
 
         // Attacher la conversion des tirets en checkboxes
         attachDashConversion();

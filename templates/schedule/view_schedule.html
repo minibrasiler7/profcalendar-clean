@@ -103,6 +103,12 @@
     opacity: 0.9;
 }
 
+.class-room {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
 .empty-slot {
     color: var(--gray-color);
     font-style: italic;
@@ -405,9 +411,10 @@
                             {% endif %}
                         {% endif %}
                         
-                        <div class="schedule-slot {% if schedule %}has-class{% endif %} {{ merged_class }}" 
-                             data-weekday="{{ day_index }}" 
+                        <div class="schedule-slot {% if schedule %}has-class{% endif %} {{ merged_class }}"
+                             data-weekday="{{ day_index }}"
                              data-period="{{ period.number }}"
+                             data-room="{{ schedule.room if schedule and schedule.room else '' }}"
                              {% if schedule %}
                                  {% if schedule.classroom_id %}
                                      style="background-color: {{ schedule.classroom.color }};"
@@ -427,9 +434,11 @@
                                 {% if schedule.classroom_id %}
                                     <div class="class-name">{{ schedule.classroom.name }}</div>
                                     <div class="class-subject">{{ schedule.classroom.subject }}</div>
+                                    {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% elif schedule.mixed_group_id %}
                                     <div class="class-name"><i class="fas fa-users"></i> {{ schedule.mixed_group.name }}</div>
                                     <div class="class-subject">{{ schedule.mixed_group.subject }}</div>
+                                    {% if schedule.room %}<div class="class-room"><i class="fas fa-door-open"></i> {{ schedule.room }}</div>{% endif %}
                                 {% elif schedule.custom_task_title %}
                                     <div class="class-name"><i class="fas fa-tasks"></i> {{ schedule.custom_task_title }}</div>
                                     <div class="class-subject">Autre</div>
@@ -590,6 +599,29 @@
     </div>
 </div>
 
+<!-- Étape 2 de la sélection de classe : salle optionnelle + validation
+     (pré-remplie avec la dernière salle utilisée pour cette classe) -->
+<div id="roomConfirmPanel" style="display:none; position: fixed; z-index: 2100; background: white; border: 1px solid #E5E7EB; border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); padding: 0.75rem; width: 240px;"
+     onclick="event.stopPropagation()">
+    <div id="roomConfirmClassName" style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;"></div>
+    <label style="display:block; font-size: 0.75rem; font-weight: 600; color: #6B7280; margin-bottom: 0.25rem;">
+        <i class="fas fa-door-open"></i> Salle (optionnel)
+    </label>
+    <input type="text" id="viewRoomInput" maxlength="50" placeholder="Ex : B204"
+           style="width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 0.25rem; font-size: 0.85rem;"
+           onkeydown="if (event.key === 'Enter') { event.preventDefault(); confirmRoomSelection(); }">
+    <div style="display:flex; gap: 0.5rem; margin-top: 0.6rem;">
+        <button type="button" onclick="confirmRoomSelection()"
+                style="flex:1; background:#4F46E5; color:white; border:none; padding:0.45rem 0.6rem; border-radius:0.3rem; font-weight:600; cursor:pointer;">
+            <i class="fas fa-check"></i> Valider
+        </button>
+        <button type="button" onclick="cancelRoomSelection()"
+                style="background:#F3F4F6; color:#374151; border:1px solid #D1D5DB; padding:0.45rem 0.6rem; border-radius:0.3rem; cursor:pointer;">
+            Annuler
+        </button>
+    </div>
+</div>
+
 <div class="save-status" id="saveStatus">
     <i class="fas fa-check"></i> Modifications enregistrées !
 </div>
@@ -628,6 +660,9 @@ function initializeScheduleSlots() {
         if (!e.target.closest('.class-selector')) {
             hideAllSelectors();
         }
+        if (!e.target.closest('#roomConfirmPanel')) {
+            cancelRoomSelection();
+        }
     });
 
     // Gérer les options de classe
@@ -639,18 +674,19 @@ function initializeScheduleSlots() {
             option.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const itemType = this.dataset.type;
-                
+
                 if (itemType === 'custom') {
                     // Ne pas traiter ici, c'est géré par showCustomTaskModal
                     return;
                 }
-                
+
                 const itemId = this.dataset.classroomId || this.dataset.mixedGroupId;
                 const weekday = selector.dataset.weekday;
                 const period = selector.dataset.period;
-                
-                selectClass(weekday, period, itemId, itemType);
+
+                // Étape 2 : proposer la salle (pré-remplie) et attendre « Valider »
                 hideAllSelectors();
+                openRoomConfirm(weekday, period, itemId, itemType, this.getBoundingClientRect());
             });
         });
 
@@ -695,7 +731,54 @@ function hideAllSelectors() {
     });
 }
 
-function selectClass(weekday, period, itemId, itemType = 'classroom') {
+// --- Étape « salle » : mémoire de la dernière salle saisie PAR CLASSE ---
+const lastRoomByItem = {};
+let pendingRoomSelection = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.schedule-slot[data-room]').forEach(slot => {
+        const key = slot.dataset.classroomId ? 'c' + slot.dataset.classroomId
+                  : slot.dataset.mixedGroupId ? 'm' + slot.dataset.mixedGroupId : null;
+        if (key && slot.dataset.room) lastRoomByItem[key] = slot.dataset.room;
+    });
+});
+
+function openRoomConfirm(weekday, period, itemId, itemType, anchorRect) {
+    const item = classrooms.find(c => c.id == itemId && c.type == itemType);
+    if (!item) return;
+    pendingRoomSelection = { weekday, period, itemId, itemType };
+
+    const key = (itemType === 'mixed_group' ? 'm' : 'c') + itemId;
+    const slot = document.querySelector(`.schedule-slot[data-weekday="${weekday}"][data-period="${period}"]`);
+    const input = document.getElementById('viewRoomInput');
+    input.value = lastRoomByItem[key] || (slot ? slot.dataset.room : '') || '';
+    document.getElementById('roomConfirmClassName').textContent = `${item.name} — ${item.subject}`;
+
+    const panel = document.getElementById('roomConfirmPanel');
+    panel.style.display = 'block';
+    let left = anchorRect.left;
+    if (left + 250 > window.innerWidth) left = window.innerWidth - 260;
+    panel.style.left = Math.max(10, left) + 'px';
+    const top = (anchorRect.bottom + 245 > window.innerHeight) ? anchorRect.top - 175 : anchorRect.bottom + 6;
+    panel.style.top = Math.max(10, top) + 'px';
+    input.focus();
+}
+
+function confirmRoomSelection() {
+    if (!pendingRoomSelection) return;
+    const { weekday, period, itemId, itemType } = pendingRoomSelection;
+    const room = document.getElementById('viewRoomInput').value.trim().slice(0, 50);
+    lastRoomByItem[(itemType === 'mixed_group' ? 'm' : 'c') + itemId] = room;
+    cancelRoomSelection();
+    selectClass(weekday, period, itemId, itemType, room);
+}
+
+function cancelRoomSelection() {
+    pendingRoomSelection = null;
+    document.getElementById('roomConfirmPanel').style.display = 'none';
+}
+
+function selectClass(weekday, period, itemId, itemType = 'classroom', room = '') {
     let item;
     if (itemType === 'custom') {
         // Pour les tâches personnalisées, itemId est en fait le titre
@@ -712,16 +795,16 @@ function selectClass(weekday, period, itemId, itemType = 'classroom') {
     }
 
     // Mettre à jour l'interface
-    updateSlotUI(weekday, period, item);
-    
+    updateSlotUI(weekday, period, item, room);
+
     // Marquer comme modifié
     pendingChanges.add(`${weekday}_${period}`);
-    
+
     // Sauvegarder automatiquement
     if (itemType === 'custom') {
         saveScheduleSlot(weekday, period, null, itemType, itemId);
     } else {
-        saveScheduleSlot(weekday, period, itemId, itemType);
+        saveScheduleSlot(weekday, period, itemId, itemType, null, room);
     }
 }
 
@@ -736,20 +819,23 @@ function removeClass(weekday, period) {
     saveScheduleSlot(weekday, period, null);
 }
 
-function updateSlotUI(weekday, period, item) {
+function updateSlotUI(weekday, period, item, room = '') {
     const slot = document.querySelector(`.schedule-slot[data-weekday="${weekday}"][data-period="${period}"]`);
     if (!slot) return;
+
+    const roomHtml = room ? `<div class="class-room"><i class="fas fa-door-open"></i> ${room.replace(/</g, '&lt;')}</div>` : '';
 
     if (item) {
         slot.classList.add('has-class');
         slot.style.backgroundColor = item.color;
-        
+
         // Nettoyer les anciens attributs
         slot.removeAttribute('data-classroom-id');
         slot.removeAttribute('data-mixed-group-id');
         slot.removeAttribute('data-custom-task');
         slot.removeAttribute('data-type');
-        
+        slot.dataset.room = room || '';
+
         // Ajouter les nouveaux attributs selon le type
         if (item.type === 'mixed_group') {
             slot.dataset.mixedGroupId = item.id;
@@ -757,6 +843,7 @@ function updateSlotUI(weekday, period, item) {
             slot.innerHTML = `
                 <div class="class-name"><i class="fas fa-users"></i> ${item.name}</div>
                 <div class="class-subject">${item.subject}</div>
+                ${roomHtml}
             `;
         } else if (item.type === 'custom') {
             slot.dataset.customTask = 'true';
@@ -771,6 +858,7 @@ function updateSlotUI(weekday, period, item) {
             slot.innerHTML = `
                 <div class="class-name">${item.name}</div>
                 <div class="class-subject">${item.subject}</div>
+                ${roomHtml}
             `;
         }
     } else {
@@ -780,11 +868,12 @@ function updateSlotUI(weekday, period, item) {
         slot.removeAttribute('data-mixed-group-id');
         slot.removeAttribute('data-custom-task');
         slot.removeAttribute('data-type');
+        slot.dataset.room = '';
         slot.innerHTML = '<div class="empty-slot">Cliquez pour ajouter</div>';
     }
 }
 
-async function saveScheduleSlot(weekday, period, itemId, itemType = 'classroom', customTitle = null) {
+async function saveScheduleSlot(weekday, period, itemId, itemType = 'classroom', customTitle = null, room = null) {
     try {
         const requestData = {
             weekday: parseInt(weekday),
@@ -794,6 +883,7 @@ async function saveScheduleSlot(weekday, period, itemId, itemType = 'classroom',
             custom_task_title: itemType === 'custom' ? customTitle : null,
             task_start: (itemType === 'custom' && window.__customTaskTimes) ? (window.__customTaskTimes.start || null) : null,
             task_end: (itemType === 'custom' && window.__customTaskTimes) ? (window.__customTaskTimes.end || null) : null,
+            room: room || null,
             type: itemType
         };
         if (itemType === 'custom') window.__customTaskTimes = null;
