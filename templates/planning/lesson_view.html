@@ -10853,12 +10853,11 @@ async function uploadEphemeralFromLesson(input) {
 }
 
 async function addFileResourceToPlanning(fileId, fileName, fileType) {
+    // planningId est figé par Jinja AU CHARGEMENT : il vaut null quand le
+    // cours n'était pas encore planifié, même si l'enseignant vient de créer
+    // sa planification en AJAX. On envoie donc aussi le créneau, que le
+    // serveur sait résoudre (get-or-create), comme pour les éphémères.
     const planningId = {{ planning.id if planning else 'null' }};
-
-    if (!planningId) {
-        alert('Veuillez d\'abord créer une planification');
-        return;
-    }
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -10867,6 +10866,9 @@ async function addFileResourceToPlanning(fileId, fileName, fileType) {
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({
                 planning_id: planningId,
+                date: (typeof lessonDate !== 'undefined') ? lessonDate : null,
+                period_number: (typeof periodNumber !== 'undefined') ? periodNumber : null,
+                classroom_id: (typeof classroomId !== 'undefined') ? classroomId : null,
                 resource_type: 'file',
                 resource_id: fileId,
                 display_name: fileName,
@@ -10889,12 +10891,9 @@ async function addFileResourceToPlanning(fileId, fileName, fileType) {
 {% endif %}
 
 async function addExerciseToPlanning(exerciseId, exerciseTitle) {
+    // Même remarque que addFileResourceToPlanning : on transmet le créneau
+    // pour que le serveur retrouve (ou crée) la planification du cours.
     const planningId = {{ planning.id if planning else 'null' }};
-
-    if (!planningId) {
-        alert('Veuillez d\'abord créer une planification');
-        return;
-    }
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -10903,6 +10902,9 @@ async function addExerciseToPlanning(exerciseId, exerciseTitle) {
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({
                 planning_id: planningId,
+                date: (typeof lessonDate !== 'undefined') ? lessonDate : null,
+                period_number: (typeof periodNumber !== 'undefined') ? periodNumber : null,
+                classroom_id: (typeof classroomId !== 'undefined') ? classroomId : null,
                 resource_type: 'exercise',
                 resource_id: exerciseId,
                 display_name: exerciseTitle

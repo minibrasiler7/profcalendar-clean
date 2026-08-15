@@ -4838,11 +4838,23 @@ def save_file_annotations():
         
         if not file_id:
             return jsonify({'success': False, 'message': 'ID de fichier manquant'}), 400
-        
+
+        # Les identifiants préfixés (« eph7 » pour un fichier éphémère) doivent
+        # être redirigés vers l'API dédiée : ici file_id alimente des colonnes
+        # INTEGER, et Postgres refuse la comparaison avec une chaîne (erreur
+        # « operator does not exist: integer = character varying »).
+        if not str(file_id).isdigit():
+            return jsonify({
+                'success': False,
+                'message': "Type de fichier non géré par cette route ; utilisez /file_manager/api/save-annotations."
+            }), 400
+
+        file_id = int(file_id)
+
         # Vérifier que le fichier appartient à l'utilisateur (fichier de classe)
         from models.file_manager import UserFile, FileAnnotation
         from models.student import LegacyClassFile as ClassFile
-        
+
         # D'abord chercher dans user_files
         user_file = UserFile.query.filter_by(id=file_id, user_id=current_user.id).first()
         file_found = bool(user_file)
