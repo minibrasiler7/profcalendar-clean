@@ -3653,6 +3653,7 @@ async function openPdfInViewer(fileId, fileName, pdfUrlOverride) {
         window.cleanPDFViewerCalendar = new CleanPDFViewer('pdf-viewer-container-calendar', {
             fileId: fileId,
             pdfUrl: pdfUrl,
+            fileName: fileName, // nom réel du document (partage/impression iOS)
             showSidebar: true,
             enableAnnotations: true,
             autoSaveInterval: 5000,

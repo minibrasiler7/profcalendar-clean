@@ -2549,13 +2549,65 @@ class CleanPDFViewer {
      * pas repositionnées. rotation vaut 0 par défaut → aucun effet sur /lesson.
      */
     // Ouvre le PDF source dans un nouvel onglet et déclenche le dialogue d'impression
+    /** Vrai dans l'app iOS (WebView), qui injecte ce marqueur dans son User-Agent. */
+    isIosNativeApp() {
+        return /ProfCalendarApp-iOS/.test(navigator.userAgent || '');
+    }
+
     printPdf() {
         const url = this.options.pdfUrl;
         if (!url) { alert('Aucun PDF à imprimer.'); return; }
+
+        // Dans l'app iOS, window.open ne renvoie AUCUNE fenêtre (le delegate natif
+        // charge l'URL puis retourne nil) et window.print() est ignoré par
+        // WKWebView : le bouton affichait « autorisez les pop-up » et faisait
+        // sortir du lecteur. On passe donc par la feuille de partage iOS, qui
+        // contient « Imprimer » (AirPrint).
+        if (this.isIosNativeApp()) {
+            this.printViaShareSheet();
+            return;
+        }
+
         const win = window.open(url, '_blank');
         if (!win) { alert('Autorisez les fenêtres pop-up pour imprimer le PDF.'); return; }
         // Laisser le visualiseur du navigateur charger le document avant d'imprimer
         setTimeout(() => { try { win.print(); } catch (e) { /* Cmd/Ctrl+P reste possible */ } }, 1500);
+    }
+
+    /**
+     * Impression sur iPad/iPhone : ouvre la feuille de partage iOS avec le PDF.
+     * iOS n'autorise le partage que dans la foulée immédiate du geste de
+     * l'utilisateur : on part donc des octets DÉJÀ chargés par PDF.js
+     * (this.pdf.getData()) plutôt que de retélécharger le fichier.
+     */
+    async printViaShareSheet() {
+        const nom = (this.options.fileName || this.options.title || 'document')
+            .replace(/[\\/:*?"<>|]/g, '_')
+            .replace(/\.pdf$/i, '') + '.pdf';
+        try {
+            let octets = null;
+            if (this.pdf && typeof this.pdf.getData === 'function') {
+                octets = await this.pdf.getData();          // déjà en mémoire : immédiat
+            } else {
+                const rep = await fetch(this.options.pdfUrl, { credentials: 'same-origin' });
+                if (!rep.ok) throw new Error('HTTP ' + rep.status);
+                octets = new Uint8Array(await rep.arrayBuffer());
+            }
+
+            const fichier = new File([octets], nom, { type: 'application/pdf' });
+            if (navigator.canShare && navigator.canShare({ files: [fichier] })) {
+                await navigator.share({ files: [fichier], title: nom });
+                return;
+            }
+            throw new Error('partage de fichier indisponible');
+        } catch (e) {
+            // L'utilisateur qui annule la feuille de partage n'est pas une erreur
+            if (e && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return;
+            console.warn('[printPdf] partage iOS impossible:', e && e.message);
+            alert("Impression indisponible depuis l'app sur cet appareil.\n\n"
+                + "Ouvre profcalendar.org dans Safari, affiche le document, "
+                + "puis utilise le bouton Partager pour l'imprimer.");
+        }
     }
 
     async rotatePages() {

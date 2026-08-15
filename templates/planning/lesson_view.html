@@ -9937,6 +9937,7 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
             cleanPDFViewer = new CleanPDFViewer('unified-pdf-viewer-container', {
                 fileId: filePath, // Utiliser filePath comme ID pour les annotations
                 pdfUrl: pdfUrl,
+                fileName: fileName, // nom réel du document (partage/impression iOS)
                 showSidebar: true,
                 enableAnnotations: true,
                 autoSaveInterval: 5000,
