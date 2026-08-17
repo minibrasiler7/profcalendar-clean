@@ -507,12 +507,8 @@ def upload_class_file():
         # Générer un nom unique
         file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
         unique_filename = f"{uuid.uuid4()}.{file_ext}"
-        
-        # Créer le dossier de destination
-        class_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'class_files', str(classroom_id))
-        os.makedirs(class_folder, exist_ok=True)
-        
-        # Lire le contenu du fichier pour stockage BLOB
+
+        # Lire le contenu du fichier (envoyé ensuite vers R2, jamais en BLOB)
         file_content = file.read()
         file_size = len(file_content)
 
@@ -547,35 +543,53 @@ def upload_class_file():
         elif file_ext == 'png':
             mime_type = 'image/png'
         
-        # Créer la description avec le chemin du dossier
-        description = "Uploadé directement"
-        if folder_path:
-            description = f"Copié dans le dossier: {folder_path}"
-        
-        # Créer l'entrée dans la base de données avec BLOB
-        class_file = ClassFile(
+        # === Stockage : R2 + class_files_v2 (plus JAMAIS de BLOB legacy) ===
+        # L'ancienne implémentation écrivait file_content dans la table legacy
+        # class_files (BYTEA) : un fichier lourd saturait la RAM du worker
+        # (500 après ~20 s), et chaque upload regonflait la base — la cause
+        # historique des 502 du gestionnaire. On suit désormais la même
+        # convention que copy_single_file_to_class (clé class_files/<classe>/…,
+        # métadonnées own_* auto-portées, aucun UserFile source).
+        from models.class_file import ClassFile as ClassFileV2
+        from services.r2_storage import upload_to_r2_key
+
+        dest_key = f"class_files/{classroom_id}/{unique_filename}"
+        if not upload_to_r2_key(file_content, dest_key, mime_type):
+            return jsonify({'success': False, 'message': 'Stockage du fichier indisponible, réessayez.'}), 503
+
+        # Nom d'affichage : garder les accents (safe_filename du gestionnaire),
+        # secure_filename les supprimait (« Théorie » → « Theorie »).
+        from routes.file_manager import safe_filename as _safe_name
+        display_name = _safe_name(upload_filename) or secure_filename(upload_filename) or unique_filename
+
+        class_file = ClassFileV2(
             classroom_id=classroom_id,
-            filename=unique_filename,
-            original_filename=secure_filename(upload_filename),
-            file_type=file_ext,
-            file_size=file_size,
-            description=description,
-            file_content=file_content,
-            mime_type=mime_type
+            user_file_id=None,
+            folder_path=folder_path or '',
+            r2_key=dest_key,
+            own_original_filename=display_name,
+            own_filename=unique_filename,
+            own_file_type=file_ext,
+            own_file_size=file_size,
+            own_mime_type=mime_type,
         )
-        
+
         db.session.add(class_file)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Fichier uploadé avec succès',
             'file': {
                 'id': class_file.id,
-                'name': class_file.original_filename
+                'name': display_name,
+                'file_type': file_ext,
+                'file_size': file_size,
+                'folder_path': folder_path or '',
+                'source': 'v2',
             }
         })
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500

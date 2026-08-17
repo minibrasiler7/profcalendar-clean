@@ -9139,22 +9139,27 @@ async function createClassFolderStructure(folderPaths) {
 }
 
 // Uploader les fichiers avec leur structure
-async function uploadClassFilesWithStructure(filesData) {
+async function uploadClassFilesWithStructure(filesData, classroomId = null) {
     const totalFiles = filesData.length;
     let uploadedCount = 0;
     const errors = [];
+
+    // Classe ciblée (celle du bouton cliqué, sinon la principale) et dossier
+    // dans lequel l'enseignant navigue : la structure du dossier déposé est
+    // recréée SOUS ce dossier courant, pas à la racine.
+    if (!classroomId) classroomId = "{{ primary_classroom.id }}";
+    const baseFolder = (currentClassFolderByClass[classroomId] !== undefined)
+        ? currentClassFolderByClass[classroomId]
+        : (currentClassFolder || '');
+    const joinPath = (a, b) => [a, b].filter(Boolean).join('/').replace(/\/+/g, '/').replace(/\/$/, '');
 
     showClassUploadProgress();
 
     for (const fileData of filesData) {
         const formData = new FormData();
         formData.append('file', fileData.file);
-        formData.append('classroom_id', "{{ primary_classroom.id }}");
-        formData.append('folder_path', fileData.path);
-
-        if (currentClassFolder) {
-            formData.append('parent_folder_id', currentClassFolder);
-        }
+        formData.append('classroom_id', classroomId);
+        formData.append('folder_path', joinPath(baseFolder, fileData.path));
 
         try {
             const xhr = new XMLHttpRequest();
@@ -9199,8 +9204,9 @@ async function uploadClassFilesWithStructure(filesData) {
         showNotification('error', `${errors.length} échec(s). Premier : ${errors[0]}`);
     }
 
-    // Recharger les fichiers
-    loadClassFiles(currentClassFolder);
+    // Recharger la liste EN PLACE (sans recharger la page), dans le dossier
+    // courant de la bonne classe : le dossier déposé y apparaît directement.
+    loadClassFiles(baseFolder, classroomId);
 }
 
 // Gérer la sélection de fichiers
@@ -9409,14 +9415,19 @@ async function uploadClassFiles(files, classroomId = null) {
     let uploadedCount = 0;
     const totalFiles = files.length;
 
+    // Dossier de destination = le dossier dans lequel l'enseignant NAVIGUE
+    // pour CETTE classe (état par classe, sinon la variable globale suit la
+    // dernière classe manipulée). Le serveur attend `folder_path` : l'ancien
+    // envoi de `folder_id` était ignoré → tout atterrissait à la racine.
+    const targetFolder = (currentClassFolderByClass[classroomId] !== undefined)
+        ? currentClassFolderByClass[classroomId]
+        : (currentClassFolder || '');
+
     for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('classroom_id', classroomId);
-
-        if (currentClassFolder) {
-            formData.append('folder_id', currentClassFolder);
-        }
+        formData.append('folder_path', targetFolder || '');
 
         try {
             const xhr = new XMLHttpRequest();
@@ -9470,7 +9481,10 @@ async function uploadClassFiles(files, classroomId = null) {
 
     if (uploadedCount > 0) {
         showNotification('success', `${uploadedCount} fichier(s) uploadé(s) avec succès`);
-        loadClassFiles(currentClassFolder, classroomId);
+        // Rafraîchir la liste EN PLACE, dans le dossier où l'on se trouve
+        // (aucun rechargement de page) : le nouveau fichier apparaît là où
+        // l'enseignant navigue.
+        loadClassFiles(targetFolder, classroomId);
     }
 }
 
