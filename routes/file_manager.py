@@ -260,11 +260,16 @@ def _serve_class_file_candidate(kind, obj, as_attachment=False):
         # 2. Fallback : la copie de classe a parfois sa propre clé R2 indépendante
         # du UserFile source (utile si le source a été supprimé mais la copie
         # R2 dans la classe est encore là).
-        if obj.r2_key and obj.own_filename and obj.classroom:
+        if obj.r2_key and obj.classroom:
             try:
-                from services.r2_storage import stream_file_from_r2
+                # Servir par la CLÉ EXACTE stockée (class_files/<classe>/<uuid>).
+                # L'ancien code reconstruisait <user>/<own_filename> via
+                # stream_file_from_r2 : jamais la bonne clé pour une copie de
+                # classe → 404 sur tout fichier v2 sans UserFile source
+                # (uploads directs dans la classe, sources supprimées).
+                from services.r2_storage import stream_r2_key
                 owner_id = obj.classroom.user_id
-                streamed = stream_file_from_r2(owner_id, obj.own_filename)
+                streamed = stream_r2_key(obj.r2_key)
                 if streamed:
                     chunks, length = streamed
                     mimetype = obj.own_mime_type or obj.mime_type or 'application/pdf'
