@@ -1035,7 +1035,11 @@ html.fm-modal-lock #annualCalendarContainer {
 .devoir-cell-badge { position: absolute; bottom: 3px; right: 3px; z-index: 6; background: rgba(99,102,241,0.97); color: #fff; border-radius: 6px; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .devoir-cell-badge:hover { background: #4F46E5; }
 /* ── Refonte visuelle du modal de planification (esprit /lesson) ── */
-#planningModal .modal-content { border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(17,24,39,0.35); padding: 0; }
+/* overflow-x hidden garde les coins arrondis sur l'en-tête dégradé ; le
+   défilement VERTICAL doit rester possible quel que soit le chemin d'ouverture
+   (avec ou sans .show) — un overflow:hidden global bloquait le contenu du
+   modal tandis que le calendrier, lui, défilait derrière. */
+#planningModal .modal-content { border-radius: 16px; overflow-x: hidden; overflow-y: auto !important; max-height: 88vh; box-shadow: 0 25px 60px rgba(17,24,39,0.35); padding: 0; }
 .planning-modal-header { background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #fff; padding: 1.1rem 1.4rem; display: flex; align-items: center; justify-content: space-between; border-bottom: none; }
 .planning-modal-header h3 { color: #fff; margin: 0; font-size: 1.15rem; }
 .pm-kicker { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; margin-bottom: 0.15rem; }
@@ -4816,12 +4820,28 @@ async function prefillPlanningModalFromSlot(date, periodNumber) {
 // modal est ouvert, en préservant la position de défilement de la page.
 let fmScrollLockY = null;
 
+// Le modal de planification a DEUX chemins d'ouverture : l'original
+// (planning.js) pose la classe .show, mais openPeriodPlanningModal — celui
+// des cellules de cours du calendrier, donc le cas de loin le plus courant —
+// ne fait que style.display='block'. En ne surveillant que .show, le verrou
+// ne s'armait jamais dans ce cas : le calendrier défilait sous le modal et
+// le bouton Enregistrer devenait inatteignable. On teste donc l'état
+// VISIBLE réel (classe OU style), quel que soit le chemin d'ouverture.
+function fmModalIsVisible(el) {
+    if (!el) return false;
+    if (el.classList.contains('show')) return true;
+    const d = el.style.display;
+    return d === 'block' || d === 'flex';
+}
+
 function fmApplyBodyScrollLock() {
     const pm = document.getElementById('planningModal');
     const am = document.getElementById('attendanceModal');
-    const planningOpen = !!(pm && pm.classList.contains('show'));
-    const attOpen = !!(am && am.style.display === 'block');
-    const shouldLock = planningOpen || attOpen;
+    const dm = document.getElementById('dayPlanningModal');
+    const planningOpen = fmModalIsVisible(pm);
+    const attOpen = fmModalIsVisible(am);
+    const dayOpen = fmModalIsVisible(dm);
+    const shouldLock = planningOpen || attOpen || dayOpen;
     const locked = fmScrollLockY !== null;
     if (shouldLock && !locked) {
         fmScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -4845,11 +4865,16 @@ function fmApplyBodyScrollLock() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    const pm = document.getElementById('planningModal');
-    const am = document.getElementById('attendanceModal');
     const obs = new MutationObserver(fmApplyBodyScrollLock);
-    if (pm) obs.observe(pm, { attributes: true, attributeFilter: ['class'] });
-    if (am) obs.observe(am, { attributes: true, attributeFilter: ['style'] });
+    // Surveiller class ET style sur chaque modal : selon le chemin d'ouverture,
+    // c'est l'un ou l'autre qui change.
+    ['planningModal', 'attendanceModal', 'dayPlanningModal'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) obs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    });
+    // Filet : si un chemin d'ouverture échappait à l'observateur, on
+    // resynchronise à chaque tentative de défilement de la page.
+    window.addEventListener('scroll', fmApplyBodyScrollLock, { passive: true });
 });
 
 // ==================== Fichiers joints à une période ====================
@@ -7366,8 +7391,13 @@ async function openPeriodPlanningModal(date, periodNumber, classroomId, isMixedG
     // Charger les feuilles blanches pour cette période
     await loadBlankSheetsForPlanningModal(date, periodNumber, classroomId);
 
-    // Afficher le modal
-    modal.style.display = 'block';
+    // Afficher le modal — poser AUSSI la classe .show pour que les règles CSS
+    // du modal (flex, padding-top, max-height, défilement interne) et le verrou
+    // de défilement du fond s'appliquent exactement comme via l'ouverture
+    // originale de planning.js. Sans .show, le modal restait en display:block
+    // brut et le verrou du fond ne s'armait pas.
+    modal.style.display = 'flex';
+    modal.classList.add('show');
     overlay.style.display = 'block';
 }
 
