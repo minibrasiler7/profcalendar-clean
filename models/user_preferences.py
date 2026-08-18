@@ -13,7 +13,11 @@ class UserPreferences(db.Model):
     # 'emoji' = affichage par emoji
     # 'name' = affichage par nom complet
     show_accommodations = db.Column(db.String(20), default='none', nullable=False)
-    
+
+    # Disposition du tableau de bord (boutons de disposition, cf. dashboard.html) :
+    # 'default' | 'side-by-side' | 'memos-focus' | 'tasks-focus' | 'compact'
+    dashboard_layout = db.Column(db.String(30), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -338,3 +342,26 @@ class UserSanctionPreferences(db.Model):
                     ).update({'check_count': 0}, synchronize_session=False)
         
         db.session.commit()
+
+class DashboardTask(db.Model):
+    """Tâche à cocher du tableau de bord (todo simple : fait / pas fait).
+    Différent des mémos (liés à une classe/date) : juste un texte + une case."""
+    __tablename__ = 'dashboard_tasks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    title = db.Column(db.String(300), nullable=False)
+    is_done = db.Column(db.Boolean, nullable=False, default=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    done_at = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'is_done': bool(self.is_done),
+            'position': self.position,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'done_at': self.done_at.isoformat() if self.done_at else None,
+        }

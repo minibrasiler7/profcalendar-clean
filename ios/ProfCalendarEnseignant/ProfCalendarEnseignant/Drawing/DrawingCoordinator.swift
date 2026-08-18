@@ -45,6 +45,19 @@ class DrawingCoordinator: NSObject {
     // Nombre de traits deja envoyes au web depuis le dernier effacement du canvas.
     private var sentStrokeCount = 0
 
+    // « Maintien = ligne droite » (parité avec le web, cf. penLineDetection dans
+    // clean-pdf-viewer.js) : PencilKit n'a AUCUNE reconnaissance de forme
+    // publique, donc PencilHoldStraightener (WebViewController) surveille le
+    // stylet et arme ce drapeau quand il reste ~immobile 2 s en fin de tracé.
+    // À la validation du trait (canvasViewDrawingDidChange), le trait à main
+    // levée est REMPLACÉ par une droite premier→dernier point, et c'est cette
+    // droite (tool "pen-line") qui part au web pour la sauvegarde.
+    var straightenNextStroke = false
+    /// Appelé une fois la droite appliquée (le recognizer retire son aperçu).
+    var onStraightLineApplied: (() -> Void)?
+    /// Vrai pendant l'affectation programmatique de `drawing` (anti-réentrance).
+    private var isApplyingStraightLine = false
+
     // Vrai pendant qu'un tracé Pencil est en cours (entre didBegin et didEnd).
     // Sert à n'effacer l'encre native QUE lorsqu'aucun trait n'est en cours, pour
     // ne jamais effacer un trait que l'utilisateur est en train de dessiner.
@@ -218,6 +231,10 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        // Réentrance : l'affectation programmatique de `drawing` (ligne droite)
+        // peut rappeler ce délégué → rien à faire, le compteur est déjà à jour.
+        if isApplyingStraightLine { return }
+
         // Le tracé évolue → repousser le filet de sécurité. Tant que le stylet
         // bouge, le scroll reste coupé ; il sera rétabli peu après le DERNIER
         // mouvement, même si canvasViewDidEndUsingTool ne se déclenche pas.
@@ -242,6 +259,53 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
             return
         }
 
+        // « Maintien = ligne droite » : le stylet est resté immobile en fin de
+        // tracé → le DERNIER trait validé devient une droite. On remplace le
+        // trait natif (encre à l'écran) ET on envoie la droite au web.
+        // Le remplacement se fait APRÈS la fin du tracé (jamais pendant : PencilKit
+        // annule les modifications de `drawing` en cours de tracé — "Suspect
+        // normalizing… Reverting"). Différé d'un tour de boucle pour laisser
+        // PencilKit finir son propre commit avant l'affectation.
+        if straightenNextStroke && currentToolName == "pen" {
+            straightenNextStroke = false
+            let lastIndex = strokes.count - 1
+            if let straight = Self.straightLineStroke(from: strokes[lastIndex]) {
+                // Traits intermédiaires éventuels (normalement aucun) : envoi tel quel.
+                for index in sentStrokeCount..<lastIndex {
+                    sendStrokeToWeb(strokeData: StrokeConverter.convert(
+                        stroke: strokes[index], tool: currentToolName, color: currentColorHex,
+                        size: currentSize, opacity: currentOpacity, pageId: currentPageId, scale: currentScale))
+                }
+                // La droite part au web comme "pen-line" (2 points) : le viewer
+                // web la rend/persiste comme une ligne droite (même outil que la
+                // détection web), pas comme un trait perfect-freehand.
+                let full = StrokeConverter.convert(
+                    stroke: straight, tool: "pen-line", color: currentColorHex,
+                    size: currentSize, opacity: currentOpacity, pageId: currentPageId, scale: currentScale)
+                let ends = StrokeData(
+                    points: [full.points.first, full.points.last].compactMap { $0 },
+                    tool: "pen-line", color: currentColorHex, size: currentSize,
+                    opacity: currentOpacity, pageId: currentPageId)
+                sendStrokeToWeb(strokeData: ends)
+                sentStrokeCount = strokes.count
+
+                DispatchQueue.main.async { [weak self, weak canvasView] in
+                    guard let self = self, let canvasView = canvasView else { return }
+                    var updated = canvasView.drawing.strokes
+                    // Vérifier que le dessin n'a pas bougé entre-temps (gomme/undo).
+                    guard updated.count > lastIndex else { return }
+                    updated[lastIndex] = straight
+                    self.isApplyingStraightLine = true
+                    canvasView.drawing = PKDrawing(strokes: updated)
+                    self.isApplyingStraightLine = false
+                    self.sentStrokeCount = canvasView.drawing.strokes.count
+                    self.onStraightLineApplied?()
+                    print("[DrawingCoordinator] Trait remplacé par une ligne droite (maintien)")
+                }
+                return
+            }
+        }
+
         // N'envoyer que les NOUVEAUX traits au web (sauvegarde + matérialisation
         // au flush). NB : on NE rogne PLUS le dessin natif — PencilKit annule
         // toute modification programmatique de `drawing` ("Suspect normalizing…
@@ -260,6 +324,48 @@ extension DrawingCoordinator: PKCanvasViewDelegate {
             sendStrokeToWeb(strokeData: strokeData)
         }
         sentStrokeCount = strokes.count
+    }
+
+    /// Construit un trait PencilKit rectiligne (même encre) allant du premier au
+    /// dernier point de `stroke`. Le chemin PencilKit est une B-spline : on pose
+    /// des points de contrôle régulièrement espacés le long du segment (un chemin
+    /// à 2 points ne se rendrait pas correctement). Renvoie nil pour un trait
+    /// trop court (< 10 pt) : rien à redresser.
+    static func straightLineStroke(from stroke: PKStroke) -> PKStroke? {
+        let path = stroke.path
+        guard path.count >= 2 else { return nil }
+        let first = path[0]
+        let last = path[path.count - 1]
+        let dx = last.location.x - first.location.x
+        let dy = last.location.y - first.location.y
+        let length = (dx * dx + dy * dy).squareRoot()
+        guard length >= 10 else { return nil }
+
+        // Épaisseur/opacité : moyenne des points d'origine (PencilKit fait varier la
+        // taille avec la force ; on veut une droite d'épaisseur constante).
+        var sizeSum: CGFloat = 0
+        for i in 0..<path.count { sizeSum += path[i].size.width }
+        let width = max(sizeSum / CGFloat(path.count), 1)
+        let size = CGSize(width: width, height: width)
+
+        let steps = max(Int(length / 4), 4)
+        var points: [PKStrokePoint] = []
+        points.reserveCapacity(steps + 1)
+        for i in 0...steps {
+            let t = CGFloat(i) / CGFloat(steps)
+            let loc = CGPoint(x: first.location.x + dx * t, y: first.location.y + dy * t)
+            points.append(PKStrokePoint(
+                location: loc,
+                timeOffset: TimeInterval(t) * 0.5,
+                size: size,
+                opacity: 1.0,
+                force: 1.0,
+                azimuth: 0,
+                altitude: .pi / 2
+            ))
+        }
+        let newPath = PKStrokePath(controlPoints: points, creationDate: Date())
+        return PKStroke(ink: stroke.ink, path: newPath, transform: .identity, mask: nil)
     }
 }
 

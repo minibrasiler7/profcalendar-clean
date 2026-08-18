@@ -2751,6 +2751,48 @@ msgstr "Asignatura: {subject}"
 msgid "Classe : {classroom}"
 msgstr "Clase: {classroom}"
 
+msgid "Disposition"
+msgstr "Disposición"
+
+msgid "Disposition du tableau de bord"
+msgstr "Disposición del panel"
+
+msgid "Empilé (1 colonne)"
+msgstr "Apilado (1 columna)"
+
+msgid "Mémos et tâches côte à côte"
+msgstr "Notas y tareas lado a lado"
+
+msgid "Focus mémos (mémos larges)"
+msgstr "Enfoque notas (notas anchas)"
+
+msgid "Focus tâches (tâches larges)"
+msgstr "Enfoque tareas (tareas anchas)"
+
+msgid "Compact (cartes réduites, défilement interne)"
+msgstr "Compacto (tarjetas reducidas, desplazamiento interno)"
+
+msgid "Mes tâches"
+msgstr "Mis tareas"
+
+msgid "Effacer les tâches faites"
+msgstr "Borrar tareas hechas"
+
+msgid "Nouvelle tâche… (Entrée pour ajouter)"
+msgstr "Nueva tarea… (Intro para añadir)"
+
+msgid "Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus."
+msgstr "Ninguna tarea. Añade una arriba: una casilla, nada más."
+
+msgid "Marquer comme à faire"
+msgstr "Marcar como pendiente"
+
+msgid "Marquer comme faite"
+msgstr "Marcar como hecha"
+
+msgid "Erreur lors de l'ajout"
+msgstr "Error al añadir"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Tu prueba Premium termina en %(num)d día."

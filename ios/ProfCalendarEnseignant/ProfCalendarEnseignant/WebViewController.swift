@@ -61,6 +61,8 @@ class WebViewController: UIViewController {
     // (efface aussi les traits rechargés + persistance), sans bloquer l'effacement
     // natif PKEraserTool. Voir PencilEraserForwarder en bas de fichier.
     private var eraserForwarder: PencilEraserForwarder?
+    // « Maintien = ligne droite » (stylo). Voir PencilHoldStraightener en bas de fichier.
+    private var holdStraightener: PencilHoldStraightener?
 
     // MARK: - External display detection
     //
@@ -289,6 +291,24 @@ class WebViewController: UIViewController {
         }
         pencilCanvas.addGestureRecognizer(forwarder)
         eraserForwarder = forwarder
+
+        // « Maintien = ligne droite » (parité web) : stylet ~immobile ~2 s en fin
+        // de trait → le trait devient une droite. Recognizer non bloquant, comme
+        // la gomme ci-dessus ; il affiche un aperçu de la droite et arme le
+        // coordinateur, qui remplace le trait natif à la validation.
+        let straightener = PencilHoldStraightener(target: nil, action: nil)
+        straightener.isActive = { [weak self] in self?.drawingCoordinator.currentToolName == "pen" }
+        straightener.previewStyle = { [weak self] in
+            guard let self = self else { return (UIColor.black, 2) }
+            let c = self.drawingCoordinator
+            let color = UIColor(hex: c.currentColorHex)?.withAlphaComponent(c.currentOpacity) ?? .black
+            return (color, CGFloat(c.currentSize * c.currentScale))
+        }
+        straightener.onArmed = { [weak self] in self?.drawingCoordinator.straightenNextStroke = true }
+        straightener.onDisarmed = { [weak self] in self?.drawingCoordinator.straightenNextStroke = false }
+        drawingCoordinator.onStraightLineApplied = { [weak straightener] in straightener?.removePreview() }
+        pencilCanvas.addGestureRecognizer(straightener)
+        holdStraightener = straightener
 
         view.addSubview(pencilCanvasContainer)
     }
@@ -1397,6 +1417,195 @@ final class PencilEraserForwarder: UIGestureRecognizer, UIGestureRecognizerDeleg
 
     // Reconnaître EN MÊME TEMPS que les recognizers de PencilKit (sinon l'un
     // annule l'autre → soit l'effacement natif, soit le transfert casserait).
+    func gestureRecognizer(_ g: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+
+// MARK: - « Maintien = ligne droite » (stylo Pencil)
+
+/// Recognizer NON bloquant attaché au PKCanvasView (même principe que
+/// PencilEraserForwarder). PencilKit n'offre AUCUNE reconnaissance de forme
+/// publique ; côté web, clean-pdf-viewer.js redresse un trait au stylo quand le
+/// stylet reste ~immobile 2 s (< 8 px cumulés). Ce recognizer reproduit cette
+/// règle sur l'app iPad :
+///  - à chaque mouvement, un timer de 2 s est (ré)armé avec un point de
+///    référence ; s'éloigner de > 8 pt de la référence le réarme ;
+///  - si le timer expire (stylet toujours posé, trait ≥ 10 pt), on ARME le
+///    coordinateur (`straightenNextStroke`) et on affiche un aperçu de la droite
+///    (CAShapeLayer) qui suit ensuite le stylet ; le trait reste « droit »
+///    jusqu'au lever (le lever valide, comme sur le web) ;
+///  - à la validation, DrawingCoordinator remplace le trait natif par la
+///    droite et retire l'aperçu via `removePreview()`.
+/// Il ne consomme pas les touches et reconnaît simultanément avec PencilKit.
+final class PencilHoldStraightener: UIGestureRecognizer, UIGestureRecognizerDelegate {
+    var isActive: (() -> Bool)?
+    var previewStyle: (() -> (UIColor, CGFloat))?
+    var onArmed: (() -> Void)?
+    var onDisarmed: (() -> Void)?
+
+    private let holdDelay: TimeInterval = 2.0
+    private let cancelDistance: CGFloat = 8
+    private let minLength: CGFloat = 10
+
+    private var startPoint: CGPoint?
+    private var referencePoint: CGPoint?
+    private var currentPoint: CGPoint?
+    private var holdTimer: Timer?
+    private var armed = false
+    private var previewLayer: CAShapeLayer?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+        delegate = self
+    }
+
+    private func pencilLocation(_ touches: Set<UITouch>) -> CGPoint? {
+        guard let v = view else { return nil }
+        let t = touches.first(where: { $0.type == .pencil }) ?? touches.first
+        return t?.location(in: v)
+    }
+
+    private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+        let dx = a.x - b.x, dy = a.y - b.y
+        return (dx * dx + dy * dy).squareRoot()
+    }
+
+    private func restartTimer(at p: CGPoint) {
+        holdTimer?.invalidate()
+        referencePoint = p
+        // Mode .common : un timer en mode .default ne se déclenche PAS pendant un
+        // suivi tactile (UITrackingRunLoopMode) — or c'est précisément pendant que
+        // le stylet est posé qu'il doit expirer.
+        let t = Timer(timeInterval: holdDelay, repeats: false) { [weak self] _ in
+            self?.holdTimerFired()
+        }
+        RunLoop.main.add(t, forMode: .common)
+        holdTimer = t
+    }
+
+    private func cancelTimer() {
+        holdTimer?.invalidate()
+        holdTimer = nil
+        referencePoint = nil
+    }
+
+    private func holdTimerFired() {
+        holdTimer = nil
+        referencePoint = nil
+        guard state == .began || state == .changed,
+              let start = startPoint, let cur = currentPoint,
+              distance(start, cur) >= minLength else { return }
+        armed = true
+        onArmed?()
+        showPreview(from: start, to: cur)
+        print("[HoldStraightener] 2 s immobile → ligne droite armée")
+    }
+
+    private func resetHold() {
+        cancelTimer()
+        if armed { armed = false }
+        startPoint = nil
+        currentPoint = nil
+    }
+
+    // MARK: aperçu
+
+    private func showPreview(from a: CGPoint, to b: CGPoint) {
+        guard let v = view else { return }
+        let layer = previewLayer ?? CAShapeLayer()
+        let (color, width) = previewStyle?() ?? (UIColor.black, 2)
+        layer.strokeColor = color.cgColor
+        layer.fillColor = nil
+        layer.lineWidth = max(width, 1)
+        layer.lineCap = .round
+        let path = UIBezierPath()
+        path.move(to: a)
+        path.addLine(to: b)
+        layer.path = path.cgPath
+        if layer.superlayer == nil { v.layer.addSublayer(layer) }
+        previewLayer = layer
+    }
+
+    private func updatePreview(to b: CGPoint) {
+        guard let layer = previewLayer, let a = startPoint else { return }
+        let path = UIBezierPath()
+        path.move(to: a)
+        path.addLine(to: b)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.path = path.cgPath
+        CATransaction.commit()
+    }
+
+    /// Retire l'aperçu (appelé par le coordinateur une fois la droite native
+    /// appliquée, ou en secours peu après le lever du stylet).
+    func removePreview() {
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = nil
+    }
+
+    // MARK: touches
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard isActive?() ?? false, let p = pencilLocation(touches) else { state = .failed; return }
+        removePreview()
+        resetHold()
+        onDisarmed?()          // repartir propre : un ancien armement non consommé ne doit pas fuiter
+        startPoint = p
+        currentPoint = p
+        state = .began
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard state == .began || state == .changed, let p = pencilLocation(touches) else { return }
+        currentPoint = p
+        state = .changed
+        if armed {
+            // Déjà redressé : la droite suit le stylet jusqu'au lever (comme le web).
+            updatePreview(to: p)
+            return
+        }
+        if let ref = referencePoint, distance(ref, p) > cancelDistance {
+            cancelTimer()
+        }
+        if holdTimer == nil { restartTimer(at: p) }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        finish(cancelled: false)
+        state = .ended
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        finish(cancelled: true)
+        state = .cancelled
+    }
+
+    private func finish(cancelled: Bool) {
+        cancelTimer()
+        if armed {
+            if cancelled {
+                onDisarmed?()
+                removePreview()
+            } else {
+                // Le coordinateur retire l'aperçu dès que la droite native est
+                // appliquée ; secours si le trait n'est finalement pas validé.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.removePreview()
+                }
+            }
+        }
+        armed = false
+        startPoint = nil
+        currentPoint = nil
+    }
+
+    // Reconnaître EN MÊME TEMPS que les recognizers de PencilKit.
     func gestureRecognizer(_ g: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         return true

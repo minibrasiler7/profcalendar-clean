@@ -136,6 +136,12 @@ class CleanPDFViewer {
             annotationOffset: options.annotationOffset || {x: 0, y: 0}, // Offset pour les annotations
             ...options
         };
+        // Image (jpg/png…) ouverte comme un document 1 page : explicite via
+        // sourceIsImage, sinon déduit du nom de fichier (les URLs /serve_file/<id>
+        // n'ont pas d'extension).
+        if (this.options.sourceIsImage === undefined || this.options.sourceIsImage === null) {
+            this.options.sourceIsImage = CleanPDFViewer.isImageUrl(this.options.fileName || '');
+        }
 
         // État du viewer
         this.pdf = null;
@@ -2322,21 +2328,59 @@ class CleanPDFViewer {
     /**
      * Charger un PDF
      */
-    async loadPDF(url) {
+    /**
+     * @param {string} url       URL du document (PDF ou image)
+     * @param {string} [fileName] Nom réel du fichier : sert au partage/impression
+     *                            iOS ET à détecter les images (les URLs de
+     *                            /serve_file/<id> n'ont pas d'extension).
+     */
+    async loadPDF(url, fileName) {
         console.log('[loadPDF] Début du chargement:', url);
+
+        if (fileName) {
+            this.options.fileName = fileName;
+            this.options.sourceIsImage = CleanPDFViewer.isImageUrl(fileName);
+        }
 
         // Réinitialiser l'état d'annotation pour éviter que le viewer reste bloqué
         this.isAnnotating = false;
         this.isDrawing = false;
 
-        this.showLoading(true);
+        const shortName = this.options.fileName ? ('« ' + this.options.fileName + ' »') : '';
+        this.showLoading(true, shortName ? 'Chargement de ' + shortName + '…' : 'Chargement…');
 
         try {
+            // IMAGES (.jpg/.png/.gif/.webp…) : les ouvrir comme un document d'une
+            // page pour pouvoir les ANNOTER et les fermer comme un PDF. L'image
+            // est convertie côté client (canvas → pdf-lib) en un PDF temporaire
+            // (blob:) ; le fileId reste celui du fichier d'origine, donc les
+            // annotations sont persistées normalement.
+            if (this.options.sourceIsImage || CleanPDFViewer.isImageUrl(url)) {
+                console.log('[loadPDF] Source image → conversion en PDF 1 page');
+                this.showLoading(true, 'Préparation de l\'image ' + shortName + '…');
+                url = await this.imageUrlToPdfBlobUrl(url);
+                this._imageSourceUrl = this.options.pdfUrl;
+                // Impression / export / partage : travailler sur le PDF généré
+                this.options.pdfUrl = url;
+            }
+
             // Charger avec PDF.js
             console.log('[loadPDF] Création de la tâche de chargement...');
             const loadingTask = pdfjsLib.getDocument(url);
+            // Progression du téléchargement (fichiers lourds) : « 43 % » / « 12 Mo »
+            loadingTask.onProgress = (p) => {
+                if (!p) return;
+                let txt;
+                if (p.total > 0) {
+                    txt = Math.min(100, Math.round(p.loaded / p.total * 100)) + ' %';
+                } else if (p.loaded > 0) {
+                    txt = (p.loaded / (1024 * 1024)).toFixed(1) + ' Mo';
+                }
+                if (txt) this.showLoading(true, 'Chargement de ' + (shortName || 'du document') + '… ' + txt);
+            };
             console.log('[loadPDF] En attente du PDF...');
             this.pdf = await loadingTask.promise;
+            this.showLoading(true, 'Affichage des pages…');
             console.log('[loadPDF] PDF chargé, nombre de pages:', this.pdf.numPages);
             this.totalPages = this.pdf.numPages;
 
@@ -2369,6 +2413,73 @@ class CleanPDFViewer {
             this.showLoading(false);
             console.log('[loadPDF] Chargement terminé');
         }
+    }
+
+    /**
+     * Vrai si l'URL (ou un nom de fichier) désigne une image bitmap que le
+     * navigateur sait décoder (utilisé pour ouvrir les images dans le viewer).
+     */
+    static isImageUrl(url) {
+        if (!url || typeof url !== 'string') return false;
+        const clean = url.split('#')[0].split('?')[0];
+        return /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif|tiff?)$/i.test(clean);
+    }
+
+    /**
+     * Convertit une image (URL same-origin ou blob) en PDF d'une page (pdf-lib)
+     * et renvoie une URL blob: prête pour PDF.js. La page a les proportions de
+     * l'image (bord long borné à 2000 pt pour rester léger).
+     */
+    async imageUrlToPdfBlobUrl(url) {
+        const resp = await fetch(url, { credentials: 'same-origin' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' en récupérant l\'image');
+        const blob = await resp.blob();
+
+        // Décoder l'image via le navigateur (gère JPG/PNG/GIF/WebP/BMP/AVIF…)
+        const objectUrl = URL.createObjectURL(blob);
+        let img;
+        try {
+            img = await new Promise((resolve, reject) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = () => reject(new Error('Image illisible (format non supporté par le navigateur)'));
+                i.src = objectUrl;
+            });
+        } finally {
+            // L'objet reste utilisable par <img> après révocation tant qu'il est chargé
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+        }
+
+        const naturalW = img.naturalWidth || img.width;
+        const naturalH = img.naturalHeight || img.height;
+        if (!naturalW || !naturalH) throw new Error('Dimensions d\'image invalides');
+
+        // Redimensionner si énorme (photo 12 Mpx) : cible ≤ 2000 px sur le bord long
+        const maxSide = 2000;
+        const ratio = Math.min(1, maxSide / Math.max(naturalW, naturalH));
+        const w = Math.round(naturalW * ratio);
+        const h = Math.round(naturalH * ratio);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // Fond blanc (PNG transparents) puis image
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // JPEG (photos) sauf si l'image d'origine est un PNG (traits nets, schémas)
+        const isPng = (blob.type === 'image/png');
+        const dataUrl = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);
+        const bytes = await fetch(dataUrl).then(r => r.arrayBuffer());
+
+        const { PDFDocument } = await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js');
+        const pdfDoc = await PDFDocument.create();
+        const embedded = isPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+        const page = pdfDoc.addPage([w, h]);
+        page.drawImage(embedded, { x: 0, y: 0, width: w, height: h });
+        const pdfBytes = await pdfDoc.save();
+        return URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
     }
 
     /**
@@ -12631,8 +12742,10 @@ class CleanPDFViewer {
     /**
      * Afficher/masquer le loading
      */
-    showLoading(show) {
+    showLoading(show, text) {
         this.elements.loading.style.display = show ? 'flex' : 'none';
+        const label = this.elements.loading.querySelector('p');
+        if (label) label.textContent = (show && text) ? text : 'Chargement...';
 
         // Si on affiche le loading, réinitialiser les états d'interaction
         // pour éviter que le viewer reste bloqué

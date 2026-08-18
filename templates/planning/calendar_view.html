@@ -1068,7 +1068,25 @@ html.fm-modal-lock #annualCalendarContainer {
 .custom-task-timed.positioned { position: absolute; left: 3px; right: 3px; margin: 0; z-index: 5; overflow: hidden; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35); }
 
 /* Numéro de semaine scolaire (même numérotation S0/S1... que la vue annuelle) */
-.week-number-badge { display: inline-flex; align-items: center; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; border-radius: 999px; font-size: 0.85rem; font-weight: 700; padding: 0.15rem 0.7rem; margin-left: 0.6rem; vertical-align: middle; }
+.week-number-badge { display: inline-flex; align-items: center; gap: 0.3rem; background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; border-radius: 999px; font-size: 0.85rem; font-weight: 700; padding: 0.15rem 0.7rem; margin-left: 0.6rem; vertical-align: middle; cursor: pointer; font-family: inherit; line-height: 1.4; }
+.week-number-badge:hover { background: #E0E7FF; border-color: #A5B4FC; }
+.week-badge-wrap { position: relative; display: inline-block; }
+.week-picker { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 1200; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,23,42,0.18); padding: 0.85rem; width: 340px; max-width: 92vw; text-align: left; font-weight: 400; }
+.week-picker-section + .week-picker-section { margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid #F3F4F6; }
+.week-picker-label { display: block; font-size: 0.75rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem; }
+.week-picker-date-row { display: flex; gap: 0.4rem; }
+.week-picker-date { flex: 1; padding: 0.4rem 0.6rem; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; font-family: inherit; }
+.week-picker-go { padding: 0.4rem 0.7rem; border: none; border-radius: 8px; background: #4F46E5; color: #fff; cursor: pointer; }
+.week-picker-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.35rem; max-height: 220px; overflow-y: auto; }
+.week-picker-item { border: 1px solid #E5E7EB; background: #F9FAFB; border-radius: 8px; padding: 0.3rem 0.2rem; font-size: 0.78rem; font-weight: 700; color: #374151; cursor: pointer; text-align: center; line-height: 1.15; font-family: inherit; }
+.week-picker-item small { display: block; font-weight: 500; color: #9CA3AF; font-size: 0.68rem; }
+.week-picker-item:hover { background: #EEF2FF; border-color: #C7D2FE; color: #4F46E5; }
+.week-picker-item.current { background: #4F46E5; border-color: #4F46E5; color: #fff; }
+.week-picker-item.current small { color: #C7D2FE; }
+/* Jour mis en évidence après un saut à une date (colonne « lumineuse ») */
+@keyframes dayJumpGlow { 0% { box-shadow: inset 0 0 0 3px #F59E0B, 0 0 18px rgba(245,158,11,0.9); background-color: #FEF3C7; } 100% { box-shadow: inset 0 0 0 3px rgba(245,158,11,0.0), 0 0 0 rgba(245,158,11,0); background-color: transparent; } }
+.schedule-table th.day-jump-highlight, .schedule-table td.day-jump-highlight { animation: dayJumpGlow 6s ease-out forwards; position: relative; z-index: 1; }
+.schedule-table th.day-jump-highlight { background-color: #FEF3C7 !important; box-shadow: inset 0 0 0 3px #F59E0B, 0 0 18px rgba(245,158,11,0.9); animation: none; }
 /* Modale « devoir donné » (clic sur le badge) */
 .devoir-cal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); z-index: 4000; display: flex; align-items: flex-start; justify-content: center; padding: 8vh 1rem 1rem; }
 .devoir-cal-box { background: #fff; border-radius: 14px; width: 100%; max-width: 420px; padding: 1.1rem 1.2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
@@ -2027,11 +2045,27 @@ html.fm-modal-lock #annualCalendarContainer {
 
             <h2 class="current-week-title">
                 <span id="weekTitleText">Semaine du {{ week_dates[0] | format_date_full }} au {{ week_dates[4] | format_date }}</span>
+                <span class="week-badge-wrap" id="weekBadgeWrap">
                 {% if school_week_number is not none %}
-                <span class="week-number-badge" id="weekNumberBadge">S{{ school_week_number }}</span>
+                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="Choisir une semaine ou une date">S{{ school_week_number }} <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
                 {% else %}
-                <span class="week-number-badge" id="weekNumberBadge" style="display:none;"></span>
+                <button type="button" class="week-number-badge" id="weekNumberBadge" onclick="toggleWeekPicker(event)" title="Choisir une semaine ou une date"><i class="fas fa-calendar-alt"></i> <i class="fas fa-caret-down" style="font-size:0.75em;"></i></button>
                 {% endif %}
+                <!-- Sélecteur de semaine (S1, S2, …) + saut à une date -->
+                <div class="week-picker" id="weekPicker" style="display:none;" onclick="event.stopPropagation()">
+                    <div class="week-picker-section">
+                        <label class="week-picker-label" for="weekPickerDate"><i class="fas fa-calendar-day"></i> Aller à une date</label>
+                        <div class="week-picker-date-row">
+                            <input type="date" id="weekPickerDate" class="week-picker-date" onchange="jumpToDate(this.value)" onkeydown="if(event.key==='Enter'){jumpToDate(this.value);}">
+                            <button type="button" class="week-picker-go" onclick="jumpToDate(document.getElementById('weekPickerDate').value)"><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="week-picker-section">
+                        <div class="week-picker-label"><i class="fas fa-th"></i> Semaines de l'année</div>
+                        <div class="week-picker-grid" id="weekPickerGrid"></div>
+                    </div>
+                </div>
+                </span>
             </h2>
 
             <button class="nav-btn" onclick="navigateWeek('next')">
@@ -2745,6 +2779,14 @@ async function fetchWeekFragment(weekStartDate, opts = {}) {
 
         // Mettre à jour l'URL pour cohérence (back-button, refresh).
         currentDisplayedWeek = data.week;
+
+        // Saut à une date : mettre le jour demandé en évidence dans la nouvelle grille
+        if (__pendingDayHighlight) {
+            const d = __pendingDayHighlight; __pendingDayHighlight = null;
+            setTimeout(() => highlightDay(d), 0);
+        } else {
+            highlightDay(null);
+        }
         const params = new URLSearchParams(window.location.search);
         params.set('week', data.week);
         const newUrl = window.location.pathname + '?' + params.toString();
@@ -2782,6 +2824,91 @@ function navigateWeek(direction) {
 function navigateToToday() {
     const today = new Date();
     fetchWeekFragment(formatDate(today));
+}
+
+// ---------------------------------------------------------------------------
+// Sélecteur de semaine (clic sur le badge S{n}) + saut à une date
+// ---------------------------------------------------------------------------
+const schoolWeeks = {{ school_weeks_json | tojson }};   // [{number, monday, label}]
+let __pendingDayHighlight = null;   // date ISO à mettre en évidence après le chargement de la semaine
+
+function buildWeekPickerGrid() {
+    const grid = document.getElementById('weekPickerGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (!schoolWeeks.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;color:#9CA3AF;font-size:0.8rem;">Année scolaire non configurée</div>';
+        return;
+    }
+    schoolWeeks.forEach(w => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'week-picker-item' + (w.monday === currentDisplayedWeek ? ' current' : '');
+        b.innerHTML = 'S' + w.number + '<small></small>';
+        b.querySelector('small').textContent = w.label;
+        b.title = 'Semaine du ' + w.label;
+        b.onclick = () => { closeWeekPicker(); fetchWeekFragment(w.monday); };
+        grid.appendChild(b);
+    });
+}
+
+function toggleWeekPicker(ev) {
+    if (ev) ev.stopPropagation();
+    const p = document.getElementById('weekPicker');
+    if (!p) return;
+    const opening = p.style.display === 'none' || !p.style.display;
+    if (opening) {
+        buildWeekPickerGrid();
+        const d = document.getElementById('weekPickerDate');
+        if (d && !d.value) d.value = currentDisplayedWeek;
+        p.style.display = 'block';
+        // Faire défiler la grille jusqu'à la semaine courante
+        const cur = p.querySelector('.week-picker-item.current');
+        if (cur && cur.scrollIntoView) { try { cur.scrollIntoView({ block: 'nearest' }); } catch (_) {} }
+        setTimeout(() => document.addEventListener('click', closeWeekPicker, { once: true }), 0);
+    } else {
+        closeWeekPicker();
+    }
+}
+
+function closeWeekPicker() {
+    const p = document.getElementById('weekPicker');
+    if (p) p.style.display = 'none';
+}
+
+// Charge la semaine qui contient la date, puis met le jour en évidence
+function jumpToDate(value) {
+    if (!value) return;
+    const d = new Date(value + 'T12:00:00');
+    if (isNaN(d.getTime())) return;
+    closeWeekPicker();
+    // Lundi de la semaine (les week-ends renvoient au lundi suivant)
+    const dow = d.getDay(); // 0 = dimanche
+    const monday = new Date(d);
+    if (dow === 0) monday.setDate(d.getDate() + 1);
+    else if (dow === 6) monday.setDate(d.getDate() + 2);
+    else monday.setDate(d.getDate() - (dow - 1));
+    __pendingDayHighlight = (dow === 0 || dow === 6) ? formatDate(monday) : value;
+    const mondayIso = formatDate(monday);
+    if (mondayIso === currentDisplayedWeek) {
+        highlightDay(__pendingDayHighlight);
+        __pendingDayHighlight = null;
+    } else {
+        fetchWeekFragment(mondayIso);
+    }
+}
+
+function highlightDay(dateIso) {
+    document.querySelectorAll('.schedule-table .day-jump-highlight').forEach(el => el.classList.remove('day-jump-highlight'));
+    if (!dateIso) return;
+    const cells = document.querySelectorAll(`.schedule-table th.day-header[data-date="${dateIso}"], .schedule-table td.schedule-cell[data-date="${dateIso}"]`);
+    cells.forEach(el => el.classList.add('day-jump-highlight'));
+    const th = document.querySelector(`.schedule-table th.day-header[data-date="${dateIso}"]`);
+    if (th && th.scrollIntoView) { try { th.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); } catch (_) {} }
+    // La colonne reste « lumineuse » ~8 s puis s'estompe (le titre reste marqué jusqu'à la prochaine navigation)
+    setTimeout(() => {
+        document.querySelectorAll('.schedule-table td.day-jump-highlight').forEach(el => el.classList.remove('day-jump-highlight'));
+    }, 8000);
 }
 
 // Bouton "back" du navigateur : revenir à la semaine de l'historique.

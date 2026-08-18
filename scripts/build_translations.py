@@ -3691,6 +3691,21 @@ ENTRIES = [
     ("coches", "checks", "marcas", "Häkchen", "spunte"),
     ("Matière : {subject}", "Subject: {subject}", "Asignatura: {subject}", "Fach: {subject}", "Materia: {subject}"),
     ("Classe : {classroom}", "Class: {classroom}", "Clase: {classroom}", "Klasse: {classroom}", "Classe: {classroom}"),
+    # --- Tableau de bord : disposition + tâches à cocher (2026-08-18) ---
+    ("Disposition", "Layout", "Disposición", "Anordnung", "Disposizione"),
+    ("Disposition du tableau de bord", "Dashboard layout", "Disposición del panel", "Anordnung des Dashboards", "Disposizione della dashboard"),
+    ("Empilé (1 colonne)", "Stacked (1 column)", "Apilado (1 columna)", "Gestapelt (1 Spalte)", "Impilato (1 colonna)"),
+    ("Mémos et tâches côte à côte", "Memos and tasks side by side", "Notas y tareas lado a lado", "Memos und Aufgaben nebeneinander", "Promemoria e attività affiancati"),
+    ("Focus mémos (mémos larges)", "Focus on memos (wide memos)", "Enfoque notas (notas anchas)", "Fokus Memos (breite Memos)", "Focus promemoria (promemoria larghi)"),
+    ("Focus tâches (tâches larges)", "Focus on tasks (wide tasks)", "Enfoque tareas (tareas anchas)", "Fokus Aufgaben (breite Aufgaben)", "Focus attività (attività larghe)"),
+    ("Compact (cartes réduites, défilement interne)", "Compact (smaller cards, inner scrolling)", "Compacto (tarjetas reducidas, desplazamiento interno)", "Kompakt (kleinere Karten, internes Scrollen)", "Compatto (schede ridotte, scorrimento interno)"),
+    ("Mes tâches", "My tasks", "Mis tareas", "Meine Aufgaben", "Le mie attività"),
+    ("Effacer les tâches faites", "Clear completed tasks", "Borrar tareas hechas", "Erledigte Aufgaben löschen", "Elimina attività fatte"),
+    ("Nouvelle tâche… (Entrée pour ajouter)", "New task… (Enter to add)", "Nueva tarea… (Intro para añadir)", "Neue Aufgabe… (Enter zum Hinzufügen)", "Nuova attività… (Invio per aggiungere)"),
+    ("Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus.", "No tasks. Add one above: a checkbox, nothing more.", "Ninguna tarea. Añade una arriba: una casilla, nada más.", "Keine Aufgaben. Fügen Sie oben eine hinzu: ein Kästchen, mehr nicht.", "Nessuna attività. Aggiungine una sopra: una casella, niente di più."),
+    ("Marquer comme à faire", "Mark as to do", "Marcar como pendiente", "Als zu erledigen markieren", "Segna come da fare"),
+    ("Marquer comme faite", "Mark as done", "Marcar como hecha", "Als erledigt markieren", "Segna come fatta"),
+    ("Erreur lors de l'ajout", "Error while adding", "Error al añadir", "Fehler beim Hinzufügen", "Errore durante l'aggiunta"),
 ]
 
 # Pluriels : (msgid_singulier, msgid_pluriel, {lang: (singulier, pluriel)})

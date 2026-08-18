@@ -2751,6 +2751,48 @@ msgstr "Materia: {subject}"
 msgid "Classe : {classroom}"
 msgstr "Classe: {classroom}"
 
+msgid "Disposition"
+msgstr "Disposizione"
+
+msgid "Disposition du tableau de bord"
+msgstr "Disposizione della dashboard"
+
+msgid "Empilé (1 colonne)"
+msgstr "Impilato (1 colonna)"
+
+msgid "Mémos et tâches côte à côte"
+msgstr "Promemoria e attività affiancati"
+
+msgid "Focus mémos (mémos larges)"
+msgstr "Focus promemoria (promemoria larghi)"
+
+msgid "Focus tâches (tâches larges)"
+msgstr "Focus attività (attività larghe)"
+
+msgid "Compact (cartes réduites, défilement interne)"
+msgstr "Compatto (schede ridotte, scorrimento interno)"
+
+msgid "Mes tâches"
+msgstr "Le mie attività"
+
+msgid "Effacer les tâches faites"
+msgstr "Elimina attività fatte"
+
+msgid "Nouvelle tâche… (Entrée pour ajouter)"
+msgstr "Nuova attività… (Invio per aggiungere)"
+
+msgid "Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus."
+msgstr "Nessuna attività. Aggiungine una sopra: una casella, niente di più."
+
+msgid "Marquer comme à faire"
+msgstr "Segna come da fare"
+
+msgid "Marquer comme faite"
+msgstr "Segna come fatta"
+
+msgid "Erreur lors de l'ajout"
+msgstr "Errore durante l'aggiunta"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "La tua prova Premium termina tra %(num)d giorno."

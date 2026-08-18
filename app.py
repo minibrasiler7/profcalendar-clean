@@ -673,6 +673,56 @@ def create_app(config_name='development'):
                 db.session.rollback()
                 print(f"⚠️ Vérification ephemeral_files échouée: {_e_eph}")
 
+        # Filet de sécurité : tâches à cocher du tableau de bord (todo simple).
+        try:
+            db.session.execute(db.text(
+                "CREATE TABLE IF NOT EXISTS dashboard_tasks ("
+                "id SERIAL PRIMARY KEY, "
+                "user_id INTEGER NOT NULL REFERENCES users(id), "
+                "title VARCHAR(300) NOT NULL, "
+                "is_done BOOLEAN NOT NULL DEFAULT FALSE, "
+                "position INTEGER NOT NULL DEFAULT 0, "
+                "created_at TIMESTAMP, done_at TIMESTAMP)"))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_dashboard_tasks_user ON dashboard_tasks (user_id)"))
+            db.session.commit()
+            print("✅ Table dashboard_tasks vérifiée")
+        except Exception as _e_dt:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "CREATE TABLE IF NOT EXISTS dashboard_tasks ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "user_id INTEGER NOT NULL REFERENCES users(id), "
+                    "title VARCHAR(300) NOT NULL, "
+                    "is_done BOOLEAN NOT NULL DEFAULT 0, "
+                    "position INTEGER NOT NULL DEFAULT 0, "
+                    "created_at TIMESTAMP, done_at TIMESTAMP)"))
+                db.session.execute(db.text(
+                    "CREATE INDEX IF NOT EXISTS ix_dashboard_tasks_user ON dashboard_tasks (user_id)"))
+                db.session.commit()
+                print("✅ Table dashboard_tasks créée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification dashboard_tasks échouée: {_e_dt}")
+
+        # Filet de sécurité : disposition du tableau de bord mémorisée par utilisateur.
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS dashboard_layout VARCHAR(30)"))
+            db.session.commit()
+            print("✅ Colonne user_preferences.dashboard_layout vérifiée")
+        except Exception as _e_dl:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "ALTER TABLE user_preferences ADD COLUMN dashboard_layout VARCHAR(30)"))
+                db.session.commit()
+                print("✅ Colonne user_preferences.dashboard_layout ajoutée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification user_preferences.dashboard_layout échouée: {_e_dl}")
+
         # Filet de sécurité : jeton push Expo des élèves (app mobile).
         try:
             db.session.execute(db.text(
@@ -1326,6 +1376,93 @@ def create_app(config_name='development'):
             current_user.onboarding_dismissed = True
             db.session.commit()
         return jsonify({'success': True})
+
+    # ------------------------------------------------------------------
+    # Tableau de bord : tâches à cocher + disposition mémorisée
+    # ------------------------------------------------------------------
+    @app.route('/api/dashboard/tasks', methods=['GET', 'POST'])
+    @login_required
+    def dashboard_tasks():
+        """GET : liste des tâches de l'enseignant ; POST : créer {title}."""
+        from flask import jsonify, request
+        from models.user import User
+        from models.user_preferences import DashboardTask
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        if request.method == 'GET':
+            tasks = DashboardTask.query.filter_by(user_id=current_user.id)\
+                .order_by(DashboardTask.is_done.asc(), DashboardTask.position.asc(), DashboardTask.id.asc()).all()
+            return jsonify({'success': True, 'tasks': [t.to_dict() for t in tasks]})
+        data = request.get_json(silent=True) or {}
+        title = (data.get('title') or '').strip()
+        if not title:
+            return jsonify({'success': False, 'error': 'Titre vide'}), 400
+        max_pos = db.session.query(db.func.max(DashboardTask.position))\
+            .filter_by(user_id=current_user.id).scalar() or 0
+        task = DashboardTask(user_id=current_user.id, title=title[:300], position=max_pos + 1)
+        db.session.add(task)
+        db.session.commit()
+        return jsonify({'success': True, 'task': task.to_dict()})
+
+    @app.route('/api/dashboard/tasks/<int:task_id>', methods=['PATCH', 'DELETE'])
+    @login_required
+    def dashboard_task_update(task_id):
+        """PATCH {is_done?, title?} ; DELETE : supprimer."""
+        from flask import jsonify, request
+        from datetime import datetime as _dt
+        from models.user import User
+        from models.user_preferences import DashboardTask
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        task = DashboardTask.query.filter_by(id=task_id, user_id=current_user.id).first()
+        if not task:
+            return jsonify({'success': False, 'error': 'Tâche introuvable'}), 404
+        if request.method == 'DELETE':
+            db.session.delete(task)
+            db.session.commit()
+            return jsonify({'success': True})
+        data = request.get_json(silent=True) or {}
+        if 'is_done' in data:
+            task.is_done = bool(data['is_done'])
+            task.done_at = _dt.utcnow() if task.is_done else None
+        if 'title' in data:
+            title = (data.get('title') or '').strip()
+            if title:
+                task.title = title[:300]
+        db.session.commit()
+        return jsonify({'success': True, 'task': task.to_dict()})
+
+    @app.route('/api/dashboard/tasks/clear-done', methods=['POST'])
+    @login_required
+    def dashboard_tasks_clear_done():
+        """Supprime toutes les tâches cochées."""
+        from flask import jsonify
+        from models.user import User
+        from models.user_preferences import DashboardTask
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        n = DashboardTask.query.filter_by(user_id=current_user.id, is_done=True).delete()
+        db.session.commit()
+        return jsonify({'success': True, 'deleted': n})
+
+    @app.route('/api/dashboard/layout', methods=['POST'])
+    @login_required
+    def dashboard_layout_save():
+        """Mémorise la disposition du tableau de bord (persistée côté serveur,
+        donc retrouvée sur tous les appareils, en plus du localStorage)."""
+        from flask import jsonify, request
+        from models.user import User
+        from models.user_preferences import UserPreferences
+        if not isinstance(current_user, User):
+            return jsonify({'success': False}), 403
+        data = request.get_json(silent=True) or {}
+        layout = (data.get('layout') or 'default').strip()
+        if layout not in ('default', 'side-by-side', 'memos-focus', 'tasks-focus', 'compact'):
+            return jsonify({'success': False, 'error': 'Disposition inconnue'}), 400
+        prefs = UserPreferences.get_or_create_for_user(current_user.id)
+        prefs.dashboard_layout = layout
+        db.session.commit()
+        return jsonify({'success': True, 'layout': layout})
 
     @app.route('/')
     def index():

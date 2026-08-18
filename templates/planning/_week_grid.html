@@ -18,7 +18,7 @@
         <tr>
             <th class="time-column">Heure</th>
             {% for date in week_dates %}
-            <th class="day-header {% if date == today %}today{% endif %}">
+            <th class="day-header {% if date == today %}today{% endif %}" data-date="{{ date.strftime('%Y-%m-%d') }}">
                 <div class="day-name">{{ days[loop.index0] }}</div>
                 <div class="day-date">{{ date.strftime('%d/%m') }}</div>
                 {% set _dvs = devoirs_unplaced.get(date.strftime('%Y-%m-%d')) if devoirs_unplaced else None %}

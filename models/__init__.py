@@ -19,7 +19,7 @@ from models.invitation_classroom import InvitationClassroom
 from models.classroom_access_code import ClassroomAccessCode
 from models.file_sharing import StudentFileShare
 from models.mixed_group import MixedGroup, MixedGroupStudent
-from models.user_preferences import UserPreferences, UserSanctionPreferences
+from models.user_preferences import UserPreferences, UserSanctionPreferences, DashboardTask
 from models.accommodation import AccommodationTemplate, StudentAccommodation
 from models.lesson_memo import LessonMemo, StudentRemark
 from models.devoir import Devoir, DevoirSubmission
@@ -31,6 +31,6 @@ __all__ = ['User', 'Holiday', 'Break', 'Classroom', 'Schedule', 'Planning',
            'SanctionTemplate', 'SanctionThreshold', 'SanctionOption', 'ClassroomSanctionImport', 'StudentSanctionRecord', 'StudentSanctionCount',
            'Evaluation', 'EvaluationGrade', 'SeatingPlan', 'StudentGroup', 'StudentGroupMembership',
            'ClassMaster', 'TeacherAccessCode', 'TeacherCollaboration', 'SharedClassroom', 'StudentClassroomLink', 'TeacherInvitation', 'InvitationClassroom',
-           'ClassroomAccessCode', 'StudentFileShare', 'MixedGroup', 'MixedGroupStudent', 'UserPreferences', 'UserSanctionPreferences',
+           'ClassroomAccessCode', 'StudentFileShare', 'MixedGroup', 'MixedGroupStudent', 'UserPreferences', 'UserSanctionPreferences', 'DashboardTask',
            'AccommodationTemplate', 'StudentAccommodation', 'LessonMemo', 'StudentRemark', 'LessonBlankSheet',
            'Decoupage', 'DecoupagePeriod', 'DecoupageAssignment', 'Devoir', 'DevoirSubmission']

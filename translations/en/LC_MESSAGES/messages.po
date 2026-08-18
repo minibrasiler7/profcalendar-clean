@@ -2751,6 +2751,48 @@ msgstr "Subject: {subject}"
 msgid "Classe : {classroom}"
 msgstr "Class: {classroom}"
 
+msgid "Disposition"
+msgstr "Layout"
+
+msgid "Disposition du tableau de bord"
+msgstr "Dashboard layout"
+
+msgid "Empilé (1 colonne)"
+msgstr "Stacked (1 column)"
+
+msgid "Mémos et tâches côte à côte"
+msgstr "Memos and tasks side by side"
+
+msgid "Focus mémos (mémos larges)"
+msgstr "Focus on memos (wide memos)"
+
+msgid "Focus tâches (tâches larges)"
+msgstr "Focus on tasks (wide tasks)"
+
+msgid "Compact (cartes réduites, défilement interne)"
+msgstr "Compact (smaller cards, inner scrolling)"
+
+msgid "Mes tâches"
+msgstr "My tasks"
+
+msgid "Effacer les tâches faites"
+msgstr "Clear completed tasks"
+
+msgid "Nouvelle tâche… (Entrée pour ajouter)"
+msgstr "New task… (Enter to add)"
+
+msgid "Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus."
+msgstr "No tasks. Add one above: a checkbox, nothing more."
+
+msgid "Marquer comme à faire"
+msgstr "Mark as to do"
+
+msgid "Marquer comme faite"
+msgstr "Mark as done"
+
+msgid "Erreur lors de l'ajout"
+msgstr "Error while adding"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Your Premium trial ends in %(num)d day."

@@ -787,7 +787,22 @@ def dashboard():
     auto_classroom_ids = {group.auto_classroom_id for group in mixed_groups if group.auto_classroom_id}
     user_classrooms = [c for c in current_user.classrooms.filter_by(is_temporary=False).all() if c.id not in auto_classroom_ids]
 
+    # Tâches à cocher + disposition mémorisée du tableau de bord
+    dashboard_tasks = []
+    dashboard_layout = None
+    try:
+        from models.user_preferences import DashboardTask, UserPreferences
+        dashboard_tasks = [t.to_dict() for t in DashboardTask.query.filter_by(user_id=current_user.id)
+                           .order_by(DashboardTask.is_done.asc(), DashboardTask.position.asc(), DashboardTask.id.asc()).all()]
+        _prefs = UserPreferences.query.filter_by(user_id=current_user.id).first()
+        dashboard_layout = getattr(_prefs, 'dashboard_layout', None) if _prefs else None
+    except Exception as _e_dash:
+        db.session.rollback()
+        current_app.logger.warning(f"Dashboard tasks/layout indisponibles: {_e_dash}")
+
     return render_template('planning/dashboard.html',
+                         dashboard_tasks=dashboard_tasks,
+                         dashboard_layout=dashboard_layout,
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
                          students_count=students_count,
@@ -836,6 +851,34 @@ def _school_week_number(user, week_monday):
             return None if week_holiday else num
         cur += timedelta(days=7)
     return None
+
+
+def _school_weeks_list(user):
+    """Liste des semaines scolaires [{number, monday}] (même numérotation que
+    _school_week_number : les semaines de vacances sont sautées). Sert au
+    sélecteur « S1, S2, … » du badge de semaine dans le calendrier."""
+    start = user.school_year_start
+    end = user.school_year_end
+    if not start or not end:
+        return []
+    holidays = user.holidays.all()
+    cur = start - timedelta(days=start.weekday())
+    weeks = []
+    num = 0
+    guard = 0
+    while cur <= end and guard < 80:
+        guard += 1
+        week_days = [cur + timedelta(days=i) for i in range(5)]
+        week_holiday = any(
+            sum(1 for d in week_days if h.start_date <= d <= h.end_date) >= 3
+            for h in holidays
+        )
+        if not week_holiday and cur >= start:
+            num += 1
+            weeks.append({'number': num, 'monday': cur.strftime('%Y-%m-%d'),
+                          'label': cur.strftime('%d.%m')})
+        cur += timedelta(days=7)
+    return weeks
 
 
 @planning_bp.route('/calendar')
@@ -1221,6 +1264,7 @@ def calendar_view():
 
     return render_template('planning/calendar_view.html',
                          school_week_number=_school_week_number(current_user, week_dates[0]),
+                         school_weeks_json=_school_weeks_list(current_user),
                          week_dates=week_dates,
                          current_week=current_week,
                          classrooms=classrooms,
@@ -2356,10 +2400,26 @@ def lesson_view():
     # Récupérer le plan de classe si disponible
     if lesson_classroom:
         from models.seating_plan import SeatingPlan
-        seating_plan_obj = SeatingPlan.query.filter_by(
+        # Le plan de l'enseignant connecté en priorité (le plus récent), sinon
+        # n'importe quel plan actif de la classe. Sans filtre ni tri, .first()
+        # pouvait renvoyer un vieux plan (ou celui d'un collègue) différent de
+        # celui affiché dans le gestionnaire → « les noms ne sont pas aux bonnes tables ».
+        # Le plan est enregistré sur la 1re classe du GROUPE (le gestionnaire
+        # travaille par groupe de classes) : chercher sur toutes les classes du
+        # même groupe de l'enseignant, pas seulement sur la classe du cours.
+        _group = getattr(lesson_classroom, 'class_group', None)
+        _plan_classroom_ids = [lesson_classroom.id]
+        if _group:
+            _plan_classroom_ids += [c.id for c in Classroom.query.filter_by(
+                user_id=current_user.id, class_group=_group).all() if c.id != lesson_classroom.id]
+        seating_plan_obj = SeatingPlan.query.filter(
+            SeatingPlan.classroom_id.in_(_plan_classroom_ids),
+            SeatingPlan.user_id == current_user.id,
+            SeatingPlan.is_active == True
+        ).order_by(SeatingPlan.id.desc()).first() or SeatingPlan.query.filter_by(
             classroom_id=lesson_classroom.id,
             is_active=True
-        ).first()
+        ).order_by(SeatingPlan.id.desc()).first()
 
         # Convertir en dictionnaire pour la sérialisation JSON
         if seating_plan_obj:
@@ -5422,6 +5482,19 @@ def save_seating_plan():
                     name=classroom_param,
                     user_id=current_user.id
                 ).first()
+
+                # Puis par groupe de classes (le sélecteur envoie le NOM DU GROUPE,
+                # qui peut différer du nom de la classe : ex. classe « 11VG2 » dans
+                # le groupe « 10VG2 », ou groupe multi-matières). Le chargement
+                # faisait déjà ce repli, pas la sauvegarde → « Classe non trouvée »
+                # à l'enregistrement alors que le plan se chargeait.
+                if not classroom:
+                    grouped = Classroom.query.filter_by(
+                        user_id=current_user.id,
+                        class_group=classroom_param
+                    ).order_by(Classroom.id.asc()).all()
+                    if grouped:
+                        classroom = grouped[0]
                 
                 # Si pas trouvé directement, vérifier si c'est une classe dérivée (collaboration)
                 if not classroom:
@@ -5454,23 +5527,32 @@ def save_seating_plan():
             print(f"DEBUG save_seating_plan: FAILED - classroom={classroom}, classroom_id={classroom_id}")
             return jsonify({'success': False, 'message': 'Classe non trouvée ou accès non autorisé'}), 404
         
-        # Désactiver les anciens plans pour cette classe
-        SeatingPlan.query.filter_by(
+        # Un seul plan actif par (classe, enseignant) : on le met à jour EN PLACE.
+        # Avant, chaque sauvegarde insérait une nouvelle ligne (désactivant les
+        # anciennes) — intenable avec la sauvegarde automatique du plan (une
+        # ligne par glisser-déposer). S'il existe plusieurs plans actifs (données
+        # historiques), on garde le plus récent et on désactive les autres.
+        active_plans = SeatingPlan.query.filter_by(
             classroom_id=classroom_id,
             user_id=current_user.id,
             is_active=True
-        ).update({'is_active': False})
-        
-        # Créer le nouveau plan
-        seating_plan = SeatingPlan(
-            classroom_id=classroom_id,
-            user_id=current_user.id,
-            name=name,
-            plan_data=json.dumps(plan_data),
-            is_active=True
-        )
-        
-        db.session.add(seating_plan)
+        ).order_by(SeatingPlan.id.desc()).all()
+        seating_plan = active_plans[0] if active_plans else None
+        for stale in active_plans[1:]:
+            stale.is_active = False
+
+        if seating_plan:
+            seating_plan.name = name
+            seating_plan.plan_data = json.dumps(plan_data)
+        else:
+            seating_plan = SeatingPlan(
+                classroom_id=classroom_id,
+                user_id=current_user.id,
+                name=name,
+                plan_data=json.dumps(plan_data),
+                is_active=True
+            )
+            db.session.add(seating_plan)
         db.session.commit()
         
         return jsonify({
@@ -5554,12 +5636,12 @@ def load_seating_plan(classroom_param):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
-        # Récupérer le plan actif
+        # Récupérer le plan actif (le plus récent s'il en existe plusieurs)
         seating_plan = SeatingPlan.query.filter_by(
             classroom_id=classroom_id,
             user_id=current_user.id,
             is_active=True
-        ).first()
+        ).order_by(SeatingPlan.id.desc()).first()
         
         if seating_plan:
             return jsonify({

@@ -2751,6 +2751,48 @@ msgstr "Fach: {subject}"
 msgid "Classe : {classroom}"
 msgstr "Klasse: {classroom}"
 
+msgid "Disposition"
+msgstr "Anordnung"
+
+msgid "Disposition du tableau de bord"
+msgstr "Anordnung des Dashboards"
+
+msgid "Empilé (1 colonne)"
+msgstr "Gestapelt (1 Spalte)"
+
+msgid "Mémos et tâches côte à côte"
+msgstr "Memos und Aufgaben nebeneinander"
+
+msgid "Focus mémos (mémos larges)"
+msgstr "Fokus Memos (breite Memos)"
+
+msgid "Focus tâches (tâches larges)"
+msgstr "Fokus Aufgaben (breite Aufgaben)"
+
+msgid "Compact (cartes réduites, défilement interne)"
+msgstr "Kompakt (kleinere Karten, internes Scrollen)"
+
+msgid "Mes tâches"
+msgstr "Meine Aufgaben"
+
+msgid "Effacer les tâches faites"
+msgstr "Erledigte Aufgaben löschen"
+
+msgid "Nouvelle tâche… (Entrée pour ajouter)"
+msgstr "Neue Aufgabe… (Enter zum Hinzufügen)"
+
+msgid "Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus."
+msgstr "Keine Aufgaben. Fügen Sie oben eine hinzu: ein Kästchen, mehr nicht."
+
+msgid "Marquer comme à faire"
+msgstr "Als zu erledigen markieren"
+
+msgid "Marquer comme faite"
+msgstr "Als erledigt markieren"
+
+msgid "Erreur lors de l'ajout"
+msgstr "Fehler beim Hinzufügen"
+
 msgid "Ton essai Premium se termine dans %(num)d jour."
 msgid_plural "Ton essai Premium se termine dans %(num)d jours."
 msgstr[0] "Deine Premium-Testphase endet in %(num)d Tag."

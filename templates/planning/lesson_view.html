@@ -1378,11 +1378,7 @@ input, textarea, select {
                                      {% if resource.resource_type == 'file' %}
                                      onclick="openResourceFile({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
                                      {% elif resource.resource_type == 'ephemeral' %}
-                                     {% if resource.display_name and resource.display_name.lower().endswith('.pdf') %}
-                                     onclick="openEphemeralInViewer({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
-                                     {% else %}
-                                     onclick="window.open('/planning/ephemeral/{{ resource.resource_id }}', '_blank')"
-                                     {% endif %}
+                                     onclick="openEphemeralResource({{ resource.resource_id }}, '{{ resource.display_name|e }}')"
                                      {% elif resource.resource_type == 'exercise' %}
                                      onclick="showModeModal({{ resource.resource_id }}, '{{ resource.display_name|e }}', 'publish', {{ resource.id }})"
                                      {% endif %}>
@@ -3265,7 +3261,7 @@ function renderPinnedResources(pinnedFiles) {
     if (!pinnedList) return;
     
     pinnedList.innerHTML = pinnedFiles.map(file => {
-        const isAnnotatable = ['pdf', 'png', 'jpg', 'jpeg'].includes(file.file_type.toLowerCase());
+        const isAnnotatable = lessonIsViewerType(file.file_type);
         
         return `
             <div class="resource-item pinned" data-file-id="${file.id}">
@@ -3429,7 +3425,7 @@ function renderResourceTree(files) {
         }
 
         const isPinned = file.is_pinned;
-        const isAnnotatable = ['pdf', 'png', 'jpg', 'jpeg'].includes(file.file_type.toLowerCase());
+        const isAnnotatable = lessonIsViewerType(file.file_type);
 
         html += `
             <div class="resource-item ${isPinned ? 'pinned' : ''}" data-file-id="${file.id}">
@@ -3844,6 +3840,17 @@ if (typeof pdfjsLib === 'undefined') {
     document.head.appendChild(script);
 }
 
+// Types d'images ouvrables/annotables dans le lecteur (converties en document 1 page)
+const LESSON_IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
+function lessonIsViewerType(ext) {
+    ext = (ext || '').toString().toLowerCase().replace(/^\./, '');
+    return ext === 'pdf' || LESSON_IMAGE_TYPES.includes(ext);
+}
+function lessonExtOf(name) {
+    const m = /\.([a-z0-9]+)$/i.exec((name || '').split('?')[0]);
+    return m ? m[1].toLowerCase() : '';
+}
+
 // Fonction openFileViewer redirigée vers le nouveau lecteur unifié
 async function openFileViewer(fileId, filename, fileType) {
     console.log('🔄 Redirection vers le lecteur unifié:', filename, fileType);
@@ -3856,7 +3863,8 @@ async function openFileViewer(fileId, filename, fileType) {
     }
 
     // Pour les images annotables, ouvrir aussi avec le viewer unifié
-    if (['png', 'jpg', 'jpeg'].includes(fileType.toLowerCase())) {
+    // (converties en document 1 page côté client → annotables, fermeture comme un PDF)
+    if (LESSON_IMAGE_TYPES.includes(fileType.toLowerCase())) {
         openFileWithUnifiedViewer(fileId, filename);
         return;
     }
@@ -7468,8 +7476,18 @@ function loadSeatingPlan() {
     workspace.innerHTML = '';
     workspace.style.transform = 'none';
     
-    // Récupérer les données du plan
-    const planData = {{ seating_plan.plan_data | tojson | safe }};
+    // Récupérer les données du plan. IMPORTANT : on lit la variable mutable
+    // `lessonSeatingPlanData` (mise à jour après chaque sauvegarde) et non le
+    // JSON figé au chargement de la page : sinon, après un échange de places
+    // (sauvegardé), un changement d'onglet ré-affichait l'ANCIEN plan et le
+    // prochain échange sauvegardait cet ancien plan → placements « qui sautent ».
+    if (typeof window.lessonSeatingPlanData === 'undefined' || !window.lessonSeatingPlanData) {
+        window.lessonSeatingPlanData = {{ seating_plan.plan_data | tojson | safe }};
+    }
+    const planData = window.lessonSeatingPlanData;
+    // Placements que l'on ne sait pas afficher (élève introuvable dans studentsData) :
+    // conservés tels quels pour ne pas les EFFACER en base à la prochaine sauvegarde.
+    window.__lessonSeatingUnresolved = [];
     console.log('Données du plan:', planData);
     
     const elements = planData.elements || [];
@@ -7536,9 +7554,10 @@ function loadSeatingPlan() {
                     slot.dataset.studentId = student.id;
                     console.log(`DEBUG lesson_view: Placed student ${displayName} (${student.full_name}) in slot`);
                 } else {
-                    // Si l'étudiant n'est pas trouvé, laisser le slot vide
+                    // Si l'étudiant n'est pas trouvé, laisser le slot vide mais
+                    // MÉMORISER le placement pour le réécrire tel quel à la sauvegarde
                     console.log(`DEBUG lesson_view: Student ${placement.student_id} (${placement.student_name || 'nom non disponible'}) not found, leaving slot empty`);
-                    console.log(`DEBUG lesson_view: Available students:`, studentsData.map(s => ({id: s.id, name: s.full_name})));
+                    window.__lessonSeatingUnresolved.push(placement);
                 }
             }
         }
@@ -7677,13 +7696,17 @@ function initializeDragAndDrop() {
 function enableDragOnSlot(slot) {
     const studentElement = slot.querySelector('.student-placed');
     if (!studentElement) return;
+    if (studentElement.dataset.dragBound === '1') return; // ne jamais empiler les listeners
+    studentElement.dataset.dragBound = '1';
 
     studentElement.addEventListener('dragstart', function(e) {
         draggedStudent = {
             id: this.dataset.studentId,
             name: this.textContent
         };
-        sourceSlot = slot;
+        // Place actuelle (le nœud est déplacé d'une place à l'autre : ne pas
+        // figer `slot` dans la fermeture)
+        sourceSlot = this.closest('.student-slot') || slot;
         this.style.opacity = '0.4';
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/html', this.innerHTML);
@@ -7701,6 +7724,8 @@ function enableDragOnSlot(slot) {
 
 // Activer le drop sur un slot (occupé ou vide)
 function enableDropOnSlot(slot) {
+    if (slot.dataset.dropBound === '1') return; // ne jamais empiler les listeners
+    slot.dataset.dropBound = '1';
     slot.addEventListener('dragover', function(e) {
         if (e.preventDefault) {
             e.preventDefault();
@@ -7754,8 +7779,9 @@ function moveStudent(fromSlot, toSlot) {
     const studentId = fromSlot.dataset.studentId;
     const studentName = studentElement.textContent;
 
-    // Déplacer l'élément
-    toSlot.innerHTML = fromSlot.innerHTML;
+    // Déplacer l'élément (nœud déplacé tel quel : ses listeners de drag suivent)
+    toSlot.innerHTML = '';
+    toSlot.appendChild(studentElement);
     toSlot.classList.add('occupied');
     toSlot.dataset.studentId = studentId;
 
@@ -7783,14 +7809,13 @@ function swapStudents(slot1, slot2) {
 
     const student1Id = slot1.dataset.studentId;
     const student2Id = slot2.dataset.studentId;
-    const student1HTML = slot1.innerHTML;
-    const student2HTML = slot2.innerHTML;
 
-    // Échanger les contenus
-    slot1.innerHTML = student2HTML;
+    // Échanger les nœuds (leurs listeners de drag suivent)
+    slot1.innerHTML = '';
+    slot2.innerHTML = '';
+    slot1.appendChild(student2Element);
     slot1.dataset.studentId = student2Id;
-
-    slot2.innerHTML = student1HTML;
+    slot2.appendChild(student1Element);
     slot2.dataset.studentId = student1Id;
 
     // Réactiver les événements sur les deux slots
@@ -7850,10 +7875,20 @@ function saveSeatingChanges() {
         });
     });
 
+    // Réinjecter les placements non affichables (élève introuvable côté page)
+    // pour ne pas les effacer en base.
+    (window.__lessonSeatingUnresolved || []).forEach(p => {
+        const seatTaken = studentsPlacement.some(s => s.element_id === p.element_id && s.slot_index === p.slot_index);
+        const already = studentsPlacement.some(s => String(s.student_id) === String(p.student_id));
+        if (!seatTaken && !already) studentsPlacement.push(p);
+    });
+
     const planData = {
         elements: elements,
         students_placement: studentsPlacement
     };
+    // Le prochain ré-affichage (changement d'onglet) part de CET état
+    window.lessonSeatingPlanData = planData;
 
     // Récupérer l'ID de la classe depuis les variables globales
     {% if lesson_classroom %}
@@ -9836,8 +9871,36 @@ let studentsData = [
 ];
 
 // Fonction pour ouvrir un fichier avec le nouveau lecteur unifié
+// Loader plein écran affiché IMMÉDIATEMENT au clic sur un fichier (avant même
+// que le lecteur ait construit son interface) : sur iPad, un gros PDF pouvait
+// donner l'impression que le clic n'avait pas été pris en compte. Le lecteur
+// prend ensuite le relais avec sa propre progression (« Chargement… 43 % »).
+function showFileOpeningLoader(fileName) {
+    let el = document.getElementById('lessonFileOpeningLoader');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'lessonFileOpeningLoader';
+        el.style.cssText = 'position:fixed;inset:0;z-index:30000;background:rgba(255,255,255,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;';
+        el.innerHTML = '<div style="width:52px;height:52px;border:4px solid #e5e7eb;border-top-color:#4f46e5;border-radius:50%;animation:lessonFileSpin 0.9s linear infinite;"></div>'
+            + '<div class="lesson-file-loader-text" style="font-weight:600;color:#312E81;font-size:1rem;max-width:80vw;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>'
+            + '<style>@keyframes lessonFileSpin{to{transform:rotate(360deg)}}</style>';
+        document.body.appendChild(el);
+    }
+    el.querySelector('.lesson-file-loader-text').textContent = fileName ? ('Ouverture de « ' + fileName + ' »…') : 'Ouverture du fichier…';
+    el.style.display = 'flex';
+    // Filet de sécurité : ne jamais rester bloqué sur ce loader
+    clearTimeout(showFileOpeningLoader._t);
+    showFileOpeningLoader._t = setTimeout(hideFileOpeningLoader, 20000);
+}
+function hideFileOpeningLoader() {
+    const el = document.getElementById('lessonFileOpeningLoader');
+    if (el) el.style.display = 'none';
+    clearTimeout(showFileOpeningLoader._t);
+}
+
 function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
     console.log('🎯 Ouverture avec le lecteur unifié:', fileName);
+    showFileOpeningLoader(fileName);
 
     // Vérifier et obtenir la modal parente d'abord
     // Utiliser querySelector directement car c'est plus fiable
@@ -9938,6 +10001,8 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
                 fileId: filePath, // Utiliser filePath comme ID pour les annotations
                 pdfUrl: pdfUrl,
                 fileName: fileName, // nom réel du document (partage/impression iOS)
+                // Images (.jpg/.png…) : ouvertes comme un document 1 page annotable
+                sourceIsImage: (typeof CleanPDFViewer.isImageUrl === 'function') && CleanPDFViewer.isImageUrl(fileName || ''),
                 showSidebar: true,
                 enableAnnotations: true,
                 autoSaveInterval: 5000,
@@ -9958,21 +10023,30 @@ function openFileWithUnifiedViewer(filePath, fileName, pdfUrlOverride) {
             });
 
             console.log('✅ Nouveau lecteur PDF Clean créé');
+            // Le lecteur a construit son interface et affiche sa propre
+            // progression : le loader de page peut s'effacer.
+            hideFileOpeningLoader();
         } catch (error) {
+            hideFileOpeningLoader();
             console.error('❌ Erreur lors de la création du lecteur:', error);
             alert('Erreur lors de la création du lecteur PDF: ' + error.message);
             return;
         }
     } else {
-        // Si le viewer existe déjà, charger le nouveau PDF
-        const pdfUrl = `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
+        // Si le viewer existe déjà, charger le nouveau document. Respecter
+        // pdfUrlOverride (fichiers éphémères : /planning/ephemeral/<id>, sinon on
+        // demandait /file_manager/serve_file/eph12 → 404) et transmettre le nom
+        // (détection image + partage iOS).
+        const pdfUrl = pdfUrlOverride || `/file_manager/serve_file/${encodeURIComponent(filePath)}`;
         currentPDFUrl = pdfUrl;
 
-        cleanPDFViewer.loadPDF(pdfUrl)
+        cleanPDFViewer.loadPDF(pdfUrl, fileName)
             .catch(error => {
                 console.error('❌ Erreur lors du chargement du PDF:', error);
                 alert('Erreur lors du chargement du PDF: ' + error.message);
             });
+        // Le lecteur affiche déjà sa propre progression (showLoading synchrone dans loadPDF)
+        hideFileOpeningLoader();
     }
 }
 
@@ -10470,8 +10544,8 @@ function openBlankPages() {
 function openFile(filePath, fileName, fileType) {
     console.log('📁 Ouverture du fichier:', fileName, 'Type:', fileType);
 
-    if (fileType === 'pdf') {
-        // Utiliser le nouveau lecteur unifié pour les PDF
+    if (lessonIsViewerType(fileType)) {
+        // Utiliser le nouveau lecteur unifié pour les PDF et images
         openFileWithUnifiedViewer(filePath, fileName);
     } else {
         // Pour les autres types de fichiers, utiliser l'ancienne méthode ou rediriger
@@ -10501,6 +10575,66 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof isEditingPlanning !== 'undefined' && !isEditingPlanning && document.getElementById('planningEdit')) {
         try { togglePlanningEdit(); } catch (e) { console.warn('Auto-édition de la planification:', e); }
     }
+
+    // Bascule automatique au DÉBUT du cours. La page est souvent ouverte pendant la
+    // pause qui précède (« Prochain cours », planification en édition) et reste
+    // ouverte : sans ceci, elle ne passe jamais en « En cours » / Lecture de
+    // planification tant qu'on ne recharge pas. À l'heure de début, on sauvegarde
+    // silencieusement la planification si elle a été modifiée, puis on recharge :
+    // le serveur renvoie alors is_current=True (mode lecture, timer, badge).
+    (function scheduleLessonStartSwitch() {
+        {% if lesson.start_time %}
+        const startAt = new Date('{{ lesson_date.strftime("%Y-%m-%d") }}T{{ lesson.start_time.strftime("%H:%M:%S") }}');
+        {% else %}
+        const startAt = null;
+        {% endif %}
+        if (!startAt || isNaN(startAt.getTime())) return;
+        const delay = startAt.getTime() - Date.now() + 1500; // petite marge après le début
+        // Uniquement si le début est dans les 12 h (cours du jour) ; sinon inutile
+        if (delay <= 0 || delay > 12 * 3600 * 1000) return;
+        console.log('[Lesson] Bascule automatique en cours dans', Math.round(delay / 1000), 's');
+
+        const initialTitle = (document.getElementById('planningTitle') || {}).value || '';
+        const initialDesc = (document.getElementById('planningDescription') || {}).value || '';
+
+        setTimeout(async () => {
+            try {
+                const titleEl = document.getElementById('planningTitle');
+                const descEl = document.getElementById('planningDescription');
+                const changed = typeof isEditingPlanning !== 'undefined' && isEditingPlanning && titleEl && descEl &&
+                    (titleEl.value !== initialTitle || descEl.value !== initialDesc);
+                if (changed) {
+                    await fetch('{{ url_for("planning.save_lesson_planning") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({
+                            date: lessonDate,
+                            period_number: periodNumber,
+                            classroom_id: classroomId,
+                            title: titleEl.value.trim(),
+                            description: descEl.value.trim(),
+                            checklist_states: checklistStates
+                        })
+                    });
+                }
+            } catch (e) {
+                console.warn('[Lesson] Sauvegarde avant bascule impossible:', e);
+            }
+            // Ne pas recharger par-dessus un document ouvert dans le lecteur PDF
+            if (document.body.classList.contains('pdf-viewer-active')) {
+                console.log('[Lesson] Lecteur ouvert : bascule reportée à la fermeture');
+                const obs = new MutationObserver(() => {
+                    if (!document.body.classList.contains('pdf-viewer-active')) {
+                        obs.disconnect();
+                        window.location.reload();
+                    }
+                });
+                obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+                return;
+            }
+            window.location.reload();
+        }, delay);
+    })();
     {% endif %}
 });
 </script>
@@ -11212,8 +11346,23 @@ function openEphemeralInViewer(ephId, name) {
     openFileWithUnifiedViewer('eph' + ephId, name, '/planning/ephemeral/' + ephId);
 }
 
+// Fichier éphémère : PDF et images → lecteur annotable ; autres types → nouvel onglet
+function openEphemeralResource(ephId, name) {
+    if (lessonIsViewerType(lessonExtOf(name))) {
+        openEphemeralInViewer(ephId, name);
+    } else {
+        window.open('/planning/ephemeral/' + ephId, '_blank');
+    }
+}
+
+// Ressource « fichier » de la planification : PDF et images (jpg/png/…) s'ouvrent
+// dans le lecteur intégré (annotables, fermeture comme un PDF, loader visible) ;
+// les autres types (docx, …) dans un nouvel onglet comme avant.
 function openResourceFile(fileId, fileName) {
-    // Ouvrir le fichier dans le visualiseur PDF intégré ou dans un nouvel onglet
+    if (lessonIsViewerType(lessonExtOf(fileName))) {
+        openFileWithUnifiedViewer(fileId, fileName);
+        return;
+    }
     window.open(`/file_manager/preview/${fileId}`, '_blank');
 }
 
