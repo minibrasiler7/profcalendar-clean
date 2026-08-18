@@ -1457,7 +1457,7 @@ def create_app(config_name='development'):
             return jsonify({'success': False}), 403
         data = request.get_json(silent=True) or {}
         layout = (data.get('layout') or 'default').strip()
-        if layout not in ('default', 'side-by-side', 'memos-focus', 'tasks-focus', 'compact'):
+        if layout not in ('default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact'):
             return jsonify({'success': False, 'error': 'Disposition inconnue'}), 400
         prefs = UserPreferences.get_or_create_for_user(current_user.id)
         prefs.dashboard_layout = layout

@@ -3696,6 +3696,8 @@ ENTRIES = [
     ("Disposition du tableau de bord", "Dashboard layout", "Disposición del panel", "Anordnung des Dashboards", "Disposizione della dashboard"),
     ("Empilé (1 colonne)", "Stacked (1 column)", "Apilado (1 columna)", "Gestapelt (1 Spalte)", "Impilato (1 colonna)"),
     ("Mémos et tâches côte à côte", "Memos and tasks side by side", "Notas y tareas lado a lado", "Memos und Aufgaben nebeneinander", "Promemoria e attività affiancati"),
+    ("Trois colonnes (actions, mémos, tâches)", "Three columns (actions, memos, tasks)", "Tres columnas (acciones, notas, tareas)", "Drei Spalten (Aktionen, Memos, Aufgaben)", "Tre colonne (azioni, promemoria, attività)"),
+    ("Focus actions rapides (actions larges)", "Focus on quick actions (wide actions)", "Enfoque acciones rápidas (acciones anchas)", "Fokus Schnellaktionen (breite Aktionen)", "Focus azioni rapide (azioni larghe)"),
     ("Focus mémos (mémos larges)", "Focus on memos (wide memos)", "Enfoque notas (notas anchas)", "Fokus Memos (breite Memos)", "Focus promemoria (promemoria larghi)"),
     ("Focus tâches (tâches larges)", "Focus on tasks (wide tasks)", "Enfoque tareas (tareas anchas)", "Fokus Aufgaben (breite Aufgaben)", "Focus attività (attività larghe)"),
     ("Compact (cartes réduites, défilement interne)", "Compact (smaller cards, inner scrolling)", "Compacto (tarjetas reducidas, desplazamiento interno)", "Kompakt (kleinere Karten, internes Scrollen)", "Compatto (schede ridotte, scorrimento interno)"),

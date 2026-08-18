@@ -206,16 +206,34 @@
 .dash-layout-btn:hover { background: var(--white, #fff); color: var(--primary-color, #4F46E5); transform: scale(1.05); }
 .dash-layout-btn.active { background: var(--primary-color, #4F46E5); color: #fff; box-shadow: 0 2px 4px rgba(79,70,229,0.3); }
 
-.dashboard-main { display: grid; grid-template-columns: 1fr; gap: 0 2rem; align-items: start; }
+.dashboard-main {
+    display: grid; gap: 0 2rem; align-items: start;
+    grid-template-columns: 1fr;
+    grid-template-areas: "a" "m" "t";
+}
 .dashboard-main .dashboard-card { min-width: 0; }
-.dashboard-main.layout-side-by-side { grid-template-columns: 1fr 1fr; }
-.dashboard-main.layout-memos-focus { grid-template-columns: 2fr 1fr; }
-.dashboard-main.layout-tasks-focus { grid-template-columns: 1fr 2fr; }
-.dashboard-main.layout-compact { grid-template-columns: 1fr 1fr; gap: 0 1.25rem; }
-.dashboard-main.layout-compact .dashboard-card { padding: 1.25rem !important; margin-bottom: 1.25rem !important; }
-.dashboard-main.layout-compact .memos-list, .dashboard-main.layout-compact .tasks-list { max-height: 320px; overflow-y: auto; }
+.dashboard-main .actions-card { grid-area: a; }
+.dashboard-main .memos-section { grid-area: m; }
+.dashboard-main .tasks-section { grid-area: t; }
+/* Trois colonnes : actions | mémos | tâches */
+.dashboard-main.layout-side-by-side { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a m t"; }
+/* Focus : la section mise en avant prend 2/3, les deux autres s'empilent dans le tiers restant */
+.dashboard-main.layout-actions-focus { grid-template-columns: 2fr 1fr; grid-template-areas: "a m" "a t"; }
+.dashboard-main.layout-memos-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a m" "t m"; }
+.dashboard-main.layout-tasks-focus  { grid-template-columns: 1fr 2fr; grid-template-areas: "a t" "m t"; }
+.dashboard-main.layout-compact { grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a m t"; gap: 0 1.25rem; }
+.dashboard-main.layout-compact .dashboard-card,
+.dashboard-main.layout-compact .quick-actions { padding: 1.25rem !important; margin-bottom: 1.25rem !important; }
+.dashboard-main.layout-compact .memos-list, .dashboard-main.layout-compact .tasks-list,
+.dashboard-main.layout-compact .action-buttons-grid { max-height: 360px; overflow-y: auto; }
+/* Actions rapides dans une colonne étroite : boutons plus petits, sur 1–2 colonnes */
+.dashboard-main.layout-side-by-side .action-buttons-grid, .dashboard-main.layout-memos-focus .action-buttons-grid,
+.dashboard-main.layout-tasks-focus .action-buttons-grid, .dashboard-main.layout-compact .action-buttons-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.6rem; }
+.dashboard-main.layout-side-by-side .action-button, .dashboard-main.layout-memos-focus .action-button,
+.dashboard-main.layout-tasks-focus .action-button, .dashboard-main.layout-compact .action-button { padding: 0.9rem 0.6rem; }
+.dashboard-main.layout-actions-focus .action-buttons-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 @media (max-width: 900px) {
-    .dashboard-main { grid-template-columns: 1fr !important; }
+    .dashboard-main { grid-template-columns: 1fr !important; grid-template-areas: "a" "m" "t" !important; }
     .dashboard-layout-bar { display: none; }
 }
 
@@ -349,6 +367,19 @@
         </div>
     </div>
 
+    <!-- Barre de disposition du tableau de bord (comme sur la page lesson) -->
+    <div class="dashboard-layout-bar">
+        <span class="dashboard-layout-label"><i class="fas fa-th-large"></i> {{ _('Disposition') }} :</span>
+        <div class="dashboard-layout-buttons" role="group" aria-label="{{ _('Disposition du tableau de bord') }}">
+            <button type="button" class="dash-layout-btn" data-layout="default" title="{{ _('Empilé (1 colonne)') }}"><i class="fas fa-bars"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="side-by-side" title="{{ _('Trois colonnes (actions, mémos, tâches)') }}"><i class="fas fa-columns"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="actions-focus" title="{{ _('Focus actions rapides (actions larges)') }}"><i class="fas fa-bolt"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="memos-focus" title="{{ _('Focus mémos (mémos larges)') }}"><i class="fas fa-sticky-note"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="tasks-focus" title="{{ _('Focus tâches (tâches larges)') }}"><i class="fas fa-tasks"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="compact" title="{{ _('Compact (cartes réduites, défilement interne)') }}"><i class="fas fa-compress-alt"></i></button>
+        </div>
+    </div>
+
     {# --- Onboarding : appel à l'action affiché tant que le prof n'a pas créé
        de classe. C'est le SEUL geste d'activation demandé : tout le reste
        (horaire, année scolaire…) est déjà pré-rempli par apply_smart_defaults.
@@ -439,7 +470,9 @@
 
     <!-- Actions rapides -->
 
-<!-- Actions rapides -->
+    <div class="dashboard-main" id="dashboardMain">
+    <!-- Actions rapides (carte de la grille, sa largeur dépend de la disposition) -->
+    <div class="dashboard-card actions-card" data-section="actions">
 {% if classrooms_count == 0 %}
 <details class="qa-collapse" style="margin-bottom: 2rem;">
 <summary style="cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 0.5rem; color: #6B7280; font-weight: 600; padding: 0.5rem 0;">
@@ -641,25 +674,13 @@
     </div>
 </div>
 {% if classrooms_count == 0 %}</details>{% endif %}
+    </div><!-- /.actions-card -->
 
-    <!-- Barre de disposition du tableau de bord (comme sur la page lesson) -->
-    <div class="dashboard-layout-bar">
-        <span class="dashboard-layout-label"><i class="fas fa-th-large"></i> {{ _('Disposition') }} :</span>
-        <div class="dashboard-layout-buttons" role="group" aria-label="{{ _('Disposition du tableau de bord') }}">
-            <button type="button" class="dash-layout-btn" data-layout="default" title="{{ _('Empilé (1 colonne)') }}"><i class="fas fa-bars"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="side-by-side" title="{{ _('Mémos et tâches côte à côte') }}"><i class="fas fa-columns"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="memos-focus" title="{{ _('Focus mémos (mémos larges)') }}"><i class="fas fa-sticky-note"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="tasks-focus" title="{{ _('Focus tâches (tâches larges)') }}"><i class="fas fa-tasks"></i></button>
-            <button type="button" class="dash-layout-btn" data-layout="compact" title="{{ _('Compact (cartes réduites, défilement interne)') }}"><i class="fas fa-compress-alt"></i></button>
-        </div>
-    </div>
-
-    <div class="dashboard-main" id="dashboardMain">
     <!-- Section des mémos -->
     <div class="memos-section dashboard-card" data-section="memos" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> {{ _('Mes mémos') }}</h2>
-            <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.6rem;">
+            <h2 style="margin: 0;"><i class="fas fa-sticky-note" style="color: #F59E0B;"></i> {{ _('Mes mémos') }}</h2>
+            <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
                 <button onclick="openMemoCreationModal()" class="action-button" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border: none; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
                     <i class="fas fa-plus"></i>
                     <span>{{ _('Nouveau mémo') }}</span>
@@ -1283,7 +1304,7 @@ function dismissOnboarding() {
 (function initDashboardLayout() {
     const main = document.getElementById('dashboardMain');
     if (!main) return;
-    const LAYOUTS = ['default', 'side-by-side', 'memos-focus', 'tasks-focus', 'compact'];
+    const LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact'];
     const serverLayout = {{ (dashboard_layout or '') | tojson }};
     let current = 'default';
     try {

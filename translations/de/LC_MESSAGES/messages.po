@@ -2763,6 +2763,12 @@ msgstr "Gestapelt (1 Spalte)"
 msgid "Mémos et tâches côte à côte"
 msgstr "Memos und Aufgaben nebeneinander"
 
+msgid "Trois colonnes (actions, mémos, tâches)"
+msgstr "Drei Spalten (Aktionen, Memos, Aufgaben)"
+
+msgid "Focus actions rapides (actions larges)"
+msgstr "Fokus Schnellaktionen (breite Aktionen)"
+
 msgid "Focus mémos (mémos larges)"
 msgstr "Fokus Memos (breite Memos)"
 

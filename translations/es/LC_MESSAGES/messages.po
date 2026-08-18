@@ -2763,6 +2763,12 @@ msgstr "Apilado (1 columna)"
 msgid "Mémos et tâches côte à côte"
 msgstr "Notas y tareas lado a lado"
 
+msgid "Trois colonnes (actions, mémos, tâches)"
+msgstr "Tres columnas (acciones, notas, tareas)"
+
+msgid "Focus actions rapides (actions larges)"
+msgstr "Enfoque acciones rápidas (acciones anchas)"
+
 msgid "Focus mémos (mémos larges)"
 msgstr "Enfoque notas (notas anchas)"
 

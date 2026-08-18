@@ -2763,6 +2763,12 @@ msgstr "Impilato (1 colonna)"
 msgid "Mémos et tâches côte à côte"
 msgstr "Promemoria e attività affiancati"
 
+msgid "Trois colonnes (actions, mémos, tâches)"
+msgstr "Tre colonne (azioni, promemoria, attività)"
+
+msgid "Focus actions rapides (actions larges)"
+msgstr "Focus azioni rapide (azioni larghe)"
+
 msgid "Focus mémos (mémos larges)"
 msgstr "Focus promemoria (promemoria larghi)"
 
