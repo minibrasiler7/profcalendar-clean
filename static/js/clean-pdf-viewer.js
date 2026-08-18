@@ -5957,24 +5957,60 @@ class CleanPDFViewer {
                 annotation.subtype === 'Link' && annotation.url
             );
 
-            if (links.length === 0) return;
-
-            // Grouper les liens par URL (pour éviter les doublons sur plusieurs lignes)
+            // Grouper les liens par URL (pour éviter les doublons sur plusieurs lignes).
+            // Chaque entrée = liste de rectangles en coordonnées VIEWPORT [x1,y1,x2,y2].
             const linksByUrl = new Map();
             for (const link of links) {
                 if (!linksByUrl.has(link.url)) {
                     linksByUrl.set(link.url, []);
                 }
-                linksByUrl.get(link.url).push(link);
+                linksByUrl.get(link.url).push(viewport.convertToViewportRectangle(link.rect));
             }
+
+            // REPLI : URLs écrites en clair dans le TEXTE mais sans annotation de
+            // lien dans le PDF (ex. documents WeasyPrint où l'adresse est du texte
+            // brut : « https://create.kahoot.it/share/… »). Sans ceci, aucun bouton
+            // n'apparaissait sur ces fichiers.
+            try {
+                const textContent = await page.getTextContent();
+                const urlRe = /((?:https?:\/\/|www\.)[^\s<>"'«»)\]]+)/gi;
+                for (const item of textContent.items || []) {
+                    const str = item.str || '';
+                    if (!str || !/https?:\/\/|www\./i.test(str)) continue;
+                    urlRe.lastIndex = 0;
+                    let m;
+                    while ((m = urlRe.exec(str)) !== null) {
+                        let raw = m[1].replace(/[.,;:!?]+$/, '');
+                        if (raw.length < 8) continue;
+                        const url = /^www\./i.test(raw) ? 'https://' + raw : raw;
+                        // Position du texte : transform = [a,b,c,d,e,f] (e,f = origine
+                        // de la ligne de base en espace PDF), width/height en unités PDF.
+                        const tx = item.transform || [1, 0, 0, 1, 0, 0];
+                        const itemW = item.width || 0;
+                        const itemH = item.height || Math.abs(tx[3]) || 10;
+                        // Portion de l'item occupée par l'URL (approximation proportionnelle)
+                        const startFrac = str.length ? m.index / str.length : 0;
+                        const endFrac = str.length ? (m.index + m[1].length) / str.length : 1;
+                        const x1 = tx[4] + itemW * startFrac;
+                        const x2 = tx[4] + itemW * endFrac;
+                        const y1 = tx[5];
+                        const y2 = tx[5] + itemH;
+                        const rect = viewport.convertToViewportRectangle([x1, y1, x2, y2]);
+                        if (!linksByUrl.has(url)) linksByUrl.set(url, []);
+                        linksByUrl.get(url).push(rect);
+                    }
+                }
+            } catch (e) {
+                console.warn('[Links] Détection des URLs en texte impossible :', e);
+            }
+
+            if (linksByUrl.size === 0) return;
 
             // Créer un bouton pour chaque URL unique
             for (const [url, linkRects] of linksByUrl) {
                 // Trouver le rectangle moyen (centre de tous les rectangles)
                 let totalX = 0, totalY = 0, count = 0;
-                for (const link of linkRects) {
-                    const rect = link.rect;
-                    const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(rect);
+                for (const [x1, y1, x2, y2] of linkRects) {
                     totalX += (x1 + x2) / 2;
                     totalY += (y1 + y2) / 2;
                     count++;
