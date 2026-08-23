@@ -9,6 +9,7 @@ from models.classroom import Classroom
 from models.user import User
 from datetime import datetime
 from routes import teacher_required
+from utils.http_headers import content_disposition
 
 exercises_bp = Blueprint('exercises', __name__, url_prefix='/exercises')
 
@@ -808,7 +809,7 @@ def exercise_block_image(file_id):
             user_file.file_content,
             mimetype=user_file.mime_type or 'image/png',
             headers={
-                'Content-Disposition': f'inline; filename="{user_file.original_filename}"',
+                'Content-Disposition': content_disposition('inline', user_file.original_filename),
                 'Cache-Control': 'public, max-age=3600',
             }
         )

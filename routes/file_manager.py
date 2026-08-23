@@ -82,11 +82,10 @@ def get_absolute_file_path(user_file):
 def _content_disposition(disposition, filename):
     """Content-Disposition sûr : repli ASCII + RFC 5987 pour l'UTF-8.
     Un nom contenant p.ex. un tiret cadratin « — » (hors latin-1) faisait
-    échouer l'encodage de l'en-tête à l'envoi de la réponse."""
-    from urllib.parse import quote
-    name = filename or 'fichier'
-    fallback = name.encode('ascii', 'ignore').decode().replace('"', '') or 'fichier'
-    return f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"
+    échouer l'encodage de l'en-tête à l'envoi de la réponse.
+    (Implémentation partagée : utils.http_headers.content_disposition)"""
+    from utils.http_headers import content_disposition
+    return content_disposition(disposition, filename)
 
 
 def serve_user_file_content(user_file, as_attachment=False):
@@ -1916,7 +1915,7 @@ def download_file(file_id):
                     r2_data,
                     mimetype=mimetype,
                     headers={
-                        'Content-Disposition': f'attachment; filename="{file.original_filename}"'
+                        'Content-Disposition': _content_disposition('attachment', file.original_filename)
                     }
                 )
         except Exception as e:
@@ -1928,7 +1927,7 @@ def download_file(file_id):
             file.file_content,
             mimetype=mimetype,
             headers={
-                'Content-Disposition': f'attachment; filename="{file.original_filename}"'
+                'Content-Disposition': _content_disposition('attachment', file.original_filename)
             }
         )
 
@@ -1999,13 +1998,13 @@ def preview_file(file_id):
                 thumb_data = download_file_from_r2(file.user_id, file.thumbnail_path, file_type='thumbnail')
                 if thumb_data:
                     return Response(thumb_data, mimetype='image/jpeg',
-                                    headers={'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'})
+                                    headers={'Content-Disposition': _content_disposition('inline', 'thumb_' + (file.original_filename or ''))})
             except Exception:
                 pass
         # 2. BLOB thumbnail
         if file.thumbnail_content:
             return Response(file.thumbnail_content, mimetype='image/jpeg',
-                            headers={'Content-Disposition': f'inline; filename="thumb_{file.original_filename}"'})
+                            headers={'Content-Disposition': _content_disposition('inline', 'thumb_' + (file.original_filename or ''))})
         # 3. Disque thumbnail
         thumbnail_rel_path = file.get_thumbnail_path()
         if thumbnail_rel_path:
@@ -2023,14 +2022,14 @@ def preview_file(file_id):
             r2_data = download_file_from_r2(file.user_id, file.filename)
             if r2_data:
                 return Response(r2_data, mimetype=mimetype,
-                                headers={'Content-Disposition': f'inline; filename="{file.original_filename}"'})
+                                headers={'Content-Disposition': _content_disposition('inline', file.original_filename)})
         except Exception as e:
             current_app.logger.warning(f"Erreur preview R2, fallback: {e}")
 
     # 2. BLOB
     if file.file_content:
         return Response(file.file_content, mimetype=mimetype,
-                        headers={'Content-Disposition': f'inline; filename="{file.original_filename}"'})
+                        headers={'Content-Disposition': _content_disposition('inline', file.original_filename)})
 
     # 3. Disque
     file_path = get_absolute_file_path(file)

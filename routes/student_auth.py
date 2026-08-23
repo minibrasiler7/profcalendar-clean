@@ -15,6 +15,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from flask_babel import lazy_gettext as _l
+from utils.http_headers import content_disposition
 
 logger = logging.getLogger(__name__)
 
@@ -685,7 +686,7 @@ def download_file(file_id):
                 user_file.file_content,
                 mimetype=mimetype,
                 headers={
-                    'Content-Disposition': f'attachment; filename="{user_file.original_filename}"'
+                    'Content-Disposition': content_disposition('attachment', user_file.original_filename)
                 }
             )
 
@@ -775,7 +776,7 @@ def preview_file(file_id):
                 user_file.file_content,
                 mimetype=mimetype,
                 headers={
-                    'Content-Disposition': f'inline; filename="{user_file.original_filename}"'
+                    'Content-Disposition': content_disposition('inline', user_file.original_filename)
                 }
             )
 
@@ -2018,4 +2019,4 @@ def devoir_document(devoir_id):
         return "Fichier introuvable", 404
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
-        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})
+        'Content-Disposition': content_disposition('inline', devoir.document_name or 'document')})

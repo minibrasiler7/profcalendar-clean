@@ -19,6 +19,7 @@ from models.devoir import Devoir
 from models.classroom import Classroom
 from models.exercise import Exercise
 from routes.evaluations import user_can_access_classroom
+from utils.http_headers import content_disposition
 
 devoirs_bp = Blueprint('devoirs', __name__, url_prefix='/api/devoirs')
 
@@ -344,7 +345,7 @@ def _serve_devoir_pdf(submission_id, which):
         return "Fichier introuvable", 404
     label = 'rendu.pdf' if which == 'file' else 'correction.pdf'
     return Response(data, mimetype='application/pdf',
-                    headers={'Content-Disposition': f'inline; filename="{label}"'})
+                    headers={'Content-Disposition': content_disposition('inline', label)})
 
 
 @devoirs_bp.route('/submissions/<int:submission_id>/file', methods=['GET'])
@@ -621,4 +622,4 @@ def get_devoir_document(devoir_id):
         return "Fichier introuvable", 404
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
-        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})
+        'Content-Disposition': content_disposition('inline', devoir.document_name or 'document')})

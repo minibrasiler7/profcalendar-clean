@@ -5,6 +5,7 @@ from models.evaluation import Evaluation, EvaluationGrade
 from models.classroom import Classroom
 from models.student import Student
 from datetime import datetime
+from utils.http_headers import content_disposition
 
 def user_can_access_classroom(user_id, classroom_id):
     """Vérifie si un utilisateur peut accéder à une classe (directement ou via collaboration)"""
@@ -525,7 +526,7 @@ def export_grades(classroom_id, fmt):
         # BOM pour qu'Excel ouvre l'UTF-8 correctement
         data = '\ufeff' + buf.getvalue()
         return Response(data, mimetype='text/csv; charset=utf-8',
-                        headers={'Content-Disposition': f'attachment; filename="{safe_name}.csv"'})
+                        headers={'Content-Disposition': content_disposition('attachment', f'{safe_name}.csv')})
 
     # ---- PDF (reportlab, paysage) ----
     import io as _io
@@ -579,4 +580,4 @@ def export_grades(classroom_id, fmt):
     doc.build(elements)
     buf.seek(0)
     return Response(buf.read(), mimetype='application/pdf',
-                    headers={'Content-Disposition': f'attachment; filename="{safe_name}.pdf"'})
+                    headers={'Content-Disposition': content_disposition('attachment', f'{safe_name}.pdf')})

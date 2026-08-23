@@ -1790,10 +1790,15 @@ def save_planning():
         # Vérifier le groupe si spécifié
         if group_id:
             from models.student_group import StudentGroup
-            group = StudentGroup.query.filter_by(
-                id=group_id,
-                classroom_id=classroom_id,
-                user_id=current_user.id
+            # Accepter un groupe rattaché à N'IMPORTE QUELLE discipline de la
+            # même classe (cf. get_groups) : sinon enregistrer un groupe sur la
+            # 2e discipline renvoyait « Groupe non trouvé ».
+            _c = Classroom.query.filter_by(id=classroom_id, user_id=current_user.id).first()
+            _allowed_ids = _c.get_group_classroom_ids() if _c else [classroom_id]
+            group = StudentGroup.query.filter(
+                StudentGroup.id == group_id,
+                StudentGroup.classroom_id.in_(_allowed_ids),
+                StudentGroup.user_id == current_user.id
             ).first()
             if not group:
                 return jsonify({'success': False, 'message': 'Groupe non trouvé'}), 404
@@ -5704,11 +5709,18 @@ def get_groups(classroom_param):
         if not classroom:
             return jsonify({'success': False, 'message': 'Classe non trouvée'}), 404
         
-        # Récupérer les groupes de cette classe
-        groups = StudentGroup.query.filter_by(
-            classroom_id=classroom_id,
-            user_id=current_user.id
-        ).all()
+        # Récupérer les groupes de cette classe. Une classe enseignée dans
+        # PLUSIEURS disciplines est stockée comme plusieurs Classroom (même
+        # class_group, sujets différents) qui partagent la même liste d'élèves :
+        # les groupes doivent donc être partagés aussi. Sans ça, un groupe créé
+        # depuis « Gérer les classes » (qui résout le nom de classe vers la 1re
+        # discipline) n'était proposé dans le calendrier que pour cette
+        # discipline-là. Même règle que Classroom.get_students().
+        group_classroom_ids = classroom.get_group_classroom_ids()
+        groups = StudentGroup.query.filter(
+            StudentGroup.classroom_id.in_(group_classroom_ids),
+            StudentGroup.user_id == current_user.id
+        ).order_by(StudentGroup.name).all()
         
         groups_data = []
         for group in groups:
@@ -5838,9 +5850,11 @@ def create_group():
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': 'IDs d\'élèves invalides'}), 400
             
+            # Les élèves d'une classe multi-disciplines ne sont stockés que sur
+            # UNE des Classroom du groupe : valider sur tout le groupe.
             valid_students = Student.query.filter(
                 Student.id.in_(student_ids),
-                Student.classroom_id == actual_classroom_id
+                Student.classroom_id.in_(classroom.get_group_classroom_ids())
             ).count()
             if valid_students != len(student_ids):
                 return jsonify({'success': False, 'message': 'Certains élèves ne sont pas valides'}), 400
@@ -5901,11 +5915,14 @@ def update_group(group_id):
         if not name:
             return jsonify({'success': False, 'message': 'Le nom du groupe est obligatoire'}), 400
         
-        # Vérifier que tous les élèves appartiennent à cette classe
+        # Vérifier que tous les élèves appartiennent à cette classe (toutes
+        # disciplines confondues : les élèves ne sont stockés que sur une des
+        # Classroom du groupe de classes).
         if student_ids:
+            _allowed_ids = group.classroom.get_group_classroom_ids() if group.classroom else [group.classroom_id]
             valid_students = Student.query.filter(
                 Student.id.in_(student_ids),
-                Student.classroom_id == group.classroom_id
+                Student.classroom_id.in_(_allowed_ids)
             ).count()
             if valid_students != len(student_ids):
                 return jsonify({'success': False, 'message': 'Certains élèves ne sont pas valides'}), 400
@@ -6017,9 +6034,9 @@ def apply_group_pattern():
         # Récupérer tous les groupes de la classe pour l'alternance
         all_groups = []
         if pattern_type == 'alternate':
-            groups = StudentGroup.query.filter_by(
-                classroom_id=classroom_id,
-                user_id=current_user.id
+            groups = StudentGroup.query.filter(
+                StudentGroup.classroom_id.in_(classroom.get_group_classroom_ids()),
+                StudentGroup.user_id == current_user.id
             ).order_by(StudentGroup.name).all()
             all_groups = [group.id for group in groups]
             
@@ -9628,21 +9645,37 @@ def serve_ephemeral_file(eph_id):
 
     eph = EphemeralFile.query.filter_by(id=eph_id, user_id=current_user.id).first_or_404()
 
-    data = None
+    # En-tête Content-Disposition SÛR (repli ASCII + RFC 5987).
+    # BUG VÉCU (jeudi 20.08.2026, 502 sur /planning/ephemeral/12 et /13) :
+    # l'en-tête était construit avec le nom brut ; un nom contenant un
+    # caractère hors latin-1 — typiquement le tiret cadratin « — » des fichiers
+    # « … 9VG2 + VP — Théorie.pdf » — fait échouer l'encodage de l'en-tête au
+    # moment d'envoyer la réponse → 502, et le document paraissait introuvable
+    # en classe. Même helper que les fichiers de classe (routes/file_manager).
+    from routes.file_manager import _content_disposition
+    mimetype = eph.mime_type or 'application/octet-stream'
+    disposition = _content_disposition('inline', eph.original_filename)
+
+    # R2 : servir en STREAMING (jamais le fichier entier en RAM — un gros PDF
+    # tuait le worker, cf. fichiers de classe).
     if eph.r2_key:
         try:
-            from services.r2_storage import get_s3_client, get_bucket_name
-            obj = get_s3_client().get_object(Bucket=get_bucket_name(), Key=eph.r2_key)
-            data = obj['Body'].read()
+            from services.r2_storage import stream_r2_key
+            streamed = stream_r2_key(eph.r2_key)
+            if streamed:
+                chunks, length = streamed
+                headers = {'Content-Disposition': disposition}
+                if length:
+                    headers['Content-Length'] = str(length)
+                return Response(chunks, mimetype=mimetype, headers=headers)
         except Exception as e:
             current_app.logger.warning(f"Lecture R2 éphémère: {e}")
-    if data is None and eph.file_content:
-        data = eph.file_content
-    if data is None:
-        abort(404)
 
-    return Response(
-        data,
-        mimetype=eph.mime_type or 'application/octet-stream',
-        headers={'Content-Disposition': f'inline; filename="{eph.original_filename}"'},
-    )
+    if eph.file_content:
+        return Response(
+            eph.file_content,
+            mimetype=mimetype,
+            headers={'Content-Disposition': disposition},
+        )
+
+    abort(404)

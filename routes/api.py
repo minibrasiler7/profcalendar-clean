@@ -9,6 +9,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 import jwt
 import os
+from utils.http_headers import content_disposition
 
 api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
 
@@ -856,7 +857,7 @@ def student_download_file(file_id):
             user_file.file_content,
             mimetype=mimetype,
             headers={
-                'Content-Disposition': f'attachment; filename="{user_file.original_filename}"'
+                'Content-Disposition': content_disposition('attachment', user_file.original_filename)
             }
         )
 
@@ -2505,7 +2506,7 @@ def student_devoir_document(devoir_id):
         return jsonify({'error': 'Fichier introuvable'}), 404
     mt = mimetypes.guess_type(devoir.document_name or '')[0] or 'application/octet-stream'
     return Response(data, mimetype=mt, headers={
-        'Content-Disposition': f'inline; filename="{devoir.document_name or "document"}"'})
+        'Content-Disposition': content_disposition('inline', devoir.document_name or 'document')})
 
 
 @api_bp.route('/auth/refresh', methods=['POST'])

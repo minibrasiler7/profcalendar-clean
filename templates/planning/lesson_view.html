@@ -1356,7 +1356,7 @@ input, textarea, select {
                 <!-- Vue de lecture -->
                 <div id="planningView" {% if not planning %}style="display: none;"{% endif %}>
                     <div class="planning-item">
-                        <h3 id="planningTitleDisplay">{{ planning.title if planning else 'Cours sans titre' }}</h3>
+                        <h3 id="planningTitleDisplay" {% if not (planning and planning.title) %}style="display:none;"{% endif %}>{{ planning.title if planning and planning.title else '' }}</h3>
                         <div class="planning-description" id="planningDescriptionDisplay">
                             {% if planning %}
                                 {{ render_planning_with_checkboxes(planning) | safe }}
@@ -2407,6 +2407,9 @@ const classroomId = {{ lesson_classroom.id if lesson_classroom else 'null' }};
 const mixedGroupId = {{ lesson.mixed_group_id if lesson.mixed_group_id else 'null' }};
 let isEditingPlanning = false;
 let isSplitViewActive = false;
+// Une planification existe-t-elle en base pour ce cours ? (le titre est
+// OPTIONNEL : ne jamais déduire l'existence d'une planification de son titre)
+const LESSON_HAS_PLANNING = {{ 'true' if planning else 'false' }};
 
 // Verrou anti-double-clic pour les requêtes de présence
 const pendingRequests = new Set();
@@ -2557,10 +2560,20 @@ function togglePlanningEdit() {
         // Passer en mode lecture
         planningEdit.style.display = 'none';
 
-        // Vérifier s'il y a du contenu de planification en regardant le titre
+        // Y a-t-il une planification ? Le TITRE ÉTANT OPTIONNEL, on ne peut pas
+        // s'y fier : avant, une planification sans titre était considérée comme
+        // inexistante → la vue de lecture restait masquée et le contenu
+        // (description, tâches, ressources) semblait perdu. On regarde donc :
+        // la planification enregistrée côté serveur, puis le titre, puis la
+        // description affichée, puis les ressources jointes.
         const titleDisplay = document.getElementById('planningTitleDisplay');
-        const hasPlanning = titleDisplay && titleDisplay.textContent.trim() &&
-                           titleDisplay.textContent !== 'Cours sans titre';
+        const descDisplay = document.getElementById('planningDescriptionDisplay');
+        const titleText = titleDisplay ? titleDisplay.textContent.trim() : '';
+        const descText = descDisplay ? descDisplay.textContent.trim() : '';
+        const hasPlanning = LESSON_HAS_PLANNING ||
+                            (titleText && titleText !== 'Cours sans titre') ||
+                            (descText && descText !== 'Aucune description') ||
+                            !!document.getElementById('planning-resources-section');
 
         if (hasPlanning) {
             // Il y a une planification, afficher la vue de lecture
