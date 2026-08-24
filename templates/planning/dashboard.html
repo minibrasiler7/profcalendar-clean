@@ -237,6 +237,58 @@
     .dashboard-layout-bar { display: none; }
 }
 
+/* ---- Disposition MANUELLE : grille 12 colonnes, cartes déplaçables/redimensionnables ---- */
+.dashboard-main.layout-manual {
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-areas: none;
+    gap: 1.25rem;
+    align-items: start;
+}
+.dashboard-main.layout-manual .dashboard-card {
+    /* `grid-area` (raccourci) écraserait `grid-column` s'il gardait !important :
+       les deux doivent porter la même priorité, sinon la largeur choisie est
+       ignorée et chaque carte retombe sur une seule colonne. */
+    grid-row: auto !important;
+    grid-column: span var(--span, 12) !important;
+    position: relative;
+    margin-bottom: 0 !important;
+}
+.dashboard-main.layout-manual .dashboard-card::after {
+    /* Poignée de redimensionnement (bord droit) */
+    content: '';
+    position: absolute; top: 0; right: -2px; width: 14px; height: 100%;
+    cursor: col-resize; border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+.dashboard-main.layout-manual .dashboard-card:hover::after { background: rgba(79,70,229,0.12); }
+.dash-drag-handle { display: none; }
+.dashboard-main.layout-manual .dash-drag-handle {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    position: absolute; top: 0; left: 0; right: 0; height: 26px;
+    background: linear-gradient(180deg, rgba(79,70,229,0.10), transparent);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    cursor: grab; color: #4F46E5; font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase; user-select: none;
+    touch-action: none;
+}
+.dashboard-main.layout-manual .dashboard-card { padding-top: 2.4rem !important; }
+.dashboard-main.layout-manual .dashboard-card.dash-dragging { opacity: 0.45; }
+.dashboard-main.layout-manual .dashboard-card.dash-drop-target {
+    outline: 2px dashed #4F46E5; outline-offset: 3px;
+}
+.dash-manual-hint {
+    display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    font-size: 0.78rem; color: #6B7280;
+}
+.dash-manual-reset {
+    border: 1px solid #D1D5DB; background: #fff; color: #374151;
+    border-radius: 0.35rem; padding: 0.15rem 0.5rem; cursor: pointer; font-size: 0.75rem;
+}
+.dash-manual-reset:hover { background: #F3F4F6; }
+@media (max-width: 900px) {
+    .dashboard-main.layout-manual { grid-template-columns: 1fr; }
+    .dashboard-main.layout-manual .dashboard-card { grid-column: span 1 !important; padding-top: 2rem !important; }
+}
+
 /* ---- Tâches à cocher ---- */
 .task-item {
     display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.7rem; border: 1px solid #E5E7EB;
@@ -335,6 +387,31 @@
         </div>
     </div>
 
+    <!-- Tâches à cocher : utiles aussi sur téléphone (elles étaient réservées
+         au web/iPad alors que c'est typiquement ce qu'on coche en déplacement). -->
+    <div class="tasks-section" style="background-color: var(--white); padding: 1.25rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-top: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <h2 style="margin: 0; font-size: 1.1rem;"><i class="fas fa-check-square" style="color: #10B981;"></i> {{ _('Mes tâches') }}
+                <span class="tasks-counter" id="tasksCounter" style="font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-left: 0.35rem;"></span>
+            </h2>
+            <button type="button" id="tasksClearDoneBtn" onclick="clearDoneTasks()" style="display:none; background: #F3F4F6; border: 1px solid #E5E7EB; color: #374151; padding: 0.35rem 0.7rem; border-radius: 0.375rem; cursor: pointer; font-size: 0.8rem;">
+                <i class="fas fa-broom"></i> {{ _('Effacer les tâches faites') }}
+            </button>
+        </div>
+        <form class="task-add-form" onsubmit="return addDashboardTask(event)" style="display: flex; gap: 0.5rem; margin-bottom: 0.85rem;">
+            <input type="text" id="newTaskInput" maxlength="300" placeholder="{{ _('Nouvelle tâche…') }}" autocomplete="off"
+                   style="flex: 1; min-width: 0; padding: 0.65rem 0.8rem; border: 1px solid #D1D5DB; border-radius: 0.5rem; font-size: 16px;">
+            <button type="submit" style="padding: 0.65rem 0.9rem; border: none; border-radius: 0.5rem; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-plus"></i>
+            </button>
+        </form>
+        <ul class="tasks-list" id="tasksList" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem;"></ul>
+        <p class="tasks-empty" id="tasksEmpty" style="display:none; color: #6B7280; text-align: center; padding: 1rem 0.5rem; margin: 0; font-size: 0.9rem;">
+            <i class="fas fa-clipboard-check" style="font-size: 1.6rem; display: block; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+            {{ _('Aucune tâche pour le moment.') }}
+        </p>
+    </div>
+
     <p class="app-tablet-note">
         <i class="fas fa-info-circle"></i>
         {{ _("D'autres fonctionnalités (exercices, fichiers, sanctions, collaboration…) sont disponibles sur iPad et sur profcalendar.org.") }}
@@ -377,7 +454,13 @@
             <button type="button" class="dash-layout-btn" data-layout="memos-focus" title="{{ _('Focus mémos (mémos larges)') }}"><i class="fas fa-sticky-note"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="tasks-focus" title="{{ _('Focus tâches (tâches larges)') }}"><i class="fas fa-tasks"></i></button>
             <button type="button" class="dash-layout-btn" data-layout="compact" title="{{ _('Compact (cartes réduites, défilement interne)') }}"><i class="fas fa-compress-alt"></i></button>
+            <button type="button" class="dash-layout-btn" data-layout="manual" title="{{ _('Manuel : déplacer et redimensionner les sections') }}"><i class="fas fa-arrows-alt"></i></button>
         </div>
+        <span class="dash-manual-hint" id="dashManualHint" style="display:none;">
+            <i class="fas fa-hand-pointer"></i>
+            {{ _('Glissez une section par sa poignée pour la déplacer, tirez son bord droit pour la redimensionner.') }}
+            <button type="button" class="dash-manual-reset" onclick="resetManualLayout()">{{ _('Réinitialiser') }}</button>
+        </span>
     </div>
 
     {# --- Onboarding : appel à l'action affiché tant que le prof n'a pas créé
@@ -1301,36 +1384,199 @@ function dismissOnboarding() {
 // ===================== Disposition du tableau de bord =====================
 // Mémorisée en localStorage (immédiat) ET côté serveur (retrouvée sur tous
 // les appareils au prochain chargement). Le serveur fait foi au chargement.
+const DASH_LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact', 'manual'];
+let dashCurrentLayout = 'default';
+let dashManualPlacement = [];   // [{key, span, order}]
+
 (function initDashboardLayout() {
     const main = document.getElementById('dashboardMain');
     if (!main) return;
-    const LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact'];
     const serverLayout = {{ (dashboard_layout or '') | tojson }};
-    let current = 'default';
+    const serverCustom = {{ (dashboard_layout_custom or '') | tojson }};
     try {
-        current = serverLayout || localStorage.getItem('dashboardLayout') || 'default';
-    } catch (e) { current = serverLayout || 'default'; }
-    if (!LAYOUTS.includes(current)) current = 'default';
+        dashCurrentLayout = serverLayout || localStorage.getItem('dashboardLayout') || 'default';
+    } catch (e) { dashCurrentLayout = serverLayout || 'default'; }
+    if (!DASH_LAYOUTS.includes(dashCurrentLayout)) dashCurrentLayout = 'default';
 
-    function apply(layout, persist) {
-        LAYOUTS.forEach(l => main.classList.remove('layout-' + l));
-        if (layout !== 'default') main.classList.add('layout-' + layout);
-        document.querySelectorAll('.dash-layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === layout));
-        if (persist) {
-            try { localStorage.setItem('dashboardLayout', layout); } catch (e) {}
-            fetch('/api/dashboard/layout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ layout })
-            }).catch(() => {});
+    // Placement manuel : le serveur fait foi, repli sur le stockage local
+    try {
+        dashManualPlacement = JSON.parse(serverCustom || localStorage.getItem('dashboardManual') || '[]') || [];
+    } catch (e) { dashManualPlacement = []; }
+
+    applyDashLayout(dashCurrentLayout, false);
+    try { localStorage.setItem('dashboardLayout', dashCurrentLayout); } catch (e) {}
+    document.querySelectorAll('.dash-layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyDashLayout(btn.dataset.layout, true));
+    });
+    initManualLayout();
+})();
+
+function applyDashLayout(layout, persist) {
+    const main = document.getElementById('dashboardMain');
+    if (!main) return;
+    dashCurrentLayout = layout;
+    DASH_LAYOUTS.forEach(l => main.classList.remove('layout-' + l));
+    if (layout !== 'default') main.classList.add('layout-' + layout);
+    document.querySelectorAll('.dash-layout-btn').forEach(b => b.classList.toggle('active', b.dataset.layout === layout));
+    const hint = document.getElementById('dashManualHint');
+    if (hint) hint.style.display = (layout === 'manual') ? 'inline-flex' : 'none';
+
+    if (layout === 'manual') applyManualPlacement();
+    else clearManualPlacement();
+
+    if (persist) saveDashLayout();
+}
+
+// --- Disposition manuelle -------------------------------------------------
+// Chaque carte occupe N colonnes sur 12 (largeur) et un rang d'ordre
+// (position). Réglé à la souris/au doigt, mémorisé localement ET côté serveur
+// (donc retrouvé sur un autre appareil).
+function dashCards() {
+    const main = document.getElementById('dashboardMain');
+    return main ? Array.from(main.querySelectorAll('.dashboard-card')) : [];
+}
+
+function applyManualPlacement() {
+    const byKey = {};
+    (dashManualPlacement || []).forEach(p => { byKey[p.key] = p; });
+    dashCards().forEach((card, i) => {
+        const key = card.dataset.section || ('card' + i);
+        const p = byKey[key];
+        card.style.setProperty('--span', String(p ? p.span : 12));
+        card.style.order = String(p ? p.order : i);
+    });
+}
+
+function clearManualPlacement() {
+    dashCards().forEach(card => {
+        card.style.removeProperty('--span');
+        card.style.order = '';
+    });
+}
+
+function readManualPlacement() {
+    // Ordre VISUEL courant (style.order, à défaut l'ordre du DOM)
+    const cards = dashCards().slice().sort((a, b) => {
+        const oa = parseInt(a.style.order || '999', 10);
+        const ob = parseInt(b.style.order || '999', 10);
+        return oa - ob;
+    });
+    return cards.map((card, i) => ({
+        key: card.dataset.section || ('card' + i),
+        span: parseInt(card.style.getPropertyValue('--span') || '12', 10) || 12,
+        order: i
+    }));
+}
+
+let __dashSaveTimer = null;
+function saveDashLayout() {
+    const payload = { layout: dashCurrentLayout };
+    if (dashCurrentLayout === 'manual') {
+        dashManualPlacement = readManualPlacement();
+        payload.custom = dashManualPlacement;
+        try { localStorage.setItem('dashboardManual', JSON.stringify(dashManualPlacement)); } catch (e) {}
+    }
+    try { localStorage.setItem('dashboardLayout', dashCurrentLayout); } catch (e) {}
+    clearTimeout(__dashSaveTimer);
+    __dashSaveTimer = setTimeout(() => {
+        fetch('/api/dashboard/layout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        }).catch(() => {});
+    }, 400);
+}
+
+function resetManualLayout() {
+    dashManualPlacement = [];
+    try { localStorage.removeItem('dashboardManual'); } catch (e) {}
+    dashCards().forEach((card, i) => {
+        card.style.setProperty('--span', '12');
+        card.style.order = String(i);
+    });
+    saveDashLayout();
+}
+
+function initManualLayout() {
+    const main = document.getElementById('dashboardMain');
+    if (!main) return;
+
+    // Poignée de déplacement injectée dans chaque carte (masquée hors mode manuel)
+    dashCards().forEach(card => {
+        if (card.querySelector('.dash-drag-handle')) return;
+        const h = document.createElement('div');
+        h.className = 'dash-drag-handle';
+        h.innerHTML = '<i class="fas fa-grip-lines"></i>';
+        card.insertBefore(h, card.firstChild);
+    });
+
+    let drag = null;    // déplacement
+    let resize = null;  // redimensionnement
+
+    main.addEventListener('pointerdown', function (e) {
+        if (dashCurrentLayout !== 'manual') return;
+        const card = e.target.closest('.dashboard-card');
+        if (!card) return;
+
+        // Bord droit (14 px) → redimensionnement
+        const r = card.getBoundingClientRect();
+        if (e.clientX >= r.right - 14) {
+            e.preventDefault();
+            const colWidth = main.getBoundingClientRect().width / 12;
+            resize = { card, startX: e.clientX, startSpan: parseInt(card.style.getPropertyValue('--span') || '12', 10) || 12, colWidth, pointerId: e.pointerId };
+            try { card.setPointerCapture(e.pointerId); } catch (err) {}
+            return;
+        }
+
+        // Poignée → déplacement
+        if (e.target.closest('.dash-drag-handle')) {
+            e.preventDefault();
+            drag = { card, pointerId: e.pointerId };
+            card.classList.add('dash-dragging');
+            try { card.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+    });
+
+    main.addEventListener('pointermove', function (e) {
+        if (resize && e.pointerId === resize.pointerId) {
+            e.preventDefault();
+            const delta = e.clientX - resize.startX;
+            let span = resize.startSpan + Math.round(delta / resize.colWidth);
+            span = Math.min(12, Math.max(3, span));
+            resize.card.style.setProperty('--span', String(span));
+            return;
+        }
+        if (drag && e.pointerId === drag.pointerId) {
+            e.preventDefault();
+            const over = document.elementFromPoint(e.clientX, e.clientY);
+            const target = over ? over.closest('.dashboard-card') : null;
+            dashCards().forEach(c => c.classList.toggle('dash-drop-target', !!target && c === target && c !== drag.card));
+        }
+    });
+
+    function endGesture(e) {
+        if (resize && (!e || e.pointerId === resize.pointerId)) {
+            resize = null;
+            saveDashLayout();
+        }
+        if (drag && (!e || e.pointerId === drag.pointerId)) {
+            const target = document.querySelector('.dashboard-card.dash-drop-target');
+            if (target && target !== drag.card) {
+                // Échange des positions (ordres) des deux cartes
+                const a = parseInt(drag.card.style.order || '0', 10);
+                const b = parseInt(target.style.order || '0', 10);
+                drag.card.style.order = String(b);
+                target.style.order = String(a);
+            }
+            drag.card.classList.remove('dash-dragging');
+            dashCards().forEach(c => c.classList.remove('dash-drop-target'));
+            drag = null;
+            saveDashLayout();
         }
     }
-    apply(current, false);
-    try { localStorage.setItem('dashboardLayout', current); } catch (e) {}
-    document.querySelectorAll('.dash-layout-btn').forEach(btn => {
-        btn.addEventListener('click', () => apply(btn.dataset.layout, true));
-    });
-})();
+    main.addEventListener('pointerup', endGesture);
+    main.addEventListener('pointercancel', endGesture);
+}
 
 // ===================== Tâches à cocher =====================
 let dashboardTasks = {{ (dashboard_tasks or []) | tojson }};

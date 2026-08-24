@@ -790,12 +790,14 @@ def dashboard():
     # Tâches à cocher + disposition mémorisée du tableau de bord
     dashboard_tasks = []
     dashboard_layout = None
+    dashboard_layout_custom = None
     try:
         from models.user_preferences import DashboardTask, UserPreferences
         dashboard_tasks = [t.to_dict() for t in DashboardTask.query.filter_by(user_id=current_user.id)
                            .order_by(DashboardTask.is_done.asc(), DashboardTask.position.asc(), DashboardTask.id.asc()).all()]
         _prefs = UserPreferences.query.filter_by(user_id=current_user.id).first()
         dashboard_layout = getattr(_prefs, 'dashboard_layout', None) if _prefs else None
+        dashboard_layout_custom = getattr(_prefs, 'dashboard_layout_custom', None) if _prefs else None
     except Exception as _e_dash:
         db.session.rollback()
         current_app.logger.warning(f"Dashboard tasks/layout indisponibles: {_e_dash}")
@@ -803,6 +805,7 @@ def dashboard():
     return render_template('planning/dashboard.html',
                          dashboard_tasks=dashboard_tasks,
                          dashboard_layout=dashboard_layout,
+                         dashboard_layout_custom=dashboard_layout_custom,
                          classrooms_count=classrooms_count,
                          schedules_count=schedules_count,
                          students_count=students_count,
@@ -1629,6 +1632,16 @@ def generate_annual_calendar(item, item_type='classroom'):
         print(f"📚 Found {len(all_plannings)} plannings for classroom {item.id}")
     
     # Debug: afficher les plannings trouvés
+    # Jours (0=lundi … 4=vendredi) où cette classe / ce groupe mixte a cours
+    # selon l'horaire type — calculé une fois pour toute l'année.
+    if item_type == 'mixed_group':
+        _sched_rows = Schedule.query.filter_by(
+            user_id=current_user.id, mixed_group_id=item.id).all()
+    else:
+        _sched_rows = Schedule.query.filter_by(
+            user_id=current_user.id, classroom_id=item.id).all()
+    _weekdays_with_class = {s.weekday for s in _sched_rows}
+
     for planning in all_plannings:
         print(f"  📝 Planning: {planning.date} P{planning.period_number} - {planning.title}")
     
@@ -1708,20 +1721,13 @@ def generate_annual_calendar(item, item_type='classroom'):
             if not is_school_year(date_to_check, current_user) or holiday_name:
                 continue
 
-            # Vérifier dans l'horaire type si cette classe/groupe mixte a cours ce jour
+            # Jours de la semaine où cette classe/ce groupe a cours dans
+            # l'horaire type. Chargé UNE SEULE FOIS (cf. _weekdays_with_class
+            # au-dessus de la boucle) : cette vérification était faite par une
+            # requête SQL par jour, soit ~220 requêtes pour une année scolaire
+            # — le poste de coût principal de la vue annuelle.
             weekday = i
-            if item_type == 'mixed_group':
-                has_schedule = Schedule.query.filter_by(
-                    user_id=current_user.id,
-                    mixed_group_id=item.id,
-                    weekday=weekday
-                ).first() is not None
-            else:
-                has_schedule = Schedule.query.filter_by(
-                    user_id=current_user.id,
-                    classroom_id=item.id,
-                    weekday=weekday
-                ).first() is not None
+            has_schedule = weekday in _weekdays_with_class
 
             # Vérifier s'il y a des planifications spécifiques pour ce jour
             has_planning = date_str in plannings_by_date
@@ -2053,32 +2059,54 @@ def lesson_view():
             period_number=lesson.period_number
         ).first()
         
-        # Si pas de planification trouvée et que c'est une période fusionnée,
-        # chercher dans les périodes précédentes fusionnées
-        if not planning and hasattr(lesson, 'is_merged') and lesson.is_merged:
+        # Si pas de planification trouvée, remonter à la période qui DÉMARRE la
+        # fusion. Deux cas la déclenchent :
+        #  - lesson.is_merged : la période courante ouvre une fusion ;
+        #  - la période courante est la SUITE d'une fusion (Schedule.
+        #    merged_with_previous) — cas de la 2e heure d'une double période.
+        #    Sans ce 2e cas, la 2e heure ne trouvait aucune planification :
+        #    ni le contenu ni surtout le GROUPE d'élèves choisi pour la double
+        #    période n'étaient repris (toute la classe s'affichait).
+        _merged_continuation = False
+        if not planning:
+            _sched_here = Schedule.query.filter_by(
+                user_id=current_user.id,
+                weekday=lesson_date.weekday(),
+                period_number=lesson.period_number
+            ).first()
+            _merged_continuation = bool(
+                _sched_here and getattr(_sched_here, 'merged_with_previous', False)
+            )
+
+        if not planning and (_merged_continuation or (hasattr(lesson, 'is_merged') and lesson.is_merged)):
             current_app.logger.debug(f"=== MERGED PLANNING DEBUG === No planning for P{lesson.period_number}, searching in merged periods")
-            
-            # Chercher dans les périodes précédentes jusqu'au début de la fusion
-            for check_period in range(lesson.period_number - 1, 0, -1):
+
+            # Déterminer la période qui DÉMARRE la fusion : on remonte tant que
+            # la période courante est marquée « suite » d'une fusion. On ne sort
+            # JAMAIS de la chaîne de fusion — sinon on récupérait la
+            # planification d'une période antérieure sans aucun rapport.
+            merge_start = lesson.period_number
+            guard = 0
+            while guard < 12:
+                guard += 1
+                sched = Schedule.query.filter_by(
+                    user_id=current_user.id,
+                    weekday=lesson_date.weekday(),
+                    period_number=merge_start
+                ).first()
+                if sched and getattr(sched, 'merged_with_previous', False) and merge_start > 1:
+                    merge_start -= 1
+                else:
+                    break
+
+            for check_period in range(lesson.period_number - 1, merge_start - 1, -1):
                 planning = Planning.query.filter_by(
                     user_id=current_user.id,
                     date=lesson_date,
                     period_number=check_period
                 ).first()
-                
                 if planning:
                     current_app.logger.debug(f"=== MERGED PLANNING DEBUG === Found planning in P{check_period}, using for P{lesson.period_number}")
-                    break
-                
-                # Vérifier si cette période précédente est aussi fusionnée
-                schedule = Schedule.query.filter_by(
-                    user_id=current_user.id,
-                    weekday=lesson_date.weekday(),
-                    period_number=check_period
-                ).first()
-                
-                if not (schedule and hasattr(schedule, 'has_merged_next') and schedule.has_merged_next):
-                    # Cette période n'est pas fusionnée, arrêter la recherche
                     break
 
     # Vérifier s'il y a des mémos pour cette leçon et les ajouter à la planification si elle n'existe pas

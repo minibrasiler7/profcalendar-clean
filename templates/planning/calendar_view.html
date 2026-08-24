@@ -3217,6 +3217,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // faisait un full reload. C'était redondant avec l'onclick inline qui
     // appelle déjà switchClassroomTab(...) en mode fragment. On le retire
     // pour éviter le double déclenchement reload+fragment.)
+
+    // ?open_day=YYYY-MM-DD → ouvrir directement le modal de planification du
+    // jour. Utilisé par l'onglet « Vue annuelle » de la page leçon : un clic
+    // sur un jour y amène l'enseignant ici, modal déjà ouvert.
+    try {
+        const _params = new URLSearchParams(window.location.search);
+        const _openDay = _params.get('open_day');
+        if (_openDay && typeof openDayPlanningModal === 'function') {
+            const _cls = _params.get('classroom') || selectedClassroomId;
+            setTimeout(() => openDayPlanningModal(_openDay, _cls), 350);
+            // Retirer le paramètre : un rechargement ne doit pas rouvrir le modal
+            _params.delete('open_day');
+            const _q = _params.toString();
+            history.replaceState({}, '', window.location.pathname + (_q ? '?' + _q : ''));
+        }
+    } catch (e) { console.warn('open_day:', e); }
 });
 
 
@@ -7684,6 +7700,13 @@ function updateCellAfterSave(dateStr, periodNumber, planning, opts = {}) {
     } else {
         cell.innerHTML = _buildScheduleFallbackHTML(cell);
     }
+
+    // Le bloc vient d'être RECRÉÉ : sa hauteur (qui, pour une période double,
+    // enjambe deux lignes du tableau) est calculée en JS et a donc été perdue.
+    // Sans ce recalcul, la double période se « rétractait » sur la première
+    // heure après l'enregistrement, jusqu'au rechargement de la page.
+    if (typeof calculateMergedBlockHeights === 'function') calculateMergedBlockHeights();
+    if (typeof positionTimedTasks === 'function') positionTimedTasks();
 }
 
 /**

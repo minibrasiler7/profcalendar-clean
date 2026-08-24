@@ -9,23 +9,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
 
-    // Gestion du dropdown utilisateur
-    const userDropdown = document.querySelector('.user-dropdown');
-    if (userDropdown) {
-        const userBtn = userDropdown.querySelector('.user-btn');
-        const dropdownMenu = userDropdown.querySelector('.dropdown-menu');
-
-        userBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // Fermer le dropdown en cliquant ailleurs
-        document.addEventListener('click', () => {
-            if (dropdownMenu) {
-                dropdownMenu.style.display = 'none';
-            }
-        });
+    // Menu utilisateur : géré par toggleUserMenu()/closeUserMenu() dans
+    // base.html (classe .open). L'ancien code posait ici un `style.display`
+    // EN LIGNE, en plus du :hover CSS et du nouveau système de classes : les
+    // trois se contredisaient. Sur mobile, le menu restait affiché sous la
+    // barre de navigation lorsque le tiroir était ouvert. Un seul mécanisme
+    // désormais — celui de base.html, qui ferme aussi le tiroir de navigation.
+    // Filet : purger un éventuel display en ligne laissé par une version
+    // précédente en cache.
+    const _dropdownMenu = document.querySelector('.user-dropdown .dropdown-menu');
+    if (_dropdownMenu && _dropdownMenu.style.display) {
+        _dropdownMenu.style.removeProperty('display');
     }
 });
 

@@ -723,6 +723,23 @@ def create_app(config_name='development'):
                 db.session.rollback()
                 print(f"⚠️ Vérification user_preferences.dashboard_layout échouée: {_e_dl}")
 
+        # Filet de sécurité : disposition MANUELLE du tableau de bord (JSON).
+        try:
+            db.session.execute(db.text(
+                "ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS dashboard_layout_custom TEXT"))
+            db.session.commit()
+            print("✅ Colonne user_preferences.dashboard_layout_custom vérifiée")
+        except Exception as _e_dlc:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "ALTER TABLE user_preferences ADD COLUMN dashboard_layout_custom TEXT"))
+                db.session.commit()
+                print("✅ Colonne user_preferences.dashboard_layout_custom ajoutée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification user_preferences.dashboard_layout_custom échouée: {_e_dlc}")
+
         # Filet de sécurité : jeton push Expo des élèves (app mobile).
         try:
             db.session.execute(db.text(
@@ -1455,12 +1472,39 @@ def create_app(config_name='development'):
         from models.user_preferences import UserPreferences
         if not isinstance(current_user, User):
             return jsonify({'success': False}), 403
+        import json as _json
         data = request.get_json(silent=True) or {}
         layout = (data.get('layout') or 'default').strip()
-        if layout not in ('default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact'):
+        if layout not in ('default', 'side-by-side', 'actions-focus', 'memos-focus',
+                          'tasks-focus', 'compact', 'manual'):
             return jsonify({'success': False, 'error': 'Disposition inconnue'}), 400
         prefs = UserPreferences.get_or_create_for_user(current_user.id)
         prefs.dashboard_layout = layout
+
+        # Disposition manuelle : [{key, span, order}] — validée et bornée ici,
+        # jamais stockée telle quelle (le client peut envoyer n'importe quoi).
+        if 'custom' in data:
+            custom = data.get('custom')
+            cleaned = []
+            if isinstance(custom, list):
+                for item in custom[:12]:
+                    if not isinstance(item, dict):
+                        continue
+                    key = str(item.get('key', ''))[:32]
+                    if not key:
+                        continue
+                    try:
+                        span = int(item.get('span', 12))
+                        order = int(item.get('order', 0))
+                    except (TypeError, ValueError):
+                        continue
+                    cleaned.append({
+                        'key': key,
+                        'span': min(12, max(3, span)),
+                        'order': min(99, max(0, order)),
+                    })
+            prefs.dashboard_layout_custom = _json.dumps(cleaned) if cleaned else None
+
         db.session.commit()
         return jsonify({'success': True, 'layout': layout})
 

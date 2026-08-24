@@ -188,8 +188,10 @@
             </div>
 
             <div class="nav-user">
-                <div class="user-dropdown">
-                    <button class="user-btn">
+                <div class="user-dropdown" id="userDropdown">
+                    <button class="user-btn" type="button" id="userMenuBtn"
+                            aria-haspopup="true" aria-expanded="false"
+                            onclick="toggleUserMenu(event)">
                         <i class="fas fa-user-circle"></i>
                         <span>{{ current_user.username }}</span>
                         {% if current_user.has_premium_access() %}
@@ -478,6 +480,21 @@
                 to { opacity: 1; }
             }
         }
+        /* Menu du compte : ouvert au CLIC (classe .open). Sur mobile il doit
+           passer AU-DESSUS du drawer de navigation (z-index 1050) — sinon il
+           s'affichait derrière la barre/le drawer et paraissait cassé. */
+        .user-dropdown.open .dropdown-menu {
+            display: block;
+            z-index: 1200;
+        }
+        .user-dropdown .dropdown-menu { z-index: 1200; }
+        /* L'ouverture au survol reste réservée aux vrais pointeurs (souris) :
+           sur écran tactile, le survol simulé ouvrait le menu au moindre appui. */
+        @media (hover: none) {
+            .user-dropdown:hover .dropdown-menu { display: none; }
+            .user-dropdown.open .dropdown-menu { display: block; }
+        }
+
         /* Sur très petits écrans, masquer le badge PRO dans la nav pour
            gagner de la place. */
         @media (max-width: 480px) {
@@ -486,26 +503,69 @@
         }
     </style>
     <script>
+        // Les DEUX menus (drawer de navigation et menu du compte) s'excluent :
+        // ouvrir l'un ferme l'autre. Avant, ouvrir le menu compte alors que le
+        // drawer était ouvert affichait le menu déroulant SOUS la barre de
+        // navigation.
+        function closeNavMenu() {
+            var menu = document.getElementById('navMenu');
+            var burger = document.getElementById('navBurger');
+            if (!menu) return;
+            menu.classList.remove('open');
+            if (burger) {
+                burger.classList.remove('open');
+                burger.setAttribute('aria-expanded', 'false');
+            }
+            document.body.classList.remove('nav-drawer-open');
+        }
+
+        function closeUserMenu() {
+            var dd = document.getElementById('userDropdown');
+            var btn = document.getElementById('userMenuBtn');
+            if (!dd) return;
+            dd.classList.remove('open');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+
         function toggleNavMenu(btn) {
             var menu = document.getElementById('navMenu');
             var burger = document.getElementById('navBurger');
             if (!menu || !burger) return;
             var willOpen = !menu.classList.contains('open');
+            if (willOpen) closeUserMenu();   // exclusivité
             menu.classList.toggle('open', willOpen);
             burger.classList.toggle('open', willOpen);
             burger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
             document.body.classList.toggle('nav-drawer-open', willOpen);
         }
-        // Clic en dehors du menu → ferme
+
+        function toggleUserMenu(e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            var dd = document.getElementById('userDropdown');
+            var btn = document.getElementById('userMenuBtn');
+            if (!dd) return;
+            var willOpen = !dd.classList.contains('open');
+            if (willOpen) closeNavMenu();    // exclusivité
+            dd.classList.toggle('open', willOpen);
+            if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        }
+
+        // Clic en dehors → ferme le menu concerné
         document.addEventListener('click', function(e) {
             var menu = document.getElementById('navMenu');
             var burger = document.getElementById('navBurger');
-            if (!menu || !menu.classList.contains('open')) return;
-            if (menu.contains(e.target) || (burger && burger.contains(e.target))) return;
-            menu.classList.remove('open');
-            burger.classList.remove('open');
-            burger.setAttribute('aria-expanded', 'false');
-            document.body.classList.remove('nav-drawer-open');
+            if (menu && menu.classList.contains('open')
+                && !menu.contains(e.target) && !(burger && burger.contains(e.target))) {
+                closeNavMenu();
+            }
+            var dd = document.getElementById('userDropdown');
+            if (dd && dd.classList.contains('open') && !dd.contains(e.target)) {
+                closeUserMenu();
+            }
+        });
+        // Échap ferme les deux
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeNavMenu(); closeUserMenu(); }
         });
     </script>
 
@@ -529,7 +589,7 @@
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/capacitor-push-helper.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
     {% if current_user.is_authenticated and current_user.__class__.__name__ == 'User' %}
     <script>window.IS_IOS_APP = {{ 'true' if is_ios_native_app else 'false' }};</script>
     <script src="{{ url_for('static', filename='js/help-system.js') }}"></script>

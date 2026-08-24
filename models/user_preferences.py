@@ -15,8 +15,14 @@ class UserPreferences(db.Model):
     show_accommodations = db.Column(db.String(20), default='none', nullable=False)
 
     # Disposition du tableau de bord (boutons de disposition, cf. dashboard.html) :
-    # 'default' | 'side-by-side' | 'memos-focus' | 'tasks-focus' | 'compact'
+    # 'default' | 'side-by-side' | 'actions-focus' | 'memos-focus' | 'tasks-focus'
+    # | 'compact' | 'manual' (positions/tailles réglées à la main)
     dashboard_layout = db.Column(db.String(30), nullable=True)
+
+    # Disposition MANUELLE : JSON [{"key": "actions", "span": 6, "order": 0}, …]
+    # (largeur en colonnes sur 12 + ordre). Texte libre car trop long pour
+    # dashboard_layout, qui ne stocke que le nom du mode.
+    dashboard_layout_custom = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,0 +1,133 @@
+/* Vue annuelle EMBARQUÉE (onglet « Vue annuelle » de la page leçon).
+   Feuille dédiée et entièrement préfixée par .annual-embed : le CSS du
+   calendrier (calendar.css) contient des sélecteurs génériques
+   (.class-name, .checklist-item, .day-header…) qui entreraient en conflit
+   avec la page leçon — on ne le charge donc pas ici. */
+
+.annual-embed {
+    --classroom-color: #4F46E5;
+    /* La colonne « Suivi des élèves » est étroite dans la disposition à 3
+       colonnes : on adapte la grille à la largeur RÉELLE du conteneur (et non
+       à celle de l'écran) pour rester lisible dans tous les cas. */
+    container-type: inline-size;
+}
+
+@container (max-width: 420px) {
+    .annual-embed .week-info { flex: 0 0 44px; }
+    .annual-embed .week-date { display: none; }
+    .annual-embed .annual-day { min-height: 26px; padding: 1px 2px; }
+    .annual-embed .annual-week-row { gap: 4px; padding: 1px 2px; }
+    .annual-embed .ribbon-spacer { flex: 0 0 44px; }
+}
+
+.annual-embed .annual-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.annual-embed .annual-week-wrapper {
+    border-radius: 6px;
+    overflow: hidden;
+    transition: background-color 0.15s ease;
+}
+.annual-embed .annual-week-wrapper.current-week {
+    background: #EEF2FF;
+    box-shadow: inset 0 0 0 2px #C7D2FE;
+}
+.annual-embed .annual-week-wrapper.holiday-week { opacity: 0.55; }
+
+.annual-embed .annual-week-row {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    padding: 2px 4px;
+}
+
+.annual-embed .week-info {
+    flex: 0 0 74px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    line-height: 1.15;
+}
+.annual-embed .week-date { font-size: 0.62rem; color: #9CA3AF; }
+.annual-embed .week-number { font-size: 0.72rem; font-weight: 700; color: #4B5563; }
+.annual-embed .week-number[onclick] { cursor: pointer; }
+.annual-embed .week-number-link { color: #4F46E5; }
+.annual-embed .week-number[onclick]:hover .week-number-link { text-decoration: underline; }
+.annual-embed .holiday-label {
+    font-size: 0.6rem; color: #B45309; font-weight: 600; text-align: center;
+}
+
+.annual-embed .week-days {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    min-width: 0;
+}
+
+.annual-embed .annual-day {
+    min-height: 30px;
+    border: 1px solid #E5E7EB;
+    border-radius: 5px;
+    background: #FAFAFA;
+    padding: 2px 3px;
+    overflow: hidden;
+    font-size: 0.6rem;
+}
+.annual-embed .annual-day.has-class {
+    background: color-mix(in srgb, var(--classroom-color) 12%, white);
+    border-color: color-mix(in srgb, var(--classroom-color) 35%, white);
+    cursor: pointer;
+}
+.annual-embed .annual-day.has-class:hover {
+    background: color-mix(in srgb, var(--classroom-color) 26%, white);
+    border-color: var(--classroom-color);
+}
+.annual-embed .annual-day.today {
+    box-shadow: inset 0 0 0 2px #F59E0B;
+}
+.annual-embed .annual-day.holiday,
+.annual-embed .annual-day.single-day-holiday {
+    background: #FEF3C7; border-color: #FDE68A; cursor: default;
+}
+.annual-embed .annual-holiday-name {
+    font-size: 0.55rem; color: #92400E; font-weight: 600; text-align: center;
+}
+
+.annual-embed .annual-plannings { display: flex; flex-direction: column; gap: 1px; }
+.annual-embed .annual-planning-item {
+    display: flex; align-items: center; gap: 2px;
+    color: #1F2937; line-height: 1.15;
+}
+.annual-embed .annual-planning-text {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.annual-embed .annual-checklist-icon { font-size: 0.55rem; }
+.annual-embed .annual-checklist-icon.all-checked { color: #10B981; }
+.annual-embed .annual-checklist-icon.partial { color: #F59E0B; }
+.annual-embed .annual-checklist-icon.none-checked { color: #EF4444; }
+.annual-embed .annual-planning-more { font-size: 0.55rem; color: #6B7280; }
+
+/* Rubans de découpage */
+.annual-embed .decoupage-ribbon-row { display: flex; gap: 6px; padding: 0 4px 2px; }
+.annual-embed .ribbon-spacer { flex: 0 0 74px; }
+.annual-embed .decoupage-ribbon,
+.annual-embed .decoupage-ribbon-split { flex: 1; display: flex; min-width: 0; }
+.annual-embed .decoupage-ribbon-split .half { flex: 1; }
+.annual-embed .ribbon-label {
+    font-size: 0.55rem; font-weight: 700; padding: 0 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.annual-embed-toolbar {
+    display: flex; align-items: center; gap: 0.6rem;
+    flex-wrap: wrap; margin-bottom: 0.75rem;
+}
+.annual-embed-hint {
+    font-size: 0.78rem; color: #6B7280;
+}
+.annual-embed-loading { text-align: center; padding: 2rem; color: #6B7280; }
