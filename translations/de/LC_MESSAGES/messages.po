@@ -2796,6 +2796,27 @@ msgstr "Als zu erledigen markieren"
 msgid "Marquer comme faite"
 msgstr "Als erledigt markieren"
 
+msgid "Manuel : déplacer et redimensionner les sections"
+msgstr "Manuell: Abschnitte verschieben und skalieren"
+
+msgid "Colonnes"
+msgstr "Spalten"
+
+msgid "Verrouiller"
+msgstr "Sperren"
+
+msgid "Déverrouiller"
+msgstr "Entsperren"
+
+msgid "Réinitialiser"
+msgstr "Zurücksetzen"
+
+msgid "Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs."
+msgstr "Ziehen Sie ein Widget am Griff; ziehen Sie die Trennlinie zwischen den Spalten, um die Breiten anzupassen."
+
+msgid "Vue annuelle"
+msgstr "Jahresansicht"
+
 msgid "Erreur lors de l'ajout"
 msgstr "Fehler beim Hinzufügen"
 

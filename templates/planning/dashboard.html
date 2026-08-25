@@ -237,56 +237,83 @@
     .dashboard-layout-bar { display: none; }
 }
 
-/* ---- Disposition MANUELLE : grille 12 colonnes, cartes déplaçables/redimensionnables ---- */
+/* ---- Disposition MANUELLE : colonnes redimensionnables, widgets empilables ----
+   Modèle en COLONNES (et non une grille de spans) : chaque colonne contient
+   autant de widgets qu'on veut, empilés. C'est ce qui permet de mettre
+   « Tâches » SOUS « Mémos » à côté d'« Actions rapides » — impossible avec une
+   grille où chaque widget occupait sa propre rangée. */
 .dashboard-main.layout-manual {
-    grid-template-columns: repeat(12, 1fr);
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
     grid-template-areas: none;
+}
+.dashboard-main.layout-manual .dash-col {
+    display: flex;
+    flex-direction: column;
     gap: 1.25rem;
-    align-items: start;
+    min-width: 0;
 }
 .dashboard-main.layout-manual .dashboard-card {
-    /* `grid-area` (raccourci) écraserait `grid-column` s'il gardait !important :
-       les deux doivent porter la même priorité, sinon la largeur choisie est
-       ignorée et chaque carte retombe sur une seule colonne. */
-    grid-row: auto !important;
-    grid-column: span var(--span, 12) !important;
+    grid-area: auto !important;
     position: relative;
     margin-bottom: 0 !important;
+    width: 100%;
 }
-.dashboard-main.layout-manual .dashboard-card::after {
-    /* Poignée de redimensionnement (bord droit) */
-    content: '';
-    position: absolute; top: 0; right: -2px; width: 14px; height: 100%;
-    cursor: col-resize; border-radius: 0 var(--border-radius) var(--border-radius) 0;
-}
-.dashboard-main.layout-manual .dashboard-card:hover::after { background: rgba(79,70,229,0.12); }
+/* Poignée de déplacement */
 .dash-drag-handle { display: none; }
 .dashboard-main.layout-manual .dash-drag-handle {
-    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    display: flex; align-items: center; justify-content: center;
     position: absolute; top: 0; left: 0; right: 0; height: 26px;
     background: linear-gradient(180deg, rgba(79,70,229,0.10), transparent);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
-    cursor: grab; color: #4F46E5; font-size: 0.7rem; font-weight: 700;
-    letter-spacing: 0.04em; text-transform: uppercase; user-select: none;
-    touch-action: none;
+    cursor: grab; color: #4F46E5; user-select: none; touch-action: none;
 }
 .dashboard-main.layout-manual .dashboard-card { padding-top: 2.4rem !important; }
-.dashboard-main.layout-manual .dashboard-card.dash-dragging { opacity: 0.45; }
-.dashboard-main.layout-manual .dashboard-card.dash-drop-target {
-    outline: 2px dashed #4F46E5; outline-offset: 3px;
+.dashboard-main.layout-manual .dashboard-card.dash-dragging {
+    opacity: 0.5; outline: 2px dashed #4F46E5; outline-offset: 2px;
 }
+.dash-placeholder {
+    border: 2px dashed #4F46E5; border-radius: var(--border-radius);
+    background: rgba(79,70,229,0.06); min-height: 70px;
+}
+/* Séparateur redimensionnable entre deux colonnes */
+.dashboard-main.layout-manual .dash-col-resizer {
+    flex: 0 0 20px; align-self: stretch; min-height: 80px;
+    cursor: col-resize; position: relative; touch-action: none;
+}
+.dashboard-main.layout-manual .dash-col-resizer::before {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 3px; transform: translateX(-50%); border-radius: 3px;
+    background: transparent; transition: background 0.15s ease;
+}
+.dashboard-main.layout-manual .dash-col-resizer:hover::before,
+.dashboard-main.layout-manual .dash-col-resizer.active::before { background: #A5B4FC; }
+
+/* VERROUILLÉ : plus aucun déplacement ni redimensionnement possible */
+.dashboard-main.layout-manual.dash-locked .dash-drag-handle { cursor: default; opacity: 0.35; }
+.dashboard-main.layout-manual.dash-locked .dash-col-resizer { cursor: default; }
+.dashboard-main.layout-manual.dash-locked .dash-col-resizer::before { background: transparent !important; }
+
 .dash-manual-hint {
     display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
     font-size: 0.78rem; color: #6B7280;
 }
-.dash-manual-reset {
+.dash-manual-btn {
     border: 1px solid #D1D5DB; background: #fff; color: #374151;
-    border-radius: 0.35rem; padding: 0.15rem 0.5rem; cursor: pointer; font-size: 0.75rem;
+    border-radius: 0.35rem; padding: 0.2rem 0.55rem; cursor: pointer; font-size: 0.75rem;
+    display: inline-flex; align-items: center; gap: 0.3rem;
 }
-.dash-manual-reset:hover { background: #F3F4F6; }
+.dash-manual-btn:hover { background: #F3F4F6; }
+.dash-manual-btn.active { background: #4F46E5; border-color: #4F46E5; color: #fff; }
+.dash-manual-btn.locked { background: #FEF3C7; border-color: #FCD34D; color: #92400E; }
+.dash-col-count { display: inline-flex; gap: 0.2rem; }
+
 @media (max-width: 900px) {
-    .dashboard-main.layout-manual { grid-template-columns: 1fr; }
-    .dashboard-main.layout-manual .dashboard-card { grid-column: span 1 !important; padding-top: 2rem !important; }
+    .dashboard-main.layout-manual { flex-direction: column; }
+    .dashboard-main.layout-manual .dash-col { width: 100% !important; flex: 1 1 auto !important; }
+    .dashboard-main.layout-manual .dash-col-resizer { display: none; }
+    .dashboard-main.layout-manual .dashboard-card { padding-top: 2rem !important; }
 }
 
 /* ---- Tâches à cocher ---- */
@@ -457,9 +484,20 @@
             <button type="button" class="dash-layout-btn" data-layout="manual" title="{{ _('Manuel : déplacer et redimensionner les sections') }}"><i class="fas fa-arrows-alt"></i></button>
         </div>
         <span class="dash-manual-hint" id="dashManualHint" style="display:none;">
-            <i class="fas fa-hand-pointer"></i>
-            {{ _('Glissez une section par sa poignée pour la déplacer, tirez son bord droit pour la redimensionner.') }}
-            <button type="button" class="dash-manual-reset" onclick="resetManualLayout()">{{ _('Réinitialiser') }}</button>
+            <span class="dash-col-count">
+                {{ _('Colonnes') }} :
+                <button type="button" class="dash-manual-btn" data-cols="1" onclick="setManualColumns(1)">1</button>
+                <button type="button" class="dash-manual-btn" data-cols="2" onclick="setManualColumns(2)">2</button>
+                <button type="button" class="dash-manual-btn" data-cols="3" onclick="setManualColumns(3)">3</button>
+            </span>
+            <button type="button" class="dash-manual-btn" id="dashLockBtn" onclick="toggleManualLock()">
+                <i class="fas fa-lock-open"></i> <span>{{ _('Verrouiller') }}</span>
+            </button>
+            <button type="button" class="dash-manual-btn" onclick="resetManualLayout()">
+                <i class="fas fa-undo"></i> {{ _('Réinitialiser') }}
+            </button>
+            <span id="dashManualTip"><i class="fas fa-hand-pointer"></i>
+                {{ _('Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs.') }}</span>
         </span>
     </div>
 
@@ -1386,11 +1424,19 @@ function dismissOnboarding() {
 // les appareils au prochain chargement). Le serveur fait foi au chargement.
 const DASH_LAYOUTS = ['default', 'side-by-side', 'actions-focus', 'memos-focus', 'tasks-focus', 'compact', 'manual'];
 let dashCurrentLayout = 'default';
-let dashManualPlacement = [];   // [{key, span, order}]
+
+// Disposition manuelle, modèle en COLONNES :
+//   cols  : largeurs en douzièmes, une entrée par colonne (total = 12)
+//   items : [{key, col, order}] — plusieurs widgets peuvent partager une colonne
+//   locked: quand vrai, plus aucun déplacement ni redimensionnement
+let dashManual = { cols: [6, 6], items: [], locked: false };
+let dashOriginalOrder = [];   // ordre initial des widgets (pour revenir aux présets)
 
 (function initDashboardLayout() {
     const main = document.getElementById('dashboardMain');
     if (!main) return;
+    dashOriginalOrder = Array.from(main.querySelectorAll('.dashboard-card'));
+
     const serverLayout = {{ (dashboard_layout or '') | tojson }};
     const serverCustom = {{ (dashboard_layout_custom or '') | tojson }};
     try {
@@ -1398,18 +1444,38 @@ let dashManualPlacement = [];   // [{key, span, order}]
     } catch (e) { dashCurrentLayout = serverLayout || 'default'; }
     if (!DASH_LAYOUTS.includes(dashCurrentLayout)) dashCurrentLayout = 'default';
 
-    // Placement manuel : le serveur fait foi, repli sur le stockage local
-    try {
-        dashManualPlacement = JSON.parse(serverCustom || localStorage.getItem('dashboardManual') || '[]') || [];
-    } catch (e) { dashManualPlacement = []; }
+    // Le serveur fait foi ; repli sur le stockage local
+    let raw = null;
+    try { raw = JSON.parse(serverCustom || localStorage.getItem('dashboardManual') || 'null'); } catch (e) { raw = null; }
+    dashManual = normalizeManual(raw);
 
+    buildDragHandles();
     applyDashLayout(dashCurrentLayout, false);
     try { localStorage.setItem('dashboardLayout', dashCurrentLayout); } catch (e) {}
     document.querySelectorAll('.dash-layout-btn').forEach(btn => {
         btn.addEventListener('click', () => applyDashLayout(btn.dataset.layout, true));
     });
-    initManualLayout();
+    initManualGestures();
 })();
+
+// Accepte l'ancien format ([{key,span,order}]) comme le nouveau ({cols,items,locked})
+function normalizeManual(raw) {
+    const keys = dashOriginalOrder.map((c, i) => c.dataset.section || ('card' + i));
+    const fallback = { cols: [6, 6], items: keys.map((k, i) => ({ key: k, col: i === 0 ? 0 : 1, order: i })), locked: false };
+    if (!raw) return fallback;
+    if (Array.isArray(raw)) return fallback;                 // ancien format → on repart proprement
+    if (!Array.isArray(raw.cols) || !raw.cols.length) return fallback;
+    const cols = raw.cols.map(w => Math.min(12, Math.max(2, parseInt(w, 10) || 6))).slice(0, 3);
+    const items = [];
+    (Array.isArray(raw.items) ? raw.items : []).forEach(it => {
+        if (!it || !keys.includes(it.key)) return;
+        items.push({ key: it.key, col: Math.min(cols.length - 1, Math.max(0, parseInt(it.col, 10) || 0)),
+                     order: parseInt(it.order, 10) || 0 });
+    });
+    // Tout widget non placé (nouvelle section ajoutée par une mise à jour) va en 1re colonne
+    keys.forEach(k => { if (!items.some(i => i.key === k)) items.push({ key: k, col: 0, order: 999 }); });
+    return { cols, items, locked: !!raw.locked };
+}
 
 function applyDashLayout(layout, persist) {
     const main = document.getElementById('dashboardMain');
@@ -1427,54 +1493,142 @@ function applyDashLayout(layout, persist) {
     if (persist) saveDashLayout();
 }
 
-// --- Disposition manuelle -------------------------------------------------
-// Chaque carte occupe N colonnes sur 12 (largeur) et un rang d'ordre
-// (position). Réglé à la souris/au doigt, mémorisé localement ET côté serveur
-// (donc retrouvé sur un autre appareil).
-function dashCards() {
-    const main = document.getElementById('dashboardMain');
-    return main ? Array.from(main.querySelectorAll('.dashboard-card')) : [];
+// --- Construction / démontage du mode manuel ------------------------------
+function buildDragHandles() {
+    dashOriginalOrder.forEach(card => {
+        if (card.querySelector('.dash-drag-handle')) return;
+        const h = document.createElement('div');
+        h.className = 'dash-drag-handle';
+        h.innerHTML = '<i class="fas fa-grip-lines"></i>';
+        card.insertBefore(h, card.firstChild);
+    });
+}
+
+function cardByKey(key) {
+    return dashOriginalOrder.find((c, i) => (c.dataset.section || ('card' + i)) === key) || null;
 }
 
 function applyManualPlacement() {
-    const byKey = {};
-    (dashManualPlacement || []).forEach(p => { byKey[p.key] = p; });
-    dashCards().forEach((card, i) => {
-        const key = card.dataset.section || ('card' + i);
-        const p = byKey[key];
-        card.style.setProperty('--span', String(p ? p.span : 12));
-        card.style.order = String(p ? p.order : i);
+    const main = document.getElementById('dashboardMain');
+    if (!main) return;
+    main.querySelectorAll('.dash-col, .dash-col-resizer').forEach(el => el.remove());
+
+    const GAP = 20; // px, doit correspondre à .dash-col-resizer
+    const n = dashManual.cols.length;
+    const total = dashManual.cols.reduce((a, b) => a + b, 0) || 12;
+    const columns = [];
+    dashManual.cols.forEach((w, i) => {
+        if (i > 0) {
+            const rs = document.createElement('div');
+            rs.className = 'dash-col-resizer';
+            rs.dataset.between = String(i - 1);
+            main.appendChild(rs);
+        }
+        const col = document.createElement('div');
+        col.className = 'dash-col';
+        col.dataset.col = String(i);
+        // Largeur = part de la colonne, moins sa part des séparateurs
+        col.style.flex = `0 0 calc(${(w / total * 100).toFixed(4)}% - ${((n - 1) * GAP / n).toFixed(2)}px)`;
+        main.appendChild(col);
+        columns.push(col);
     });
+
+    dashManual.items.slice().sort((a, b) => a.order - b.order).forEach(it => {
+        const card = cardByKey(it.key);
+        const col = columns[Math.min(it.col, columns.length - 1)];
+        if (card && col) col.appendChild(card);
+    });
+    // Sécurité : aucun widget ne doit rester orphelin hors des colonnes
+    dashOriginalOrder.forEach(card => {
+        if (!card.closest('.dash-col')) columns[0].appendChild(card);
+    });
+
+    main.classList.toggle('dash-locked', !!dashManual.locked);
+    updateManualControls();
 }
 
 function clearManualPlacement() {
-    dashCards().forEach(card => {
-        card.style.removeProperty('--span');
-        card.style.order = '';
-    });
+    const main = document.getElementById('dashboardMain');
+    if (!main) return;
+    dashOriginalOrder.forEach(card => main.appendChild(card));   // ordre d'origine
+    main.querySelectorAll('.dash-col, .dash-col-resizer').forEach(el => el.remove());
+    main.classList.remove('dash-locked');
 }
 
-function readManualPlacement() {
-    // Ordre VISUEL courant (style.order, à défaut l'ordre du DOM)
-    const cards = dashCards().slice().sort((a, b) => {
-        const oa = parseInt(a.style.order || '999', 10);
-        const ob = parseInt(b.style.order || '999', 10);
-        return oa - ob;
+function updateManualControls() {
+    document.querySelectorAll('.dash-manual-btn[data-cols]').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.cols, 10) === dashManual.cols.length);
     });
-    return cards.map((card, i) => ({
-        key: card.dataset.section || ('card' + i),
-        span: parseInt(card.style.getPropertyValue('--span') || '12', 10) || 12,
-        order: i
-    }));
+    const lock = document.getElementById('dashLockBtn');
+    if (lock) {
+        lock.classList.toggle('locked', !!dashManual.locked);
+        lock.innerHTML = dashManual.locked
+            ? '<i class="fas fa-lock"></i> <span>{{ _('Déverrouiller') }}</span>'
+            : '<i class="fas fa-lock-open"></i> <span>{{ _('Verrouiller') }}</span>';
+    }
+    const tip = document.getElementById('dashManualTip');
+    if (tip) tip.style.display = dashManual.locked ? 'none' : '';
+}
+
+// --- Actions de la barre ---------------------------------------------------
+function setManualColumns(n) {
+    if (dashManual.locked) return;
+    n = Math.min(3, Math.max(1, n));
+    const even = Math.floor(12 / n);
+    const cols = Array.from({ length: n }, (_, i) => (i === n - 1 ? 12 - even * (n - 1) : even));
+    const previous = dashManual.cols.length;
+    dashManual.cols = cols;
+    // Ramener dans la dernière colonne les widgets qui pointaient plus loin
+    dashManual.items.forEach(it => { if (it.col > n - 1) it.col = n - 1; });
+
+    // En AJOUTANT des colonnes alors que tous les widgets sont empilés dans une
+    // seule, on les répartit : sinon la nouvelle colonne restait vide et il
+    // fallait tout déplacer à la main. Une organisation déjà répartie sur
+    // plusieurs colonnes n'est JAMAIS bousculée.
+    const used = new Set(dashManual.items.map(it => it.col));
+    if (n > previous && used.size <= 1) {
+        const ordered = dashManual.items.slice().sort((a, b) => a.order - b.order);
+        ordered.forEach((it, i) => { it.col = i % n; it.order = Math.floor(i / n); });
+    }
+
+    applyManualPlacement();
+    saveDashLayout();
+}
+
+function toggleManualLock() {
+    dashManual.locked = !dashManual.locked;
+    const main = document.getElementById('dashboardMain');
+    if (main) main.classList.toggle('dash-locked', dashManual.locked);
+    updateManualControls();
+    saveDashLayout();
+}
+
+function resetManualLayout() {
+    if (dashManual.locked) return;
+    dashManual = normalizeManual(null);
+    applyManualPlacement();
+    saveDashLayout();
+}
+
+// --- Lecture de la disposition depuis le DOM + sauvegarde ------------------
+function readManualPlacement() {
+    const main = document.getElementById('dashboardMain');
+    const items = [];
+    main.querySelectorAll('.dash-col').forEach((col, ci) => {
+        Array.from(col.querySelectorAll('.dashboard-card')).forEach((card, oi) => {
+            items.push({ key: card.dataset.section || 'card', col: ci, order: oi });
+        });
+    });
+    return { cols: dashManual.cols.slice(), items, locked: !!dashManual.locked };
 }
 
 let __dashSaveTimer = null;
 function saveDashLayout() {
     const payload = { layout: dashCurrentLayout };
     if (dashCurrentLayout === 'manual') {
-        dashManualPlacement = readManualPlacement();
-        payload.custom = dashManualPlacement;
-        try { localStorage.setItem('dashboardManual', JSON.stringify(dashManualPlacement)); } catch (e) {}
+        dashManual = readManualPlacement();
+        payload.custom = dashManual;
+        try { localStorage.setItem('dashboardManual', JSON.stringify(dashManual)); } catch (e) {}
     }
     try { localStorage.setItem('dashboardLayout', dashCurrentLayout); } catch (e) {}
     clearTimeout(__dashSaveTimer);
@@ -1487,95 +1641,114 @@ function saveDashLayout() {
     }, 400);
 }
 
-function resetManualLayout() {
-    dashManualPlacement = [];
-    try { localStorage.removeItem('dashboardManual'); } catch (e) {}
-    dashCards().forEach((card, i) => {
-        card.style.setProperty('--span', '12');
-        card.style.order = String(i);
-    });
-    saveDashLayout();
-}
-
-function initManualLayout() {
+// --- Gestes : déplacer un widget, redimensionner les colonnes -------------
+function initManualGestures() {
     const main = document.getElementById('dashboardMain');
     if (!main) return;
-
-    // Poignée de déplacement injectée dans chaque carte (masquée hors mode manuel)
-    dashCards().forEach(card => {
-        if (card.querySelector('.dash-drag-handle')) return;
-        const h = document.createElement('div');
-        h.className = 'dash-drag-handle';
-        h.innerHTML = '<i class="fas fa-grip-lines"></i>';
-        card.insertBefore(h, card.firstChild);
-    });
-
-    let drag = null;    // déplacement
-    let resize = null;  // redimensionnement
+    let drag = null;    // {card, placeholder, pointerId}
+    let resize = null;  // {index, startX, startCols, totalPx}
 
     main.addEventListener('pointerdown', function (e) {
-        if (dashCurrentLayout !== 'manual') return;
-        const card = e.target.closest('.dashboard-card');
-        if (!card) return;
+        if (dashCurrentLayout !== 'manual' || dashManual.locked) return;
 
-        // Bord droit (14 px) → redimensionnement
-        const r = card.getBoundingClientRect();
-        if (e.clientX >= r.right - 14) {
+        const rs = e.target.closest('.dash-col-resizer');
+        if (rs) {
             e.preventDefault();
-            const colWidth = main.getBoundingClientRect().width / 12;
-            resize = { card, startX: e.clientX, startSpan: parseInt(card.style.getPropertyValue('--span') || '12', 10) || 12, colWidth, pointerId: e.pointerId };
-            try { card.setPointerCapture(e.pointerId); } catch (err) {}
+            resize = { index: parseInt(rs.dataset.between, 10), startX: e.clientX,
+                       startCols: dashManual.cols.slice(), totalPx: main.getBoundingClientRect().width,
+                       el: rs, pointerId: e.pointerId };
+            rs.classList.add('active');
+            try { rs.setPointerCapture(e.pointerId); } catch (err) {}
             return;
         }
 
-        // Poignée → déplacement
-        if (e.target.closest('.dash-drag-handle')) {
-            e.preventDefault();
-            drag = { card, pointerId: e.pointerId };
-            card.classList.add('dash-dragging');
-            try { card.setPointerCapture(e.pointerId); } catch (err) {}
-        }
+        const handle = e.target.closest('.dash-drag-handle');
+        if (!handle) return;
+        const card = handle.closest('.dashboard-card');
+        if (!card) return;
+        e.preventDefault();
+        const ph = document.createElement('div');
+        ph.className = 'dash-placeholder';
+        ph.style.height = card.getBoundingClientRect().height + 'px';
+        card.parentNode.insertBefore(ph, card);
+        card.classList.add('dash-dragging');
+        drag = { card, placeholder: ph, pointerId: e.pointerId };
+        try { card.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     main.addEventListener('pointermove', function (e) {
         if (resize && e.pointerId === resize.pointerId) {
             e.preventDefault();
-            const delta = e.clientX - resize.startX;
-            let span = resize.startSpan + Math.round(delta / resize.colWidth);
-            span = Math.min(12, Math.max(3, span));
-            resize.card.style.setProperty('--span', String(span));
+            const deltaCols = Math.round((e.clientX - resize.startX) / (resize.totalPx / 12));
+            const i = resize.index, j = i + 1;
+            let a = resize.startCols[i] + deltaCols;
+            let b = resize.startCols[j] - deltaCols;
+            if (a < 2 || b < 2) return;                 // largeur minimale
+            const cols = resize.startCols.slice();
+            cols[i] = a; cols[j] = b;
+            dashManual.cols = cols;
+            applyColumnWidths();
             return;
         }
         if (drag && e.pointerId === drag.pointerId) {
             e.preventDefault();
-            const over = document.elementFromPoint(e.clientX, e.clientY);
-            const target = over ? over.closest('.dashboard-card') : null;
-            dashCards().forEach(c => c.classList.toggle('dash-drop-target', !!target && c === target && c !== drag.card));
+            const target = columnAndIndexAt(e.clientX, e.clientY, drag.card);
+            if (target) target.col.insertBefore(drag.placeholder, target.before);
         }
     });
 
     function endGesture(e) {
         if (resize && (!e || e.pointerId === resize.pointerId)) {
+            resize.el.classList.remove('active');
             resize = null;
             saveDashLayout();
         }
         if (drag && (!e || e.pointerId === drag.pointerId)) {
-            const target = document.querySelector('.dashboard-card.dash-drop-target');
-            if (target && target !== drag.card) {
-                // Échange des positions (ordres) des deux cartes
-                const a = parseInt(drag.card.style.order || '0', 10);
-                const b = parseInt(target.style.order || '0', 10);
-                drag.card.style.order = String(b);
-                target.style.order = String(a);
-            }
+            drag.placeholder.parentNode.insertBefore(drag.card, drag.placeholder);
+            drag.placeholder.remove();
             drag.card.classList.remove('dash-dragging');
-            dashCards().forEach(c => c.classList.remove('dash-drop-target'));
             drag = null;
             saveDashLayout();
         }
     }
     main.addEventListener('pointerup', endGesture);
     main.addEventListener('pointercancel', endGesture);
+}
+
+// Largeurs des colonnes sans reconstruire le DOM (fluide pendant le glisser)
+function applyColumnWidths() {
+    const main = document.getElementById('dashboardMain');
+    const GAP = 20;
+    const n = dashManual.cols.length;
+    const total = dashManual.cols.reduce((a, b) => a + b, 0) || 12;
+    main.querySelectorAll('.dash-col').forEach((col, i) => {
+        const w = dashManual.cols[i];
+        col.style.flex = `0 0 calc(${(w / total * 100).toFixed(4)}% - ${((n - 1) * GAP / n).toFixed(2)}px)`;
+    });
+}
+
+// Colonne visée + widget devant lequel insérer, d'après la position du pointeur
+function columnAndIndexAt(x, y, movingCard) {
+    const main = document.getElementById('dashboardMain');
+    const cols = Array.from(main.querySelectorAll('.dash-col'));
+    if (!cols.length) return null;
+    // Colonne dont la plage horizontale contient x (sinon la plus proche)
+    let col = cols.find(c => { const r = c.getBoundingClientRect(); return x >= r.left && x <= r.right; });
+    if (!col) {
+        let best = Infinity;
+        cols.forEach(c => {
+            const r = c.getBoundingClientRect();
+            const d = Math.min(Math.abs(x - r.left), Math.abs(x - r.right));
+            if (d < best) { best = d; col = c; }
+        });
+    }
+    const others = Array.from(col.querySelectorAll('.dashboard-card')).filter(c => c !== movingCard);
+    let before = null;
+    for (const c of others) {
+        const r = c.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { before = c; break; }
+    }
+    return { col, before };
 }
 
 // ===================== Tâches à cocher =====================

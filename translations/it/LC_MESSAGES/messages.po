@@ -2796,6 +2796,27 @@ msgstr "Segna come da fare"
 msgid "Marquer comme faite"
 msgstr "Segna come fatta"
 
+msgid "Manuel : déplacer et redimensionner les sections"
+msgstr "Manuale: sposta e ridimensiona le sezioni"
+
+msgid "Colonnes"
+msgstr "Colonne"
+
+msgid "Verrouiller"
+msgstr "Blocca"
+
+msgid "Déverrouiller"
+msgstr "Sblocca"
+
+msgid "Réinitialiser"
+msgstr "Reimposta"
+
+msgid "Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs."
+msgstr "Trascina un widget dalla maniglia; trascina il separatore tra le colonne per regolare le larghezze."
+
+msgid "Vue annuelle"
+msgstr "Vista annuale"
+
 msgid "Erreur lors de l'ajout"
 msgstr "Errore durante l'aggiunta"
 

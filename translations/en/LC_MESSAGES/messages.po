@@ -2796,6 +2796,27 @@ msgstr "Mark as to do"
 msgid "Marquer comme faite"
 msgstr "Mark as done"
 
+msgid "Manuel : déplacer et redimensionner les sections"
+msgstr "Manual: move and resize sections"
+
+msgid "Colonnes"
+msgstr "Columns"
+
+msgid "Verrouiller"
+msgstr "Lock"
+
+msgid "Déverrouiller"
+msgstr "Unlock"
+
+msgid "Réinitialiser"
+msgstr "Reset"
+
+msgid "Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs."
+msgstr "Drag a widget by its handle; drag the divider between columns to adjust widths."
+
+msgid "Vue annuelle"
+msgstr "Yearly view"
+
 msgid "Erreur lors de l'ajout"
 msgstr "Error while adding"
 

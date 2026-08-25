@@ -10000,7 +10000,24 @@ class CleanPDFViewer {
         const wrappers = this.container ? this.container.querySelectorAll('.pdf-page-wrapper') : [];
         const targetPage = this.currentPage || 1;
 
-        // Chercher un wrapper dont data-page-id correspond à la page logique
+        // 1. Correspondance EXACTE avec currentPage — y compris les pages
+        //    AJOUTÉES, dont l'id contient un « _ » (ex. « 1_1765040967410 »).
+        //    Sans ce test, ces pages n'étaient jamais reconnues (l'ancienne
+        //    boucle exigeait `!pid.includes('_')`) : on retombait sur « la
+        //    première page visible », c.-à-d. souvent la page PRÉCÉDENTE encore
+        //    à l'écran. Conséquences sur iPad : l'overlay PencilKit restait posé
+        //    sur l'ancienne page — le stylet n'atteignait plus le canvas natif
+        //    et c'est le tracé web (perfect-freehand) qui prenait le relais sur
+        //    la page vierge — et le flush d'encre native s'exécutait en boucle.
+        for (const wrapper of wrappers) {
+            const pid = wrapper.dataset && wrapper.dataset.pageId;
+            if (!pid) continue;
+            if (String(pid) === String(targetPage)) {
+                return pid.includes('_') ? pid : parseInt(pid);
+            }
+        }
+
+        // 2. Pages standards : correspondance numérique
         for (const wrapper of wrappers) {
             const pid = wrapper.dataset && wrapper.dataset.pageId;
             if (!pid) continue;
@@ -11141,6 +11158,12 @@ class CleanPDFViewer {
 
         // Mettre à jour les miniatures
         this.updateThumbnailsActive();
+
+        // iPad : repositionner l'overlay PencilKit sur la nouvelle page. Le
+        // scroll s'en charge d'habitude, mais pas si la page est DEJA dans le
+        // champ de vision (cas d'une page vierge ajoutee juste en dessous) :
+        // l'overlay serait reste sur la page precedente.
+        this._scheduleInkRectSync();
     }
 
     /**

@@ -1481,28 +1481,46 @@ def create_app(config_name='development'):
         prefs = UserPreferences.get_or_create_for_user(current_user.id)
         prefs.dashboard_layout = layout
 
-        # Disposition manuelle : [{key, span, order}] — validée et bornée ici,
-        # jamais stockée telle quelle (le client peut envoyer n'importe quoi).
+        # Disposition manuelle, modèle en COLONNES :
+        #   {"cols": [7, 5], "items": [{"key","col","order"}], "locked": false}
+        # Toujours validée et bornée ici : le client peut envoyer n'importe quoi.
         if 'custom' in data:
             custom = data.get('custom')
-            cleaned = []
-            if isinstance(custom, list):
-                for item in custom[:12]:
-                    if not isinstance(item, dict):
-                        continue
-                    key = str(item.get('key', ''))[:32]
-                    if not key:
-                        continue
-                    try:
-                        span = int(item.get('span', 12))
-                        order = int(item.get('order', 0))
-                    except (TypeError, ValueError):
-                        continue
-                    cleaned.append({
-                        'key': key,
-                        'span': min(12, max(3, span)),
-                        'order': min(99, max(0, order)),
-                    })
+            cleaned = None
+            if isinstance(custom, dict):
+                raw_cols = custom.get('cols')
+                cols = []
+                if isinstance(raw_cols, list):
+                    for w in raw_cols[:3]:
+                        try:
+                            cols.append(min(12, max(2, int(w))))
+                        except (TypeError, ValueError):
+                            continue
+                if cols:
+                    items = []
+                    raw_items = custom.get('items')
+                    if isinstance(raw_items, list):
+                        for item in raw_items[:12]:
+                            if not isinstance(item, dict):
+                                continue
+                            key = str(item.get('key', ''))[:32]
+                            if not key:
+                                continue
+                            try:
+                                col = int(item.get('col', 0))
+                                order = int(item.get('order', 0))
+                            except (TypeError, ValueError):
+                                continue
+                            items.append({
+                                'key': key,
+                                'col': min(len(cols) - 1, max(0, col)),
+                                'order': min(99, max(0, order)),
+                            })
+                    cleaned = {
+                        'cols': cols,
+                        'items': items,
+                        'locked': bool(custom.get('locked')),
+                    }
             prefs.dashboard_layout_custom = _json.dumps(cleaned) if cleaned else None
 
         db.session.commit()

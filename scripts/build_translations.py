@@ -3707,6 +3707,14 @@ ENTRIES = [
     ("Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus.", "No tasks. Add one above: a checkbox, nothing more.", "Ninguna tarea. Añade una arriba: una casilla, nada más.", "Keine Aufgaben. Fügen Sie oben eine hinzu: ein Kästchen, mehr nicht.", "Nessuna attività. Aggiungine una sopra: una casella, niente di più."),
     ("Marquer comme à faire", "Mark as to do", "Marcar como pendiente", "Als zu erledigen markieren", "Segna come da fare"),
     ("Marquer comme faite", "Mark as done", "Marcar como hecha", "Als erledigt markieren", "Segna come fatta"),
+    # --- Disposition manuelle du tableau de bord (2026-08-23) ---
+    ("Manuel : déplacer et redimensionner les sections", "Manual: move and resize sections", "Manual: mover y redimensionar las secciones", "Manuell: Abschnitte verschieben und skalieren", "Manuale: sposta e ridimensiona le sezioni"),
+    ("Colonnes", "Columns", "Columnas", "Spalten", "Colonne"),
+    ("Verrouiller", "Lock", "Bloquear", "Sperren", "Blocca"),
+    ("Déverrouiller", "Unlock", "Desbloquear", "Entsperren", "Sblocca"),
+    ("Réinitialiser", "Reset", "Restablecer", "Zurücksetzen", "Reimposta"),
+    ("Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs.", "Drag a widget by its handle; drag the divider between columns to adjust widths.", "Arrastra un widget por su asa; arrastra el separador entre columnas para ajustar los anchos.", "Ziehen Sie ein Widget am Griff; ziehen Sie die Trennlinie zwischen den Spalten, um die Breiten anzupassen.", "Trascina un widget dalla maniglia; trascina il separatore tra le colonne per regolare le larghezze."),
+    ("Vue annuelle", "Yearly view", "Vista anual", "Jahresansicht", "Vista annuale"),
     ("Erreur lors de l'ajout", "Error while adding", "Error al añadir", "Fehler beim Hinzufügen", "Errore durante l'aggiunta"),
 ]
 
