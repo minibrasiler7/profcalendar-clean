@@ -2817,6 +2817,24 @@ msgstr "Drag a widget by its handle; drag the divider between columns to adjust 
 msgid "Vue annuelle"
 msgstr "Yearly view"
 
+msgid "Liens rapides"
+msgstr "Quick links"
+
+msgid "Symbole ou emoji (facultatif)"
+msgstr "Symbol or emoji (optional)"
+
+msgid "https://exemple.ch"
+msgstr "https://example.com"
+
+msgid "Nom affiché (facultatif)"
+msgstr "Display name (optional)"
+
+msgid "Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent."
+msgstr "No links yet. Add the sites you use often."
+
+msgid "Aucun lien pour le moment."
+msgstr "No links yet."
+
 msgid "Erreur lors de l'ajout"
 msgstr "Error while adding"
 

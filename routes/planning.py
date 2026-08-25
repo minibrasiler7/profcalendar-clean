@@ -789,12 +789,15 @@ def dashboard():
 
     # Tâches à cocher + disposition mémorisée du tableau de bord
     dashboard_tasks = []
+    dashboard_links = []
     dashboard_layout = None
     dashboard_layout_custom = None
     try:
-        from models.user_preferences import DashboardTask, UserPreferences
+        from models.user_preferences import DashboardTask, UserPreferences, DashboardLink
         dashboard_tasks = [t.to_dict() for t in DashboardTask.query.filter_by(user_id=current_user.id)
                            .order_by(DashboardTask.is_done.asc(), DashboardTask.position.asc(), DashboardTask.id.asc()).all()]
+        dashboard_links = [l.to_dict() for l in DashboardLink.query.filter_by(user_id=current_user.id)
+                           .order_by(DashboardLink.position.asc(), DashboardLink.id.asc()).all()]
         _prefs = UserPreferences.query.filter_by(user_id=current_user.id).first()
         dashboard_layout = getattr(_prefs, 'dashboard_layout', None) if _prefs else None
         dashboard_layout_custom = getattr(_prefs, 'dashboard_layout_custom', None) if _prefs else None
@@ -804,6 +807,7 @@ def dashboard():
 
     return render_template('planning/dashboard.html',
                          dashboard_tasks=dashboard_tasks,
+                         dashboard_links=dashboard_links,
                          dashboard_layout=dashboard_layout,
                          dashboard_layout_custom=dashboard_layout_custom,
                          classrooms_count=classrooms_count,
@@ -2476,10 +2480,40 @@ def lesson_view():
     except Exception:
         pass
 
+    # Données nécessaires au modal « planifier ce jour » ouvert depuis l'onglet
+    # Vue annuelle : mêmes structures que la page calendrier (périodes, horaire
+    # type par jour/période, fusions), pour réutiliser les mêmes endpoints.
+    lesson_periods_json = []
+    lesson_schedule_grid = {}
+    lesson_merged_info = {}
+    try:
+        for _p in periods:
+            lesson_periods_json.append({
+                'number': _p['number'],
+                'start': _p['start'].strftime('%H:%M'),
+                'end': _p['end'].strftime('%H:%M'),
+            })
+        for _s in Schedule.query.filter_by(user_id=current_user.id).all():
+            _key = f"{_s.weekday}_{_s.period_number}"
+            if _s.classroom_id:
+                lesson_schedule_grid[_key] = {'classroom_id': _s.classroom_id, 'type': 'classroom'}
+            elif _s.mixed_group_id:
+                lesson_schedule_grid[_key] = {'mixed_group_id': _s.mixed_group_id, 'type': 'mixed_group'}
+            lesson_merged_info.setdefault(_s.weekday, {})[_s.period_number] = {
+                'is_merged': bool(_s.is_merged),
+                'merged_with_previous': bool(_s.merged_with_previous),
+                'has_merged_next': bool(_s.has_merged_next),
+            }
+    except Exception as _e_slots:
+        current_app.logger.warning(f"Données créneaux pour la vue annuelle indisponibles: {_e_slots}")
+
     return render_template('planning/lesson_view.html',
                          lesson=lesson,
                          planning=planning,
                          is_current=is_current,
+                         lesson_periods_json=lesson_periods_json,
+                         lesson_schedule_grid=lesson_schedule_grid,
+                         lesson_merged_info=lesson_merged_info,
                          lesson_date=lesson_date,
                          time_remaining=time_remaining,
                          remaining_seconds=remaining_seconds,

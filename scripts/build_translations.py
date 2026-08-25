@@ -3715,6 +3715,13 @@ ENTRIES = [
     ("Réinitialiser", "Reset", "Restablecer", "Zurücksetzen", "Reimposta"),
     ("Glissez un widget par sa poignée ; tirez le séparateur entre les colonnes pour ajuster les largeurs.", "Drag a widget by its handle; drag the divider between columns to adjust widths.", "Arrastra un widget por su asa; arrastra el separador entre columnas para ajustar los anchos.", "Ziehen Sie ein Widget am Griff; ziehen Sie die Trennlinie zwischen den Spalten, um die Breiten anzupassen.", "Trascina un widget dalla maniglia; trascina il separatore tra le colonne per regolare le larghezze."),
     ("Vue annuelle", "Yearly view", "Vista anual", "Jahresansicht", "Vista annuale"),
+    # --- Liens rapides du tableau de bord (2026-08-23) ---
+    ("Liens rapides", "Quick links", "Enlaces rápidos", "Schnelllinks", "Collegamenti rapidi"),
+    ("Symbole ou emoji (facultatif)", "Symbol or emoji (optional)", "Símbolo o emoji (opcional)", "Symbol oder Emoji (optional)", "Simbolo o emoji (facoltativo)"),
+    ("https://exemple.ch", "https://example.com", "https://ejemplo.es", "https://beispiel.de", "https://esempio.it"),
+    ("Nom affiché (facultatif)", "Display name (optional)", "Nombre mostrado (opcional)", "Angezeigter Name (optional)", "Nome visualizzato (facoltativo)"),
+    ("Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent.", "No links yet. Add the sites you use often.", "Aún no hay enlaces. Añade los sitios que usas a menudo.", "Noch keine Links. Fügen Sie die Websites hinzu, die Sie oft nutzen.", "Nessun collegamento. Aggiungi i siti che usi spesso."),
+    ("Aucun lien pour le moment.", "No links yet.", "Aún no hay enlaces.", "Noch keine Links.", "Nessun collegamento."),
     ("Erreur lors de l'ajout", "Error while adding", "Error al añadir", "Fehler beim Hinzufügen", "Errore durante l'aggiunta"),
 ]
 

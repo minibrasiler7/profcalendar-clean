@@ -2817,6 +2817,24 @@ msgstr "Arrastra un widget por su asa; arrastra el separador entre columnas para
 msgid "Vue annuelle"
 msgstr "Vista anual"
 
+msgid "Liens rapides"
+msgstr "Enlaces rápidos"
+
+msgid "Symbole ou emoji (facultatif)"
+msgstr "Símbolo o emoji (opcional)"
+
+msgid "https://exemple.ch"
+msgstr "https://ejemplo.es"
+
+msgid "Nom affiché (facultatif)"
+msgstr "Nombre mostrado (opcional)"
+
+msgid "Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent."
+msgstr "Aún no hay enlaces. Añade los sitios que usas a menudo."
+
+msgid "Aucun lien pour le moment."
+msgstr "Aún no hay enlaces."
+
 msgid "Erreur lors de l'ajout"
 msgstr "Error al añadir"
 

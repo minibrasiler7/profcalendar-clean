@@ -371,3 +371,38 @@ class DashboardTask(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'done_at': self.done_at.isoformat() if self.done_at else None,
         }
+
+
+class DashboardLink(db.Model):
+    """Lien rapide du tableau de bord : une URL, un alias facultatif et un
+    symbole/emoji facultatif. Sert d'accès direct aux sites utilisés en classe."""
+    __tablename__ = 'dashboard_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    url = db.Column(db.String(2000), nullable=False)
+    alias = db.Column(db.String(120), nullable=True)
+    icon = db.Column(db.String(16), nullable=True)      # emoji ou symbole
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def display_name(self):
+        """Alias s'il existe, sinon le domaine (plus lisible qu'une URL entière)."""
+        if self.alias:
+            return self.alias
+        try:
+            from urllib.parse import urlparse
+            host = (urlparse(self.url).hostname or self.url)
+            return host[4:] if host.startswith('www.') else host
+        except Exception:
+            return self.url
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'url': self.url,
+            'alias': self.alias,
+            'icon': self.icon,
+            'name': self.display_name(),
+            'position': self.position,
+        }

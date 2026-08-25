@@ -131,3 +131,49 @@
     font-size: 0.78rem; color: #6B7280;
 }
 .annual-embed-loading { text-align: center; padding: 2rem; color: #6B7280; }
+
+
+/* ---- Modal « planifier ce jour » (page leçon, onglet Vue annuelle) ---- */
+.dayplan-overlay {
+    position: fixed; inset: 0; z-index: 12000;
+    background: rgba(15, 23, 42, 0.5);
+    display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.dayplan-box {
+    background: #fff; border-radius: 0.9rem; width: 100%; max-width: 620px;
+    max-height: 88vh; display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3); overflow: hidden;
+}
+.dayplan-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem; border-bottom: 1px solid #E5E7EB;
+    background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%); color: #fff;
+}
+.dayplan-head h3 { margin: 0; font-size: 1.05rem; }
+.dayplan-close { background: none; border: none; color: #fff; font-size: 1.1rem; cursor: pointer; padding: 0.25rem 0.4rem; border-radius: 0.35rem; }
+.dayplan-close:hover { background: rgba(255,255,255,0.18); }
+.dayplan-body { padding: 1.1rem 1.25rem; overflow-y: auto; }
+.dayplan-slot {
+    border: 1px solid #E5E7EB; border-left: 4px solid #4F46E5; border-radius: 0.55rem;
+    padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; cursor: pointer; background: #FAFAFA;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.dayplan-slot:hover { background: #EEF2FF; box-shadow: 0 2px 8px rgba(79,70,229,0.15); }
+.dayplan-slot-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.dayplan-slot-period { font-weight: 700; color: #312E81; font-size: 0.9rem; }
+.dayplan-slot-hours { font-size: 0.78rem; color: #6B7280; }
+.dayplan-slot-title { margin-top: 0.25rem; color: #1F2937; font-size: 0.9rem; }
+.dayplan-slot-empty { margin-top: 0.25rem; color: #9CA3AF; font-style: italic; font-size: 0.85rem; }
+.dayplan-slot-group { display: inline-block; margin-top: 0.3rem; font-size: 0.72rem; color: #4F46E5; background: #EEF2FF; border-radius: 999px; padding: 0.1rem 0.5rem; }
+.dayplan-empty { text-align: center; color: #6B7280; padding: 1.5rem 0.5rem; }
+.dayplan-label { display: block; font-size: 0.78rem; font-weight: 700; color: #374151; margin: 0.8rem 0 0.3rem; }
+.dayplan-opt { font-weight: 400; color: #9CA3AF; }
+.dayplan-input {
+    width: 100%; padding: 0.6rem 0.75rem; border: 1px solid #D1D5DB;
+    border-radius: 0.5rem; font-size: 0.95rem; font-family: inherit; box-sizing: border-box;
+}
+.dayplan-input:focus { outline: 2px solid #C7D2FE; border-color: #6366F1; }
+.dayplan-period { font-weight: 700; color: #312E81; margin-bottom: 0.3rem; }
+.dayplan-back { background: none; border: none; color: #4F46E5; cursor: pointer; padding: 0; font-size: 0.82rem; margin-bottom: 0.5rem; }
+.dayplan-radio { display: block; font-size: 0.85rem; color: #374151; margin: 0.2rem 0; cursor: pointer; }
+.dayplan-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.1rem; }

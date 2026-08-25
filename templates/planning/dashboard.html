@@ -290,8 +290,11 @@
 .dashboard-main.layout-manual .dash-col-resizer:hover::before,
 .dashboard-main.layout-manual .dash-col-resizer.active::before { background: #A5B4FC; }
 
-/* VERROUILLÉ : plus aucun déplacement ni redimensionnement possible */
-.dashboard-main.layout-manual.dash-locked .dash-drag-handle { cursor: default; opacity: 0.35; }
+/* VERROUILLÉ : plus aucun déplacement ni redimensionnement possible, et on
+   retire tout ce qui suggère qu'on pourrait encore bouger quelque chose —
+   poignées des widgets, choix du nombre de colonnes, bouton Réinitialiser. */
+.dashboard-main.layout-manual.dash-locked .dash-drag-handle { display: none; }
+.dashboard-main.layout-manual.dash-locked .dashboard-card { padding-top: 2rem !important; }
 .dashboard-main.layout-manual.dash-locked .dash-col-resizer { cursor: default; }
 .dashboard-main.layout-manual.dash-locked .dash-col-resizer::before { background: transparent !important; }
 
@@ -315,6 +318,42 @@
     .dashboard-main.layout-manual .dash-col-resizer { display: none; }
     .dashboard-main.layout-manual .dashboard-card { padding-top: 2rem !important; }
 }
+
+/* ---- Liens rapides ---- */
+.link-form-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.link-input-icon, .link-input-url, .link-input-alias {
+    padding: 0.65rem 0.8rem; border: 1px solid #D1D5DB; border-radius: 0.5rem;
+    font-size: 0.95rem; font-family: inherit; min-width: 0;
+}
+.link-input-icon { flex: 0 0 62px; text-align: center; }
+.link-input-url { flex: 2 1 200px; }
+.link-input-alias { flex: 1 1 140px; }
+.link-add-btn {
+    flex: 0 0 auto; padding: 0.65rem 1rem; border: none; border-radius: 0.5rem;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: #fff;
+    cursor: pointer; font-weight: 600;
+}
+.links-list { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+.link-item {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    border: 1px solid #E5E7EB; border-radius: 999px; padding: 0.4rem 0.5rem 0.4rem 0.75rem;
+    background: #F9FAFB; transition: background 0.15s ease, border-color 0.15s ease;
+    max-width: 100%;
+}
+.link-item:hover { background: #EFF6FF; border-color: #BFDBFE; }
+.link-item a {
+    display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none;
+    color: #1F2937; font-size: 0.9rem; font-weight: 500; min-width: 0;
+}
+.link-item a:hover { color: #2563EB; }
+.link-item .link-icon { font-size: 1.05rem; line-height: 1; }
+.link-item .link-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.link-item .link-del {
+    border: none; background: transparent; color: #9CA3AF; cursor: pointer;
+    padding: 0.15rem 0.3rem; border-radius: 0.3rem; font-size: 0.8rem;
+}
+.link-item .link-del:hover { color: #DC2626; background: #FEE2E2; }
+.links-empty { color: #6B7280; text-align: center; padding: 1.5rem 0.5rem; margin: 0; }
 
 /* ---- Tâches à cocher ---- */
 .task-item {
@@ -414,6 +453,25 @@
         </div>
     </div>
 
+    <!-- Liens rapides : très utiles sur téléphone (un site à ouvrir en classe) -->
+    <div class="links-section" style="background-color: var(--white); padding: 1.25rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-top: 1.5rem;">
+        <h2 style="margin: 0 0 1rem; font-size: 1.1rem;"><i class="fas fa-link" style="color: #3B82F6;"></i> {{ _('Liens rapides') }}
+            <span id="linksCounter" style="font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-left: 0.35rem;"></span>
+        </h2>
+        <form class="link-add-form" onsubmit="return addDashboardLink(event)">
+            <div class="link-form-row">
+                <input type="text" id="newLinkIcon" maxlength="8" placeholder="🔗" autocomplete="off" class="link-input-icon" style="font-size:16px;">
+                <input type="text" id="newLinkUrl" maxlength="2000" placeholder="{{ _('https://exemple.ch') }}" autocomplete="off" class="link-input-url" style="font-size:16px;" required>
+                <input type="text" id="newLinkAlias" maxlength="120" placeholder="{{ _('Nom affiché (facultatif)') }}" autocomplete="off" class="link-input-alias" style="font-size:16px;">
+                <button type="submit" class="link-add-btn"><i class="fas fa-plus"></i></button>
+            </div>
+        </form>
+        <div class="links-list" id="linksList"></div>
+        <p class="links-empty" id="linksEmpty" style="display:none; font-size:0.9rem;">
+            {{ _('Aucun lien pour le moment.') }}
+        </p>
+    </div>
+
     <!-- Tâches à cocher : utiles aussi sur téléphone (elles étaient réservées
          au web/iPad alors que c'est typiquement ce qu'on coche en déplacement). -->
     <div class="tasks-section" style="background-color: var(--white); padding: 1.25rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-top: 1.5rem;">
@@ -493,7 +551,7 @@
             <button type="button" class="dash-manual-btn" id="dashLockBtn" onclick="toggleManualLock()">
                 <i class="fas fa-lock-open"></i> <span>{{ _('Verrouiller') }}</span>
             </button>
-            <button type="button" class="dash-manual-btn" onclick="resetManualLayout()">
+            <button type="button" class="dash-manual-btn" data-reset="1" onclick="resetManualLayout()">
                 <i class="fas fa-undo"></i> {{ _('Réinitialiser') }}
             </button>
             <span id="dashManualTip"><i class="fas fa-hand-pointer"></i>
@@ -936,6 +994,32 @@
         <p class="tasks-empty" id="tasksEmpty" style="display:none; color: #6B7280; text-align: center; padding: 1.5rem 0.5rem; margin: 0;">
             <i class="fas fa-clipboard-check" style="font-size: 2rem; display: block; margin-bottom: 0.75rem; opacity: 0.5;"></i>
             {{ _('Aucune tâche. Ajoutez-en une ci-dessus : une case à cocher, rien de plus.') }}
+        </p>
+    </div>
+
+    <!-- Section des liens rapides (sites utiles) : widget à part entière, il
+         participe donc aux dispositions (y compris manuelle). -->
+    <div class="links-section dashboard-card" data-section="links" style="background-color: var(--white); padding: 2rem; border-radius: var(--border-radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+            <h2 style="margin: 0;"><i class="fas fa-link" style="color: #3B82F6;"></i> {{ _('Liens rapides') }}
+                <span id="linksCounter" style="font-size: 0.85rem; color: #6B7280; font-weight: 500; margin-left: 0.4rem;"></span>
+            </h2>
+        </div>
+        <form class="link-add-form" onsubmit="return addDashboardLink(event)">
+            <div class="link-form-row">
+                <input type="text" id="newLinkIcon" maxlength="8" placeholder="🔗" autocomplete="off"
+                       class="link-input-icon" title="{{ _('Symbole ou emoji (facultatif)') }}">
+                <input type="text" id="newLinkUrl" maxlength="2000" placeholder="{{ _('https://exemple.ch') }}" autocomplete="off"
+                       class="link-input-url" required>
+                <input type="text" id="newLinkAlias" maxlength="120" placeholder="{{ _('Nom affiché (facultatif)') }}" autocomplete="off"
+                       class="link-input-alias">
+                <button type="submit" class="link-add-btn"><i class="fas fa-plus"></i></button>
+            </div>
+        </form>
+        <div class="links-list" id="linksList"></div>
+        <p class="links-empty" id="linksEmpty" style="display:none;">
+            <i class="fas fa-link" style="font-size: 2rem; display: block; margin-bottom: 0.75rem; opacity: 0.5;"></i>
+            {{ _('Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent.') }}
         </p>
     </div>
     </div><!-- /.dashboard-main -->
@@ -1556,6 +1640,11 @@ function clearManualPlacement() {
 }
 
 function updateManualControls() {
+    const locked = !!dashManual.locked;
+    // Verrouillé : on masque les commandes de mise en page (colonnes, réinit.)
+    document.querySelectorAll('.dash-col-count, .dash-manual-btn[data-reset]').forEach(el => {
+        el.style.display = locked ? 'none' : '';
+    });
     document.querySelectorAll('.dash-manual-btn[data-cols]').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.cols, 10) === dashManual.cols.length);
     });
@@ -1750,6 +1839,94 @@ function columnAndIndexAt(x, y, movingCard) {
     }
     return { col, before };
 }
+
+// ===================== Liens rapides =====================
+let dashboardLinks = {{ (dashboard_links or []) | tojson }};
+
+function renderDashboardLinks() {
+    const list = document.getElementById('linksList');
+    const empty = document.getElementById('linksEmpty');
+    const counter = document.getElementById('linksCounter');
+    if (!list) return;
+    list.innerHTML = '';
+    dashboardLinks.forEach(l => {
+        const item = document.createElement('div');
+        item.className = 'link-item';
+        const a = document.createElement('a');
+        a.href = l.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';   // jamais d'accès à cette page depuis le site ouvert
+        a.title = l.url;
+        if (l.icon) {
+            const ic = document.createElement('span');
+            ic.className = 'link-icon';
+            ic.textContent = l.icon;
+            a.appendChild(ic);
+        } else {
+            const ic = document.createElement('i');
+            ic.className = 'fas fa-link link-icon';
+            ic.style.fontSize = '0.85rem';
+            ic.style.color = '#3B82F6';
+            a.appendChild(ic);
+        }
+        const nm = document.createElement('span');
+        nm.className = 'link-name';
+        nm.textContent = l.name || l.url;   // textContent : aucune injection possible
+        a.appendChild(nm);
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'link-del';
+        del.title = {{ _('Supprimer')|tojson }};
+        del.innerHTML = '<i class="fas fa-times"></i>';
+        del.addEventListener('click', () => deleteDashboardLink(l.id));
+        item.appendChild(a);
+        item.appendChild(del);
+        list.appendChild(item);
+    });
+    if (empty) empty.style.display = dashboardLinks.length ? 'none' : 'block';
+    if (counter) counter.textContent = dashboardLinks.length ? `(${dashboardLinks.length})` : '';
+}
+
+async function addDashboardLink(ev) {
+    if (ev) ev.preventDefault();
+    const urlInput = document.getElementById('newLinkUrl');
+    const aliasInput = document.getElementById('newLinkAlias');
+    const iconInput = document.getElementById('newLinkIcon');
+    const url = (urlInput.value || '').trim();
+    if (!url) return false;
+    const payload = { url, alias: (aliasInput.value || '').trim(), icon: (iconInput.value || '').trim() };
+    try {
+        const r = await fetch('/api/dashboard/links', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (d.success) {
+            dashboardLinks.push(d.link);
+            urlInput.value = ''; aliasInput.value = ''; iconInput.value = '';
+            renderDashboardLinks();
+            urlInput.focus();
+        } else {
+            alert(d.error || {{ _("Erreur lors de l'ajout")|tojson }});
+        }
+    } catch (e) {
+        alert({{ _('Erreur de connexion')|tojson }});
+    }
+    return false;
+}
+
+async function deleteDashboardLink(id) {
+    const before = dashboardLinks.slice();
+    dashboardLinks = dashboardLinks.filter(l => l.id !== id);
+    renderDashboardLinks();
+    try {
+        const r = await fetch(`/api/dashboard/links/${id}`, { method: 'DELETE', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const d = await r.json();
+        if (!d.success) { dashboardLinks = before; renderDashboardLinks(); }
+    } catch (e) { dashboardLinks = before; renderDashboardLinks(); }
+}
+
+renderDashboardLinks();
 
 // ===================== Tâches à cocher =====================
 let dashboardTasks = {{ (dashboard_tasks or []) | tojson }};

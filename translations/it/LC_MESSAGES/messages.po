@@ -2817,6 +2817,24 @@ msgstr "Trascina un widget dalla maniglia; trascina il separatore tra le colonne
 msgid "Vue annuelle"
 msgstr "Vista annuale"
 
+msgid "Liens rapides"
+msgstr "Collegamenti rapidi"
+
+msgid "Symbole ou emoji (facultatif)"
+msgstr "Simbolo o emoji (facoltativo)"
+
+msgid "https://exemple.ch"
+msgstr "https://esempio.it"
+
+msgid "Nom affiché (facultatif)"
+msgstr "Nome visualizzato (facoltativo)"
+
+msgid "Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent."
+msgstr "Nessun collegamento. Aggiungi i siti che usi spesso."
+
+msgid "Aucun lien pour le moment."
+msgstr "Nessun collegamento."
+
 msgid "Erreur lors de l'ajout"
 msgstr "Errore durante l'aggiunta"
 

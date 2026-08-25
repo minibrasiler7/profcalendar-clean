@@ -2817,6 +2817,24 @@ msgstr "Ziehen Sie ein Widget am Griff; ziehen Sie die Trennlinie zwischen den S
 msgid "Vue annuelle"
 msgstr "Jahresansicht"
 
+msgid "Liens rapides"
+msgstr "Schnelllinks"
+
+msgid "Symbole ou emoji (facultatif)"
+msgstr "Symbol oder Emoji (optional)"
+
+msgid "https://exemple.ch"
+msgstr "https://beispiel.de"
+
+msgid "Nom affiché (facultatif)"
+msgstr "Angezeigter Name (optional)"
+
+msgid "Aucun lien pour le moment. Ajoutez les sites que vous utilisez souvent."
+msgstr "Noch keine Links. Fügen Sie die Websites hinzu, die Sie oft nutzen."
+
+msgid "Aucun lien pour le moment."
+msgstr "Noch keine Links."
+
 msgid "Erreur lors de l'ajout"
 msgstr "Fehler beim Hinzufügen"
 

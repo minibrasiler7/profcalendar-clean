@@ -7203,13 +7203,228 @@ async function loadAnnualEmbed(force) {
 function handleAnnualDayClick(element, dateStr) {
     if (!element || element.dataset.hasClass !== 'true') return;
     if (element.classList.contains('single-day-holiday')) return;
-    {% if lesson_classroom %}
-    const url = `/planning/calendar?week=${encodeURIComponent(_mondayOf(dateStr))}`
-              + `&classroom=classroom_{{ lesson_classroom.id }}`
-              + `&open_day=${encodeURIComponent(dateStr)}`;
-    window.location.href = url;
-    {% endif %}
+    // Ouvrir le modal SUR CETTE PAGE (plus de redirection vers le calendrier)
+    openDayPlanModal(dateStr);
 }
+
+// ============ Modal « planifier ce jour » (onglet Vue annuelle) ============
+// Mêmes endpoints que le modal du calendrier : /planning/api/day (créneaux du
+// jour), /planning/api/slot (contenu d'un créneau), /planning/save_planning,
+// /planning/apply-group-pattern. Aucune logique serveur dupliquée.
+const LESSON_PERIODS = {{ (lesson_periods_json or []) | tojson }};
+const LESSON_SCHEDULE_GRID = {{ (lesson_schedule_grid or {}) | tojson }};
+const LESSON_MERGED_INFO = {{ (lesson_merged_info or {}) | tojson }};
+{% if lesson_classroom %}
+const LESSON_CLASSROOM_PARAM = 'classroom_{{ lesson_classroom.id }}';
+{% else %}
+const LESSON_CLASSROOM_PARAM = null;
+{% endif %}
+let dayPlanCtx = null;   // { date, period, basePeriod }
+
+function openDayPlanModal(dateStr) {
+    if (!LESSON_CLASSROOM_PARAM) return;
+    const modal = document.getElementById('dayPlanModal');
+    if (!modal) return;
+    dayPlanCtx = { date: dateStr };
+    const d = new Date(dateStr + 'T12:00:00');
+    document.getElementById('dayPlanTitle').innerHTML =
+        '<i class="fas fa-calendar-day"></i> Planification – ' +
+        d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('dayPlanEdit').style.display = 'none';
+    document.getElementById('dayPlanSlots').style.display = 'block';
+    modal.style.display = 'flex';
+    loadDayPlanSlots(dateStr);
+}
+
+function closeDayPlanModal() {
+    const modal = document.getElementById('dayPlanModal');
+    if (modal) modal.style.display = 'none';
+    dayPlanCtx = null;
+}
+
+function dayPlanBackToSlots() {
+    document.getElementById('dayPlanEdit').style.display = 'none';
+    document.getElementById('dayPlanSlots').style.display = 'block';
+    if (dayPlanCtx) loadDayPlanSlots(dayPlanCtx.date);
+}
+
+// Créneaux du jour = horaire type de la classe + planifications existantes,
+// en tenant compte des périodes liées (double période = un seul créneau).
+async function loadDayPlanSlots(dateStr) {
+    const box = document.getElementById('dayPlanSlots');
+    box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-spinner fa-spin"></i> Chargement…</div>';
+
+    let planningsByPeriod = {};
+    try {
+        const res = await fetch(`/planning/api/day/${dateStr}?classroom_id=${encodeURIComponent(LESSON_CLASSROOM_PARAM)}`);
+        if (res.ok) {
+            const data = await res.json();
+            (data.plannings || []).forEach(p => { planningsByPeriod[p.period] = p; });
+        }
+    } catch (e) { console.warn('[Vue annuelle] créneaux:', e); }
+
+    const d = new Date(dateStr + 'T12:00:00');
+    const weekday = (d.getDay() + 6) % 7;             // lundi = 0
+    const targetId = parseInt(LESSON_CLASSROOM_PARAM.split('_')[1], 10);
+    const skip = new Set();
+    const slots = [];
+
+    LESSON_PERIODS.forEach(period => {
+        if (skip.has(period.number)) return;
+        const sched = LESSON_SCHEDULE_GRID[`${weekday}_${period.number}`];
+        const scheduled = sched && sched.type === 'classroom' && sched.classroom_id === targetId;
+        const existing = planningsByPeriod[period.number];
+        const planned = existing && existing.classroom_id === targetId;
+        if (!scheduled && !planned) return;
+
+        const merged = (LESSON_MERGED_INFO[weekday] || {})[period.number];
+        let label = String(period.number), end = period.end;
+        if (merged && merged.has_merged_next) {
+            const next = LESSON_PERIODS.find(p => p.number === period.number + 1);
+            if (next) { label = `${period.number}-${next.number}`; end = next.end; skip.add(next.number); }
+        }
+        slots.push({ label, base: period.number, start: period.start, end, planning: existing || null });
+    });
+
+    if (!slots.length) {
+        box.innerHTML = '<div class="dayplan-empty"><i class="fas fa-calendar-times"></i><br>Aucun cours de cette classe ce jour-là.</div>';
+        return;
+    }
+
+    box.innerHTML = slots.map(s => {
+        const p = s.planning;
+        const title = p && p.title ? escapeHtmlDayPlan(p.title) : '';
+        const hasContent = p && (p.title || p.description);
+        return `<div class="dayplan-slot" onclick="openDayPlanSlot('${s.label}', ${s.base})">
+            <div class="dayplan-slot-head">
+                <span class="dayplan-slot-period">Période ${s.label}</span>
+                <span class="dayplan-slot-hours">${s.start} – ${s.end}</span>
+            </div>
+            ${hasContent
+                ? `<div class="dayplan-slot-title">${title || '<em>Sans titre</em>'}</div>`
+                : '<div class="dayplan-slot-empty">Créneau libre – cliquez pour planifier</div>'}
+            ${p && p.group_name ? `<span class="dayplan-slot-group"><i class="fas fa-users"></i> ${escapeHtmlDayPlan(p.group_name)}</span>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function escapeHtmlDayPlan(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+async function openDayPlanSlot(label, basePeriod) {
+    if (!dayPlanCtx) return;
+    dayPlanCtx.period = label;
+    dayPlanCtx.basePeriod = basePeriod;
+    document.getElementById('dayPlanSlots').style.display = 'none';
+    document.getElementById('dayPlanEdit').style.display = 'block';
+    document.getElementById('dayPlanEditPeriod').textContent = 'Période ' + label;
+    document.getElementById('dayPlanTitleInput').value = '';
+    document.getElementById('dayPlanDescInput').value = '';
+
+    let groupId = null;
+    try {
+        const res = await fetch(`/planning/api/slot/${dayPlanCtx.date}/${basePeriod}?classroom_id=${encodeURIComponent(LESSON_CLASSROOM_PARAM)}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.slot) {
+                document.getElementById('dayPlanTitleInput').value = data.slot.title || '';
+                document.getElementById('dayPlanDescInput').value = data.slot.description || '';
+                groupId = data.slot.group_id || null;
+            }
+        }
+    } catch (e) { console.warn('[Vue annuelle] créneau:', e); }
+
+    await loadDayPlanGroups(groupId);
+}
+
+async function loadDayPlanGroups(selectedId) {
+    const wrap = document.getElementById('dayPlanGroupWrap');
+    const sel = document.getElementById('dayPlanGroup');
+    try {
+        const res = await fetch(`/planning/get-groups/${LESSON_CLASSROOM_PARAM.split('_')[1]}`);
+        const data = await res.json();
+        if (data.success && (data.groups || []).length) {
+            sel.innerHTML = '<option value="">Classe entière</option>' +
+                data.groups.map(g => `<option value="${g.id}">${escapeHtmlDayPlan(g.name)}</option>`).join('');
+            if (selectedId) sel.value = String(selectedId);
+            wrap.style.display = 'block';
+            dayPlanToggleRepeat();
+        } else {
+            wrap.style.display = 'none';
+        }
+    } catch (e) { wrap.style.display = 'none'; }
+}
+
+function dayPlanToggleRepeat() {
+    const sel = document.getElementById('dayPlanGroup');
+    const rep = document.getElementById('dayPlanRepeat');
+    if (rep) rep.style.display = (sel && sel.value) ? 'block' : 'none';
+}
+
+async function saveDayPlanSlot() {
+    if (!dayPlanCtx || !dayPlanCtx.basePeriod) return;
+    const btn = document.getElementById('dayPlanSaveBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement…';
+    const title = document.getElementById('dayPlanTitleInput').value.trim();
+    const description = document.getElementById('dayPlanDescInput').value.trim();
+    const groupSel = document.getElementById('dayPlanGroup');
+    const groupId = (groupSel && groupSel.value) ? groupSel.value : null;
+    const repeatOpt = document.querySelector('input[name="dayPlanRepeatOpt"]:checked');
+    const repeat = (groupId && repeatOpt && repeatOpt.value !== 'none') ? repeatOpt.value : null;
+
+    try {
+        const res = await fetch('/planning/save_planning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                date: dayPlanCtx.date,
+                period_number: dayPlanCtx.basePeriod,
+                classroom_id: LESSON_CLASSROOM_PARAM,
+                title: title,
+                description: description,
+                checklist_states: {},
+                group_id: groupId
+            })
+        });
+        const data = await res.json();
+        if (data.success === false) throw new Error(data.error || data.message || 'Erreur');
+
+        if (repeat) {
+            await fetch('/planning/apply-group-pattern', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    start_date: dayPlanCtx.date,
+                    period_number: dayPlanCtx.basePeriod,
+                    classroom_id: LESSON_CLASSROOM_PARAM,
+                    title: title, description: description, checklist_states: {},
+                    pattern_type: repeat, group_id: parseInt(groupId, 10)
+                })
+            }).catch(() => {});
+        }
+
+        // Rafraîchir la grille annuelle pour voir la planification apparaître
+        __annualEmbedLoaded = false;
+        loadAnnualEmbed(true);
+        closeDayPlanModal();
+    } catch (e) {
+        alert('Erreur lors de l\'enregistrement : ' + (e.message || e));
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        const m = document.getElementById('dayPlanModal');
+        if (m && m.style.display !== 'none') closeDayPlanModal();
+    }
+});
 
 function navigateToWeek(weekStartDate) {
     {% if lesson_classroom %}
@@ -10765,6 +10980,48 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<!-- Modal « planifier ce jour » (ouvert depuis l'onglet Vue annuelle).
+     Réutilise les MÊMES endpoints que le modal du calendrier
+     (/planning/api/day, /planning/api/slot, /planning/save_planning,
+     /planning/apply-group-pattern) : aucune logique serveur dupliquée. -->
+<div id="dayPlanModal" class="dayplan-overlay" style="display:none;" onclick="if(event.target===this) closeDayPlanModal()">
+    <div class="dayplan-box" role="dialog" aria-modal="true" aria-labelledby="dayPlanTitle">
+        <div class="dayplan-head">
+            <h3 id="dayPlanTitle"><i class="fas fa-calendar-day"></i> Planification</h3>
+            <button type="button" class="dayplan-close" onclick="closeDayPlanModal()" aria-label="Fermer"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Étape 1 : liste des créneaux du jour -->
+        <div id="dayPlanSlots" class="dayplan-body"></div>
+
+        <!-- Étape 2 : édition d'un créneau -->
+        <div id="dayPlanEdit" class="dayplan-body" style="display:none;">
+            <button type="button" class="dayplan-back" onclick="dayPlanBackToSlots()"><i class="fas fa-arrow-left"></i> Retour aux créneaux</button>
+            <div id="dayPlanEditPeriod" class="dayplan-period"></div>
+            <label class="dayplan-label" for="dayPlanTitleInput">Titre du cours <span class="dayplan-opt">(facultatif)</span></label>
+            <input type="text" id="dayPlanTitleInput" class="dayplan-input" maxlength="200" placeholder="Ex. Nombres relatifs">
+            <label class="dayplan-label" for="dayPlanDescInput">Contenu du cours</label>
+            <textarea id="dayPlanDescInput" class="dayplan-input" rows="7" placeholder="Un tiret en début de ligne crée une case à cocher"></textarea>
+            <div id="dayPlanGroupWrap" style="display:none;">
+                <label class="dayplan-label" for="dayPlanGroup">Groupe d'élèves</label>
+                <select id="dayPlanGroup" class="dayplan-input" onchange="dayPlanToggleRepeat()">
+                    <option value="">Classe entière</option>
+                </select>
+                <div id="dayPlanRepeat" style="display:none;margin-top:0.5rem;">
+                    <label class="dayplan-label">Répéter ce groupe</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="none" checked> Cette semaine seulement</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="same"> Le même groupe toutes les semaines</label>
+                    <label class="dayplan-radio"><input type="radio" name="dayPlanRepeatOpt" value="alternate"> Alterner les groupes chaque semaine</label>
+                </div>
+            </div>
+            <div class="dayplan-actions">
+                <button type="button" class="btn btn-secondary" onclick="dayPlanBackToSlots()">Annuler</button>
+                <button type="button" class="btn btn-primary" id="dayPlanSaveBtn" onclick="saveDayPlanSlot()"><i class="fas fa-save"></i> Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal ajout ressource -->
 <div id="add-resource-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);justify-content:center;align-items:center;">

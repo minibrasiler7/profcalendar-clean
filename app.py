@@ -723,6 +723,37 @@ def create_app(config_name='development'):
                 db.session.rollback()
                 print(f"⚠️ Vérification user_preferences.dashboard_layout échouée: {_e_dl}")
 
+        # Filet de sécurité : liens rapides du tableau de bord.
+        try:
+            db.session.execute(db.text(
+                "CREATE TABLE IF NOT EXISTS dashboard_links ("
+                "id SERIAL PRIMARY KEY, "
+                "user_id INTEGER NOT NULL REFERENCES users(id), "
+                "url VARCHAR(2000) NOT NULL, "
+                "alias VARCHAR(120), icon VARCHAR(16), "
+                "position INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP)"))
+            db.session.execute(db.text(
+                "CREATE INDEX IF NOT EXISTS ix_dashboard_links_user ON dashboard_links (user_id)"))
+            db.session.commit()
+            print("✅ Table dashboard_links vérifiée")
+        except Exception as _e_dl2:
+            db.session.rollback()
+            try:
+                db.session.execute(db.text(
+                    "CREATE TABLE IF NOT EXISTS dashboard_links ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "user_id INTEGER NOT NULL REFERENCES users(id), "
+                    "url VARCHAR(2000) NOT NULL, "
+                    "alias VARCHAR(120), icon VARCHAR(16), "
+                    "position INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP)"))
+                db.session.execute(db.text(
+                    "CREATE INDEX IF NOT EXISTS ix_dashboard_links_user ON dashboard_links (user_id)"))
+                db.session.commit()
+                print("✅ Table dashboard_links créée (SQLite)")
+            except Exception:
+                db.session.rollback()
+                print(f"⚠️ Vérification dashboard_links échouée: {_e_dl2}")
+
         # Filet de sécurité : disposition MANUELLE du tableau de bord (JSON).
         try:
             db.session.execute(db.text(
@@ -1461,6 +1492,94 @@ def create_app(config_name='development'):
         n = DashboardTask.query.filter_by(user_id=current_user.id, is_done=True).delete()
         db.session.commit()
         return jsonify({'success': True, 'deleted': n})
+
+    def _clean_dashboard_url(raw):
+        """Valide une URL de lien rapide. N'accepte QUE http/https : sans ce
+        filtre, un « javascript:… » collé dans le champ deviendrait un lien
+        exécutable dans la page. Complète « exemple.ch » en « https://… »."""
+        import re as _re
+        from urllib.parse import urlparse
+        url = (raw or '').strip()
+        if not url:
+            return None
+        # Un schéma est-il déjà présent ? (« javascript:… », « data:… », « ftp://… »)
+        scheme_match = _re.match(r'^([a-zA-Z][a-zA-Z0-9+.\-]*):', url)
+        if scheme_match:
+            if scheme_match.group(1).lower() not in ('http', 'https'):
+                return None            # refusé net, jamais « corrigé » en https
+        else:
+            url = 'https://' + url     # « exemple.ch » → « https://exemple.ch »
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            return None
+        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+            return None
+        # Un hôte doit contenir un point (ou être localhost) : évite les
+        # « https://javascript:alert(1) » nés d'un collage hasardeux.
+        host = (parsed.hostname or '')
+        if '.' not in host and host != 'localhost':
+            return None
+        return url[:2000]
+
+    @app.route('/api/dashboard/links', methods=['GET', 'POST'])
+    @login_required
+    def dashboard_links():
+        """GET : liens rapides ; POST : créer {url, alias?, icon?}."""
+        from flask import jsonify, request
+        from models.user import User
+        from models.user_preferences import DashboardLink
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        if request.method == 'GET':
+            links = DashboardLink.query.filter_by(user_id=current_user.id)\
+                .order_by(DashboardLink.position.asc(), DashboardLink.id.asc()).all()
+            return jsonify({'success': True, 'links': [l.to_dict() for l in links]})
+
+        data = request.get_json(silent=True) or {}
+        url = _clean_dashboard_url(data.get('url'))
+        if not url:
+            return jsonify({'success': False, 'error': 'Adresse invalide (http ou https attendu)'}), 400
+        max_pos = db.session.query(db.func.max(DashboardLink.position))\
+            .filter_by(user_id=current_user.id).scalar() or 0
+        link = DashboardLink(
+            user_id=current_user.id, url=url,
+            alias=((data.get('alias') or '').strip()[:120] or None),
+            icon=((data.get('icon') or '').strip()[:16] or None),
+            position=max_pos + 1,
+        )
+        db.session.add(link)
+        db.session.commit()
+        return jsonify({'success': True, 'link': link.to_dict()})
+
+    @app.route('/api/dashboard/links/<int:link_id>', methods=['PATCH', 'DELETE'])
+    @login_required
+    def dashboard_link_update(link_id):
+        """PATCH {url?, alias?, icon?} ; DELETE : supprimer."""
+        from flask import jsonify, request
+        from models.user import User
+        from models.user_preferences import DashboardLink
+        if not isinstance(current_user, User):
+            return jsonify({'success': False, 'error': 'Réservé aux enseignants'}), 403
+        link = DashboardLink.query.filter_by(id=link_id, user_id=current_user.id).first()
+        if not link:
+            return jsonify({'success': False, 'error': 'Lien introuvable'}), 404
+        if request.method == 'DELETE':
+            db.session.delete(link)
+            db.session.commit()
+            return jsonify({'success': True})
+        data = request.get_json(silent=True) or {}
+        if 'url' in data:
+            url = _clean_dashboard_url(data.get('url'))
+            if not url:
+                return jsonify({'success': False, 'error': 'Adresse invalide (http ou https attendu)'}), 400
+            link.url = url
+        if 'alias' in data:
+            link.alias = (data.get('alias') or '').strip()[:120] or None
+        if 'icon' in data:
+            link.icon = (data.get('icon') or '').strip()[:16] or None
+        db.session.commit()
+        return jsonify({'success': True, 'link': link.to_dict()})
 
     @app.route('/api/dashboard/layout', methods=['POST'])
     @login_required
