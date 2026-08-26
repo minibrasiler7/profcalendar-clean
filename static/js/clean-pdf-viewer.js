@@ -6837,7 +6837,7 @@ class CleanPDFViewer {
                 if (distance < 2) {
                     this.penLineDetection.referencePoint = {x: finalX, y: finalY};
                     this.penLineDetection.validationTimer = setTimeout(() => {
-                        console.log('[Pen Line Detection] 2s immobilité (< 8px depuis référence), ligne droite');
+                        console.log('[Pen Line Detection] 1.5s immobilité (< 8px depuis référence), ligne droite');
                         this.penLineDetection.shouldCreateStraightLine = true;
                         this.penLineDetection.validationTimer = null;
                         this.penLineDetection.referencePoint = null;
@@ -6850,7 +6850,7 @@ class CleanPDFViewer {
                             this.currentStroke.tool = 'pen-line';
                             this.drawStrokePreview(canvas, this.currentStroke, pageId);
                         }
-                    }, 2000);
+                    }, 1500);
                 }
             }
         }

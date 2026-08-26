@@ -292,7 +292,7 @@ class WebViewController: UIViewController {
         pencilCanvas.addGestureRecognizer(forwarder)
         eraserForwarder = forwarder
 
-        // « Maintien = ligne droite » (parité web) : stylet ~immobile ~2 s en fin
+        // « Maintien = ligne droite » (parité web) : stylet ~immobile ~1,5 s en fin
         // de trait → le trait devient une droite. Recognizer non bloquant, comme
         // la gomme ci-dessus ; il affiche un aperçu de la droite et arme le
         // coordinateur, qui remplace le trait natif à la validation.
@@ -731,6 +731,15 @@ class WebViewController: UIViewController {
 
 extension WebViewController: WKNavigationDelegate {
 
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        // NAVIGATION = plus aucun lecteur PDF ouvert. Désactiver l'overlay
+        // PencilKit tout de suite : sans ça, quand iOS rechargeait la page au
+        // retour d'un lien externe (Safari), la page revenait fraîche mais le
+        // calque d'encre NATIF (posé AU-DESSUS de la WebView) restait affiché —
+        // « le PDF est fermé mais les annotations restent à l'écran ».
+        drawingCoordinator.deactivatePencilKit()
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         activityIndicator.stopAnimating()
         refreshControl.endRefreshing()
@@ -738,6 +747,14 @@ extension WebViewController: WKNavigationDelegate {
         injectSafeAreaCSS()
         injectPencilKitBridge()
         injectSpeechBridge()
+    }
+
+    // Le processus web a été tué en arrière-plan (pression mémoire — le cas
+    // typique après un aller-retour vers Safari) : recharger la page ET effacer
+    // l'encre native orpheline.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        drawingCoordinator.deactivatePencilKit()
+        webView.reload()
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -1428,7 +1445,7 @@ final class PencilEraserForwarder: UIGestureRecognizer, UIGestureRecognizerDeleg
 /// Recognizer NON bloquant attaché au PKCanvasView (même principe que
 /// PencilEraserForwarder). PencilKit n'offre AUCUNE reconnaissance de forme
 /// publique ; côté web, clean-pdf-viewer.js redresse un trait au stylo quand le
-/// stylet reste ~immobile 2 s (< 8 px cumulés). Ce recognizer reproduit cette
+/// stylet reste ~immobile (< 8 px cumulés, holdDelay). Ce recognizer reproduit cette
 /// règle sur l'app iPad :
 ///  - à chaque mouvement, un timer de 2 s est (ré)armé avec un point de
 ///    référence ; s'éloigner de > 8 pt de la référence le réarme ;
@@ -1445,7 +1462,7 @@ final class PencilHoldStraightener: UIGestureRecognizer, UIGestureRecognizerDele
     var onArmed: (() -> Void)?
     var onDisarmed: (() -> Void)?
 
-    private let holdDelay: TimeInterval = 2.0
+    private let holdDelay: TimeInterval = 1.5
     private let cancelDistance: CGFloat = 8
     private let minLength: CGFloat = 10
 
@@ -1503,7 +1520,7 @@ final class PencilHoldStraightener: UIGestureRecognizer, UIGestureRecognizerDele
         armed = true
         onArmed?()
         showPreview(from: start, to: cur)
-        print("[HoldStraightener] 2 s immobile → ligne droite armée")
+        print("[HoldStraightener] \(holdDelay) s immobile → ligne droite armée")
     }
 
     private func resetHold() {

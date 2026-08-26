@@ -7321,7 +7321,9 @@ async function openDayPlanSlot(label, basePeriod) {
     document.getElementById('dayPlanEdit').style.display = 'block';
     document.getElementById('dayPlanEditPeriod').textContent = 'Période ' + label;
     document.getElementById('dayPlanTitleInput').value = '';
-    document.getElementById('dayPlanDescInput').value = '';
+    const descEl = document.getElementById('dayPlanDescInput');
+    descEl.value = '';
+    attachDashConversionTo(descEl);
 
     let groupId = null;
     try {
@@ -7355,6 +7357,30 @@ async function loadDayPlanGroups(selectedId) {
             wrap.style.display = 'none';
         }
     } catch (e) { wrap.style.display = 'none'; }
+}
+
+// Conversion « - » en début de ligne → case à cocher « [ ] », comme dans le
+// formulaire de planification principal (attachDashConversion). Le placeholder
+// du champ le promettait déjà ; le comportement n'était pas branché.
+function attachDashConversionTo(textarea) {
+    if (!textarea || textarea.dataset.dashBound === '1') return;
+    textarea.dataset.dashBound = '1';
+    textarea.addEventListener('input', function (e) {
+        if (e.inputType !== 'insertText' || e.data !== '-') return;
+        const cursorPos = this.selectionStart;
+        const value = this.value;
+        const lines = value.substring(0, cursorPos).split('\n');
+        const currentLine = lines[lines.length - 1];
+        if (currentLine.trim() !== '-') return;   // tiret seul en début de ligne
+        const scrollTop = this.scrollTop;
+        const beforeCursor = value.substring(0, cursorPos - 1);
+        const afterCursor = value.substring(cursorPos);
+        const spaces = currentLine.match(/^\s*/)[0];   // préserver l'indentation
+        this.value = beforeCursor + spaces + '[ ] ' + afterCursor;
+        const newCursorPos = cursorPos - 1 + spaces.length + 4;
+        this.setSelectionRange(newCursorPos, newCursorPos);
+        this.scrollTop = scrollTop;
+    });
 }
 
 function dayPlanToggleRepeat() {

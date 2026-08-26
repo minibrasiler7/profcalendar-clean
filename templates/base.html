@@ -503,6 +503,19 @@
         }
     </style>
     <script>
+        // App iOS : à CHAQUE chargement de page, effacer un éventuel calque
+        // d'encre PencilKit orphelin. Une page qui se charge = aucun lecteur PDF
+        // ouvert ; or si iOS a rechargé la WebView pendant que l'app était en
+        // arrière-plan (retour d'un lien Safari), le calque natif — posé
+        // AU-DESSUS de la page côté Swift — restait affiché avec les anciennes
+        // annotations. Ce filet couvre aussi les versions de l'app antérieures
+        // au correctif natif (didStartProvisionalNavigation).
+        try {
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pencilKit) {
+                window.webkit.messageHandlers.pencilKit.postMessage({ action: 'deactivate' });
+            }
+        } catch (e) {}
+
         // Les DEUX menus (drawer de navigation et menu du compte) s'excluent :
         // ouvrir l'un ferme l'autre. Avant, ouvrir le menu compte alors que le
         // drawer était ouvert affichait le menu déroulant SOUS la barre de
