@@ -2479,6 +2479,14 @@ def save_annotations():
         data = request.get_json()
         annotations_data = data.get('annotations', {})
         custom_pages_data = data.get('custom_pages', [])
+        # Sauvegarde PARTIELLE : le client n'envoie que les pages modifiées
+        # ({pages: {pageId: [annotations]}}, une liste vide = page effacée) et le
+        # serveur FUSIONNE avec l'existant. Le mode historique (payload complet)
+        # reste accepté tel quel. Motivation : chaque trait déclenchait l'envoi
+        # du fichier ENTIER (4,5 Mo) plusieurs fois par seconde — la base (256 Mo)
+        # a redémarré en pleine classe le 27.08.2026.
+        partial = bool(data.get('partial'))
+        partial_pages = data.get('pages') or {}
         file_id_raw = data.get('file_id')
 
         # Fichiers éphémères : id de la forme « eph<id> », namespace dédié
@@ -2514,6 +2522,19 @@ def save_annotations():
             file_type=file_type,
             user_id=current_user.id
         ).first()
+
+        if partial:
+            # Fusionner les pages reçues dans l'existant (les clés JSON sont
+            # toujours des chaînes ; on normalise pour ne jamais dupliquer
+            # une page sous « 3 » ET « '3' »).
+            merged = dict(annotation.annotations_data or {}) if annotation else {}
+            for pid, anns in partial_pages.items():
+                key = str(pid)
+                if anns:
+                    merged[key] = anns
+                else:
+                    merged.pop(key, None)
+            annotations_data = merged
 
         if annotation:
             # Mettre à jour l'annotation existante

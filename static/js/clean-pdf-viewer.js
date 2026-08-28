@@ -187,9 +187,35 @@ class CleanPDFViewer {
         this.lastHoverX = 0;
         this.lastHoverY = 0;
 
-        // Sauvegarde automatique
+        // Sauvegarde automatique.
+        // SUIVI FIN DES MODIFICATIONS : chaque sauvegarde envoyait TOUTES les
+        // annotations du fichier (jusqu'à 4,5 Mo) à CHAQUE trait de stylet —
+        // jusqu'à 6 requêtes en 12 s, ce qui a fait redémarrer la base de
+        // données (256 Mo) en pleine classe. Désormais :
+        //  - les chemins instrumentés (traits PencilKit, gomme, historique)
+        //    marquent la PAGE modifiée → envoi PARTIEL (pages modifiées seules) ;
+        //  - tout code qui pose `isDirty = true` sans passer par markPageDirty
+        //    bascule la prochaine sauvegarde en envoi COMPLET (aucune perte
+        //    possible pour les chemins non instrumentés) ;
+        //  - l'envoi est REGROUPÉ : 2,5 s après le dernier changement, plafond
+        //    10 s en cas de dessin continu.
         this.autoSaveTimer = null;
-        this.isDirty = false;
+        this._isDirty = false;
+        this._dirtyPages = new Set();     // pages à envoyer (ids au format data-page-id)
+        this._dirtyAllPages = false;      // vrai → prochaine sauvegarde complète
+        this._markingDirty = false;       // garde interne de markPageDirty
+        this._saveDebounceTimer = null;
+        this._saveFirstChangeAt = null;   // horodatage du 1er changement non sauvé (plafond)
+        this._saveInFlight = false;
+        this._saveQueued = false;
+        Object.defineProperty(this, 'isDirty', {
+            get() { return this._isDirty; },
+            set(v) {
+                this._isDirty = !!v;
+                // Origine inconnue (ancien code, code externe) → envoi complet
+                if (v && !this._markingDirty) this._dirtyAllPages = true;
+            }
+        });
 
         // Éléments DOM
         this.elements = {};
@@ -6468,7 +6494,8 @@ class CleanPDFViewer {
         if (hasErased) {
             this.annotations.set(pageId, newAnnotations);
             const drawn = this.redrawAnnotations(canvas, pageId);
-            this.isDirty = true;
+            // Page précise connue → l'effacement partira dans une sauvegarde PARTIELLE
+            this.markPageDirty(pageId);
             this.nativeLog('[Erase] page=' + pageId + ' restant=' + newAnnotations.length + ' dessinés=' + drawn);
         } else {
             this.nativeLog('[Erase] page=' + pageId + ' (rien touché) store=' + pageAnnotations.length);
@@ -7141,12 +7168,9 @@ class CleanPDFViewer {
         // mais au moins la gomme ne crashe plus l'app.
         if (this.currentTool === 'eraser') {
             this.currentStroke = null;
-            // PERSISTER l'effacement. eraseAtPoint a modifié this.annotations et mis
-            // isDirty = true, mais NE sauvegardait pas → au moindre rechargement
-            // (changement de page, réouverture) le serveur renvoyait la version NON
-            // effacée et les traits « réapparaissaient ». On sauvegarde donc en fin
-            // de geste de gomme (une fois par levée de stylet, pas à chaque point).
-            this.saveAnnotations();
+            // PERSISTER l'effacement : eraseAtPoint a marqué les pages touchées,
+            // la sauvegarde (partielle) part regroupée après le geste.
+            this.scheduleSave();
             return;
         }
 
@@ -9186,6 +9210,11 @@ class CleanPDFViewer {
         }
         this.annotations.get(pageId).push(annotation);
 
+        // Page connue → candidate à la sauvegarde PARTIELLE. (Si un appelant
+        // pose ensuite isDirty = true à l'ancienne, la sauvegarde redevient
+        // simplement complète — aucun risque de perte.)
+        this.markPageDirty(pageId);
+
         this.updateUndoRedoButtons();
     }
 
@@ -9598,13 +9627,12 @@ class CleanPDFViewer {
                         (viewer._liveNativeIds || (viewer._liveNativeIds = new Set())).add(annotation.id);
                     }
 
-                    // Sans isDirty=true, saveAnnotations log "Pas de modifications,
-                    // sauvegarde ignorée" et le trait est perdu au prochain reload.
-                    viewer.isDirty = true;
-
-                    // Sauvegarder en base
-                    viewer.saveAnnotations();
-                    console.log('[PencilKit] Stroke saved as annotation');
+                    // Marquer la page modifiée → sauvegarde PARTIELLE regroupée
+                    // (2,5 s après le dernier trait). Avant : une sauvegarde
+                    // COMPLÈTE (jusqu'à 4,5 Mo) par trait de stylet — ce qui a
+                    // fait redémarrer la base de données en pleine classe.
+                    viewer.markPageDirty(pageId);
+                    console.log('[PencilKit] Stroke enregistré (sauvegarde regroupée)');
                 }
             } catch (err) {
                 // Ne JAMAIS jeter — Swift utilise un Result<>; un throw ici
@@ -9657,9 +9685,10 @@ class CleanPDFViewer {
                     viewer.eraseAtPoint(canvas, pageId, fx * canvas.width, fy * canvas.height);
                 } catch (e) { /* ne jamais jeter vers Swift */ }
             },
-            // Fin du geste de gomme : sauvegarder une fois (persistance).
+            // Fin du geste de gomme : programmer la sauvegarde (partielle, les
+            // pages touchées ont été marquées par eraseAtPoint pendant le geste).
             onEraserEnd: () => {
-                try { viewer.isDirty = true; viewer.saveAnnotations(); } catch (e) {}
+                try { viewer.scheduleSave(); } catch (e) {}
             },
 
             // Appele par Swift pour obtenir les infos de la page visible
@@ -12404,6 +12433,113 @@ class CleanPDFViewer {
     /**
      * Sauvegarder les annotations (version asynchrone)
      */
+    /**
+     * Marquer une page comme modifiée et programmer une sauvegarde regroupée.
+     * À utiliser partout où la page touchée est connue : la sauvegarde n'enverra
+     * alors QUE les pages modifiées (au lieu du fichier entier).
+     */
+    markPageDirty(pageId) {
+        if (pageId !== undefined && pageId !== null) {
+            this._dirtyPages.add(pageId);
+        } else {
+            this._dirtyAllPages = true;
+        }
+        this._markingDirty = true;
+        this.isDirty = true;
+        this._markingDirty = false;
+        this.scheduleSave();
+    }
+
+    /**
+     * Programmer une sauvegarde : 2,5 s après le DERNIER changement, avec un
+     * plafond de 10 s (un dessin continu est quand même persisté périodiquement).
+     */
+    scheduleSave() {
+        const IDLE_MS = 2500, MAX_WAIT_MS = 10000;
+        const now = Date.now();
+        if (!this._saveFirstChangeAt) this._saveFirstChangeAt = now;
+        clearTimeout(this._saveDebounceTimer);
+        const elapsed = now - this._saveFirstChangeAt;
+        const delay = Math.max(0, Math.min(IDLE_MS, MAX_WAIT_MS - elapsed));
+        this._saveDebounceTimer = setTimeout(() => {
+            this._saveDebounceTimer = null;
+            this.saveAnnotations();
+        }, delay);
+    }
+
+    /**
+     * Capture puis RÉINITIALISE l'état « modifié ». Les changements arrivés
+     * pendant l'envoi re-marquent l'état ; en cas d'échec, _restoreDirty
+     * réinjecte la capture pour que rien ne soit perdu.
+     */
+    _snapshotDirty() {
+        const snap = { hadAll: this._dirtyAllPages, pageIds: [...this._dirtyPages] };
+        this._dirtyAllPages = false;
+        this._dirtyPages.clear();
+        this._isDirty = false;
+        this._saveFirstChangeAt = null;
+        return snap;
+    }
+
+    _restoreDirty(snap) {
+        if (!snap) return;
+        if (snap.hadAll) this._dirtyAllPages = true;
+        snap.pageIds.forEach(pid => this._dirtyPages.add(pid));
+        this._isDirty = true;
+    }
+
+    /** Construit la charge utile (complète ou partielle) pour la sauvegarde. */
+    _buildAnnotationsPayload(snap) {
+        const customPages = [];
+        this.pages.forEach((pageData, pageId) => {
+            if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline' || pageData.type === 'diagram') {
+                customPages.push({
+                    pageId: pageId,
+                    type: pageData.type,
+                    data: pageData.data || {},
+                    position: this.pageOrder.indexOf(pageId)
+                });
+            }
+        });
+
+        if (!snap.hadAll && snap.pageIds.length > 0) {
+            // PARTIEL : uniquement les pages modifiées. Une page vidée (gomme)
+            // est envoyée `[]` pour que le serveur l'efface aussi.
+            const pages = {};
+            snap.pageIds.forEach(pid => {
+                // Résolution tolérante du type de clé (3 vs '3') : si la page
+                // marquée n'était pas retrouvée dans la Map, on l'enverrait []
+                // et le serveur l'EFFACERAIT à tort.
+                let anns = this.annotations.get(pid);
+                if (anns === undefined) {
+                    const alt = (typeof pid === 'string' && /^\d+$/.test(pid)) ? parseInt(pid) : String(pid);
+                    anns = this.annotations.get(alt);
+                }
+                pages[pid] = (anns || []).filter(a => a.tool !== 'grid');
+            });
+            return {
+                file_id: this.options.fileId,
+                partial: true,
+                pages: pages,
+                custom_pages: customPages
+            };
+        }
+
+        // COMPLET (comportement historique)
+        const annotationsData = {};
+        this.annotations.forEach((annotations, pageId) => {
+            const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
+            if (annotationsToSave.length > 0) {
+                annotationsData[pageId] = annotationsToSave;
+            }
+        });
+        return {
+            file_id: this.options.fileId,
+            annotations: annotationsData,
+            custom_pages: customPages
+        };
+    }
+
     async saveAnnotations() {
         // Si c'est une feuille blanche (blankSheetId ou lessonDate+periodNumber), utiliser la sauvegarde spécifique
         if (this.options.blankSheetId !== null || (this.options.lessonDate && this.options.periodNumber)) {
@@ -12420,59 +12556,44 @@ class CleanPDFViewer {
             return;
         }
 
+        // Une seule requête à la fois : pendant l'envoi, les nouveaux
+        // changements s'accumulent et repartiront dans la sauvegarde suivante.
+        if (this._saveInFlight) {
+            this._saveQueued = true;
+            return;
+        }
+        this._saveInFlight = true;
+
+        const snap = this._snapshotDirty();
         try {
-            // Préparer les données d'annotations
-            const annotationsData = {};
-            this.annotations.forEach((annotations, pageId) => {
-                // Filtrer les grilles qui ne doivent pas être sauvegardées
-                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
-                if (annotationsToSave.length > 0) {
-                    annotationsData[pageId] = annotationsToSave;
-                }
-            });
-
-            // Préparer les pages custom (vierges, graphiques, frises et diagrammes)
-            const customPages = [];
-            this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline' || pageData.type === 'diagram') {
-                    const pageIndex = this.pageOrder.indexOf(pageId);
-                    customPages.push({
-                        pageId: pageId,
-                        type: pageData.type,
-                        data: pageData.data || {},
-                        position: pageIndex // Position dans l'ordre des pages
-                    });
-                }
-            });
-
-            console.log('[Save] Sauvegarde de', Object.keys(annotationsData).length, 'pages avec annotations et', customPages.length, 'pages custom');
-
-            // LOG DE DEBUG: Vérifier les dimensions des annotations avant sauvegarde
-            for (const [pageId, pageAnnotations] of Object.entries(annotationsData)) {
-                for (const ann of pageAnnotations) {
-                    console.log(`[Save] DEBUG pageId ${pageId} tool ${ann.tool}: canvasW=${ann.canvasWidth} canvasH=${ann.canvasHeight} hasW=${'canvasWidth' in ann} hasH=${'canvasHeight' in ann}`);
-                }
-            }
+            const payload = this._buildAnnotationsPayload(snap);
+            console.log('[Save]', payload.partial
+                ? `Sauvegarde PARTIELLE de ${Object.keys(payload.pages).length} page(s) : ${Object.keys(payload.pages).join(', ')}`
+                : `Sauvegarde complète de ${Object.keys(payload.annotations || {}).length} page(s)`);
 
             const response = await fetch('/file_manager/api/save-annotations', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    file_id: this.options.fileId,
-                    annotations: annotationsData,
-                    custom_pages: customPages
-                })
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {
-                const result = await response.json();
-                console.log('[Save] Sauvegarde réussie:', result);
-                this.isDirty = false;
+                console.log('[Save] Sauvegarde réussie');
             } else {
                 console.error('[Save] Erreur HTTP:', response.status);
+                this._restoreDirty(snap);
+                this.scheduleSave();   // nouvelle tentative regroupée
             }
         } catch (error) {
             console.error('[Save] Erreur sauvegarde:', error);
+            this._restoreDirty(snap);
+            this.scheduleSave();
+        } finally {
+            this._saveInFlight = false;
+            if (this._saveQueued) {
+                this._saveQueued = false;
+                this.scheduleSave();
+            }
         }
     }
 
@@ -12669,55 +12790,31 @@ class CleanPDFViewer {
             return;
         }
 
+        // Ne pas laisser un envoi différé partir APRÈS celui-ci
+        clearTimeout(this._saveDebounceTimer);
+        this._saveDebounceTimer = null;
+
+        const snap = this._snapshotDirty();
         try {
-            // Préparer les données d'annotations
-            const annotationsData = {};
-            this.annotations.forEach((annotations, pageId) => {
-                const annotationsToSave = annotations.filter(a => a.tool !== 'grid');
-                if (annotationsToSave.length > 0) {
-                    annotationsData[pageId] = annotationsToSave;
-                }
-            });
-
-            // Préparer les pages custom (vierges et graphiques)
-            const customPages = [];
-            this.pages.forEach((pageData, pageId) => {
-                if (pageData.type === 'blank' || pageData.type === 'graph' || pageData.type === 'timeline') {
-                    const pageIndex = this.pageOrder.indexOf(pageId);
-                    customPages.push({
-                        pageId: pageId,
-                        type: pageData.type,
-                        data: pageData.data || {},
-                        position: pageIndex
-                    });
-                }
-            });
-
-            const pageCount = Object.keys(annotationsData).length;
-            const totalAnnotations = Object.values(annotationsData).reduce((sum, arr) => sum + arr.length, 0);
-
-            console.log('[SaveSync] Sauvegarde synchrone de', pageCount, 'pages,', totalAnnotations, 'annotations et', customPages.length, 'pages custom');
-
-            const data = JSON.stringify({
-                file_id: this.options.fileId,
-                annotations: annotationsData,
-                custom_pages: customPages
-            });
+            const payload = this._buildAnnotationsPayload(snap);
+            console.log('[SaveSync] Sauvegarde synchrone', payload.partial
+                ? `PARTIELLE (${Object.keys(payload.pages).length} page(s))` : 'complète');
 
             // XMLHttpRequest synchrone (déprécié mais nécessaire pour beforeunload)
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/file_manager/api/save-annotations', false); // false = synchrone
             xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.send(data);
+            xhr.send(JSON.stringify(payload));
 
             if (xhr.status === 200) {
                 console.log('[SaveSync] ✅ Sauvegarde synchrone réussie');
-                this.isDirty = false;
             } else {
                 console.error('[SaveSync] ❌ Erreur HTTP:', xhr.status, xhr.responseText);
+                this._restoreDirty(snap);
             }
         } catch (error) {
             console.error('[SaveSync] ❌ Exception:', error);
+            this._restoreDirty(snap);
         }
     }
 
@@ -12727,8 +12824,13 @@ class CleanPDFViewer {
     startAutoSave() {
         console.log('[AutoSave] Démarrage auto-save toutes les', this.options.autoSaveInterval, 'ms');
         this.autoSaveTimer = setInterval(() => {
-            if (this.isDirty) {
-                console.log('[AutoSave] Sauvegarde automatique déclenchée');
+            // FILET DE SECOURS uniquement : si un envoi regroupé est déjà
+            // programmé (scheduleSave) ou en cours, ne rien faire — sinon ce
+            // minuteur court-circuitait le regroupement et repartait en rafale
+            // de sauvegardes pendant l'écriture. Il ne sert plus qu'aux anciens
+            // chemins qui posent isDirty sans programmer d'envoi.
+            if (this.isDirty && !this._saveDebounceTimer && !this._saveInFlight) {
+                console.log('[AutoSave] Sauvegarde automatique (filet) déclenchée');
                 this.saveAnnotations();
             }
         }, this.options.autoSaveInterval);
@@ -12845,7 +12947,10 @@ class CleanPDFViewer {
             this.deactivatePencilKit();
         }
 
-        // Sauvegarder avant de fermer
+        // Sauvegarder avant de fermer (annuler l'envoi différé en attente :
+        // saveAnnotations part tout de suite avec le même contenu)
+        clearTimeout(this._saveDebounceTimer);
+        this._saveDebounceTimer = null;
         if (this.isDirty) {
             try {
                 await this.saveAnnotations();
