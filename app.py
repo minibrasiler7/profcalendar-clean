@@ -1758,6 +1758,11 @@ def create_app(config_name='development'):
     def support_page():
         return render_template('legal/support.html')
 
+    @app.route('/capcotier/confidentialite')
+    def capcotier_privacy():
+        """Politique de confidentialité de l'app Cap Côtier (exigence App Store)."""
+        return render_template('legal/capcotier_confidentialite.html')
+
     @app.route('/parrainage')
     @login_required
     def referral():
