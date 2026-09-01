@@ -132,8 +132,11 @@ jobs:
           else
             # Dernier build connu d'App Store Connect + 1 : évite l'erreur
             # « build en doublon », déjà rencontrée manuellement.
-            python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
-            NEXT=$(python3 - <<'PY'
+            # Environnement virtuel obligatoire : le Python du runner est « géré
+            # par l'extérieur » (PEP 668) et refuse tout pip install global.
+            python3 -m venv "$RUNNER_TEMP/ascvenv"
+            "$RUNNER_TEMP/ascvenv/bin/pip" install --quiet --disable-pip-version-check pyjwt cryptography
+            NEXT=$("$RUNNER_TEMP/ascvenv/bin/python" - <<'PY'
           import json, os, time, urllib.request, urllib.error, jwt
           key_id, issuer = os.environ["ASC_KEY_ID"], os.environ["ASC_ISSUER_ID"]
           priv = open(f"{os.environ['HOME']}/private_keys/AuthKey_{key_id}.p8").read()
