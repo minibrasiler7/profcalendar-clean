@@ -1,0 +1,241 @@
+# Compilation et envoi de l'app iOS « ProfCalendar Teacher » vers App Store Connect.
+#
+# POURQUOI CE WORKFLOW : le Mac de développement tourne sous macOS bêta. Apple
+# lit le champ BuildMachineOSBuild du binaire et REFUSE tout envoi produit sur un
+# système non publié (erreur ITMS-90111, dont le libellé parle à tort de « SDK non
+# supporté »). Ce workflow compile sur un macOS STABLE fourni par GitHub, ce qui
+# règle le problème définitivement.
+#
+# Déclenchement MANUEL uniquement (Actions → ce workflow → « Run workflow ») :
+# une compilation signée qui part chez Apple ne doit jamais partir toute seule.
+
+name: iOS Enseignant — build & envoi App Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version affichée (ex. 1.4.1). Vide = garder celle du projet."
+        required: false
+        type: string
+      build_number:
+        description: "Numéro de build. Vide = dernier build sur App Store Connect + 1."
+        required: false
+        type: string
+      upload:
+        description: "Envoyer à App Store Connect (sinon compilation de vérification seule)"
+        required: false
+        default: true
+        type: boolean
+
+# Une seule compilation à la fois : deux envois simultanés se disputeraient le
+# même numéro de build.
+concurrency:
+  group: ios-teacher-release
+  cancel-in-progress: false
+
+env:
+  PROJECT_DIR: ios/ProfCalendarEnseignant
+  PROJECT: ProfCalendarEnseignant.xcodeproj
+  SCHEME: ProfCalendarEnseignant
+  BUNDLE_ID: ch.teacherplanner.teacher
+  TEAM_ID: 267P8NFWYA
+  PROFILE_NAME: PCE AppStore CLI
+  SIGNING_IDENTITY: "iPhone Distribution: Loic Strauch (267P8NFWYA)"
+
+jobs:
+  release:
+    # macOS 26 = image STABLE (surtout pas une image « preview », qui
+    # réintroduirait exactement le problème qu'on corrige ici).
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Choisir le Xcode stable le plus récent
+        run: |
+          set -euo pipefail
+          # On ignore toute installation « beta » : Apple refuse ces binaires.
+          latest=$(ls -d /Applications/Xcode*.app 2>/dev/null | grep -vi beta | sort -V | tail -1)
+          if [ -z "$latest" ]; then echo "Aucun Xcode trouvé"; exit 1; fi
+          sudo xcode-select -s "$latest/Contents/Developer"
+          echo "Xcode utilisé : $latest"
+          xcodebuild -version
+          sw_vers
+
+      - name: Installer le certificat de signature
+        env:
+          CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Trousseau temporaire, détruit en fin de job (étape « Nettoyage »).
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security import "$RUNNER_TEMP/dist.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          # Autorise codesign à utiliser la clé sans invite graphique.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # Le trousseau temporaire doit être dans la liste de recherche.
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/dist.p12"
+
+          echo "Identités disponibles :"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Installer le profil de provisionnement
+        env:
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          DEST="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          mkdir -p "$DEST" "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          UUID=$(security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" \
+                 | plutil -extract UUID raw -o - -)
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$DEST/$UUID.mobileprovision"
+          cp "$RUNNER_TEMP/profile.mobileprovision" \
+             "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "Profil installé : $UUID"
+
+      - name: Préparer la clé API App Store Connect
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/private_keys"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: Déterminer le numéro de build
+        id: numbers
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          INPUT_BUILD: ${{ inputs.build_number }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_BUILD" ]; then
+            echo "build=$INPUT_BUILD" >> "$GITHUB_OUTPUT"
+          else
+            # Dernier build connu d'App Store Connect + 1 : évite l'erreur
+            # « build en doublon », déjà rencontrée manuellement.
+            python3 -m pip install --quiet --disable-pip-version-check pyjwt cryptography
+            NEXT=$(python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error, jwt
+          key_id, issuer = os.environ["ASC_KEY_ID"], os.environ["ASC_ISSUER_ID"]
+          priv = open(f"{os.environ['HOME']}/private_keys/AuthKey_{key_id}.p8").read()
+          tok = jwt.encode({"iss": issuer, "iat": int(time.time()), "exp": int(time.time()) + 600,
+                            "aud": "appstoreconnect-v1"}, priv, algorithm="ES256",
+                           headers={"kid": key_id, "typ": "JWT"})
+          def api(path):
+              req = urllib.request.Request("https://api.appstoreconnect.apple.com" + path,
+                                           headers={"Authorization": "Bearer " + tok})
+              with urllib.request.urlopen(req) as r:
+                  return json.load(r)
+          apps = api("/v1/apps?limit=50")["data"]
+          app = next(a for a in apps if a["attributes"]["bundleId"] == os.environ["BUNDLE_ID"])
+          builds = api(f"/v1/builds?filter[app]={app['id']}&limit=1&sort=-uploadedDate")["data"]
+          last = int(builds[0]["attributes"]["version"]) if builds else 0
+          print(last + 1)
+          PY
+          )
+            echo "build=$NEXT" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version_arg=MARKETING_VERSION=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_arg=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Archiver
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/PCE.xcarchive" \
+            CURRENT_PROJECT_VERSION=${{ steps.numbers.outputs.build }} \
+            ${{ steps.numbers.outputs.version_arg }} \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
+            archive
+
+      - name: Vérifier les métadonnées du binaire
+        run: |
+          set -euo pipefail
+          PLIST="$RUNNER_TEMP/PCE.xcarchive/Products/Applications/$SCHEME.app/Info.plist"
+          for k in CFBundleShortVersionString CFBundleVersion DTXcode DTSDKName BuildMachineOSBuild; do
+            printf '%-28s %s\n' "$k" "$(/usr/libexec/PlistBuddy -c "Print :$k" "$PLIST")"
+          done
+          # Garde-fou : un macOS de compilation en bêta (build du type 26A5xxx)
+          # ferait refuser l'envoi par Apple. On préfère échouer ici, avec un
+          # message clair, plutôt que de recevoir un courriel de rejet.
+          OSB=$(/usr/libexec/PlistBuddy -c "Print :BuildMachineOSBuild" "$PLIST")
+          if printf '%s' "$OSB" | grep -qE '^[0-9]+[A-Z]5[0-9]{3}'; then
+            echo "::error::macOS de compilation en pré-version ($OSB) — Apple refuserait ce binaire (ITMS-90111)."
+            exit 1
+          fi
+
+      - name: Exporter et envoyer à App Store Connect
+        if: ${{ inputs.upload }}
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingCertificate</key><string>$SIGNING_IDENTITY</string>
+            <key>provisioningProfiles</key>
+            <dict><key>$BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/PCE.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Conserver l'archive (diagnostic)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcarchive-build-${{ steps.numbers.outputs.build }}
+          path: ${{ runner.temp }}/PCE.xcarchive
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Nettoyage du trousseau
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN:-}" ] && [ -f "$KEYCHAIN" ]; then
+            security delete-keychain "$KEYCHAIN" || true
+          fi
+          rm -f "$HOME/private_keys/"*.p8 || true
